@@ -4,7 +4,6 @@ Utilities for conversion to writer-agnostic Excel representation.
 
 from __future__ import annotations
 
-from collections import defaultdict
 import functools
 import itertools
 import re
@@ -503,23 +502,6 @@ class CSSToExcelConverter:
             raise ValueError(f"Unexpected color {color_string}")
 
 
-def _take_css_columns(
-    css_styles: dict[tuple[int, int], list[tuple[str, Any]]],
-    indexer: np.ndarray,
-) -> defaultdict[tuple[int, int], list[tuple[str, Any]]]:
-    """
-    Re-key positional ``(row, col)`` styles to the column order given by ``indexer``.
-    """
-    new_positions: defaultdict[int, list[int]] = defaultdict(list)
-    for new_col, old_col in enumerate(indexer):
-        new_positions[old_col].append(new_col)
-    result: defaultdict[tuple[int, int], list[tuple[str, Any]]] = defaultdict(list)
-    for (row, old_col), styles in css_styles.items():
-        for new_col in new_positions.get(old_col, []):
-            result[row, new_col] = styles
-    return result
-
-
 class ExcelFormatter:
     """
     Class for formatting a DataFrame to a list of ExcelCells,
@@ -588,8 +570,8 @@ class ExcelFormatter:
             self.styler = None
             self.style_converter = None
         self.df = df
-        self._css_ctx = getattr(self.styler, "ctx", None)
-        self._css_ctx_columns = getattr(self.styler, "ctx_columns", None)
+        # Styler keys styles by column position in the full data
+        self._css_cols = np.arange(len(df.columns))
         if cols is not None:
             # all missing, raise
             if not len(Index(cols).intersection(df.columns)):
@@ -600,14 +582,9 @@ class ExcelFormatter:
                 raise KeyError("Not all names specified in 'columns' are found")
 
             self.df = df.reindex(columns=cols)
-            if self.styler is not None:
-                # Styler keys styles by column position in the full data
-                _, indexer = df.columns.reindex(self.df.columns)
-                if indexer is not None:
-                    self._css_ctx = _take_css_columns(self.styler.ctx, indexer)
-                    self._css_ctx_columns = _take_css_columns(
-                        self.styler.ctx_columns, indexer
-                    )
+            _, indexer = df.columns.reindex(self.df.columns)
+            if indexer is not None:
+                self._css_cols = indexer
 
         self.columns = self.df.columns
         self.float_format = float_format
@@ -681,9 +658,9 @@ class ExcelFormatter:
                     col=coloffset + i + 1,
                     val=values[i],
                     style=None,
-                    css_styles=self._css_ctx_columns,
+                    css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=lnum,
-                    css_col=i,
+                    css_col=self._css_cols[i],
                     css_converter=self.style_converter,
                     mergestart=mergestart,
                     mergeend=mergeend,
@@ -715,9 +692,9 @@ class ExcelFormatter:
                     col=colindex + coloffset,
                     val=colname,
                     style=None,
-                    css_styles=self._css_ctx_columns,
+                    css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=0,
-                    css_col=colindex,
+                    css_col=self._css_cols[colindex],
                     css_converter=self.style_converter,
                 )
 
@@ -897,9 +874,9 @@ class ExcelFormatter:
                     col=colidx + coloffset,
                     val=val,
                     style=None,
-                    css_styles=self._css_ctx,
+                    css_styles=getattr(self.styler, "ctx", None),
                     css_row=i,
-                    css_col=colidx,
+                    css_col=self._css_cols[colidx],
                     css_converter=self.style_converter,
                 )
 
