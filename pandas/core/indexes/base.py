@@ -8237,21 +8237,25 @@ class Index(IndexOpsMixin, PandasObject):
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out: None = None,
-        keepdims: bool = False,
         initial: None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
     ) -> Any:
         """
         Return the sum of the values in the Index.
 
+        NA/null values are excluded by default.
+
         Parameters
         ----------
         axis : {None, 0}
             Unused. Parameter needed for compatibility with numpy.
-        dtype, out, keepdims, initial
+        dtype, out, initial : None
             Not implemented; kept for compatibility with :func:`numpy.sum`,
-            which calls this method. Must be left at their default values.
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
         skipna : bool, default True
             Exclude NA/null values when computing the result.
         min_count : int, default 0
@@ -8288,21 +8292,25 @@ class Index(IndexOpsMixin, PandasObject):
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
         out: None = None,
-        keepdims: bool = False,
         initial: None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
     ) -> Any:
         """
         Return the product of the values in the Index.
 
+        NA/null values are excluded by default.
+
         Parameters
         ----------
         axis : {None, 0}
             Unused. Parameter needed for compatibility with numpy.
-        dtype, out, keepdims, initial
+        dtype, out, initial : None
             Not implemented; kept for compatibility with :func:`numpy.prod`,
-            which calls this method. Must be left at their default values.
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
         skipna : bool, default True
             Exclude NA/null values when computing the result.
         min_count : int, default 0
@@ -8342,13 +8350,17 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the mean of the values in the Index.
 
+        NA/null values are excluded by default.
+
         Parameters
         ----------
         axis : {None, 0}
             Unused. Parameter needed for compatibility with numpy.
-        dtype, out, keepdims
+        dtype, out : None
             Not implemented; kept for compatibility with :func:`numpy.mean`,
-            which calls this method. Must be left at their default values.
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
         skipna : bool, default True
             Exclude NA/null values when computing the result.
 
@@ -8380,6 +8392,8 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> Any:
         """
         Return the median of the values in the Index.
+
+        NA/null values are excluded by default.
 
         Parameters
         ----------
@@ -8428,9 +8442,11 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         axis : {None, 0}
             Unused. Parameter needed for compatibility with numpy.
-        dtype, out, keepdims
+        dtype, out : None
             Not implemented; kept for compatibility with :func:`numpy.std`,
-            which calls this method. Must be left at their default values.
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
         ddof : int, default 1
             Delta Degrees of Freedom. The divisor used in calculations is
             ``N - ddof``, where ``N`` represents the number of elements.
@@ -8477,9 +8493,11 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         axis : {None, 0}
             Unused. Parameter needed for compatibility with numpy.
-        dtype, out, keepdims
+        dtype, out : None
             Not implemented; kept for compatibility with :func:`numpy.var`,
-            which calls this method. Must be left at their default values.
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
         ddof : int, default 1
             Delta Degrees of Freedom. The divisor used in calculations is
             ``N - ddof``, where ``N`` represents the number of elements.

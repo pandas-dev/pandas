@@ -29,8 +29,8 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
-- :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - :class:`Index` now supports the reductions :meth:`~Index.sum`, :meth:`~Index.prod`, :meth:`~Index.mean`, :meth:`~Index.median`, :meth:`~Index.std`, :meth:`~Index.var`, :meth:`~Index.sem`, :meth:`~Index.skew`, and :meth:`~Index.kurt`, matching :class:`Series` (:issue:`50021`)
+- :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
 

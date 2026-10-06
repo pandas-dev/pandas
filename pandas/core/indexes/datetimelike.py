@@ -135,9 +135,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         ----------
         axis : {None, 0}
             Unused. Parameter needed for compatibility with numpy.
-        dtype, out, keepdims
+        dtype, out : None
             Not implemented; kept for compatibility with :func:`numpy.mean`,
-            which calls this method. Must be left at their default values.
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
         skipna : bool, default True
             Whether to ignore any NaT elements.
 
