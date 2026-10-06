@@ -1590,7 +1590,8 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
 
 @pytest.mark.parametrize("method", ["var", "std"])
 def test_float32_var_std_precision(method):
-    # GH#22385 bottleneck's float32 var/std lose precision; runs with it enabled
+    # GH#22385 bottleneck's float32 var/std lose precision
+    assert not nanops._bn_ok_dtype(np.dtype(np.float32).type, f"nan{method}")
     ser = pd.Series(np.full(60_000, 1e6, dtype=np.float32))
     result = getattr(ser, method)()
     assert result == 0.0
