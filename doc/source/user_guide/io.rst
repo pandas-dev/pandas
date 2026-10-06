@@ -1551,7 +1551,7 @@ considerably. This happens automatically when all of the following hold:
 * more than one thread is in use -- see ``mode.max_threads`` below, which
   defaults to ``1`` when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
-  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``parse_dates``,
+  ``iterator``, ``chunksize``, ``nrows``, ``parse_dates``,
   list/callable ``skiprows``, multi-row headers, or non-UTF-8 encodings
 
 Calls that are not eligible fall back to the serial path, and the result is
@@ -4299,8 +4299,9 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 .. note::
 
    Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
-   ``append`` is a no-op: the store is not modified and a ``UserWarning`` is
-   emitted. Use ``format='fixed'`` to store an empty object.
+   ``append`` is a no-op: nothing is written for that key and a ``UserWarning``
+   is emitted, though ``to_hdf(..., mode='w')`` still truncates the file. Use
+   ``format='fixed'`` to store an empty object.
 
 .. _io.hdf5-keys:
 

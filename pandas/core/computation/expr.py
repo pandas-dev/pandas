@@ -438,19 +438,21 @@ class BaseExprVisitor(ast.NodeVisitor):
             left_list, right_list = map(_is_list, (left, right))
             left_str, right_str = map(_is_str, (left, right))
 
-            # if there are any strings or lists in the expression
-            if left_list or right_list or left_str or right_str:
+            # ==/!= against a scalar string stays elementwise, since isin
+            # does not parse strings for datetimelike dtypes (GH#54199)
+            if left_list or right_list:
                 op_instance = self.rewrite_map[op_type]()
 
-            # pop the string variable out of locals and replace it with a list
-            # of one string, kind of a hack
-            if right_str:
-                name = self.env.add_tmp([right.value])
-                right = self.term_type(name, self.env)
+            if isinstance(op_instance, (ast.In, ast.NotIn)):
+                # pop the string variable out of locals and replace it with a
+                # list of one string, kind of a hack
+                if right_str:
+                    name = self.env.add_tmp([right.value])
+                    right = self.term_type(name, self.env)
 
-            if left_str:
-                name = self.env.add_tmp([left.value])
-                left = self.term_type(name, self.env)
+                if left_str:
+                    name = self.env.add_tmp([left.value])
+                    left = self.term_type(name, self.env)
 
         op = self.visit(op_instance)
         return op, op_instance, left, right

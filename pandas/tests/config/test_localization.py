@@ -160,7 +160,11 @@ def test_set_locale(lang, enc):
 )
 def test_encoding_detected():
     system_locale = os.environ.get("LC_ALL")
-    system_encoding = system_locale.split(".")[-1] if system_locale else "utf-8"
+    # "C"/"POSIX" name no encoding; Python enables UTF-8 mode under them (PEP 540)
+    if system_locale and "." in system_locale:
+        system_encoding = system_locale.split(".")[-1]
+    else:
+        system_encoding = "utf-8"
 
     assert (
         codecs.lookup(pd.options.display.encoding).name
