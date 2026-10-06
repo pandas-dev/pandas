@@ -428,7 +428,8 @@ class SAS7BDATReader(SASReader):
         """
         Return the size in bytes of a plain file or BytesIO being read, else None.
 
-        A decompressing handle's size would cost a full decompression.
+        A decompressing handle's fileno is the compressed file's, so its size
+        would undercount.
         """
         handle = self._path_or_buf
         if isinstance(handle, io.BytesIO):
