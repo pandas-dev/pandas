@@ -1433,16 +1433,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if name is None:
             return deepcopy(self.name) if deep else self.name
-        if is_list_like(name) and not is_hashable(name) and len(name) == 1:
-            # GH#19171
-            warnings.warn(
-                f"Passing a list-like 'name' to {type(self).__name__}.copy is "
-                "deprecated and will raise in a future version. Pass the label "
-                "itself instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-            name = next(iter(name))
+        if is_list_like(name) and not is_hashable(name):
+            labels = list(cast("Iterable[Hashable]", name))
+            if len(labels) == 1:
+                # GH#19171
+                warnings.warn(
+                    f"Passing a list-like 'name' to {type(self).__name__}.copy is "
+                    "deprecated and will raise in a future version. Pass the label "
+                    "itself instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                name = labels[0]
         validate_all_hashable(name, error_name=f"{type(self).__name__}.name")
         return name
 
