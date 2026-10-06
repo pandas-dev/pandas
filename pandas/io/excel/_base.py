@@ -1321,7 +1321,8 @@ class ExcelWriter(Generic[_WorkbookT]):
     ) -> None:
         # validate that this engine can handle the extension
         if isinstance(path, str):
-            self.check_extension(os.path.splitext(path)[-1])
+            ext = os.path.splitext(path)[-1]
+            self.check_extension(ext)
         elif is_traversable(path):
             self.check_extension(os.path.splitext(path.name)[-1])
 

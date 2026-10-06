@@ -29,7 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
-- Most I/O functions, such as :func:`read_csv` and :meth:`DataFrame.to_csv`, now accept :class:`zipfile.Path` and other :class:`importlib.resources.abc.Traversable` objects (:issue:`49906`)
+- Most I/O functions, such as :func:`read_csv` and :meth:`DataFrame.to_csv`, now accept :class:`zipfile.Path` and other :class:`importlib.resources.abc.Traversable` objects (:issue:`49906`).
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
 
 .. ---------------------------------------------------------------------------
