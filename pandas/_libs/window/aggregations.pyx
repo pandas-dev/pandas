@@ -492,7 +492,7 @@ cdef inline bint moments_hold_nan(
     float64_t m2, float64_t m3, float64_t m4
 ) noexcept nogil:
     # NaN, e.g. after an overflow, fails every comparison in the cancellation
-    # checks, so without this it is never flushed from the accumulators (GH#70633)
+    # checks, so without this it is never flushed from the accumulators (GH#70638)
     return m2 != m2 or m3 != m3 or m4 != m4
 
 

@@ -263,7 +263,7 @@ def _window_reduction(series, window, roll_func):
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
-    # GH#70633 a window spanning nearly the whole float64 range must not leave
+    # GH#70638 a window spanning nearly the whole float64 range must not leave
     # the accumulators holding NaN, which would blank every later window
     window = 5
     series = pd.Series(
@@ -283,7 +283,7 @@ def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
-    # GH#70633 a 1e90 outlier overflowed kurt's m4, which later updates turned
+    # GH#70638 a 1e90 outlier overflowed kurt's m4, which later updates turned
     # into a NaN that no cancellation check noticed
     window = 20
     rng = np.random.default_rng(4)
