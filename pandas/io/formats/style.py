@@ -4562,6 +4562,9 @@ def _bar(
             return ret
 
     values = data.to_numpy()
+    if values.dtype == object:
+        # pd.NA breaks np.nanmean, callable aligns and cmap, GH#56425
+        values = data.to_numpy(na_value=np.nan).astype(float)
     # A tricky way to address the issue where np.nanmin/np.nanmax fail to handle pd.NA.
     left = np.nanmin(data.min(skipna=True)) if vmin is None else vmin
     right = np.nanmax(data.max(skipna=True)) if vmax is None else vmax
