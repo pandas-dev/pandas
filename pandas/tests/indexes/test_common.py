@@ -171,10 +171,11 @@ class TestCommon:
 
         assert index.copy(name="mario").name == "mario"
 
-        # GH#19171 tuples are valid names, not a list of names
+        # GH#19171 hashable list-likes are valid names, not a list of names
         assert index.copy(name=("mario", "luigi")).name == ("mario", "luigi")
         assert index.copy(name=("mario",)).name == ("mario",)
         assert index.copy(name=("mario",), deep=True).name == ("mario",)
+        assert index.copy(name=frozenset({"mario"})).name == frozenset({"mario"})
 
         msg = "Passing a list-like 'name'"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
