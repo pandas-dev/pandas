@@ -8,6 +8,9 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import nanops
@@ -1937,3 +1940,37 @@ def test_ea_reduction_method_ddof(any_numeric_ea_and_arrow_dtype, op_name, ddof)
 
     tm.assert_almost_equal(getattr(arr, op_name)(ddof=ddof), expected)
     assert pd.isna(getattr(arr, op_name)(skipna=False, ddof=ddof))
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        "Float64",
+        pytest.param(
+            "float64[pyarrow]",
+            marks=pytest.mark.skipif(not HAS_PYARROW, reason="requires pyarrow"),
+        ),
+    ],
+)
+def test_negative_min_count_deprecated(frame_or_series, how, dtype):
+    # GH#50022; pyarrow used to raise OverflowError
+    obj = frame_or_series([2.0, np.nan, 3.0], dtype=dtype)
+    expected = getattr(obj, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(obj, how)(min_count=-1)
+    if frame_or_series is pd.Series:
+        assert result == expected
+    else:
+        tm.assert_series_equal(result, expected)
+
+
+def test_negative_min_count_deprecated_timedelta_index():
+    # GH#50022
+    tdi = pd.to_timedelta([1, 2, 3], unit="D")
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = tdi.sum(min_count=-1)
+    assert result == tdi.sum(min_count=0)

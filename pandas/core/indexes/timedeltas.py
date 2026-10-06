@@ -26,6 +26,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.timedeltas import parse_timedelta_string_reso
 from pandas.util._decorators import set_module
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -600,6 +601,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         >>> tdelta_idx.sum()
         Timedelta('6 days 00:00:00')
         """
+        min_count = validate_min_count(min_count)
         return self._data.sum(
             axis=axis,
             dtype=dtype,
