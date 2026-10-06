@@ -287,6 +287,7 @@ Reshaping
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
 - Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
+- Bug in :func:`merge` and :func:`merge_ordered` where the dtype of a join key column whose left and right dtypes differ could depend on whether every key found a match; for numeric keys, ``how="left"`` and ``how="right"`` now keep the left and right key's dtype respectively and ``how="outer"`` uses the common dtype (:issue:`16480`, :issue:`56454`)
 
 Sparse
 ^^^^^^
