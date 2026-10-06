@@ -316,7 +316,8 @@ cdef extern from "pandas/parser/pd_parser.h":
     void del_rd_source(void *src) nogil
 
     char* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status, const char *encoding_errors)
+                          size_t *bytes_read, int *status,
+                          const char *encoding_errors) nogil
 
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
@@ -371,7 +372,7 @@ cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
 
 cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    size_t *bytes_read, int *status,
-                                   const char *encoding_errors) noexcept:
+                                   const char *encoding_errors) noexcept nogil:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
 cdef void del_rd_source_wrapper(void *src) noexcept nogil:
