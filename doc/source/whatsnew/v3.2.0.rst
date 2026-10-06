@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`MultiIndex.infer_objects` now infers a new dtype for each ``object``-dtype level instead of raising ``NotImplementedError`` (:issue:`30517`)
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
 
@@ -106,6 +107,7 @@ deprecation2
 
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
+- Deprecated :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` inferring a new dtype for object-dtype index levels (e.g. ``int64`` from an object index holding only integers). In a future version the object dtype will be retained, so that :meth:`DataFrame.set_index` followed by :meth:`DataFrame.reset_index` preserves dtypes. Call :meth:`Index.infer_objects` on the index before ``reset_index`` to keep the current behavior (:issue:`30517`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 
