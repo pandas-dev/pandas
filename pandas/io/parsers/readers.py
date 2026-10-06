@@ -90,6 +90,7 @@ from pandas.io.common import (
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    evaluate_callable_usecols,
     is_index_col,
     parser_defaults,
 )
@@ -485,8 +486,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
       tracking absolute line numbers across chunks.
     * ``header`` is a single integer or ``None`` - multi-level headers complicate
       the preamble boundary.
-    * ``usecols`` is ``None`` - column selection changes the mapping between raw
-      column positions and names in non-first chunks.
     * The separator is a single ASCII character or ``r"\\s+"``, and ``quotechar``
       is a single ASCII character - anything else forces the python engine
       inside ``TextFileReader``.
@@ -639,10 +638,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
 
     # skipfooter: the C engine doesn't support it anyway, but be explicit.
     if kwds.get("skipfooter", 0) > 0:
-        return False
-
-    # usecols changes the column name ↔ position mapping in non-first chunks.
-    if kwds.get("usecols") is not None:
         return False
 
     # Only bother for files large enough to amortise the threading overhead.
@@ -809,9 +804,9 @@ def _read_csv_parallel(
     Returns ``None`` when parallel reading turns out not to be applicable
     after all (the data section cannot be split, the engine falls back to
     python, the one-line sample used to infer column names has no columns,
-    per-chunk dtype inference disagrees in a way that would not match the
-    serial result, or any chunk fails to parse); the caller then reads
-    serially.
+    ``usecols`` selects different columns in different chunks, per-chunk
+    dtype inference disagrees in a way that would not match the serial
+    result, or any chunk fails to parse); the caller then reads serially.
     """
     warning_sink: list[tuple[str, type[Warning]]] = []
     try:
@@ -903,6 +898,8 @@ def _read_csv_chunks(
         "converters": None,
         "dtype_backend": lib.no_default,
         "index_col": parse_index_col,
+        # The workers apply usecols themselves, so they need every column's name.
+        "usecols": None,
     }
     try:
         name_reader = TextFileReader(name_buf, **name_kwds)
@@ -917,8 +914,12 @@ def _read_csv_chunks(
         # eligibility checks did not anticipate; load_buffer needs the C engine.
         name_reader.close()
         return None
-    name_reader._engine._warning_sink = warning_sink
-    name_reader._engine._reader.warning_sink = warning_sink
+    # This read ignores usecols, so it can warn about dropped columns or about
+    # header/data length, which serial skips under usecols; chunk 0's worker
+    # re-reads its data line with usecols applied.
+    name_sink = warning_sink if kwds.get("usecols") is None else []
+    name_reader._engine._warning_sink = name_sink
+    name_reader._engine._reader.warning_sink = name_sink
     if name_reader._engine._reader.leading_cols:
         # Data rows have more fields than the header (implicit index).  The
         # chunk workers would fail on the extra field; bail out up front.
@@ -956,7 +957,13 @@ def _read_csv_chunks(
         if not all(is_integer(pos) for pos in index_engine.index_col):
             # an index_col name matching no column; the serial read raises
             return None
-        index_positions = [int(pos) % len(col_names) for pos in index_engine.index_col]
+        # positions count only the columns usecols keeps, as the workers return
+        assert index_engine.orig_names is not None
+        n_cols = len(index_engine.orig_names)
+        if not n_cols:
+            # usecols kept no columns; let the serial read raise
+            return None
+        index_positions = [int(pos) % n_cols for pos in index_engine.index_col]
         if len(set(index_positions)) != len(index_positions):
             # serial _make_index pops a different column for a repeat, e.g.
             # index_col=[0, 0]
@@ -995,10 +1002,20 @@ def _read_csv_chunks(
     # the file: a 128 MB file gets the same split as one just over the size
     # gate.  Raise it to follow the bytes, bounded by the piece budget and by
     # the row floor, since a file can be byte-rich and row-poor.  Only ever
-    # raised, so no file comes out coarser than before.
+    # raised, so no file comes out coarser than before.  The budget counts
+    # only the columns usecols keeps: the dropped ones are never converted.
+    n_used = len(col_names)
+    if kwds.get("usecols") is not None:
+        try:
+            used = set(evaluate_callable_usecols(kwds["usecols"], col_names))
+        except TypeError:
+            # e.g. unhashable entries; the chunks fail and the serial read raises
+            pass
+        else:
+            n_used = min(n_used, len(used))
     size_target = min(
         data_size // _PARALLEL_CHUNK_BYTES,
-        _PARALLEL_MAX_COLUMN_PIECES // max(len(col_names), 1),
+        _PARALLEL_MAX_COLUMN_PIECES // max(n_used, 1),
         est_rows // _PARALLEL_MIN_CHUNK_ROWS,
     )
     # A count that is not a multiple of the worker count spends its last round
@@ -1171,6 +1188,14 @@ def _read_csv_chunks(
             columns = list(chunk_results[0][0])
             chunk_dicts = [col_dict for _, col_dict in chunk_results]
             col_list = list(chunk_dicts[0])
+            # Under usecols, chunk arrays can disagree with their labels or
+            # across chunks; see test_usecols_past_header_returns_none and
+            # test_parallel_usecols_short_names_falls_back.
+            if len(columns) != len(col_list) or any(
+                list(chunk_columns) != columns or list(col_dict) != col_list
+                for chunk_columns, col_dict in chunk_results[1:]
+            ):
+                return None
             if col_list:
                 total = sum(len(chunk_dict[col_list[0]]) for chunk_dict in chunk_dicts)
 
