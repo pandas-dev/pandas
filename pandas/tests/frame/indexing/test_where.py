@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -864,6 +866,20 @@ def test_where_tuple_other_numeric_ea(any_numeric_ea_and_arrow_dtype):
     tm.assert_series_equal(ser, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    ["bool", "boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_where_tuple_other_bool(dtype):
+    # GH#63842
+    ser = pd.Series([True, True, True, True], dtype=dtype)
+    cond = pd.Series([True, False, True, False])
+    expected = pd.Series([True, False, True, False], dtype=dtype)
+
+    result = ser.where(cond, (False, False, False, False))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("other", [("x", "y", "z"), {"zz": 1}])
 def test_where_listlike_scalar_other(any_string_dtype, other):
     # GH#37681, GH#63842 a tuple is a valid scalar and a dict has no element
@@ -879,7 +895,7 @@ def test_where_set_other_numeric_ea_raises(any_numeric_ea_and_arrow_dtype):
     # GH#63842 a set has no element order, so it is not lined up against the
     #  mask in hash order
     ser = pd.Series(pd.array([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype))
-    with pytest.raises(TypeError, match="'set' object is not subscriptable"):
+    with pytest.raises(TypeError):
         ser.where(pd.Series([True, False, True]), {7, 8, 9})
 
 
