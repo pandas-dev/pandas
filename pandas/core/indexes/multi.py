@@ -4747,8 +4747,12 @@ class MultiIndex(Index):
             ):
                 try:
                     other = MultiIndex.from_tuples(other, names=self.names)
-                except (ValueError, TypeError):
-                    pass
+                except (ValueError, TypeError) as err:
+                    # wrong-length tuples raise rather than becoming flat labels
+                    if all(isinstance(entry, tuple) for entry in other):
+                        raise TypeError(
+                            "other must be a MultiIndex or a list of tuples"
+                        ) from err
                 else:
                     return other, self.names
             # entries are not all tuples; treat them as flat labels, matching

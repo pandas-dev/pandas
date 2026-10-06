@@ -3773,8 +3773,10 @@ class Index(IndexOpsMixin, PandasObject):
                 # result might be an Index, if other was an Index
                 return left_diff.remove_unused_levels().set_names(result_name)
             if not isinstance(result, ABCMultiIndex):
-                # other held non-tuple labels, so the result is flat, as in union
-                return Index(result, name=None)
+                # other held non-tuple labels, so the result is flat, as in union;
+                #  per-level names do not apply to it
+                name = None if is_list_like(result_name) else result_name
+                return Index(result, name=name)
             return result.set_names(result_name)
 
     @final
