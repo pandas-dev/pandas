@@ -403,7 +403,7 @@ def test_hide_raises(mi_styler):
         mi_styler.hide(axis="index", level=2)
 
 
-@pytest.mark.parametrize("level", [1, -1, np.int64(1), "one", [1], [-1], ["one"]])
+@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
 def test_hide_index_level(mi_styler, level):
     mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
     ctx = mi_styler.hide(axis="index", level=level)._translate(False, True)
@@ -472,6 +472,14 @@ def test_level_number_spellings(mi_df, method, level):
     mi_df.index.names = ["zero", "one"]
     expected = method(Styler(mi_df, uuid_len=0), [1]).to_html()
     result = method(Styler(mi_df, uuid_len=0), level).to_html()
+    assert result == expected
+
+
+@pytest.mark.parametrize("levels", [0, np.int64(0)])
+def test_set_sticky_level_zero(mi_df, levels):
+    # GH#42933
+    expected = Styler(mi_df, uuid_len=0).set_sticky(axis=0, levels=[0]).to_html()
+    result = Styler(mi_df, uuid_len=0).set_sticky(axis=0, levels=levels).to_html()
     assert result == expected
 
 
