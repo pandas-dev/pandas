@@ -185,6 +185,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
+- Bug in :meth:`MultiIndex.append`, :func:`concat`, :meth:`DataFrame.join` and :func:`merge` emitting a spurious ``RuntimeWarning`` when :class:`MultiIndex` level values could not be sorted (:issue:`61477`)
 -
 
 I/O
