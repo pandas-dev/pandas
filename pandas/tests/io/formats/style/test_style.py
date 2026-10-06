@@ -894,6 +894,62 @@ class TestStyler:
         expected = [("a", ""), ("c", "")]
         assert maybe_convert_css_to_tuples("a:;c: ") == expected
 
+    @pytest.mark.parametrize(
+        "css, expected",
+        [
+            (
+                "background-image: url('data:image/png;base64,iVBORw0=');",
+                [("background-image", "url('data:image/png;base64,iVBORw0=')")],
+            ),
+            (
+                'background: url("data:image/svg+xml;utf8,<svg></svg>"); color: red',
+                [
+                    ("background", 'url("data:image/svg+xml;utf8,<svg></svg>")'),
+                    ("color", "red"),
+                ],
+            ),
+            (
+                "background-image: url(data:image/gif;base64,R0lGOD==);a:b",
+                [
+                    ("background-image", "url(data:image/gif;base64,R0lGOD==)"),
+                    ("a", "b"),
+                ],
+            ),
+            (
+                "content: 'a;b'; font-family: \"x;y\", serif",
+                [("content", "'a;b'"), ("font-family", '"x;y", serif')],
+            ),
+            (
+                "content: 'it\\'s;fine'; a: b",
+                [("content", "'it\\'s;fine'"), ("a", "b")],
+            ),
+        ],
+    )
+    def test_maybe_convert_css_to_tuples_semicolon_in_value(self, css, expected):
+        # GH#59623
+        assert maybe_convert_css_to_tuples(css) == expected
+
+    def test_map_css_data_url_with_semicolon(self, df):
+        # GH#59623
+        css = "background-image: url('data:image/png;base64,iVBORw0='); color: red"
+        result = df.style.map(lambda x: css).to_html()
+        assert "background-image: url('data:image/png;base64,iVBORw0=');" in result
+        assert "color: red;" in result
+
+    def test_set_table_styles_data_url_with_semicolon(self, df):
+        # GH#59623
+        props = "background-image: url('data:image/png;base64,iVBORw0='); color: red"
+        styler = df.style.set_table_styles([{"selector": "td", "props": props}])
+        assert styler.table_styles == [
+            {
+                "selector": "td",
+                "props": [
+                    ("background-image", "url('data:image/png;base64,iVBORw0=')"),
+                    ("color", "red"),
+                ],
+            }
+        ]
+
     def test_maybe_convert_css_to_tuples_err(self):
         msg = (
             "Styles supplied as string must follow CSS rule formats, "

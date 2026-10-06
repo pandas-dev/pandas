@@ -2131,14 +2131,52 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
             )
-        s = style.split(";")
-        return [
-            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
-            for x in s
-            if x.strip() != ""
-        ]
+        declarations = (
+            decl.partition(":")
+            for decl in _split_css_declarations(style)
+            if decl.strip() != ""
+        )
+        return [(prop.strip(), value.strip()) for prop, _, value in declarations]
 
     return style
+
+
+def _split_css_declarations(style: str) -> list[str]:
+    """
+    Split a CSS declaration string on ``;``, ignoring separators that appear
+    inside quoted strings or parentheses.
+
+    This keeps values such as ``url("data:image/png;base64,...")`` intact.
+
+    Examples
+    --------
+    >>> _split_css_declarations("a: b; c: url('x;y')")
+    ['a: b', " c: url('x;y')"]
+    """
+    declarations = []
+    start = 0
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for i, char in enumerate(style):
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif quote is not None:
+            if char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+        elif char == ";" and depth == 0:
+            declarations.append(style[start:i])
+            start = i + 1
+    declarations.append(style[start:])
+    return declarations
 
 
 def refactor_levels(
