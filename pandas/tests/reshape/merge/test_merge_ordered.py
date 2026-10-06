@@ -232,3 +232,12 @@ class TestMergeOrdered:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("right_keys", [[1, 2], [1, 3]])
+def test_merge_ordered_numeric_keys_different_dtypes(right_keys):
+    # GH#16480 an outer join uses the common key dtype whether or not keys match
+    left = pd.DataFrame({"key": pd.array([1, 2], dtype="int32"), "a": [1, 2]})
+    right = pd.DataFrame({"key": pd.array(right_keys, dtype="int64"), "b": [3, 4]})
+    result = pd.merge_ordered(left, right, on="key")
+    assert result["key"].dtype == "int64"

@@ -2939,14 +2939,187 @@ def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
     left = pd.DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
     right = pd.DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype.lower())
     result = left.merge(right, how=join_type)
+    # GH#16480 a right join keeps the right key's dtype
+    key_dtype = (
+        any_numeric_ea_dtype.lower() if join_type == "right" else any_numeric_ea_dtype
+    )
     expected = pd.DataFrame(
         {
-            "a": pd.Series([1, 2, 3], dtype=any_numeric_ea_dtype),
+            "a": pd.Series([1, 2, 3], dtype=key_dtype),
             "b": pd.Series([1, 1, 1], dtype=any_numeric_ea_dtype),
             "c": pd.Series([2, 2, 2], dtype=any_numeric_ea_dtype.lower()),
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "how", ["left", "right", "inner", "outer", "left_anti", "right_anti"]
+)
+@pytest.mark.parametrize("right_keys", [[1, 2], [1, 3], []])
+@pytest.mark.parametrize(
+    "left_dtype, right_dtype, common_dtype",
+    [
+        ("int32", "int64", "int64"),
+        ("int64", "int32", "int64"),
+        ("uint64", "int64", "float64"),
+        ("int64", "float64", "float64"),
+        ("Int32", "int64", "Int64"),
+        ("int64", "int32[pyarrow]", "int64[pyarrow]"),
+    ],
+)
+def test_merge_numeric_keys_different_dtypes(
+    left_dtype, right_dtype, common_dtype, right_keys, how
+):
+    # GH#16480 the key dtype depends on the join type, not on which keys match
+    if right_dtype.endswith("[pyarrow]"):
+        pytest.importorskip("pyarrow")
+    left = pd.DataFrame({"key": pd.array([1, 2], dtype=left_dtype), "a": [1, 2]})
+    right = pd.DataFrame(
+        {"key": pd.array(right_keys, dtype=right_dtype), "b": range(len(right_keys))}
+    )
+    result = merge(left, right, on="key", how=how)
+
+    key_dtype = {
+        "left": left_dtype,
+        "inner": left_dtype,
+        "left_anti": left_dtype,
+        "right": right_dtype,
+        "right_anti": right_dtype,
+        "outer": common_dtype,
+    }[how]
+    expected = merge(
+        left.astype({"key": key_dtype}),
+        right.astype({"key": key_dtype}),
+        on="key",
+        how=how,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("right_keys", [[1, 2], [1, 3]])
+def test_merge_numeric_keys_different_dtypes_index_and_column(right_keys, join_type):
+    # GH#16480 the rule also applies when one side's key is its index
+    left = pd.DataFrame({"key": pd.array([1, 2], dtype="int32"), "a": [1, 2]})
+    right = pd.DataFrame({"key": pd.array(right_keys, dtype="int64"), "b": [3, 4]})
+    key_dtype = {
+        "left": "int32",
+        "inner": "int32",
+        "right": "int64",
+        "outer": "int64",
+    }[join_type]
+
+    result = left.merge(
+        right.set_index("key"), left_on="key", right_index=True, how=join_type
+    )
+    expected = left.astype({"key": key_dtype}).merge(
+        right.astype({"key": key_dtype}).set_index("key"),
+        left_on="key",
+        right_index=True,
+        how=join_type,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # an inner join keeps the dtype of the key column, here the right one
+    if join_type == "inner":
+        key_dtype = "int64"
+    result = left.set_index("key").merge(
+        right, left_index=True, right_on="key", how=join_type
+    )
+    expected = (
+        left.astype({"key": key_dtype})
+        .set_index("key")
+        .merge(
+            right.astype({"key": key_dtype}),
+            left_index=True,
+            right_on="key",
+            how=join_type,
+        )
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_numeric_keys_different_dtypes_multiple_keys(join_type):
+    # GH#16480 the rule applies per key
+    left = pd.DataFrame(
+        {"k1": pd.array([1, 2], dtype="int32"), "k2": ["x", "y"], "a": [1, 2]}
+    )
+    right = pd.DataFrame({"k1": [1, 2], "k2": ["x", "y"], "b": [3, 4]})
+    result = merge(left, right, on=["k1", "k2"], how=join_type)
+    key_dtype = "int64" if join_type in ["right", "outer"] else "int32"
+    expected = merge(
+        left.astype({"k1": key_dtype}),
+        right.astype({"k1": key_dtype}),
+        on=["k1", "k2"],
+        how=join_type,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_numeric_keys_index_levels_unchanged():
+    # GH#16480 keys that are index levels on both sides keep the joined index
+    left = pd.DataFrame({"key": np.array([1, 2], dtype="uint64"), "a": [1, 2]})
+    right = pd.DataFrame({"key": np.array([1, 2], dtype="int64"), "b": [3, 4]})
+    result = left.set_index("key").merge(right.set_index("key"), on="key", how="right")
+    assert result.index.dtype == "uint64"
+
+
+@pytest.mark.parametrize("how", ["left_anti", "right_anti"])
+def test_merge_anti_every_key_matches_datetime_keys(how):
+    # GH#16480 an empty anti join keeps its own side's key dtype, as when some
+    #  keys are unmatched
+    left = pd.DataFrame(
+        {"key": pd.date_range("2020", periods=2, unit="s", tz="UTC"), "a": [1, 2]}
+    )
+    right = pd.DataFrame(
+        {"key": left["key"].dt.tz_convert("US/Eastern").dt.as_unit("ns"), "b": [3, 4]}
+    )
+    result = merge(left, right, on="key", how=how)
+    expected = left if how == "left_anti" else right
+    assert len(result) == 0
+    assert result["key"].dtype == expected["key"].dtype
+
+
+@pytest.mark.parametrize(
+    "dtypes", [("int32", "int64"), ("int64", "int32"), ("Int32", "Int64")]
+)
+@pytest.mark.parametrize("how", ["left", "right", "outer"])
+def test_merge_numeric_keys_different_dtypes_no_shared_memory(dtypes, how):
+    # GH#16480 setting values in the key column doesn't modify the inputs
+    left = pd.DataFrame({"key": pd.array([1, 2], dtype=dtypes[0]), "a": [1, 2]})
+    right = pd.DataFrame({"key": pd.array([1, 2], dtype=dtypes[1]), "b": [3, 4]})
+    left_orig, right_orig = left.copy(), right.copy()
+
+    result = merge(left, right, on="key", how=how)
+    result.loc[0, "key"] = 100
+    result = left.set_index("key").merge(
+        right, left_index=True, right_on="key", how=how
+    )
+    result.iloc[0, result.columns.get_loc("key")] = 100
+
+    tm.assert_frame_equal(left, left_orig)
+    tm.assert_frame_equal(right, right_orig)
+
+
+def test_merge_numeric_keys_coerced_to_object(join_type):
+    # GH#16480 keys that merge casts to object stay object for every join type
+    pytest.importorskip("pyarrow")
+    left = pd.DataFrame({"key": pd.array([1, 2], dtype="Int64"), "a": [1, 2]})
+    right = pd.DataFrame(
+        {"key": pd.array([1.0, 2.0], dtype="double[pyarrow]"), "b": [3, 4]}
+    )
+    result = merge(left, right, on="key", how=join_type)
+    assert result["key"].dtype == object
+
+
+def test_merge_outer_numeric_keys_object_common_dtype():
+    # GH#16480 with no common numeric dtype, an outer join where every key
+    #  matches keeps the left key's dtype rather than object
+    pytest.importorskip("pyarrow")
+    left = pd.DataFrame({"key": pd.array([1, 2], dtype="int64[pyarrow]"), "a": [1, 2]})
+    right = pd.DataFrame({"key": pd.array([1, 2], dtype="Int64"), "b": [3, 4]})
+    result = merge(left, right, on="key", how="outer")
+    assert result["key"].dtype == "int64[pyarrow]"
 
 
 @pytest.mark.parametrize("dtype", ["int64", "int64[pyarrow]"])
@@ -3000,6 +3173,66 @@ def test_merge_datetime_different_resolution(
 
     result = df1.merge(df2, on="t", how=join_type)
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_different_resolution_matching_keys(join_type):
+    # GH#16480 the resolution upcast also applies when every key matches
+    left = pd.DataFrame(
+        {"t": pd.date_range("2023-05-12", periods=2, unit="s"), "a": [1, 2]}
+    )
+    right = pd.DataFrame({"t": left["t"].dt.as_unit("ns"), "b": [3, 4]})
+    result = left.merge(right, on="t", how=join_type)
+    expected = pd.DataFrame({"t": right["t"], "a": [1, 2], "b": [3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+    # the finer key is used as is; writing to the result doesn't modify it
+    right_orig = right.copy()
+    result = right.merge(left, on="t", how=join_type)
+    result.loc[0, "t"] = pd.Timestamp("1999-01-01")
+    tm.assert_frame_equal(right, right_orig)
+
+
+@pytest.mark.parametrize("how", ["left", "left_anti", "right_anti"])
+def test_merge_datetime_different_resolution_no_shared_memory(how):
+    # GH#16480 writing to the key column doesn't modify the inputs
+    times = pd.date_range("2020-01-01", periods=2, unit="ns")
+    coarse = times.as_unit("us").rename("t")
+    if how == "left":
+        left = pd.DataFrame({"t": times, "a": [1, 2]})
+        right = pd.DataFrame({"b": [3, 4]}, index=coarse)
+        kwargs = {"left_on": "t", "right_index": True, "sort": True}
+    elif how == "left_anti":
+        left = pd.DataFrame({"t": times, "a": [1, 2]})
+        right = pd.DataFrame({"t": coarse + pd.Timedelta(days=10), "b": [3, 4]})
+        kwargs = {"on": "t"}
+    else:
+        left = pd.DataFrame({"a": [1, 2]}, index=coarse)
+        right = pd.DataFrame({"t": times + pd.Timedelta(days=10), "b": [3, 4]})
+        kwargs = {"left_index": True, "right_on": "t"}
+    left_orig, right_orig = left.copy(), right.copy()
+
+    result = merge(left, right, how=how, **kwargs)
+    result.iloc[0, result.columns.get_loc("t")] = pd.Timestamp("1999-01-01")
+
+    tm.assert_frame_equal(left, left_orig)
+    tm.assert_frame_equal(right, right_orig)
+
+
+@pytest.mark.parametrize("tz", [None, "US/Eastern"])
+def test_merge_datetime_different_resolution_empty_result(tz):
+    # GH#16480 the key dtype doesn't depend on whether any keys match
+    left = pd.DataFrame(
+        {"t": pd.date_range("2023-05-12", periods=2, unit="ns", tz=tz), "a": [1, 2]}
+    )
+    right = pd.DataFrame({"t": left["t"].dt.as_unit("s"), "b": [3, 4]})
+    if tz is not None:
+        right["t"] = right["t"].dt.tz_convert("UTC")
+    no_match = right.assign(t=right["t"] + pd.Timedelta(days=10))
+
+    expected = left.merge(right, on="t")["t"].dtype
+    result = left.merge(no_match, on="t")
+    assert len(result) == 0
+    assert result["t"].dtype == expected
 
 
 def test_merge_datetime_different_tz_preserves_dtype(join_type):

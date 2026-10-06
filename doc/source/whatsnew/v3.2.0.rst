@@ -199,7 +199,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :func:`merge` and :func:`merge_ordered` where the dtype of a join key column whose left and right dtypes differ could depend on whether every key found a match; for numeric keys, ``how="left"`` and ``how="right"`` now keep the left and right key's dtype respectively and ``how="outer"`` uses the common dtype (:issue:`16480`, :issue:`56454`)
 -
 
 Sparse
