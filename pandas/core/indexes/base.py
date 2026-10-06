@@ -1433,7 +1433,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if name is None:
             return deepcopy(self.name) if deep else self.name
-        if is_list_like(name) and not isinstance(name, tuple) and len(name) == 1:
+        if is_list_like(name) and not is_hashable(name) and len(name) == 1:
             # GH#19171
             warnings.warn(
                 f"Passing a list-like 'name' to {type(self).__name__}.copy is "
