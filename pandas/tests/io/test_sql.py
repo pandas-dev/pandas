@@ -3952,7 +3952,9 @@ def test_read_sql_pyarrow_date_time(monkeypatch, func, chunksize):
         UNION ALL SELECT '2024-02-02', '01:15:00'
         UNION ALL SELECT NULL, NULL
     """
-    with sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_COLNAMES) as conn:
+    with contextlib.closing(
+        sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_COLNAMES)
+    ) as conn:
         result = getattr(pd, func)(
             query, conn, dtype_backend="pyarrow", chunksize=chunksize
         )
@@ -4009,7 +4011,9 @@ def test_read_sql_pyarrow_date_time_parse_dates(
     warning = (
         UserWarning if isinstance(parse_dates, list) and chunksize is None else None
     )
-    with sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_COLNAMES) as conn:
+    with contextlib.closing(
+        sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_COLNAMES)
+    ) as conn:
         with tm.assert_produces_warning(warning, match="Could not infer format"):
             result = getattr(pd, func)(
                 query,
