@@ -402,7 +402,7 @@ def _get_filepath_or_buffer(
 
             path = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
             filepath_or_buffer = urllib.request.url2pathname(path)
-        elif is_url(filepath_or_buffer):
+        elif parsed.scheme in _URLLIB_SCHEMES:
             # GH#55828 the urlopen branch below would silently discard the write
             raise ValueError(f"Cannot write to URL: {filepath_or_buffer}")
 
