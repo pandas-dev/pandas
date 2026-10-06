@@ -19,6 +19,9 @@ from __future__ import annotations
 import codecs
 from datetime import datetime
 import functools
+import io
+import os
+import stat
 import sys
 from typing import TYPE_CHECKING
 import warnings
@@ -354,6 +357,7 @@ class SAS7BDATReader(SASReader):
             self._get_properties()
             self._parse_metadata()
             self._validate_column_data_ranges()
+            self._max_rows = self._max_rows_in_file()
         except Exception:
             self.close()
             raise
@@ -408,6 +412,39 @@ class SAS7BDATReader(SASReader):
                     f"Column {index} spans bytes {offset}-{offset + length} of a "
                     f"{self.row_length}-byte row; the file is corrupt"
                 )
+
+    def _max_rows_in_file(self) -> int | None:
+        # Every row takes at least row_length bytes, or a subheader pointer when
+        # the rows are compressed, so the file size bounds how many it holds.
+        size = self._input_size()
+        if size is None:
+            return None
+        min_row_bytes = self.row_length
+        if self.compression:
+            min_row_bytes = min(min_row_bytes, self._subheader_pointer_length)
+        return size // max(min_row_bytes, 1)
+
+    def _input_size(self) -> int | None:
+        """
+        Return the size in bytes of a plain file or BytesIO being read, else None.
+
+        A decompressing handle's size would cost a full decompression.
+        """
+        handle = self._path_or_buf
+        if isinstance(handle, io.BytesIO):
+            with handle.getbuffer() as buf:
+                return buf.nbytes
+        # a tar member is a BufferedReader too, over a raw stream with no fileno
+        raw = (
+            handle.raw
+            if isinstance(handle, io.BufferedRandom | io.BufferedReader)
+            else handle
+        )
+        if isinstance(raw, io.FileIO):
+            st = os.fstat(raw.fileno())
+            if stat.S_ISREG(st.st_mode):
+                return st.st_size
+        return None
 
     def column_data_lengths(self) -> np.ndarray:
         """Return a numpy int64 array of the column data lengths"""
@@ -881,6 +918,18 @@ class SAS7BDATReader(SASReader):
             return DataFrame()
 
         nrows = min(nrows, self.row_count - self._current_row_in_file_index)
+        # The buffers below are sized before any row is read, so a corrupt
+        #  row_count could exhaust memory. Checked per read rather than at open
+        #  so that the chunks a truncated file does hold stay readable.
+        if (
+            self._max_rows is not None
+            and self._current_row_in_file_index + nrows > self._max_rows
+        ):
+            self.close()
+            raise ValueError(
+                f"The file claims {self.row_count} rows but can hold at most "
+                f"{self._max_rows}; the file is corrupt"
+            )
 
         nd = self._column_types.count(b"d")
         ns = self._column_types.count(b"s")
