@@ -1080,27 +1080,17 @@ class TestMerge:
         # Check if working name in df
         df1, _ = dfs_for_indicator
 
-        for i in ["_right_indicator", "_left_indicator", "_merge"]:
-            df_badcolumn = pd.DataFrame({"col1": [1, 2], i: [2, 2]})
+        df_badcolumn = pd.DataFrame({"col1": [1, 2], "_merge": [2, 2]})
 
-            msg = "|".join(
-                [
-                    (
-                        "Cannot use `indicator=True` option when data contains a "
-                        f"column named {i}"
-                    ),
-                    "Cannot use name of an existing column for indicator column",
-                ]
-            )
-            with pytest.raises(ValueError, match=msg):
-                merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
-            with pytest.raises(ValueError, match=msg):
-                df1.merge(df_badcolumn, on="col1", how="outer", indicator=True)
+        msg = "Cannot use name of an existing column for indicator column"
+        with pytest.raises(ValueError, match=msg):
+            merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
+        with pytest.raises(ValueError, match=msg):
+            df1.merge(df_badcolumn, on="col1", how="outer", indicator=True)
 
         # Check for name conflict with custom name
         df_badcolumn = pd.DataFrame({"col1": [1, 2], "custom_column_name": [2, 2]})
 
-        msg = "Cannot use name of an existing column for indicator column"
         with pytest.raises(ValueError, match=msg):
             merge(
                 df1,
@@ -2645,6 +2635,103 @@ def test_merge_multiindex_columns():
     expected = pd.DataFrame(columns=expected_index)
 
     tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("indicator", [True, "ind"])
+def test_merge_indicator_multiindex_columns(indicator):
+    # GH#49325
+    left = pd.DataFrame({("one", "A"): ["a", "b"], ("one", "B"): [1, 2]})
+    right = pd.DataFrame({("two", "A"): ["b", "c"], ("two", "B"): [3, 4]})
+    with tm.assert_produces_warning(None):
+        result = merge(
+            left,
+            right,
+            how="outer",
+            left_on=[("one", "A")],
+            right_on=[("two", "A")],
+            indicator=indicator,
+        )
+
+    name = "_merge" if indicator is True else indicator
+    expected = pd.DataFrame(
+        {
+            ("one", "A"): ["a", "b", "c"],
+            ("one", "B"): [1, 2, np.nan],
+            ("two", "A"): [np.nan, "b", "c"],
+            ("two", "B"): [np.nan, 3, 4],
+            (name, ""): pd.Categorical(
+                ["left_only", "both", "right_only"],
+                categories=["left_only", "right_only", "both"],
+            ),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("col", ["_left_indicator", "_right_indicator"])
+def test_merge_indicator_former_internal_names(col):
+    # GH#49325
+    left = pd.DataFrame({"key": [1, 2], col: [5, 6]})
+    right = pd.DataFrame({"key": [2, 3]})
+    result = merge(left, right, on="key", how="outer", indicator=True)
+    expected = pd.DataFrame(
+        {
+            "key": [1, 2, 3],
+            col: [5, 6, np.nan],
+            "_merge": pd.Categorical(
+                ["left_only", "both", "right_only"],
+                categories=["left_only", "right_only", "both"],
+            ),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "how, expected_ind",
+    [
+        ("left_anti", ["left_only"]),
+        ("right_anti", ["right_only"]),
+        ("cross", ["both"] * 4),
+    ],
+)
+def test_merge_indicator_anti_and_cross(how, expected_ind):
+    # GH#49325
+    left = pd.DataFrame({"key": [1, 2]})
+    right = pd.DataFrame({"key": [2, 3]})
+    kwargs = {} if how == "cross" else {"on": "key"}
+    result = merge(left, right, how=how, indicator=True, **kwargs)
+    expected = pd.Categorical(
+        expected_ind, categories=["left_only", "right_only", "both"]
+    )
+    tm.assert_categorical_equal(result["_merge"].array, expected)
+
+
+@pytest.mark.parametrize(
+    "how, expected_ind",
+    [
+        ("left", ["left_only", "both"]),
+        ("outer", ["left_only", "both", "right_only"]),
+    ],
+)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"left_index": True, "right_index": True},
+        {"left_on": "key", "right_index": True},
+    ],
+)
+def test_merge_indicator_index_join(how, expected_ind, kwargs):
+    # GH#49325 index-based joins can return None for an indexer
+    left = pd.DataFrame({"key": [1, 2], "a": [10, 20]})
+    if "left_index" in kwargs:
+        left = left.set_index("key")
+    right = pd.DataFrame({"b": [30, 40]}, index=pd.Index([2, 3], name="key"))
+    result = merge(left, right, how=how, indicator=True, **kwargs)
+    expected = pd.Categorical(
+        expected_ind, categories=["left_only", "right_only", "both"]
+    )
+    tm.assert_categorical_equal(result["_merge"].array, expected)
 
 
 def test_merge_datetime_upcast_dtype():
