@@ -185,10 +185,9 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
--
-- :meth:`MultiIndex.intersection`, :meth:`MultiIndex.union`, :meth:`MultiIndex.difference` and :meth:`MultiIndex.symmetric_difference` now raise ``TypeError`` for a list-like operand holding string or bytes-like entries, which were previously split into their elements and treated as a tuple of levels (:issue:`39699`)
 - Bug in :meth:`MultiIndex.intersection`, :meth:`MultiIndex.union`, :meth:`MultiIndex.difference` and :meth:`MultiIndex.symmetric_difference` with a list-like ``other`` holding non-tuple entries raising ``TypeError`` or splitting a string entry into level values; such entries are now treated like an :class:`Index` ``other`` (:issue:`39699`)
 - Bug in :meth:`MultiIndex.symmetric_difference` raising ``ValueError`` when ``other`` holds non-tuple entries (:issue:`39699`)
+-
 
 I/O
 ^^^
