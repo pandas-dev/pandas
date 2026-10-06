@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 import inspect
 import re
 from typing import (
@@ -49,9 +48,11 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
+    is_dict_like,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     is_string_dtype,
 )
@@ -120,6 +121,7 @@ if TYPE_CHECKING:
         Callable,
         Generator,
         Iterable,
+        Sequence,
     )
 
     from pandas._typing import (
@@ -1824,12 +1826,15 @@ class EABackedBlock(Block):
         if (
             # TODO: 2D (datetimelike) blocks are not aligned
             self.values.ndim == 2
-            or isinstance(arg, (np.ndarray, ExtensionArray, tuple))
+            or isinstance(arg, (np.ndarray, ExtensionArray))
+            or (isinstance(arg, tuple) and not is_numeric_dtype(self.dtype))
             or not is_list_like(arg)
-            or not isinstance(arg, Sequence)
+            or is_dict_like(arg)
+            or isinstance(arg, (set, frozenset))
         ):
-            # A dict or set has no element order to line up against the mask,
-            #  and object dtype holds a tuple as a scalar (GH#37681).
+            # A dict or set has no element order to line up against the mask.
+            #  Outside numeric dtypes a tuple is one element, as for object
+            #  dtype: e.g. a tuple category (GH#37681).
             return arg
 
         nrows = self.shape[-1]

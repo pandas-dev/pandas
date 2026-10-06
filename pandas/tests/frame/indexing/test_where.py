@@ -860,6 +860,21 @@ def test_where_listlike_other_range(frame_or_series):
     tm.assert_equal(result, frame_or_series(pd.array([1, 10, 3, 12], dtype="Int64")))
 
 
+def test_where_tuple_other_numeric_ea(any_numeric_ea_and_arrow_dtype):
+    # GH#63842 for numeric dtypes a tuple is lined up against the mask, as for
+    #  numpy dtypes
+    dtype = any_numeric_ea_and_arrow_dtype
+    ser = pd.Series(pd.array([1, 2, 3, 4], dtype=dtype))
+    cond = pd.Series([True, False, True, False])
+    expected = pd.Series(pd.array([1, 8, 3, 6], dtype=dtype))
+
+    result = ser.where(cond, (9, 8, 7, 6))
+    tm.assert_series_equal(result, expected)
+
+    ser.mask(~cond, (9, 8, 7, 6), inplace=True)
+    tm.assert_series_equal(ser, expected)
+
+
 @pytest.mark.parametrize("other", [("x", "y", "z"), {"zz": 1}])
 def test_where_listlike_scalar_other(any_string_dtype, other):
     # GH#37681, GH#63842 a tuple is a valid scalar and a dict has no element
@@ -869,6 +884,14 @@ def test_where_listlike_scalar_other(any_string_dtype, other):
     result = ser.where(pd.Series([True, False, True]), other)
     expected = pd.Series(["a", other, "c"], dtype=object)
     tm.assert_series_equal(result, expected)
+
+
+def test_where_set_other_numeric_ea_raises(any_numeric_ea_and_arrow_dtype):
+    # GH#63842 a set has no element order, so it is not lined up against the
+    #  mask in hash order
+    ser = pd.Series(pd.array([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype))
+    with pytest.raises(TypeError, match="'set' object is not subscriptable"):
+        ser.where(pd.Series([True, False, True]), {7, 8, 9})
 
 
 def test_index_where_listlike_other_keeps_ea_dtype(any_numeric_ea_and_arrow_dtype):
