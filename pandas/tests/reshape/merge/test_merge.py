@@ -1719,6 +1719,22 @@ class TestMergeDtypes:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_sparse_object_on_numeric(self):
+        # GH#70218 Sparse[object] is not a string dtype, so it should not raise
+        df1 = pd.DataFrame(
+            {
+                "key": pd.arrays.SparseArray([1.5, 2.5], dtype=pd.SparseDtype(object)),
+                "a": [0, 1],
+            }
+        )
+        df2 = pd.DataFrame({"key": [1.5], "b": [0]})
+
+        result = merge(df1, df2, on="key")
+        expected = pd.DataFrame(
+            {"key": pd.Series([1.5], dtype=object), "a": [0], "b": [0]}
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "df1_vals, df2_vals",
         [
