@@ -43,6 +43,11 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=timedelta(0),
     ),
+    "month": inspect.Parameter(
+        "month",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -58,6 +63,16 @@ _OFFSET_SIGNATURES = {
         "holidays",
         "calendar",
         "offset",
+    ),
+    pd.tseries.offsets.BYearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.BYearBegin: (
+        "n",
+        "normalize",
+        "month",
     ),
 }
 
