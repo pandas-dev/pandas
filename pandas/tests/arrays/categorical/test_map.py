@@ -229,9 +229,11 @@ def test_series_map_to_dicts():
 
 
 @pytest.mark.parametrize(
-    "na_value", [[0], np.array([0, 0]), {"x": 0}], ids=["list", "ndarray", "dict"]
+    "na_value",
+    [[0], np.array([0, 0]), {"x": 0}, range(2), ("x", 0)],
+    ids=["list", "ndarray", "dict", "range", "tuple"],
 )
-def test_map_unhashable_na_value(na_value):
+def test_map_list_like_na_value(na_value):
     # GH#40892 the value mapped from NaN must not be unpacked
     cat = pd.Categorical(["a", None])
     result = cat.map(lambda val: na_value if pd.isna(val) else [1, 2])
