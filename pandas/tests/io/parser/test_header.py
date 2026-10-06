@@ -4,8 +4,10 @@ during parsing for all of the parsers defined in parsers.py
 """
 
 from collections import namedtuple
-from io import StringIO
-import os
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import numpy as np
 import pytest
@@ -462,17 +464,19 @@ def test_header_names_backward_compat(all_parsers, data, header):
     tm.assert_frame_equal(result, expected)
 
 
+class _NonSeekableBytesIO(BytesIO):
+    def seekable(self) -> bool:
+        return False
+
+
 def test_header_int_names_no_trailing_newline(all_parsers):
     # GH#65862 the data portion starting on the final, newline-less line
-    #  trips pyarrow's skip_rows. Read from a pipe, which is not seekable,
-    #  so the pyarrow engine cannot retry with a newline appended (GH#62635)
+    #  trips pyarrow's skip_rows. The source is not seekable, so the pyarrow
+    #  engine cannot retry with a newline appended (GH#62635)
     parser = all_parsers
-    read_fd, write_fd = os.pipe()
-    os.write(write_fd, b"foo,bar,baz\n1,2,3\n4,5,6")
-    os.close(write_fd)
+    handle = _NonSeekableBytesIO(b"foo,bar,baz\n1,2,3\n4,5,6")
 
-    with open(read_fd, "rb") as handle:
-        result = parser.read_csv(handle, header=1, names=["a", "b", "c"])
+    result = parser.read_csv(handle, header=1, names=["a", "b", "c"])
 
     expected = pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)
