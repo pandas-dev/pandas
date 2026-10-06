@@ -416,7 +416,7 @@ Using a boolean indexer you can provide selection related to the *values*.
    mask = dfmi[("a", "foo")] > 200
    dfmi.loc[idx[mask, :, ["C1", "C3"]], idx[:, "foo"]]
 
-Every label in a list must be present in its level, otherwise a ``KeyError`` is
+Every label in a list must be present in the index, otherwise a ``KeyError`` is
 raised. To select only the labels that are present, pass a boolean mask built
 with :meth:`Index.isin` and its ``level`` argument instead of the list.
 
