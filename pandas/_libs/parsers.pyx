@@ -204,8 +204,9 @@ cdef extern from "pandas/parser/tokenizer.h":
         BLHM_SKIP
 
     ctypedef char* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
-                                  int *status, const char *encoding_errors)
-    ctypedef void (*io_cleanup)(void *src)
+                                  int *status,
+                                  const char *encoding_errors) noexcept nogil
+    ctypedef void (*io_cleanup)(void *src) noexcept nogil
 
     ctypedef struct parser_t:
         void *source
