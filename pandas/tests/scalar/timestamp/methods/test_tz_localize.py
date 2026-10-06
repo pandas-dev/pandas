@@ -142,10 +142,9 @@ class TestTimestampTZLocalize:
 
         assert ts_no_dst._value - ts_dst._value == 3600
         msg = re.escape(
-            "'ambiguous' parameter must be one of: "
-            "True, False, 'NaT', 'raise' (default)"
+            "'ambiguous' parameter must be one of: True, False, 'NaT', 'raise'"
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=f"{msg}$"):
             ts.tz_localize("US/Eastern", ambiguous="infer")
 
     def test_tz_localize_invalid(self):

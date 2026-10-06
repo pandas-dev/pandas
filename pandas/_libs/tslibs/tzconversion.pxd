@@ -18,6 +18,14 @@ cdef int64_t tz_localize_to_utc_single(
     object nonexistent=*,
     NPY_DATETIMEUNIT creso=*,
 ) except? -1
+cpdef ndarray tz_localize_rounded(
+    ndarray rounded,
+    ndarray orig,
+    tzinfo tz,
+    object mode,
+    object nonexistent,
+    NPY_DATETIMEUNIT creso,
+)
 
 
 cdef enum BoundaryStatus:
