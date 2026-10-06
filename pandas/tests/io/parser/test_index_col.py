@@ -88,7 +88,6 @@ baz,7,8,9
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
@@ -128,6 +127,7 @@ baz,7,8,9
         ),
     ],
 )
+@xfail_pyarrow  # float64 dtype instead of object; index_col=False raises
 def test_index_col_empty_data(all_parsers, index_col, kwargs):
     data = "x,y,z"
     parser = all_parsers
@@ -137,7 +137,7 @@ def test_index_col_empty_data(all_parsers, index_col, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
+@xfail_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
 def test_empty_with_index_col_false(all_parsers):
     # see gh-10413
     data = "x,y"
@@ -324,7 +324,6 @@ def test_multiindex_columns_index_col_with_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_infer_types_boolean_sum(all_parsers):
     # GH#44079
     parser = all_parsers
