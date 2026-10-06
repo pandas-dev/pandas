@@ -1807,10 +1807,8 @@ class _MergeOperation:
                         )
                     continue
 
-                # let's infer and see if we are ok
-                if lib.infer_dtype(lk, skipna=False) == lib.infer_dtype(
-                    rk, skipna=False
-                ):
+                if lk.dtype.kind in "iu" and rk.dtype.kind in "iu":
+                    # e.g. int64 and uint64
                     continue
 
             # Check if we are trying to merge on obviously
