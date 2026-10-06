@@ -2328,8 +2328,9 @@ def test_ts_plot_tz_aware_starts_at_dst_fall_back():
 
     ax = ser.plot()
 
-    xdata = ax.get_lines()[0].get_xdata()
-    assert len(set(xdata)) == len(index)
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.tz_localize(None).to_period("5min").asi8
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_ts_plot_tz_aware_across_dst_fall_back():
@@ -2342,7 +2343,9 @@ def test_ts_plot_tz_aware_across_dst_fall_back():
 
     ax = ser.plot()
 
-    assert len(ax.get_lines()[0].get_xdata()) == len(index)
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.tz_localize(None).to_period("5min").asi8
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_ts_plot_tz_aware_period_start_nonexistent():
@@ -2355,5 +2358,6 @@ def test_ts_plot_tz_aware_period_start_nonexistent():
 
     ax = ser.plot()
 
-    xdata = ax.get_lines()[0].get_xdata()
-    assert len(set(xdata)) == len(index)
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.astype(object).to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
