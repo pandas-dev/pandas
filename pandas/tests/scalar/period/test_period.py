@@ -524,6 +524,21 @@ class TestPeriodConstruction:
         assert pd.Period(str(per)) == per
         assert pd.Period(str(per), freq="D") == per.asfreq("D", how="end")
 
+    @pytest.mark.parametrize("freq", [None, "W", "D"])
+    def test_parse_week_str_day_not_read_as_offset(self, freq):
+        # the "-09" end day was read as a UTC offset
+        result = pd.Period("2000-01-03/2000-01-09", freq=freq)
+        expected = pd.Period("2000-01-09", freq=freq or "W-SUN")
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "value", ["2000-01-03/2000-01-10", "2011-12-26/2012-01-01 12:00"]
+    )
+    def test_parse_week_str_invalid(self, value):
+        # GH#48000 not 6 days apart, or trailing text after the second date
+        with pytest.raises(ValueError, match="Could not parse as weekly-freq Period"):
+            pd.Period(value)
+
     def test_period_from_ordinal(self):
         p = pd.Period("2011-01", freq="M")
         res = pd.Period._from_ordinal(p.ordinal, dtype=p._dtype)
