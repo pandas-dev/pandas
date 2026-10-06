@@ -24,12 +24,21 @@ def test_set_ops_error_cases(idx, case, sort, method):
         getattr(idx, method)(case, sort=sort)
 
 
-@pytest.mark.parametrize("other", [[("foo", "one", "zzz")], [("foo",)]])
+@pytest.mark.parametrize(
+    "other",
+    [
+        [("foo", "one", "zzz")],
+        [("foo",)],
+        [["foo", "one", "zzz"]],
+        np.array([["foo", "one", "zzz"]], dtype=object),
+        np.array([["foo"]], dtype=object),
+    ],
+)
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_set_ops_wrong_length_tuples(idx, other, method):
-    # GH#39699 wrong-length tuples raise rather than being treated as flat labels
+def test_set_ops_wrong_length_rows(idx, other, method):
+    # GH#39699 wrong-length rows raise rather than being treated as flat labels
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
         getattr(idx, method)(other)
