@@ -315,6 +315,32 @@ class TestTimestampRound:
             getattr(ts, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
+        "method, utc, freq, expected_utc",
+        [
+            # 01:00:01-04:00 -> 01:00-04:00, 01:00:01-05:00 -> 01:00-05:00
+            ["round", "2020-11-01 05:00:01", "h", "2020-11-01 05:00"],
+            ["round", "2020-11-01 06:00:01", "h", "2020-11-01 06:00"],
+            ["floor", "2020-11-01 05:10", "h", "2020-11-01 05:00"],
+            ["floor", "2020-11-01 06:10", "h", "2020-11-01 06:00"],
+            ["ceil", "2020-11-01 05:10", "90min", "2020-11-01 05:30"],
+            ["ceil", "2020-11-01 06:10", "90min", "2020-11-01 06:30"],
+            # 02:10-05:00 is not itself ambiguous but rounds to 01:30
+            ["floor", "2020-11-01 07:10", "90min", "2020-11-01 06:30"],
+            ["round", "2020-11-01 07:10", "90min", "2020-11-01 06:30"],
+        ],
+    )
+    def test_round_dst_border_ambiguous_default(
+        self, method, utc, freq, expected_utc, unit
+    ):
+        # GH#37592 by default an ambiguous result is resolved from the original
+        ts = Timestamp(utc, tz="UTC").tz_convert("America/New_York").as_unit(unit)
+        result = getattr(ts, method)(freq)
+        expected = Timestamp(expected_utc, tz="UTC").tz_convert("America/New_York")
+        assert result == expected
+        assert result.tz == ts.tz
+        assert result._creso == ts._creso
+
+    @pytest.mark.parametrize(
         "method, ts_str, freq",
         [
             ["ceil", "2018-03-11 01:59:00-0600", "5min"],
