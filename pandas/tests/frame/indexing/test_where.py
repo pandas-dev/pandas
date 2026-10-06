@@ -943,17 +943,32 @@ def test_index_where_listlike_other_keeps_ea_dtype(any_numeric_ea_and_arrow_dtyp
 
 
 @pytest.mark.parametrize(
-    "dtype", ["datetime64[ns]", "datetime64[ns, UTC]", "period[D]"]
+    "dtype", ["datetime64[ns]", "datetime64[ns, UTC]", "period[D]", "timedelta64[ns]"]
 )
-def test_where_listlike_other_single_datetimelike_column(dtype):
-    # GH#70533 used to silently fill every masked position with other[0]
-    values = pd.array(pd.date_range("2016-01-01", periods=4), dtype=dtype)
-    other = list(values[[1, 0, 1, 0]])
-    df = pd.DataFrame({"a": values})
+@pytest.mark.parametrize("ncols", [1, 2, 4])
+def test_where_listlike_other_datetimelike(dtype, ncols):
+    # GH#70533 a list other was not lined up with the rows; ncols=4 is square
+    if dtype == "timedelta64[ns]":
+        values = pd.array(pd.timedelta_range("1 day", periods=4), dtype=dtype)
+    else:
+        values = pd.array(pd.date_range("2016-01-01", periods=4), dtype=dtype)
+    other = list(values[[3, 2, 1, 0]])
+    df = pd.DataFrame(dict.fromkeys(range(ncols), values))
+    cond = pd.DataFrame(
+        {col: [(row + col) % 2 == 0 for row in range(4)] for col in range(ncols)}
+    )
+    expected = pd.DataFrame(
+        {
+            col: [values[row] if cond[col][row] else other[row] for row in range(4)]
+            for col in range(ncols)
+        }
+    ).astype(dtype)
 
-    result = df.where(pd.DataFrame({"a": [True, False, True, False]}), other)
-    expected = pd.DataFrame({"a": values[[0, 0, 2, 0]]})
+    result = df.where(cond, other)
     tm.assert_frame_equal(result, expected)
+
+    df[~cond] = other
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
