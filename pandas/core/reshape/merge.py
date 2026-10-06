@@ -1297,7 +1297,8 @@ class _MergeOperation:
             take_left, take_right = None, None
 
             # GH#16480 numeric key columns of differing dtypes: a left (right) join
-            # keeps the left (right) key's dtype, an outer join the common dtype
+            # keeps the left (right) key's dtype, an outer join the common dtype;
+            # datetime keys keep GH#55212's finer-resolution rule instead
             lkey_dtype = self.left_join_keys[i].dtype
             rkey_dtype = self.right_join_keys[i].dtype
             numeric_mismatch = (
@@ -1330,7 +1331,10 @@ class _MergeOperation:
                     if left_has_missing or needs_resolution_cast or needs_cast:
                         take_right = self.right_join_keys[i]
 
-                        if result[name].dtype != self.left[name].dtype:
+                        # a right join on mismatched numeric keys uses only rvals
+                        if result[name].dtype != self.left[name].dtype and not (
+                            numeric_mismatch and self.how == "right"
+                        ):
                             take_left = self.left[name]._values
 
                 elif name in self.right:
@@ -1350,7 +1354,9 @@ class _MergeOperation:
                     if right_has_missing or needs_resolution_cast or needs_cast:
                         take_left = self.left_join_keys[i]
 
-                        if result[name].dtype != self.right[name].dtype:
+                        if result[name].dtype != self.right[name].dtype and not (
+                            numeric_mismatch and self.how == "left"
+                        ):
                             take_right = self.right[name]._values
 
             else:
@@ -1390,13 +1396,23 @@ class _MergeOperation:
                     right_all_missing = self.anti_join and self.how == "left"
 
                 # an untaken key is the input's own array (a range indexer skips the
-                #  take too); copy it so writes to the result can't reach the input
-                copy_left = left_indexer is None or (
-                    take_left is None and is_range_indexer(left_indexer, len(self.left))
+                #  take too); copy it so writes to a result column can't reach the
+                #  input. An index level is immutable, so it can share memory.
+                is_label = result._is_label_reference(name)
+                key_is_level = not is_label and result._is_level_reference(name)
+                copy_left = not key_is_level and (
+                    left_indexer is None
+                    or (
+                        take_left is None
+                        and is_range_indexer(left_indexer, len(self.left))
+                    )
                 )
-                copy_right = right_indexer is None or (
-                    take_right is None
-                    and is_range_indexer(right_indexer, len(self.right))
+                copy_right = not key_is_level and (
+                    right_indexer is None
+                    or (
+                        take_right is None
+                        and is_range_indexer(right_indexer, len(self.right))
+                    )
                 )
 
                 if numeric_mismatch and self.how == "left":
@@ -1432,11 +1448,11 @@ class _MergeOperation:
                     # outer join, including the all-missing arms above
                     result_dtype = common_dtype
 
-                if result._is_label_reference(name):
+                if is_label:
                     result[name] = result._constructor_sliced(
                         key_col, dtype=result_dtype, index=result.index
                     )
-                elif result._is_level_reference(name):
+                elif key_is_level:
                     if isinstance(result.index, MultiIndex):
                         key_col.name = name
                         idx_list = [
