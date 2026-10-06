@@ -112,6 +112,7 @@ Other deprecations
 - Deprecated :meth:`Series.median` and :meth:`DataFrame.median` on ``complex`` data; in a future version these will raise ``TypeError``. Take the median of the real and imaginary parts separately instead (:issue:`43770`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
+- Deprecated passing a list-like ``name`` to :meth:`Index.copy`; pass the label itself instead (:issue:`19171`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 
 .. ---------------------------------------------------------------------------
@@ -174,7 +175,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
-- Bug in :meth:`Index.copy` treating ``name`` as a list of names, so a tuple ``name`` raised or was unpacked (also when constructing from a :class:`RangeIndex`) and a list ``name`` did not raise ``TypeError`` (:issue:`19171`)
+- Bug in :meth:`Index.copy` treating a tuple ``name`` as a list of names (:issue:`19171`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
 -
 

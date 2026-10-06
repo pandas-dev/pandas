@@ -1380,7 +1380,7 @@ class MultiIndex(Index):
 
     def _validate_names(
         self,
-        name=None,
+        name: Hashable = None,
         names: Sequence[Hashable] | None = None,
     ) -> list[Hashable]:
         """
