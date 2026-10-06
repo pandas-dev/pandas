@@ -161,6 +161,7 @@ Strings
 
 Interval
 ^^^^^^^^
+- Bug in :class:`IntervalIndex` set operations with an empty :class:`RangeIndex`, and in :class:`IntervalIndex` construction or ``astype("interval")`` from a :class:`RangeIndex` or non-interval extension array, raising an uninformative ``TypeError`` (:issue:`68343`)
 - Bug in :func:`concat` and :meth:`Index.append` with :class:`IntervalDtype` not retaining an extension dtype subtype, either casting it to a NumPy dtype or raising ``TypeError`` (:issue:`64297`)
 - Bug in :meth:`Series.shift` and :meth:`DataFrame.shift` with an :class:`IntervalDtype` column not retaining the subtype, either changing it or raising ``TypeError`` (:issue:`69922`)
 
