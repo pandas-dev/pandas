@@ -41,9 +41,9 @@ will discuss it.
 
 `read_pickle` and `DataFrame.to_pickle` use Python's
 [pickle](https://docs.python.org/3/library/pickle.html) module, which can
-execute arbitrary Python code when loading data. `read_hdf` and `HDFStore` also
-use pickle to store columns with `object` dtype. pandas does not provide any
-security on top of pickle. Only load pickled data that you trust.
+execute arbitrary Python code when loading data. `read_hdf` and `HDFStore` use
+PyTables, which also uses pickle. pandas does not provide any security on top
+of pickle. Only load pickle files and HDF5 files that you trust.
 
 ### Expression evaluation
 
