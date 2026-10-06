@@ -1256,7 +1256,16 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 if com.is_null_slice(new_key):
                     return section
                 # This is an elided recursive call to iloc/loc
-                return getattr(section, self.name)[new_key]
+                result = getattr(section, self.name)[new_key]
+                if (
+                    isinstance(result, (ABCDataFrame, ABCSeries))
+                    and 2 * result.size <= section.size
+                    and _is_view_of_new_data(result, section)
+                ):
+                    # don't let a small view keep the whole temporary alive, GH#69477;
+                    #  a copy isn't worth it for a view of most of the temporary
+                    return result.copy()
+                return result
 
         raise IndexingError("not applicable")
 
@@ -3582,6 +3591,21 @@ def _is_2d_value_for_columns(value, ncols: int) -> bool:
         and isinstance(value[0], tuple)
         and len(value[0]) != 1
     )
+
+
+def _is_view_of_new_data(obj: DataFrame | Series, section: DataFrame | Series) -> bool:
+    """
+    Check if ``obj`` views data first allocated by ``section``, i.e. a temporary
+    copy made while indexing rather than the data of the object being indexed.
+    """
+    section_blocks = {id(blk) for blk in section._mgr.blocks}
+    for blk in obj._mgr.blocks:
+        # the first reference is the block the data was created for; checking
+        #  only that one keeps this O(1), unlike has_reference
+        refs = blk.refs.referenced_blocks
+        if refs and id(refs[0]()) in section_blocks:
+            return True
+    return False
 
 
 def _is_2d_value(value) -> bool:
