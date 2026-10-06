@@ -225,6 +225,7 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug in :meth:`.Styler.background_gradient` and :meth:`.Styler.text_gradient` coloring missing values with the lowest colormap color instead of the missing-value color when all valid values in a column, row, or table were equal (:issue:`47695`)
+- Bug in :class:`.Styler` methods taking a ``level`` argument, such as :meth:`.Styler.hide` and :meth:`.Styler.format_index`, ignoring or raising on negative, out-of-range or NumPy integer levels; ``level`` is now resolved as in :meth:`DataFrame.droplevel`, so an integer matching a level name refers to that level (:issue:`42933`)
 - Bug in :meth:`.Styler.bar` raising ``TypeError`` for data containing ``pd.NA`` when ``align`` is ``"mean"`` or a callable, or when ``cmap`` is given (:issue:`56425`)
 -
 

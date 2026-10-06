@@ -395,12 +395,15 @@ def test_hide_raises(mi_styler):
     with pytest.raises(ValueError, match=msg):
         mi_styler.hide(axis="index", subset="something", level="something else")
 
-    msg = "`level` must be of type `int`, `str` or list of such"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match="not found"):
         mi_styler.hide(axis="index", level={"bad": 1, "type": 2})
 
+    # GH#42933
+    with pytest.raises(IndexError, match="Too many levels"):
+        mi_styler.hide(axis="index", level=2)
 
-@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+
+@pytest.mark.parametrize("level", [1, -1, np.int64(1), "one", [1], [-1], ["one"]])
 def test_hide_index_level(mi_styler, level):
     mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
     ctx = mi_styler.hide(axis="index", level=level)._translate(False, True)
@@ -416,7 +419,21 @@ def test_hide_index_level(mi_styler, level):
     assert not ctx["body"][1][1]["is_visible"]
 
 
-@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+def test_hide_level_flat_index():
+    # GH#42933
+    df = pd.DataFrame({"v": [1, 2]}, index=pd.Index(["a", "b"], name="nm"))
+    assert Styler(df).hide(axis="index", level=-1).hide_index_ == [True]
+    with pytest.raises(IndexError, match="Too many levels"):
+        Styler(df).hide(axis="index", level=1)
+
+
+def test_hide_int_level_name(mi_styler):
+    # GH#42933 an int matching a level name refers to that level, as in droplevel
+    mi_styler.index.names = [1, 0]
+    assert mi_styler.hide(axis="index", level=0).hide_index_ == [False, True]
+
+
+@pytest.mark.parametrize("level", [1, -1, np.int64(1), "one", [1], [-1], ["one"]])
 @pytest.mark.parametrize("names", [True, False])
 def test_hide_columns_level(mi_styler, level, names):
     mi_styler.columns.names = ["zero", "one"]
@@ -424,6 +441,38 @@ def test_hide_columns_level(mi_styler, level, names):
         mi_styler.index.names = ["zero", "one"]
     ctx = mi_styler.hide(axis="columns", level=level)._translate(True, False)
     assert len(ctx["head"]) == (2 if names else 1)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda styler, level: styler.hide(axis=0, level=level),
+        lambda styler, level: styler.format_index("<{}>", axis=0, level=level),
+        lambda styler, level: styler.format_index_names("<{}>", axis=0, level=level),
+        lambda styler, level: styler.relabel_index(["A", "B"], axis=0, level=level),
+        lambda styler, level: styler.map_index(lambda v: "a: v;", axis=0, level=level),
+        lambda styler, level: styler.apply_index(
+            lambda s: ["a: v;"] * len(s), axis=0, level=level
+        ),
+        lambda styler, level: styler.set_sticky(axis=0, levels=level),
+    ],
+    ids=[
+        "hide",
+        "format_index",
+        "format_index_names",
+        "relabel_index",
+        "map_index",
+        "apply_index",
+        "set_sticky",
+    ],
+)
+@pytest.mark.parametrize("level", [-1, [-1], np.int64(1)])
+def test_level_number_spellings(mi_df, method, level):
+    # GH#42933
+    mi_df.index.names = ["zero", "one"]
+    expected = method(Styler(mi_df, uuid_len=0), [1]).to_html()
+    result = method(Styler(mi_df, uuid_len=0), level).to_html()
+    assert result == expected
 
 
 @pytest.mark.parametrize("method", ["map", "apply"])
