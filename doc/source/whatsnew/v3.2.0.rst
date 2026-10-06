@@ -211,6 +211,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
+- Bug in :func:`merge` and :meth:`DataFrame.join` overwriting a non-key column with join-key values when it shares a name with the join key (:issue:`39192`)
 
 Sparse
 ^^^^^^

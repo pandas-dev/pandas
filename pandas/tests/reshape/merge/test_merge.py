@@ -3461,3 +3461,116 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     else:
         expected = pd.DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right", "outer"])
+@pytest.mark.parametrize(
+    "swap, suffixes, source",
+    [
+        (False, ("_l", None), "B_r"),
+        (False, (None, "_r"), None),
+        (True, (None, "_r"), "B_l"),
+        (True, ("_l", None), None),
+    ],
+)
+def test_merge_index_key_one_side_suffixed(how, swap, suffixes, source):
+    # GH#39192 both frames have a "B" column but only one gets suffixed
+    keyed = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    indexed = pd.DataFrame({"B": [11, 12, 13], "C": [14, 15, 16]}, index=[2, 3, 4])
+    keys = {"left": [4, 5, 6], "right": [2, 3, 4], "outer": [2, 3, 4, 5, 6]}
+    if swap:
+        left, right, kwargs = indexed, keyed, {"left_index": True, "right_on": "B"}
+        keys["left"], keys["right"] = keys["right"], keys["left"]
+    else:
+        left, right, kwargs = keyed, indexed, {"left_on": "B", "right_index": True}
+
+    result = merge(left, right, how=how, suffixes=suffixes, **kwargs)
+    both = merge(left, right, how=how, suffixes=("_l", "_r"), **kwargs)
+
+    suffixed = "B_l" if suffixes[0] else "B_r"
+    tm.assert_series_equal(result[suffixed], both[suffixed])
+    if source is None:
+        # "B" is the key column
+        expected = pd.Series(keys[how], index=result.index, name="B")
+    else:
+        expected = both[source].rename("B")
+    tm.assert_series_equal(result["B"], expected)
+
+
+def test_merge_array_key_does_not_fill_data_column():
+    # GH#39192 left "B" is a data column, not the left key
+    left = pd.DataFrame({"B": [4, 5, 6]})
+    right = pd.DataFrame({"B": [11, 12, 4]})
+    result = merge(
+        left,
+        right,
+        how="right",
+        left_on=np.array([7, 8, 4]),
+        right_on="B",
+        suffixes=(None, "_r"),
+    )
+    expected = pd.DataFrame({"B": [np.nan, np.nan, 6.0], "B_r": [11, 12, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_index_level_key_does_not_fill_data_column():
+    # GH#39192 the left key is an index level, so right "B" is a data column
+    left = pd.DataFrame({"A": [1, 2, 3]}, index=pd.Index([4, 5, 6], name="B"))
+    right = pd.DataFrame({"B": [11, 12, 13], "C": [14, 15, 16]}, index=[2, 3, 4])
+    result = merge(left, right, left_on="B", right_index=True, how="outer")
+    expected = pd.DataFrame(
+        {
+            "A": [np.nan, np.nan, 1.0, 2.0, 3.0],
+            "B": [11.0, 12.0, 13.0, np.nan, np.nan],
+            "C": [14.0, 15.0, 16.0, np.nan, np.nan],
+        },
+        index=pd.Index([np.nan, np.nan, 4.0, 5.0, 6.0], name="B"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "how, values", [("inner", ["1999-01-02"]), ("left", ["1999-01-02", "NaT"])]
+)
+def test_merge_datetime_key_does_not_cast_data_column(how, values):
+    # GH#39192 right "t" is a data column, not the key; it keeps its values and unit
+    left = pd.DataFrame(
+        {"t": pd.to_datetime(["2020-01-02", "2020-01-05"]).as_unit("s")}
+    )
+    right = pd.DataFrame(
+        {"t": pd.to_datetime(["1999-01-01", "1999-01-02"]).as_unit("ms")},
+        index=pd.to_datetime(["2020-01-01", "2020-01-02"]).as_unit("ns"),
+    )
+    result = merge(
+        left, right, left_on="t", right_index=True, how=how, suffixes=("_l", None)
+    )
+    expected = pd.Series(pd.to_datetime(values).as_unit("ms"), name="t")
+    tm.assert_series_equal(result["t"], expected)
+
+
+def test_merge_right_key_does_not_fill_data_column():
+    # GH#39192 right 0 is a data column, not the right key
+    left = pd.DataFrame({0: [1, 2, 3], "A": [10, 11, 12]})
+    right = pd.DataFrame({1: [2, 3, 4], 0: [100, 101, 102]})
+    result = merge(
+        left, right, left_on=0, right_on=1, how="outer", suffixes=("_l", None)
+    )
+    expected = pd.DataFrame(
+        {
+            "0_l": [1.0, 2.0, 3.0, np.nan],
+            "A": [10.0, 11.0, 12.0, np.nan],
+            1: [np.nan, 2.0, 3.0, 4.0],
+            0: [np.nan, 100.0, 101.0, 102.0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("label", [np.nan, pd.NA])
+def test_merge_index_key_na_label(label):
+    # GH#39192 an NA-like key label still gets its right-only rows filled
+    left = pd.DataFrame({"A": [1, 2, 3], label: [4, 5, 6]})
+    right = pd.DataFrame({"C": [14, 15, 16]}, index=[5, 6, 7])
+    result = merge(left, right, left_on=label, right_index=True, how="right")
+    expected = pd.Series([5, 6, 7], index=[1.0, 2.0, np.nan])
+    tm.assert_series_equal(result[label], expected, check_names=False)
