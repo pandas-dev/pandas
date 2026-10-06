@@ -32,6 +32,7 @@ from pandas._libs.tslibs.dtypes cimport (
     periods_per_day,
     periods_per_second,
 )
+from pandas._libs.tslibs.fields import RoundTo
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -519,6 +520,74 @@ timedelta-like}
                 )
 
     return result.base  # .base to get underlying ndarray
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef ndarray tz_localize_rounded(
+    ndarray rounded,
+    ndarray orig,
+    tzinfo tz,
+    object mode,
+    object nonexistent,
+    NPY_DATETIMEUNIT creso,
+):
+    """
+    Localize ``rounded``, the wall times of the UTC values ``orig`` rounded
+    with ``mode``, to ``tz``.
+
+    An ambiguous wall time resolves to whichever of its two UTC values is
+    consistent with ``mode`` relative to ``orig``: the later one not after it
+    for floor, the earlier one not before it for ceil, else the nearer one
+    (GH#37592).
+    """
+    cdef:
+        ndarray result
+        const int64_t[:] res_view
+        const int64_t[:] rounded_view = rounded
+        Py_ssize_t i
+        bint has_nat = False
+
+    nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
+    if nonexistent not in nonexistent_options and not PyDelta_Check(nonexistent):
+        raise ValueError(
+            "The nonexistent argument must be one of 'raise', "
+            "'NaT', 'shift_forward', 'shift_backward' or a timedelta object"
+        )
+
+    result = tz_localize_to_utc(
+        rounded, tz, ambiguous="NaT", nonexistent=nonexistent, creso=creso
+    )
+    res_view = result
+
+    for i in range(len(result)):
+        if res_view[i] == NPY_NAT and rounded_view[i] != NPY_NAT:
+            has_nat = True
+            break
+    if not has_nat:
+        return result
+
+    # NaT here is either an ambiguous time or a nonexistent one being
+    #  returned as NaT; for the latter both candidates stay NaT.
+    mask = (result == NPY_NAT) & (rounded != NPY_NAT)
+    sub = rounded[mask]
+    first = tz_localize_to_utc(
+        sub, tz, ambiguous=True, nonexistent=nonexistent, creso=creso
+    )
+    second = tz_localize_to_utc(
+        sub, tz, ambiguous=False, nonexistent=nonexistent, creso=creso
+    )
+    early = np.minimum(first, second)
+    late = np.maximum(first, second)
+    target = orig[mask]
+    if mode == RoundTo.MINUS_INFTY:
+        chosen = np.where(late <= target, late, early)
+    elif mode == RoundTo.PLUS_INFTY:
+        chosen = np.where(early >= target, early, late)
+    else:
+        chosen = np.where(target - early <= late - target, early, late)
+    result[mask] = chosen
+    return result
 
 
 cdef Py_ssize_t bisect_right_i8(
