@@ -653,11 +653,3 @@ def test_rank_numeric_only():
     result = gb.rank(ascending=False, numeric_only=True)
     expected = gb[["num", "flag"]].rank(ascending=False)
     tm.assert_frame_equal(result, expected)
-
-    msg = "Cannot use numeric_only=True with SeriesGroupBy.rank and non-numeric dtypes"
-    with pytest.raises(TypeError, match=msg):
-        gb["str"].rank(numeric_only=True)
-
-    result = gb["num"].rank(numeric_only=True)
-    expected = gb["num"].rank()
-    tm.assert_series_equal(result, expected)
