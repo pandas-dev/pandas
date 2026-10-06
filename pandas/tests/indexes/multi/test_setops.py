@@ -24,6 +24,17 @@ def test_set_ops_error_cases(idx, case, sort, method):
         getattr(idx, method)(case, sort=sort)
 
 
+@pytest.mark.parametrize("other", [[("foo", "one", "zzz")], [("foo",)]])
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
+def test_set_ops_wrong_length_tuples(idx, other, method):
+    # GH#39699 wrong-length tuples raise rather than being treated as flat labels
+    msg = "other must be a MultiIndex or a list of tuples"
+    with pytest.raises(TypeError, match=msg):
+        getattr(idx, method)(other)
+
+
 @pytest.mark.parametrize(
     "other",
     [
@@ -76,6 +87,9 @@ def test_symmetric_difference_str_entry(other):
     result = idx.symmetric_difference(other, sort=False)
     expected = pd.Index([("a", "c"), ("b", "d"), "ac"], tupleize_cols=False)
     tm.assert_index_equal(result, expected)
+
+    result = idx.symmetric_difference(other, result_name="z", sort=False)
+    tm.assert_index_equal(result, expected.rename("z"))
 
 
 def test_intersection_one_level_str_entry():
