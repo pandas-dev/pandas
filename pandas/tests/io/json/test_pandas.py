@@ -2667,6 +2667,31 @@ def test_to_json_unsupported_object_gh36211():
         df.to_json()
 
 
+class _RaisingTZ(datetime.tzinfo):
+    def utcoffset(self, dt):
+        raise RuntimeError("boom")
+
+
+class _DatetimeSubclass(datetime.datetime):
+    pass
+
+
+@pytest.mark.parametrize("dt_cls", [datetime.datetime, _DatetimeSubclass])
+@pytest.mark.parametrize(
+    "box",
+    [
+        lambda val: pd.Series([val], dtype=object),
+        lambda val: pd.Series([{"a": val}], dtype=object),
+        lambda val: pd.DataFrame({"a": pd.Series([val], dtype=object)}),
+    ],
+)
+def test_to_json_iso_utcoffset_raises(dt_cls, box):
+    # GH#69461 a failed ISO conversion of a datetime value segfaulted
+    obj = box(dt_cls(2020, 1, 1, tzinfo=_RaisingTZ()))
+    with pytest.raises(RuntimeError, match="boom"):
+        obj.to_json(date_format="iso")
+
+
 @pytest.mark.parametrize("other", ['"notadate"', "true"])
 def test_read_json_quarterly_string_discarded_parse_no_warning(other):
     # GH#50907 _try_convert_to_date parses the column several ways and keeps at

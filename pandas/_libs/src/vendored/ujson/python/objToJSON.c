@@ -472,6 +472,9 @@ static const char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
   const int utc = ((PyObjectEncoder *)tc->encoder)->datetimeIsUTC;
   GET_TC(tc)->cStr =
       int64ToIso(GET_TC(tc)->longValue, valueUnit, base, utc, len);
+  if (GET_TC(tc)->cStr == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+  }
   return GET_TC(tc)->cStr;
 }
 
@@ -480,6 +483,9 @@ static const char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
                                              JSONTypeContext *tc, size_t *len) {
   NPY_DATETIMEUNIT valueUnit = ((PyObjectEncoder *)tc->encoder)->valueUnit;
   GET_TC(tc)->cStr = int64ToIsoDuration(GET_TC(tc)->longValue, valueUnit, len);
+  if (GET_TC(tc)->cStr == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+  }
   return GET_TC(tc)->cStr;
 }
 
@@ -494,6 +500,9 @@ static const char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
 
   NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
   GET_TC(tc)->cStr = PyDateTimeToIso(obj, base, len);
+  if (GET_TC(tc)->cStr == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+  }
   return GET_TC(tc)->cStr;
 }
 
