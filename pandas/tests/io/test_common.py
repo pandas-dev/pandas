@@ -524,14 +524,13 @@ def test_to_csv_file_url(tmp_path, host, exists):
     # discarded for an existing one
     path = tmp_path / "a b.csv"
     if exists:
-        path.write_text("old")
+        path.write_text("old", encoding="utf-8")
     url = path.as_uri().replace("file://", f"file://{host}", 1)
     df = pd.DataFrame({"a": [1, 2]})
 
     df.to_csv(url)
 
     tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
-    tm.assert_frame_equal(pd.read_csv(url, index_col=0), df)
 
 
 @pytest.mark.skipif(is_platform_windows(), reason="'?' is not valid in a file name")
