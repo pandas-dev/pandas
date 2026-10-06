@@ -1823,12 +1823,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             new_categories = new_categories.to_flat_index()
 
         if has_nans:
-            if is_hashable(na_val):
+            if is_hashable(na_val) and not is_list_like(na_val):
                 new_categories = new_categories.insert(len(new_categories), na_val)
             else:
                 from pandas import Index
 
-                # Index.insert would unpack a list or array na_val
+                # Index.insert would unpack a list-like na_val
                 na_index = Index(construct_1d_object_array_from_listlike([na_val]))
                 new_categories = new_categories.append(na_index)
 
