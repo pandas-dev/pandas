@@ -505,7 +505,7 @@ class IntervalIndex(ExtensionIndex):
         result = self._data.to_tuples(na_tuple=na_tuple)
         return Index(result, name=self.name, dtype=result.dtype, copy=False)
 
-    def overlaps(self, other: Interval) -> npt.NDArray[np.bool_]:
+    def overlaps(self, other: Interval[Any]) -> npt.NDArray[np.bool_]:
         """
         Check elementwise if an Interval overlaps the values in the IntervalIndex.
 
@@ -1392,14 +1392,6 @@ class IntervalIndex(ExtensionIndex):
                     raise ValueError(msg)
 
         return super()._convert_slice_indexer(key, kind)
-
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        # integer lookups in Series.__getitem__ are unambiguously
-        #  positional in this case
-        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
-        # ExtensionDtype]" has no attribute "subtype"
-        return self.dtype.subtype.kind in "mM"  # type: ignore[union-attr]
 
     def _maybe_cast_slice_bound(self, label, side: str):
         return getattr(self, side)._maybe_cast_slice_bound(label, side)
