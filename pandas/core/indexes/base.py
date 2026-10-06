@@ -1418,16 +1418,33 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
 
-        if name is None:
-            name = deepcopy(self.name) if deep else self.name
-        else:
-            validate_all_hashable(name, error_name=f"{type(self).__name__}.name")
+        name = self._validate_copy_name(name, deep)
         if deep:
             new_data = self._data.copy()
             new_index = type(self)._simple_new(new_data, name=name)
         else:
             new_index = self._rename(name=name)
         return new_index
+
+    @final
+    def _validate_copy_name(self, name: Hashable, deep: bool) -> Hashable:
+        """
+        Validate the ``name`` passed to ``copy``, defaulting to ``self.name``.
+        """
+        if name is None:
+            return deepcopy(self.name) if deep else self.name
+        if is_list_like(name) and not isinstance(name, tuple) and len(name) == 1:
+            # GH#19171
+            warnings.warn(
+                f"Passing a list-like 'name' to {type(self).__name__}.copy is "
+                "deprecated and will raise in a future version. Pass the label "
+                "itself instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            name = next(iter(name))
+        validate_all_hashable(name, error_name=f"{type(self).__name__}.name")
+        return name
 
     @final
     def __copy__(self) -> Self:
