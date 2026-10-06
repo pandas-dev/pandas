@@ -19,6 +19,7 @@ import mmap
 import os
 import queue
 import sys
+import threading
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -407,13 +408,12 @@ def _read(
             try:
                 result = _read_csv_parallel(_filepath, kwds, _n_workers)
             except (ParserError, UnicodeDecodeError, OverflowError):
-                # e.g. a chunk boundary landed inside a quoted field containing
-                # an embedded newline, or a chunk of only huge ints converted
-                # where the mixed whole-file column would have stayed a string
-                # (GH#66259).  The serial path below handles anything the
-                # parallel path cannot -- and raises in turn if it too fails.
-                # Other exceptions propagate: they signal a parallel-path bug,
-                # not ineligible input.
+                # e.g. the one-line sample that infers the column names ends
+                # inside a quoted field (GH#66259).  The serial path below
+                # handles anything the parallel path cannot -- and raises in
+                # turn if it too fails.
+                # Other exceptions from outside the chunk reads propagate: they
+                # signal a parallel-path bug, not ineligible input.
                 result = None
             if result is not None:
                 return result
@@ -499,9 +499,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       are at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
 
     Note that a chunk boundary landing on a newline embedded inside a quoted
-    field leaves that chunk's parser inside an open quote at EOF, which raises
-    ``ParserError`` in the worker and triggers the serial fallback in
-    :func:`_read` - it does not corrupt data silently.
+    field leaves that chunk's parser inside an open quote at EOF, so the chunk
+    fails and the read falls back to serial - it does not corrupt data
+    silently.
     """
     # Must be a local file path, not a URL or file-like object.
     if is_file_like(filepath_or_buffer):
@@ -801,12 +801,10 @@ def _read_csv_parallel(
 
     Returns ``None`` when parallel reading turns out not to be applicable
     after all (the data section cannot be split, the engine falls back to
-    python, the one-line sample used to infer column names has no columns, or
+    python, the one-line sample used to infer column names has no columns,
     per-chunk dtype inference disagrees in a way that would not match the
-    serial result); the caller then reads serially.  Splitting is
-    done at raw ``\\n`` boundaries, so a boundary inside a quoted field raises
-    ``ParserError`` from the affected worker - the caller treats that as a
-    serial-fallback signal too.
+    serial result, or any chunk fails to parse); the caller then reads
+    serially.
     """
     warning_sink: list[tuple[str, type[Warning]]] = []
     try:
@@ -1006,6 +1004,7 @@ def _read_csv_chunks(
     for chunk_idx in range(n_chunks):
         chunk_queue.put(chunk_idx)
     results: list = [None] * n_chunks
+    chunk_failed = threading.Event()
     workers_readers: list = []
 
     def _worker() -> None:
@@ -1025,7 +1024,7 @@ def _read_csv_chunks(
         reader._engine._warning_sink = warning_sink
         reader._engine._reader.warning_sink = warning_sink
         workers_readers.append(reader)
-        while True:
+        while not chunk_failed.is_set():
             try:
                 chunk_idx = chunk_queue.get_nowait()
             except queue.Empty:
@@ -1039,9 +1038,13 @@ def _read_csv_chunks(
             # On a reused parser a zero-row chunk would raise StopIteration
             # and close the reader; reset so it returns empty meta instead.
             reader._engine._first_chunk = True
-            # Raw column arrays, not DataFrames: per-chunk frame assembly
-            # holds the GIL and the concat would redo the block machinery.
-            _, chunk_columns, col_dict = reader._engine.read()
+            try:
+                # Raw column arrays, not DataFrames: per-chunk frame assembly
+                # holds the GIL and the concat would redo the block machinery.
+                _, chunk_columns, col_dict = reader._engine.read()
+            except Exception:
+                chunk_failed.set()
+                return
             results[chunk_idx] = (chunk_columns, col_dict)
 
     def _copy_pieces(jobs: list[tuple[np.ndarray, int, np.ndarray]]) -> None:
@@ -1093,6 +1096,12 @@ def _read_csv_chunks(
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
                 fut.result()
+            if chunk_failed.is_set():
+                # Let the serial read raise: a chunk's error can be an artifact
+                # of the split (a boundary inside a quoted newline), and even a
+                # genuine one differs from serial in which error comes first
+                # and in the row positions it reports.
+                return None
 
             # A column of only NA tokens and ints too large for int64 converts
             # to no numeric dtype, and is then emitted with its NA tokens left
