@@ -100,9 +100,9 @@ def test_fillna_string_self_agrees_with_limit_path(limit):
         arr.fillna(np.array([1, 2]), limit=limit)
 
 
-view_xfail = pytest.mark.xfail(
+under18_xfail = pytest.mark.xfail(
     pa_version_under18p0,
-    reason="view types cannot be cast to large_string/large_binary before pyarrow 18",
+    reason="copying view types and nested dictionaries needs pyarrow 18",
     raises=AssertionError,
     strict=True,
 )
@@ -118,8 +118,8 @@ def test_copy_owns_buffers(data):
 @pytest.mark.parametrize(
     "values, pa_type",
     [
-        pytest.param(["a" * 20, None, "b"], pa.string_view(), marks=view_xfail),
-        pytest.param([b"a" * 20, None, b"b"], pa.binary_view(), marks=view_xfail),
+        pytest.param(["a" * 20, None, "b"], pa.string_view(), marks=under18_xfail),
+        pytest.param([b"a" * 20, None, b"b"], pa.binary_view(), marks=under18_xfail),
         (["a", None, "b", "a"], pa.dictionary(pa.int32(), pa.string())),
     ],
 )
@@ -131,6 +131,36 @@ def test_copy_owns_buffers_special_layouts(values, pa_type):
     assert result._pa_array.equals(arr._pa_array)
     assert result._pa_array.num_chunks == 2
     assert not tm.shares_memory(result, arr)
+
+
+@under18_xfail
+@pytest.mark.parametrize(
+    "child",
+    [
+        pa.array(["a" * 20, "b"]).dictionary_encode(),
+        pa.array(["a" * 20, "b"], pa.string_view()),
+    ],
+    ids=["dictionary", "string_view"],
+)
+@pytest.mark.parametrize("nested_type", ["list", "struct"])
+def test_copy_owns_nested_buffers(child, nested_type):
+    # GH#61930 pa.concat_arrays reuses these buffers in child arrays too
+    if nested_type == "list":
+        chunk = pa.ListArray.from_arrays(pa.array([0, 1, 2], pa.int32()), child)
+    else:
+        chunk = pa.StructArray.from_arrays([child], ["f"])
+    arr = ArrowExtensionArray(chunk)
+    result = arr.copy()
+    assert result._pa_array.equals(arr._pa_array)
+
+    result_chunk = result._pa_array.chunk(0)
+    if nested_type == "list":
+        result_child = result_chunk.values
+    else:
+        result_child = result_chunk.field(0)
+    if pa.types.is_dictionary(child.type):
+        child, result_child = child.dictionary, result_child.dictionary
+    assert result_child.buffers()[2].address != child.buffers()[2].address
 
 
 def test_copy_deep_slice_releases_original():
