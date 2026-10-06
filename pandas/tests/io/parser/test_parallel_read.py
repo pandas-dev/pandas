@@ -647,6 +647,17 @@ class TestReadCsvParallel:
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
 
+    def test_bare_cr_before_data_returns_none(self, tmp_path):
+        # The tokenizer ends a line at a bare \r but _find_data_start_offset
+        # does not, so data_start may be misplaced.  CRLF stays parallel.
+        path = tmp_path / "cr.csv"
+        body = b"".join(f"x{i},y{i}\n".encode() for i in range(5_000))
+        path.write_bytes(b"a,b\rc,d\n\n" + body)
+        kwds = self._base_kwds(path)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+        path.write_bytes(b"a,b\r\nc,d\r\n\r\n" + body)
+        assert _read_csv_parallel(str(path), kwds, 4) is not None
+
     def test_dtype_specified(self, tmp_path):
         path = tmp_path / "data.csv"
         n = 5_000
@@ -1003,6 +1014,30 @@ def test_parallel_blank_line_before_header_matches_serial(tmp_path, monkeypatch)
     expected = pd.read_csv(io.BytesIO(raw))
     tm.assert_frame_equal(result, expected)
     assert result["col1"].dtype == np.int64
+
+
+@pytest.mark.parametrize(
+    "head,kwargs",
+    [
+        (b'a,"line\nbreak",c\rFIRST,ROW,HERE\n', {}),
+        (b"a,b,c\rFIRST,ROW,HERE\n\n", {}),
+        (b"junk\ra,b,c\nFIRST,ROW,HERE\n\n", {"skiprows": 1}),
+        (b"junk\rFIRST,ROW,HERE\n\n", {"skiprows": 1, "header": None}),
+    ],
+)
+def test_parallel_bare_cr_before_data_matches_serial(
+    tmp_path, monkeypatch, head, kwargs
+):
+    # A bare \r before the first data row used to misplace the first chunk's
+    # start, silently dropping FIRST,ROW,HERE or adding a junk row.
+    raw = head + b"".join(f"s{i},t{i},u{i}\n".encode() for i in range(500))
+    path = tmp_path / "bare_cr.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert result.iloc[0].tolist() == ["FIRST", "ROW", "HERE"]
 
 
 @pytest.mark.parametrize(
