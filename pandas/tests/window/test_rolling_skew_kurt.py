@@ -250,17 +250,6 @@ def test_rolling_skew_kurt_recovers_after_empty_window(
     tm.assert_series_equal(result, pd.Series(expected))
 
 
-def _window_reduction(series, window, roll_func):
-    # oracle: the matching whole-array reduction over each window on its own,
-    # which accumulates independently of the sliding kernels under test
-    values = series.to_numpy()
-    expected = [np.nan] * (window - 1)
-    for stop in range(window, len(values) + 1):
-        chunk = values[stop - window : stop]
-        expected.append(getattr(pd.Series(chunk), roll_func)())
-    return pd.Series(expected)
-
-
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
     # GH#70638 a window spanning nearly the whole float64 range must not leave
@@ -275,7 +264,9 @@ def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
     # once the extreme values leave, the windows are ordinary data and exact
     tm.assert_series_equal(
         result.iloc[9:],
-        _window_reduction(series, window, roll_func).iloc[9:],
+        series.rolling(window)
+        .apply(lambda chunk: getattr(pd.Series(chunk), roll_func)(), raw=True)
+        .iloc[9:],
         rtol=1e-12,
         atol=0,
     )
@@ -289,12 +280,16 @@ def test_rolling_kurt_midband_outlier_recovers():
     values = rng.normal(size=120)
     values[40] = 1e90
 
-    result = pd.Series(values).rolling(window).kurt()
+    series = pd.Series(values)
+
+    result = series.rolling(window).kurt()
 
     # once the outlier leaves, the windows are ordinary data
     tm.assert_series_equal(
         result.iloc[60:],
-        _window_reduction(pd.Series(values), window, "kurt").iloc[60:],
+        series.rolling(window)
+        .apply(lambda chunk: pd.Series(chunk).kurt(), raw=True)
+        .iloc[60:],
         rtol=1e-12,
         atol=0,
     )
@@ -312,7 +307,9 @@ def test_rolling_kurt_inf_moment_recovers():
 
     tm.assert_series_equal(
         result.iloc[11:],
-        _window_reduction(series, window, "kurt").iloc[11:],
+        series.rolling(window)
+        .apply(lambda chunk: pd.Series(chunk).kurt(), raw=True)
+        .iloc[11:],
         rtol=1e-12,
         atol=0,
     )
