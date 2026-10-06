@@ -97,7 +97,9 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        AxisInt,
         JoinHow,
+        NpDtype,
         TimeUnit,
         npt,
     )
@@ -114,7 +116,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     _data: DatetimeArray | TimedeltaArray | PeriodArray
     _warn_quarter: bool = True
 
-    def mean(self, *, skipna: bool = True, axis: int | None = 0):
+    def mean(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out: None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ) -> Any:
         """
         Return the mean value of the Array.
 
@@ -123,10 +133,13 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         Parameters
         ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        dtype, out, keepdims
+            Not implemented; kept for compatibility with :func:`numpy.mean`,
+            which calls this method. Must be left at their default values.
         skipna : bool, default True
             Whether to ignore any NaT elements.
-        axis : int, optional, default 0
-            Axis for the function to be applied on.
 
         Returns
         -------
@@ -162,7 +175,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
-        return self._data.mean(skipna=skipna, axis=axis)
+        nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
+        nv.validate_minmax_axis(axis)
+        return self._data.mean(skipna=skipna)
 
     @property
     def freq(self) -> BaseOffset | None:
