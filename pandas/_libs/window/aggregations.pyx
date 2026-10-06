@@ -1,6 +1,9 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from libc.math cimport fabs
+from libc.math cimport (
+    fabs,
+    isfinite,
+)
 from libcpp.cmath cimport signbit
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
@@ -488,12 +491,12 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 # Rolling skewness
 
 
-cdef inline bint moments_hold_nan(
+cdef inline bint moments_not_finite(
     float64_t m2, float64_t m3, float64_t m4
 ) noexcept nogil:
-    # NaN, e.g. after an overflow, fails every comparison in the cancellation
-    # checks, so without this it is never flushed from the accumulators (GH#70638)
-    return m2 != m2 or m3 != m3 or m4 != m4
+    # NaN or inf, e.g. from an overflow, does not trip the cancellation checks,
+    # so without this it is never flushed from the accumulators (GH#70638)
+    return not (isfinite(m2) and isfinite(m3) and isfinite(m4))
 
 
 cdef void add_skew(float64_t val, int64_t *nobs,
@@ -510,7 +513,7 @@ cdef void add_skew(float64_t val, int64_t *nobs,
         moments_add_value(val, nobs, mean, m2, m3, NULL, 3)
         if (
             fabs(old_m3) * InvCondTol > fabs(m3[0])
-            or moments_hold_nan(m2[0], m3[0], 0)
+            or moments_not_finite(m2[0], m3[0], 0)
         ):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
@@ -559,7 +562,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
         m2[0] -= term1
         mean[0] -= delta_n
 
-        if moments_hold_nan(m2[0], m3[0], 0):
+        if moments_not_finite(m2[0], m3[0], 0):
             numerically_unstable[0] = True
 
 
@@ -647,7 +650,7 @@ cdef void add_kurt(float64_t val, int64_t *nobs,
         moments_add_value(val, nobs, mean, m2, m3, m4, 4)
         if (
             fabs(old_m4) * InvCondTol > fabs(m4[0])
-            or moments_hold_nan(m2[0], m3[0], m4[0])
+            or moments_not_finite(m2[0], m3[0], m4[0])
         ):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
@@ -695,7 +698,7 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
         m2[0] -= term1
         mean[0] -= delta_n
 
-        if moments_hold_nan(m2[0], m3[0], m4[0]):
+        if moments_not_finite(m2[0], m3[0], m4[0]):
             numerically_unstable[0] = True
 
 

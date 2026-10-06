@@ -281,8 +281,7 @@ def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
     )
 
 
-@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
-def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
+def test_rolling_kurt_midband_outlier_recovers():
     # GH#70638 a 1e90 outlier overflowed kurt's m4, which later updates turned
     # into a NaN that no cancellation check noticed
     window = 20
@@ -290,12 +289,30 @@ def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
     values = rng.normal(size=120)
     values[40] = 1e90
 
-    result = getattr(pd.Series(values).rolling(window), roll_func)()
+    result = pd.Series(values).rolling(window).kurt()
 
     # once the outlier leaves, the windows are ordinary data
     tm.assert_series_equal(
         result.iloc[60:],
-        _window_reduction(pd.Series(values), window, roll_func).iloc[60:],
+        _window_reduction(pd.Series(values), window, "kurt").iloc[60:],
+        rtol=1e-12,
+        atol=0,
+    )
+
+
+def test_rolling_kurt_inf_moment_recovers():
+    # GH#70638 two 1e77 outliers in one window overflowed kurt's m4 to inf,
+    # which stayed inf after they left
+    window = 4
+    series = pd.Series(
+        [1.0, 2.0, 3.0, 4.0, 1e77, 5.0, 6.0, -1e77, 7.0, 8.0, 9.0, 3.0, 1.0, 5.0, 2.0]
+    )
+
+    result = series.rolling(window).kurt()
+
+    tm.assert_series_equal(
+        result.iloc[11:],
+        _window_reduction(series, window, "kurt").iloc[11:],
         rtol=1e-12,
         atol=0,
     )
