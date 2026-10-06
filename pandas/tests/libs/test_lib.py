@@ -10,7 +10,7 @@ from pandas._libs import (
 )
 from pandas.compat import IS64
 
-from pandas import Index
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -54,7 +54,7 @@ class TestMisc:
         mapping1 = {td: 1}
         mapping2 = {td.as_unit("s"): 1}
 
-        oindex = Index([td * n for n in range(3)])._values.astype(object)
+        oindex = pd.Index([td * n for n in range(3)])._values.astype(object)
 
         expected = lib.fast_multiget(mapping1, oindex)
         result = lib.fast_multiget(mapping2, oindex)
@@ -67,7 +67,7 @@ class TestMisc:
         mapping1 = {td: 1}
         mapping2 = {td.as_unit("ms"): 1}
 
-        oindex = Index([td * n for n in range(3)])._values.astype(object)
+        oindex = pd.Index([td * n for n in range(3)])._values.astype(object)
 
         expected = lib.fast_multiget(mapping1, oindex)
         result = lib.fast_multiget(mapping2, oindex)
@@ -84,6 +84,18 @@ class TestIndexing:
 
         assert isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
+
+    @pytest.mark.skipif(
+        not IS64,
+        reason="2**31 is too big for Py_ssize_t on 32-bit. "
+        "It doesn't matter though since you cannot create an array that long on 32-bit",
+    )
+    def test_maybe_indices_to_slice_large_length(self):
+        # GH#24248 a max_len exceeding the 32-bit int range must not overflow
+        #  (e.g. Index.take on an index with more than 2**31 rows)
+        indices = np.array([1, 2, 5, 6], dtype=np.intp)
+        result = lib.maybe_indices_to_slice(indices, 2**31)
+        tm.assert_numpy_array_equal(result, indices)
 
     @pytest.mark.parametrize("end", [1, 2, 5, 20, 99])
     @pytest.mark.parametrize("step", [1, 2, 4])
@@ -276,9 +288,31 @@ class TestIndexing:
         assert not lib.is_range_indexer(left, 2)
 
 
+@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
+def test_has_sentinel(dtype):
+    arr = np.array([0, 1, 2, 3], dtype=dtype)
+    assert not lib.has_sentinel(arr, -1)
+    # sentinel need not be -1
+    assert lib.has_sentinel(arr, 2)
+    assert not lib.has_sentinel(arr, 4)
+
+
+@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
+@pytest.mark.parametrize("n", [0, 1, 7, 8, 9, 15, 16, 17])
+def test_has_sentinel_every_position(dtype, n):
+    # the scan unrolls 8 lanes at a time, so check the body/tail boundary
+    # by placing the sentinel at every position for lengths around 8 and 16
+    base = np.arange(1, n + 1, dtype=dtype)  # all positive, no -1
+    assert not lib.has_sentinel(base, -1)
+    for pos in range(n):
+        arr = base.copy()
+        arr[pos] = -1
+        assert lib.has_sentinel(arr, -1)
+
+
 def test_cache_readonly_preserve_docstrings():
     # GH18197
-    assert Index.hasnans.__doc__ is not None
+    assert pd.Index.hasnans.__doc__ is not None
 
 
 def test_no_default_pickle(temp_file):

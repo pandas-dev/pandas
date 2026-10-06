@@ -1,20 +1,29 @@
 from __future__ import annotations
 
+import contextlib
+import datetime as dt
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
+    cast,
 )
+import warnings
+import zoneinfo
 
 import numpy as np
 
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas._libs.tslibs import timezones
 from pandas.compat import (
     pa_version_under18p0,
     pa_version_under19p0,
+    pa_version_under25p0,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
 
@@ -23,6 +32,7 @@ import pandas as pd
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
         Sequence,
     )
@@ -34,8 +44,32 @@ if TYPE_CHECKING:
         DtypeBackend,
     )
 
+    from pandas.core.dtypes.base import ExtensionDtype
 
-def _arrow_dtype_mapping() -> dict:
+
+pytz = import_optional_dependency("pytz", errors="ignore")
+
+
+@contextlib.contextmanager
+def suppress_pyarrow_values_warning() -> Generator[None]:
+    """
+    Suppress the deprecation warning pyarrow triggers by calling ``.values``
+    on timezone-aware data when converting pandas objects.
+
+    Remove once the minimum pyarrow (26.0) no longer does this, see GH#68426 and
+    apache/arrow#51302.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            r"(Series|DatetimeIndex)\.values returning an ndarray that drops "
+            "timezone information",
+            Pandas4Warning,
+        )
+        yield
+
+
+def _arrow_dtype_mapping() -> dict[pyarrow.DataType, Any]:
     pa = import_optional_dependency("pyarrow")
     return {
         pa.int8(): pd.Int8Dtype(),
@@ -55,7 +89,7 @@ def _arrow_dtype_mapping() -> dict:
     }
 
 
-def _arrow_string_types_mapper() -> Callable:
+def _arrow_string_types_mapper() -> Callable[[pyarrow.DataType], ExtensionDtype | None]:
     pa = import_optional_dependency("pyarrow")
 
     mapping = {
@@ -72,7 +106,7 @@ def arrow_table_to_pandas(
     table: pyarrow.Table,
     dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
     null_to_int64: bool = False,
-    to_pandas_kwargs: dict | None = None,
+    to_pandas_kwargs: dict[str, Any] | None = None,
     dtype: DtypeArg | None = None,
     names: Sequence[Hashable] | None = None,
 ) -> pd.DataFrame:
@@ -80,7 +114,9 @@ def arrow_table_to_pandas(
 
     to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
 
-    types_mapper: type[pd.ArrowDtype] | None | Callable
+    types_mapper: (
+        type[pd.ArrowDtype] | Callable[[pyarrow.DataType], ExtensionDtype | None] | None
+    )
     if dtype_backend == "numpy_nullable":
         mapping = _arrow_dtype_mapping()
         if null_to_int64:
@@ -120,7 +156,9 @@ def arrow_table_to_pandas(
         raise NotImplementedError
 
     df = table.to_pandas(types_mapper=types_mapper, **to_pandas_kwargs)
-    return _post_convert_dtypes(df, dtype_backend, dtype, names)
+    df = _post_convert_dtypes(df, dtype_backend, dtype, names)
+    df = _normalize_timezone_dtypes(df)
+    return df
 
 
 def _post_convert_dtypes(
@@ -157,6 +195,20 @@ def _post_convert_dtypes(
                 key: pandas_dtype(dtype[key]) for key in dtype if key in df.columns
             }
 
+            # GH#65056 pyarrow returns datetime.date objects which trigger
+            #  a deprecation warning when compared against DatetimeIndex
+            #  categories. Convert to datetime64 first since the user can't
+            #  control pyarrow's behavior.
+            for col, col_dtype in dtype.items():
+                if (
+                    isinstance(col_dtype, pd.CategoricalDtype)
+                    and col_dtype.categories is not None
+                    and isinstance(col_dtype.categories, pd.DatetimeIndex)
+                    and df[col].dtype == np.dtype("object")
+                    and lib.infer_dtype(df[col]) == "date"
+                ):
+                    df[col] = pd.to_datetime(df[col])
+
         else:
             dtype = pandas_dtype(dtype)
 
@@ -166,6 +218,37 @@ def _post_convert_dtypes(
             # GH#44901 reraise to keep api consistent
             raise ValueError(str(err)) from err
 
+        # GH#56136 IntegerDtype was used above to avoid lossy float64
+        #  conversion in pyarrow; convert back to numpy now that the data
+        #  is categorical
+        # runtime import to avoid circular import; core.dtypes.cast imports
+        #  this module at module scope
+        from pandas.core.arrays.integer import IntegerDtype
+
+        col_dtypes = df.dtypes
+        for i in range(len(df.columns)):
+            col_dtype = col_dtypes.iloc[i]
+            if not isinstance(col_dtype, pd.CategoricalDtype):
+                continue
+            cat_arr_dtype = col_dtype.categories.dtype
+            if not isinstance(cat_arr_dtype, IntegerDtype):
+                continue
+            if isinstance(dtype, dict):
+                requested = dtype.get(df.columns[i])
+            else:
+                requested = dtype
+            if (
+                isinstance(requested, pd.CategoricalDtype)
+                and requested.categories is not None
+            ):
+                # the user explicitly asked for these categories
+                continue
+            new_cat_dtype = pd.CategoricalDtype(
+                categories=col_dtype.categories.astype(cat_arr_dtype.numpy_dtype),
+                ordered=col_dtype.ordered,
+            )
+            df.isetitem(i, df.iloc[:, i].astype(new_cat_dtype))
+
     if (
         not using_string_dtype()
         and dtype != "str"
@@ -173,19 +256,131 @@ def _post_convert_dtypes(
     ):
         # Convert any StringDtype columns back to object dtype (pyarrow always
         # uses string dtype even when the infer_string option is False)
-        for col, dtype in zip(df.columns, df.dtypes, strict=True):
-            if isinstance(dtype, pd.StringDtype) and dtype.na_value is np.nan:
-                df[col] = df[col].astype("object").fillna(None)
-            if isinstance(dtype, pd.CategoricalDtype):
-                cat_dtype = dtype.categories.dtype
-                if (
-                    isinstance(cat_dtype, pd.StringDtype)
-                    and cat_dtype.na_value is np.nan
-                ):
-                    cat_dtype = pd.CategoricalDtype(
-                        categories=dtype.categories.astype("object"),
-                        ordered=dtype.ordered,
-                    )
-                    df[col] = df[col].astype(cat_dtype)
+        for i in range(len(df.columns)):
+            new_col = _maybe_convert_string_to_object(df.iloc[:, i])
+            if new_col is not None:
+                df.isetitem(i, new_col)
+
+        new_idx = _maybe_convert_string_index_to_object(df.index)
+        if new_idx is not None:
+            df.index = new_idx
+        new_cols = _maybe_convert_string_index_to_object(df.columns)
+        if new_cols is not None:
+            df.columns = new_cols
+
+    return df
+
+
+def _maybe_convert_string_to_object(
+    data: pd.Series | pd.Index,
+) -> pd.Series | pd.Index | None:
+    if isinstance(data.dtype, pd.StringDtype) and data.dtype.na_value is np.nan:
+        return data.astype("object").fillna(None)
+    elif isinstance(data.dtype, pd.CategoricalDtype):
+        cat_dtype = data.dtype.categories.dtype
+        if isinstance(cat_dtype, pd.StringDtype) and cat_dtype.na_value is np.nan:
+            # not astype: for ordered categoricals CategoricalDtype.__eq__
+            #  ignores the categories' dtype, so astype would no-op
+            cat_arr = cast("pd.Categorical", data._values)
+            new_arr = cat_arr.set_categories(data.dtype.categories.astype("object"))
+            if isinstance(data, pd.Index):
+                return pd.CategoricalIndex(new_arr, name=data.name)
+            return pd.Series(new_arr, index=data.index, name=data.name, copy=False)
+
+    # no conversion needed
+    return None
+
+
+def _maybe_convert_string_index_to_object(index: pd.Index) -> pd.Index | None:
+    if isinstance(index, pd.MultiIndex):
+        if any(
+            isinstance(level.dtype, pd.StringDtype) and level.dtype.na_value is np.nan
+            for level in index.levels
+        ):
+            new_levels = []
+            for level in index.levels:
+                new_level = _maybe_convert_string_to_object(level)
+                if new_level is not None:
+                    new_levels.append(new_level)
+                else:
+                    new_levels.append(level)
+            return index.set_levels(new_levels)
+        return None
+
+    else:
+        return cast("pd.Index | None", _maybe_convert_string_to_object(index))
+
+
+def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
+    """
+    If the input tz is a pytz timezone, attempt to convert it to "default"
+    tzinfo object (zoneinfo or datetime.timezone).
+    """
+    if not type(tz).__module__.startswith("pytz"):
+        # isinstance(col.dtype.tz, pytz.BaseTzInfo) does not included
+        # fixed offsets
+        return tz
+
+    if timezones.is_utc(tz):
+        return dt.UTC
+
+    if tz.zone is not None:  # type: ignore[attr-defined]
+        try:
+            return zoneinfo.ZoneInfo(tz.zone)  # type: ignore[attr-defined]
+        except Exception:
+            # some pytz timezones might not be available for zoneinfo
+            pass
+
+    if timezones.is_fixed_offset(tz):
+        # Convert pytz fixed offset to datetime.timezone
+        try:
+            offset = tz.utcoffset(None)
+            if offset is not None:
+                return dt.timezone(offset)
+        except Exception:
+            pass
+
+    return tz
+
+
+def _normalize_timezone_index(index: pd.Index) -> pd.Index:
+    if isinstance(index, pd.MultiIndex):
+        if any(isinstance(level.dtype, pd.DatetimeTZDtype) for level in index.levels):
+            levels = [_normalize_timezone_index(level) for level in index.levels]
+            return index.set_levels(levels)
+
+        return index
+
+    if isinstance(index.dtype, pd.DatetimeTZDtype):
+        normalized_tz = _normalize_pytz_timezone(index.dtype.tz)
+        if normalized_tz is not index.dtype.tz:
+            return index.tz_convert(normalized_tz)  # type: ignore[attr-defined]
+
+    return index
+
+
+def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    PyArrow below version 25 uses pytz by default for timezones, but pandas uses
+    zoneinfo / datetime.timezone since pandas 3.0.
+
+    Can be dropped once the minimum supported pyarrow is 25, which uses zoneinfo
+    itself (https://github.com/apache/arrow/pull/49694).
+    """
+    if pytz is not None and pa_version_under25p0:
+        # Convert any pytz timezones to zoneinfo / fixed offset timezones
+        if any(
+            isinstance(dtype, pd.DatetimeTZDtype)
+            for dtype in df._mgr.get_unique_dtypes()
+        ):
+            col_indices = df._select_dtypes_indices(pd.DatetimeTZDtype)
+            for i in col_indices:
+                col = df.iloc[:, i]
+                normalized_tz = _normalize_pytz_timezone(col.dtype.tz)
+                if normalized_tz is not col.dtype.tz:
+                    df.isetitem(i, col.dt.tz_convert(normalized_tz))
+
+        df.index = _normalize_timezone_index(df.index)
+        df.columns = _normalize_timezone_index(df.columns)
 
     return df

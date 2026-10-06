@@ -4,13 +4,17 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from functools import cached_property
 import sys
 from typing import TYPE_CHECKING
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    get_adjustment,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -31,31 +35,7 @@ if TYPE_CHECKING:
         Series,
     )
 
-
-def _put_str(s: str | Dtype, space: int) -> str:
-    """
-    Make string of specified length, padding to the right if necessary.
-
-    Parameters
-    ----------
-    s : Union[str, Dtype]
-        String to be formatted.
-    space : int
-        Length to force string to be of.
-
-    Returns
-    -------
-    str
-        String coerced to given length.
-
-    Examples
-    --------
-    >>> pd.io.formats.info._put_str("panda", 6)
-    'panda '
-    >>> pd.io.formats.info._put_str("panda", 4)
-    'pand'
-    """
-    return str(s)[:space].ljust(space)
+    from pandas.io.formats import printing
 
 
 def _sizeof_fmt(num: float, size_qualifier: str) -> str:
@@ -94,7 +74,7 @@ def _initialize_memory_usage(
 ) -> bool | str:
     """Get memory usage based on inputs and display options."""
     if memory_usage is None:
-        memory_usage = _global_config["display"]["memory_usage"]
+        memory_usage = config["display"]["memory_usage"]
     return memory_usage
 
 
@@ -364,7 +344,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
     @property
     def max_rows(self) -> int:
         """Maximum info rows to be displayed."""
-        return _global_config["display"]["max_info_rows"]
+        return config["display"]["max_info_rows"]
 
     @property
     def exceeds_info_cols(self) -> bool:
@@ -383,7 +363,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
 
     def _initialize_max_cols(self, max_cols: int | None) -> int:
         if max_cols is None:
-            return _global_config["display"]["max_info_columns"]
+            return config["display"]["max_info_columns"]
         return max_cols
 
     def _initialize_show_counts(self, show_counts: bool | None) -> bool:
@@ -590,6 +570,14 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
     gross_column_widths: Sequence[int]
     with_counts: bool
 
+    @cached_property
+    def _adj(self) -> printing._TextAdjustment:
+        # respects display.unicode.east_asian_width, like DataFrame.__repr__
+        return get_adjustment()
+
+    def _ljust(self, text: str, width: int) -> str:
+        return self._adj.justify([text], width, mode="left")[0]
+
     @property
     @abstractmethod
     def headers(self) -> Sequence[str]:
@@ -598,7 +586,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
     @property
     def header_column_widths(self) -> Sequence[int]:
         """Widths of header columns (only titles)."""
-        return [len(col) for col in self.headers]
+        return [self._adj.len(col) for col in self.headers]
 
     def _get_gross_column_widths(self) -> Sequence[int]:
         """Get widths of columns containing both headers and actual content."""
@@ -613,7 +601,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
     def _get_body_column_widths(self) -> Sequence[int]:
         """Get widths of table content columns."""
         strcols: Sequence[Sequence[str]] = list(zip(*self.strrows, strict=True))
-        return [max(len(x) for x in col) for col in strcols]
+        return [max(self._adj.len(x) for x in col) for col in strcols]
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         """
@@ -637,7 +625,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
     def add_header_line(self) -> None:
         header_line = self.SPACING.join(
             [
-                _put_str(header, col_width)
+                self._ljust(header, col_width)
                 for header, col_width in zip(
                     self.headers, self.gross_column_widths, strict=True
                 )
@@ -648,7 +636,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
     def add_separator_line(self) -> None:
         separator_line = self.SPACING.join(
             [
-                _put_str("-" * header_colwidth, gross_colwidth)
+                self._ljust("-" * header_colwidth, gross_colwidth)
                 for header_colwidth, gross_colwidth in zip(
                     self.header_column_widths, self.gross_column_widths, strict=True
                 )
@@ -660,7 +648,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         for row in self.strrows:
             body_line = self.SPACING.join(
                 [
-                    _put_str(col, gross_colwidth)
+                    self._ljust(col, gross_colwidth)
                     for col, gross_colwidth in zip(
                         row, self.gross_column_widths, strict=True
                     )

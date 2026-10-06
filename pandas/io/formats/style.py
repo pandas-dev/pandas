@@ -16,7 +16,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -217,7 +217,7 @@ class Styler(StylerRenderer):
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
-        caption: str | tuple | list | None = None,
+        caption: str | tuple[str, str] | list[str] | None = None,
         table_attributes: str | None = None,
         cell_ids: bool = True,
         na_rep: str | None = None,
@@ -239,11 +239,11 @@ class Styler(StylerRenderer):
         )
 
         # validate ordered args
-        thousands = thousands or _global_config["styler"]["format"]["thousands"]
-        decimal = decimal or _global_config["styler"]["format"]["decimal"]
-        na_rep = na_rep or _global_config["styler"]["format"]["na_rep"]
-        escape = escape or _global_config["styler"]["format"]["escape"]
-        formatter = formatter or _global_config["styler"]["format"]["formatter"]
+        thousands = thousands or config["styler"]["format"]["thousands"]
+        decimal = decimal or config["styler"]["format"]["decimal"]
+        na_rep = na_rep or config["styler"]["format"]["na_rep"]
+        escape = escape or config["styler"]["format"]["escape"]
+        formatter = formatter or config["styler"]["format"]["formatter"]
         # precision is handled by superclass as default for performance
 
         self.format(
@@ -376,12 +376,12 @@ class Styler(StylerRenderer):
         Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
         default if an object is returned at the end of a cell.
         """
-        if _global_config["styler"]["render"]["repr"] == "html":
+        if config["styler"]["render"]["repr"] == "html":
             return self.to_html()
         return None
 
     def _repr_latex_(self) -> str | None:
-        if _global_config["styler"]["render"]["repr"] == "latex":
+        if config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         return None
 
@@ -515,7 +515,7 @@ class Styler(StylerRenderer):
 
     def to_excel(
         self,
-        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
@@ -577,7 +577,7 @@ class Styler(StylerRenderer):
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
             via the options ``io.excel.xlsx.writer`` or
             ``io.excel.xlsm.writer``.
-        merge_cells : bool or 'columns', default False
+        merge_cells : bool or 'columns', default True
             If True, write MultiIndex index and columns as merged cells.
             If 'columns', merge MultiIndex column cells only.
         encoding : str or None, default None
@@ -693,7 +693,7 @@ class Styler(StylerRenderer):
         hrules: bool | None = ...,
         clines: str | None = ...,
         label: str | None = ...,
-        caption: str | tuple | None = ...,
+        caption: str | tuple[str, str] | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         multirow_align: str | None = ...,
@@ -715,7 +715,7 @@ class Styler(StylerRenderer):
         hrules: bool | None = ...,
         clines: str | None = ...,
         label: str | None = ...,
-        caption: str | tuple | None = ...,
+        caption: str | tuple[str, str] | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         multirow_align: str | None = ...,
@@ -736,7 +736,7 @@ class Styler(StylerRenderer):
         hrules: bool | None = None,
         clines: str | None = None,
         label: str | None = None,
-        caption: str | tuple | None = None,
+        caption: str | tuple[str, str] | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         multirow_align: str | None = None,
@@ -1248,9 +1248,7 @@ class Styler(StylerRenderer):
                 overwrite=False,
             )
 
-        hrules = (
-            _global_config["styler"]["latex"]["hrules"] if hrules is None else hrules
-        )
+        hrules = config["styler"]["latex"]["hrules"] if hrules is None else hrules
         if hrules:
             obj.set_table_styles(
                 [
@@ -1271,16 +1269,12 @@ class Styler(StylerRenderer):
             obj.set_caption(caption)
 
         if sparse_index is None:
-            sparse_index = _global_config["styler"]["sparse"]["index"]
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = _global_config["styler"]["sparse"]["columns"]
-        environment = environment or _global_config["styler"]["latex"]["environment"]
-        multicol_align = (
-            multicol_align or _global_config["styler"]["latex"]["multicol_align"]
-        )
-        multirow_align = (
-            multirow_align or _global_config["styler"]["latex"]["multirow_align"]
-        )
+            sparse_columns = config["styler"]["sparse"]["columns"]
+        environment = environment or config["styler"]["latex"]["environment"]
+        multicol_align = multicol_align or config["styler"]["latex"]["multicol_align"]
+        multirow_align = multirow_align or config["styler"]["latex"]["multirow_align"]
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
@@ -1293,7 +1287,7 @@ class Styler(StylerRenderer):
         )
 
         encoding = (
-            (encoding or _global_config["styler"]["render"]["encoding"])
+            (encoding or config["styler"]["render"]["encoding"])
             if isinstance(buf, str)  # i.e. a filepath
             else encoding
         )
@@ -1394,9 +1388,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = _global_config["styler"]["sparse"]["index"]
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = _global_config["styler"]["sparse"]["columns"]
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         text = obj._render_typst(
             sparse_columns=sparse_columns,
@@ -1558,9 +1552,9 @@ class Styler(StylerRenderer):
             obj.set_table_attributes(table_attributes)
 
         if sparse_index is None:
-            sparse_index = _global_config["styler"]["sparse"]["index"]
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = _global_config["styler"]["sparse"]["columns"]
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         if bold_headers:
             obj.set_table_styles(
@@ -1577,7 +1571,7 @@ class Styler(StylerRenderer):
             max_rows=max_rows,
             max_cols=max_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding or _global_config["styler"]["render"]["encoding"],
+            encoding=encoding or config["styler"]["render"]["encoding"],
             doctype_html=doctype_html,
             **kwargs,
         )
@@ -1678,9 +1672,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = _global_config["styler"]["sparse"]["index"]
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = _global_config["styler"]["sparse"]["columns"]
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         text = obj._render_string(
             sparse_columns=sparse_columns,
@@ -1955,7 +1949,7 @@ class Styler(StylerRenderer):
 
     def _apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -2014,7 +2008,7 @@ class Styler(StylerRenderer):
 
     def apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -2105,7 +2099,7 @@ class Styler(StylerRenderer):
 
     def _apply_index(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: Axis = 0,
         level: Level | list[Level] | None = None,
         method: str = "apply",
@@ -2127,7 +2121,7 @@ class Styler(StylerRenderer):
 
     def apply_index(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -2204,7 +2198,7 @@ class Styler(StylerRenderer):
 
     def map_index(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -2278,7 +2272,9 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def _map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
+    def _map(
+        self, func: Callable[..., Any], subset: Subset | None = None, **kwargs
+    ) -> Styler:
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
             subset = IndexSlice[:]
@@ -2287,7 +2283,9 @@ class Styler(StylerRenderer):
         self._update_ctx(result)
         return self
 
-    def map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
+    def map(
+        self, func: Callable[..., Any], subset: Subset | None = None, **kwargs
+    ) -> Styler:
         """
         Apply a CSS-styling function elementwise.
 
@@ -2558,7 +2556,7 @@ class Styler(StylerRenderer):
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str | tuple | list) -> Styler:
+    def set_caption(self, caption: str | tuple[str, str] | list[str]) -> Styler:
         """
         Set the text added to a ``<caption>`` HTML element.
 
@@ -2877,7 +2875,11 @@ class Styler(StylerRenderer):
         elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
+            idf = (
+                f".{self.css['row']}"  # pyright: ignore[reportOptionalSubscript]
+                if axis == 1
+                else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
+            )
 
             table_styles = [
                 {
@@ -2948,8 +2950,8 @@ class Styler(StylerRenderer):
         Notes
         -----
         .. warning::
-           This method only works with the output methods ``to_html``, ``to_string``
-           and ``to_latex``.
+           This method only works with the output methods ``to_html``, ``to_string``,
+           ``to_latex`` and ``to_typst``.
 
            Other output methods, including ``to_excel``, ignore this hiding method
            and will display all data.
@@ -3093,10 +3095,15 @@ class Styler(StylerRenderer):
             )
         else:
             if axis == 0:
-                subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+                subset_1 = IndexSlice[
+                    subset, :
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_1)
             else:
-                subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
-            subset = non_reducing_slice(subset_)
+                subset_2 = IndexSlice[
+                    :, subset
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_2)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             setattr(self, f"hidden_{alt}", h_els)
@@ -3125,7 +3132,7 @@ class Styler(StylerRenderer):
         text_color_threshold: float = 0.408,
         vmin: float | None = None,
         vmax: float | None = None,
-        gmap: Sequence | None = None,
+        gmap: Sequence[Any] | None = None,
     ) -> Styler:
         """
         Color the background in a gradient style.
@@ -3282,7 +3289,7 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         vmin: float | None = None,
         vmax: float | None = None,
-        gmap: Sequence | None = None,
+        gmap: Sequence[Any] | None = None,
     ) -> Styler:
         """
         Color the text in a gradient style.
@@ -3472,11 +3479,11 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         axis: Axis | None = 0,
         *,
-        color: str | list | tuple | None = None,
+        color: str | list[str] | tuple[str, str] | None = None,
         cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
-        align: str | float | Callable = "mid",
+        align: str | float | Callable[..., Any] = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -3773,8 +3780,8 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
-        left: Scalar | Sequence | None = None,
-        right: Scalar | Sequence | None = None,
+        left: Scalar | Sequence[Any] | None = None,
+        right: Scalar | Sequence[Any] | None = None,
         inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
@@ -4207,7 +4214,7 @@ class Styler(StylerRenderer):
 
 
 def _validate_apply_axis_arg(
-    arg: NDFrame | Sequence | np.ndarray,
+    arg: NDFrame | Sequence[Any] | np.ndarray,
     arg_name: str,
     dtype: Any | None,
     data: NDFrame,
@@ -4267,7 +4274,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
+    gmap: Sequence[Any] | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
 ) -> list[str] | DataFrame:
     """
@@ -4301,7 +4308,7 @@ def _background_gradient(
 
         Parameters
         ----------
-        color : rgb or rgba tuple
+        rgba : rgb or rgba tuple
 
         Returns
         -------
@@ -4338,8 +4345,8 @@ def _background_gradient(
 def _highlight_between(
     data: NDFrame,
     props: str,
-    left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
-    right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
+    left: Scalar | Sequence[Any] | np.ndarray | NDFrame | None = None,
+    right: Scalar | Sequence[Any] | np.ndarray | NDFrame | None = None,
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """
@@ -4405,8 +4412,8 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
 
 def _bar(
     data: NDFrame,
-    align: str | float | Callable,
-    colors: str | list | tuple,
+    align: str | float | Callable[..., Any],
+    colors: str | list[str] | tuple[str, str],
     cmap: Any,
     width: float,
     height: float,
@@ -4471,7 +4478,13 @@ def _bar(
             cell_css += f" {color} {end * 100:.1f}%, transparent {end * 100:.1f}%)"
         return cell_css
 
-    def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):
+    def css_calc(
+        x,
+        left: float,
+        right: float,
+        align: str,
+        color: str | list[str] | tuple[str, str],
+    ):
         """
         Return the correct CSS for bar placement based on calculated values.
 

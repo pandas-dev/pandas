@@ -3,36 +3,32 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    notna,
-)
+import pandas as pd
 
 
 def create_series():
     return [
-        Series(dtype=np.float64, name="a"),
-        Series([np.nan] * 5),
-        Series([1.0] * 5),
-        Series(range(5, 0, -1)),
-        Series(range(5)),
-        Series([np.nan, 1.0, np.nan, 1.0, 1.0]),
-        Series([np.nan, 1.0, np.nan, 2.0, 3.0]),
-        Series([np.nan, 1.0, np.nan, 3.0, 2.0]),
+        pd.Series(dtype=np.float64, name="a"),
+        pd.Series([np.nan] * 5),
+        pd.Series([1.0] * 5),
+        pd.Series(range(5, 0, -1)),
+        pd.Series(range(5)),
+        pd.Series([np.nan, 1.0, np.nan, 1.0, 1.0]),
+        pd.Series([np.nan, 1.0, np.nan, 2.0, 3.0]),
+        pd.Series([np.nan, 1.0, np.nan, 3.0, 2.0]),
     ]
 
 
 def create_dataframes():
     return [
-        DataFrame(columns=["a", "a"]),
-        DataFrame(np.arange(15).reshape((5, 3)), columns=["a", "a", 99]),
-    ] + [DataFrame(s) for s in create_series()]
+        pd.DataFrame(columns=["a", "a"]),
+        pd.DataFrame(np.arange(15).reshape((5, 3)), columns=["a", "a", 99]),
+    ] + [pd.DataFrame(s) for s in create_series()]
 
 
 def is_constant(x):
     values = x.values.ravel("K")
-    return len(set(values[notna(values)])) == 1
+    return len(set(values[pd.notna(values)])) == 1
 
 
 @pytest.fixture(

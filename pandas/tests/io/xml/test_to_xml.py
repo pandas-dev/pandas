@@ -11,11 +11,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.common import get_handle
@@ -58,7 +54,7 @@ from pandas.io.xml import read_xml
 
 @pytest.fixture
 def geom_df():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
@@ -69,7 +65,7 @@ def geom_df():
 
 @pytest.fixture
 def planet_df():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "planet": [
                 "Mercury",
@@ -320,7 +316,7 @@ def test_index_false_with_offset_input_index(parser, typ, geom_df):
 </data>"""
     offset_index = [typ(i) for i in range(10, 13)]
     offset_geom_df = geom_df.copy()
-    offset_geom_df.index = Index(offset_index)
+    offset_geom_df.index = pd.Index(offset_index)
     output = offset_geom_df.to_xml(index=False, parser=parser)
     output = equalize_decl(output)
 
@@ -395,6 +391,26 @@ def test_na_empty_elem_option(parser, geom_df):
     output = equalize_decl(output)
 
     assert output == expected
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([1, None], "Int64"),
+        ([1.5, None], "Float64"),
+        ([True, None], "boolean"),
+        (["a", None], "string"),
+        pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ([1, None], object),
+        ([1, pd.NA], object),
+        (["x", None], "category"),
+    ],
+)
+def test_na_rep_none_and_na(parser, values, dtype):
+    # GH#54872
+    df = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
+    output = df.to_xml(na_rep="foo", parser=parser)
+    assert output.count("<a>foo</a>") == 1
 
 
 # ATTR_COLS
@@ -1329,7 +1345,7 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
     <a/>
   </row>
 </data>"""
-    df = DataFrame({"a": [NA]}).astype(any_numeric_ea_dtype)
+    df = pd.DataFrame({"a": [pd.NA]}).astype(any_numeric_ea_dtype)
     result = df.to_xml(parser=parser)
     assert equalize_decl(result).strip() == expected
 

@@ -78,7 +78,7 @@ are homogeneously-typed.
 .. note::
 
    :func:`~pandas.pivot` can only handle unique rows specified by ``index`` and ``columns``.
-   If you data contains duplicates, use :func:`~pandas.pivot_table`.
+   If your data contains duplicates, use :func:`~pandas.pivot_table`.
 
 
 .. _reshaping.pivot:
@@ -236,9 +236,12 @@ the level numbers:
 
 .. image:: ../_static/reshaping_unstack_0.png
 
-Notice that the :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods implicitly sort the index
-levels involved. Hence a call to :meth:`~DataFrame.stack` and then :meth:`~DataFrame.unstack`, or vice versa,
-will result in a **sorted** copy of the original :class:`DataFrame` or :class:`Series`:
+Notice that the :meth:`~DataFrame.unstack` method implicitly sorts the index levels involved,
+while :meth:`~DataFrame.stack` preserves the order of the stacked column level. Because
+:meth:`~DataFrame.unstack` sorts, a call to :meth:`~DataFrame.stack` and then
+:meth:`~DataFrame.unstack`, or vice versa, will result in a **sorted** copy of the original
+:class:`DataFrame` or :class:`Series`. Here "sorted" is with respect to the order of the
+:attr:`MultiIndex.levels`, which for a typical :class:`MultiIndex` matches sorting by value:
 
 .. ipython:: python
 
@@ -415,6 +418,16 @@ This function is often used along with discretization functions like :func:`~pan
    bins = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
    pd.get_dummies(pd.cut(values, bins))
+
+A categorical input gets one column per category, including categories absent
+from the data. To get a consistent set of columns, e.g. between training and
+test data, set the categories first:
+
+.. ipython:: python
+
+    s = pd.Series(list("aca")).astype(pd.CategoricalDtype(["a", "b", "c"]))
+
+    pd.get_dummies(s)
 
 
 :func:`get_dummies` also accepts a :class:`DataFrame`. By default, ``object``, ``string``,

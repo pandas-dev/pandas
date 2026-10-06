@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas.core.indexers import (
     is_scalar_indexer,
     length_of_indexer,
@@ -14,6 +15,46 @@ def test_length_of_indexer():
     arr[0] = 1
     result = length_of_indexer(arr)
     assert result == 1
+
+
+def test_length_of_indexer_boolean_index():
+    # GH#68021 the boolean branch used indexer.sum(), which Index does not have
+    assert length_of_indexer(pd.Index([True, False, True])) == 2
+    assert length_of_indexer(pd.Series([True, False, True])) == 2
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, target_len, expected",
+    [
+        # GH#66100 negative step with None bounds previously returned
+        # negative lengths
+        (None, None, -1, 7, 7),
+        (None, None, -2, 7, 4),
+        (None, None, -3, 7, 3),
+        (4, None, -2, 7, 3),
+        (None, 0, -2, 7, 3),
+        (None, 1, -1, 7, 5),
+        (3, None, -1, 7, 4),
+        # explicit (non-None) bounds with negative step already worked
+        (4, 0, -2, 7, 2),
+        (6, 0, -1, 7, 6),
+        (5, 1, -2, 7, 2),
+        (-1, -5, -1, 7, 4),
+        # positive step, including GH#9995 non-divisible-step case
+        (1, None, 2, 6, 3),
+        (None, None, 1, 7, 7),
+        (1, 5, 2, 7, 2),
+        (None, None, None, 7, 7),
+        (2, None, None, 7, 5),
+    ],
+)
+def test_length_of_indexer_slice(start, stop, step, target_len, expected):
+    target = np.arange(target_len)
+    indexer = slice(start, stop, step)
+    result = length_of_indexer(indexer, target)
+    assert result == expected
+    # cross-check against the actual sliced length, the real source of truth
+    assert result == len(target[indexer])
 
 
 @pytest.mark.parametrize(

@@ -7,13 +7,12 @@ HTML IO.
 from __future__ import annotations
 
 from collections import abc
-import errno
 import numbers
-import os
 import re
 from re import Pattern
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -45,7 +44,10 @@ from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
+        Hashable,
         Iterable,
+        Mapping,
         Sequence,
     )
 
@@ -66,7 +68,7 @@ if TYPE_CHECKING:
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s: str, regex: Pattern = _RE_WHITESPACE) -> str:
+def _remove_whitespace(s: str, regex: Pattern[str] = _RE_WHITESPACE) -> str:
     """
     Replace extra whitespace inside of a string with a single space.
 
@@ -130,17 +132,10 @@ def _read(
     -------
     raw_text : str
     """
-    try:
-        with get_handle(
-            obj, "r", encoding=encoding, storage_options=storage_options
-        ) as handles:
-            return handles.handle.read()
-    except OSError as err:
-        if not is_url(obj):
-            raise FileNotFoundError(
-                f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {obj}"
-            ) from err
-        raise
+    with get_handle(
+        obj, "r", encoding=encoding, storage_options=storage_options
+    ) as handles:
+        return handles.handle.read()
 
 
 class _HtmlFrameParser:
@@ -211,7 +206,7 @@ class _HtmlFrameParser:
     def __init__(
         self,
         io: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
-        match: str | Pattern,
+        match: str | Pattern[str],
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
@@ -466,9 +461,12 @@ class _HtmlFrameParser:
         self,
         rows,
         section: Literal["header", "footer", "body"],
-        remainder: list[tuple[int, str | tuple, int]] | None = None,
+        remainder: list[tuple[int, str | tuple[str, str | None], int]] | None = None,
         overflow: bool = True,
-    ) -> tuple[list[list], list[tuple[int, str | tuple, int]]]:
+    ) -> tuple[
+        list[list[str | tuple[str, str | None]]],
+        list[tuple[int, str | tuple[str, str | None], int]],
+    ]:
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -498,7 +496,7 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        text: str | tuple
+        text: str | tuple[str, str | None]
         remainder = remainder if remainder is not None else []
 
         for tr in rows:
@@ -636,16 +634,16 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return row.find_all(("td", "th"), recursive=False)
 
     def _parse_thead_tr(self, table):
-        return table.select("thead tr")
+        return table.select(":scope thead tr")
 
     def _parse_tbody_tr(self, table):
-        from_tbody = table.select("tbody tr")
+        from_tbody = table.select(":scope tbody tr")
         from_root = table.find_all("tr", recursive=False)
         # HTML spec: at most one of these lists has content
         return from_tbody + from_root
 
     def _parse_tfoot_tr(self, table):
-        return table.select("tfoot tr")
+        return table.select(":scope tfoot tr")
 
     def _setup_build_doc(self):
         raw_text = _read(self.io, self.encoding, self.storage_options)
@@ -761,6 +759,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def _equals_tag(self, obj, tag) -> bool:
         return obj.tag == tag
 
+    def _raise_if_unreadable(self) -> None:
+        # lxml does not report an unreadable local file consistently -- some
+        # builds raise an errno-less OSError, others parse it as an empty
+        # document -- so reopen the path to let the real error escape. GH#29125
+        if isinstance(self.io, (str, bytes)) and not is_url(self.io):
+            with open(self.io, "rb"):
+                pass
+
     def _build_doc(self):
         """
         Raises
@@ -792,16 +798,16 @@ class _LxmlFrameParser(_HtmlFrameParser):
             # try to parse the input in the simplest way
             try:
                 r = parse(self.io, parser=parser)
-            except OSError as err:
-                raise FileNotFoundError(
-                    f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {self.io}"
-                ) from err
+            except OSError:
+                self._raise_if_unreadable()
+                raise
         try:
             r = r.getroot()
         except AttributeError:
             pass
         else:
             if not hasattr(r, "text_content"):
+                self._raise_if_unreadable()
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
 
         for br in r.xpath("*//br"):
@@ -1023,7 +1029,7 @@ def _parse(
 def read_html(
     io: FilePath | ReadBuffer[str],
     *,
-    match: str | Pattern = ".+",
+    match: str | Pattern[str] = ".+",
     flavor: HTMLFlavors | Sequence[HTMLFlavors] | None = None,
     header: int | Sequence[int] | None = None,
     index_col: int | Sequence[int] | None = None,
@@ -1033,7 +1039,7 @@ def read_html(
     thousands: str | None = ",",
     encoding: str | None = None,
     decimal: str = ".",
-    converters: dict | None = None,
+    converters: Mapping[Hashable, Callable[..., Any]] | None = None,
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
@@ -1043,6 +1049,10 @@ def read_html(
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
+
+    This function requires one of the following libraries:
+    `lxml <https://lxml.de/>`_, `html5lib <https://github.com/html5lib/html5lib-python>`_,
+    or `beautifulsoup4 <https://www.crummy.com/software/BeautifulSoup/>`_.
 
     This function searches for ``<table>`` elements within an HTML document
     and parses their rows and columns into DataFrames. It can read from a URL,
@@ -1080,7 +1090,7 @@ def read_html(
         The column (or list of columns) to use to create the index.
 
     skiprows : int, list-like or slice, optional
-        Number of rows to skip after parsing the column integer. 0-based. If a
+        Number of rows to skip after parsing the header. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.

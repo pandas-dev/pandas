@@ -8,10 +8,7 @@
 Nullable integer data type
 **************************
 
-.. note::
-
-   IntegerArray is currently experimental. Its API or implementation may
-   change without warning. Uses :attr:`pandas.NA` as the missing value.
+:class:`arrays.IntegerArray` uses :attr:`pandas.NA` as its missing value.
 
 In :ref:`missing_data`, we saw that pandas primarily uses ``NaN`` to represent
 missing data. Because ``NaN`` is a float, this forces an array of integers with

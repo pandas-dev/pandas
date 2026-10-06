@@ -4,6 +4,7 @@ Extend pandas with custom array types.
 
 from __future__ import annotations
 
+import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -28,6 +29,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    import matplotlib.units
+
     from pandas._typing import (
         DtypeObj,
         Shape,
@@ -51,6 +54,20 @@ class ExtensionDtype:
     pandas ecosystem. By implementing this interface and pairing it with a custom
     `ExtensionArray`, users can create rich data types that integrate cleanly
     with pandas operations, such as grouping, joining, or aggregation.
+
+    Attributes
+    ----------
+    kind
+    na_value
+    name
+    names
+    type
+
+    Methods
+    -------
+    construct_array_type
+    construct_from_string
+    is_dtype
 
     See Also
     --------
@@ -289,9 +306,15 @@ class ExtensionDtype:
             raise TypeError(
                 f"'construct_from_string' expects a string, got {type(string)}"
             )
+        if not isinstance(cls.name, str):
+            # GH#46093 registered ExtensionDtype without a string `name`
+            raise TypeError(
+                f"Cannot construct a '{cls.__name__}' from a string because it "
+                "does not define a string 'name' attribute. ExtensionDtype "
+                "subclasses must set a class-level `name`."
+            )
         # error: Non-overlapping equality check (left operand type: "str", right
         #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
-        assert isinstance(cls.name, str), (cls, type(cls.name))
         if string != cls.name:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
@@ -450,6 +473,29 @@ class ExtensionDtype:
         """
         return False
 
+    @classmethod
+    def _get_plot_converter(
+        cls,
+    ) -> list[tuple[type_t, type_t[matplotlib.units.ConversionInterface]]]:
+        """
+        If dtype is plottable, return the type and converter to use for plotting.
+
+        By default only numeric ExtensionDtypes are plottable. In other cases, this
+        function just returns an empty list and ExtensionArrays of this dtype are
+        filtered out during plotting.
+
+        If the dtype is plottable, this function shall return a list of tuples of type
+        and converter pairs. These pairs are then registered to the matplotlib
+        converter registry, see
+        https://matplotlib.org/stable/api/units_api.html#module-matplotlib.units
+        The returned type is likely the same as ``cls.type``. The returned converter
+        should be a subclass of ``matplotlib.units.ConversionInterface``. If a dtype
+        supports multiple types, e.g. ``ArrowDtype``, then this function can return
+        multiple tuples inside the list, where each tuple is a pair of a type and
+        corresponding converter.
+        """
+        return []
+
 
 class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""
@@ -512,6 +558,14 @@ def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDt
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"
     """
+    # GH#46093 identity check against the base property, so dtypes defining
+    #  ``name`` as an instance-level property (e.g. DatetimeTZDtype) pass.
+    if inspect.getattr_static(cls, "name", None) is ExtensionDtype.__dict__["name"]:
+        raise TypeError(
+            f"Cannot register '{cls.__name__}' because it does not define a "
+            "string 'name' attribute. ExtensionDtype subclasses must set a "
+            "class-level `name`."
+        )
     _registry.register(cls)
     return cls
 

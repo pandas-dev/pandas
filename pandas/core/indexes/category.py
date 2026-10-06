@@ -11,10 +11,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas.util._decorators import (
-    cache_readonly,
-    set_module,
-)
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -31,49 +28,29 @@ from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
 )
-from pandas.core.indexes.extension import (
-    NDArrayBackedExtensionIndex,
-    inherit_names,
-)
+from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+        Mapping,
+    )
 
     from pandas._typing import (
+        ArrayLike,
+        Axes,
         Dtype,
         DtypeObj,
+        Level,
+        ReindexMethod,
         npt,
     )
 
+    from pandas import Series
+    from pandas.core.indexes.multi import MultiIndex
 
-@inherit_names(
-    [
-        "argsort",
-        "tolist",
-        "codes",
-        "categories",
-        "ordered",
-        "_reverse_indexer",
-        "searchsorted",
-        "min",
-        "max",
-    ],
-    Categorical,
-)
-@inherit_names(
-    [
-        "rename_categories",
-        "reorder_categories",
-        "add_categories",
-        "remove_categories",
-        "remove_unused_categories",
-        "set_categories",
-        "as_ordered",
-        "as_unordered",
-    ],
-    Categorical,
-    wrap=True,
-)
+
 @set_module("pandas")
 class CategoricalIndex(NDArrayBackedExtensionIndex):
     """
@@ -172,18 +149,562 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     _data_cls = Categorical
 
     @property
-    def _can_hold_strings(self):
+    def _can_hold_strings(self) -> bool:
         return self.categories._can_hold_strings
 
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        return self.categories._should_fallback_to_positional
-
-    codes: np.ndarray
-    categories: Index
-    ordered: bool | None
     _data: Categorical
     _values: Categorical
+
+    # --------------------------------------------------------------------
+    # Categories/Codes/Ordered
+
+    @property
+    def codes(self) -> np.ndarray:
+        """
+        The category codes of this categorical index.
+
+        Codes are an array of integers which are the positions of the actual
+        values in the categories array. There is no setter.
+
+        Returns
+        -------
+        ndarray[int]
+            A non-writable view of the ``codes`` array.
+
+        See Also
+        --------
+        Categorical.from_codes : Make a Categorical from codes.
+        CategoricalIndex : An Index with an underlying ``Categorical``.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"])
+        >>> ci.codes
+        array([0, 1, 2, 0, 1, 2], dtype=int8)
+
+        >>> ci = pd.CategoricalIndex(["a", "c"], categories=["c", "b", "a"])
+        >>> ci.codes
+        array([2, 0], dtype=int8)
+        """
+        return self._data.codes
+
+    @property
+    def categories(self) -> Index:
+        """
+        The categories of this CategoricalIndex.
+
+        These are the unique values the index may hold, in category order.
+        Use the ``*_categories`` methods to return an index with changed
+        categories.
+
+        See Also
+        --------
+        CategoricalIndex.rename_categories : Rename categories.
+        CategoricalIndex.reorder_categories : Reorder categories.
+        CategoricalIndex.add_categories : Add new categories.
+        CategoricalIndex.remove_categories : Remove the specified categories.
+        CategoricalIndex.remove_unused_categories : Remove categories which
+            are not used.
+        CategoricalIndex.set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "c", "b", "a", "c", "b"])
+        >>> ci.categories
+        Index(['a', 'b', 'c'], dtype='str')
+
+        >>> ci = pd.CategoricalIndex(["a", "c"], categories=["c", "b", "a"])
+        >>> ci.categories
+        Index(['c', 'b', 'a'], dtype='str')
+        """
+        return self._data.categories
+
+    @property
+    def ordered(self) -> bool | None:
+        """
+        Whether the categories have an ordered relationship.
+
+        This property returns True if the categories are ordered, meaning
+        they have a meaningful order that allows comparison operations.
+
+        See Also
+        --------
+        CategoricalIndex.as_ordered : Set the CategoricalIndex to be ordered.
+        CategoricalIndex.as_unordered : Set the CategoricalIndex to be unordered.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "b"], ordered=True)
+        >>> ci.ordered
+        True
+
+        >>> ci = pd.CategoricalIndex(["a", "b"], ordered=False)
+        >>> ci.ordered
+        False
+        """
+        return self._data.ordered
+
+    def _wrap_categorical_result(self, result: Categorical) -> Self:
+        return type(self)._simple_new(result, name=self.name)
+
+    def rename_categories(self, new_categories: Any) -> Self:
+        """
+        Rename categories.
+
+        This method is commonly used to re-label or adjust the
+        category names in categorical data without changing the
+        underlying data. It is useful in situations where you want
+        to modify the labels used for clarity, consistency,
+        or readability.
+
+        Parameters
+        ----------
+        new_categories : list-like, dict-like or callable
+
+            New categories which will replace old categories.
+
+            * list-like: all items must be unique and the number of items in
+              the new categories must match the existing number of categories.
+
+            * dict-like: specifies a mapping from
+              old categories to new. Categories not contained in the mapping
+              are passed through and extra categories in the mapping are
+              ignored.
+
+            * callable : a callable that is called on all items in the old
+              categories and whose return values comprise the new categories.
+
+        Returns
+        -------
+        CategoricalIndex
+            CategoricalIndex with renamed categories.
+
+        Raises
+        ------
+        ValueError
+            If new categories are list-like and do not have the same number of
+            items as the current categories or do not validate as categories
+
+        See Also
+        --------
+        CategoricalIndex.reorder_categories : Reorder categories.
+        CategoricalIndex.add_categories : Add new categories.
+        CategoricalIndex.remove_categories : Remove the specified categories.
+        CategoricalIndex.remove_unused_categories : Remove categories which
+            are not used.
+        CategoricalIndex.set_categories : Set the categories to the specified
+            ones.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "a", "b"])
+        >>> ci.rename_categories([0, 1])
+        CategoricalIndex([0, 0, 1], categories=[0, 1], ordered=False, dtype='category')
+
+        For dict-like ``new_categories``, extra keys are ignored and
+        categories not in the dictionary are passed through
+
+        >>> ci.rename_categories({"a": "A", "c": "C"})
+        CategoricalIndex(['A', 'A', 'b'], categories=['A', 'b'], ordered=False,
+                         dtype='category')
+
+        You may also provide a callable to create the new categories
+
+        >>> ci.rename_categories(lambda x: x.upper())
+        CategoricalIndex(['A', 'A', 'B'], categories=['A', 'B'], ordered=False,
+                         dtype='category')
+        """
+        result = self._data.rename_categories(new_categories)
+        return self._wrap_categorical_result(result)
+
+    def reorder_categories(
+        self, new_categories: Axes, ordered: bool | None = None
+    ) -> Self:
+        """
+        Reorder categories as specified in new_categories.
+
+        ``new_categories`` need to include all old categories and no new category
+        items.
+
+        Parameters
+        ----------
+        new_categories : Index-like
+           The categories in new order.
+        ordered : bool, optional
+           Whether or not the categorical is treated as an ordered categorical.
+           If not given, do not change the ordered information.
+
+        Returns
+        -------
+        CategoricalIndex
+            CategoricalIndex with reordered categories.
+
+        Raises
+        ------
+        ValueError
+            If the new categories do not contain all old category items or any
+            new ones
+
+        See Also
+        --------
+        CategoricalIndex.rename_categories : Rename categories.
+        CategoricalIndex.add_categories : Add new categories.
+        CategoricalIndex.remove_categories : Remove the specified categories.
+        CategoricalIndex.remove_unused_categories : Remove categories which
+            are not used.
+        CategoricalIndex.set_categories : Set the categories to the specified
+            ones.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "b", "c", "a"])
+        >>> ci
+        CategoricalIndex(['a', 'b', 'c', 'a'], categories=['a', 'b', 'c'],
+                         ordered=False, dtype='category')
+        >>> ci.reorder_categories(["c", "b", "a"], ordered=True)
+        CategoricalIndex(['a', 'b', 'c', 'a'], categories=['c', 'b', 'a'],
+                         ordered=True, dtype='category')
+        """
+        result = self._data.reorder_categories(new_categories, ordered=ordered)
+        return self._wrap_categorical_result(result)
+
+    def add_categories(self, new_categories: Any) -> Self:
+        """
+        Add new categories.
+
+        `new_categories` will be included at the last/highest place in the
+        categories and will be unused directly after this call.
+
+        Parameters
+        ----------
+        new_categories : category or list-like of category
+            The new categories to be included.
+
+        Returns
+        -------
+        CategoricalIndex
+            CategoricalIndex with new categories added.
+
+        Raises
+        ------
+        ValueError
+            If the new categories include old categories or do not validate as
+            categories
+
+        See Also
+        --------
+        CategoricalIndex.rename_categories : Rename categories.
+        CategoricalIndex.reorder_categories : Reorder categories.
+        CategoricalIndex.remove_categories : Remove the specified categories.
+        CategoricalIndex.remove_unused_categories : Remove categories which
+            are not used.
+        CategoricalIndex.set_categories : Set the categories to the specified
+            ones.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["c", "b", "c"])
+        >>> ci
+        CategoricalIndex(['c', 'b', 'c'], categories=['b', 'c'], ordered=False,
+                         dtype='category')
+
+        >>> ci.add_categories(["d", "a"])
+        CategoricalIndex(['c', 'b', 'c'], categories=['b', 'c', 'd', 'a'],
+                         ordered=False, dtype='category')
+        """
+        result = self._data.add_categories(new_categories)
+        return self._wrap_categorical_result(result)
+
+    def remove_categories(self, removals: Any) -> Self:
+        """
+        Remove the specified categories.
+
+        The ``removals`` argument must be a subset of the current categories.
+        Any values that were part of the removed categories will be set to NaN.
+
+        Parameters
+        ----------
+        removals : category or list of categories
+           The categories which should be removed.
+
+        Returns
+        -------
+        CategoricalIndex
+            CategoricalIndex with removed categories.
+
+        Raises
+        ------
+        ValueError
+            If the removals are not contained in the categories
+
+        See Also
+        --------
+        CategoricalIndex.rename_categories : Rename categories.
+        CategoricalIndex.reorder_categories : Reorder categories.
+        CategoricalIndex.add_categories : Add new categories.
+        CategoricalIndex.remove_unused_categories : Remove categories which
+            are not used.
+        CategoricalIndex.set_categories : Set the categories to the specified
+            ones.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "c", "b", "c", "d"])
+        >>> ci
+        CategoricalIndex(['a', 'c', 'b', 'c', 'd'], categories=['a', 'b', 'c', 'd'],
+                         ordered=False, dtype='category')
+
+        >>> ci.remove_categories(["d", "a"])
+        CategoricalIndex([NaN, 'c', 'b', 'c', NaN], categories=['b', 'c'],
+                         ordered=False, dtype='category')
+        """
+        result = self._data.remove_categories(removals)
+        return self._wrap_categorical_result(result)
+
+    def remove_unused_categories(self) -> Self:
+        """
+        Remove categories which are not used.
+
+        This method is useful when working with datasets
+        that undergo dynamic changes where categories may no longer be
+        relevant, allowing to maintain a clean, efficient data structure.
+
+        Returns
+        -------
+        CategoricalIndex
+            CategoricalIndex with unused categories dropped.
+
+        See Also
+        --------
+        CategoricalIndex.rename_categories : Rename categories.
+        CategoricalIndex.reorder_categories : Reorder categories.
+        CategoricalIndex.add_categories : Add new categories.
+        CategoricalIndex.remove_categories : Remove the specified categories.
+        CategoricalIndex.set_categories : Set the categories to the specified
+            ones.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "c", "b", "c", "d"])
+        >>> ci
+        CategoricalIndex(['a', 'c', 'b', 'c', 'd'], categories=['a', 'b', 'c', 'd'],
+                         ordered=False, dtype='category')
+
+        >>> ci = ci[[0, 1, 0, 1, 1]]
+        >>> ci
+        CategoricalIndex(['a', 'c', 'a', 'c', 'c'], categories=['a', 'b', 'c', 'd'],
+                         ordered=False, dtype='category')
+
+        >>> ci.remove_unused_categories()
+        CategoricalIndex(['a', 'c', 'a', 'c', 'c'], categories=['a', 'c'],
+                         ordered=False, dtype='category')
+        """
+        result = self._data.remove_unused_categories()
+        return self._wrap_categorical_result(result)
+
+    def set_categories(
+        self,
+        new_categories: Axes,
+        ordered: bool | None = None,
+        rename: bool = False,
+    ) -> Self:
+        """
+        Set the categories to the specified new categories.
+
+        ``new_categories`` can include new categories (which will result in
+        unused categories) or remove old categories (which results in values
+        set to ``NaN``). If ``rename=True``, the categories will simply be renamed
+        (less or more items than in old categories will result in values set to
+        ``NaN`` or in unused categories respectively).
+
+        This method can be used to perform more than one action of adding,
+        removing, and reordering simultaneously and is therefore faster than
+        performing the individual steps via the more specialised methods.
+
+        On the other hand this method does not check whether the old categories
+        are included in the new categories on a reorder, which can result in
+        surprising changes.
+
+        Parameters
+        ----------
+        new_categories : Index-like
+           The categories in new order.
+        ordered : bool, default None
+           Whether or not the categorical is treated as an ordered categorical.
+           If not given, do not change the ordered information.
+        rename : bool, default False
+           Whether or not the new_categories should be considered as a rename
+           of the old categories or as reordered categories.
+
+        Returns
+        -------
+        CategoricalIndex
+            CategoricalIndex with the new categories.
+
+        Raises
+        ------
+        ValueError
+            If new_categories does not validate as categories
+
+        See Also
+        --------
+        CategoricalIndex.rename_categories : Rename categories.
+        CategoricalIndex.reorder_categories : Reorder categories.
+        CategoricalIndex.add_categories : Add new categories.
+        CategoricalIndex.remove_categories : Remove the specified categories.
+        CategoricalIndex.remove_unused_categories : Remove categories which
+            are not used.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(
+        ...     ["a", "b", "c", None], categories=["a", "b", "c"], ordered=True
+        ... )
+        >>> ci
+        CategoricalIndex(['a', 'b', 'c', NaN], categories=['a', 'b', 'c'],
+                         ordered=True, dtype='category')
+
+        >>> ci.set_categories(["A", "b", "c"])
+        CategoricalIndex([NaN, 'b', 'c', NaN], categories=['A', 'b', 'c'],
+                         ordered=True, dtype='category')
+        >>> ci.set_categories(["A", "b", "c"], rename=True)
+        CategoricalIndex(['A', 'b', 'c', NaN], categories=['A', 'b', 'c'],
+                         ordered=True, dtype='category')
+        """
+        result = self._data.set_categories(
+            new_categories, ordered=ordered, rename=rename
+        )
+        return self._wrap_categorical_result(result)
+
+    def as_ordered(self) -> Self:
+        """
+        Set the CategoricalIndex to be ordered.
+
+        This method returns a new CategoricalIndex with the ordered attribute
+        set to True, enabling comparison operations between categories.
+
+        Returns
+        -------
+        CategoricalIndex
+            Ordered CategoricalIndex.
+
+        See Also
+        --------
+        CategoricalIndex.as_unordered : Set the CategoricalIndex to be unordered.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "b", "c", "a"])
+        >>> ci.ordered
+        False
+        >>> ci = ci.as_ordered()
+        >>> ci.ordered
+        True
+        """
+        result = self._data.as_ordered()
+        return self._wrap_categorical_result(result)
+
+    def as_unordered(self) -> Self:
+        """
+        Set the CategoricalIndex to be unordered.
+
+        This method returns a new CategoricalIndex with the ordered attribute
+        set to False, disabling comparison operations between categories.
+
+        Returns
+        -------
+        CategoricalIndex
+            Unordered CategoricalIndex.
+
+        See Also
+        --------
+        CategoricalIndex.as_ordered : Set the CategoricalIndex to be ordered.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "b", "c", "a"], ordered=True)
+        >>> ci.ordered
+        True
+        >>> ci = ci.as_unordered()
+        >>> ci.ordered
+        False
+        """
+        result = self._data.as_unordered()
+        return self._wrap_categorical_result(result)
+
+    def min(self, *, skipna: bool = True, **kwargs: Any) -> Any:  # type: ignore[override]
+        """
+        Return the minimum value of the CategoricalIndex.
+
+        Only an ordered CategoricalIndex has a minimum.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        **kwargs
+            Additional keyword arguments passed through to the reduction.
+
+        Returns
+        -------
+        scalar
+            The minimum of this CategoricalIndex, NA value if empty.
+
+        Raises
+        ------
+        TypeError
+            If the CategoricalIndex is not ordered.
+
+        See Also
+        --------
+        CategoricalIndex.max : Return the maximum value of the CategoricalIndex.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "b", "c", "a"], ordered=True)
+        >>> ci.min()
+        'a'
+        """
+        return self._data.min(skipna=skipna, **kwargs)
+
+    def max(self, *, skipna: bool = True, **kwargs: Any) -> Any:  # type: ignore[override]
+        """
+        Return the maximum value of the CategoricalIndex.
+
+        Only an ordered CategoricalIndex has a maximum.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        **kwargs
+            Additional keyword arguments passed through to the reduction.
+
+        Returns
+        -------
+        scalar
+            The maximum of this CategoricalIndex, NA value if empty.
+
+        Raises
+        ------
+        TypeError
+            If the CategoricalIndex is not ordered.
+
+        See Also
+        --------
+        CategoricalIndex.min : Return the minimum value of the CategoricalIndex.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(["a", "b", "c", "a"], ordered=True)
+        >>> ci.max()
+        'c'
+        """
+        return self._data.max(skipna=skipna, **kwargs)
+
+    def _reverse_indexer(self) -> dict[Hashable, npt.NDArray[np.intp]]:
+        """See Categorical._reverse_indexer."""
+        return self._data._reverse_indexer()
 
     @property
     def _engine_type(self) -> type[libindex.IndexEngine]:
@@ -201,9 +722,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def __new__(
         cls,
-        data=None,
-        categories=None,
-        ordered=None,
+        data: Axes | None = None,
+        categories: Axes | None = None,
+        ordered: bool | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
@@ -345,10 +866,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter_func(self, val) -> str:
+    def _formatter_func(self, val: Hashable) -> str:
         return self.categories._formatter_func(val)
 
-    def _format_attrs(self):
+    def _format_attrs(self) -> list[tuple[str, str | int | bool | None]]:
         """
         Return a list of tuples of the (attr,formatted_value)
         """
@@ -417,7 +938,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         return contains(self, key, container=container)
 
     def reindex(
-        self, target, method=None, level=None, limit: int | None = None, tolerance=None
+        self,
+        target: Axes,
+        method: ReindexMethod | None = None,
+        level: Level | None = None,
+        limit: int | None = None,
+        tolerance: float | None = None,
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
@@ -447,7 +973,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _maybe_cast_indexer(self, key) -> int:
+    def _maybe_cast_indexer(self, key: Hashable) -> int:
         # GH#41933: we have to do this instead of self._data._validate_scalar
         #  because this will correctly get partial-indexing on Interval categories
         try:
@@ -457,7 +983,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 return -1
             raise
 
-    def _maybe_cast_listlike_indexer(self, values) -> CategoricalIndex:
+    def _maybe_cast_listlike_indexer(self, values: Axes) -> CategoricalIndex:
         if isinstance(values, CategoricalIndex):
             values = values._data
         if isinstance(values, Categorical):
@@ -477,7 +1003,34 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def _intersection(
+        self, other: Index, sort: bool = False
+    ) -> Index | ArrayLike | MultiIndex:
+        # Reached only via Index.intersection after dtype reconciliation, so
+        # other is necessarily a CategoricalIndex with matching dtype.
+        # For unordered CategoricalIndex, libjoin operates on integer codes.
+        # When two indexes have the same categories in different order, matching
+        # codes map to different values, giving incorrect results (GH#55335).
+        # Reorder other's categories to match self so the codes align.
+        other = cast("CategoricalIndex", other)
+        if not self.ordered and not self.categories.equals(other.categories):
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
+        return super()._intersection(other, sort=sort)
+
+    def _union(self, other: Index, sort: bool | None) -> Index | ArrayLike | MultiIndex:
+        # See _intersection for explanation of GH#55335.
+        other = cast("CategoricalIndex", other)
+        if not self.ordered and not self.categories.equals(other.categories):
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
+        return super()._union(other, sort)
+
+    def map(
+        self,
+        mapper: Callable[..., Any] | Mapping[Any, Any] | Series,
+        na_action: Literal["ignore"] | None = None,
+    ) -> Index:
         """
         Map values using input an input mapping or function.
 
@@ -545,7 +1098,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         the result is an :class:`~pandas.Index`:
 
         >>> idx.map({"a": "first", "b": "second"})
-        Index(['first', 'second', nan], dtype='str')
+        Index(['first', 'second', NaN], dtype='str')
         """
         mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name, copy=False)

@@ -14,7 +14,7 @@ class TestAccumulator:
                 "2000-01-03",
             ],
             dtype="M8[ns]",
-        )._with_freq("infer")
+        )
         result = arr._accumulate("cummin")
         expected = DatetimeArray._from_sequence(["2000-01-01"] * 3, dtype="M8[ns]")
         tm.assert_datetime_array_equal(result, expected)
@@ -39,6 +39,6 @@ class TestAccumulator:
                 "2000-01-02",
             ],
             dtype="M8[ns]",
-        )._with_freq("infer")
+        )
         with pytest.raises(TypeError, match=f"Accumulation {func}"):
             arr._accumulate(func)

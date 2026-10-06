@@ -17,6 +17,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -24,14 +25,18 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.internals import BlockValuesRefs
 from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -63,10 +68,13 @@ if TYPE_CHECKING:
         JoinHow,
         NaPosition,
         NumpySorter,
+        NumpyValueArrayLike,
+        ScalarLike_co,
         npt,
     )
 
     from pandas import Series
+    from pandas.core.arrays import ExtensionArray
 
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
@@ -251,7 +259,13 @@ class RangeIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
-        result._references = None
+        # result._references populated lazily
+        return result
+
+    @cache_readonly
+    def _references(self) -> BlockValuesRefs:  # type: ignore[override]
+        result = BlockValuesRefs()
+        result.add_index_reference(self)
         return result
 
     @classmethod
@@ -289,7 +303,7 @@ class RangeIndex(Index):
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
-    def __reduce__(self) -> tuple:
+    def __reduce__(self) -> tuple[Any, ...]:
         d = {"name": self._name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
@@ -414,8 +428,12 @@ class RangeIndex(Index):
         Return the number of bytes in the underlying data.
         """
         rng = self._range
-        return getsizeof(rng) + sum(
-            getsizeof(getattr(rng, attr_name))
+        # passing a default to getsizeof avoids a TypeError on PyPy, where
+        # sys.getsizeof always raises TypeError unless a default is provided
+        # (GH#46176)
+        objsize = 24
+        return getsizeof(rng, objsize) + sum(
+            getsizeof(getattr(rng, attr_name), objsize)
             for attr_name in ["start", "stop", "step"]
         )
 
@@ -552,6 +570,22 @@ class RangeIndex(Index):
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
+        if target_array.dtype.kind in "iu":
+            # GH#64148: ``target_array - start`` overflows int64 for extreme
+            # targets and for ranges spanning more than INT64_MAX. Establish
+            # membership with exact comparisons first; an in-window offset then
+            # fits in uint64, so the modular arithmetic below is exact.
+            valid = (target_array >= start) & (target_array < stop)
+            start_uint = np.uint64(start % 2**64)
+            step_uint = np.uint64(step)
+            locs_uint = target_array.astype(np.uint64, copy=False) - start_uint
+            valid &= locs_uint % step_uint == 0
+            locs = np.where(valid, (locs_uint // step_uint).astype(np.int64), -1)
+            if step != self.step:
+                # We reversed this range: transform to original locs
+                locs = np.where(valid, len(self) - 1 - locs, -1)
+            return ensure_platform_int(locs)
+
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
         locs[~valid] = -1
@@ -561,13 +595,6 @@ class RangeIndex(Index):
             # We reversed this range: transform to original locs
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
-
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should an integer key be treated as positional?
-        """
-        return False
 
     # --------------------------------------------------------------------
 
@@ -628,6 +655,7 @@ class RangeIndex(Index):
     def _view(self) -> Self:
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
+        self._references.add_index_reference(result)
         return result
 
     def _wrap_reindex_result(
@@ -813,7 +841,7 @@ class RangeIndex(Index):
         return_indexer: Literal[False] = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self: ...
 
     @overload
@@ -823,7 +851,7 @@ class RangeIndex(Index):
         return_indexer: Literal[True],
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> tuple[Self, np.ndarray]: ...
 
     @overload
@@ -833,7 +861,7 @@ class RangeIndex(Index):
         return_indexer: bool = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
@@ -842,7 +870,7 @@ class RangeIndex(Index):
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
-        key: Callable | None = None,
+        key: Callable[..., Any] | None = None,
     ) -> Self | tuple[Self, np.ndarray]:
         if key is not None:
             return super().sort_values(
@@ -1114,6 +1142,9 @@ class RangeIndex(Index):
         right = other.difference(self)
         result = left.union(right)
 
+        if isinstance(result, RangeIndex) and result.step < 0:
+            result = result[::-1]
+
         if result_name is not None:
             result = result.rename(result_name)
         return result
@@ -1132,7 +1163,10 @@ class RangeIndex(Index):
         if not isinstance(other, type(self)):
             maybe_ri = self._shallow_copy(other._values, name=other.name)
             if not isinstance(maybe_ri, type(self)):
-                return super()._join_monotonic(other, how=how)
+                # Cannot convert other to RangeIndex; fall back to
+                # _join_via_get_indexer since RangeIndex._can_use_libjoin
+                # is False.
+                raise NotImplementedError
             other = maybe_ri
 
         if self.equals(other):
@@ -1358,7 +1392,7 @@ class RangeIndex(Index):
         return type(self)._simple_new(res, name=self._name)
 
     @unpack_zerodim_and_defer("__floordiv__")
-    def __floordiv__(self, other: object) -> Index:
+    def __floordiv__(self, other: object) -> Index:  # type: ignore[override]
         if is_integer(other) and other != 0:
             if len(self) == 0 or (self.start % other == 0 and self.step % other == 0):
                 start = self.start // other
@@ -1371,7 +1405,7 @@ class RangeIndex(Index):
                 new_range = range(start, start + 1, 1)
                 return self._simple_new(new_range, name=self._name)
 
-        return super().__floordiv__(other)  # type: ignore[no-untyped-call]
+        return super().__floordiv__(other)
 
     # --------------------------------------------------------------------
     # Reductions
@@ -1420,13 +1454,13 @@ class RangeIndex(Index):
         else:
             return super().round(decimals=decimals)
 
-    def _cmp_method(self, other: object, op: Callable) -> Any:
+    def _cmp_method(self, other: object, op: Callable[..., Any]) -> Any:
         if isinstance(other, RangeIndex) and self._range == other._range:
             # Both are immutable so if ._range attr. are equal, shortcut is possible
             return super()._cmp_method(self, op)
         return super()._cmp_method(other, op)
 
-    def _arith_method(self, other: object, op: Callable) -> Index:
+    def _arith_method(self, other: object, op: Callable[..., Any]) -> Index:
         """
         Parameters
         ----------
@@ -1458,7 +1492,7 @@ class RangeIndex(Index):
         ]:
             return super()._arith_method(other, op)
 
-        step: Callable | None = None
+        step: Callable[..., Any] | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
@@ -1527,8 +1561,8 @@ class RangeIndex(Index):
         self,
         indices: Sequence[int] | np.ndarray,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value: object = None,
+        allow_fill: bool | lib.NoDefault = no_default,
+        fill_value: object = no_default,
         **kwargs: Any,
     ) -> Self | Index:
         if kwargs:
@@ -1537,8 +1571,33 @@ class RangeIndex(Index):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
 
-        # raise an exception if allow_fill is True and fill_value is not None
-        self._maybe_disallow_fill(allow_fill, fill_value, indices)
+        if allow_fill is no_default:
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this case, but
+                # warn since the sentinel-based default would otherwise flip
+                # it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not no_default
+
+        if allow_fill:
+            # RangeIndex can't hold NA natively; delegate to Index.take which
+            # will promote dtype as needed.
+            return super().take(
+                indices, axis=axis, allow_fill=True, fill_value=fill_value
+            )
 
         if len(indices) == 0:
             return type(self)(_empty_range, name=self.name)
@@ -1589,25 +1648,25 @@ class RangeIndex(Index):
             data = data / len(self)
         return Series(data, index=self.copy(), name=name)
 
-    @overload  # type: ignore[override]
-    def searchsorted(  # pyright: ignore[reportOverlappingOverload]
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]  # pyright: ignore[reportOverlappingOverload]
         self,
-        value: int | np.integer,
+        value: ScalarLike_co,
         side: Literal["left", "right"] = ...,
-        sorter: NumpySorter | None = ...,
+        sorter: NumpySorter = ...,
     ) -> np.intp: ...
 
     @overload
     def searchsorted(
         self,
-        value: npt.ArrayLike,
+        value: npt.ArrayLike | ExtensionArray,
         side: Literal["left", "right"] = ...,
-        sorter: NumpySorter | None = ...,
+        sorter: NumpySorter = ...,
     ) -> npt.NDArray[np.intp]: ...
 
     def searchsorted(
         self,
-        value: int | np.integer | npt.ArrayLike,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
@@ -1637,5 +1696,5 @@ class RangeIndex(Index):
             result = len(self) - result
         result = np.maximum(np.minimum(result, len(self)), 0)
         if was_scalar:
-            return np.intp(result.item())
+            return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)

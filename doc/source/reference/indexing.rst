@@ -70,6 +70,7 @@ Modifying and computations
    Index.reindex
    Index.rename
    Index.repeat
+   Index.replace
    Index.where
    Index.take
    Index.putmask
@@ -235,6 +236,10 @@ IntervalIndex components
    IntervalIndex.right
    IntervalIndex.mid
    IntervalIndex.closed
+   IntervalIndex.closed_left
+   IntervalIndex.closed_right
+   IntervalIndex.open_left
+   IntervalIndex.open_right
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_empty

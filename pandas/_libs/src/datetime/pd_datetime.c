@@ -79,8 +79,23 @@ static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
     Py_DECREF(tmp_int);
     Py_DECREF(tmp);
 
-    /* Convert to a minutes offset and apply it */
-    add_minutes_to_datetimestruct(out, -(seconds_offset / 60));
+    /*
+     * Subtract the offset to get UTC. Offsets are not always a whole number
+     * of minutes -- any zone in its local-mean-time era has seconds (e.g.
+     * Asia/Tokyo is +09:18:59 before 1888) -- so fold the sub-minute part
+     * into the seconds field and let the rest go through as minutes.
+     */
+    int minutes_to_add = -(seconds_offset / 60);
+    int sec = out->sec - seconds_offset % 60;
+    if (sec < 0) {
+      sec += 60;
+      minutes_to_add -= 1;
+    } else if (sec >= 60) {
+      sec -= 60;
+      minutes_to_add += 1;
+    }
+    out->sec = sec;
+    add_minutes_to_datetimestruct(out, minutes_to_add);
   }
 
   return 0;
@@ -289,6 +304,7 @@ static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
   capi->get_datetime_iso_8601_strlen = get_datetime_iso_8601_strlen;
   capi->make_iso_8601_datetime = make_iso_8601_datetime;
   capi->make_iso_8601_timedelta = make_iso_8601_timedelta;
+  capi->set_datetimestruct_days = set_datetimestruct_days;
 
   PyObject *capsule = PyCapsule_New(capi, PandasDateTime_CAPSULE_NAME,
                                     pandas_datetime_destructor);

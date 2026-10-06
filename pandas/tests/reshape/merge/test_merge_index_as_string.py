@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
 @pytest.fixture
 def df1():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "outer": [1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
             "inner": [1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
@@ -18,7 +18,7 @@ def df1():
 
 @pytest.fixture
 def df2():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "outer": [1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
             "inner": [1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
@@ -172,15 +172,13 @@ def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
     # Result
     expected = (
         left_df.reset_index()
-        .join(
-            right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
-        )
+        .join(right_df, on=["outer", "inner"], how=join_type, suffixes=("_x", "_y"))
         .set_index(left_index)
     )
 
     # Perform join
     result = left_df.join(
-        right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
+        right_df, on=["outer", "inner"], how=join_type, suffixes=("_x", "_y")
     )
 
     tm.assert_frame_equal(result, expected, check_like=True)

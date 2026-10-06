@@ -32,6 +32,37 @@ class DatetimeAccessor:
         series.dt.nanoseconds
 
 
+class TimedeltaComponents:
+    params = ["NumPy", "PyArrow"]
+    param_names = ["backend"]
+    # number=1 so asv re-runs setup before every timed call. The PyArrow
+    # accessors cache ``_dt_day_remainder`` on the array; rebuilding the series
+    # each call keeps every measurement cold (no cache reuse) and keeps the
+    # NumPy/PyArrow comparison fair.
+    number = 1
+
+    def setup(self, backend):
+        N = 100000
+        self.series = Series(timedelta_range("1 days", periods=N, freq="h"))
+        if backend == "PyArrow":
+            self.series = self.series.astype("duration[ns][pyarrow]")
+
+    def time_days(self, backend):
+        self.series.dt.days
+
+    def time_seconds(self, backend):
+        self.series.dt.seconds
+
+    def time_microseconds(self, backend):
+        self.series.dt.microseconds
+
+    def time_nanoseconds(self, backend):
+        self.series.dt.nanoseconds
+
+    def time_components(self, backend):
+        self.series.dt.components
+
+
 class TimedeltaIndexing:
     def setup(self):
         self.index = timedelta_range(start="1985", periods=1000, freq="D")

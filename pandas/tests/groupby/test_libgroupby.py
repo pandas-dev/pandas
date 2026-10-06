@@ -12,7 +12,7 @@ from pandas._libs.groupby import (
 
 from pandas.core.dtypes.common import ensure_platform_int
 
-from pandas import isna
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -130,7 +130,7 @@ def test_group_ohlc(dtype):
     func(out, counts, obj[:, None], labels)
 
     def _ohlc(group):
-        if isna(group).all():
+        if pd.isna(group).all():
             return np.repeat(np.nan, 4)
         return [group[0], group.max(), group.min(), group[-1]]
 
@@ -210,7 +210,11 @@ def test_cython_group_mean_datetimelike():
     counts = np.array([0], dtype="int64")
     data = (
         np.array(
-            [np.timedelta64(2, "ns"), np.timedelta64(4, "ns"), np.timedelta64("NaT")],
+            [
+                np.timedelta64(2, "ns"),
+                np.timedelta64(4, "ns"),
+                np.timedelta64("NaT", "ns"),
+            ],
             dtype="m8[ns]",
         )[:, None]
         .view("int64")
@@ -238,7 +242,7 @@ def test_cython_group_mean_not_datetimelike_but_has_NaT_values():
     counts = np.array([0], dtype="int64")
     data = (
         np.array(
-            [np.timedelta64("NaT"), np.timedelta64("NaT")],
+            [np.timedelta64("NaT", "ns"), np.timedelta64("NaT", "ns")],
             dtype="m8[ns]",
         )[:, None]
         .view("int64")

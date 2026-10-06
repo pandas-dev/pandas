@@ -1,10 +1,27 @@
+import numpy as np
 import pytest
 
-from pandas import MultiIndex
+import pandas as pd
+import pandas._testing as tm
 
 
 def test_pickle_compat_construction():
     # this is testing for pickle compat
     # need an object to create with
     with pytest.raises(TypeError, match="Must pass both levels and codes"):
-        MultiIndex()
+        pd.MultiIndex()
+
+
+def test_multiindex_datetime64ns_pickle_roundtrip(tmp_path):
+    # GH#63078 - pickling a MultiIndex with datetime64[ns] level raised
+    # NotImplementedError in NDArrayBacked.__setstate__
+    df = pd.DataFrame(
+        {
+            "date": [np.datetime64("20110101", "ns")],
+            "id": [1],
+            "val": [1],
+        }
+    ).set_index(["date", "id"])
+
+    result = tm.round_trip_pickle(df, tmp_path / "test.pkl")
+    tm.assert_frame_equal(result, df)

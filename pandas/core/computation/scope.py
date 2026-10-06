@@ -12,7 +12,10 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import TypeVar
+from typing import (
+    Any,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -75,7 +78,7 @@ def _replacer(x) -> str:
     try:
         hexin = ord(x)
     except TypeError:
-        # bytes literals masquerade as ints when iterating in py3
+        # bytes literals masquerade as ints when iterating
         hexin = x
 
     return hex(hexin)
@@ -142,9 +145,9 @@ class Scope:
 
     __slots__ = ["level", "resolvers", "scope", "target", "temps"]
     level: int
-    scope: DeepChainMap
-    resolvers: DeepChainMap
-    temps: dict
+    scope: DeepChainMap[str, Any]
+    resolvers: DeepChainMap[str, Any]
+    temps: dict[str, Any]
 
     def __init__(
         self, level: int, global_dict=None, local_dict=None, resolvers=(), target=None
@@ -283,14 +286,8 @@ class Scope:
         """
         variables = itertools.product(scopes, stack)
         for scope, (frame, _, _, _, _, _) in variables:
-            try:
-                d = getattr(frame, f"f_{scope}")
-                self.scope = DeepChainMap(self.scope.new_child(d))
-            finally:
-                # won't remove it, but DECREF it
-                # in Py3 this probably isn't necessary since frame won't be
-                # scope after the loop
-                del frame
+            d = getattr(frame, f"f_{scope}")
+            self.scope = DeepChainMap(self.scope.new_child(d))
 
     def _update(self, level: int) -> None:
         """
@@ -342,7 +339,7 @@ class Scope:
         return len(self.temps)
 
     @property
-    def full_scope(self) -> DeepChainMap:
+    def full_scope(self) -> DeepChainMap[str, Any]:
         """
         Return the full scope for use with passing to engines transparently
         as a mapping.

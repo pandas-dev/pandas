@@ -14,9 +14,12 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -85,6 +88,15 @@ def describe_ndframe(
 
     describer: NDFrameDescriberAbstract
     if obj.ndim == 1:
+        if include is not None or exclude is not None:
+            # GH#54193
+            warnings.warn(
+                "The 'include' and 'exclude' arguments are deprecated for "
+                "Series.describe and will be removed in a future version. "
+                "These arguments have no effect on Series and will be removed.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         describer = SeriesDescriber(
             obj=cast("Series", obj),
         )
@@ -185,7 +197,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self.obj
-        elif self.include == "all":
+        elif isinstance(self.include, str) and self.include == "all":
+            # isinstance guard so an array-like spec is not compared elementwise
             if self.exclude is not None:
                 msg = "exclude must be None when include is 'all'"
                 raise ValueError(msg)
@@ -323,7 +336,7 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
 
 def select_describe_func(
     data: Series,
-) -> Callable:
+) -> Callable[..., Series]:
     """Select proper function for describing series based on data type.
 
     Parameters

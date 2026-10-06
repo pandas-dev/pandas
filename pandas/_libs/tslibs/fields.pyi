@@ -6,7 +6,10 @@ def build_field_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     reso: int,  # NPY_DATETIMEUNIT
 ) -> np.ndarray: ...
-def month_position_check(fields, weekdays) -> str | None: ...
+def month_position_check(
+    fields: np.ndarray,  # structured ndarray with int64 "Y", int32 "M"/"D" fields
+    weekdays: npt.NDArray[np.integer],
+) -> str | None: ...
 def get_date_name_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
@@ -34,14 +37,11 @@ def get_timedelta_days(
     tdindex: npt.NDArray[np.int64],  # const int64_t[:]
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int64]: ...
-def isleapyear_arr(
-    years: np.ndarray,
-) -> npt.NDArray[np.bool_]: ...
 def build_isocalendar_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     reso: int,  # NPY_DATETIMEUNIT
 ) -> np.ndarray: ...
-def _get_locale_names(name_type: str, locale: str | None = ...): ...
+def _get_locale_names(name_type: str, locale: str | None = ...) -> list[str]: ...
 
 class RoundTo:
     @property

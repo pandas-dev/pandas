@@ -7,9 +7,6 @@ Cookbook
 ********
 
 This is a repository for *short and sweet* examples and links for useful pandas recipes.
-We encourage users to add to this documentation.
-
-Adding interesting links and/or inline examples to this section is a great *First Pull Request*.
 
 Simplified, condensed, new-user friendly, in-line examples have been inserted where possible to
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
@@ -170,6 +167,44 @@ One could hard code:
    AllCrit = functools.reduce(lambda x, y: x & y, CritList)
 
    df[AllCrit]
+
+Repeating rows or columns
+*************************
+
+Unlike :meth:`Series.repeat`, ``DataFrame`` has no ``repeat`` method. The same result can be
+achieved by repeating the row (or column) labels and passing them to :meth:`DataFrame.reindex`.
+This requires the labels on the repeated axis to be unique :issue:`42943`
+
+.. ipython:: python
+
+   df = pd.DataFrame({"AAA": [1, 2], "BBB": [3, 4]})
+   df.reindex(df.index.repeat(2))
+   df.reindex(df.index.repeat(2)).reset_index(drop=True)
+   df.reindex(columns=df.columns.repeat([1, 2]))
+
+Repeating positions with :meth:`DataFrame.iloc` instead works whether or not the labels are
+unique:
+
+.. ipython:: python
+
+   df.iloc[np.repeat(np.arange(len(df)), 2)]
+
+Expanding ranges into rows
+**************************
+
+Given columns of ``start`` and ``stop`` values, expand each row into one row per value in
+``range(start, stop)``. Applying ``range`` row-wise and calling :meth:`Series.explode` is
+simple but slow for large inputs; a vectorized construction with :func:`numpy.repeat` is
+much faster, especially when there are many rows to expand :issue:`39630`
+
+.. ipython:: python
+
+   df = pd.DataFrame({"start": [10, 27, 30], "stop": [15, 31, 31]})
+   start = df["start"].to_numpy()
+   stop = df["stop"].to_numpy()
+   counts = stop - start
+   offsets = np.arange(counts.sum()) - np.repeat(counts.cumsum() - counts, counts)
+   pd.Series(np.repeat(start, counts) + offsets, index=df.index.repeat(counts))
 
 .. _cookbook.selection:
 
@@ -419,8 +454,49 @@ Levels
 `Prepending a level to a multiindex
 <https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
 
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {"A": ["a1", "a1", "a2", "a3"], "B": ["b1", "b2", "b3", "b4"], "Vals": np.random.randn(4)}
+   ).groupby(["A", "B"]).sum()
+   df
+
+Prepend a constant label to the existing row MultiIndex using ``pd.concat`` with the ``keys`` argument:
+
+.. ipython:: python
+
+   df = pd.concat([df], keys=["Foo"], names=["FirstLevel"])
+   df
+
 `Flatten Hierarchical columns
 <https://stackoverflow.com/q/14507794>`__
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "USAF": ["702730"] * 4,
+           "WBAN": [26451] * 4,
+           "day": [1, 2, 3, 4],
+           "s_PC": [1, 0, 1, 3],
+           "s_CL": [0, 0, 10, 0],
+           "tempf": [30.92, 32.00, 23.00, 10.04],
+       }
+   )
+   df = df.groupby(["USAF", "WBAN", "day"]).agg(
+       {"s_PC": "sum", "s_CL": "sum", "tempf": ["max", "min"]}
+   ).reset_index()
+   df
+
+Use a generator expression to drop the empty-string second levels before joining, so
+``("USAF", "")`` becomes ``"USAF"`` rather than ``"USAF_"``. Columns with a real
+aggregation label are joined normally, so ``("tempf", "max")`` becomes ``"tempf_max"``
+and ``("s_PC", "sum")`` becomes ``"s_PC_sum"``:
+
+.. ipython:: python
+
+   df.columns = ["_".join(c for c in col if c) for col in df.columns]
+   df
 
 .. _cookbook.missing_data:
 
@@ -949,6 +1025,32 @@ Calculate the first day of the month for each entry in a DatetimeIndex
    dates = pd.date_range("2000-01-01", periods=5)
    dates.to_period(freq="M").to_timestamp()
 
+Split rows describing events with a start and stop time into multiple rows, so that each row
+falls within a single interval of a fixed frequency. Extra columns are replicated for each
+piece, and the original row label identifies which event each piece came from :issue:`34836`
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "start": pd.to_datetime(["2020-06-01 08:06", "2020-06-01 21:10"]),
+           "stop": pd.to_datetime(["2020-06-01 09:14", "2020-06-02 01:30"]),
+           "foo": ["bar", "baz"],
+       }
+   )
+   freq = "30min"
+
+   def split_event(start, stop, freq):
+       edges = pd.date_range(start.floor(freq), stop.ceil(freq), freq=freq)
+       cuts = [start, *edges[(edges > start) & (edges < stop)], stop]
+       return list(zip(cuts[:-1], cuts[1:]))
+
+   result = df.assign(
+       pieces=[split_event(start, stop, freq) for start, stop in zip(df["start"], df["stop"])]
+   ).explode("pieces")
+   result[["start", "stop"]] = pd.DataFrame(result["pieces"].tolist(), index=result.index)
+   result.drop(columns="pieces")
+
 .. _cookbook.resample:
 
 Resampling
@@ -1110,8 +1212,18 @@ The :ref:`CSV <io.read_csv_table>` docs
 `Reading a csv chunk-by-chunk
 <https://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
-`Reading only certain rows of a csv chunk-by-chunk
-<https://stackoverflow.com/questions/19674212/pandas-data-frame-select-rows-and-clear-memory>`__
+Reading only rows matching a condition, chunk-by-chunk, so that only ``chunksize`` rows of
+the file are read at a time rather than the whole file :issue:`32072`
+
+.. ipython:: python
+
+   from io import StringIO
+
+   data = "col_1,col_2\n940,45\n1040,52\n1530,46\n753,43\n890,32\n"
+   pd.concat(
+       (chunk.query("col_1 >= 1000") for chunk in pd.read_csv(StringIO(data), chunksize=2)),
+       ignore_index=True,
+   )
 
 `Reading the first few lines of a frame
 <https://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
@@ -1126,6 +1238,21 @@ using that handle to read.
 <https://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
 Dealing with bad lines :issue:`2886`
+
+Fields containing the ``read_csv`` comment character are truncated when read back unless they
+are quoted; write with ``quoting=csv.QUOTE_NONNUMERIC`` to quote all strings. Note that only
+the default C engine honors the quoting when reading; ``engine="python"`` strips the comment
+regardless :issue:`27637`
+
+.. ipython:: python
+
+   import csv
+   from io import StringIO
+
+   df = pd.DataFrame({"strings": ["a#b", "plain"], "value": [1, 2]})
+   out = df.to_csv(index=False, quoting=csv.QUOTE_NONNUMERIC)
+   print(out)
+   pd.read_csv(StringIO(out), comment="#")
 
 `Write a multi-row index CSV without writing duplicates
 <https://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
@@ -1176,7 +1303,7 @@ Parsing date components in multi-columns is faster with a format
     df = pd.DataFrame({"year": i.year, "month": i.month, "day": i.day})
     df.head()
 
-    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day, format='%Y%m%d')
+    %timeit pd.to_datetime((df.year * 10000 + df.month * 100 + df.day).astype(str), format='%Y%m%d')
     ds = df.apply(lambda x: "%04d%02d%02d" % (x["year"], x["month"], x["day"]), axis=1)
     ds.head()
     %timeit pd.to_datetime(ds)
@@ -1331,7 +1458,7 @@ Storing Attributes to a group node
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store = pd.HDFStore("test.h5")
-   store.put("df", df)
+   store["df"] = df
 
    # you can store an arbitrary Python object via pickle
    store.get_storer("df").attrs.my_attribute = {"A": 10}
@@ -1445,6 +1572,14 @@ Often it's useful to obtain the lower (or upper) triangular form of a correlatio
     mask = np.tril(np.ones_like(corr_mat, dtype=np.bool_), k=-1)
 
     corr_mat.where(mask)
+
+To list each pair only once, sorted by correlation strength, stack the masked matrix into a
+Series and sort by absolute value :issue:`24728`
+
+.. ipython:: python
+
+    pairs = corr_mat.where(mask).stack().dropna()
+    pairs.sort_values(key=abs, ascending=False)
 
 The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a ``DataFrame`` object.
 

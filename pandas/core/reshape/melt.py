@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -27,7 +30,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-def ensure_list_vars(arg_vars, variable: str, columns) -> list:
+def ensure_list_vars(arg_vars, variable: str, columns) -> list[Hashable]:
     if arg_vars is not None:
         if not is_list_like(arg_vars):
             return [arg_vars]
@@ -240,6 +243,11 @@ def melt(
     else:
         var_name = [var_name]
 
+    output_names = (*id_vars, *var_name, value_name)
+    dups = list({x for x in output_names if output_names.count(x) > 1})
+    if dups:
+        raise ValueError(f"melt output columns cannot contain duplicate names: {dups}")
+
     num_rows, K = frame.shape
     num_cols_adjusted = K - len(id_vars)
 
@@ -263,7 +271,7 @@ def melt(
     ):
         mdata[value_name] = concat(
             [frame.iloc[:, i] for i in range(frame.shape[1])], ignore_index=True
-        ).values
+        )._values
     else:
         mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
@@ -279,7 +287,9 @@ def melt(
 
 
 @set_module("pandas")
-def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
+def lreshape(
+    data: DataFrame, groups: dict[Any, list[Any]], dropna: bool = True
+) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
@@ -650,6 +660,10 @@ def wide_to_long(
 
     if df.columns.isin(stubnames).any():
         raise ValueError("stubname can't be identical to a column name")
+
+    # GH#46939 melt_stub names the value column stub.rstrip(sep), which clashes with j
+    if any(stub.rstrip(sep) == j for stub in stubnames):
+        raise ValueError(f"j ({j}) can't be identical to a stubname")
 
     if not is_list_like(i):
         i = [i]

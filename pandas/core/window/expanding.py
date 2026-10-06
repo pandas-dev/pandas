@@ -15,10 +15,10 @@ from pandas.util._decorators import set_module
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExpandingIndexer,
-    GroupbyIndexer,
+    GroupByIndexer,
 )
 from pandas.core.window.rolling import (
-    BaseWindowGroupby,
+    BaseWindowGroupBy,
     RollingAndExpandingMixin,
 )
 
@@ -276,6 +276,9 @@ class Expanding(RollingAndExpandingMixin):
             * ``False`` : passes each row or column as a Series to the
               function.
             * ``True`` : the passed function will receive ndarray objects instead.
+              Pandas-only attributes such as ``.iloc`` or ``.index`` are not
+              available on ndarrays and will raise ``AttributeError`` if used
+              inside ``func``.
 
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
@@ -1450,22 +1453,22 @@ class Expanding(RollingAndExpandingMixin):
 
 
 @set_module("pandas.api.typing")
-class ExpandingGroupby(BaseWindowGroupby, Expanding):
+class ExpandingGroupBy(BaseWindowGroupBy, Expanding):
     """
     Provide an expanding groupby implementation.
     """
 
-    _attributes = Expanding._attributes + BaseWindowGroupby._attributes
+    _attributes = Expanding._attributes + BaseWindowGroupBy._attributes
 
-    def _get_window_indexer(self) -> GroupbyIndexer:
+    def _get_window_indexer(self) -> GroupByIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
 
         Returns
         -------
-        GroupbyIndexer
+        GroupByIndexer
         """
-        window_indexer = GroupbyIndexer(
+        window_indexer = GroupByIndexer(
             groupby_indices=self._grouper.indices,
             window_indexer=ExpandingIndexer,
         )

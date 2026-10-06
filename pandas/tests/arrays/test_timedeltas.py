@@ -3,8 +3,9 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
-from pandas import Timedelta
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
@@ -65,9 +66,9 @@ class TestNonNano:
 
     def test_timedelta_array_total_seconds(self):
         # GH34290
-        expected = Timedelta("2 min").total_seconds()
+        expected = pd.Timedelta("2 min").total_seconds()
 
-        result = pd.array([Timedelta("2 min")]).total_seconds()[0]
+        result = pd.array([pd.Timedelta("2 min")]).total_seconds()[0]
         assert result == expected
 
     def test_total_seconds_nanoseconds(self):
@@ -77,6 +78,74 @@ class TestNonNano:
         expected = (end_time - start_time).values / np.timedelta64(1, "s")
         result = (end_time - start_time).dt.total_seconds().values
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "value, boundary, direction",
+        [
+            (1_552_211_999_999_999_999, 1_552_212_000, "below"),
+            (1_552_212_000_000_000_001, 1_552_212_000, "above"),
+            (-1_552_211_999_999_999_999, -1_552_212_000, "above"),
+            (-1_552_212_000_000_000_001, -1_552_212_000, "below"),
+        ],
+    )
+    def test_total_seconds_stays_strictly_inside_integer_seconds(
+        self, value, boundary, direction
+    ):
+        # Vectorized analogue of the scalar boundary fix: sub-second
+        # residuals must keep the result strictly off integer-second
+        # boundaries, otherwise bisect-style lookups (e.g. dateutil DST,
+        # GH#31043) misclassify the timestamp as on a transition.
+        tdi = pd.to_timedelta([value, pd.NaT], unit="ns")
+        result = tdi.total_seconds()
+        assert np.isnan(result[1])
+        if direction == "below":
+            assert result[0] < boundary
+        else:
+            assert result[0] > boundary
+        # Vectorized result agrees with the scalar Timedelta path
+        assert result[0] == pd.Timedelta(value).total_seconds()
+
+    @pytest.mark.skipif(
+        not IS64, reason="32-bit x87 excess precision breaks bit-for-bit parity"
+    )
+    def test_total_seconds_matches_scalar_at_large_ns(self):
+        # The vectorized result must match Timedelta.total_seconds bit-for-bit,
+        # not just at integer-second boundaries: large ns values lose precision
+        # under a single asi8 / pps division, so we mirror the scalar's
+        # divmod split into whole seconds and sub-second residual (GH#46819).
+        values = [
+            256_790_988_018_092_305,
+            2_530_160_323_573_146_516,
+            4_847_449_854_178_473_008,
+            9_223_372_036_854_775_807,  # int64 ns max
+        ]
+        values = values + [-val for val in values]
+        result = pd.to_timedelta(values, unit="ns").total_seconds()
+        expected = [pd.Timedelta(val).total_seconds() for val in values]
+        assert list(result) == expected
+
+    @pytest.mark.skipif(
+        not IS64, reason="32-bit x87 excess precision breaks bit-for-bit parity"
+    )
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_total_seconds_matches_scalar_non_nano(self, unit):
+        # The split division and boundary guard apply at every unit: above
+        # 2**53 ticks a single asi8 / pps division loses precision relative
+        # to the scalar, and a sub-second residual can collapse onto an
+        # integer-second boundary (GH#46819)
+        values = [
+            1,
+            2**53 + 1,
+            20_000_000_000_000_001,
+            9_223_372_036_854_775_807,  # int64 max
+        ]
+        values = values + [-val for val in values]
+        tdi = pd.TimedeltaIndex(np.array(values, dtype=f"m8[{unit}]"))
+        result = tdi.total_seconds()
+        expected = [
+            pd.Timedelta(np.timedelta64(val, unit)).total_seconds() for val in values
+        ]
+        assert list(result) == expected
 
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
@@ -114,7 +183,7 @@ class TestNonNano:
         res = ts + tda
         tm.assert_extension_array_equal(res, expected)
 
-        ts += Timedelta(1)  # case where we can't cast losslessly
+        ts += pd.Timedelta(1)  # case where we can't cast losslessly
 
         exp_values = tda._ndarray + ts.asm8
         expected = (
@@ -196,7 +265,7 @@ class TestNonNano:
 class TestTimedeltaArray:
     def test_astype_int(self, any_int_numpy_dtype):
         arr = TimedeltaArray._from_sequence(
-            [Timedelta("1h"), Timedelta("2h")], dtype="m8[ns]"
+            [pd.Timedelta("1h"), pd.Timedelta("2h")], dtype="m8[ns]"
         )
 
         if np.dtype(any_int_numpy_dtype) != np.int64:
@@ -208,17 +277,12 @@ class TestTimedeltaArray:
         expected = arr._ndarray.view("i8")
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_setitem_clears_freq(self):
-        a = pd.timedelta_range("1h", periods=2, freq="h")._data
-        a[0] = Timedelta("1h")
-        assert a.freq is None
-
     @pytest.mark.parametrize(
         "obj",
         [
-            Timedelta(seconds=1),
-            Timedelta(seconds=1).to_timedelta64(),
-            Timedelta(seconds=1).to_pytimedelta(),
+            pd.Timedelta(seconds=1),
+            pd.Timedelta(seconds=1).to_timedelta64(),
+            pd.Timedelta(seconds=1).to_pytimedelta(),
         ],
     )
     def test_setitem_objects(self, obj):
@@ -227,7 +291,7 @@ class TestTimedeltaArray:
         arr = tdi._data
 
         arr[0] = obj
-        assert arr[0] == Timedelta(seconds=1)
+        assert arr[0] == pd.Timedelta(seconds=1)
 
     @pytest.mark.parametrize(
         "other",
@@ -235,7 +299,7 @@ class TestTimedeltaArray:
             1,
             np.int64(1),
             1.0,
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
             pd.Timestamp("2021-01-01"),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,

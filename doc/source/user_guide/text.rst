@@ -805,7 +805,7 @@ Python storage with ``pd.NA`` values
 
 The implementation uses a NumPy object array, which directly stores the
 Python string objects, hence why the storage here is called ``'python'``.
-NA values in this array are represented and behave as ``np.nan``.
+NA values in this array are represented and behave as ``pd.NA``.
 
 .. ipython:: python
 
@@ -830,7 +830,7 @@ represented and behave as ``pd.NA``.
 
    pd.Series(
        ["a", "b", None, np.nan, pd.NA],
-       dtype=pd.StringDtype(storage="python", na_value=pd.NA)
+       dtype=pd.StringDtype(storage="pyarrow", na_value=pd.NA)
    )
 
 Notice that the last three values are all inferred by pandas as being NA

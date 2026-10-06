@@ -66,7 +66,13 @@ def data_for_grouping():
     return DecimalArray([b, b, na, na, a, a, b, c])
 
 
+@pytest.mark.filterwarnings(
+    "ignore:DecimalArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestDecimalArray(base.ExtensionTests):
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:
@@ -98,6 +104,20 @@ class TestDecimalArray(base.ExtensionTests):
             request.applymarker(mark)
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
+        op_name = all_reductions
+        ser = pd.Series(data)
+
+        if op_name != "count":
+            # https://github.com/pandas-dev/pandas/pull/63512
+            # DecimalArray does not implement sum et all as attributes.
+            msg = f"object has no attribute '{op_name}'"
+            with pytest.raises(AttributeError, match=msg):
+                getattr(ser.array, op_name)()
+        else:
+            return super().test_reduce_array(request, data, all_reductions, skipna)
 
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
@@ -147,7 +167,13 @@ class TestDecimalArray(base.ExtensionTests):
         # GH#57723
         # EAs that don't have special logic for None will raise, unlike pandas'
         # which interpret None as the NA value for the dtype.
-        msg = "conversion from NoneType to Decimal is not supported"
+        msg = "|".join(
+            [
+                "Cannot convert None to Decimal",  # PY315 - maybe linux specific
+                "conversion from NoneType to Decimal is not supported",
+            ]
+        )
+
         with pytest.raises(TypeError, match=msg):
             super().test_fillna_with_none(data_missing)
 
@@ -167,10 +193,6 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_series(data_missing)
 
-    @pytest.mark.xfail(reason="copy keyword is missing")
-    def test_fillna_readonly(self, data_missing):
-        super().test_fillna_readonly(data_missing)
-
     def test_series_repr(self, data):
         # Overriding this base test to explicitly test that
         # the custom _formatter is used
@@ -182,6 +204,15 @@ class TestDecimalArray(base.ExtensionTests):
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
         super().test_unary_ufunc_dunder_equivalence(data, ufunc)
+
+    @pytest.mark.xfail(
+        raises=AssertionError, reason="DecimalArray does not support roundtrip"
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # DecimalArray does not support roundtrip as Decimal cannot be created from
+        # dictionary created in JSON serialization
+        super().test_json_roundtrip(data)
 
 
 def test_take_na_value_other_decimal():
@@ -432,3 +463,31 @@ def test_array_copy_on_write():
         {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
     )
     tm.assert_equal(df2.values, expected.values)
+
+
+def test_dataframe_arith_with_numpy_dtype_frame(all_arithmetic_operators):
+    # GH#28506 the numpy-dtype operand is a single 2D block that has to be
+    #  split up to be combined with the 1D decimal blocks
+    op = tm.get_op_from_name(all_arithmetic_operators)
+    ea_df = pd.DataFrame({"a": to_decimal([1, 2, 3]), "b": to_decimal([4, 5, 6])})
+    np_df = pd.DataFrame({"a": np.arange(1, 4), "b": np.arange(4, 7)})
+
+    result = op(ea_df, np_df)
+    expected = pd.DataFrame({col: op(ea_df[col], np_df[col]) for col in ea_df.columns})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("ea_frame", [True, False])
+def test_dataframe_arith_with_series_axis0(all_arithmetic_operators, ea_frame):
+    # GH#28506 decimal dtype on either the frame or the series side
+    op_name = all_arithmetic_operators.strip("_")
+    if ea_frame:
+        df = pd.DataFrame({"a": to_decimal([1, 2, 3]), "b": to_decimal([4, 5, 6])})
+        ser = pd.Series(np.arange(7, 10))
+    else:
+        df = pd.DataFrame({"a": np.arange(1, 4), "b": np.arange(4, 7)})
+        ser = pd.Series(to_decimal([7, 8, 9]))
+
+    result = getattr(df, op_name)(ser, axis=0)
+    expected = pd.DataFrame({col: getattr(df[col], op_name)(ser) for col in df.columns})
+    tm.assert_frame_equal(result, expected)

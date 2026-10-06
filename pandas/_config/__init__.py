@@ -7,7 +7,6 @@ are initialized.
 """
 
 __all__ = [
-    "config",
     "describe_option",
     "detect_console_encoding",
     "get_option",
@@ -16,7 +15,6 @@ __all__ = [
     "reset_option",
     "set_option",
 ]
-from pandas._config import config
 from pandas._config import dates  # pyright: ignore[reportUnusedImport]  # noqa: F401
 from pandas._config.config import (
     _global_config,
@@ -31,15 +29,16 @@ from pandas._config.display import detect_console_encoding
 
 
 def using_string_dtype() -> bool:
-    _mode_options = _global_config["future"]
-    return _mode_options["infer_string"]
+    return _global_config["future"]["infer_string"]
 
 
 def using_python_scalars() -> bool:
-    _mode_options = _global_config["future"]
-    return _mode_options["python_scalars"]
+    return _global_config["future"]["python_scalars"]
 
 
 def is_nan_na() -> bool:
-    _mode_options = _global_config["future"]
-    return not _mode_options["distinguish_nan_and_na"]
+    return not _global_config["future"]["distinguish_nan_and_na"]
+
+
+def using_infer_freq_offset() -> bool | None:
+    return _global_config["future"]["infer_freq_returns_offset"]

@@ -114,6 +114,13 @@ Binary operator functions
    DataFrame.combine
    DataFrame.combine_first
 
+Unary operator functions
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.__invert__
+
 Function application, GroupBy & window
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -196,6 +203,7 @@ Reindexing / selection / label manipulation
    DataFrame.rename_axis
    DataFrame.reset_index
    DataFrame.sample
+   DataFrame.select
    DataFrame.set_axis
    DataFrame.set_index
    DataFrame.take

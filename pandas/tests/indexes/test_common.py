@@ -22,12 +22,6 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-)
 import pandas._testing as tm
 
 
@@ -224,7 +218,7 @@ class TestCommon:
 
         result = idx.unique()
         tm.assert_index_equal(
-            result, idx_unique, exact=not isinstance(index, RangeIndex)
+            result, idx_unique, exact=not isinstance(index, pd.RangeIndex)
         )
 
         # nans:
@@ -247,8 +241,6 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
@@ -290,11 +282,10 @@ class TestCommon:
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates(self, index_flat, keep):
         # MultiIndex is tested separately
         index = index_flat
-        if isinstance(index, RangeIndex):
+        if isinstance(index, pd.RangeIndex):
             pytest.skip(
                 "RangeIndex is tested in test_drop_duplicates_no_duplicates "
                 "as it cannot hold duplicates"
@@ -314,7 +305,7 @@ class TestCommon:
         # make duplicated index
         n = len(unique_idx)
         duplicated_selection = np.random.default_rng(2).choice(n, int(n * 1.5))
-        idx = holder(unique_idx.values[duplicated_selection])
+        idx = holder(unique_idx._values[duplicated_selection])
 
         # Series.duplicated is tested separately
         expected_duplicated = (
@@ -326,13 +317,12 @@ class TestCommon:
         expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
         tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates_no_duplicates(self, index_flat):
         # MultiIndex is tested separately
         index = index_flat
 
         # make unique index
-        if isinstance(index, RangeIndex):
+        if isinstance(index, pd.RangeIndex):
             # RangeIndex cannot have duplicates
             unique_idx = index
         else:
@@ -354,13 +344,12 @@ class TestCommon:
         with pytest.raises(TypeError, match=msg):
             index.drop_duplicates(inplace=True)
 
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_has_duplicates(self, index_flat):
         # MultiIndex tested separately in:
         #   tests/indexes/multi/test_unique_and_duplicates.
         index = index_flat
         holder = type(index)
-        if not len(index) or isinstance(index, RangeIndex):
+        if not len(index) or isinstance(index, pd.RangeIndex):
             # MultiIndex tested separately in:
             #   tests/indexes/multi/test_unique_and_duplicates.
             # RangeIndex is unique by definition.
@@ -376,7 +365,7 @@ class TestCommon:
     )
     def test_astype_preserves_name(self, index, dtype):
         # https://github.com/pandas-dev/pandas/issues/32013
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             index.names = ["idx" + str(i) for i in range(index.nlevels)]
         else:
             index.name = "idx"
@@ -390,16 +379,18 @@ class TestCommon:
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
             # Some of these conversions cannot succeed so we use a try / except
+            msg = "Casting complex values to real discards the imaginary part"
             with tm.assert_produces_warning(
                 warn,
                 raise_on_extra_warnings=is_pyarrow_str,
                 check_stacklevel=False,
+                match=msg,
             ):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             assert result.names == index.names
         else:
             assert result.name == index.name
@@ -435,28 +426,21 @@ class TestCommon:
         assert idx.hasnans is True
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
+def test_sort_values_invalid_na_position(index_with_missing_sortable, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+        index_with_missing_sortable.sort_values(na_position=na_position)
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position, request):
+def test_sort_values_with_missing(index_with_missing_sortable, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, CategoricalIndex):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="missing value sorting order not well-defined", strict=False
-            )
-        )
+    index_with_missing = index_with_missing_sortable
 
     missing_count = np.sum(index_with_missing.isna())
-    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    not_na_vals = index_with_missing[index_with_missing.notna()]._values
     sorted_values = np.sort(not_na_vals)
     if na_position == "first":
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
@@ -482,25 +466,25 @@ def test_sort_values_natsort_key():
 
 
 def test_ndarray_compat_properties(index):
-    if isinstance(index, PeriodIndex) and not IS64:
+    if isinstance(index, pd.PeriodIndex) and not IS64:
         pytest.skip("Overflow")
     idx = index
     assert idx.T.equals(idx)
     assert idx.transpose().equals(idx)
 
-    values = idx.values
+    values = idx._values
 
     assert idx.shape == values.shape
     assert idx.ndim == values.ndim
     assert idx.size == values.size
 
-    if not isinstance(index, (RangeIndex, MultiIndex)):
+    if not isinstance(index, (pd.RangeIndex, pd.MultiIndex)):
         # These two are not backed by an ndarray
         assert idx.nbytes == values.nbytes
 
     # test for validity
     idx.nbytes
-    idx.values.nbytes
+    idx._values.nbytes
 
 
 def test_compare_read_only_array():
@@ -515,14 +499,16 @@ def test_compare_read_only_array():
 def test_to_frame_column_rangeindex():
     idx = pd.Index([1])
     result = idx.to_frame().columns
-    expected = RangeIndex(1)
+    expected = pd.RangeIndex(1)
     tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_to_frame_name_tuple_multiindex():
     idx = pd.Index([1])
     result = idx.to_frame(name=(1, 2))
-    expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
+    expected = pd.DataFrame(
+        [1], columns=pd.MultiIndex.from_arrays([[1], [2]]), index=idx
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -534,3 +520,33 @@ def test_join_series_deprecated():
         Pandas4Warning, match="Passing .* to .* is deprecated"
     ):
         idx.join(ser)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([1, None], "Int64"),
+        ([1.0, None], "Float64"),
+        ([True, None], "boolean"),
+        ([1, None], "int64[pyarrow]"),
+        ([1.0, None], "category"),
+    ],
+)
+def test_fillna_incompatible_value_deprecated_ea_dtype(data, dtype):
+    # GH#25288 the casting deprecation also applies to Index with an
+    #  ExtensionArray dtype, which used to cast to object silently
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    idx = pd.Index(data, dtype=dtype)
+
+    msg = "'str' is not supported as a fill value"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = idx.fillna("x")
+
+    expected = pd.Index([data[0], "x"], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+    # a value the dtype can hold is unaffected
+    with tm.assert_produces_warning(None):
+        result = idx.fillna(data[0])
+    tm.assert_index_equal(result, pd.Index([data[0], data[0]], dtype=dtype))

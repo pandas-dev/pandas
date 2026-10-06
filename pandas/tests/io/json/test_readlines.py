@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+import gzip
 from io import (
     BytesIO,
     StringIO,
@@ -8,23 +9,17 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
-from pandas import (
-    DataFrame,
-    read_json,
-)
 import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 @pytest.fixture
 def lines_json_df():
-    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     return df.to_json(lines=True, orient="records")
 
 
@@ -37,18 +32,18 @@ def engine(request):
 
 def test_read_jsonl():
     # GH9180
-    result = read_json(StringIO('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n'), lines=True)
-    expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+    result = pd.read_json(StringIO('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n'), lines=True)
+    expected = pd.DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_read_jsonl_engine_pyarrow(datapath, engine):
-    result = read_json(
+    result = pd.read_json(
         datapath("io", "json", "data", "line_delimited.json"),
         lines=True,
         engine=engine,
     )
-    expected = DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]})
+    expected = pd.DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -59,17 +54,17 @@ def test_read_datetime(request, engine):
         reason = "Pyarrow only supports a file path as an input and line delimited json"
         request.applymarker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
-    df = DataFrame(
+    df = pd.DataFrame(
         [([1, 2], ["2020-03-05", "2020-04-08T09:58:49+00:00"], "hector")],
         columns=["accounts", "date", "name"],
     )
     json_line = df.to_json(lines=True, orient="records")
 
     if engine == "pyarrow":
-        result = read_json(StringIO(json_line), engine=engine)
+        result = pd.read_json(StringIO(json_line), engine=engine)
     else:
-        result = read_json(StringIO(json_line), engine=engine)
-    expected = DataFrame(
+        result = pd.read_json(StringIO(json_line), engine=engine)
+    expected = pd.DataFrame(
         [[1, "2020-03-05", "hector"], [2, "2020-04-08T09:58:49+00:00", "hector"]],
         columns=["accounts", "date", "name"],
     )
@@ -83,41 +78,41 @@ def test_read_jsonl_unicode_chars():
     # simulate file handle
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
     json = StringIO(json)
-    result = read_json(json, lines=True)
-    expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
+    result = pd.read_json(json, lines=True)
+    expected = pd.DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
     # simulate string
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
-    result = read_json(StringIO(json), lines=True)
-    expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
+    result = pd.read_json(StringIO(json), lines=True)
+    expected = pd.DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_to_jsonl():
     # GH9180
-    df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+    df = pd.DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     result = df.to_json(orient="records", lines=True)
     expected = '{"a":1,"b":2}\n{"a":1,"b":2}\n'
     assert result == expected
 
-    df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=["a", "b"])
+    df = pd.DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=["a", "b"])
     result = df.to_json(orient="records", lines=True)
     expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}\n'
     assert result == expected
-    tm.assert_frame_equal(read_json(StringIO(result), lines=True), df)
+    tm.assert_frame_equal(pd.read_json(StringIO(result), lines=True), df)
 
     # GH15096: escaped characters in columns and data
-    df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
+    df = pd.DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
     result = df.to_json(orient="records", lines=True)
     expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n'
     assert result == expected
-    tm.assert_frame_equal(read_json(StringIO(result), lines=True), df)
+    tm.assert_frame_equal(pd.read_json(StringIO(result), lines=True), df)
 
 
 def test_to_jsonl_count_new_lines():
     # GH36888
-    df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+    df = pd.DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     actual_new_lines_count = df.to_json(orient="records", lines=True).count("\n")
     expected_new_lines_count = 2
     assert actual_new_lines_count == expected_new_lines_count
@@ -142,10 +137,10 @@ def test_readjson_chunks(request, lines_json_df, chunksize, buffer, engine):
         )
         request.applymarker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
-    unchunked = read_json(buffer(lines_json_df), lines=True)
+    unchunked = pd.read_json(buffer(lines_json_df), lines=True)
     with (
         buffer(lines_json_df) as buf,
-        read_json(buf, lines=True, chunksize=chunksize, engine=engine) as reader,
+        pd.read_json(buf, lines=True, chunksize=chunksize, engine=engine) as reader,
     ):
         chunked = pd.concat(reader)
 
@@ -155,7 +150,7 @@ def test_readjson_chunks(request, lines_json_df, chunksize, buffer, engine):
 def test_readjson_chunksize_requires_lines(lines_json_df, engine):
     msg = "chunksize can only be passed if lines=True"
     with pytest.raises(ValueError, match=msg):
-        with read_json(
+        with pd.read_json(
             StringIO(lines_json_df), lines=False, chunksize=2, engine=engine
         ) as _:
             pass
@@ -174,10 +169,10 @@ def test_readjson_chunks_series(request, engine):
     s = pd.Series({"A": 1, "B": 2})
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
-    unchunked = read_json(strio, lines=True, typ="series", engine=engine)
+    unchunked = pd.read_json(strio, lines=True, typ="series", engine=engine)
 
     strio = StringIO(s.to_json(lines=True, orient="records"))
-    with read_json(
+    with pd.read_json(
         strio, lines=True, typ="series", chunksize=1, engine=engine
     ) as reader:
         chunked = pd.concat(reader)
@@ -196,7 +191,7 @@ def test_readjson_each_chunk(request, lines_json_df, engine):
 
     # Other tests check that the final result of read_json(chunksize=True)
     # is correct. This checks the intermediate chunks.
-    with read_json(
+    with pd.read_json(
         StringIO(lines_json_df), lines=True, chunksize=2, engine=engine
     ) as reader:
         chunks = list(reader)
@@ -213,17 +208,27 @@ def test_readjson_chunks_from_file(request, engine, temp_file):
         )
         request.applymarker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
-    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     df.to_json(temp_file, lines=True, orient="records")
-    with read_json(temp_file, lines=True, chunksize=1, engine=engine) as reader:
+    with pd.read_json(temp_file, lines=True, chunksize=1, engine=engine) as reader:
         chunked = pd.concat(reader)
-    unchunked = read_json(temp_file, lines=True, engine=engine)
+    unchunked = pd.read_json(temp_file, lines=True, engine=engine)
     tm.assert_frame_equal(unchunked, chunked)
+
+
+def test_readjson_chunks_from_binary_stream():
+    # GH47659 - reading a binary stream (e.g. from S3) in chunks used to raise
+    # "TypeError: initial_value must be str or None, not bytes"
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    data = df.to_json(lines=True, orient="records").encode("utf-8")
+    with pd.read_json(BytesIO(data), lines=True, chunksize=1) as reader:
+        chunked = pd.concat(reader)
+    tm.assert_frame_equal(chunked, df)
 
 
 @pytest.mark.parametrize("chunksize", [None, 1])
 def test_readjson_chunks_closes(chunksize, temp_file):
-    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     df.to_json(temp_file, lines=True, orient="records")
     reader = JsonReader(
         temp_file,
@@ -253,7 +258,7 @@ def test_readjson_invalid_chunksize(lines_json_df, chunksize, engine):
     msg = r"'chunksize' must be an integer >=1"
 
     with pytest.raises(ValueError, match=msg):
-        with read_json(
+        with pd.read_json(
             StringIO(lines_json_df), lines=True, chunksize=chunksize, engine=engine
         ) as _:
             pass
@@ -277,8 +282,8 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
 
     {"A":3,"B":6}
     """
-    orig = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-    test = read_json(StringIO(j), lines=True, chunksize=chunksize)
+    orig = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    test = pd.read_json(StringIO(j), lines=True, chunksize=chunksize)
     if chunksize is not None:
         with test:
             test = pd.concat(test)
@@ -298,8 +303,8 @@ def test_readjson_unicode(request, monkeypatch, engine, temp_file):
     with open(temp_file, "w", encoding="utf-8") as f:
         f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
 
-    result = read_json(temp_file, engine=engine)
-    expected = DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
+    result = pd.read_json(temp_file, engine=engine)
+    expected = pd.DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -311,14 +316,14 @@ def test_readjson_nrows(nrows, engine):
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
-    result = read_json(StringIO(jsonl), lines=True, nrows=nrows)
-    expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
+    result = pd.read_json(StringIO(jsonl), lines=True, nrows=nrows)
+    expected = pd.DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(result, expected)
 
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}"""
-    result = read_json(StringIO(jsonl), lines=True, nrows=0)
-    expected = DataFrame()
+    result = pd.read_json(StringIO(jsonl), lines=True, nrows=0)
+    expected = pd.DataFrame()
     tm.assert_frame_equal(result, expected)
 
 
@@ -332,7 +337,7 @@ def test_readjson_nrows_not_implemented_pyarrow(temp_file):
 
     msg = "currently pyarrow engine doesn't support nrows parameter"
     with pytest.raises(NotImplementedError, match=msg):
-        read_json(temp_file, lines=True, nrows=1, engine="pyarrow")
+        pd.read_json(temp_file, lines=True, nrows=1, engine="pyarrow")
 
 
 @pytest.mark.parametrize("nrows,chunksize", [(2, 2), (3, 2), (4, 2)])
@@ -353,16 +358,16 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
         {"a": 7, "b": 8}"""
 
     if engine != "pyarrow":
-        with read_json(
+        with pd.read_json(
             StringIO(jsonl), lines=True, nrows=nrows, chunksize=chunksize, engine=engine
         ) as reader:
             chunked = pd.concat(reader)
     else:
-        with read_json(
+        with pd.read_json(
             jsonl, lines=True, nrows=nrows, chunksize=chunksize, engine=engine
         ) as reader:
             chunked = pd.concat(reader)
-    expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
+    expected = pd.DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(chunked, expected)
 
 
@@ -376,10 +381,10 @@ def test_readjson_read_empty_chunks(jsonl, nrows):
     if nrows is not None:
         kwargs["nrows"] = nrows
 
-    with read_json(StringIO(jsonl), **kwargs) as reader:
+    with pd.read_json(StringIO(jsonl), **kwargs) as reader:
         result = reader.read()
 
-    tm.assert_frame_equal(result, DataFrame())
+    tm.assert_frame_equal(result, pd.DataFrame())
 
 
 def test_readjson_nrows_requires_lines(engine):
@@ -391,7 +396,7 @@ def test_readjson_nrows_requires_lines(engine):
         {"a": 7, "b": 8}"""
     msg = "nrows can only be passed if lines=True"
     with pytest.raises(ValueError, match=msg):
-        read_json(jsonl, lines=False, nrows=2, engine=engine)
+        pd.read_json(jsonl, lines=False, nrows=2, engine=engine)
 
 
 def test_readjson_lines_chunks_fileurl(request, datapath, engine):
@@ -406,13 +411,13 @@ def test_readjson_lines_chunks_fileurl(request, datapath, engine):
         request.applymarker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
     df_list_expected = [
-        DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
-        DataFrame([[3, 4]], columns=["a", "b"], index=[1]),
-        DataFrame([[5, 6]], columns=["a", "b"], index=[2]),
+        pd.DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
+        pd.DataFrame([[3, 4]], columns=["a", "b"], index=[1]),
+        pd.DataFrame([[5, 6]], columns=["a", "b"], index=[2]),
     ]
     os_path = datapath("io", "json", "data", "line_delimited.json")
     file_url = Path(os_path).as_uri()
-    with read_json(file_url, lines=True, chunksize=1, engine=engine) as url_reader:
+    with pd.read_json(file_url, lines=True, chunksize=1, engine=engine) as url_reader:
         for index, chuck in enumerate(url_reader):
             tm.assert_frame_equal(chuck, df_list_expected[index])
 
@@ -441,7 +446,7 @@ def test_chunksize_is_incremental():
             return iter(self.stringio)
 
     reader = MyReader(jsonl)
-    assert len(list(read_json(reader, lines=True, chunksize=100))) > 1
+    assert len(list(pd.read_json(reader, lines=True, chunksize=100))) > 1
     assert reader.read_count > 10
 
 
@@ -449,7 +454,7 @@ def test_chunksize_is_incremental():
 def test_to_json_append_orient(orient_):
     # GH 35849
     # Test ValueError when orient is not 'records'
-    df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     msg = (
         r"mode='a' \(append\) is only supported when "
         "lines is True and orient is 'records'"
@@ -461,7 +466,7 @@ def test_to_json_append_orient(orient_):
 def test_to_json_append_lines():
     # GH 35849
     # Test ValueError when lines is not True
-    df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     msg = (
         r"mode='a' \(append\) is only supported when "
         "lines is True and orient is 'records'"
@@ -474,7 +479,7 @@ def test_to_json_append_lines():
 def test_to_json_append_mode(mode_):
     # GH 35849
     # Test ValueError when mode is not supported option
-    df = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
     msg = (
         f"mode={mode_} is not a valid option.Only 'w' and 'a' are currently supported."
     )
@@ -486,16 +491,16 @@ def test_to_json_append_output_consistent_columns(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same columns, new rows
-    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
-    df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
+    df1 = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df2 = pd.DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
 
-    expected = DataFrame({"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]})
+    expected = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]})
     # Save dataframes to the same file
     df1.to_json(temp_file, lines=True, orient="records")
     df2.to_json(temp_file, mode="a", lines=True, orient="records")
 
     # Read path file
-    result = read_json(temp_file, lines=True)
+    result = pd.read_json(temp_file, lines=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -503,10 +508,10 @@ def test_to_json_append_output_inconsistent_columns(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing one new column, one old column, new rows
-    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
-    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
+    df1 = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df3 = pd.DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "col1": [1, 2, None, None],
             "col2": ["a", "b", "e", "f"],
@@ -518,7 +523,7 @@ def test_to_json_append_output_inconsistent_columns(temp_file):
     df3.to_json(temp_file, mode="a", lines=True, orient="records")
 
     # Read path file
-    result = read_json(temp_file, lines=True)
+    result = pd.read_json(temp_file, lines=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -526,12 +531,12 @@ def test_to_json_append_output_different_columns(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same, differing and new columns
-    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
-    df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
-    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
-    df4 = DataFrame({"col4": [True, False]})
+    df1 = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df2 = pd.DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
+    df3 = pd.DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
+    df4 = pd.DataFrame({"col4": [True, False]})
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "col1": [1, 2, 3, 4, None, None, None, None],
             "col2": ["a", "b", "c", "d", "e", "f", np.nan, np.nan],
@@ -546,7 +551,7 @@ def test_to_json_append_output_different_columns(temp_file):
     df4.to_json(temp_file, mode="a", lines=True, orient="records")
 
     # Read path file
-    result = read_json(temp_file, lines=True)
+    result = pd.read_json(temp_file, lines=True)
     tm.assert_frame_equal(result, expected)
 
 
@@ -554,13 +559,13 @@ def test_to_json_append_output_different_columns_reordered(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing specific result column order.
-    df1 = DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
-    df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
-    df3 = DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
-    df4 = DataFrame({"col4": [True, False]})
+    df1 = pd.DataFrame({"col1": [1, 2], "col2": ["a", "b"]})
+    df2 = pd.DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
+    df3 = pd.DataFrame({"col2": ["e", "f"], "col3": ["!", "#"]})
+    df4 = pd.DataFrame({"col4": [True, False]})
 
     # df4, df3, df2, df1 (in that order)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "col4": [True, False, None, None, None, None, None, None],
             "col2": [np.nan, np.nan, "e", "f", "c", "d", "a", "b"],
@@ -575,5 +580,186 @@ def test_to_json_append_output_different_columns_reordered(temp_file):
     df1.to_json(temp_file, mode="a", lines=True, orient="records")
 
     # Read path file
-    result = read_json(temp_file, lines=True)
+    result = pd.read_json(temp_file, lines=True)
+    tm.assert_frame_equal(result, expected)
+
+
+# ----------------------------------------------------------------------------
+# The pyarrow engine used to silently ignore many read_json options, producing
+# a wrong result instead of an error. They now raise ValueError instead.
+
+
+@pytest.fixture
+def pyarrow_jsonl(temp_file):
+    pytest.importorskip("pyarrow.json")
+    Path(temp_file).write_text(
+        '{"a": 1, "b": "x"}\n{"a": 2, "b": "y"}\n', encoding="utf-8"
+    )
+    return temp_file
+
+
+def test_pyarrow_engine_typ_series(pyarrow_jsonl):
+    msg = "The 'typ' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", typ="series")
+
+
+@pytest.mark.parametrize("convert_dates", [False, ["a"]])
+def test_pyarrow_engine_convert_dates(pyarrow_jsonl, convert_dates):
+    msg = "The 'convert_dates' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(
+            pyarrow_jsonl, lines=True, engine="pyarrow", convert_dates=convert_dates
+        )
+
+
+def test_pyarrow_engine_keep_default_dates(pyarrow_jsonl):
+    msg = "The 'keep_default_dates' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(
+            pyarrow_jsonl, lines=True, engine="pyarrow", keep_default_dates=False
+        )
+
+
+def test_pyarrow_engine_date_unit(pyarrow_jsonl):
+    msg = "The 'date_unit' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", date_unit="ms")
+
+
+def test_pyarrow_engine_precise_float(pyarrow_jsonl):
+    msg = "The 'precise_float' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=True)
+
+
+@pytest.mark.parametrize("convert_axes", [True, False])
+def test_pyarrow_engine_convert_axes(pyarrow_jsonl, convert_axes):
+    # convert_axes defaults to None (resolved to True); any explicit value is
+    # rejected, since the pyarrow engine cannot honor it.
+    msg = "The 'convert_axes' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(
+            pyarrow_jsonl, lines=True, engine="pyarrow", convert_axes=convert_axes
+        )
+
+
+@pytest.mark.parametrize("dtype", [True, False, "float64"])
+def test_pyarrow_engine_scalar_dtype(pyarrow_jsonl, dtype):
+    # dtype defaults to None (resolved to True); a scalar dtype applies to
+    # every column but is silently ignored by the pyarrow engine.
+    msg = "The 'dtype' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", dtype=dtype)
+
+
+def test_pyarrow_engine_non_arrow_dtype_mapping(pyarrow_jsonl):
+    # GH#59516 only handled ArrowDtype entries; a non-ArrowDtype dtype in the
+    # mapping was silently dropped.
+    msg = "only supports ArrowDtype values in the 'dtype' mapping"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(
+            pyarrow_jsonl,
+            lines=True,
+            engine="pyarrow",
+            dtype={"a": "int64[pyarrow]", "b": "float64"},
+        )
+
+
+def test_pyarrow_engine_encoding(pyarrow_jsonl):
+    # the pyarrow engine assumes UTF-8 and ignores the encoding argument.
+    msg = "The 'encoding' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", encoding="latin-1")
+
+
+def test_pyarrow_engine_encoding_errors(pyarrow_jsonl):
+    msg = "The 'encoding_errors' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(
+            pyarrow_jsonl, lines=True, engine="pyarrow", encoding_errors="ignore"
+        )
+
+
+def test_pyarrow_engine_storage_options(pyarrow_jsonl):
+    msg = "The 'storage_options' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(
+            pyarrow_jsonl,
+            lines=True,
+            engine="pyarrow",
+            storage_options={"anon": True},
+        )
+
+
+@pytest.mark.parametrize("compression", ["gzip", {"method": "gzip"}])
+def test_pyarrow_engine_compression(pyarrow_jsonl, compression):
+    # pyarrow infers compression from the file extension itself; pandas cannot
+    # honor an explicitly-passed method (the default "infer" is allowed).
+    msg = "The 'compression' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(
+            pyarrow_jsonl, lines=True, engine="pyarrow", compression=compression
+        )
+
+
+@pytest.mark.parametrize("encoding", [None, "utf-8", "utf8", "UTF-8"])
+def test_pyarrow_engine_allows_default_options(pyarrow_jsonl, encoding):
+    # Passing the supported defaults explicitly must not raise (though the
+    # deprecated date kwargs warn; GH#59161).
+    depr_msg = "keyword in read_json is deprecated"
+    # check_stacklevel=False: older pyarrow emits its own Pandas4Warning from
+    #  make_block during to_pandas, which the stacklevel check would trip on.
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        result = pd.read_json(
+            pyarrow_jsonl,
+            lines=True,
+            engine="pyarrow",
+            typ="frame",
+            convert_dates=True,
+            keep_default_dates=True,
+            precise_float=False,
+            date_unit=None,
+            encoding=encoding,
+            encoding_errors="strict",
+            compression="infer",
+        )
+    expected = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_pyarrow_engine_reads_gzip_with_default_compression(tmp_path):
+    # the default compression="infer" is allowed; pyarrow decompresses a
+    # ".gz" file by extension on its own.
+    pytest.importorskip("pyarrow.json")
+    path = tmp_path / "data.json.gz"
+    with gzip.open(path, "wb") as fh:
+        fh.write(b'{"a": 1}\n{"a": 2}\n')
+    result = pd.read_json(str(path), lines=True, engine="pyarrow")
+    expected = pd.DataFrame({"a": [1, 2]})
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_ujson_engine_allows_pyarrow_rejected_options(temp_file):
+    # The new validation is gated on engine="pyarrow"; the default ujson
+    # engine must keep accepting these options (though the deprecated date
+    # kwargs warn; GH#59161).
+    Path(temp_file).write_text('{"a": 1}\n{"a": 2}\n', encoding="utf-8")
+    depr_msg = "keyword in read_json is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = pd.read_json(
+            temp_file,
+            lines=True,
+            engine="ujson",
+            convert_dates=False,
+            keep_default_dates=False,
+            convert_axes=False,
+            precise_float=True,
+            date_unit="ms",
+            encoding="utf-8",
+            encoding_errors="strict",
+        )
+    expected = pd.DataFrame({"a": [1, 2]})
     tm.assert_frame_equal(result, expected)

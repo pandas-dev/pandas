@@ -3,13 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    concat,
-    isna,
-    notna,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries import offsets
@@ -37,7 +31,7 @@ def scoreatpercentile(a, per):
 def test_series(series, q, step):
     compare_func = partial(scoreatpercentile, per=q)
     result = series.rolling(50, step=step).quantile(q)
-    assert isinstance(result, Series)
+    assert isinstance(result, pd.Series)
     end = range(0, len(series), step or 1)[-1] + 1
     tm.assert_almost_equal(result.iloc[-1], compare_func(series[end - 50 : end]))
 
@@ -46,7 +40,7 @@ def test_series(series, q, step):
 def test_frame(raw, frame, q, step):
     compare_func = partial(scoreatpercentile, per=q)
     result = frame.rolling(50, step=step).quantile(q)
-    assert isinstance(result, DataFrame)
+    assert isinstance(result, pd.DataFrame)
     end = range(0, len(frame), step or 1)[-1] + 1
     tm.assert_series_equal(
         result.iloc[-1, :],
@@ -88,7 +82,7 @@ def test_time_rule_frame(raw, frame, q):
 @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])
 def test_nans(q):
     compare_func = partial(scoreatpercentile, per=q)
-    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj = pd.Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.nan
     obj[-10:] = np.nan
 
@@ -97,16 +91,16 @@ def test_nans(q):
 
     # min_periods is working correctly
     result = obj.rolling(20, min_periods=15).quantile(q)
-    assert isna(result.iloc[23])
-    assert not isna(result.iloc[24])
+    assert pd.isna(result.iloc[23])
+    assert not pd.isna(result.iloc[24])
 
-    assert not isna(result.iloc[-6])
-    assert isna(result.iloc[-5])
+    assert not pd.isna(result.iloc[-6])
+    assert pd.isna(result.iloc[-5])
 
-    obj2 = Series(np.random.default_rng(2).standard_normal(20))
+    obj2 = pd.Series(np.random.default_rng(2).standard_normal(20))
     result = obj2.rolling(10, min_periods=5).quantile(q)
-    assert isna(result.iloc[3])
-    assert notna(result.iloc[4])
+    assert pd.isna(result.iloc[3])
+    assert pd.notna(result.iloc[4])
 
     result0 = obj.rolling(20, min_periods=0).quantile(q)
     result1 = obj.rolling(20, min_periods=1).quantile(q)
@@ -118,8 +112,8 @@ def test_nans(q):
 def test_min_periods(series, minp, q, step):
     result = series.rolling(len(series) + 1, min_periods=minp, step=step).quantile(q)
     expected = series.rolling(len(series), min_periods=minp, step=step).quantile(q)
-    nan_mask = isna(result)
-    tm.assert_series_equal(nan_mask, isna(expected))
+    nan_mask = pd.isna(result)
+    tm.assert_series_equal(nan_mask, pd.isna(expected))
 
     nan_mask = ~nan_mask
     tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
@@ -127,13 +121,13 @@ def test_min_periods(series, minp, q, step):
 
 @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])
 def test_center(q):
-    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj = pd.Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.nan
     obj[-10:] = np.nan
 
     result = obj.rolling(20, center=True).quantile(q)
     expected = (
-        concat([obj, Series([np.nan] * 9)])
+        pd.concat([obj, pd.Series([np.nan] * 9)])
         .rolling(20)
         .quantile(q)
         .iloc[9:]

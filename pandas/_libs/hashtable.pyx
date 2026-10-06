@@ -1,5 +1,6 @@
 cimport cython
 from cpython.ref cimport (
+    Py_DECREF,
     Py_INCREF,
     PyObject,
 )
@@ -17,7 +18,6 @@ from numpy cimport ndarray
 cnp.import_array()
 
 
-from pandas._libs cimport util
 from pandas._libs.dtypes cimport numeric_object_t
 from pandas._libs.khash cimport (
     KHASH_TRACE_DOMAIN,
@@ -28,6 +28,7 @@ from pandas._libs.khash cimport (
     kh_needed_n_buckets,
     kh_python_hash_equal,
     kh_python_hash_func,
+    kh_strview,
     khiter_t,
 )
 from pandas._libs.missing cimport (
@@ -48,7 +49,6 @@ def objects_are_equal(a, b):
     return kh_python_hash_equal(a, b)
 
 
-cdef int64_t NPY_NAT = util.get_nat()
 SIZE_HINT_LIMIT = (1 << 20) + 7
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from typing import (
     TYPE_CHECKING,
+    Any,
     Concatenate,
     Literal,
     Self,
@@ -79,6 +80,7 @@ from pandas.tseries.frequencies import (
 )
 from pandas.tseries.offsets import (
     Day,
+    Hour,
     Tick,
 )
 
@@ -89,7 +91,6 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
-        Any,
         AnyArrayLike,
         Axis,
         FreqIndexT,
@@ -115,7 +116,7 @@ if TYPE_CHECKING:
 
 
 @set_module("pandas.api.typing")
-class Resampler(BaseGroupBy, PandasObject):
+class Resampler(BaseGroupBy[Any], PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -577,7 +578,7 @@ class Resampler(BaseGroupBy, PandasObject):
     @final
     def _get_resampler_for_grouping(
         self,
-        groupby: GroupBy,
+        groupby: GroupBy[Any],
         key,
     ):
         """
@@ -604,7 +605,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
-            result.index.name = self.obj.index.name
 
         return result
 
@@ -896,14 +896,16 @@ class Resampler(BaseGroupBy, PandasObject):
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
-            Maximum number of consecutive NaNs to fill. Must be greater than
-            0.
+            Maximum number of consecutive NaNs to fill. In other words, if there
+            is a gap with more than this number of consecutive NaNs, it will only
+            be partially filled, from the direction given by ``limit_direction``.
+            Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}, Optional
             Consecutive NaNs will be filled in this direction.
 
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -1588,6 +1590,11 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.var : Compute variance of groups, excluding missing
             values.
 
+        Notes
+        -----
+        To use the same divisor as ``numpy.std``, use ``ddof=0`` instead of
+        the default ``ddof=1``.
+
         Examples
         --------
 
@@ -1991,21 +1998,21 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("quantile", q=q, **kwargs)
 
 
-class _GroupByMixin(PandasObject, SelectionMixin):
+class _GroupByMixin(PandasObject, SelectionMixin[Any]):
     """
     Provide the groupby facilities.
     """
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
-    _groupby: GroupBy
+    _groupby: GroupBy[Any]
     _timegrouper: TimeGrouper
 
     def __init__(
         self,
         *,
         parent: Resampler,
-        groupby: GroupBy,
+        groupby: GroupBy[Any],
         key=None,
         selection: IndexLabel | None = None,
     ) -> None:
@@ -2108,8 +2115,8 @@ class DatetimeIndexResampler(Resampler):
     ax: DatetimeIndex
 
     @property
-    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupby]:
-        return DatetimeIndexResamplerGroupby
+    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupBy]:
+        return DatetimeIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
@@ -2179,7 +2186,7 @@ class DatetimeIndexResampler(Resampler):
         # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
-            and to_offset(ax.inferred_freq) == self.freq
+            and to_offset(ax._inferred_freq_str) == self.freq
             and len(obj) == len(res_index)
             and obj.index.equals(res_index)
         ):
@@ -2215,7 +2222,7 @@ class DatetimeIndexResampler(Resampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible
 # with definition in base class "DatetimeIndexResampler"
-class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
+class DatetimeIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, DatetimeIndexResampler
 ):
     """
@@ -2234,7 +2241,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return PeriodIndexResamplerGroupby
+        return PeriodIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_period_bins(self.ax)
@@ -2264,25 +2271,23 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         ax = self.ax
 
-        if is_subperiod(ax.freq, self.freq):
-            # Downsampling
-            return self._groupby_and_aggregate(how, **kwargs)
-        elif is_superperiod(ax.freq, self.freq):
-            if how == "ohlc":
-                # GH #13083
-                # upsampling to subperiods is handled as an asfreq, which works
-                # for pure aggregating/reducing methods
-                # OHLC reduces along the time dimension, but creates multiple
-                # values for each period -> handle by _groupby_and_aggregate()
-                return self._groupby_and_aggregate(how)
-            return self.asfreq()
-        elif ax.freq == self.freq:
-            return self.asfreq()
+        if not (
+            is_subperiod(ax.freq, self.freq)
+            or is_superperiod(ax.freq, self.freq)
+            or ax.freq == self.freq
+        ):
+            raise IncompatibleFrequency(
+                f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
+                "as they are not sub or super periods"
+            )
 
-        raise IncompatibleFrequency(
-            f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
-            "as they are not sub or super periods"
-        )
+        if not len(ax):
+            # reset to the new freq
+            obj = self._obj_with_exclusions.copy()
+            obj.index = obj.index.asfreq(self.freq)
+            return obj
+
+        return self._groupby_and_aggregate(how, **kwargs)
 
     def _upsample(self, method, limit: int | None = None, fill_value=None):
         """
@@ -2317,7 +2322,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "PeriodIndexResampler"
-class PeriodIndexResamplerGroupby(  # type: ignore[misc]
+class PeriodIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, PeriodIndexResampler
 ):
     """
@@ -2336,7 +2341,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return TimedeltaIndexResamplerGroupby
+        return TimedeltaIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_time_delta_bins(self.ax)
@@ -2354,7 +2359,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "DatetimeIndexResampler"
-class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
+class TimedeltaIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, TimedeltaIndexResampler
 ):
     """
@@ -2378,7 +2383,7 @@ get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
-    groupby: GroupBy,
+    groupby: GroupBy[Any],
     rule,
     how=None,
     fill_method=None,
@@ -2458,7 +2463,9 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        if not isinstance(freq, Tick):
+        # GH#44996: the Day check is deferred to _get_resampler, where the
+        # binning axis is known.
+        if not isinstance(freq, (Tick, Day)):
             if offset is not None:
                 warnings.warn(
                     "The 'offset' keyword does not take effect when resampling "
@@ -2555,6 +2562,30 @@ class TimeGrouper(Grouper):
 
         """
         _, ax, _ = self._set_grouper(obj, gpr_index=None)
+
+        # GH#44996: with a Day freq, origin/offset take effect only on a
+        # tz-naive DatetimeIndex (where Day is equivalent to 24h), except
+        # that offset also takes effect in _get_time_delta_bins.
+        if isinstance(self.freq, Day) and not (
+            isinstance(ax, DatetimeIndex) and ax.tz is None
+        ):
+            if self.offset is not None and not isinstance(ax, TimedeltaIndex):
+                warnings.warn(
+                    "The 'offset' keyword does not take effect when resampling "
+                    "with a Day 'freq' unless the index is a timezone-naive "
+                    "DatetimeIndex",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if self.origin != "start_day":
+                warnings.warn(
+                    "The 'origin' keyword does not take effect when resampling "
+                    "with a Day 'freq' unless the index is a timezone-naive "
+                    "DatetimeIndex",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -2617,6 +2648,22 @@ class TimeGrouper(Grouper):
             )
             return binner, [], labels
 
+        # GH#43486: filter NaTs up front, mirroring _get_period_bins
+        nat_count = 0
+        if ax.hasnans:
+            nat_count = ax.isna().sum()  # type: ignore[assignment]
+            ax = ax[~ax.isna()]
+
+        if len(ax) == 0:
+            # all-NaT case
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
+            bins = np.array([], dtype=np.int64)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
+            return binner, np.insert(bins, 0, nat_count), labels
+
         first, last = _get_timestamp_range_edges(
             ax.min(),  # type: ignore[arg-type]
             ax.max(),  # type: ignore[arg-type]
@@ -2648,18 +2695,19 @@ class TimeGrouper(Grouper):
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
         # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(
-            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
-        )
+        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=False)
 
         if self.closed == "right":
             labels = binner
             if self.label == "right":
-                labels = labels[1:]  # type: ignore[assignment]
+                labels = labels[1:]
         elif self.label == "right":
-            labels = labels[1:]  # type: ignore[assignment]
+            labels = labels[1:]
 
-        if ax.hasnans:
+        if nat_count > 0:
+            # shift bins by the number of NaT (they sort to the front of asi8)
+            bins = bins + nat_count
+            bins = np.insert(bins, 0, nat_count)
             binner = binner.insert(0, NaT)
             labels = labels.insert(0, NaT)
 
@@ -2667,7 +2715,7 @@ class TimeGrouper(Grouper):
         # adjust the labels
         # GH4076
         if len(bins) < len(labels):
-            labels = labels[: len(bins)]  # type: ignore[assignment]
+            labels = labels[: len(bins)]
 
         return binner, bins, labels
 
@@ -2704,7 +2752,7 @@ class TimeGrouper(Grouper):
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
-                binner = binner[:-1]  # type: ignore[assignment]
+                binner = binner[:-1]
         else:
             bin_edges = binner.asi8
         return binner, bin_edges
@@ -2813,7 +2861,6 @@ class TimeGrouper(Grouper):
                 start,
                 end,
                 self.freq,
-                closed=self.closed,
                 origin=self.origin,
                 offset=self.offset,
             )
@@ -2854,7 +2901,8 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array(),
+                name=ax.name,
             )
         return obj, ax, indexer
 
@@ -2927,7 +2975,7 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, Tick):
+    if isinstance(freq, Tick) or (isinstance(freq, Day) and first.tz is None):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
@@ -2935,6 +2983,11 @@ def _get_timestamp_range_edges(
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
+
+        if isinstance(freq, Day):
+            # GH#44996: tz-naive Day should produce the same bins as the
+            # equivalent Hour offset.
+            freq = Hour(24 * freq.n)
 
         first, last = _adjust_dates_anchored(
             first,
@@ -2963,7 +3016,6 @@ def _get_period_range_edges(
     first: Period,
     last: Period,
     freq: BaseOffset,
-    closed: Literal["right", "left"] = "left",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
@@ -2979,8 +3031,6 @@ def _get_period_range_edges(
         The ending Period of the range to be adjusted.
     freq : pd.DateOffset
         The freq to which the Periods will be adjusted.
-    closed : {'right', 'left'}, default "left"
-        Which side of bin interval is closed.
     origin : {'epoch', 'start', 'start_day'}, Timestamp, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
         match the timezone of the index.
@@ -3006,8 +3056,9 @@ def _get_period_range_edges(
     adjust_first = not freq.is_on_offset(first_ts)
     adjust_last = freq.is_on_offset(last_ts)
 
+    # bins hold whole periods, so the resample's closed does not apply, see GH#44363
     first_ts, last_ts = _get_timestamp_range_edges(
-        first_ts, last_ts, freq, unit="ns", closed=closed, origin=origin, offset=offset
+        first_ts, last_ts, freq, unit="ns", closed="left", origin=origin, offset=offset
     )
 
     first = (first_ts + int(adjust_first) * freq).to_period(freq)
@@ -3066,7 +3117,9 @@ def _adjust_dates_anchored(
         sub_freq_times = (origin_last._value - first._value) // freq_value
         if closed == "left":
             sub_freq_times += 1
-        first = origin_last - sub_freq_times * freq
+        #  error: Incompatible types in assignment (expression has type
+        # "Timestamp | NaTType", variable has type "Timestamp")
+        first = origin_last - sub_freq_times * freq  # type: ignore[assignment]
         origin_timestamp = first._value
     origin_timestamp += offset._value if offset else 0
 
@@ -3108,12 +3161,8 @@ def _adjust_dates_anchored(
             lresult_int = last._value + (freq_value - loffset)
         else:
             lresult_int = last._value + freq_value
-    fresult = Timestamp(fresult_int, unit=unit)
-    lresult = Timestamp(lresult_int, unit=unit)
-    if first_tzinfo is not None:
-        fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
-    if last_tzinfo is not None:
-        lresult = lresult.tz_localize("UTC").tz_convert(last_tzinfo)
+    fresult = Timestamp._from_value_and_reso(fresult_int, first._creso, first_tzinfo)
+    lresult = Timestamp._from_value_and_reso(lresult_int, last._creso, last_tzinfo)
     return fresult, lresult
 
 

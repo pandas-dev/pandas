@@ -13,7 +13,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -41,8 +41,8 @@ if TYPE_CHECKING:
 
 def _align_core_single_unary_op(
     term,
-) -> tuple[partial | type[NDFrame], dict[str, Index] | None]:
-    typ: partial | type[NDFrame]
+) -> tuple[partial[np.ndarray] | type[NDFrame], dict[str, Index] | None]:
+    typ: partial[np.ndarray] | type[NDFrame]
     axes: dict[str, Index] | None = None
 
     if isinstance(term.value, np.ndarray):
@@ -128,7 +128,7 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if (
-                    _global_config["mode"]["performance_warnings"]
+                    config["mode"]["performance_warnings"]
                     and ordm >= 1
                     and reindexer_size >= 10000
                 ):
@@ -144,7 +144,7 @@ def _align_core(terms):
                 obj = ti.reindex(reindexer, axis=axis)
                 terms[i].update(obj)
 
-        terms[i].update(terms[i].value.values)
+        terms[i].update(terms[i].value._values)
 
     return typ, _zip_axes_from_type(typ, axes)
 

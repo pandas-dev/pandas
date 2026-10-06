@@ -26,7 +26,6 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 
 from __future__ import annotations
 
-import locale
 import sys
 from typing import TYPE_CHECKING
 
@@ -111,10 +110,8 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
 
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-skip_if_not_us_locale = pytest.mark.skipif(
-    locale.getlocale()[0] != "en_US",
-    reason=f"Set local {locale.getlocale()[0]} is not en_US",
-)
+
+
 skip_if_wasm = pytest.mark.skipif(
     WASM,
     reason="does not support wasm",

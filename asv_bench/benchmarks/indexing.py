@@ -19,7 +19,6 @@ from pandas import (
     Series,
     concat,
     date_range,
-    option_context,
     period_range,
 )
 
@@ -109,6 +108,38 @@ class NumericMaskedIndexing:
 
     def time_get_indexer_dups(self, dtype, monotonic):
         self.data.get_indexer_for(self.indexer)
+
+
+class GetIndexerNonUnique:
+    params = [
+        ("int64", "float64", "object"),
+        ("monotonic", "non_monotonic"),
+    ]
+    param_names = ["dtype", "index_structure"]
+
+    def setup(self, dtype, index_structure):
+        N = 10**6
+        rng = np.random.default_rng(42)
+        values = rng.integers(0, N // 10, size=N)
+        targets = rng.integers(0, N // 10, size=N // 10)
+        if index_structure == "monotonic":
+            values = np.sort(values)
+        if dtype == "object":
+            self.idx = Index(values.astype(str), dtype=object)
+            self.targets = Index(targets.astype(str), dtype=object)
+            self.targets_few = Index(targets[:100].astype(str), dtype=object)
+        else:
+            self.idx = Index(values.astype(dtype))
+            self.targets = Index(targets.astype(dtype))
+            self.targets_few = Index(targets[:100].astype(dtype))
+        # warm the engine's cached properties outside the timer
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets)
+
+    def time_get_indexer_non_unique_few_targets(self, dtype, index_structure):
+        self.idx.get_indexer_non_unique(self.targets_few)
 
 
 class NonNumericSeriesIndexing:
@@ -318,6 +349,10 @@ class MultiIndexing:
     def time_xs_full_key(self, unique_levels):
         target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.xs(target)
+
+    def time_xs_partial_key(self, unique_levels):
+        # partial key -> contiguous slice of rows (non-unique levels)
+        self.df.xs(self.tgt_scalar)
 
 
 class IntervalIndexing:
@@ -550,21 +585,24 @@ class SetitemObjectDtype:
         self.df.loc[0, 1] = 1.0
 
 
-class ChainIndexing:
-    params = [None, "warn"]
-    param_names = ["mode"]
+class SeriesSetitem:
+    # "str" is exempt from the null-slice defensive copy, so a fixed-width
+    #  pyarrow dtype is needed to keep that cost on the dashboard (GH#67990)
+    params = ["str", "double[pyarrow]"]
+    param_names = ["dtype"]
 
-    def setup(self, mode):
-        self.N = 1000000
-        self.df = DataFrame({"A": np.arange(self.N), "B": "foo"})
+    def setup(self, dtype):
+        N = 500_000
+        self.s = Series(np.random.rand(N), dtype=dtype)
+        self.arr = self.s.array
+        self.arr_obj = np.asarray(self.s.array, dtype=object)
 
-    def time_chained_indexing(self, mode):
-        df = self.df
-        N = self.N
-        with warnings.catch_warnings(record=True):
-            with option_context("mode.chained_assignment", mode):
-                df2 = df[df.A > N // 2]
-                df2["C"] = 1.0
+    def time_setitem_slice_array(self, dtype):
+        # https://github.com/pandas-dev/pandas/pull/64530
+        self.s[:] = self.arr
+
+    def time_setitem_slice_array_infer(self, dtype):
+        self.s[:] = self.arr_obj
 
 
 class Block:

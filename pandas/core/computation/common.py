@@ -1,22 +1,29 @@
 from __future__ import annotations
 
 from functools import reduce
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
-def ensure_decoded(s) -> str:
+def ensure_decoded(s: str | bytes) -> str:
     """
     If we have bytes, decode them to unicode.
     """
     if isinstance(s, (np.bytes_, bytes)):
-        s = s.decode(_global_config["display"]["encoding"])
+        s = s.decode(config["display"]["encoding"])
     return s
 
 
-def result_type_many(*arrays_and_dtypes):
+def result_type_many(*arrays_and_dtypes: Any) -> DtypeObj:
     """
     Wrapper around numpy.result_type which overcomes the NPY_MAXARGS (32)
     argument limit.

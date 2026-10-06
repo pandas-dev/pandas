@@ -1,15 +1,15 @@
 import pytest
 
-from pandas import Timedelta
+import pandas as pd
 
 
 @pytest.mark.parametrize(
     "td, expected_repr",
     [
-        (Timedelta(10, unit="D"), "Timedelta('10 days 00:00:00')"),
-        (Timedelta(10, unit="s"), "Timedelta('0 days 00:00:10')"),
-        (Timedelta(10, unit="ms"), "Timedelta('0 days 00:00:00.010000')"),
-        (Timedelta(-10, unit="ms"), "Timedelta('-1 days +23:59:59.990000')"),
+        (pd.Timedelta(10, unit="D"), "Timedelta('10 days 00:00:00')"),
+        (pd.Timedelta(10, unit="s"), "Timedelta('0 days 00:00:10')"),
+        (pd.Timedelta(10, unit="ms"), "Timedelta('0 days 00:00:00.010000')"),
+        (pd.Timedelta(-10, unit="ms"), "Timedelta('-1 days +23:59:59.990000')"),
     ],
 )
 def test_repr(td, expected_repr):
@@ -20,7 +20,7 @@ def test_repr(td, expected_repr):
     "td, expected_iso",
     [
         (
-            Timedelta(
+            pd.Timedelta(
                 days=6,
                 minutes=50,
                 seconds=3,
@@ -30,14 +30,14 @@ def test_repr(td, expected_repr):
             ),
             "P6DT0H50M3.010010012S",
         ),
-        (Timedelta(days=4, hours=12, minutes=30, seconds=5), "P4DT12H30M5S"),
-        (Timedelta(nanoseconds=123), "P0DT0H0M0.000000123S"),
+        (pd.Timedelta(days=4, hours=12, minutes=30, seconds=5), "P4DT12H30M5S"),
+        (pd.Timedelta(nanoseconds=123), "P0DT0H0M0.000000123S"),
         # trim nano
-        (Timedelta(microseconds=10), "P0DT0H0M0.00001S"),
+        (pd.Timedelta(microseconds=10), "P0DT0H0M0.00001S"),
         # trim micro
-        (Timedelta(milliseconds=1), "P0DT0H0M0.001S"),
+        (pd.Timedelta(milliseconds=1), "P0DT0H0M0.001S"),
         # don't strip every 0
-        (Timedelta(minutes=1), "P0DT0H1M0S"),
+        (pd.Timedelta(minutes=1), "P0DT0H1M0S"),
     ],
 )
 def test_isoformat(td, expected_iso):
@@ -46,10 +46,10 @@ def test_isoformat(td, expected_iso):
 
 class TestReprBase:
     def test_none(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1s = Timedelta(1, unit="s")
-        delta_500ms = Timedelta(500, unit="ms")
+        delta_1d = pd.Timedelta(1, unit="D")
+        delta_0d = pd.Timedelta(0, unit="D")
+        delta_1s = pd.Timedelta(1, unit="s")
+        delta_500ms = pd.Timedelta(500, unit="ms")
 
         drepr = lambda x: x._repr_base()
         assert drepr(delta_1d) == "1 days"
@@ -63,10 +63,10 @@ class TestReprBase:
         assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_sub_day(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1s = Timedelta(1, unit="s")
-        delta_500ms = Timedelta(500, unit="ms")
+        delta_1d = pd.Timedelta(1, unit="D")
+        delta_0d = pd.Timedelta(0, unit="D")
+        delta_1s = pd.Timedelta(1, unit="s")
+        delta_500ms = pd.Timedelta(500, unit="ms")
 
         drepr = lambda x: x._repr_base(format="sub_day")
         assert drepr(delta_1d) == "1 days"
@@ -80,10 +80,10 @@ class TestReprBase:
         assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_long(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1s = Timedelta(1, unit="s")
-        delta_500ms = Timedelta(500, unit="ms")
+        delta_1d = pd.Timedelta(1, unit="D")
+        delta_0d = pd.Timedelta(0, unit="D")
+        delta_1s = pd.Timedelta(1, unit="s")
+        delta_500ms = pd.Timedelta(500, unit="ms")
 
         drepr = lambda x: x._repr_base(format="long")
         assert drepr(delta_1d) == "1 days 00:00:00"
@@ -97,9 +97,9 @@ class TestReprBase:
         assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
 
     def test_all(self):
-        delta_1d = Timedelta(1, unit="D")
-        delta_0d = Timedelta(0, unit="D")
-        delta_1ns = Timedelta(1, unit="ns")
+        delta_1d = pd.Timedelta(1, unit="D")
+        delta_0d = pd.Timedelta(0, unit="D")
+        delta_1ns = pd.Timedelta(1, unit="ns")
 
         drepr = lambda x: x._repr_base(format="all")
         assert drepr(delta_1d) == "1 days 00:00:00.000000000"

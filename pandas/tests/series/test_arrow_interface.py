@@ -1,8 +1,7 @@
 import ctypes
+import zoneinfo
 
 import pytest
-
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -26,6 +25,17 @@ def test_series_arrow_interface():
     assert ca.equals(expected)
     ca = pa.chunked_array(s, type=pa.int32())
     expected = pa.chunked_array([[1, 4, 2]], type=pa.int32())
+    assert ca.equals(expected)
+
+
+def test_series_arrow_interface_tz_aware():
+    # GH#68426 pyarrow reading .values should not surface a deprecation warning
+    ser = pd.Series(pd.date_range("2025-01-01", periods=3, tz="US/Eastern"))
+
+    with tm.assert_produces_warning(None):
+        ca = pa.chunked_array(ser)
+    pa_type = pa.timestamp("us", tz="US/Eastern")
+    expected = pa.chunked_array([pa.array(ser.to_numpy(dtype="M8[us]"), type=pa_type)])
     assert ca.equals(expected)
 
 
@@ -80,8 +90,7 @@ class ArrowStreamWrapper:
         return self.stream.__arrow_c_stream__(requested_schema)
 
 
-@td.skip_if_no("pyarrow", min_version="14.0")
-def test_dataframe_from_arrow():
+def test_series_from_arrow():
     # objects with __arrow_c_stream__
     arr = pa.chunked_array([[1, 2, 3], [4, 5]])
 
@@ -115,3 +124,26 @@ def test_dataframe_from_arrow():
         TypeError, match="Expected an Arrow-compatible array-like object"
     ):
         pd.Series.from_arrow([1, 2, 3])
+
+
+def test_series_from_arrow_pyarrow_name():
+    # pyarrow-specific: preserve the name of the array if possible
+    table = pa.table({"a": [1, 2, 3]})
+    result = pd.Series.from_arrow(table["a"])
+    expected = pd.Series([1, 2, 3], name="a")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+def test_series_from_arrow_custom_conversion():
+    # ensuring that we use our custom conversion and not the default pyarrow to_pandas
+    arr = pa.array([1, 2, 3], type=pa.timestamp("ns", tz="America/New_York"))
+    result = pd.Series.from_arrow(arr)
+    assert isinstance(result.dtype.tz, zoneinfo.ZoneInfo)
+
+    arr = pa.array(["a", "b", "c"])
+    with pd.option_context("future.infer_string", False):
+        result = pd.Series.from_arrow(arr)
+    assert result.dtype == "object"

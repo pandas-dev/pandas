@@ -1,22 +1,18 @@
+import operator
+
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Series,
-    _testing as tm,
-    concat,
-    read_hdf,
-)
+import pandas as pd
+import pandas._testing as tm
 
 pytestmark = [pytest.mark.single_cpu]
 
 
 def test_categorical(temp_hdfstore):
     # Basic
-    s = Series(
-        Categorical(
+    s = pd.Series(
+        pd.Categorical(
             ["a", "b", "b", "a", "a", "c"],
             categories=["a", "b", "c", "d"],
             ordered=False,
@@ -26,8 +22,8 @@ def test_categorical(temp_hdfstore):
     result = temp_hdfstore.select("s")
     tm.assert_series_equal(s, result)
 
-    s = Series(
-        Categorical(
+    s = pd.Series(
+        pd.Categorical(
             ["a", "b", "b", "a", "a", "c"],
             categories=["a", "b", "c", "d"],
             ordered=True,
@@ -37,25 +33,25 @@ def test_categorical(temp_hdfstore):
     result = temp_hdfstore.select("s_ordered")
     tm.assert_series_equal(s, result)
 
-    df = DataFrame({"s": s, "vals": [1, 2, 3, 4, 5, 6]})
+    df = pd.DataFrame({"s": s, "vals": [1, 2, 3, 4, 5, 6]})
     temp_hdfstore.append("df", df, format="table")
     result = temp_hdfstore.select("df")
     tm.assert_frame_equal(result, df)
 
     # Dtypes
-    s = Series([1, 1, 2, 2, 3, 4, 5]).astype("category")
+    s = pd.Series([1, 1, 2, 2, 3, 4, 5]).astype("category")
     temp_hdfstore.append("si", s)
     result = temp_hdfstore.select("si")
     tm.assert_series_equal(result, s)
 
-    s = Series([1, 1, np.nan, 2, 3, 4, 5]).astype("category")
+    s = pd.Series([1, 1, np.nan, 2, 3, 4, 5]).astype("category")
     temp_hdfstore.append("si2", s)
     result = temp_hdfstore.select("si2")
     tm.assert_series_equal(result, s)
 
     # Multiple
     df2 = df.copy()
-    df2["s2"] = Series(list("abcdefg")).astype("category")
+    df2["s2"] = pd.Series(list("abcdefg")).astype("category")
     temp_hdfstore.append("df2", df2)
     result = temp_hdfstore.select("df2")
     tm.assert_frame_equal(result, df2)
@@ -68,8 +64,8 @@ def test_categorical(temp_hdfstore):
     assert "/df2/meta/values_block_2/meta" in info
 
     # unordered
-    s = Series(
-        Categorical(
+    s = pd.Series(
+        pd.Categorical(
             ["a", "b", "b", "a", "a", "c"],
             categories=["a", "b", "c", "d"],
             ordered=False,
@@ -100,7 +96,7 @@ def test_categorical(temp_hdfstore):
     # Appending with same categories is ok
     temp_hdfstore.append("df3", df)
 
-    df = concat([df, df])
+    df = pd.concat([df, df])
     expected = df[df.s.isin(["b", "c"])]
     result = temp_hdfstore.select("df3", where=['s in ["b","c"]'])
     tm.assert_frame_equal(result, expected)
@@ -132,12 +128,12 @@ def test_categorical_conversion(temp_h5_path):
     data = [4.3, 9.8]
 
     # Test without categories
-    df = DataFrame({"obsids": obsids, "imgids": imgids, "data": data})
+    df = pd.DataFrame({"obsids": obsids, "imgids": imgids, "data": data})
 
     # We are expecting an empty DataFrame matching types of df
     expected = df.iloc[[], :]
     df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
-    result = read_hdf(temp_h5_path, "df", where="obsids=B")
+    result = pd.read_hdf(temp_h5_path, "df", where="obsids=B")
     tm.assert_frame_equal(result, expected)
 
     # Test with categories
@@ -147,7 +143,7 @@ def test_categorical_conversion(temp_h5_path):
     # We are expecting an empty DataFrame matching types of df
     expected = df.iloc[[], :]
     df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
-    result = read_hdf(temp_h5_path, "df", where="obsids=B")
+    result = pd.read_hdf(temp_h5_path, "df", where="obsids=B")
     tm.assert_frame_equal(result, expected)
 
 
@@ -155,12 +151,12 @@ def test_categorical_nan_only_columns(temp_h5_path):
     # GH18413
     # Check that read_hdf with categorical columns with NaN-only values can
     # be read back.
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": ["a", "b", "c", np.nan],
             "b": [np.nan, np.nan, np.nan, np.nan],
             "c": [1, 2, 3, 4],
-            "d": Series([None] * 4, dtype=object),
+            "d": pd.Series([None] * 4, dtype=object),
         }
     )
     df["a"] = df.a.astype("category")
@@ -168,22 +164,369 @@ def test_categorical_nan_only_columns(temp_h5_path):
     df["d"] = df.b.astype("category")
     expected = df
     df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
-    result = read_hdf(temp_h5_path, "df")
+    result = pd.read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_nan_rep_collision(temp_h5_path):
+    # GH#21741, GH#9604 - a category equal to the default nan_rep ("nan") used
+    # to raise a broadcasting ValueError on read, and then to be read back as
+    # NaN. The categories are stored with their own NaN sentinel, so a literal
+    # "nan" category round-trips.
+    df = pd.DataFrame(
+        {"A": pd.Series(["aaa", "nan", "bbb", "aaa", "zzz", "bbb"]).astype("category")}
+    )
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = pd.read_hdf(temp_h5_path, key="df")
+
+    tm.assert_frame_equal(result, df)
+
+
+def test_categorical_nan_rep_collision_append(temp_hdfstore):
+    # GH#21741, GH#9604 - the stored categories read a literal "nan" category
+    # back as NaN, so a second append saw different categories and raised.
+    dtype = pd.CategoricalDtype(["nan", "b"])
+    temp_hdfstore.append(
+        "df", pd.DataFrame({"A": pd.Series(["nan", "b"], dtype=dtype)})
+    )
+    temp_hdfstore.append(
+        "df", pd.DataFrame({"A": pd.Series(["b", "nan"], dtype=dtype, index=[2, 3])})
+    )
+
+    expected = pd.DataFrame({"A": pd.Series(["nan", "b", "b", "nan"], dtype=dtype)})
+    tm.assert_frame_equal(temp_hdfstore.select("df"), expected)
 
 
 @pytest.mark.parametrize("where, expected", [["q", []], ["a", ["a"]]])
 def test_convert_value(temp_h5_path, where: str, expected):
     # GH39420
     # Check that read_hdf with categorical columns can filter by where condition.
-    df = DataFrame({"col": ["a", "b", "s"]})
+    df = pd.DataFrame({"col": ["a", "b", "s"]})
     df.col = df.col.astype("category")
     max_widths = {"col": 1}
     categorical_values = sorted(df.col.unique())
-    expected = DataFrame({"col": expected})
+    expected = pd.DataFrame({"col": expected})
     expected.col = expected.col.astype("category")
     expected.col = expected.col.cat.set_categories(categorical_values)
 
     df.to_hdf(temp_h5_path, key="df", format="table", min_itemsize=max_widths)
-    result = read_hdf(temp_h5_path, where=f'col=="{where}"')
+    result = pd.read_hdf(temp_h5_path, where=f'col=="{where}"')
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_roundtrip(fmt, temp_h5_path):
+    # GH#33909 (fixed), GH#16118 (table)
+    df = pd.DataFrame(
+        {"x": [1, 2, 3]}, index=pd.Categorical(["A", "B", "A"], categories=["A", "B"])
+    )
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = pd.read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_preserves_metadata(fmt, temp_h5_path):
+    # GH#33909, GH#16118 - ordered flag, custom name, and a non-sorted
+    # category order all need to round-trip.
+    ci = pd.CategoricalIndex(
+        ["b", "a", "c"], categories=["c", "b", "a"], ordered=True, name="ix"
+    )
+    df = pd.DataFrame({"v": [1.0, 2.0, 3.0]}, index=ci)
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = pd.read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+    assert result.index.ordered is True
+    assert list(result.index.categories) == ["c", "b", "a"]
+    assert result.index.name == "ix"
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_with_nan(fmt, temp_h5_path):
+    # GH#33909, GH#16118 - missing entries (code -1) round-trip
+    df = pd.DataFrame(
+        {"x": [1, 2, 3]},
+        index=pd.CategoricalIndex(["a", None, "b"], categories=["a", "b"]),
+    )
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = pd.read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_category_equal_nan_rep(fmt, temp_h5_path):
+    # GH#65576 - a genuine "nan" category equals the default nan_rep string.
+    # Reading such a file used to raise "Categorical categories cannot be
+    # null" and permanently brick the key, then to drop the category. The
+    # categories are stored with their own NaN sentinel (GH#9604), so both
+    # formats now keep the literal "nan" category.
+    df = pd.DataFrame(
+        {"v": [1, 2, 3, 4]}, index=pd.CategoricalIndex(["a", "b", "nan", "a"])
+    )
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = pd.read_hdf(temp_h5_path, key="df")
+
+    tm.assert_frame_equal(result, df)
+
+
+def test_categorical_index_category_equal_explicit_nan_rep(temp_h5_path):
+    # GH#65576, GH#9604 - an explicit nan_rep keeps its table-wide meaning, so a
+    # category equal to it still decodes to NaN, is dropped, and the remaining
+    # codes are renumbered around it.
+    df = pd.DataFrame(
+        {"v": [1, 2, 3, 4]}, index=pd.CategoricalIndex(["a", "b", "nan", "a"])
+    )
+    df.to_hdf(temp_h5_path, key="df", format="table", nan_rep="nan")
+    result = pd.read_hdf(temp_h5_path, key="df")
+
+    expected = pd.DataFrame(
+        {"v": [1, 2, 3, 4]},
+        index=pd.CategoricalIndex(["a", "b", np.nan, "a"], categories=["a", "b"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_all_nan(fmt, temp_h5_path):
+    # GH#65576 - an all-NaN CategoricalIndex has zero categories, which cannot
+    # be written as a metadata array. It must still round-trip as categorical
+    # rather than as raw integer codes (table format used to read back
+    # Index([-1, -1])).
+    df = pd.DataFrame({"v": [1, 2]}, index=pd.CategoricalIndex([np.nan, np.nan]))
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = pd.read_hdf(temp_h5_path, key="df")
+
+    expected = pd.DataFrame(
+        {"v": [1, 2]},
+        index=pd.CategoricalIndex(
+            pd.Categorical.from_codes(
+                [-1, -1], categories=pd.Index([], dtype="float64")
+            )
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_numeric_categories(fmt, temp_h5_path):
+    # GH#33909, GH#16118 - non-string categories
+    df = pd.DataFrame(
+        {"x": [1, 2, 3]},
+        index=pd.CategoricalIndex([10, 20, 30], categories=[10, 20, 30, 40]),
+    )
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = pd.read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+@pytest.mark.parametrize(
+    "dtype, expected_dtype", [("Int64", "int64"), ("string", "str")]
+)
+def test_categorical_index_extension_categories(
+    fmt, dtype, expected_dtype, temp_h5_path
+):
+    # GH#33909, GH#16118 - extension-dtype categories. Matches the
+    # longstanding behavior for categorical columns: table format casts
+    # the categories to the numpy equivalent; fixed raises for numeric EAs.
+    values = [10, 20, 30] if dtype == "Int64" else ["a", "b", "c"]
+    categories = pd.Index(values, dtype=dtype)
+    df = pd.DataFrame(
+        {"x": [1, 2, 3]}, index=pd.CategoricalIndex(categories, categories=categories)
+    )
+
+    if fmt == "fixed" and dtype == "Int64":
+        with pytest.raises(
+            NotImplementedError, match="Cannot store an Index with dtype Int64"
+        ):
+            df.to_hdf(temp_h5_path, key="df", format=fmt)
+        return
+
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = pd.read_hdf(temp_h5_path, key="df")
+    expected_categories = categories.astype(expected_dtype)
+    expected = pd.DataFrame(
+        {"x": [1, 2, 3]},
+        index=pd.CategoricalIndex(expected_categories, categories=expected_categories),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_columns_axis_fixed_format(temp_h5_path):
+    # GH#33909 - the columns axis is also a CategoricalIndex; fixed format
+    df = pd.DataFrame(
+        [[1, 2], [3, 4]],
+        index=["r1", "r2"],
+        columns=pd.CategoricalIndex(["a", "b"]),
+    )
+    df.to_hdf(temp_h5_path, key="df")
+    result = pd.read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+def test_categorical_index_series_fixed_format(temp_h5_path):
+    # GH#33909 - Series with a CategoricalIndex
+    ser = pd.Series(
+        [10, 20, 30],
+        index=pd.CategoricalIndex(["x", "y", "z"], categories=["x", "y", "z"]),
+        name="vals",
+    )
+    ser.to_hdf(temp_h5_path, key="ser")
+    result = pd.read_hdf(temp_h5_path, key="ser")
+    tm.assert_series_equal(result, ser)
+
+
+def test_categorical_index_table_append(temp_h5_path):
+    # GH#16118 - appending rows with the same CategoricalIndex categories
+    ci = pd.CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"], name="ix")
+    df = pd.DataFrame({"v": [1.0, 2.0, 3.0]}, index=ci)
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    df.to_hdf(temp_h5_path, key="df", format="table", append=True)
+    result = pd.read_hdf(temp_h5_path, key="df")
+    expected = pd.concat([df, df])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_select_non_sorted_categories(temp_h5_path):
+    # GH#38131 - select() returned wrong rows for non-sorted category order
+    df = pd.DataFrame(
+        {"col1": pd.Categorical(["a", "b", "c", "a"], categories=["c", "b", "a"])}
+    )
+
+    with pd.HDFStore(temp_h5_path) as store:
+        store.append("df", df, data_columns=df.columns)
+        result = store.select("df", "col1='a'")
+
+    expected = df[df["col1"] == "a"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "where, mask",
+    [
+        ('col == "z"', lambda col: col == "z"),
+        ('col in ["z", "y"]', lambda col: col.isin(["z", "y"])),
+        ('col in ["a", "z"]', lambda col: col.isin(["a", "z"])),
+        ('col != "z"', lambda col: col != "z"),
+    ],
+)
+def test_categorical_where_non_category_with_nan(temp_h5_path, where, mask):
+    # GH#22977 - querying for a value that is not one of the categories must
+    # not match NaN rows (whose code is also -1)
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", np.nan, "a"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    result = pd.read_hdf(temp_h5_path, "df", where=where)
+    expected = df[mask(df["col"])]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
+def test_categorical_where_ordering_op_unordered_raises(temp_h5_path, op):
+    # GH#68040 - in memory this raises, so the query must not answer it
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    msg = "Unordered Categoricals can only compare equality or not"
+    with pytest.raises(TypeError, match=msg):
+        pd.read_hdf(temp_h5_path, "df", where=f'col {op} "b"')
+
+
+@pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
+def test_categorical_index_where_ordering_op_unordered_raises(temp_h5_path, op):
+    # GH#68040 - same for an unordered CategoricalIndex
+    df = pd.DataFrame({"v": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    msg = "Unordered Categoricals can only compare equality or not"
+    with pytest.raises(TypeError, match=msg):
+        pd.read_hdf(temp_h5_path, "df", where=f'index {op} "b"')
+
+
+@pytest.mark.parametrize(
+    "op, comparison",
+    [("<", operator.lt), ("<=", operator.le), (">", operator.gt), (">=", operator.ge)],
+)
+@pytest.mark.parametrize("as_index", [True, False])
+def test_categorical_where_ordering_op_ordered(temp_h5_path, op, comparison, as_index):
+    # GH#68040 - non-lexicographic categories, so the result distinguishes
+    #  "compare by category order" from "compare the values themselves"
+    cat = pd.Categorical(["a", "b", "c"], categories=["c", "b", "a"], ordered=True)
+    if as_index:
+        df = pd.DataFrame({"v": [1, 2, 3]}, index=pd.CategoricalIndex(cat))
+        name, kwargs = "index", {}
+    else:
+        df = pd.DataFrame({"col": cat, "v": [1, 2, 3]})
+        name, kwargs = "col", {"data_columns": ["col"]}
+    df.to_hdf(temp_h5_path, key="df", format="table", **kwargs)
+
+    result = pd.read_hdf(temp_h5_path, "df", where=f'{name} {op} "b"')
+    tm.assert_frame_equal(result, df[comparison(cat, "b")])
+
+
+def test_categorical_where_equality_op_unordered(temp_h5_path):
+    # GH#68040 - equality comparisons are unaffected
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    result = pd.read_hdf(temp_h5_path, "df", where='col == "b"')
+    tm.assert_frame_equal(result, df[df["col"] == "b"])
+
+    result = pd.read_hdf(temp_h5_path, "df", where='col in ["a", "c"]')
+    tm.assert_frame_equal(result, df[df["col"].isin(["a", "c"])])
+
+
+def test_categorical_where_ordering_op_numpy_bool_ordered(temp_h5_path):
+    # GH#68040 - CategoricalDtype keeps a np.bool_ `ordered` as passed
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"], ordered=np.False_)})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    msg = "Unordered Categoricals can only compare equality or not"
+    with pytest.raises(TypeError, match=msg):
+        pd.read_hdf(temp_h5_path, "df", where='col < "b"')
+
+
+def test_categorical_where_ordering_op_unrecorded_ordered(temp_h5_path):
+    # GH#68040 - no flag recorded, so the query cannot tell and stays permissive
+    tables = pytest.importorskip("tables")
+
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    with tables.open_file(temp_h5_path, "a") as handle:
+        node = handle.get_node("/df")
+        info = node._v_attrs.info
+        del info["col"]["ordered"]
+        node._v_attrs.info = info
+
+    result = pd.read_hdf(temp_h5_path, "df", where='col < "b"')
+    tm.assert_frame_equal(result, df.iloc[:1])
+
+
+@pytest.mark.parametrize(
+    "first, second, msg",
+    [
+        (
+            pd.Index([0, 1]),
+            pd.CategoricalIndex(["a", "b"]),
+            "cannot append a categorical index to a non-categorical index",
+        ),
+        (
+            pd.CategoricalIndex(["a", "b"]),
+            pd.Index([0, 1]),
+            "cannot append a non-categorical index to a categorical index",
+        ),
+    ],
+)
+def test_categorical_index_append_mismatch_raises(first, second, msg, temp_h5_path):
+    # GH#65576 - the append used to be accepted, silently reinterpreting the
+    # already-stored index values on read.
+    df = pd.DataFrame({"v": [1.0, 2.0]}, index=first)
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    other = pd.DataFrame({"v": [3.0, 4.0]}, index=second)
+    with pytest.raises(TypeError, match=msg):
+        other.to_hdf(temp_h5_path, key="df", format="table", append=True)
+
+    # the rejected append leaves the stored rows intact and readable
+    tm.assert_frame_equal(pd.read_hdf(temp_h5_path, key="df"), df)

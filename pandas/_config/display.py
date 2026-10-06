@@ -7,7 +7,7 @@ from __future__ import annotations
 import locale
 import sys
 
-from pandas._config import config as cf
+import pandas._config.config as cf
 
 # -----------------------------------------------------------------------------
 # Global formatting options

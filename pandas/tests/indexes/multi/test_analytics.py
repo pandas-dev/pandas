@@ -2,12 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-    date_range,
-    period_range,
-)
 import pandas._testing as tm
 
 
@@ -42,13 +36,13 @@ def test_groupby(idx):
 
 def test_truncate_multiindex():
     # GH 34564 for MultiIndex level names check
-    major_axis = Index(list(range(4)))
-    minor_axis = Index(list(range(2)))
+    major_axis = pd.Index(list(range(4)))
+    minor_axis = pd.Index(list(range(2)))
 
     major_codes = np.array([0, 0, 1, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
-    index = MultiIndex(
+    index = pd.MultiIndex(
         levels=[major_axis, minor_axis],
         codes=[major_codes, minor_codes],
         names=["L1", "L2"],
@@ -87,8 +81,8 @@ def test_numpy_repeat():
     numbers = [1, 2, 3]
     names = np.array(["foo", "bar"])
 
-    m = MultiIndex.from_product([numbers, names], names=names)
-    expected = MultiIndex.from_product([numbers, names.repeat(reps)], names=names)
+    m = pd.MultiIndex.from_product([numbers, names], names=names)
+    expected = pd.MultiIndex.from_product([numbers, names.repeat(reps)], names=names)
     tm.assert_index_equal(np.repeat(m, reps), expected)
 
     msg = "the 'axis' parameter is not supported"
@@ -98,17 +92,17 @@ def test_numpy_repeat():
 
 def test_append_mixed_dtypes():
     # GH 13660
-    dti = date_range("2011-01-01", freq="ME", periods=3)
-    dti_tz = date_range("2011-01-01", freq="ME", periods=3, tz="US/Eastern")
-    pi = period_range("2011-01", freq="M", periods=3)
+    dti = pd.date_range("2011-01-01", freq="ME", periods=3)
+    dti_tz = pd.date_range("2011-01-01", freq="ME", periods=3, tz="US/Eastern")
+    pi = pd.period_range("2011-01", freq="M", periods=3)
 
-    mi = MultiIndex.from_arrays(
+    mi = pd.MultiIndex.from_arrays(
         [[1, 2, 3], [1.1, np.nan, 3.3], ["a", "b", "c"], dti, dti_tz, pi]
     )
     assert mi.nlevels == 6
 
     res = mi.append(mi)
-    exp = MultiIndex.from_arrays(
+    exp = pd.MultiIndex.from_arrays(
         [
             [1, 2, 3, 1, 2, 3],
             [1.1, np.nan, 3.3, 1.1, np.nan, 3.3],
@@ -118,9 +112,9 @@ def test_append_mixed_dtypes():
             pi.append(pi),
         ]
     )
-    tm.assert_index_equal(res, exp)
+    tm.assert_index_equal(res, exp, check_freq=False)
 
-    other = MultiIndex.from_arrays(
+    other = pd.MultiIndex.from_arrays(
         [
             ["x", "y", "z"],
             ["x", "y", "z"],
@@ -132,17 +126,17 @@ def test_append_mixed_dtypes():
     )
 
     res = mi.append(other)
-    exp = MultiIndex.from_arrays(
+    exp = pd.MultiIndex.from_arrays(
         [
             [1, 2, 3, "x", "y", "z"],
             [1.1, np.nan, 3.3, "x", "y", "z"],
             ["a", "b", "c", "x", "y", "z"],
-            dti.append(Index(["x", "y", "z"])),
-            dti_tz.append(Index(["x", "y", "z"])),
-            pi.append(Index(["x", "y", "z"])),
+            dti.append(pd.Index(["x", "y", "z"])),
+            dti_tz.append(pd.Index(["x", "y", "z"])),
+            pi.append(pd.Index(["x", "y", "z"])),
         ]
     )
-    tm.assert_index_equal(res, exp)
+    tm.assert_index_equal(res, exp, check_freq=False)
 
 
 def test_iter(idx):
@@ -202,7 +196,7 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
     # empty mappable
-    expected = Index([np.nan] * len(idx))
+    expected = pd.Index([np.nan] * len(idx))
     result = idx.map(mapper(expected, idx))
     tm.assert_index_equal(result, expected)
 
@@ -270,7 +264,7 @@ def test_categorical_multiindex_preserved_after_arithmetic():
     v0 = pd.CategoricalIndex([10, 20, 30], name="V0")
     v1 = pd.CategoricalIndex(["B", "A"], name="V1")
     v2 = pd.CategoricalIndex(["X", "Y"], name="V2")
-    mi = MultiIndex.from_product([v0, v1, v2])
+    mi = pd.MultiIndex.from_product([v0, v1, v2])
 
     ser = pd.Series(range(12), index=mi)
     norm = ser.groupby(level=["V1", "V2"]).sum()
@@ -278,3 +272,19 @@ def test_categorical_multiindex_preserved_after_arithmetic():
 
     for level_idx in range(result.index.nlevels):
         assert isinstance(result.index.levels[level_idx], pd.CategoricalIndex)
+
+
+def test_map_multiindex_mixed_length_tuple_dict_keys():
+    # GH#40115 mapping a MultiIndex with a dict whose keys are *mixed-length*
+    # tuples must not raise InvalidIndexError: the mapper key index has to stay
+    # a flat object Index rather than being tupleized into a MultiIndex
+    mi = pd.MultiIndex.from_tuples([("a", "a1"), ("c", "c1"), ("f", "f1")])
+    mapping = {("a",): "xA", ("c", "c1"): "C1", ("f",): "xF"}
+    result = mi.map(mapping)
+    expected = pd.Index([np.nan, "C1", np.nan])
+    tm.assert_index_equal(result, expected)
+
+    # a dict that matches none of the (2-tuple) entries yields all-NaN, not a
+    # raise -- the minimal repro reduced by the maintainer
+    result_none = mi.map({("a",): "xA", ("z", "z1"): "zz"})
+    tm.assert_index_equal(result_none, pd.Index([np.nan, np.nan, np.nan]))

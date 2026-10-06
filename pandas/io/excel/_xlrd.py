@@ -2,12 +2,18 @@ from __future__ import annotations
 
 from datetime import time
 import math
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    VERSIONS,
+    import_optional_dependency,
+)
 from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
@@ -27,7 +33,7 @@ class XlrdReader(BaseExcelReader["Book"]):
         self,
         filepath_or_buffer,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Reader using xlrd engine.
@@ -49,7 +55,7 @@ class XlrdReader(BaseExcelReader["Book"]):
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
-        err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
+        err_msg = f"Install xlrd >= {VERSIONS['xlrd']} for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
         warnings.warn(
             "The xlrd engine is deprecated and will be removed in a future version. "

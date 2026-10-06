@@ -13,17 +13,11 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.offsets import (
-    ApplyTypeError,
-    BDay,
-    BMonthEnd,
-)
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs.offsets import BDay
 
-from pandas import (
-    DatetimeIndex,
-    Timedelta,
-    _testing as tm,
-)
+import pandas as pd
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
@@ -74,15 +68,15 @@ class TestBusinessDay:
     @pytest.mark.parametrize(
         "td",
         [
-            Timedelta(hours=2),
-            Timedelta(hours=2).to_pytimedelta(),
-            Timedelta(hours=2).to_timedelta64(),
+            pd.Timedelta(hours=2),
+            pd.Timedelta(hours=2).to_pytimedelta(),
+            pd.Timedelta(hours=2).to_timedelta64(),
         ],
         ids=lambda x: type(x),
     )
     def test_with_offset_index(self, td, dt, offset):
-        dti = DatetimeIndex([dt])
-        expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
+        dti = pd.DatetimeIndex([dt])
+        expected = pd.DatetimeIndex([datetime(2008, 1, 2, 2)])
 
         result = dti + (td + offset)
         tm.assert_index_equal(result, expected)
@@ -225,13 +219,42 @@ class TestBusinessDay:
         xp = datetime(2014, 1, 17)
         assert rs == xp
 
-    def test_apply_corner(self, _offset):
-        if _offset is BDay:
-            msg = "Only know how to combine business day with datetime or timedelta"
-        else:
-            msg = (
-                "Only know how to combine trading day "
-                "with datetime, datetime64 or timedelta"
-            )
-        with pytest.raises(ApplyTypeError, match=msg):
-            _offset()._apply(BMonthEnd())
+
+def test_apply_array_lands_on_nat_sentinel():
+    # GH#66552 the sum fits in int64 but *is* iNaT, so storing it would be
+    #  indistinguishable from a missing value
+    dti = pd.DatetimeIndex([pd.Timestamp(iNaT + 86400 * 10**9)])
+    assert dti[0].weekday() == 2
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        dti + BDay(-1)
+
+
+def test_apply_array_out_of_bounds():
+    # GH#66552 the array path wrapped where the scalar path raises
+    dti = pd.DatetimeIndex(np.array([946857600 * 10**9], dtype="M8[ns]"))
+    assert dti[0].weekday() == 0
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        dti + BDay(2**31 - 1)
+
+
+def test_apply_array_large_n():
+    # GH#66549 n was held in a C int, so a multiple of 2**32 was a no-op
+    dti = pd.DatetimeIndex(np.array([946857600], dtype="M8[s]"))
+    assert dti[0].weekday() == 0
+
+    result = dti + BDay(2**32)
+    # 2**32 business days from a Monday is 2**32 // 5 whole weeks plus the
+    #  remaining 1 day
+    shift = 7 * (2**32 // 5) + 1
+    expected = pd.DatetimeIndex(np.array([946857600 + shift * 86400], dtype="M8[s]"))
+    tm.assert_index_equal(result, expected)
+
+
+def test_apply_array_preserves_nat():
+    dti = pd.DatetimeIndex([None, "2000-01-03"])
+
+    result = dti + BDay(1)
+    expected = pd.DatetimeIndex([None, "2000-01-04"])
+    tm.assert_index_equal(result, expected)

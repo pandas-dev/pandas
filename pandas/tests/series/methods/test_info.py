@@ -12,13 +12,7 @@ from pandas.compat import (
     PYPY,
 )
 
-from pandas import (
-    CategoricalIndex,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-)
+import pandas as pd
 
 
 def test_info_categorical_column_just_works():
@@ -26,7 +20,7 @@ def test_info_categorical_column_just_works():
     data = np.array(list("abcdefghij")).take(
         np.random.default_rng(2).integers(0, 10, size=n, dtype=int)
     )
-    s = Series(data).astype("category")
+    s = pd.Series(data).astype("category")
     s.isna()
     buf = StringIO()
     s.info(buf=buf)
@@ -38,8 +32,8 @@ def test_info_categorical_column_just_works():
 
 def test_info_categorical():
     # GH14298
-    idx = CategoricalIndex(["a", "b"])
-    s = Series(np.zeros(2), index=idx)
+    idx = pd.CategoricalIndex(["a", "b"])
+    s = pd.Series(np.zeros(2), index=idx)
     buf = StringIO()
     s.info(buf=buf)
 
@@ -49,7 +43,7 @@ def test_info_series(
     lexsorted_two_level_string_multiindex, verbose, using_infer_string
 ):
     index = lexsorted_two_level_string_multiindex
-    ser = Series(range(len(index)), index=index, name="sth")
+    ser = pd.Series(range(len(index)), index=index, name="sth")
     buf = StringIO()
     ser.info(verbose=verbose, buf=buf)
     result = buf.getvalue()
@@ -80,7 +74,7 @@ def test_info_series(
 
 
 def test_info_memory():
-    s = Series([1, 2], dtype="i8")
+    s = pd.Series([1, 2], dtype="i8")
     buf = StringIO()
     s.info(buf=buf)
     result = buf.getvalue()
@@ -101,7 +95,7 @@ def test_info_memory():
 
 
 def test_info_wide():
-    s = Series(np.random.default_rng(2).standard_normal(101))
+    s = pd.Series(np.random.default_rng(2).standard_normal(101))
     msg = "Argument `max_cols` can only be passed in DataFrame.info, not Series.info"
     with pytest.raises(ValueError, match=msg):
         s.info(max_cols=1)
@@ -119,7 +113,7 @@ def test_info_shows_dtypes():
     ]
     n = 10
     for dtype in dtypes:
-        s = Series(np.random.default_rng(2).integers(2, size=n).astype(dtype))
+        s = pd.Series(np.random.default_rng(2).integers(2, size=n).astype(dtype))
         buf = StringIO()
         s.info(buf=buf)
         res = buf.getvalue()
@@ -129,23 +123,23 @@ def test_info_shows_dtypes():
 
 @pytest.mark.xfail(PYPY, reason="on PyPy deep=True doesn't change result")
 def test_info_memory_usage_deep_not_pypy():
-    s_with_object_index = Series({"a": [1]}, index=["foo"])
+    s_with_object_index = pd.Series({"a": [1]}, index=["foo"])
     assert s_with_object_index.memory_usage(
         index=True, deep=True
     ) > s_with_object_index.memory_usage(index=True)
 
-    s_object = Series({"a": ["a"]})
+    s_object = pd.Series({"a": ["a"]})
     assert s_object.memory_usage(deep=True) > s_object.memory_usage()
 
 
 @pytest.mark.xfail(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
-    s_with_object_index = Series({"a": [1]}, index=["foo"])
+    s_with_object_index = pd.Series({"a": [1]}, index=["foo"])
     assert s_with_object_index.memory_usage(
         index=True, deep=True
     ) == s_with_object_index.memory_usage(index=True)
 
-    s_object = Series({"a": ["a"]})
+    s_object = pd.Series({"a": ["a"]})
     assert s_object.memory_usage(deep=True) == s_object.memory_usage()
 
 
@@ -153,18 +147,21 @@ def test_info_memory_usage_deep_pypy():
     "index, plus",
     [
         ([1, 2, 3], False),
-        (Index(list("ABC"), dtype="str"), not (using_string_dtype() and HAS_PYARROW)),
-        (Index(list("ABC"), dtype=object), True),
-        (MultiIndex.from_product([range(3), range(3)]), False),
         (
-            MultiIndex.from_product([range(3), ["foo", "bar"]]),
+            pd.Index(list("ABC"), dtype="str"),
+            not (using_string_dtype() and HAS_PYARROW),
+        ),
+        (pd.Index(list("ABC"), dtype=object), True),
+        (pd.MultiIndex.from_product([range(3), range(3)]), False),
+        (
+            pd.MultiIndex.from_product([range(3), ["foo", "bar"]]),
             not (using_string_dtype() and HAS_PYARROW),
         ),
     ],
 )
 def test_info_memory_usage_qualified(index, plus):
     buf = StringIO()
-    series = Series(1, index=index)
+    series = pd.Series(1, index=index)
     series.info(buf=buf)
     if plus:
         assert "+" in buf.getvalue()
@@ -177,11 +174,11 @@ def test_info_memory_usage_bug_on_multiindex():
     # memory usage introspection should not materialize .values
     N = 100
     M = len(ascii_uppercase)
-    index = MultiIndex.from_product(
-        [list(ascii_uppercase), date_range("20160101", periods=N)],
+    index = pd.MultiIndex.from_product(
+        [list(ascii_uppercase), pd.date_range("20160101", periods=N)],
         names=["id", "date"],
     )
-    s = Series(np.random.default_rng(2).standard_normal(N * M), index=index)
+    s = pd.Series(np.random.default_rng(2).standard_normal(N * M), index=index)
 
     unstacked = s.unstack("id")
     assert s.values.nbytes == unstacked.values.nbytes
@@ -193,7 +190,7 @@ def test_info_memory_usage_bug_on_multiindex():
 
 
 def test_info_show_counts_false():
-    s = Series([1])
+    s = pd.Series([1])
     buf = StringIO()
     s.info(buf=buf, show_counts=False)
     result = buf.getvalue()

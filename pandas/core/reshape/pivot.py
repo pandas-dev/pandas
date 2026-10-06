@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -116,7 +117,7 @@ def pivot_table(
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
         when margins is True.
-    observed : bool, default False
+    observed : bool, default True
         This only applies if any of the groupers are Categoricals.
         If True: only show observed values for categorical groupers.
         If False: show all values for categorical groupers.
@@ -502,20 +503,29 @@ def _add_margins(
         else:
             row_margin[k] = grand_margin[k[0]]
 
+    # GH#55484 recover the correct dtype when row_margin was initialized as
+    # object (len(cols)==0 path); no-op for already-typed series.
+    row_margin = row_margin.infer_objects()
+
     from pandas import DataFrame
 
     row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     margin_dummy = DataFrame(row_margin, columns=Index([key])).T
 
     for dtype in set(result.dtypes):
-        if isinstance(dtype, ExtensionDtype):
-            # Can hold NA already
-            continue
-
         cols = result.select_dtypes([dtype]).columns
-        margin_dummy[cols] = margin_dummy[cols].apply(
-            maybe_downcast_to_dtype, args=(dtype,)
-        )
+        if isinstance(dtype, ExtensionDtype):
+            # GH#55484 margin_dummy may be object-dtype when row_margin was
+            # initialized with dtype=object (len(cols)==0 path); cast back.
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+        elif dtype != object and (margin_dummy[cols].dtypes == object).all():
+            # GH#55484 object-initialized row_margin can leave non-EA columns
+            # as object (mixed-values case); astype back to the target dtype.
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+        else:
+            margin_dummy[cols] = margin_dummy[cols].apply(
+                maybe_downcast_to_dtype, args=(dtype,)
+            )
 
     row_names = result.index.names
     result = concat([result, margin_dummy])
@@ -534,10 +544,11 @@ def _compute_grand_margin(
                 if isinstance(aggfunc, str):
                     grand_margin[k] = getattr(v, aggfunc)(**kwargs)
                 elif isinstance(aggfunc, dict):
-                    if isinstance(aggfunc[k], str):
-                        grand_margin[k] = getattr(v, aggfunc[k])(**kwargs)
-                    else:
-                        grand_margin[k] = aggfunc[k](v, **kwargs)
+                    if k in aggfunc:
+                        if isinstance(aggfunc[k], str):
+                            grand_margin[k] = getattr(v, aggfunc[k])(**kwargs)
+                        else:
+                            grand_margin[k] = aggfunc[k](v, **kwargs)
                 else:
                     grand_margin[k] = aggfunc(v, **kwargs)
             except TypeError:
@@ -567,7 +578,7 @@ def _generate_marginal_results(
     margins_name: Hashable = "All",
     dropna: bool = True,
 ):
-    margin_keys: list | Index
+    margin_keys: list[Hashable] | Index
     if len(cols) > 0:
         # need to "interleave" the margins
         table_pieces = []
@@ -646,7 +657,10 @@ def _generate_marginal_results(
         new_order_names = [row_margin.index.names[i] for i in new_order_indices]
         row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
-        row_margin = data._constructor_sliced(np.nan, index=result.columns)
+        # GH#55484 use object dtype so setitem works for grand-margin scalars
+        # whose dtype cannot hold NA (e.g. IntervalDtype with integer subtype);
+        # infer_objects is called in _add_margins after the values are set.
+        row_margin = data._constructor_sliced(index=result.columns, dtype=object)
 
     return result, margin_keys, row_margin
 
@@ -662,7 +676,7 @@ def _generate_marginal_results_without_values(
     margins_name: Hashable = "All",
     dropna: bool = True,
 ):
-    margin_keys: list | Index
+    margin_keys: list[Hashable] | Index
     if len(cols) > 0:
         # need to "interleave" the margins
         margin_keys = []
@@ -887,6 +901,24 @@ def pivot(
     """
     columns_listlike = com.convert_to_list_like(columns)
 
+    # GH#35785 without this, downstream label arithmetic raises cryptically.
+    labels_to_check: list[tuple[str, list[Hashable]]] = [
+        ("columns", list(columns_listlike))
+    ]
+    if index is not lib.no_default:
+        labels_to_check.append(("index", list(com.convert_to_list_like(index))))
+    if values is not lib.no_default and not isinstance(values, tuple):
+        # GH#17160 a tuple ``values`` is a single (MultiIndex) label; the
+        #  existing lookup already raises a KeyError naming it.
+        labels_to_check.append(("values", list(com.convert_to_list_like(values))))
+    for param_name, labels in labels_to_check:
+        missing = [label for label in labels if label not in data.columns]
+        if missing:
+            raise KeyError(
+                f"The following '{param_name}' labels are not columns of the "
+                f"DataFrame: {missing}"
+            )
+
     # If columns is None we will create a MultiIndex level with None as name
     # which might cause duplicated names because None is the default for
     # level names
@@ -934,7 +966,7 @@ def pivot(
             indexed = data._constructor(
                 data[values]._values,
                 index=multiindex,
-                columns=cast("SequenceNotStr", values),
+                columns=cast("SequenceNotStr[Hashable]", values),
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
@@ -1014,12 +1046,16 @@ def crosstab(
     Any Series passed will have their name attributes used unless row or column
     names for the cross-tabulation are specified.
 
-    Any input passed containing Categorical data will have **all** of its
-    categories included in the cross-tabulation, even if the actual data does
-    not contain any instances of a particular category.
+    With the default ``dropna=True``, categories without any observed
+    instances in the input are dropped from the cross-tabulation. When
+    ``dropna=False``, all categories of any Categorical input are included,
+    even if the actual data does not contain any instances of a particular
+    category.
 
-    In the event that there aren't overlapping indexes an empty DataFrame will
-    be returned.
+    Series arguments are aligned on their index before tabulating; rows where
+    any value is missing after alignment (e.g. index labels not present in
+    all Series) are dropped. In the event that there aren't overlapping
+    indexes an empty DataFrame will be returned.
 
     Reference :ref:`the user guide <reshaping.crosstabulations>` for more examples.
 
@@ -1080,6 +1116,16 @@ def crosstab(
     bar    1     2    1     0
     foo    2     2    1     2
 
+    When `values` and `aggfunc` are passed, the values are aggregated within
+    each group instead of counted:
+
+    >>> vals = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    >>> pd.crosstab(a, b, values=vals, aggfunc="sum", rownames=["a"], colnames=["b"])
+    b    one  two
+    a
+    bar   18    8
+    foo   17   23
+
     Here 'c' and 'f' are not represented in the data and will not be
     shown in the output because dropna is True by default. Set
     dropna=False to preserve categories with no data.
@@ -1112,7 +1158,7 @@ def crosstab(
     common_idx = None
     pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
     if pass_objs:
-        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
+        common_idx, _ = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 
     rownames = _get_names(index, rownames, prefix="row")
     colnames = _get_names(columns, colnames, prefix="col")
@@ -1177,7 +1223,7 @@ def _normalize(
 
     if margins is False:
         # Actual Normalizations
-        normalizers: dict[bool | str, Callable] = {
+        normalizers: dict[bool | str, Callable[..., Any]] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
@@ -1228,7 +1274,14 @@ def _normalize(
         elif normalize == "all" or normalize is True:
             column_margin = column_margin / column_margin.sum()
             index_margin = index_margin / index_margin.sum()
-            index_margin.loc[margins_name] = 1
+            margin_key: Hashable
+            if isinstance(index_margin.index, MultiIndex):
+                # GH#17024 expanding with a partial key is deprecated
+                nlevels = index_margin.index.nlevels
+                margin_key = (margins_name,) + ("",) * (nlevels - 1)
+            else:
+                margin_key = margins_name
+            index_margin.loc[margin_key] = 1
             table = concat([table, column_margin], axis=1)
             table = table._append_internal(index_margin, ignore_index=True)
 
@@ -1245,7 +1298,7 @@ def _normalize(
     return table
 
 
-def _get_names(arrs, names, prefix: str = "row") -> list:
+def _get_names(arrs, names, prefix: str = "row") -> list[Any]:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):

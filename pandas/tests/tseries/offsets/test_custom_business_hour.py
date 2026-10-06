@@ -168,9 +168,9 @@ class TestCustomBusinessHour:
                 datetime(2014, 7, 1, 8): datetime(2014, 6, 26),
                 datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
                 datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
-                datetime(2014, 7, 1, 10): datetime(2014, 6, 26),
+                datetime(2014, 7, 1, 10): datetime(2014, 7, 1),
                 datetime(2014, 7, 1, 0): datetime(2014, 6, 26),
-                datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
+                datetime(2014, 7, 7, 10): datetime(2014, 7, 7),
                 datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
                 datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
                 datetime(2014, 7, 6, 10): datetime(2014, 7, 4),
@@ -198,7 +198,7 @@ class TestCustomBusinessHour:
     def test_normalize(self, norm_cases):
         offset, cases = norm_cases
         for dt, expected in cases.items():
-            assert offset._apply(dt) == expected
+            assert offset + dt == expected
 
     @pytest.mark.parametrize(
         "dt, expected",

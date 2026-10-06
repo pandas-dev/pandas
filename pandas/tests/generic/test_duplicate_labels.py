@@ -197,7 +197,7 @@ class TestPreserves:
 
     @not_implemented
     def test_groupby(self):
-        # XXX: This is under tested
+        # Note: This is under tested
         # TODO:
         #  - apply
         #  - transform
@@ -375,6 +375,11 @@ def test_dataframe_insert_raises():
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],
 )
+@pytest.mark.filterwarnings(
+    "ignore:The inplace keyword in (Series|DataFrame).rename is"
+)
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.reset_index is")
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
 def test_inplace_raises(method, frame_only):
     df = pd.DataFrame({"A": [0, 0], "B": [1, 2]}).set_flags(
         allows_duplicate_labels=False

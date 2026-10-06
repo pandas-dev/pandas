@@ -50,9 +50,45 @@ _khash_primitive_helper_dep = declare_dependency(
     sources: _khash_primitive_helper,
 )
 
+# Extra UBSan checks for the hand-written C/C++ sources. These cannot be turned
+# on globally: Cython's generated code trips `function` on every cdef-class
+# vtable dispatch and narrows integers freely, so the results would be pure
+# noise. The targets below contain no Cython output, so they can be held to a
+# stricter standard than the default `undefined` set.
+strict_c_args = []
+if get_option('strict_c_sanitize')
+    strict_c_args = cc.get_supported_arguments(
+        '-fsanitize=implicit-integer-truncation',
+        '-fsanitize=implicit-integer-sign-change',
+        '-fsanitize=local-bounds',
+    )
+endif
+
 m_dep = cc.find_library('m', required: false)
 fast_float = subproject('fast_float')
 fast_float_dep = fast_float.get_variable('fast_float_dep')
+xsimd_dep = dependency('xsimd', version: '>=14.2')
+
+subdir('simd')
+
+# Compile the CSV tokenizer once into a static library shared by every
+# extension that needs it, rather than recompiling it per-extension. This
+# also keeps simd_config_inc (needed only by tokenizer.cpp) off the include
+# search path of unrelated extensions.
+tokenizer_lib = static_library(
+    'pandas_tokenizer',
+    'src/parser/fast_float_wrappers.cpp',
+    'src/parser/tokenizer.cpp',
+    include_directories: [inc_pd, simd_config_inc],
+    dependencies: [fast_float_dep, py.dependency()],
+    c_args: strict_c_args,
+    cpp_args: strict_c_args,
+)
+
+tokenizer_dep = declare_dependency(
+    link_with: tokenizer_lib,
+    include_directories: [inc_pd],
+)
 
 subdir('tslibs')
 
@@ -61,7 +97,7 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {
         'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper],
-        'deps': [_khash_primitive_helper_dep, m_dep],
+        'deps': [_khash_primitive_helper_dep, m_dep, moments_simd_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},
@@ -89,12 +125,8 @@ libs_sources = {
         'deps': _khash_primitive_helper_dep,
     },
     'lib': {
-        'sources': [
-            'lib.pyx',
-            'src/parser/tokenizer.c',
-            'src/parser/fast_float_strtod.cpp',
-        ],
-        'deps': [fast_float_dep],
+        'sources': ['lib.pyx'],
+        'deps': [tokenizer_dep],
     },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
@@ -104,24 +136,22 @@ libs_sources = {
             'src/datetime/date_conversions.c',
             'src/datetime/pd_datetime.c',
         ],
+        'c_args': strict_c_args,
     },
     'pandas_parser': {
         'sources': [
-            'src/parser/tokenizer.c',
-            'src/parser/fast_float_strtod.cpp',
             'src/parser/io.c',
             'src/parser/pd_parser.c',
         ],
-        'deps': [fast_float_dep],
+        'deps': [tokenizer_dep],
+        'c_args': strict_c_args,
     },
     'parsers': {
         'sources': [
             'parsers.pyx',
-            'src/parser/tokenizer.c',
-            'src/parser/fast_float_strtod.cpp',
             'src/parser/io.c',
         ],
-        'deps': [fast_float_dep, _khash_primitive_helper_dep],
+        'deps': [tokenizer_dep, _khash_primitive_helper_dep],
     },
     '_ujson': {
         'sources': [
@@ -132,6 +162,7 @@ libs_sources = {
             'src/vendored/ujson/lib/ultrajsondec.c',
         ],
         'deps': [m_dep],
+        'c_args': strict_c_args,
     },
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
@@ -165,6 +196,7 @@ foreach ext_name, ext_dict : libs_sources
         ext_name,
         ext_dict.get('sources'),
         cython_args: cython_args,
+        c_args: ext_dict.get('c_args', []),
         include_directories: [inc_np, inc_pd],
         dependencies: ext_dict.get('deps', []),
         subdir: 'pandas/_libs',

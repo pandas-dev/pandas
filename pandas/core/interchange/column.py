@@ -356,12 +356,8 @@ class PandasColumn(Column):
         elif self.dtype[0] == DtypeKind.STRING:
             # Marshal the strings from a NumPy object array into a byte array
             buf = self._col.to_numpy()
-            b = bytearray()
-
-            # TODO: this for-loop is slow; can be implemented in Cython/C/C++ later
-            for obj in buf:
-                if isinstance(obj, str):
-                    b.extend(obj.encode(encoding="utf-8"))
+            # Drop null values to avoid joining None/NaN
+            b = "".join(buf[pd.notna(buf)]).encode(encoding="utf-8")
 
             # Convert the byte array to a Pandas "buffer" using
             # a NumPy array as the backing store

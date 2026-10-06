@@ -13,17 +13,11 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.offsets import _get_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    RangeIndex,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
+import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -33,6 +27,11 @@ from pandas.core.tools.datetimes import to_datetime
 from pandas.tseries import (
     frequencies,
     offsets,
+)
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:A future version of pandas will return a BaseOffset"
+    ":pandas.errors.Pandas4Warning"
 )
 
 
@@ -65,8 +64,8 @@ freqs = (
 def test_infer_freq_range(periods, freq):
     freq = freq.upper()
 
-    gen = date_range("1/1/2000", periods=periods, freq=freq)
-    index = DatetimeIndex(gen.values)
+    gen = pd.date_range("1/1/2000", periods=periods, freq=freq)
+    index = pd.DatetimeIndex(gen.values)
 
     if not freq.startswith("QE-"):
         assert frequencies.infer_freq(index) == gen.freqstr
@@ -94,8 +93,24 @@ def test_infer_freq_range(periods, freq):
         assert is_dec_range or is_nov_range or is_oct_range
 
 
+@pytest.mark.parametrize("offset_prefix", ["QS", "BQS"])
+@pytest.mark.parametrize("month", MONTHS)
+def test_infer_freq_quarter_start(offset_prefix, month):
+    # GH#36939 the start anchor is only known up to mod 3; the inferred
+    #  freq uses the first-calendar-quarter representative (JAN/FEB/MAR)
+    gen = pd.date_range("1/1/2000", periods=5, freq=f"{offset_prefix}-{month}")
+    index = pd.DatetimeIndex(gen.values)
+    expected_month = MONTHS[(gen[0].month - 1) % 3]
+    inferred = frequencies.infer_freq(index)
+    if offset_prefix == "QS":
+        assert inferred == f"QS-{expected_month}"
+    else:
+        # a BQS range whose stamps all fall on the 1st infers as QS
+        assert inferred in (f"BQS-{expected_month}", f"QS-{expected_month}")
+
+
 def test_raise_if_period_index():
-    index = period_range(start="1/1/1990", periods=20, freq="M")
+    index = pd.period_range(start="1/1/1990", periods=20, freq="M")
     msg = "Check the `freq` attribute instead of using infer_freq"
 
     with pytest.raises(TypeError, match=msg):
@@ -103,7 +118,7 @@ def test_raise_if_period_index():
 
 
 def test_raise_if_too_few():
-    index = DatetimeIndex(["12/31/1998", "1/3/1999"])
+    index = pd.DatetimeIndex(["12/31/1998", "1/3/1999"])
     msg = "Need at least 3 dates to infer frequency"
 
     with pytest.raises(ValueError, match=msg):
@@ -111,7 +126,7 @@ def test_raise_if_too_few():
 
 
 def test_business_daily():
-    index = DatetimeIndex(["01/01/1999", "1/4/1999", "1/5/1999"])
+    index = pd.DatetimeIndex(["01/01/1999", "1/4/1999", "1/5/1999"])
     assert frequencies.infer_freq(index) == "B"
 
 
@@ -119,12 +134,12 @@ def test_business_daily_look_alike():
     # see gh-16624
     #
     # Do not infer "B when "weekend" (2-day gap) in wrong place.
-    index = DatetimeIndex(["12/31/1998", "1/3/1999", "1/4/1999"])
+    index = pd.DatetimeIndex(["12/31/1998", "1/3/1999", "1/4/1999"])
     assert frequencies.infer_freq(index) is None
 
 
 def test_day_corner():
-    index = DatetimeIndex(["1/1/2000", "1/2/2000", "1/3/2000"])
+    index = pd.DatetimeIndex(["1/1/2000", "1/2/2000", "1/3/2000"])
     assert frequencies.infer_freq(index) == "D"
 
 
@@ -137,14 +152,14 @@ def test_fifth_week_of_month_infer():
     # see gh-9425
     #
     # Only attempt to infer up to WOM-4.
-    index = DatetimeIndex(["2014-03-31", "2014-06-30", "2015-03-30"])
+    index = pd.DatetimeIndex(["2014-03-31", "2014-06-30", "2015-03-30"])
     assert frequencies.infer_freq(index) is None
 
 
 def test_week_of_month_fake():
     # All of these dates are on same day
     # of week and are 4 or 5 weeks apart.
-    index = DatetimeIndex(["2013-08-27", "2013-10-01", "2013-10-29", "2013-11-26"])
+    index = pd.DatetimeIndex(["2013-08-27", "2013-10-01", "2013-10-29", "2013-11-26"])
     assert frequencies.infer_freq(index) != "WOM-4TUE"
 
 
@@ -155,26 +170,26 @@ def test_fifth_week_of_month():
     msg = "Invalid frequency: WOM-5MON"
 
     with pytest.raises(ValueError, match=msg):
-        date_range("2014-01-01", freq="WOM-5MON")
+        pd.date_range("2014-01-01", freq="WOM-5MON")
 
 
 def test_monthly_ambiguous():
-    rng = DatetimeIndex(["1/31/2000", "2/29/2000", "3/31/2000"])
+    rng = pd.DatetimeIndex(["1/31/2000", "2/29/2000", "3/31/2000"])
     assert rng.inferred_freq == "ME"
 
 
 def test_annual_ambiguous():
-    rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
+    rng = pd.DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     assert rng.inferred_freq == "YE-JAN"
 
 
 @pytest.mark.parametrize("count", range(1, 5))
 def test_infer_freq_delta(base_delta_code_pair, count):
-    b = Timestamp(datetime.now())
+    b = pd.Timestamp(datetime(2011, 1, 1))
     base_delta, code = base_delta_code_pair
 
     inc = base_delta * count
-    index = DatetimeIndex([b + inc * j for j in range(3)])
+    index = pd.DatetimeIndex([b + inc * j for j in range(3)])
 
     exp_freq = f"{count:d}{code}" if count > 1 else code
     assert frequencies.infer_freq(index) == exp_freq
@@ -183,16 +198,16 @@ def test_infer_freq_delta(base_delta_code_pair, count):
 @pytest.mark.parametrize(
     "constructor",
     [
-        lambda now, delta: DatetimeIndex(
+        lambda now, delta: pd.DatetimeIndex(
             [now + delta * 7] + [now + delta * j for j in range(3)]
         ),
-        lambda now, delta: DatetimeIndex(
+        lambda now, delta: pd.DatetimeIndex(
             [now + delta * j for j in range(3)] + [now + delta * 7]
         ),
     ],
 )
 def test_infer_freq_custom(base_delta_code_pair, constructor):
-    b = Timestamp(datetime.now())
+    b = pd.Timestamp(datetime(2011, 1, 1))
     base_delta, _ = base_delta_code_pair
 
     index = constructor(b, base_delta)
@@ -220,14 +235,14 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
     # see gh-7310, GH#55609
     tz = tz_naive_fixture
-    idx = DatetimeIndex(dates, tz=tz).as_unit(unit)
+    idx = pd.DatetimeIndex(dates, tz=tz).as_unit(unit)
     assert idx.inferred_freq == expected
 
 
 def test_infer_freq_tz_series(tz_naive_fixture):
     # infer_freq should work with both tz-naive and tz-aware series. See gh-52456
     tz = tz_naive_fixture
-    idx = date_range("2021-01-01", "2021-01-04", tz=tz)
+    idx = pd.date_range("2021-01-01", "2021-01-04", tz=tz)
     series = idx.to_series().reset_index(drop=True)
     inferred_freq = frequencies.infer_freq(series)
     assert inferred_freq == "D"
@@ -248,12 +263,12 @@ def test_infer_freq_tz_series(tz_naive_fixture):
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772
     tz = tz_naive_fixture
-    idx = date_range(date_pair[0], date_pair[1], freq=freq, tz=tz)
+    idx = pd.date_range(date_pair[0], date_pair[1], freq=freq, tz=tz)
     assert idx.inferred_freq == freq
 
 
 def test_infer_freq_tz_transition_custom():
-    index = date_range("2013-11-03", periods=5, freq="3h").tz_localize(
+    index = pd.date_range("2013-11-03", periods=5, freq="3h").tz_localize(
         "America/Chicago"
     )
     assert index.inferred_freq is None
@@ -339,19 +354,85 @@ def test_infer_freq_tz_transition_custom():
 )
 def test_infer_freq_business_hour(data, expected):
     # see gh-7905
-    idx = DatetimeIndex(data)
+    idx = pd.DatetimeIndex(data)
     assert idx.inferred_freq == expected
 
 
+@pytest.mark.parametrize(
+    "klass, data",
+    [
+        # fractional overnight gap: 17.5h, not the 17h of a "bh" day boundary
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-01 10:00",
+                "2026-01-01 11:00",
+                "2026-01-02 04:30",
+                "2026-01-02 05:30",
+                "2026-01-02 06:30",
+            ],
+        ),
+        # fractional base step: 1.5h floors to the same 1 as an hourly step
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-01 10:30",
+                "2026-01-01 12:00",
+                "2026-01-02 05:30",
+                "2026-01-02 07:00",
+                "2026-01-02 08:30",
+            ],
+        ),
+        # fractional weekend gap: 65.5h, not the 65h of a "bh" weekend
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-02 09:00",
+                "2026-01-02 10:00",
+                "2026-01-02 11:00",
+                "2026-01-05 04:30",
+                "2026-01-05 05:30",
+                "2026-01-05 06:30",
+            ],
+        ),
+        # fractional weekend gap: 3.5d, not the 3d of a "B" weekend
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-02 09:00",
+                "2026-01-05 21:00",
+                "2026-01-06 21:00",
+                "2026-01-07 21:00",
+                "2026-01-08 21:00",
+                "2026-01-09 21:00",
+            ],
+        ),
+        # _TimedeltaFrequencyInferer inherits the same "bh" check
+        (
+            pd.TimedeltaIndex,
+            ["1h", "2h", "3h", "20h30min", "21h30min", "22h30min"],
+        ),
+    ],
+)
+def test_infer_freq_fractional_gap(klass, data):
+    # GH#68153 a gap that is not a whole number of hours/days must not be
+    #  floored into matching the "bh"/"B" delta patterns
+    idx = klass(data)
+    assert idx.inferred_freq is None
+
+
 def test_not_monotonic():
-    rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
+    rng = pd.DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     rng = rng[::-1]
 
     assert rng.inferred_freq == "-1YE-JAN"
 
 
 def test_non_datetime_index2():
-    rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
+    rng = pd.DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     vals = rng.to_pydatetime()
 
     result = frequencies.infer_freq(vals)
@@ -361,10 +442,10 @@ def test_non_datetime_index2():
 @pytest.mark.parametrize(
     "idx",
     [
-        Index(np.arange(5), dtype=np.int64),
-        Index(np.arange(5), dtype=np.float64),
-        period_range("2020-01-01", periods=5),
-        RangeIndex(5),
+        pd.Index(np.arange(5), dtype=np.int64),
+        pd.Index(np.arange(5), dtype=np.float64),
+        pd.period_range("2020-01-01", periods=5),
+        pd.RangeIndex(5),
     ],
 )
 def test_invalid_index_types(idx):
@@ -388,7 +469,7 @@ def test_invalid_index_types_unicode():
     msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(Index(["ZqgszYBfuL"]))
+        frequencies.infer_freq(pd.Index(["ZqgszYBfuL"]))
 
 
 def test_string_datetime_like_compat():
@@ -396,14 +477,14 @@ def test_string_datetime_like_compat():
     data = ["2004-01", "2004-02", "2004-03", "2004-04"]
 
     expected = frequencies.infer_freq(data)
-    result = frequencies.infer_freq(Index(data))
+    result = frequencies.infer_freq(pd.Index(data))
 
     assert result == expected
 
 
 def test_series():
     # see gh-6407
-    s = Series(date_range("20130101", "20130110"))
+    s = pd.Series(pd.date_range("20130101", "20130110"))
     inferred = frequencies.infer_freq(s)
     assert inferred == "D"
 
@@ -412,7 +493,7 @@ def test_series():
 def test_series_invalid_type(end):
     # see gh-6407
     msg = "cannot infer freq from a non-convertible dtype on a Series"
-    s = Series(np.arange(end))
+    s = pd.Series(np.arange(end))
 
     with pytest.raises(TypeError, match=msg):
         frequencies.infer_freq(s)
@@ -424,12 +505,12 @@ def test_series_inconvertible_string(using_infer_string):
         msg = "cannot infer freq from"
 
         with pytest.raises(TypeError, match=msg):
-            frequencies.infer_freq(Series(["foo", "bar"]))
+            frequencies.infer_freq(pd.Series(["foo", "bar"]))
     else:
         msg = "Unknown datetime string format"
 
         with pytest.raises(ValueError, match=msg):
-            frequencies.infer_freq(Series(["foo", "bar"]))
+            frequencies.infer_freq(pd.Series(["foo", "bar"]))
 
 
 @pytest.mark.parametrize("freq", [None, "ms"])
@@ -438,7 +519,7 @@ def test_series_period_index(freq):
     #
     # Cannot infer on PeriodIndex
     msg = "cannot infer freq from a non-convertible dtype on a Series"
-    s = Series(period_range("2013", periods=10, freq=freq))
+    s = pd.Series(pd.period_range("2013", periods=10, freq=freq))
 
     with pytest.raises(TypeError, match=msg):
         frequencies.infer_freq(s)
@@ -446,7 +527,7 @@ def test_series_period_index(freq):
 
 @pytest.mark.parametrize("freq", ["ME", "ms", "s"])
 def test_series_datetime_index(freq):
-    s = Series(date_range("20130101", periods=10, freq=freq))
+    s = pd.Series(pd.date_range("20130101", periods=10, freq=freq))
     inferred = frequencies.infer_freq(s)
     assert inferred == freq
 
@@ -455,7 +536,7 @@ def test_series_datetime_index(freq):
     "offset_func",
     [
         _get_offset,
-        lambda freq: date_range("2011-01-01", periods=5, freq=freq),
+        lambda freq: pd.date_range("2011-01-01", periods=5, freq=freq),
     ],
 )
 @pytest.mark.parametrize(
@@ -535,19 +616,31 @@ def test_infer_freq_non_nano():
 def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
     tz = tz_aware_fixture
 
-    dti = date_range("2016-01-01", periods=365, freq="B", tz=tz)
+    dti = pd.date_range("2016-01-01", periods=365, freq="B", tz=tz)
     dta = dti._data.as_unit("s")
 
     res = frequencies.infer_freq(dta)
     assert res == "B"
 
 
+def test_infer_freq_large_dates():
+    # https://github.com/pandas-dev/pandas/pull/65845
+    # large dates which would be out of bounds for micro (year > 294_241)
+    # (this needs to use a freq that checks the month such as QE to cover the code path)
+    dti = pd.date_range(
+        pd.Timestamp(np.datetime64(10**13, "s")).normalize(), periods=10, freq="QE"
+    )._with_freq(None)
+
+    res = frequencies.infer_freq(dti)
+    assert res == "QE-DEC"
+
+
 @td.skip_if_no("pyarrow")
 def test_infer_freq_pyarrow():
     # GH#58403
     data = ["2022-01-01T10:00:00", "2022-01-01T10:00:30", "2022-01-01T10:01:00"]
-    pd_series = Series(data).astype("timestamp[s][pyarrow]")
-    pd_index = Index(data).astype("timestamp[s][pyarrow]")
+    pd_series = pd.Series(data).astype("timestamp[s][pyarrow]")
+    pd_index = pd.Index(data).astype("timestamp[s][pyarrow]")
 
     assert frequencies.infer_freq(pd_index.values) == "30s"
     assert frequencies.infer_freq(pd_series.values) == "30s"
@@ -569,3 +662,65 @@ def test_infer_freq_no_stateful_behavior():
 
     # After calling on full index, slice should still return "D"
     assert frequencies.infer_freq(times[:3]) == "D"
+
+
+class TestInferFreqDeprecation:
+    # GH#55504
+    def test_infer_freq_warns(self):
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = frequencies.infer_freq(idx)
+        assert result == "D"
+
+    def test_infer_freq_no_warning_on_none(self):
+        # No warning when result is None
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-04"])
+        with tm.assert_produces_warning(None):
+            result = frequencies.infer_freq(idx)
+        assert result is None
+
+    def test_inferred_freq_warns(self):
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = idx.inferred_freq
+        assert result == "D"
+
+    def test_inferred_freq_no_warning_on_none(self):
+        # No warning when result is None
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-04"])
+        with tm.assert_produces_warning(None):
+            result = idx.inferred_freq
+        assert result is None
+
+    def test_infer_freq_future_option_true(self):
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", True):
+            with tm.assert_produces_warning(None):
+                result = frequencies.infer_freq(idx)
+            assert not isinstance(result, str)
+            assert result == offsets.Day()
+
+    def test_inferred_freq_future_option_true(self):
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", True):
+            with tm.assert_produces_warning(None):
+                result = idx.inferred_freq
+            assert not isinstance(result, str)
+            assert result == offsets.Day()
+
+    def test_infer_freq_future_option_false(self):
+        # False silences the warning and keeps old behavior
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", False):
+            with tm.assert_produces_warning(None):
+                result = frequencies.infer_freq(idx)
+            assert result == "D"
+
+    def test_inferred_freq_future_option_false(self):
+        idx = pd.DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"])
+        with pd.option_context("future.infer_freq_returns_offset", False):
+            with tm.assert_produces_warning(None):
+                result = idx.inferred_freq
+            assert result == "D"

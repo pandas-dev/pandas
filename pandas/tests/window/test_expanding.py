@@ -1,20 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    isna,
-    notna,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 def test_doc_string():
-    df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
+    df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.expanding(2).sum()
 
@@ -54,36 +46,36 @@ def test_empty_df_expanding(expander):
     # GH 15819 Verifies that datetime and integer expanding windows can be
     # applied to empty DataFrames
 
-    expected = DataFrame()
-    result = DataFrame().expanding(expander).sum()
+    expected = pd.DataFrame()
+    result = pd.DataFrame().expanding(expander).sum()
     tm.assert_frame_equal(result, expected)
 
     # Verifies that datetime and integer expanding windows can be applied
     # to empty DataFrames with datetime index
-    expected = DataFrame(index=DatetimeIndex([]))
-    result = DataFrame(index=DatetimeIndex([])).expanding(expander).sum()
+    expected = pd.DataFrame(index=pd.DatetimeIndex([]))
+    result = pd.DataFrame(index=pd.DatetimeIndex([])).expanding(expander).sum()
     tm.assert_frame_equal(result, expected)
 
 
 def test_missing_minp_zero():
     # https://github.com/pandas-dev/pandas/pull/18921
     # minp=0
-    x = Series([np.nan])
+    x = pd.Series([np.nan])
     result = x.expanding(min_periods=0).sum()
-    expected = Series([0.0])
+    expected = pd.Series([0.0])
     tm.assert_series_equal(result, expected)
 
     # minp=1
     result = x.expanding(min_periods=1).sum()
-    expected = Series([np.nan])
+    expected = pd.Series([np.nan])
     tm.assert_series_equal(result, expected)
 
 
 def test_expanding():
     # see gh-23372.
-    df = DataFrame(np.ones((10, 20)))
+    df = pd.DataFrame(np.ones((10, 20)))
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
     )
     result = df.expanding(3).sum()
@@ -177,8 +169,8 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
 )
 def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
-    df = DataFrame(df)
-    expecteds = [DataFrame(values, index=index) for (values, index) in expected]
+    df = pd.DataFrame(df)
+    expecteds = [pd.DataFrame(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(expecteds, df.expanding(min_periods), strict=False):
         tm.assert_frame_equal(actual, expected)
@@ -187,17 +179,29 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
 @pytest.mark.parametrize(
     "ser,expected,min_periods",
     [
-        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 3),
-        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 2),
-        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])], 1),
-        (Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2),
-        (Series([np.nan, 2]), [([np.nan], [0]), ([np.nan, 2], [0, 1])], 2),
-        (Series([], dtype="int64"), [], 2),
+        (
+            pd.Series([1, 2, 3]),
+            [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])],
+            3,
+        ),
+        (
+            pd.Series([1, 2, 3]),
+            [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])],
+            2,
+        ),
+        (
+            pd.Series([1, 2, 3]),
+            [([1], [0]), ([1, 2], [0, 1]), ([1, 2, 3], [0, 1, 2])],
+            1,
+        ),
+        (pd.Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2),
+        (pd.Series([np.nan, 2]), [([np.nan], [0]), ([np.nan, 2], [0, 1])], 2),
+        (pd.Series([], dtype="int64"), [], 2),
     ],
 )
 def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
-    expecteds = [Series(values, index=index) for (values, index) in expected]
+    expecteds = [pd.Series(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(expecteds, ser.expanding(min_periods), strict=True):
         tm.assert_series_equal(actual, expected)
@@ -205,7 +209,7 @@ def test_iter_expanding_series(ser, expected, min_periods):
 
 def test_center_invalid():
     # GH 20647
-    df = DataFrame()
+    df = pd.DataFrame()
     with pytest.raises(TypeError, match=".* got an unexpected keyword"):
         df.expanding(center=True)
 
@@ -214,16 +218,16 @@ def test_expanding_sem(frame_or_series):
     # GH: 26476
     obj = frame_or_series([0, 1, 2])
     result = obj.expanding().sem()
-    if isinstance(result, DataFrame):
-        result = Series(result[0].values)
-    expected = Series([np.nan, 0.5, (1 / 3) ** 0.5])
+    if isinstance(result, pd.DataFrame):
+        result = pd.Series(result[0].values)
+    expected = pd.Series([np.nan, 0.5, (1 / 3) ** 0.5])
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("method", ["skew", "kurt"])
 def test_expanding_skew_kurt_numerical_stability(method):
     # GH: 6929
-    s = Series(np.random.default_rng(2).random(10))
+    s = pd.Series(np.random.default_rng(2).random(10))
     expected = getattr(s.expanding(3), method)()
     s = s + 5000
     result = getattr(s.expanding(3), method)()
@@ -237,11 +241,11 @@ def test_expanding_skew_kurt_numerical_stability(method):
 def test_rank(window, method, pct, ascending, test_data):
     length = 20
     if test_data == "default":
-        ser = Series(data=np.random.default_rng(2).random(length))
+        ser = pd.Series(data=np.random.default_rng(2).random(length))
     elif test_data == "duplicates":
-        ser = Series(data=np.random.default_rng(2).choice(3, length))
+        ser = pd.Series(data=np.random.default_rng(2).choice(3, length))
     elif test_data == "nans":
-        ser = Series(
+        ser = pd.Series(
             data=np.random.default_rng(2).choice(
                 [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
             )
@@ -260,17 +264,17 @@ def test_rank(window, method, pct, ascending, test_data):
 def test_nunique(window, test_data):
     length = 20
     if test_data == "default":
-        ser = Series(data=np.random.default_rng(2).random(length))
+        ser = pd.Series(data=np.random.default_rng(2).random(length))
     elif test_data == "duplicates":
-        ser = Series(data=np.random.default_rng(2).choice(3, length))
+        ser = pd.Series(data=np.random.default_rng(2).choice(3, length))
     elif test_data == "nans":
-        ser = Series(
+        ser = pd.Series(
             data=np.random.default_rng(2).choice(
                 [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
             )
         )
     elif test_data == "precision":
-        ser = Series(
+        ser = pd.Series(
             data=[
                 0.3,
                 0.1 * 3,  # Not necessarily exactly 0.3
@@ -362,7 +366,7 @@ def test_expanding_func(func, static_comp, frame_or_series):
     assert isinstance(result, frame_or_series)
 
     expected = static_comp(data[:11])
-    if frame_or_series is Series:
+    if frame_or_series is pd.Series:
         tm.assert_almost_equal(result[10], expected)
     else:
         tm.assert_series_equal(result.iloc[10], expected, check_names=False)
@@ -374,7 +378,7 @@ def test_expanding_func(func, static_comp, frame_or_series):
     ids=["sum", "mean", "max", "min"],
 )
 def test_expanding_min_periods(func, static_comp):
-    ser = Series(np.random.default_rng(2).standard_normal(50))
+    ser = pd.Series(np.random.default_rng(2).standard_normal(50))
 
     result = getattr(ser.expanding(min_periods=30), func)()
     assert result[:29].isna().all()
@@ -382,13 +386,13 @@ def test_expanding_min_periods(func, static_comp):
 
     # min_periods is working correctly
     result = getattr(ser.expanding(min_periods=15), func)()
-    assert isna(result.iloc[13])
-    assert notna(result.iloc[14])
+    assert pd.isna(result.iloc[13])
+    assert pd.notna(result.iloc[14])
 
-    ser2 = Series(np.random.default_rng(2).standard_normal(20))
+    ser2 = pd.Series(np.random.default_rng(2).standard_normal(20))
     result = getattr(ser2.expanding(min_periods=5), func)()
-    assert isna(result[3])
-    assert notna(result[4])
+    assert pd.isna(result[3])
+    assert pd.notna(result[4])
 
     # min_periods=0
     result0 = getattr(ser.expanding(min_periods=0), func)()
@@ -407,7 +411,7 @@ def test_expanding_apply(engine_and_raw, frame_or_series):
     )
     assert isinstance(result, frame_or_series)
 
-    if frame_or_series is Series:
+    if frame_or_series is pd.Series:
         tm.assert_almost_equal(result[9], np.mean(data[:11], axis=0))
     else:
         tm.assert_series_equal(
@@ -417,7 +421,7 @@ def test_expanding_apply(engine_and_raw, frame_or_series):
 
 def test_expanding_min_periods_apply(engine_and_raw):
     engine, raw = engine_and_raw
-    ser = Series(np.random.default_rng(2).standard_normal(50))
+    ser = pd.Series(np.random.default_rng(2).standard_normal(50))
 
     result = ser.expanding(min_periods=30).apply(
         lambda x: x.mean(), raw=raw, engine=engine
@@ -429,15 +433,15 @@ def test_expanding_min_periods_apply(engine_and_raw):
     result = ser.expanding(min_periods=15).apply(
         lambda x: x.mean(), raw=raw, engine=engine
     )
-    assert isna(result.iloc[13])
-    assert notna(result.iloc[14])
+    assert pd.isna(result.iloc[13])
+    assert pd.notna(result.iloc[14])
 
-    ser2 = Series(np.random.default_rng(2).standard_normal(20))
+    ser2 = pd.Series(np.random.default_rng(2).standard_normal(20))
     result = ser2.expanding(min_periods=5).apply(
         lambda x: x.mean(), raw=raw, engine=engine
     )
-    assert isna(result[3])
-    assert notna(result[4])
+    assert pd.isna(result[3])
+    assert pd.notna(result[4])
 
     # min_periods=0
     result0 = ser.expanding(min_periods=0).apply(
@@ -462,14 +466,20 @@ def test_expanding_min_periods_apply(engine_and_raw):
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
-    df1 = DataFrame()
-    df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
+    df1 = pd.DataFrame()
+    df2 = pd.DataFrame(
+        columns=pd.Index(["a"], name="foo"), index=pd.Index([], name="bar")
+    )
     df2["a"] = df2["a"].astype("float64")
 
-    df1_expected = DataFrame(index=MultiIndex.from_product([df1.index, df1.columns]))
-    df2_expected = DataFrame(
-        index=MultiIndex.from_product([df2.index, df2.columns], names=["bar", "foo"]),
-        columns=Index(["a"], name="foo"),
+    df1_expected = pd.DataFrame(
+        index=pd.MultiIndex.from_product([df1.index, df1.columns])
+    )
+    df2_expected = pd.DataFrame(
+        index=pd.MultiIndex.from_product(
+            [df2.index, df2.columns], names=["bar", "foo"]
+        ),
+        columns=pd.Index(["a"], name="foo"),
         dtype="float64",
     )
 
@@ -504,11 +514,11 @@ def test_moment_functions_zero_length_pairwise(f):
 )
 def test_moment_functions_zero_length(f):
     # GH 8056
-    s = Series(dtype=np.float64)
+    s = pd.Series(dtype=np.float64)
     s_expected = s
-    df1 = DataFrame()
+    df1 = pd.DataFrame()
     df1_expected = df1
-    df2 = DataFrame(columns=["a"])
+    df2 = pd.DataFrame(columns=["a"])
     df2["a"] = df2["a"].astype("float64")
     df2_expected = df2
 
@@ -524,7 +534,7 @@ def test_moment_functions_zero_length(f):
 
 def test_expanding_apply_empty_series(engine_and_raw):
     engine, raw = engine_and_raw
-    ser = Series([], dtype=np.float64)
+    ser = pd.Series([], dtype=np.float64)
     tm.assert_series_equal(
         ser, ser.expanding().apply(lambda x: x.mean(), raw=raw, engine=engine)
     )
@@ -533,61 +543,63 @@ def test_expanding_apply_empty_series(engine_and_raw):
 def test_expanding_apply_min_periods_0(engine_and_raw):
     # GH 8080
     engine, raw = engine_and_raw
-    s = Series([None, None, None])
+    s = pd.Series([None, None, None])
     result = s.expanding(min_periods=0).apply(lambda x: len(x), raw=raw, engine=engine)
-    expected = Series([1.0, 2.0, 3.0])
+    expected = pd.Series([1.0, 2.0, 3.0])
     tm.assert_series_equal(result, expected)
 
 
 def test_expanding_cov_diff_index():
     # GH 7512
-    s1 = Series([1, 2, 3], index=range(3))
-    s2 = Series([1, 3], index=range(0, 4, 2))
+    s1 = pd.Series([1, 2, 3], index=range(3))
+    s2 = pd.Series([1, 3], index=range(0, 4, 2))
     result = s1.expanding().cov(s2)
-    expected = Series([None, None, 2.0])
+    expected = pd.Series([None, None, 2.0])
     tm.assert_series_equal(result, expected)
 
-    s2a = Series([1, None, 3], index=[0, 1, 2])
+    s2a = pd.Series([1, None, 3], index=[0, 1, 2])
     result = s1.expanding().cov(s2a)
     tm.assert_series_equal(result, expected)
 
-    s1 = Series([7, 8, 10], index=[0, 1, 3])
-    s2 = Series([7, 9, 10], index=[0, 2, 3])
+    s1 = pd.Series([7, 8, 10], index=[0, 1, 3])
+    s2 = pd.Series([7, 9, 10], index=[0, 2, 3])
     result = s1.expanding().cov(s2)
-    expected = Series([None, None, None, 4.5], index=list(range(4)))
+    expected = pd.Series([None, None, None, 4.5], index=list(range(4)))
     tm.assert_series_equal(result, expected)
 
 
 def test_expanding_corr_diff_index():
     # GH 7512
-    s1 = Series([1, 2, 3], index=range(3))
-    s2 = Series([1, 3], index=range(0, 4, 2))
+    s1 = pd.Series([1, 2, 3], index=range(3))
+    s2 = pd.Series([1, 3], index=range(0, 4, 2))
     result = s1.expanding().corr(s2)
-    expected = Series([None, None, 1.0])
+    expected = pd.Series([None, None, 1.0])
     tm.assert_series_equal(result, expected)
 
-    s2a = Series([1, None, 3], index=[0, 1, 2])
+    s2a = pd.Series([1, None, 3], index=[0, 1, 2])
     result = s1.expanding().corr(s2a)
     tm.assert_series_equal(result, expected)
 
-    s1 = Series([7, 8, 10], index=[0, 1, 3])
-    s2 = Series([7, 9, 10], index=[0, 2, 3])
+    s1 = pd.Series([7, 8, 10], index=[0, 1, 3])
+    s2 = pd.Series([7, 9, 10], index=[0, 2, 3])
     result = s1.expanding().corr(s2)
-    expected = Series([None, None, None, 1.0], index=list(range(4)))
+    expected = pd.Series([None, None, None, 1.0], index=list(range(4)))
     tm.assert_series_equal(result, expected)
 
 
 def test_expanding_cov_pairwise_diff_length():
     # GH 7512
-    df1 = DataFrame([[1, 5], [3, 2], [3, 9]], columns=Index(["A", "B"], name="foo"))
-    df1a = DataFrame(
-        [[1, 5], [3, 9]], index=[0, 2], columns=Index(["A", "B"], name="foo")
+    df1 = pd.DataFrame(
+        [[1, 5], [3, 2], [3, 9]], columns=pd.Index(["A", "B"], name="foo")
     )
-    df2 = DataFrame(
-        [[5, 6], [None, None], [2, 1]], columns=Index(["X", "Y"], name="foo")
+    df1a = pd.DataFrame(
+        [[1, 5], [3, 9]], index=[0, 2], columns=pd.Index(["A", "B"], name="foo")
     )
-    df2a = DataFrame(
-        [[5, 6], [2, 1]], index=[0, 2], columns=Index(["X", "Y"], name="foo")
+    df2 = pd.DataFrame(
+        [[5, 6], [None, None], [2, 1]], columns=pd.Index(["X", "Y"], name="foo")
+    )
+    df2a = pd.DataFrame(
+        [[5, 6], [2, 1]], index=[0, 2], columns=pd.Index(["X", "Y"], name="foo")
     )
     # xref gh-15826
     # .loc is not preserving the names
@@ -595,10 +607,10 @@ def test_expanding_cov_pairwise_diff_length():
     result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]
     result3 = df1a.expanding().cov(df2, pairwise=True).loc[2]
     result4 = df1a.expanding().cov(df2a, pairwise=True).loc[2]
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[-3.0, -6.0], [-5.0, -10.0]],
-        columns=Index(["A", "B"], name="foo"),
-        index=Index(["X", "Y"], name="foo"),
+        columns=pd.Index(["A", "B"], name="foo"),
+        index=pd.Index(["X", "Y"], name="foo"),
     )
     tm.assert_frame_equal(result1, expected)
     tm.assert_frame_equal(result2, expected)
@@ -608,26 +620,28 @@ def test_expanding_cov_pairwise_diff_length():
 
 def test_expanding_corr_pairwise_diff_length():
     # GH 7512
-    df1 = DataFrame(
-        [[1, 2], [3, 2], [3, 4]], columns=["A", "B"], index=Index(range(3), name="bar")
+    df1 = pd.DataFrame(
+        [[1, 2], [3, 2], [3, 4]],
+        columns=["A", "B"],
+        index=pd.Index(range(3), name="bar"),
     )
-    df1a = DataFrame(
-        [[1, 2], [3, 4]], index=Index([0, 2], name="bar"), columns=["A", "B"]
+    df1a = pd.DataFrame(
+        [[1, 2], [3, 4]], index=pd.Index([0, 2], name="bar"), columns=["A", "B"]
     )
-    df2 = DataFrame(
+    df2 = pd.DataFrame(
         [[5, 6], [None, None], [2, 1]],
         columns=["X", "Y"],
-        index=Index(range(3), name="bar"),
+        index=pd.Index(range(3), name="bar"),
     )
-    df2a = DataFrame(
-        [[5, 6], [2, 1]], index=Index([0, 2], name="bar"), columns=["X", "Y"]
+    df2a = pd.DataFrame(
+        [[5, 6], [2, 1]], index=pd.Index([0, 2], name="bar"), columns=["X", "Y"]
     )
     result1 = df1.expanding().corr(df2, pairwise=True).loc[2]
     result2 = df1.expanding().corr(df2a, pairwise=True).loc[2]
     result3 = df1a.expanding().corr(df2, pairwise=True).loc[2]
     result4 = df1a.expanding().corr(df2a, pairwise=True).loc[2]
-    expected = DataFrame(
-        [[-1.0, -1.0], [-1.0, -1.0]], columns=["A", "B"], index=Index(["X", "Y"])
+    expected = pd.DataFrame(
+        [[-1.0, -1.0], [-1.0, -1.0]], columns=["A", "B"], index=pd.Index(["X", "Y"])
     )
     tm.assert_frame_equal(result1, expected)
     tm.assert_frame_equal(result2, expected)
@@ -684,14 +698,14 @@ def test_expanding_corr_pairwise_diff_length():
 )
 def test_expanding_first_last(values, method, expected):
     # GH#33155
-    x = Series(values)
+    x = pd.Series(values)
     result = getattr(x.expanding(3), method)()
-    expected = Series(expected)
+    expected = pd.Series(expected)
     tm.assert_almost_equal(result, expected)
 
-    x = DataFrame({"A": values})
+    x = pd.DataFrame({"A": values})
     result = getattr(x.expanding(3), method)()
-    expected = DataFrame({"A": expected})
+    expected = pd.DataFrame({"A": expected})
     tm.assert_almost_equal(result, expected)
 
 
@@ -722,14 +736,14 @@ def test_expanding_first_last(values, method, expected):
 )
 def test_expanding_first_last_no_minp(values, method, expected):
     # GH#33155
-    x = Series(values)
+    x = pd.Series(values)
     result = getattr(x.expanding(min_periods=0), method)()
-    expected = Series(expected)
+    expected = pd.Series(expected)
     tm.assert_almost_equal(result, expected)
 
-    x = DataFrame({"A": values})
+    x = pd.DataFrame({"A": values})
     result = getattr(x.expanding(min_periods=0), method)()
-    expected = DataFrame({"A": expected})
+    expected = pd.DataFrame({"A": expected})
     tm.assert_almost_equal(result, expected)
 
 
@@ -739,7 +753,7 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 
     engine, raw = engine_and_raw
 
-    df = DataFrame(np.random.default_rng(2).random((20, 3)))
+    df = pd.DataFrame(np.random.default_rng(2).random((20, 3)))
 
     expected = df.expanding().apply(np.mean, engine=engine, raw=raw) + 20.0
 
@@ -753,7 +767,7 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
     # GH#46560
     kernel = arithmetic_win_operators
-    df = DataFrame({"a": [1], "b": 2, "c": 3})
+    df = pd.DataFrame({"a": [1], "b": 2, "c": 3})
     df["c"] = df["c"].astype(object)
     expanding = df.expanding()
     op = getattr(expanding, kernel, None)
@@ -771,7 +785,7 @@ def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
 @pytest.mark.parametrize("use_arg", [True, False])
 def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     # GH#46560
-    df = DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
     df["c"] = df["c"].astype(object)
     arg = (df,) if use_arg else ()
     expanding = df.expanding()
@@ -793,7 +807,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
 def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     # GH#46560
     kernel = arithmetic_win_operators
-    ser = Series([1], dtype=dtype)
+    ser = pd.Series([1], dtype=dtype)
     expanding = ser.expanding()
     op = getattr(expanding, kernel)
     if numeric_only and dtype is object:
@@ -811,7 +825,7 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
 @pytest.mark.parametrize("dtype", [int, object])
 def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
     # GH#46560
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = pd.Series([1, 2, 3], dtype=dtype)
     arg = (ser,) if use_arg else ()
     expanding = ser.expanding()
     op = getattr(expanding, kernel)

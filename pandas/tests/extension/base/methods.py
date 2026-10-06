@@ -1,18 +1,40 @@
 import inspect
+from io import StringIO
 import operator
+import re
+import warnings
 
 import numpy as np
 import pytest
 
+from pandas._libs._ujson import ujson_dumps
 from pandas._typing import Dtype
+from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
+
+# GH#24433 methods whose default implementation may cast to object, mapped to
+# the methods an EA must override (any one of) to avoid it; map is left out
+# since it is elementwise regardless, and isin/value_counts since they are only
+# slow without a fast __array__
+SLOW_DEFAULTS = {
+    "unique": ["unique"],
+    "factorize": ["factorize", "_values_for_factorize"],
+    "argsort": ["argsort", "_values_for_argsort"],
+    "argmin": ["argmin", "_values_for_argsort"],
+    "argmax": ["argmax", "_values_for_argsort"],
+    "searchsorted": ["searchsorted"],
+}
 
 
 class BaseMethodsTests:
@@ -28,6 +50,23 @@ class BaseMethodsTests:
         )
         assert res.dtype == np.uint64
         assert res.shape == data.shape
+
+    @pytest.mark.parametrize("method", list(SLOW_DEFAULTS))
+    def test_slow_defaults_overridden(self, data, method):
+        # GH#24433 warn EA authors about defaults that may cast to object
+        base_cls = pd.api.extensions.ExtensionArray
+        inherited = all(
+            getattr(type(data), meth) is getattr(base_cls, meth)
+            for meth in SLOW_DEFAULTS[method]
+        )
+        if inherited and pd.get_option("mode.performance_warnings"):
+            warnings.warn(
+                f"{type(data).__name__} uses the default ExtensionArray "
+                f"implementation of {method}, which may be slow. "
+                "See the ExtensionArray docstring for methods to override.",
+                PerformanceWarning,
+                stacklevel=1,
+            )
 
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
@@ -98,9 +137,9 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
+        # GH#62164 - _cast_pointwise_result retains EA dtype
         result = data_missing.map(lambda x: x, na_action=na_action)
-        expected = data_missing.to_numpy()
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, data_missing)
 
     def test_is_monotonic_increasing(self, data_for_sorting):
         # GH#56619
@@ -200,8 +239,9 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
-        # all missing with skipna=True is the same as empty
-        err_msg = "attempt to get"
+        # GH#68467 all-NA is distinguished from empty, as it is for
+        #  the numpy-backed dtypes
+        err_msg = "Encountered all NA values"
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
@@ -254,6 +294,7 @@ class BaseMethodsTests:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("sort_by_key", [None, lambda x: x])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
@@ -268,6 +309,7 @@ class BaseMethodsTests:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("sort_by_key", [None, lambda x: x])
     def test_sort_values_missing(
         self, data_missing_for_sorting, ascending, sort_by_key
     ):
@@ -287,6 +329,79 @@ class BaseMethodsTests:
             {"A": [1, 1, 2], "B": data_for_sorting.take([2, 0, 1])}, index=[2, 0, 1]
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_for_sorting.copy()
+        result = arr.sort()
+        assert result is None
+        expected = data_for_sorting.take([2, 0, 1])
+        tm.assert_extension_array_equal(arr, expected)
+
+    def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_for_sorting.copy()
+        arr.sort(ascending=False)
+        if pd.Series(data_for_sorting).nunique() == 2:
+            expected = data_for_sorting.take([0, 1, 2])
+        else:
+            expected = data_for_sorting.take([1, 0, 2])
+        tm.assert_extension_array_equal(arr, expected)
+
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_missing_for_sorting.copy()
+        arr.sort(na_position=na_position)
+        if na_position == "last":
+            expected = data_missing_for_sorting.take([2, 0, 1])
+        else:
+            expected = data_missing_for_sorting.take([1, 2, 0])
+        tm.assert_extension_array_equal(arr, expected)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_rank(self, data_for_sorting, ascending):
+        ser = pd.Series(data_for_sorting)
+        result = ser.rank(ascending=ascending)
+        # result should be float, but exact dtype (numpy/nullable/pyarrow) depends
+        # so here just assert it is float and normalize to float64 for comparison
+        assert is_float_dtype(result.dtype)
+        result = result.astype("float64")
+        if is_bool_dtype(ser.dtype):
+            expected = pd.Series([2.5, 2.5, 1.0] if ascending else [1.5, 1.5, 3.0])
+        else:
+            expected = pd.Series([2.0, 3.0, 1.0] if ascending else [2.0, 1.0, 3.0])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["average", "min"])
+    def test_rank_method(self, data_for_sorting, method):
+        ser = pd.Series(data_for_sorting.take([0, 2, 0]))
+        result = ser.rank(method=method)
+        if method == "average":
+            assert is_float_dtype(result.dtype)
+            result = result.astype("float64")
+            expected = pd.Series([2.5, 1.0, 2.5])
+        else:
+            # TODO the exact dtype here is inconsistent across EAs (should all be int?)
+            assert is_integer_dtype(result.dtype) or is_float_dtype(result.dtype)
+            expected = pd.Series([2, 1, 2], dtype=result.dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
+    def test_rank_missing(self, data_missing_for_sorting, na_option):
+        ser = pd.Series(data_missing_for_sorting)
+        result = ser.rank(na_option=na_option)
+        assert is_float_dtype(result.dtype)
+        result = result.astype("float64")
+        if na_option == "keep":
+            expected = pd.Series([2.0, np.nan, 1.0])
+        elif na_option == "top":
+            expected = pd.Series([3.0, 1.0, 2.0])
+        else:
+            # na_option == "bottom"
+            expected = pd.Series([2.0, 3.0, 1.0])
+
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, data, keep):
@@ -783,3 +898,51 @@ class BaseMethodsTests:
     def test_equals_same_data_different_object(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
+
+    def test_values_for_json(self, data):
+        # GH 65047
+        values: np.ndarray = data._values_for_json()
+
+        # Check that the result is a numpy array
+        assert isinstance(values, np.ndarray)
+
+        # Check that the result is JSON-serializable
+        assert isinstance(ujson_dumps(values), str)
+
+        # Check that Series.to_json uses _values_for_json
+        ser = pd.Series(data)
+        result: str = ser.to_json()
+        expected: str = pd.Series(values).to_json()
+        assert result == expected
+
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # Test roundtrip through JSON
+        ser = pd.Series(data)
+        result: str = ser.to_json()
+        ser_new = pd.read_json(StringIO(result), typ="series", dtype=data.dtype)
+        tm.assert_series_equal(ser_new, ser)
+
+    def test_round(self, data):
+        # GH#49387
+        if data.dtype._is_boolean:
+            result = data.round()
+            tm.assert_extension_array_equal(result, data)
+            return
+        if not data.dtype._is_numeric:
+            msg = re.escape(f"Cannot round dtype {data.dtype} as it is non-numeric")
+            with pytest.raises(TypeError, match=msg):
+                data.round()
+            return
+        result = pd.Series(data).round()
+        round_fn = np.round if data.dtype.kind == "c" else round
+        expected = pd.Series(
+            type(data)._from_sequence(
+                [
+                    round_fn(item) if not item_isna else item
+                    for item, item_isna in zip(data, data.isna(), strict=True)
+                ],
+                dtype=data.dtype,
+            )
+        )
+        tm.assert_series_equal(result, expected)

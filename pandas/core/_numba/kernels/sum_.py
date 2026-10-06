@@ -158,8 +158,7 @@ def sliding_sum(
     return output, na_pos
 
 
-# Mypy/pyright don't like the fact that the decorator is untyped
-@register_jitable  # type: ignore[misc]
+@register_jitable
 def grouped_kahan_sum(
     values: np.ndarray,
     result_dtype: np.dtype,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -167,9 +169,6 @@ def get_is_dtype_funcs():
     return [getattr(com, fname) for fname in fnames]
 
 
-@pytest.mark.filterwarnings(
-    "ignore:is_categorical_dtype is deprecated:DeprecationWarning"
-)
 @pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941
@@ -338,7 +337,7 @@ def test_is_string_dtype_nullable(nullable_string_dtype):
     assert com.is_string_dtype(pd.array(["a", "b"], dtype=nullable_string_dtype))
 
 
-integer_dtypes: list = []
+integer_dtypes: list[Any] = []
 
 
 @pytest.mark.parametrize(
@@ -365,14 +364,14 @@ def test_is_integer_dtype(dtype):
         np.timedelta64,
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
-        np.array([], dtype=np.timedelta64),
+        np.array([], dtype="m8[ns]"),
     ],
 )
 def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes: list = []
+signed_integer_dtypes: list[Any] = []
 
 
 @pytest.mark.parametrize(
@@ -399,7 +398,7 @@ def test_is_signed_integer_dtype(dtype):
         np.timedelta64,
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
-        np.array([], dtype=np.timedelta64),
+        np.array([], dtype="m8[ns]"),
         *tm.UNSIGNED_INT_NUMPY_DTYPES,
         *to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES),
         *tm.UNSIGNED_INT_EA_DTYPES,
@@ -410,7 +409,7 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes: list = []
+unsigned_integer_dtypes: list[Any] = []
 
 
 @pytest.mark.parametrize(
@@ -437,7 +436,7 @@ def test_is_unsigned_integer_dtype(dtype):
         np.timedelta64,
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
-        np.array([], dtype=np.timedelta64),
+        np.array([], dtype="m8[ns]"),
         *tm.SIGNED_INT_NUMPY_DTYPES,
         *to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES),
         *tm.SIGNED_INT_EA_DTYPES,
@@ -529,9 +528,12 @@ def test_is_datetime64_ns_dtype():
     assert not com.is_datetime64_ns_dtype(DatetimeTZDtype("us", "US/Eastern"))
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 def test_is_timedelta64_ns_dtype():
     assert not com.is_timedelta64_ns_dtype(np.dtype("m8[ps]"))
-    assert not com.is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
+    assert not com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8"))
 
     assert com.is_timedelta64_ns_dtype(np.dtype("m8[ns]"))
     assert com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
@@ -561,12 +563,50 @@ def test_needs_i8_conversion():
     assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern").dtype)
 
 
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype_str, expected",
+    [
+        ("timestamp[s][pyarrow]", True),
+        ("timestamp[ns][pyarrow]", True),
+        ("timestamp[us, tz=US/Eastern][pyarrow]", True),
+        ("duration[s][pyarrow]", True),
+        ("duration[ns][pyarrow]", True),
+        # date32/date64 report dtype.kind == "M" but are not backed by a
+        #  DatetimeArray, so a kind-based check would wrongly include them
+        ("date32[day][pyarrow]", False),
+        ("date64[ms][pyarrow]", False),
+        ("time32[s][pyarrow]", False),
+        ("time64[us][pyarrow]", False),
+        ("int64[pyarrow]", False),
+        ("null[pyarrow]", False),
+        # resolves to StringDtype, not ArrowDtype
+        ("string[pyarrow]", False),
+    ],
+)
+def test_is_arrow_temporal_dtype(dtype_str, expected):
+    # GH#66445 the check must match on the pyarrow type, not on dtype.kind
+    assert com.is_arrow_temporal_dtype(pandas_dtype(dtype_str)) is expected
+
+
+@pytest.mark.parametrize(
+    "dtype_str",
+    ["M8[ns]", "m8[ns]", "int64", "datetime64[ns, US/Eastern]", "period[D]"],
+)
+def test_is_arrow_temporal_dtype_non_arrow(dtype_str):
+    # GH#66445 non-ArrowDtype input is always False, including the NumPy and
+    #  extension dtypes that needs_i8_conversion does cover. Kept separate from
+    #  test_is_arrow_temporal_dtype so these still run without pyarrow
+    #  installed; ``None`` is covered by test_get_dtype_error_catch.
+    assert not com.is_arrow_temporal_dtype(pandas_dtype(dtype_str))
+
+
 def test_is_numeric_dtype():
     assert not com.is_numeric_dtype(str)
     assert not com.is_numeric_dtype(np.datetime64)
     assert not com.is_numeric_dtype(np.timedelta64)
     assert not com.is_numeric_dtype(np.array(["a", "b"]))
-    assert not com.is_numeric_dtype(np.array([], dtype=np.timedelta64))
+    assert not com.is_numeric_dtype(np.array([], dtype="m8[ns]"))
 
     assert com.is_numeric_dtype(int)
     assert com.is_numeric_dtype(float)
@@ -821,6 +861,9 @@ def test_pandas_dtype_ea_not_instance():
         assert pandas_dtype(CategoricalDtype) == CategoricalDtype()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pandas_dtype_string_dtypes(string_storage):
     with pd.option_context("future.infer_string", True):
         # with the default string_storage setting

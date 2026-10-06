@@ -122,16 +122,16 @@ Here's a typical workflow for triaging a newly opened issue.
 
 7. **What labels and milestones should I add?**
 
-   Apply the relevant labels. This is a bit of an art, and comes with experience.
-   Look at similar issues to get a feel for how things are labeled.
+   Apply the relevant `labels <https://github.com/pandas-dev/pandas/labels>`_ that would help
+   other users and maintainers find this issue. Generally labels fall into:
 
-   If the issue is clearly defined and the fix seems relatively straightforward,
-   label the issue as "Good first issue".
+   * Project topics (e.g. "CI", "Web", "Community")
+   * Specific topic or API in the pandas library (e.g. "Sorting", "Index")
 
    If the issue is a regression report, add the "Regression" label and the next patch
    release milestone.
 
-   Once you have completed the above, make sure to remove the "Needs Triage" label.
+   Once you have triaged and validated the issue, make sure to remove the "Needs Triage" label.
 
 .. _maintaining.regressions:
 
@@ -250,7 +250,7 @@ and that's best done by ensuring that the quality of our open issues is high.
 
 Occasionally, bugs are fixed but the issue isn't linked to in the Pull Request.
 In these cases, comment that "This has been fixed, but could use a test." and
-label the issue as "Good First Issue" and "Needs Test".
+label the issue as "Needs Test".
 
 If an older issue doesn't follow our issue template, edit the original post to
 include a minimal example, the actual output, and the expected output. Uniformity
@@ -274,8 +274,7 @@ so passes with no response, thank them for their work and then either:
   across the line, or for fixing a small merge conflict.
 
 If closing the pull request, then please comment on the original issue that
-"There's a stalled PR at #1234 that may be helpful.", and perhaps label the issue
-as "Good first issue" if the PR was relatively close to being accepted.
+"There's a stalled PR at #1234 that may be helpful."
 
 Becoming a pandas maintainer
 ----------------------------
@@ -405,55 +404,65 @@ Pre-release
 Release
 ```````
 
-1. Create an empty commit and a tag in the last commit of the branch to be released::
+Run ``scripts/push_tag_for_release.sh`` from the root of your pandas clone to initiate the
+release process by locally creating and pushing a tagged commit, triggering the release automation.
+Specify the version and branch to release as arguments.
 
-    git checkout <branch>
-    git pull --ff-only upstream <branch>
-    git clean -xdf
-    git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
-    git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with "v" not 1.5.2
-    git push upstream <branch> --follow-tags
+.. code-block:: bash
 
-   The docs for the new version will be built and published automatically with the docs job in the CI,
-   which will be triggered when the tag is pushed.
+   # e.g. A patch release
+   scripts/push_tag_for_release.sh 3.0.5 3.0.x
+   # e.g. A release candidate
+   scripts/push_tag_for_release.sh 3.0.0rc0 main
 
-2. Only if the release is a release candidate, we want to create a new branch for it, immediately
-   after creating the tag. For example, if we are releasing pandas 1.4.0rc0, we would like to
-   create the branch 1.4.x to backport commits to the 1.4 versions. As well as create a tag to
-   mark the start of the development of 1.5.0 (assuming it is the next version)::
+.. note::
 
-    git checkout -b 1.4.x
-    git push upstream 1.4.x
-    git checkout main
-    git commit --allow-empty -m "Start 1.5.0"
-    git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
-    git push upstream main --follow-tags
+   After releasing the first release candidate of a new version:
 
-3. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
+   - Create a maintenance branch. For example:
 
-   - Tag: ``v<version>``
-   - Title: ``pandas <version>``
-   - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
-   - Files: ``pandas-<version>.tar.gz`` source distribution just generated
-   - Set as a pre-release: Only check for a release candidate
-   - Set as the latest release: Leave checked, unless releasing a patch release for an older version
-     (e.g. releasing 1.4.5 after 1.5 has been released)
+   .. code-block:: bash
 
-4. Verify wheels are uploaded automatically by GitHub Actions
-   via `"Trusted Publishing" <https://docs.pypi.org/trusted-publishers/>`__
-   when the GitHub `Release <https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases>`__
-   is published. Do not run ``twine upload`` manually.
+      git checkout main
+      git checkout -b 3.1.x
+      git push upstream 3.1.x
 
-5. Download the sdist from PyPI, and add it to the GitHub release.
+   - Start the development of the next version on ``main``
+     by pushing an empty commit and a ``dev0`` tag, e.g. for 3.2.0
 
-6. The GitHub release will after some hours trigger an
-   `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
-   (If you don't want to wait, you can open an issue titled ``@conda-forge-admin, please update version`` to trigger the bot.)
-   Merge it once the CI is green, and it will generate the conda-forge packages.
+   .. code-block:: bash
 
-   In case a manual PR needs to be done, the version, sha256 and build fields are the
-   ones that usually need to be changed. If anything else in the recipe has changed since
-   the last release, those changes should be available in ``ci/meta.yaml``.
+      git checkout main
+      git commit --allow-empty -m "Start 3.2.0"
+      git tag -a v3.2.0.dev0 -m "DEV: Start 3.2.0"
+      git push upstream main --follow-tags
+
+   - Update the GitHub milestone for the final release of the RC to backport
+     to the maintenance branch (e.g., 3.1.x).
+
+The release automation will then:
+
+- Upload the source distribution and wheels to `PyPI <https://pypi.org/project/pandas/#history>`_ via
+  `"Trusted Publishing" <https://docs.pypi.org/trusted-publishers/>`__
+
+- Create a draft `GitHub release <https://github.com/pandas-dev/pandas/releases>`_ with the source distribution.
+
+   .. note::
+
+      By default, the new Github release will be marked as the latest release.
+      For patch releases for an older version, unmark it as the latest release on the Github release page.
+
+- Create an `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_ from the new Github release.
+  This PR will need to be merged manually once its CI is green in order to generate conda-forge packages.
+
+   .. tip::
+
+      The automated conda-forge PR usually takes a while to generate. You can manually open
+      an `issue <https://github.com/conda-forge/pandas-feedstock/issues>`_ titled ``@conda-forge-admin, please update version``
+      to manually trigger the conda-forge PR.
+
+Then finally, verify that the upload to PyPI was successful, review the release
+notes of the GitHub release, and then publish the GitHub release.
 
 Post-Release
 ````````````

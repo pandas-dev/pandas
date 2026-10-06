@@ -30,10 +30,10 @@ import warnings
 import numpy as np
 
 from pandas._config import (
-    config,
     using_string_dtype,
 )
-from pandas._config.config import _global_config
+import pandas._config.config as cf
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -41,13 +41,16 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    PY312,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
     AttributeConflictWarning,
     ClosedFileError,
-    IncompatibilityWarning,
+    Pandas4Warning,
     PerformanceWarning,
     PossibleDataLossError,
 )
@@ -74,6 +77,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -95,6 +99,7 @@ from pandas.core.arrays.datetimes import tz_to_dtype
 from pandas.core.arrays.string_ import BaseStringArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
+    JointConditionBinOp,
     PyTablesExpr,
     maybe_expression,
 )
@@ -115,7 +120,6 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Iterator,
-        Sequence,
     )
     from types import (
         ModuleType,
@@ -140,8 +144,8 @@ if TYPE_CHECKING:
 
     from pandas.core.internals import Block
 
-# versioning attribute
-_version = "0.15.2"
+    _WhereArg: TypeAlias = dict[Any, Any] | list[Any] | tuple[Any, ...] | str
+
 
 # encoding
 _default_encoding = "UTF-8"
@@ -181,8 +185,14 @@ def _ensure_term(where, scope_level: int):
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
+        # Pre-3.12 the list comprehension created its own stack frame,
+        # requiring an extra +1 to reach the caller's scope. PEP 709
+        # inlined comprehensions in 3.12, removing that frame.
+        comp_adjustment = 0 if PY312 else 1
         where = [
-            Term(term, scope_level=level + 1) if maybe_expression(term) else term
+            Term(term, scope_level=level + comp_adjustment)
+            if maybe_expression(term)
+            else term
             for term in where
             if term is not None
         ]
@@ -190,12 +200,6 @@ def _ensure_term(where, scope_level: int):
         where = Term(where, scope_level=level)
     return where if where is None or len(where) else None
 
-
-incompatibility_doc: Final = """
-where criteria is being ignored as this version [%s] is too old (or
-not-defined), read the file in and write it out to a new file to upgrade (with
-the copy_to method)
-"""
 
 attribute_conflict_doc: Final = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
@@ -224,18 +228,62 @@ format_doc: Final = """
     put will default to 'fixed' and append will default to 'table'
 """
 
-with config.config_prefix("io.hdf"):
-    config.register_option("dropna_table", False, dropna_doc, validator=config.is_bool)
-    config.register_option(
+with cf.config_prefix("io.hdf"):
+    cf.register_option("dropna_table", False, dropna_doc, validator=cf.is_bool)
+    cf.register_option(
         "default_format",
         None,
         format_doc,
-        validator=config.is_one_of_factory(["fixed", "table", None]),
+        validator=cf.is_one_of_factory(["fixed", "table", None]),
     )
+
+cf.deprecate_option(
+    "io.hdf.dropna_table",
+    Pandas4Warning,
+    msg="io.hdf.dropna_table option is deprecated. Use DataFrame.dropna "
+    "before writing instead.",
+)
 
 # oh the troubles to reduce import time
 _table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
+
+
+_MISSING = object()
+
+
+def _set_attr_if_changed(attrs, name: str, value) -> None:
+    """
+    setattr on a PyTables AttributeSet only if the on-disk value differs.
+
+    Re-writing an HDF5 attribute to the same value is expensive — pytables
+    deletes and re-creates it, hitting the disk per attribute. On wide-table
+    appends this dominates runtime (GH#25839).
+    """
+    current = getattr(attrs, name, _MISSING)
+    if current is _MISSING:
+        setattr(attrs, name, value)
+        return
+    try:
+        equal = bool(current == value)
+    except (ValueError, TypeError):
+        equal = False
+    if not equal:
+        setattr(attrs, name, value)
+
+
+def _resolve_row_window(
+    start: int | None, stop: int | None, nrows: int
+) -> tuple[int, int]:
+    """
+    Resolve ``start``/``stop`` row bounds against a table holding ``nrows`` rows.
+
+    Slice semantics count a negative bound back from the end of the table *and*
+    clamp both bounds into ``[0, nrows]``, which is what a plain read does; the
+    row-coordinate paths have to agree with it.
+    """
+    start, stop, _ = slice(start, stop).indices(nrows)
+    return start, stop
 
 
 def _tables():
@@ -272,7 +320,7 @@ def to_hdf(
     index: bool = True,
     min_itemsize: int | dict[str, int] | None = None,
     nan_rep=None,
-    dropna: bool | None = None,
+    dropna: bool | lib.NoDefault | None = lib.no_default,
     data_columns: Literal[True] | list[str] | None = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
@@ -304,6 +352,7 @@ def to_hdf(
             errors=errors,
             encoding=encoding,
             dropna=dropna,
+            track_times=False,
         )
 
     if isinstance(path_or_buf, HDFStore):
@@ -322,7 +371,7 @@ def read_hdf(
     key=None,
     mode: str = "r",
     errors: str = "strict",
-    where: str | list | None = None,
+    where: str | list[Any] | None = None,
     start: int | None = None,
     stop: int | None = None,
     columns: list[str] | None = None,
@@ -334,7 +383,16 @@ def read_hdf(
     Read from the store, close it if we opened it.
 
     Retrieve pandas object stored in file, optionally based on where
-    criteria.
+    criteria. This function requires the
+    `PyTables <https://www.pytables.org/>`_ library.
+
+    .. note::
+
+       This function only reads HDF5 files written by pandas (via
+       :meth:`DataFrame.to_hdf`, :meth:`Series.to_hdf`, or :class:`HDFStore`),
+       which use a pandas-specific layout built on PyTables. Arbitrary HDF5
+       files produced by other tools such as ``h5py`` or plain PyTables are
+       not supported; use those libraries directly to read such files.
 
     .. warning::
 
@@ -400,7 +458,7 @@ def read_hdf(
     Examples
     --------
     >>> df = pd.DataFrame([[1, 1.0, "a"]], columns=["x", "y", "z"])  # doctest: +SKIP
-    >>> df.to_hdf("./store.h5", "data")  # doctest: +SKIP
+    >>> df.to_hdf("./store.h5", key="data")  # doctest: +SKIP
     >>> reread = pd.read_hdf("./store.h5")  # doctest: +SKIP
     """
     if mode not in ["r", "r+", "a"]:
@@ -439,6 +497,7 @@ def read_hdf(
         # so delegate to the iterator
         auto_close = True
 
+    read_succeeded = False
     try:
         if key is None:
             groups = store.groups()
@@ -460,7 +519,7 @@ def read_hdf(
                         "file contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
-        return store.select(
+        result = store.select(
             key,
             where=where,
             start=start,
@@ -470,13 +529,15 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, LookupError):
-        if not isinstance(path_or_buf, HDFStore):
-            # if there is an error, close the store if we opened it.
+        read_succeeded = True
+        return result
+    finally:
+        # If the read failed for any reason, close the store when we were the
+        # ones who opened it, so the caller can reopen the file (GH#28430). On
+        # success the store is left as-is: an iterator result needs it open.
+        if not read_succeeded and not isinstance(path_or_buf, HDFStore):
             with suppress(AttributeError):
                 store.close()
-
-        raise
 
 
 def _is_metadata_of(group: Node, parent_group: Node) -> bool:
@@ -499,6 +560,13 @@ class HDFStore:
     Dict-like IO interface for storing pandas objects in PyTables.
 
     Either Fixed or Table format.
+
+    .. note::
+
+       ``HDFStore`` uses a pandas-specific layout on top of PyTables and is
+       intended for round-tripping pandas objects. It cannot read arbitrary
+       HDF5 files produced by other tools such as ``h5py`` or plain PyTables;
+       use those libraries directly for general HDF5 interoperability.
 
     .. warning::
 
@@ -528,7 +596,10 @@ class HDFStore:
         Specifies a compression level for data.
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-        Specifies the compression library to be used.
+        Specifies the compression library to be used. This has no effect
+        unless ``complevel`` is set to a value greater than 0; passing
+        ``complib`` alone emits a ``UserWarning`` and produces an
+        uncompressed store.
         These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
@@ -585,6 +656,18 @@ class HDFStore:
         if complib is None and complevel is not None:
             complib = tables.filters.default_complib
 
+        if complib is not None and complevel is None:
+            # GH#29310 complib without complevel does not compress, because
+            # complevel defaults to 0. Warn rather than silently ignoring the
+            # requested library.
+            warnings.warn(
+                f"complib={complib!r} was specified without complevel; no "
+                "compression will be applied. Pass complevel (an int in 1-9) "
+                "to enable compression.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+
         self._path = stringify_path(path)
         if mode is None:
             mode = "a"
@@ -614,7 +697,7 @@ class HDFStore:
         return self.get(key)
 
     def __setitem__(self, key: str, value) -> None:
-        self.put(key, value)
+        self.put(key, value, track_times=False)
 
     def __delitem__(self, key: str) -> int | None:
         return self.remove(key)
@@ -714,7 +797,7 @@ class HDFStore:
     def __iter__(self) -> Iterator[str]:
         return iter(self.keys())
 
-    def items(self) -> Iterator[tuple[str, list]]:
+    def items(self) -> Iterator[tuple[str, Node]]:
         """
         iterate on key->group
         """
@@ -777,7 +860,25 @@ class HDFStore:
     @property
     def is_open(self) -> bool:
         """
-        return a boolean indicating whether the file is open
+        Return a boolean indicating whether the file is open.
+
+        ``HDFStore`` instances open the underlying PyTables file in their
+        constructor, but the file can be closed and reopened on the same
+        instance via :meth:`close` and :meth:`open`.
+
+        See Also
+        --------
+        HDFStore.open : Open the underlying file in the specified mode.
+        HDFStore.close : Close the underlying PyTables file handle.
+
+        Examples
+        --------
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.is_open  # doctest: +SKIP
+        True
+        >>> store.close()  # doctest: +SKIP
+        >>> store.is_open  # doctest: +SKIP
+        False
         """
         if self._handle is None:
             return False
@@ -787,10 +888,18 @@ class HDFStore:
         """
         Force all buffered modifications to be written to disk.
 
+        Useful when sharing access between processes -- call ``flush`` (with
+        ``fsync=True`` if needed) before releasing a write lock so that
+        readers see the latest data.
+
         Parameters
         ----------
-        fsync : bool (default False)
-          call ``os.fsync()`` on the file handle to force writing to disk.
+        fsync : bool, default False
+            Call ``os.fsync()`` on the file handle to force writing to disk.
+
+        See Also
+        --------
+        HDFStore.close : Close the underlying PyTables file handle.
 
         Notes
         -----
@@ -798,6 +907,14 @@ class HDFStore:
         to disk. With fsync, the operation will block until the OS claims the
         file has been written; however, other caching layers may still
         interfere.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.flush(fsync=True)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         if self._handle is not None:
             self._handle.flush()
@@ -950,7 +1067,7 @@ class HDFStore:
         stop: int | None = None,
     ):
         """
-        return the selection as an Index
+        Return the selection as an Index.
 
         .. warning::
 
@@ -960,13 +1077,40 @@ class HDFStore:
 
            See: https://docs.python.org/3/library/pickle.html for more.
 
-
         Parameters
         ----------
         key : str
+            Object being retrieved from file.
         where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
+            Conditions to apply to the selection. ``start`` and ``stop`` are
+            applied to the table before ``where``.
+        start : int, optional
+            Row number to start selection.
+        stop : int, optional
+            Row number to stop selection.
+
+        Returns
+        -------
+        Index
+            Integer positions of the matching rows; can be passed as
+            ``where`` to a subsequent ``select``.
+
+        See Also
+        --------
+        HDFStore.select : Retrieve a stored object, optionally filtered by
+            ``where``.
+        HDFStore.select_as_multiple : Retrieve pandas objects from multiple
+            tables.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append(
+        ...     "data", df, format="table", data_columns=["A"]
+        ... )  # doctest: +SKIP
+        >>> store.select_as_coordinates("data", "A>1")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         where = _ensure_term(where, scope_level=1)
         tbl = self.get_storer(key)
@@ -982,8 +1126,9 @@ class HDFStore:
         stop: int | None = None,
     ):
         """
-        return a single column from the table. This is generally only useful to
-        select an indexable
+        Return a single column from the table.
+
+        This is generally only useful to select an indexable.
 
         .. warning::
 
@@ -996,18 +1141,43 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Object being retrieved from file.
         column : str
             The column of interest.
         start : int or None, default None
+            Row number to start selection.
         stop : int or None, default None
+            Row number to stop selection.
+
+        Returns
+        -------
+        Series
+            A ``Series`` of the column's values.
 
         Raises
         ------
-        raises KeyError if the column is not found (or key is not a valid
-            store)
-        raises ValueError if the column can not be extracted individually (it
-            is part of a data block)
+        KeyError
+            If the column is not found, or ``key`` is not a valid store.
+        ValueError
+            If the column cannot be extracted individually (not an
+            indexable or a data column).
 
+        See Also
+        --------
+        HDFStore.select : Retrieve a stored object, optionally filtered by
+            ``where``.
+        HDFStore.select_as_coordinates : Return the matching row coordinates
+            as an Index.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append(
+        ...     "data", df, format="table", data_columns=["A"]
+        ... )  # doctest: +SKIP
+        >>> store.select_column("data", "A")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         tbl = self.get_storer(key)
         if not isinstance(tbl, Table):
@@ -1039,22 +1209,59 @@ class HDFStore:
 
         Parameters
         ----------
-        keys : a list of the tables
-        selector : the table to apply the where criteria (defaults to keys[0]
-            if not supplied)
-        columns : the columns I want back
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
-        iterator : bool, return an iterator, default False
-        chunksize : nrows to include in iteration, return an iterator
+        keys : list of str
+            Names of the tables to read.
+        where : list, optional
+            List of Term (or convertible) objects.
+        selector : str, optional
+            The table to apply the where criteria to. Defaults to ``keys[0]``.
+        columns : list, optional
+            Columns to return.
+        start : int, optional
+            Row number to start selection. Applied to each table before
+            ``where`` is evaluated.
+        stop : int, optional
+            Row number to stop selection. Applied to each table before
+            ``where`` is evaluated.
+        iterator : bool, default False
+            Return an iterator.
+        chunksize : int, optional
+            Number of rows to include in each iteration; implies
+            ``iterator=True``.
         auto_close : bool, default False
             Should automatically close the store when finished.
 
+        Returns
+        -------
+        DataFrame or TableIterator
+            Concatenated result from the selected tables. A ``TableIterator``
+            is returned instead when ``iterator=True`` or ``chunksize`` is
+            given.
+
         Raises
         ------
-        raises KeyError if keys or selector is not found or keys is empty
-        raises TypeError if keys is not a list or tuple
-        raises ValueError if the tables are not ALL THE SAME DIMENSIONS
+        KeyError
+            If ``keys`` or ``selector`` is not found, or ``keys`` is empty.
+        TypeError
+            If ``keys`` is not a list or tuple.
+        ValueError
+            If the tables do not all have the same number of rows.
+
+        See Also
+        --------
+        HDFStore.append_to_multiple : Append to multiple tables, splitting a
+            single object into a dict of column groups.
+        HDFStore.select : Retrieve a single stored object.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["C", "D"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("t1", df1, format="table")  # doctest: +SKIP
+        >>> store.append("t2", df2, format="table")  # doctest: +SKIP
+        >>> store.select_as_multiple(["t1", "t2"])  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         # default to single select
         where = _ensure_term(where, scope_level=1)
@@ -1149,8 +1356,8 @@ class HDFStore:
         data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
-        track_times: bool = True,
-        dropna: bool = False,
+        track_times: bool | lib.NoDefault = lib.no_default,
+        dropna: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
         Store object in HDFStore.
@@ -1180,8 +1387,10 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default False
             This will force Table format, append the input data to the existing.
-        complib : default None
-            This parameter is currently not accepted.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
+            Compression library to use, only applied with ``format='table'``.
+            None disables compression. See the ``complib`` parameter of
+            :class:`HDFStore` for the full list of supported compressors.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
@@ -1191,8 +1400,12 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str
-            Str to use as str nan representation.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns
+            (``format="table"`` only).
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
@@ -1209,13 +1422,31 @@ class HDFStore:
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
+
+            .. deprecated:: 3.1.0
+                The default value of ``track_times`` will change from ``True``
+                to ``False`` in a future version. Pass ``track_times=False``
+                explicitly to silence this warning and get deterministic
+                HDF5 files.
         dropna : bool, default False, optional
             Remove missing values.
+
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
 
         See Also
         --------
         HDFStore.info : Prints detailed information on the store.
         HDFStore.get_storer : Returns the storer object for a key.
+
+        Notes
+        -----
+        Writing an empty ``DataFrame`` or ``Series`` with ``format='table'``
+        or ``append=True`` is a no-op: nothing is written for ``key`` and a
+        ``UserWarning`` is emitted. Use ``format='fixed'`` to store an empty
+        object.
 
         Examples
         --------
@@ -1223,9 +1454,29 @@ class HDFStore:
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
         >>> store.put("data", df)  # doctest: +SKIP
         """
+        if dropna is not lib.no_default:
+            warnings.warn(
+                "The 'dropna' keyword in HDFStore.put is deprecated and "
+                "will be removed in a future version. Use DataFrame.dropna "
+                "before writing instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            dropna = False
         if format is None:
-            format = _global_config["io"]["hdf"]["default_format"] or "fixed"
+            format = config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
+        if track_times is lib.no_default:
+            warnings.warn(
+                "The default value of 'track_times' in HDFStore.put will "
+                "change from True to False in a future version. Pass "
+                "track_times=False explicitly to silence this warning and "
+                "get deterministic HDF5 files.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            track_times = True
         self._write_to_group(
             key,
             value,
@@ -1245,24 +1496,46 @@ class HDFStore:
 
     def remove(self, key: str, where=None, start=None, stop=None) -> int | None:
         """
-        Remove pandas object partially by specifying the where condition
+        Remove pandas object partially by specifying the where condition.
+
+        If ``where`` is not provided, the entire object stored at ``key``
+        (and any of its child nodes) is removed. When ``where`` is given,
+        only matching rows are deleted, which requires the object to be in
+        ``table`` format.
 
         Parameters
         ----------
         key : str
-            Node to remove or delete rows from
+            Node to remove or delete rows from.
         where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
+            Conditions selecting which rows to remove.
+        start : int, optional
+            Row number to start selection.
+        stop : int, optional
+            Row number to stop selection.
 
         Returns
         -------
-        number of rows removed (or None if not a Table)
+        int or None
+            Number of rows removed (or ``None`` if the object is not a Table).
 
         Raises
         ------
-        raises KeyError if key is not a valid store
+        KeyError
+            If ``key`` is not a valid store.
 
+        See Also
+        --------
+        HDFStore.append : Append data to an existing table.
+        HDFStore.put : Store an object in the file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.remove("data")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         where = _ensure_term(where, scope_level=1)
         try:
@@ -1313,7 +1586,7 @@ class HDFStore:
         nan_rep=None,
         chunksize: int | None = None,
         expectedrows=None,
-        dropna: bool | None = None,
+        dropna: bool | lib.NoDefault | None = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
@@ -1336,14 +1609,19 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
-        axes : default None
-            This parameter is currently not accepted.
+        axes : list, default None
+            Single-element list selecting the axis to store as the table's
+            indexed (appendable) axis: ``[0]`` for the index (the default) or
+            ``[1]`` for the columns. Ignored when appending to an existing
+            table, which keeps the axes it was created with.
         index : bool, default True
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
-        complib : default None
-            This parameter is currently not accepted.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
+            Compression library to use; None disables compression. See the
+            ``complib`` parameter of :class:`HDFStore` for the full list of
+            supported compressors.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
@@ -1355,15 +1633,26 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str
-            Str to use as str nan representation.
-        chunksize : int or None
-            Size to chunk the writing.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns.
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
+            Only used when the table is created; ignored on later appends,
+            which reuse whatever the table already stores.
+        chunksize : int, default 100000
+            Number of rows to write in each chunk.
         expectedrows : int
             Expected TOTAL row size of this table.
         dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
+
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
+
         data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
@@ -1387,6 +1676,9 @@ class HDFStore:
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
 
+        Appending an empty ``DataFrame`` or ``Series`` is a no-op: nothing is
+        written for ``key`` and a ``UserWarning`` is emitted.
+
         Examples
         --------
         >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -1406,10 +1698,19 @@ class HDFStore:
                 "columns is not a supported keyword in append, try data_columns"
             )
 
-        if dropna is None:
-            dropna = _global_config["io"]["hdf"]["dropna_table"]
+        if dropna is not lib.no_default:
+            warnings.warn(
+                "The 'dropna' keyword in HDFStore.append is deprecated and "
+                "will be removed in a future version. Use DataFrame.dropna "
+                "before writing instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            dropna = bool(dropna) if dropna is not None else False
+        else:
+            dropna = False
         if format is None:
-            format = _global_config["io"]["hdf"]["default_format"] or "table"
+            format = config["io"]["hdf"]["default_format"] or "table"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -1432,34 +1733,63 @@ class HDFStore:
 
     def append_to_multiple(
         self,
-        d: dict,
+        d: dict[str, Any],
         value,
         selector,
         data_columns=None,
         axes=None,
-        dropna: bool = False,
+        dropna: bool | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> None:
         """
-        Append to multiple tables
+        Append to multiple tables.
+
+        Splits ``value`` column-wise according to ``d`` and appends each
+        slice to the corresponding table. The ``selector`` table is the one
+        you query against; its columns are made data_columns so they can be
+        used in ``where`` clauses.
 
         Parameters
         ----------
-        d : a dict of table_name to table_columns, None is acceptable as the
-            values of one node (this will get all the remaining columns)
-        value : a pandas object
-        selector : a string that designates the indexable table; all of its
-            columns will be designed as data_columns, unless data_columns is
-            passed, in which case these are used
-        data_columns : list of columns to create as data columns, or True to
-            use all columns
-        dropna : if evaluates to True, drop rows from all tables if any single
-                 row in each table has all NaN. Default False.
+        d : dict
+            Mapping of table_name to table_columns. ``None`` is acceptable as
+            the values for one node (that table will get all the remaining
+            columns).
+        value : DataFrame or Series
+            Pandas object to split across the tables.
+        selector : str
+            Designates the indexable table; all of its columns will be made
+            data_columns unless ``data_columns`` is passed, in which case
+            those are used.
+        data_columns : list of str or True, optional
+            Columns to create as data columns, or ``True`` to use all columns.
+        axes : default None
+            This parameter is currently not accepted.
+        dropna : bool, default False
+            If ``True``, drop rows from all tables if any single row in each
+            table has all NaN.
 
-        Notes
-        -----
-        axes parameter is currently not accepted
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
+        **kwargs
+            Additional keyword arguments forwarded to :meth:`HDFStore.append`.
 
+        See Also
+        --------
+        HDFStore.append : Append to a single table.
+        HDFStore.select_as_multiple : Read from multiple tables with a
+            single ``where``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})  # doctest: +SKIP
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append_to_multiple(
+        ...     {"t1": ["A", "B"], "t2": None}, df, selector="t1"
+        ... )  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         if axes is not None:
             raise TypeError(
@@ -1483,7 +1813,7 @@ class HDFStore:
 
         # figure out how to split the value
         remain_key = None
-        remain_values: list = []
+        remain_values: list[Hashable] = []
         for k, v in d.items():
             if v is None:
                 if remain_key is not None:
@@ -1504,6 +1834,16 @@ class HDFStore:
             data_columns = d[selector]
 
         # ensure rows are synchronized across the tables
+        if dropna is not lib.no_default:
+            warnings.warn(
+                "The 'dropna' keyword in HDFStore.append_to_multiple is "
+                "deprecated and will be removed in a future version. Use "
+                "DataFrame.dropna before writing instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            dropna = False
         if dropna:
             idxs = (value[cols].dropna(how="all").index for cols in d.values())
             valid_index = next(idxs)
@@ -1537,9 +1877,16 @@ class HDFStore:
         """
         Create a pytables index on the table.
 
+        Indexes are automatically created on indexable axes and
+        ``data_columns`` during ``append``/``put`` when ``index=True``
+        (the default). This method lets you add or rebuild indexes after
+        the fact, which is **highly encouraged** because it greatly speeds
+        up ``select`` calls that filter on the indexed dimension.
+
         Parameters
         ----------
         key : str
+            Object stored in the file to index.
         columns : None, bool, or listlike[str]
             Indicate which columns to create an index on.
 
@@ -1555,7 +1902,22 @@ class HDFStore:
 
         Raises
         ------
-        TypeError: raises if the node is not a table
+        TypeError
+            If the node is not a table.
+
+        See Also
+        --------
+        HDFStore.append : Append data to an existing table; columns are
+            indexed automatically by default.
+        HDFStore.select : Filter on indexed columns for fast retrieval.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("data", df, format="table", index=False)  # doctest: +SKIP
+        >>> store.create_table_index("data", columns=["A"])  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         # version requirements
         _tables()
@@ -1567,7 +1929,7 @@ class HDFStore:
             raise TypeError("cannot create table index on a Fixed format store")
         s.create_index(columns=columns, optlevel=optlevel, kind=kind)
 
-    def groups(self) -> list:
+    def groups(self) -> list[Node]:
         """
         Return a list of all the top-level nodes.
 
@@ -1691,7 +2053,43 @@ class HDFStore:
         return node
 
     def get_storer(self, key: str) -> GenericFixed | Table:
-        """return the storer object for a key, raise if not in the file"""
+        """
+        Return the storer object for a key.
+
+        The storer is the low-level wrapper around the stored pandas object.
+        It exposes implementation details such as ``nrows`` (the row count
+        on disk) and ``table`` (the underlying PyTables ``Table``), which
+        can be useful for inspecting a store without loading its data.
+
+        Parameters
+        ----------
+        key : str
+            Object stored in the file.
+
+        Returns
+        -------
+        GenericFixed or Table
+            The storer wrapping the stored object. ``Table`` instances expose
+            attributes such as ``nrows`` and ``table``.
+
+        Raises
+        ------
+        KeyError
+            If ``key`` is not in the file.
+
+        See Also
+        --------
+        HDFStore.get : Read the stored object back into pandas.
+        HDFStore.info : Print a summary of the store's contents.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("data", df, format="table")  # doctest: +SKIP
+        >>> store.get_storer("data").nrows  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+        """
         group = self.get_node(key)
         if group is None:
             raise KeyError(f"No object named {key} in the file")
@@ -1714,19 +2112,49 @@ class HDFStore:
         """
         Copy the existing store to a new file, updating in place.
 
+        Each object stored in the current ``HDFStore`` is read and re-written
+        to the destination file, which can be useful for repacking (to
+        reclaim space after deletes), changing compression options, or
+        cloning a subset of keys.
+
         Parameters
         ----------
+        file : str or path-like
+            Destination file to write to.
+        mode : str, default 'w'
+            File mode for the destination, see :class:`HDFStore`.
         propindexes : bool, default True
             Restore indexes in copied file.
         keys : list, optional
             List of keys to include in the copy (defaults to all).
+        complib : str, optional
+            Compression library, see :class:`HDFStore`.
+        complevel : int, optional
+            Compression level, see :class:`HDFStore`.
+        fletcher32 : bool, default False
+            Whether to use the Fletcher32 checksum, see :class:`HDFStore`.
         overwrite : bool, default True
-            Whether to overwrite (remove and replace) existing nodes in the new store.
-        mode, complib, complevel, fletcher32 same as in HDFStore.__init__
+            Whether to overwrite (remove and replace) existing nodes in the
+            new store.
 
         Returns
         -------
-        open file handle of the new store
+        HDFStore
+            Open file handle of the new store.
+
+        See Also
+        --------
+        HDFStore.put : Write an object to the store.
+        HDFStore.append : Append to an existing table.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> new_store = store.copy("store_copy.h5")  # doctest: +SKIP
+        >>> new_store.close()  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         new_store = HDFStore(
             file, mode=mode, complib=complib, complevel=complevel, fletcher32=fletcher32
@@ -1755,7 +2183,7 @@ class HDFStore:
                         encoding=s.encoding,
                     )
                 else:
-                    new_store.put(k, data, encoding=s.encoding)
+                    new_store.put(k, data, encoding=s.encoding, track_times=False)
 
         return new_store
 
@@ -1951,8 +2379,14 @@ class HDFStore:
         track_times: bool = True,
     ) -> None:
         # we don't want to store a table node at all if our object is 0-len
-        # as there are not dtypes
+        # as there are no dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
+            warnings.warn(
+                "Writing an empty DataFrame or Series with format='table' "
+                f"or append=True is a no-op; nothing is written for key {key!r}.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
             return
 
         group = self._identify_group(key, append)
@@ -1962,7 +2396,12 @@ class HDFStore:
             # raise if we are trying to append to a Fixed format,
             #       or a table that exists (and we are putting)
             if not s.is_table or (s.is_table and format == "fixed" and s.is_exists):
-                raise ValueError("Can only append to Tables")
+                raise ValueError(
+                    f"Can only append to Tables; the write for key {key!r} "
+                    "uses the 'fixed' format. Pass format='table'; if a "
+                    "'fixed'-format object already exists at this key, remove "
+                    "or overwrite it first."
+                )
             if not s.is_exists:
                 s.set_object_info()
         else:
@@ -2006,8 +2445,30 @@ class HDFStore:
 
         # remove the node if we are not appending
         if group is not None and not append:
-            self._handle.remove_node(group, recursive=True)
-            group = None
+            assert _table_mod is not None  # for mypy
+            children = list(group._v_children.values())
+            # a "meta" subgroup of a stored object holds its metadata (e.g.
+            # categories for table-format categoricals), not a nested key
+            is_stored_object = getattr(group._v_attrs, "pandas_type", None) is not None
+            nested_keys = [
+                child
+                for child in children
+                if isinstance(child, _table_mod.group.Group)
+                and not (is_stored_object and child._v_name == "meta")
+            ]
+            if nested_keys:
+                # GH#17267: the group has child keys nested underneath it, so a
+                # recursive removal would silently delete them.  Remove only the
+                # nodes of the object stored at this key and reset its
+                # attributes, leaving the nested keys intact.
+                for child in children:
+                    if child not in nested_keys:
+                        self._handle.remove_node(child, recursive=True)
+                for attr_name in group._v_attrs._f_list("user"):
+                    delattr(group._v_attrs, attr_name)
+            else:
+                self._handle.remove_node(group, recursive=True)
+                group = None
 
         if group is None:
             group = self._create_nodes_and_group(key)
@@ -2082,17 +2543,14 @@ class TableIterator:
         if self.s.is_table:
             if nrows is None:
                 nrows = 0
-            if start is None:
-                start = 0
-            if stop is None:
-                stop = nrows
-            stop = min(nrows, stop)
+            start, stop = _resolve_row_window(start, stop, nrows)
 
         self.nrows = nrows
         self.start = start
         self.stop = stop
 
         self.coordinates = None
+        self._called_get_result = False
         if iterator or chunksize is not None:
             if chunksize is None:
                 chunksize = 100000
@@ -2102,14 +2560,20 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         # iterate
-        current = self.start
-        if self.coordinates is None:
+        if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
+        current = self.start
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
-            value = self.func(None, None, self.coordinates[current:stop])
+            if self.coordinates is None:
+                # no `where` filter: iterate by (start, stop) directly so we
+                # don't materialize an np.arange(0, nrows) coordinate array,
+                # which can exhaust memory on very large tables (GH#15937)
+                value = self.func(current, stop, None)
+            else:
+                value = self.func(None, None, self.coordinates[current:stop])
             current = stop
             if value is None or not len(value):
                 continue
@@ -2124,16 +2588,24 @@ class TableIterator:
 
     def get_result(self, coordinates: bool = False):
         #  return the actual iterator
+        self._called_get_result = True
         if self.chunksize is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only use an iterator or chunksize on a table")
 
-            self.coordinates = self.s.read_coordinates(where=self.where)
+            if self.where is not None:
+                # read_coordinates raises a clear NotImplementedError if the
+                #  where is a column projection (e.g. "columns=['A']") rather
+                #  than a row filter (GH#12953).
+                self.coordinates = self.s.read_coordinates(where=self.where)
 
             return self
 
         # if specified read via coordinates (necessary for multiple selections
-        if coordinates:
+        # so each table reads the same row set). Skip when self.where is None
+        # since every row would be selected anyway, and a coordinate-based read
+        # is much slower than a sequential read (GH#26771).
+        if coordinates and self.where is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only read_coordinates on a table")
             where = self.s.read_coordinates(
@@ -2164,7 +2636,11 @@ class IndexCol:
 
     is_an_indexable: bool = True
     is_data_indexable: bool = True
-    _info_fields = ["freq", "tz", "index_name"]
+    # GH#9604: set on a DataCol whose missing values use the sentinel in
+    # ``nan_rep`` rather than a table-wide one (an old file, or a table written
+    # with an explicit nan_rep).
+    uses_col_nan_rep: bool = False
+    _info_fields = ["freq", "tz", "index_name", "ordered"]
 
     def __init__(
         self,
@@ -2182,6 +2658,7 @@ class IndexCol:
         table=None,
         meta=None,
         metadata=None,
+        nan_rep=None,
     ) -> None:
         if not isinstance(name, str):
             raise ValueError("`name` must be a str.")
@@ -2200,6 +2677,9 @@ class IndexCol:
         self.table = table
         self.meta = meta
         self.metadata = metadata
+        # GH#9604: the sentinel used on write to encode this column's missing
+        # values (None when it had none).
+        self.nan_rep = nan_rep
 
         if pos is not None:
             self.set_pos(pos)
@@ -2217,6 +2697,14 @@ class IndexCol:
     @property
     def kind_attr(self) -> str:
         return f"{self.name}_kind"
+
+    @property
+    def meta_attr(self) -> str:
+        return f"{self.name}_meta"
+
+    @property
+    def nan_rep_attr(self) -> str:
+        return f"{self.name}_nan_rep"
 
     def set_pos(self, pos: int) -> None:
         """set the position of this column in the Table"""
@@ -2269,19 +2757,69 @@ class IndexCol:
             # preventing the original recarry from being free'ed
             values = values[self.cname].copy()
 
+        if self.meta == "category":
+            # GH#33909, GH#16118: reconstruct a CategoricalIndex from the
+            # stored integer codes and the categories saved as metadata.
+            categories = self.metadata
+            codes = values.ravel()
+
+            # Mirror DataCol.convert's NaN-category handling so a
+            # CategoricalIndex round-trips through format="table". GH#65576
+            if categories is None:
+                # Zero-category (all-NaN) case: PyTables cannot store an
+                # empty metadata array, so it round-trips as None.
+                categories = Index([], dtype=np.float64)
+            else:
+                mask = isna(categories)
+                if mask.any():
+                    # A category decodes to NaN when it equaled the nan_rep
+                    # string on write; drop NaN categories and remap the
+                    # codes so from_codes does not reject a null category.
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
+                    categories = categories[~mask]
+                    codes = np.where(codes < 0, codes, remap[codes])
+
+            cat = Categorical.from_codes(
+                codes,
+                categories=categories,
+                ordered=bool(self.ordered),
+                validate=False,
+            )
+            cat_index = CategoricalIndex._simple_new(cat, name=self.index_name)
+            return cat_index, cat_index
+
         val_kind = self.kind
-        values = _maybe_convert(values, val_kind, encoding, errors)
+        # GH#9604: self.nan_rep (set from the persisted per-index sentinel) lets
+        # a string Index restore missing values while leaving a literal "nan".
+        values = _maybe_convert(values, val_kind, encoding, errors, self.nan_rep)
         kwargs = {}
         kwargs["name"] = self.index_name
+
+        if val_kind == "string" and using_string_dtype():
+            # GH#9604: an all-missing string Index -- or an all-missing
+            #  slice/chunk of one -- cannot be inferred back to str, which
+            #  would make the index dtype depend on which rows were read.
+            kwargs["dtype"] = "str"
 
         if self.freq is not None:
             kwargs["freq"] = self.freq
 
-        factory: type[Index | DatetimeIndex] = Index
+        factory: type[Index | DatetimeIndex | TimedeltaIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
             factory = DatetimeIndex
+        elif val_kind.startswith("timedelta64"):
+            # GH#21466 timedelta values are stored as i8; restore the original
+            #  m8[unit] view so we round-trip to TimedeltaIndex (and not to
+            #  PeriodIndex/Index via the i8 branches below).
+            if val_kind == "timedelta64":
+                # legacy file: written before we stored timedelta64 resolution
+                values = values.view("m8[ns]")
+            else:
+                values = values.view(val_kind)
+            factory = TimedeltaIndex
         elif values.dtype == "i8" and "freq" in kwargs:
             # PeriodIndex data is stored as i8
             # error: Incompatible types in assignment (expression has type
@@ -2301,11 +2839,8 @@ class IndexCol:
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
-                new_pd_index = factory(
-                    values,
-                    dtype=StringDtype(storage="python", na_value=np.nan),
-                    **kwargs,
-                )
+                kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
+                new_pd_index = factory(values, **kwargs)
             else:
                 raise
         except ValueError:
@@ -2344,7 +2879,7 @@ class IndexCol:
         """return my cython values"""
         return self.values
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None) -> None:
@@ -2394,9 +2929,24 @@ class IndexCol:
         # check for backwards incompatibility
         if append:
             existing_kind = getattr(self.attrs, self.kind_attr, None)
-            if existing_kind is not None and existing_kind != self.kind:
+            if existing_kind is None:
+                # brand new table, nothing to be incompatible with
+                return
+            if existing_kind != self.kind:
                 raise TypeError(
                     f"incompatible kind in col [{existing_kind} - {self.kind}]"
+                )
+            existing_meta = getattr(self.attrs, self.meta_attr, None)
+            if existing_meta != self.meta:
+                # A CategoricalIndex stores its codes, so both sides are kind
+                # "integer" and the check above passes; without this the append
+                # silently reinterprets codes as labels or vice versa. GH#65576
+                if self.meta == "category":
+                    raise TypeError(
+                        "cannot append a categorical index to a non-categorical index"
+                    )
+                raise TypeError(
+                    "cannot append a non-categorical index to a categorical index"
                 )
 
     def update_info(self, info) -> None:
@@ -2438,7 +2988,17 @@ class IndexCol:
 
     def set_attr(self) -> None:
         """set the kind for this column"""
-        setattr(self.attrs, self.kind_attr, self.kind)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.kind)
+        if self.meta is not None:
+            # Persist meta="category" so an all-NaN CategoricalIndex, whose
+            # empty categories cannot be written as metadata, still round-trips
+            # as categorical rather than as raw integer codes. GH#65576
+            _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
+        if self.kind == "string":
+            # GH#9604: the NaN sentinel, empty when the index has no missing
+            # value, so that its absence marks an older file. Table.indexables
+            # reads it back through _read_index_nan_rep.
+            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep or "")
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -2453,8 +3013,10 @@ class IndexCol:
                 )
             ):
                 raise ValueError(
-                    "cannot append a categorical with "
-                    "different categories to the existing"
+                    "cannot append a categorical with different categories "
+                    "to the existing; align with `cat.set_categories(...)` "
+                    "or pre-merge with `pd.api.types.union_categoricals` "
+                    "before writing"
                 )
 
     def write_metadata(self, handler: AppendableTable) -> None:
@@ -2545,10 +3107,6 @@ class DataCol(IndexCol):
     def dtype_attr(self) -> str:
         return f"{self.name}_dtype"
 
-    @property
-    def meta_attr(self) -> str:
-        return f"{self.name}_meta"
-
     def __repr__(self) -> str:
         temp = tuple(
             map(
@@ -2591,9 +3149,17 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, dtype[Any]]" has no
-        # attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[union-attr]
+        # GH#26144, GH#38305, GH#42070. CategoricalDtype/DatetimeTZDtype have
+        # working code paths below; PeriodDtype is handled in a separate effort.
+        if isinstance(dtype, ExtensionDtype) and not isinstance(
+            dtype, (CategoricalDtype, DatetimeTZDtype, PeriodDtype)
+        ):
+            raise NotImplementedError(
+                f"Cannot store a column with dtype {dtype} in an HDF5 file. "
+                "HDFStore supports NumPy dtypes, datetime64 with timezone, "
+                "categorical, and string extension types."
+            )
+        itemsize = dtype.itemsize
 
         shape = values.shape
         if values.ndim == 1:
@@ -2691,6 +3257,10 @@ class DataCol(IndexCol):
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
+            if not values.flags["ALIGNED"]:
+                # GH#54396 copy to realign; unaligned buffers SIGBUS
+                #  on strict-alignment platforms (e.g. 32-bit ARM)
+                values = values.copy()
 
         assert self.typ is not None
         if self.dtype is None:
@@ -2728,6 +3298,13 @@ class DataCol(IndexCol):
                 converted = np.asarray(converted, dtype="m8[ns]")
             else:
                 converted = np.asarray(converted, dtype=dtype)
+        elif dtype.startswith("period"):
+            # GH#41978 PeriodArray values are stored as i8 ordinals; the
+            # PyTables atom has shape (1,) per row, so ravel before wrapping.
+            pdtype = PeriodDtype.construct_from_string(dtype)
+            converted = PeriodArray._simple_new(
+                np.asarray(converted, dtype="i8").ravel(), dtype=pdtype
+            )
         elif dtype == "date":
             try:
                 converted = np.asarray(
@@ -2755,8 +3332,13 @@ class DataCol(IndexCol):
             else:
                 mask = isna(categories)
                 if mask.any():
+                    # A category can be NaN if the nan_rep string was itself
+                    # a genuine category on write. Drop NaN categories and
+                    # remap the codes. GH#21741
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum()._values
+                    codes = np.where(codes < 0, codes, remap[codes])
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered, validate=False
@@ -2770,18 +3352,31 @@ class DataCol(IndexCol):
 
         # convert nans / decode
         if kind == "string":
+            if self.uses_col_nan_rep:
+                # GH#9604: None when the column had no missing value, in which
+                # case a literal "nan" is left untouched
+                col_nan_rep = self.nan_rep
+            else:
+                # the table-wide nan_rep, which the writer defaulted to "nan"
+                col_nan_rep = nan_rep if nan_rep is not None else "nan"
             converted = _unconvert_string_array(
-                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
+                converted,
+                nan_rep=col_nan_rep,
+                encoding=encoding,
+                errors=errors,
             )
 
         return self.values, converted
 
     def set_attr(self) -> None:
         """set the data for this column"""
-        setattr(self.attrs, self.kind_attr, self.values)
-        setattr(self.attrs, self.meta_attr, self.meta)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.values)
+        _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
         assert self.dtype is not None
-        setattr(self.attrs, self.dtype_attr, self.dtype)
+        _set_attr_if_changed(self.attrs, self.dtype_attr, self.dtype)
+        if self.nan_rep is not None:
+            # GH#9604: this column's own NaN sentinel (see convert).
+            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep)
 
 
 class DataIndexableCol(DataCol):
@@ -2851,23 +3446,6 @@ class Fixed:
         self.errors = errors
 
     @property
-    def is_old_version(self) -> bool:
-        return self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1
-
-    @property
-    def version(self) -> tuple[int, int, int]:
-        """compute and set our version"""
-        version = getattr(self.group._v_attrs, "pandas_version", None)
-        if isinstance(version, str):
-            version_tup = tuple(int(x) for x in version.split("."))
-            if len(version_tup) == 2:
-                version_tup = (*version_tup, 0)
-            assert len(version_tup) == 3  # needed for mypy
-            return version_tup
-        else:
-            return (0, 0, 0)
-
-    @property
     def pandas_type(self):
         return getattr(self.group._v_attrs, "pandas_type", None)
 
@@ -2883,9 +3461,8 @@ class Fixed:
         return self.pandas_type
 
     def set_object_info(self) -> None:
-        """set my pandas type & version"""
+        """set my pandas type"""
         self.attrs.pandas_type = str(self.pandas_kind)
-        self.attrs.pandas_version = str(_version)
 
     def copy(self) -> Fixed:
         new_self = copy.copy(self)
@@ -2943,9 +3520,6 @@ class Fixed:
         if other is None:
             return None
         return True
-
-    def validate_version(self, where=None) -> None:
-        """are we trying to operate on an old version?"""
 
     def infer_axes(self) -> bool:
         """
@@ -3008,17 +3582,16 @@ class GenericFixed(Fixed):
     def _get_index_factory(self, attrs):
         index_class = self._alias_to_class(getattr(attrs, "index_class", ""))
 
-        factory: Callable
+        factory: Callable[..., Index]
 
         kwargs = {}
         if index_class == DatetimeIndex:
 
             def f(values, freq=None, tz=None):  # pyright: ignore[reportRedeclaration]
                 # data are already in UTC, localize and convert if tz present
-                dta = DatetimeArray._simple_new(
-                    values.values, dtype=values.dtype, freq=freq
-                )
+                dta = DatetimeArray._simple_new(values.values, dtype=values.dtype)
                 result = DatetimeIndex._simple_new(dta, name=None)
+                result._freq = freq
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
@@ -3036,8 +3609,26 @@ class GenericFixed(Fixed):
             factory = index_class
             kwargs["copy"] = False
 
-        if "freq" in attrs:
-            kwargs["freq"] = attrs["freq"]
+        if "freq" in attrs and attrs["freq"] is not None:
+            # GH#33186 old versions of pandas wrote a freq=None attr on every
+            # index, including non-datetimelike ones; only a non-None freq is
+            # meaningful (and only a TimedeltaIndex reaches here as plain Index).
+            freq_attr = attrs["freq"]
+            if isinstance(freq_attr, bytes):
+                # GH#35917: HDF5 files written by old (Python 2) pandas
+                #  stored freq as a Python 2 pickle byte-string, which
+                #  pytables can't unpickle in Python 3. The original
+                #  freq is unrecoverable, so drop it. The index data
+                #  itself is unaffected; users can manually reassign
+                #  via `df.index.freq = df.index.inferred_freq`.
+                warnings.warn(
+                    "Could not decode freq attribute on stored index; "
+                    "the file was likely written by an older pandas "
+                    "version. Setting freq=None.",
+                    stacklevel=find_stack_level(),
+                )
+                freq_attr = None
+            kwargs["freq"] = freq_attr
             if index_class is Index:
                 # DTI/PI would be gotten by _alias_to_class
                 factory = TimedeltaIndex
@@ -3121,6 +3712,10 @@ class GenericFixed(Fixed):
                 else:
                     ret = np.asarray(ret, dtype=dtype)
 
+            elif dtype and dtype.startswith("period"):
+                pdtype = PeriodDtype.construct_from_string(dtype)
+                ret = PeriodArray._simple_new(np.asarray(ret, dtype="i8"), dtype=pdtype)
+
         if transposed:
             return ret.T
         else:
@@ -3144,6 +3739,19 @@ class GenericFixed(Fixed):
         if isinstance(index, MultiIndex):
             setattr(self.attrs, f"{key}_variety", "multi")
             self.write_multi_index(key, index)
+        elif isinstance(index, CategoricalIndex):
+            # GH#33909: round-trip a CategoricalIndex by storing its integer
+            # codes at this key and the categories at a sibling node. This
+            # also avoids _convert_index, which has no fixed-format support
+            # for the "category" dtype.
+            setattr(self.attrs, f"{key}_variety", "regular")
+            cat = index._values
+            self.write_array(key, np.asarray(cat.codes))
+            self.write_index(f"{key}_categories", Index(cat.categories))
+            node = getattr(self.group, key)
+            node._v_attrs.kind = "category"
+            node._v_attrs.name = index.name
+            node._v_attrs.ordered = bool(cat.ordered)
         else:
             setattr(self.attrs, f"{key}_variety", "regular")
             converted = _convert_index("index", index, self.encoding, self.errors)
@@ -3153,6 +3761,10 @@ class GenericFixed(Fixed):
             node = getattr(self.group, key)
             node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
+
+            if converted.kind == "string":
+                # GH#9604: the NaN sentinel, as in IndexCol.set_attr
+                node._v_attrs.nan_rep = converted.nan_rep or ""
 
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
@@ -3183,6 +3795,10 @@ class GenericFixed(Fixed):
             node._v_attrs.kind = conv_level.kind
             node._v_attrs.name = name
 
+            if conv_level.kind == "string":
+                # GH#9604: the NaN sentinel, as in IndexCol.set_attr
+                node._v_attrs.nan_rep = conv_level.nan_rep or ""
+
             # write the name
             setattr(node._v_attrs, f"{key}_name{name}", name)
 
@@ -3201,7 +3817,9 @@ class GenericFixed(Fixed):
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
-            lev = self.read_index_node(node, start=start, stop=stop)
+            # A level holds the unique values, not one entry per row, so it must
+            # be read in full; only the codes are sliced by start/stop.
+            lev = self.read_index_node(node)
             levels.append(lev)
             names.append(lev.name)
 
@@ -3227,8 +3845,27 @@ class GenericFixed(Fixed):
         if "name" in node._v_attrs:
             name = _ensure_str(node._v_attrs.name)
 
+        if kind == "category":
+            # GH#33909: reconstruct CategoricalIndex from sliced codes plus
+            # categories saved at a sibling node by write_index.
+            categories = self.read_index(f"{node._v_name}_categories")
+            ordered = bool(getattr(node._v_attrs, "ordered", False))
+            cat = Categorical.from_codes(
+                data, categories=categories, ordered=ordered, validate=False
+            )
+            return CategoricalIndex._simple_new(cat, name=name)
+
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
+
+        nan_rep = _read_index_nan_rep(attrs) if kind == "string" else None
+
+        if kind == "string" and using_string_dtype():
+            # GH#9604: once the sentinel is substituted back to NaN, dtype
+            #  inference can only recover str if some non-missing string
+            #  survives, so an all-missing index would silently degrade to
+            #  object. Pin the dtype the values were written with instead.
+            kwargs["dtype"] = "str"
 
         if kind in ("date", "object"):
             index = factory(
@@ -3242,7 +3879,11 @@ class GenericFixed(Fixed):
             try:
                 index = factory(
                     _unconvert_index(
-                        data, kind, encoding=self.encoding, errors=self.errors
+                        data,
+                        kind,
+                        encoding=self.encoding,
+                        errors=self.errors,
+                        nan_rep=nan_rep,
                     ),
                     **kwargs,
                 )
@@ -3253,11 +3894,15 @@ class GenericFixed(Fixed):
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
+                    kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
                     index = factory(
                         _unconvert_index(
-                            data, kind, encoding=self.encoding, errors=self.errors
+                            data,
+                            kind,
+                            encoding=self.encoding,
+                            errors=self.errors,
+                            nan_rep=nan_rep,
                         ),
-                        dtype=StringDtype(storage="python", na_value=np.nan),
                         **kwargs,
                     )
                 else:
@@ -3338,12 +3983,22 @@ class GenericFixed(Fixed):
                     pass
                 elif inferred_type == "string":
                     pass
-                elif _global_config["mode"]["performance_warnings"]:
+                elif config["mode"]["performance_warnings"]:
+                    # GH#28460 a single object block may hold several columns;
+                    #  only flag the ones that are not plain strings, since a
+                    #  string-only column would not warn on its own.
+                    if value.ndim == 2 and items is not None:
+                        block = cast("np.ndarray", value)
+                        mask = [
+                            not lib.is_string_array(block[:, j], skipna=False)
+                            for j in range(block.shape[1])
+                        ]
+                        items = items[mask]
                     ws = performance_doc % (inferred_type, key, items)
                     warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
                 vlarr = self._handle.create_vlarray(
-                    self.group, key, _tables().ObjectAtom()
+                    self.group, key, _tables().ObjectAtom(), filters=self._filters
                 )
                 vlarr.append(value)
 
@@ -3368,9 +4023,30 @@ class GenericFixed(Fixed):
             elif lib.is_np_dtype(value.dtype, "m"):
                 self._handle.create_array(self.group, key, value.view("i8"))
                 getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+            elif isinstance(value.dtype, PeriodDtype):
+                # GH#41978 store PeriodArray as i8 ordinals + freq attr
+                # error: "ExtensionArray" has no attribute "asi8"
+                self._handle.create_array(
+                    self.group,
+                    key,
+                    value.asi8,  # type: ignore[attr-defined]
+                )
+                node = getattr(self.group, key)
+                node._v_attrs.value_type = str(value.dtype)
             elif empty_array:
                 self.write_array_empty(key, value)
             else:
+                # GH#26144, GH#38305, GH#42070. PeriodDtype intentionally falls
+                # through here; it is handled in a separate effort.
+                if isinstance(value.dtype, ExtensionDtype) and not isinstance(
+                    value.dtype, PeriodDtype
+                ):
+                    raise NotImplementedError(
+                        f"Cannot store a column with dtype {value.dtype} in "
+                        'an HDF5 file with format="fixed". HDFStore supports '
+                        "NumPy dtypes, datetime64 with timezone, categorical, "
+                        "and string extension types."
+                    )
                 self._handle.create_array(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
@@ -3385,7 +4061,12 @@ class SeriesFixed(GenericFixed):
     @property
     def shape(self) -> tuple[int] | None:
         try:
-            return (len(self.group.values),)
+            node = self.group.values
+            if "shape" in node._v_attrs:
+                # GH#37235 an empty array is stored as a length-1 sentinel
+                # (see write_array_empty); the true shape is in this attr.
+                return tuple(node._v_attrs.shape)
+            return (len(node),)
         except (TypeError, AttributeError):
             return None
 
@@ -3446,9 +4127,17 @@ class BlockManagerFixed(GenericFixed):
 
             # data shape
             node = self.group.block0_values
-            shape = getattr(node, "shape", None)
-            if shape is not None:
-                shape = list(shape[0 : (ndim - 1)])
+            data_shape: tuple[Any, ...] | None
+            if "shape" in node._v_attrs:
+                # GH#37235 an empty block is stored un-transposed as a
+                # (1,)*ndim sentinel (see write_array_empty), with the true
+                # shape in this attr. Reverse it to match the transposed
+                # layout used for non-empty blocks.
+                data_shape = tuple(reversed(node._v_attrs.shape))
+            else:
+                data_shape = getattr(node, "shape", None)
+            if data_shape is not None:
+                shape = list(data_shape[0 : (ndim - 1)])
             else:
                 shape = []
 
@@ -3483,7 +4172,13 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(f"block{i}_values", start=_start, stop=_stop)
 
             columns = items[items.get_indexer(blk_items)]
-            df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
+            arr = values.T
+            if isinstance(arr, np.ndarray):
+                # DataFrame stores the block as arr.T, so pass a Fortran-ordered
+                # arr to get a C-contiguous block (column-major DataFrame), so
+                # per-column access is contiguous (GH#22073, GH#60469).
+                arr = np.asfortranarray(arr)
+            df = DataFrame(arr, columns=columns, index=axes[1], copy=False)
             if (
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
@@ -3493,7 +4188,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1).copy()
+            out = concat(dfs, axis=1)
             return out.reindex(columns=items)
 
         return DataFrame(columns=axes[0], index=axes[1])
@@ -3555,7 +4250,7 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1  # pyright: ignore[reportRedeclaration]
     is_table = True
 
-    metadata: list
+    metadata: list[Any]
 
     def __init__(
         self,
@@ -3566,8 +4261,8 @@ class Table(Fixed):
         index_axes: list[IndexCol] | None = None,
         non_index_axes: list[tuple[AxisInt, Any]] | None = None,
         values_axes: list[DataCol] | None = None,
-        data_columns: list | None = None,
-        info: dict | None = None,
+        data_columns: list[str] | None = None,
+        info: dict[Hashable, Any] | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
@@ -3588,14 +4283,9 @@ class Table(Fixed):
         jdc = ",".join(self.data_columns) if len(self.data_columns) else ""
         dc = f",dc->[{jdc}]"
 
-        ver = ""
-        if self.is_old_version:
-            jver = ".".join([str(x) for x in self.version])
-            ver = f"[{jver}]"
-
         jindex_axes = ",".join([a.name for a in self.index_axes])
         return (
-            f"{self.pandas_type:12.12}{ver} "
+            f"{self.pandas_type:12.12} "
             f"(typ->{self.table_type_short},nrows->{self.nrows},"
             f"ncols->{self.ncols},indexers->[{jindex_axes}]{dc})"
         )
@@ -3659,6 +4349,13 @@ class Table(Fixed):
         new object
         """
         levels = com.fill_missing_names(obj.index.names)
+        if "index" in levels:
+            # GH#6208 'index' is reserved as the implicit row-index name
+            # in the table format and collides with a level named 'index'.
+            raise ValueError(
+                "cannot store a MultiIndex with a level named 'index' as a "
+                "table; 'index' is reserved for the implicit row index"
+            )
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:
@@ -3755,6 +4452,11 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
+        if len(values) == 0:
+            # PyTables cannot store a zero-len array; the read path already
+            # treats a missing metadata node as an empty categories Index,
+            # so skipping the write is the contract we've relied on.
+            return
         self.parent.put(
             self._get_metadata_path(key),
             Series(values, copy=False),
@@ -3762,6 +4464,7 @@ class Table(Fixed):
             encoding=self.encoding,
             errors=self.errors,
             nan_rep=self.nan_rep,
+            track_times=False,
         )
 
     def read_metadata(self, key: str):
@@ -3781,6 +4484,14 @@ class Table(Fixed):
         self.attrs.encoding = self.encoding
         self.attrs.errors = self.errors
         self.attrs.levels = self.levels
+        # GH#9604: marks that string MultiIndex levels are stored with a
+        # per-level NaN sentinel (older files lack it and read back as before).
+        # self.levels is the int default 1 for non-MI tables, a list for MI.
+        self.attrs.mi_level_nan_rep = isinstance(self.levels, list)
+        # GH#9604: every string data column is stored with its own NaN
+        # sentinel, superseding mi_level_nan_rep. A caller-supplied nan_rep
+        # keeps its documented table-wide meaning, so such a table opts out.
+        self.attrs.data_col_nan_rep = self.nan_rep is None
         self.attrs.info = self.info
 
     def get_attrs(self) -> None:
@@ -3794,17 +4505,6 @@ class Table(Fixed):
         self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []  # pyright: ignore[reportRedeclaration]
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
-
-    def validate_version(self, where=None) -> None:
-        """are we trying to operate on an old version?"""
-        if where is not None:
-            if self.is_old_version:
-                ws = incompatibility_doc % ".".join([str(x) for x in self.version])
-                warnings.warn(
-                    ws,
-                    IncompatibilityWarning,
-                    stacklevel=find_stack_level(),
-                )
 
     def validate_min_itemsize(self, min_itemsize) -> None:
         """
@@ -3834,6 +4534,12 @@ class Table(Fixed):
 
         desc = self.description
         table_attrs = self.table.attrs
+        # GH#9604: levels / the MultiIndex-level marker live on the group attrs
+        # (self.attrs), not the table-node attrs used for per-column metadata.
+        levels_attr = getattr(self.attrs, "levels", None)
+        levels = levels_attr if isinstance(levels_attr, list) else []
+        mi_level_marker = getattr(self.attrs, "mi_level_nan_rep", False)
+        data_col_marker = getattr(self.attrs, "data_col_nan_rep", False)
 
         # Note: each of the `name` kwargs below are str, ensured
         #  by the definition in index_cols.
@@ -3841,10 +4547,21 @@ class Table(Fixed):
         for i, (axis, name) in enumerate(self.attrs.index_cols):
             atom = getattr(desc, name)
             md = self.read_metadata(name)
-            meta = "category" if md is not None else None
+            # Prefer the explicit meta attribute (written since GH#65576); it
+            # survives even when the categories are empty and no metadata node
+            # exists. Fall back to inferring from the metadata node for files
+            # written before the attribute was persisted.
+            meta = getattr(table_attrs, f"{name}_meta", None)
+            if meta is None and md is not None:
+                meta = "category"
 
             kind_attr = f"{name}_kind"
             kind = getattr(table_attrs, kind_attr, None)
+            nan_rep = (
+                _read_index_nan_rep(table_attrs, f"{name}_nan_rep")
+                if kind == "string"
+                else None
+            )
 
             index_col = IndexCol(
                 name=name,
@@ -3855,6 +4572,8 @@ class Table(Fixed):
                 table=self.table,
                 meta=meta,
                 metadata=md,
+                nan_rep=nan_rep,
+                ordered=self.info.get(name, {}).get("ordered"),
             )
             _indexables.append(index_col)
 
@@ -3869,11 +4588,10 @@ class Table(Fixed):
                 klass = DataIndexableCol
 
             atom = getattr(desc, c)
-            adj_name = _maybe_adjust_name(c, self.version)
 
             # TODO: why kind_attr here?
-            values = getattr(table_attrs, f"{adj_name}_kind", None)
-            dtype = getattr(table_attrs, f"{adj_name}_dtype", None)
+            values = getattr(table_attrs, f"{c}_kind", None)
+            dtype = getattr(table_attrs, f"{c}_dtype", None)
             # Argument 1 to "_dtype_to_kind" has incompatible type
             # "Optional[Any]"; expected "str"  [arg-type]
             kind = _dtype_to_kind(dtype)  # type: ignore[arg-type]
@@ -3881,10 +4599,18 @@ class Table(Fixed):
             md = self.read_metadata(c)
             # TODO: figure out why these two versions of `meta` dont always match.
             #  meta = "category" if md is not None else None
-            meta = getattr(table_attrs, f"{adj_name}_meta", None)
+            meta = getattr(table_attrs, f"{c}_meta", None)
+
+            # GH#9604: mi_level_nan_rep predates data_col_nan_rep and covers
+            # only the MultiIndex levels, which keep a sentinel even when the
+            # caller supplied a nan_rep for the data columns.
+            uses_col_nan_rep = data_col_marker or (c in levels and mi_level_marker)
+            nan_rep = (
+                getattr(table_attrs, f"{c}_nan_rep", None) if uses_col_nan_rep else None
+            )
 
             obj = klass(
-                name=adj_name,
+                name=c,
                 cname=c,
                 values=values,
                 kind=kind,
@@ -3894,7 +4620,10 @@ class Table(Fixed):
                 meta=meta,
                 metadata=md,
                 dtype=dtype,
+                ordered=self.info.get(c, {}).get("ordered"),
             )
+            obj.uses_col_nan_rep = uses_col_nan_rep
+            obj.nan_rep = nan_rep
             return obj
 
         # Note: the definition of `values_cols` ensures that each
@@ -4028,7 +4757,9 @@ class Table(Fixed):
         """return the data for this obj"""
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes) -> list:
+    def validate_data_columns(
+        self, data_columns, min_itemsize, non_index_axes, index_cnames=()
+    ) -> list[Hashable]:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4038,11 +4769,27 @@ class Table(Fixed):
 
         axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, {})
-        if info.get("type") == "MultiIndex" and data_columns:
-            raise ValueError(
-                f"cannot use a multi-index on axis [{axis}] with "
-                f"data_columns {data_columns}"
-            )
+        if info.get("type") == "MultiIndex":
+            if data_columns:
+                raise ValueError(
+                    f"cannot use a multi-index on axis [{axis}] with "
+                    f"data_columns {data_columns}"
+                )
+            if isinstance(min_itemsize, dict):
+                # GH#12154 'values' sizes every string column and the index
+                # cname(s) size the row index; both are legal here. Only
+                # per-column keys are unsupported for MultiIndex columns.
+                allowed = {"values", *index_cnames}
+                mi_keys = [k for k in min_itemsize if k not in allowed]
+                if mi_keys:
+                    raise ValueError(
+                        f"cannot use min_itemsize keys {mi_keys} on axis "
+                        f"[{axis}] with a MultiIndex; per-column "
+                        "min_itemsize requires data_columns, which are not "
+                        "supported with MultiIndex columns. Use "
+                        "min_itemsize={'values': N} to apply a single "
+                        "min_itemsize across all string columns."
+                    )
 
         # evaluate the passed data_columns, True == use all columns
         # take only valid axis labels
@@ -4112,12 +4859,19 @@ class Table(Fixed):
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
 
+        # GH#9604: None means no nan_rep was requested, so each string column
+        # mints a collision-free sentinel instead. A caller-supplied one keeps
+        # its documented table-wide meaning and is persisted, so a later append
+        # to the same table keeps it.
+        user_nan_rep = nan_rep
+
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
             table_exists = True
             axes = [a.axis for a in self.index_axes]
             data_columns = list(self.data_columns)
-            nan_rep = self.nan_rep
+            # an existing table's nan_rep supersedes whatever this append passed
+            nan_rep = user_nan_rep = self.nan_rep
             # TODO: do we always have validate=True here?
         else:
             table_exists = False
@@ -4132,7 +4886,7 @@ class Table(Fixed):
             )
 
         # create according to the new data
-        new_non_index_axes: list = []
+        new_non_index_axes: list[Any] = []
 
         # nan_representation
         if nan_rep is None:
@@ -4173,12 +4927,87 @@ class Table(Fixed):
         idx = axes[0]
         a = obj.axes[idx]
         axis_name = obj._get_axis_name(idx)
-        new_index = _convert_index(axis_name, a, self.encoding, self.errors)
+        # GH#9604: reuse the string-Index NaN sentinel persisted by an earlier
+        # append so it is stable across chunks; if none has been persisted yet
+        # but this chunk introduces a missing value, choose the sentinel against
+        # the values already stored so it cannot collide with them.
+        existing_nan_rep = None
+        existing_values = None
+        if table_exists:
+            existing_index_col = self.index_axes[0]
+            existing_nan_rep = existing_index_col.nan_rep
+            if existing_index_col.kind == "string" and not hasattr(
+                self.table.attrs, existing_index_col.nan_rep_attr
+            ):
+                # _read_index_nan_rep assumes "nan" is the sentinel of a file
+                # written before one was persisted, which only holds if such a
+                # value is stored. Without one the column has no sentinel to
+                # protect, so a literal "nan" may still be appended to it. Test
+                # the raw bytes rather than decoding a possibly large column.
+                stored = getattr(self.table.cols, existing_index_col.cname)[:]
+                if not (stored == existing_nan_rep.encode(self.encoding)).any():
+                    existing_nan_rep = None
+            if (
+                existing_nan_rep is None
+                and existing_index_col.kind == "string"
+                and np.asarray(a.isna()).any()
+            ):
+                existing_values = _read_stored_column_values(
+                    self.table, existing_index_col.cname, self.encoding, self.errors
+                )
+        new_index = _convert_index(
+            axis_name,
+            a,
+            self.encoding,
+            self.errors,
+            existing_nan_rep=existing_nan_rep,
+            existing_values=existing_values,
+        )
         new_index.axis = idx
 
         # Because we are always 2D, there is only one new_index, so
         #  we know it will have pos=0
         new_index.set_pos(0)
+
+        if table_exists and new_index.kind == existing_index_col.kind == "integer":
+            # A PeriodIndex is stored as its i8 ordinals with kind "integer", so
+            # freq is the only thing separating it from a plain integer index.
+            # Check it before update_info silently overwrites the stored freq,
+            # which would reinterpret the rows already stored. GH#68523
+            existing_freq = new_info.get(new_index.name, {}).get("freq")
+            if existing_freq != new_index.freq:
+                if existing_freq is None:
+                    raise TypeError(
+                        "cannot append a period index to a non-period index"
+                    )
+                if new_index.freq is None:
+                    raise TypeError(
+                        "cannot append a non-period index to a period index"
+                    )
+                # PeriodDtype's alias ("M"), not the offset's datetime alias
+                # ("ME"), which Period itself rejects. Same alias and warning
+                # filter as raise_on_incompatible.
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        r"PeriodDtype\[B\] is deprecated",
+                        category=FutureWarning,
+                    )
+                    existing_str = PeriodDtype(existing_freq)._freqstr
+                    new_str = PeriodDtype(new_index.freq)._freqstr
+                raise TypeError(
+                    f"incompatible freq in col [{existing_str} - {new_str}]"
+                )
+
+        # tz can only differ within a matching kind; a differing one already
+        # gets validate_attr's more specific message.
+        if table_exists and new_index.kind == existing_index_col.kind:
+            _check_tz_conflict(
+                new_index.name,
+                new_info.get(new_index.name, {}).get("tz"),
+                new_index.tz,
+            )
+
         new_index.update_info(new_info)
         new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
@@ -4195,8 +5024,18 @@ class Table(Fixed):
 
         # figure out data_columns and get out blocks
         data_columns = self.validate_data_columns(
-            data_columns, min_itemsize, new_non_index_axes
+            data_columns, min_itemsize, new_non_index_axes, (new_index.cname,)
         )
+
+        if new_index.cname in data_columns:
+            # GH#41437 the implicit row index is stored under the reserved
+            # cname (typically 'index') and a data column of the same name
+            # would collide with it in the table description.
+            raise ValueError(
+                f"cannot use a column named {new_index.cname!r} as a "
+                f"data_column; {new_index.cname!r} is reserved for the "
+                "implicit row index"
+            )
 
         frame = self.get_object(obj, transposed)._consolidate()
 
@@ -4235,17 +5074,45 @@ class Table(Fixed):
                 existing_col = None
 
             new_name = name or f"values_block_{i}"
+
+            # GH#9604: the read path honors a per-column sentinel only when
+            # the table carries the marker attribute, which set_attrs writes at
+            # creation and an append cannot add retroactively. So when appending
+            # to a table written before the marker existed, keep encoding
+            # missing values with the table-wide nan_rep, otherwise the sentinel
+            # would be read back as a literal string.
+            level_names = self.levels if isinstance(self.levels, list) else []
+            is_level = name is not None and name in level_names
+            if table_exists:
+                uses_col_nan_rep = bool(
+                    getattr(self.attrs, "data_col_nan_rep", False)
+                ) or (is_level and bool(getattr(self.attrs, "mi_level_nan_rep", False)))
+            else:
+                # a MultiIndex level is part of the index rather than of the
+                # data, so a caller-supplied nan_rep does not govern it
+                uses_col_nan_rep = user_nan_rep is None or is_level
+            col_nan_rep = None
+            if uses_col_nan_rep:
+                col_nan_rep = _make_data_col_nan_rep(
+                    blk.values,
+                    b_items,
+                    existing_col,
+                    self.table,
+                    self.encoding,
+                    self.errors,
+                )
+            block_nan_rep = col_nan_rep if col_nan_rep is not None else nan_rep
+
             data_converted = _maybe_convert_for_string_atom(
                 new_name,
                 blk.values,
                 existing_col=existing_col,
                 min_itemsize=min_itemsize,
-                nan_rep=nan_rep,
+                nan_rep=block_nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
                 columns=b_items,
             )
-            adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
@@ -4263,8 +5130,13 @@ class Table(Fixed):
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
+            # A new tz-aware data column's kind carries the tz while the
+            # stored one's does not, so gate on the dtype actually persisted.
+            if existing_col is not None and existing_col.dtype == dtype_name:
+                _check_tz_conflict(new_name, new_info.get(new_name, {}).get("tz"), tz)
+
             col = klass(
-                name=adj_name,
+                name=new_name,
                 cname=new_name,
                 values=list(b_items),
                 typ=typ,
@@ -4277,6 +5149,8 @@ class Table(Fixed):
                 dtype=dtype_name,
                 data=data,
             )
+            col.uses_col_nan_rep = uses_col_nan_rep
+            col.nan_rep = col_nan_rep
             col.update_info(new_info)
 
             vaxes.append(col)
@@ -4295,7 +5169,7 @@ class Table(Fixed):
             values_axes=vaxes,
             data_columns=dcs,
             info=new_info,
-            nan_rep=nan_rep,
+            nan_rep=user_nan_rep,
         )
         if hasattr(self, "levels"):
             # TODO: get this into constructor, only for appropriate subclass
@@ -4404,7 +5278,12 @@ class Table(Fixed):
                     # this might be the name of a file IN an axis
                     elif field in axis_values:
                         # we need to filter on this dimension
-                        values = ensure_index(getattr(obj, field).values)
+                        # use the column Series rather than .values so the
+                        #  filter respects the column dtype -- .values strips
+                        #  tz from a datetimetz column and the isin below then
+                        #  matches nothing (GH#12953). This mirrors the
+                        #  coordinate path in Selection.select_coords.
+                        values = obj[field]
                         filt = ensure_index(filt)
 
                         # hack until we support reversed dim flags
@@ -4461,24 +5340,50 @@ class Table(Fixed):
         select coordinates (row numbers) from a table; return the
         coordinates object
         """
-        # validate the version
-        self.validate_version(where)
-
         # infer the data kind
         if not self.infer_axes():
             return False
 
+        if where is not None and self._where_selects_columns(where):
+            raise NotImplementedError(
+                "selecting columns through the 'where' expression "
+                "(e.g. \"columns=['A']\") is a column projection, not a row "
+                "filter, so it cannot be read as row coordinates (e.g. with "
+                "select_as_coordinates, select_as_multiple, iterator, or "
+                "chunksize); use the 'columns' argument of 'select' instead"
+            )
+
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         coords = selection.select_coords()
-        if selection.filter is not None:
-            for field, op, filt in selection.filter.format():
-                data = self.read_column(
-                    field, start=coords.min(), stop=coords.max() + 1
-                )
-                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
 
         return Index(coords, copy=False)
+
+    def _where_selects_columns(self, where) -> bool:
+        """
+        Whether ``where`` contains a column selection such as "columns=['A']".
+
+        Such a selection is a column projection rather than a row filter, which
+        cannot be applied via row coordinates and so is unsupported on any
+        coordinate-based read -- ``iterator``/``chunksize``,
+        :meth:`select_as_coordinates`, and :meth:`select_as_multiple`
+        (GH#12953); ``read_coordinates`` raises a clear error instead of a
+        cryptic ``KeyError``.
+        """
+        if not self.non_index_axes:
+            return False
+
+        selection = Selection(self, where=where)
+        if selection.filter is None:
+            return False
+
+        # a data-column row filter has a field matching a readable column; a
+        # column selection's field is the column-axis name (e.g. "columns")
+        data_column_names = {a.name for a in self.axes}
+        return any(
+            field not in data_column_names
+            for field, _op, _filt in selection.filter.format()
+        )
 
     def read_column(
         self,
@@ -4491,9 +5396,6 @@ class Table(Fixed):
         return a single column from the table, generally only indexables
         are interesting
         """
-        # validate the version
-        self.validate_version()
-
         # infer the data kind
         if not self.infer_axes():
             return False
@@ -4811,9 +5713,6 @@ class AppendableFrameTable(AppendableTable):
         start: int | None = None,
         stop: int | None = None,
     ):
-        # validate the version
-        self.validate_version(where)
-
         # infer the data kind
         if not self.infer_axes():
             return None
@@ -4946,7 +5845,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s.set_index(self.levels, inplace=True)
+            s = s.set_index(self.levels)
 
         s = s.iloc[:, 0]
 
@@ -5116,6 +6015,22 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     return zone
 
 
+def _check_tz_conflict(
+    name: str, existing_tz: str | tzinfo | None, tz: str | tzinfo | None
+) -> None:
+    """
+    Raise if an append would add or drop the timezone of a stored column.
+
+    The read path localizes the whole stored column with this single tz, so
+    changing it reinterprets the rows already written. update_info raises only
+    when both sides are set, leaving the None cases silent. GH#68583
+    """
+    if existing_tz is None and tz is not None:
+        raise TypeError(f"cannot append tz-aware data to tz-naive col [{name}]")
+    if existing_tz is not None and tz is None:
+        raise TypeError(f"cannot append tz-naive data to tz-aware col [{name}]")
+
+
 def _set_tz(
     values: npt.NDArray[np.int64], tz: str | tzinfo | None, datetime64_dtype: str
 ) -> DatetimeArray:
@@ -5140,10 +6055,165 @@ def _set_tz(
     return dta
 
 
-def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:
+def _read_index_nan_rep(attrs, name: str = "nan_rep") -> str | None:
+    """
+    Read back the NaN sentinel persisted for a string Index column (GH#9604).
+
+    The writer records the attribute for every string Index, empty when the
+    index had no missing value, so its absence means the file predates the
+    sentinel. Such a file stored a NaN as the bare string "nan", which is how
+    pandas read it back before the sentinel existed.
+    """
+    nan_rep = getattr(attrs, name, "nan")
+    return nan_rep or None
+
+
+def _make_nan_rep(
+    values: np.ndarray, mask: np.ndarray, existing: set[Any] | None = None
+) -> str:
+    """
+    Choose a string NaN sentinel for a string column that does not collide with
+    any non-missing value, so genuine missing values round-trip without being
+    confused with a literal string such as ``"nan"`` (GH#9604).
+
+    ``existing`` holds values already stored for this column in a prior
+    ``table``-format append; the sentinel must avoid those too, since a single
+    sentinel is persisted for the whole column.
+    """
+    non_missing = values[~mask]
+    if lib.infer_dtype(non_missing, skipna=True) != "string":
+        # Only a str can equal the sentinel, and an elementwise == against a
+        # list or ndarray element is not a bool. Dropping the rest also keeps an
+        # unhashable element from raising here, ahead of the "Cannot serialize
+        # the column" message it deserves.
+        non_missing = np.array(
+            [val for val in non_missing if isinstance(val, str)], dtype=object
+        )
+    nan_rep = "nan"
+    while (non_missing == nan_rep).any() or (
+        existing is not None and nan_rep in existing
+    ):
+        nan_rep = f"_{nan_rep}_"
+    return nan_rep
+
+
+def _read_stored_column_values(
+    table, cname: str, encoding: str, errors: str
+) -> set[Any]:
+    """
+    Read the values already stored for a string column (GH#9604), so a NaN
+    sentinel chosen for a later append cannot collide with them.
+    """
+    raw = getattr(table.cols, cname)[:]
+    decoded = _unconvert_string_array(
+        raw, nan_rep=None, encoding=encoding, errors=errors
+    )
+    # a multi-column data block stores a 2-D array; one sentinel covers it all
+    return set(decoded.ravel())
+
+
+def _make_data_col_nan_rep(
+    blk_values,
+    columns: list[Hashable],
+    existing_col,
+    table,
+    encoding: str,
+    errors: str,
+) -> str | None:
+    """
+    Choose the NaN sentinel for a string data column, mirroring the string-Index
+    handling (GH#9604): reuse the sentinel already persisted for the column,
+    otherwise mint a collision-free one, and only when the column actually has a
+    missing value. Returns None when no sentinel is needed (a literal "nan" then
+    round-trips because the read path skips substitution when the sentinel is
+    absent).
+    """
+    if isinstance(blk_values.dtype, StringDtype):
+        blk_values = blk_values.to_numpy()
+    if blk_values.dtype != object:
+        return None
+
+    values = np.asarray(blk_values)
+    flat = values.reshape(-1)
+    mask = isna(flat)
+    nan_rep = existing_col.nan_rep if existing_col is not None else None
+    if mask.any() and nan_rep is None:
+        existing_values = None
+        if existing_col is not None and existing_col.kind == "string":
+            existing_values = _read_stored_column_values(
+                table, existing_col.cname, encoding, errors
+            )
+        nan_rep = _make_nan_rep(flat, mask, existing_values)
+    if (
+        nan_rep is not None
+        # an elementwise == against a list/ndarray element is not a bool, and a
+        # non-string column has _maybe_convert_for_string_atom's much better
+        # "Cannot serialize the column" error waiting for it anyway
+        and lib.infer_dtype(flat, skipna=True) == "string"
+        and (flat[~mask] == nan_rep).any()
+    ):
+        # A real value equal to the sentinel is indistinguishable from a
+        # missing value on read; refuse rather than silently corrupt it.
+        collides = (values == nan_rep) & ~isna(values)
+        # a block is (n_columns, n_rows), so the first axis picks the label
+        pos = int(np.argmax(collides.any(axis=1))) if collides.ndim == 2 else 0
+        label = columns[pos]
+        raise ValueError(
+            f"Cannot store the string {str(nan_rep)!r} in column [{label}]: it "
+            "collides with the sentinel used to encode missing values on disk"
+        )
+    return nan_rep
+
+
+def _convert_index(
+    name: str,
+    index: Index,
+    encoding: str,
+    errors: str,
+    existing_nan_rep: str | None = None,
+    existing_values: set[Any] | None = None,
+) -> IndexCol:
     assert isinstance(name, str)
 
     index_name = index.name
+    # GH#26144, GH#38305, GH#42070: most extension dtypes cannot be stored as
+    # an Index in HDF5. Allow the ones that have working code paths below
+    # (DatetimeTZ/Period via i8 conversion, BooleanDtype via is_bool_dtype,
+    # StringDtype, CategoricalDtype) and reject everything else early before
+    # _dtype_to_kind / _get_atom choke with a low-level error.
+    # BooleanDtype round-trips lossily but does not error on main, so it
+    # remains carved out here.
+    if (
+        isinstance(index.dtype, ExtensionDtype)
+        and not needs_i8_conversion(index.dtype)
+        and not is_bool_dtype(index.dtype)
+        and not isinstance(index.dtype, (StringDtype, CategoricalDtype))
+    ):
+        raise NotImplementedError(
+            f"Cannot store an Index with dtype {index.dtype} in an HDF5 file. "
+            "HDFStore supports NumPy dtypes, datetime64 with timezone, "
+            "categorical, and string extension types."
+        )
+
+    if isinstance(index.dtype, CategoricalDtype):
+        # GH#33909, GH#16118: round-trip a CategoricalIndex by storing its
+        # integer codes as the column data and the categories as metadata,
+        # mirroring how a CategoricalDtype data column is persisted.
+        cat = cast("Categorical", index._values)
+        converted, dtype_name = _get_data_and_dtype_name(cat)
+        kind = _dtype_to_kind(dtype_name)
+        atom = DataIndexableCol._get_atom(converted)
+        return IndexCol(
+            name,
+            values=converted,
+            kind=kind,
+            typ=atom,
+            index_name=index_name,
+            meta="category",
+            metadata=np.asarray(cat.categories).ravel(),
+            ordered=cat.ordered,
+        )
+
     # error: Argument 1 to "_get_data_and_dtype_name" has incompatible type "Index";
     # expected "Union[ExtensionArray, ndarray]"
     converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[arg-type]
@@ -5183,6 +6253,32 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             name, converted, "date", _tables().Time32Col(), index_name=index_name
         )
     elif inferred_type == "string":
+        # GH#9604: a genuine missing value and the literal string "nan" both
+        # serialize to b"nan" via the fixed-width string cast, so they cannot
+        # be told apart on read. Substitute the missing values with a sentinel
+        # that does not collide with any real value and persist it (see
+        # write_index / IndexCol.set_attr) so the reader can restore the NAs
+        # while leaving a literal "nan" untouched.
+        mask = np.asarray(index.isna())
+        # Reuse the sentinel already persisted for this column (a ``table``
+        # append) so it stays stable across chunks; only mint a fresh one when
+        # none exists yet, avoiding every value already stored (existing_values)
+        # as well as the ones in this chunk.
+        nan_rep = existing_nan_rep
+        if mask.any() and nan_rep is None:
+            nan_rep = _make_nan_rep(values, mask, existing_values)
+        if nan_rep is not None:
+            if (values[~mask] == nan_rep).any():
+                # A real value equal to the sentinel is indistinguishable from a
+                # missing value on read; refuse rather than silently corrupt it.
+                raise ValueError(
+                    f"Cannot store the string {str(nan_rep)!r} in Index column "
+                    f"[{name}]: it collides with the sentinel used to encode "
+                    "missing values in this column"
+                )
+            if mask.any():
+                values = values.copy()
+                values[mask] = nan_rep
         converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
         return IndexCol(
@@ -5191,6 +6287,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             "string",
             _tables().StringCol(itemsize),
             index_name=index_name,
+            nan_rep=nan_rep,
         )
 
     elif inferred_type in ["integer", "floating"]:
@@ -5204,7 +6301,9 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         return IndexCol(name, converted, kind, atom, index_name=index_name)
 
 
-def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray | Index:
+def _unconvert_index(
+    data, kind: str, encoding: str, errors: str, nan_rep=None
+) -> np.ndarray | Index:
     index: Index | np.ndarray
 
     if kind.startswith("datetime64"):
@@ -5228,7 +6327,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
         index = np.asarray(data)
     elif kind in ("string"):
         index = _unconvert_string_array(
-            data, nan_rep=None, encoding=encoding, errors=errors
+            data, nan_rep=nan_rep, encoding=encoding, errors=errors
         )
     elif kind == "object":
         index = np.asarray(data[0])
@@ -5274,7 +6373,13 @@ def _maybe_convert_for_string_atom(
     data[mask] = nan_rep
 
     if existing_col and mask.any() and len(nan_rep) > existing_col.itemsize:
-        raise ValueError("NaN representation is too large for existing column size")
+        raise ValueError(
+            "NaN representation is too large for existing column size: "
+            f"{str(nan_rep)!r} has length {len(nan_rep)} but this column has a "
+            f"limit of {existing_col.itemsize}!\n"
+            "It can be longer than the values themselves. Recreate the table "
+            "passing min_itemsize to reserve room for it."
+        )
 
     # see if we have a valid string type
     inferred_type = lib.infer_dtype(data, skipna=False)
@@ -5355,7 +6460,10 @@ def _unconvert_string_array(
     Parameters
     ----------
     data : np.ndarray[fixed-length-string]
-    nan_rep : the storage repr of NaN
+    nan_rep : the storage repr of NaN, or None to skip substitution.
+        Pass None when the writer did not encode NaN as a sentinel string;
+        otherwise legitimate occurrences of the sentinel value would be
+        incorrectly replaced with NaN on read.
     encoding : str
     errors : str
         Handler for encoding errors.
@@ -5381,29 +6489,29 @@ def _unconvert_string_array(
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
-    if nan_rep is None:
-        nan_rep = "nan"
-
-    libwriters.string_array_replace_from_nan_rep(data, nan_rep)
+    if nan_rep is not None:
+        libwriters.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 
-def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str):
+def _maybe_convert(
+    values: np.ndarray, val_kind: str, encoding: str, errors: str, nan_rep=None
+):
     assert isinstance(val_kind, str), type(val_kind)
     if _need_convert(val_kind):
-        conv = _get_converter(val_kind, encoding, errors)
+        conv = _get_converter(val_kind, encoding, errors, nan_rep)
         values = conv(values)
     return values
 
 
-def _get_converter(kind: str, encoding: str, errors: str):
+def _get_converter(kind: str, encoding: str, errors: str, nan_rep=None):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif "datetime64" in kind:
         return lambda x: np.asarray(x, dtype=kind)
     elif kind == "string":
         return lambda x: _unconvert_string_array(
-            x, nan_rep=None, encoding=encoding, errors=errors
+            x, nan_rep=nan_rep, encoding=encoding, errors=errors
         )
     else:  # pragma: no cover
         raise ValueError(f"invalid kind {kind}")
@@ -5413,31 +6521,6 @@ def _need_convert(kind: str) -> bool:
     if kind in ("datetime64", "string") or "datetime64" in kind:
         return True
     return False
-
-
-def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
-    """
-    Prior to 0.10.1, we named values blocks like: values_block_0 and the
-    name values_0, adjust the given name if necessary.
-
-    Parameters
-    ----------
-    name : str
-    version : Tuple[int, int, int]
-
-    Returns
-    -------
-    str
-    """
-    if isinstance(version, str) or len(version) < 3:
-        raise ValueError("Version is incorrect, expected sequence of 3 integers.")
-
-    if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-        m = re.search(r"values_block_(\d+)", name)
-        if m:
-            grp = m.groups()[0]
-            name = f"values_{grp}"
-    return name
 
 
 def _dtype_to_kind(dtype_str: str) -> str:
@@ -5491,11 +6574,51 @@ def _get_data_and_dtype_name(data: ArrayLike):
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?
 
-    elif isinstance(data, PeriodIndex):
+    elif isinstance(data, (PeriodIndex, PeriodArray)):
         data = data.asi8
 
     data = np.asarray(data)
     return data, dtype_name
+
+
+def _or_of_ands_columns(condition) -> set[str]:
+    """
+    Look for an OR with at least one AND operand, e.g. ``(A & B) | (C & D)``
+    or ``(A & B) | C``, in a pruned PyTables condition tree. The AND operand
+    need not span two columns -- ``(A > 1 & A < 5) | B`` counts too.
+
+    This is the query shape that can trigger an upstream PyTables bug where
+    index-accelerated reads silently drop matching rows (GH#50598). Return the
+    set of column names referenced by the AND-ed operands of such an OR, or an
+    empty set if the pattern is not present.
+
+    Only the AND-ed operands matter: the bug needs one of *their* columns to be
+    indexed. Indexing a column that appears solely as a bare OR operand (the
+    ``C`` of ``(A & B) | C``) does not trigger it.
+    """
+    cols: set[str] = set()
+
+    def collect(node) -> None:
+        """Add every column name referenced under ``node``."""
+        if not isinstance(node, JointConditionBinOp):
+            # leaf comparison: lhs.value is the column name
+            cols.add(node.lhs.value)
+            return
+        collect(node.lhs)
+        collect(node.rhs)
+
+    def visit(node) -> None:
+        if not isinstance(node, JointConditionBinOp):
+            return
+        if node.op == "|":
+            for operand in (node.lhs, node.rhs):
+                if isinstance(operand, JointConditionBinOp) and operand.op == "&":
+                    collect(operand)
+        visit(node.lhs)
+        visit(node.rhs)
+
+    visit(condition)
+    return cols
 
 
 class Selection:
@@ -5528,25 +6651,26 @@ class Selection:
 
         if is_list_like(where):
             # see if we have a passed coordinate like
-            with suppress(ValueError):
-                inferred = lib.infer_dtype(where, skipna=False)
-                if inferred in ("integer", "boolean"):
-                    where = np.asarray(where)
-                    if where.dtype == np.bool_:
-                        start, stop = self.start, self.stop
-                        if start is None:
-                            start = 0
-                        if stop is None:
-                            stop = self.table.nrows
-                        self.coordinates = np.arange(start, stop)[where]
-                    elif issubclass(where.dtype.type, np.integer):
-                        if (self.start is not None and (where < self.start).any()) or (
-                            self.stop is not None and (where >= self.stop).any()
-                        ):
-                            raise ValueError(
-                                "where must have index locations >= start and < stop"
-                            )
-                        self.coordinates = where
+            inferred = lib.infer_dtype(where, skipna=False)
+            if inferred in ("integer", "boolean"):
+                where = np.asarray(where)
+                # start/stop are None on the read_coordinates paths, which is how
+                #  an out-of-range coordinate used to reach PyTables unchecked
+                start, stop = _resolve_row_window(
+                    self.start, self.stop, self.table.nrows
+                )
+                if where.dtype == np.bool_:
+                    self.coordinates = np.arange(start, stop)[where]
+                elif issubclass(where.dtype.type, np.integer):
+                    invalid = where[(where < start) | (where >= stop)]
+                    if len(invalid):
+                        raise ValueError(
+                            "where must have index locations >= start and < stop, "
+                            f"but got {invalid[:5].tolist()}"
+                            f"{' ...' if len(invalid) > 5 else ''} "
+                            f"with start={start} and stop={stop}"
+                        )
+                    self.coordinates = where
 
         if self.coordinates is None:
             self.terms = self.generate(where)
@@ -5555,13 +6679,43 @@ class Selection:
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
 
+    def _warn_if_unreliable_or(self) -> None:
+        """
+        Warn for nested-OR queries with AND-ed operands over indexed columns
+        (e.g. ``(A & B) | (C & D)``) that can return incorrect results due to
+        an upstream PyTables bug (GH#50598).
+
+        Called from the query methods rather than ``__init__``: one read builds
+        several ``Selection`` objects for the same ``where``, and only the one
+        that runs the condition should warn.
+        """
+        table = getattr(self.table, "table", None)
+        if table is None:
+            return
+        cols = _or_of_ands_columns(self.condition)
+        if not any(
+            table.colinstances[name].is_indexed
+            for name in cols
+            if name in table.colnames
+        ):
+            return
+        warnings.warn(
+            "Querying with a nested 'where' that ORs AND-ed conditions over "
+            "indexed columns (e.g. '(A & B) | (C & D)') can silently match the "
+            "wrong rows due to an upstream PyTables bug (GH#50598). To get "
+            "correct results, write the table with 'index=False', or split the "
+            "'where' into one operation per OR branch.",
+            UserWarning,
+            stacklevel=find_stack_level(),
+        )
+
     @overload
-    def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
+    def generate(self, where: _WhereArg) -> PyTablesExpr: ...
 
     @overload
     def generate(self, where: None) -> None: ...
 
-    def generate(self, where: dict | list | tuple | str | None) -> PyTablesExpr | None:
+    def generate(self, where: _WhereArg | None) -> PyTablesExpr | None:
         """where can be a : dict,list,tuple,string"""
         if where is None:
             return None
@@ -5589,9 +6743,27 @@ class Selection:
         generate the selection
         """
         if self.condition is not None:
-            return self.table.table.read_where(
-                self.condition.format(), start=self.start, stop=self.stop
-            )
+            self._warn_if_unreliable_or()
+            try:
+                return self.table.table.read_where(
+                    self.condition.format(), start=self.start, stop=self.stop
+                )
+            except ValueError as err:
+                # GH#39752 PyTables queries indexed columns by combining one
+                # boolean array per comparison term in a single numexpr call,
+                # capped at NPY_MAXARGS-1 inputs (a numexpr build-time
+                # constant, 32 or 64 depending on the targeted numpy).
+                # Translate the opaque numexpr error into actionable guidance.
+                if "too many inputs" not in str(err):
+                    raise
+                raise ValueError(
+                    "The passed where expression has too many comparisons "
+                    "for a query against indexed columns (a numexpr "
+                    "limitation). Reduce the number of comparisons, or store "
+                    "the table with 'index=False' (e.g. "
+                    "DataFrame.to_hdf(..., index=False)) so the query does "
+                    "not use the column index."
+                ) from err
         elif self.coordinates is not None:
             return self.table.table.read_coordinates(self.coordinates)
         return self.table.table.read(start=self.start, stop=self.stop)
@@ -5600,22 +6772,30 @@ class Selection:
         """
         generate the selection
         """
-        start, stop = self.start, self.stop
-        nrows = self.table.nrows
-        if start is None:
-            start = 0
-        elif start < 0:
-            start += nrows
-        if stop is None:
-            stop = nrows
-        elif stop < 0:
-            stop += nrows
+        start, stop = _resolve_row_window(self.start, self.stop, self.table.nrows)
 
         if self.condition is not None:
-            return self.table.table.get_where_list(
+            self._warn_if_unreliable_or()
+            coords = self.table.table.get_where_list(
                 self.condition.format(), start=start, stop=stop, sort=True
             )
         elif self.coordinates is not None:
             return self.coordinates
+        else:
+            coords = np.arange(start, stop)
 
-        return np.arange(start, stop)
+        if self.filter is not None and len(coords):
+            # a term the numexpr condition can't carry -- e.g. an "index in
+            #  [...]" clause with more selectors than numexpr can handle -- is
+            #  realized as a post-read filter (GH#17567). A where clause may
+            #  combine such a filter with a numexpr condition (e.g. "index in
+            #  [...] and A>=1"), so it must be applied on top of get_where_list's
+            #  coordinates here -- this also keeps the row-coordinate path
+            #  (iterator / chunksize) dropping the same rows as a plain read
+            #  (GH#12953).
+            for field, op, filt in self.filter.format():
+                data = self.table.read_column(
+                    field, start=coords.min(), stop=coords.max() + 1
+                )
+                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
+        return coords

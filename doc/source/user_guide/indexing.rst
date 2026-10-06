@@ -120,6 +120,16 @@ indexing pandas objects with ``[]``:
 
     Series, ``series[label]``, scalar value
     DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
+    DataFrame, ``frame[[colname]]``, ``DataFrame`` with columns corresponding to ``[colname]``
+    DataFrame, ``frame[list_of_colnames]``, ``DataFrame`` with columns corresponding to ``list_of_colnames``
+
+The same principle applies to label-based selection with ``.loc``: a
+list-like of labels preserves the corresponding axis (so
+``df.loc[:, ["A"]]`` returns a ``DataFrame``, even when the list contains a
+single label), while a scalar label reduces the axis when labels on that
+axis are unique (so ``df.loc[:, "A"]`` typically returns a ``Series``; if
+``"A"`` is duplicated on the axis, a ``DataFrame`` is returned instead).
+See :ref:`indexing.label` for details.
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
@@ -185,6 +195,38 @@ columns.
       df[['A', 'B']]
       df.iloc[:, [1, 0]] = df[['A', 'B']]
       df[['A','B']]
+
+.. _indexing.select:
+
+Selecting columns with ``select``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`DataFrame.select` returns a DataFrame with the requested columns in the
+given order, similar to passing a list of columns to ``[]``. As a method, it
+can be used within a chain of operations. Columns can be given as individual
+arguments or as a single list:
+
+.. ipython:: python
+
+   df.select('B', 'A')
+   df.select(['B', 'A'])
+
+In addition to existing columns, computed columns can be included via
+:func:`pandas.col` expressions or callables. A positional expression keeps the
+name of the underlying column, while a keyword argument names the resulting
+column. Later arguments can refer to columns computed earlier in the same call:
+
+.. ipython:: python
+
+   df.select('A', pd.col('B') * 2, C=pd.col('A') + pd.col('B'), D=pd.col('C') > 0)
+
+A computed column with the same name as an existing column replaces it for
+later arguments. It does not replace a column that was already selected, so
+the result can contain duplicate column labels:
+
+.. ipython:: python
+
+   df.select('A', A=pd.col('A') * 2, E=pd.col('A'))
 
 
 Attribute access
@@ -819,14 +861,16 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[5], 'E'] = 7
+   df.at[dates[5], 'A'] = 7
    df.iat[3, 0] = 7
 
-``at`` may enlarge the object in-place as above if the indexer is missing.
+``at`` previously could enlarge the object in-place if the indexer was missing,
+but this behavior is deprecated. Use ``.loc`` instead for setting values with
+new keys:
 
 .. ipython:: python
 
-   df.at[dates[-1] + pd.Timedelta('1 day'), 0] = 7
+   df.loc[dates[-1] + pd.Timedelta('1 day'), 0] = 7
    df
 
 Boolean indexing
@@ -904,6 +948,49 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
       df.loc[s, 'B']
 
       df.iloc[s.values, 1]
+
+.. _indexing.boolean.filter:
+
+Filtering with ``DataFrame.filter``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 3.1.0
+
+:meth:`DataFrame.filter` and :meth:`Series.filter` also accept a boolean mask
+through the ``cond`` keyword, keeping the rows where the mask is True. A
+:class:`Series` mask is aligned on the index; any other array-like must have
+the same length as the index.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=list('abc'))
+   df.filter(cond=df['A'] > 1)
+
+``cond`` may also be a callable that returns a boolean mask, or an expression
+created with :func:`pandas.col`. These two forms may be passed positionally,
+which is convenient in a method chain where the intermediate object has no
+name:
+
+.. ipython:: python
+
+   df.filter(pd.col('A') > 1)
+   df.assign(C=pd.col('A') + pd.col('B')).filter(lambda df: df['C'] > 5)
+
+Pass ``axis=1`` to filter columns instead of rows:
+
+.. ipython:: python
+
+   df.filter(cond=df.columns.str.startswith('A'), axis=1)
+
+Missing values in the mask are treated as False by default, matching
+``df[mask]`` for a mask with nullable boolean dtype. Pass ``na=True`` to keep
+the corresponding rows instead, or ``na="raise"`` to raise an error:
+
+.. ipython:: python
+
+   mask = pd.array([True, None, False], dtype="boolean")
+   df.filter(cond=mask)
+   df.filter(cond=mask, na=True)
 
 .. _indexing.basics.indexing_isin:
 
@@ -1780,6 +1867,9 @@ Key Points:
 * Missing index labels result in NaN values
 * This behavior is consistent across df[col] = series and df.loc[:, col] = series
 
+You can think of this as reindexing the Series to the DataFrame index before
+assignment (for example, ``df[col] = series.reindex(df.index)``).
+
 Examples:
 .. ipython:: python
 
@@ -1808,3 +1898,47 @@ Examples:
    #If you want positional assignment instead of index alignment:
    # reset the Series index to match DataFrame index
    df['s1_values'] = s1.reindex(df.index)
+
+.. _indexing.column_assignment_vs_in_place:
+
+Column assignment vs. in-place setting
+--------------------------------------
+
+While index alignment is consistent between ``df[col] = value`` and
+``df.loc[:, col] = value`` (see the previous section), the two forms differ in
+how they treat the column's existing dtype:
+
+* ``df[col] = value`` **replaces** the column. The new column's dtype is
+  inferred from ``value``, regardless of what dtype the old column had.
+* ``df.loc[:, col] = value`` (and ``df.iloc[:, i] = value``) **sets the values
+  in place** in the existing column. The original dtype is preserved, and the
+  assignment will raise ``TypeError`` if ``value`` is not compatible with it.
+
+This is most visible for :class:`~pandas.api.types.ExtensionDtype` columns
+such as ``category``, ``Int64``, ``boolean``, or ``string``, where the
+replacing form silently drops the extension dtype:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": pd.Categorical(["x", "y"], categories=["x", "y", "z"])})
+   df["a"] = "z"          # replaces the column
+   df.dtypes
+
+   df = pd.DataFrame({"a": pd.Categorical(["x", "y"], categories=["x", "y", "z"])})
+   df.loc[:, "a"] = "z"   # sets values in place
+   df.dtypes
+
+The same distinction applies to nullable numeric and boolean dtypes:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+   df["a"] = 5
+   df.dtypes
+
+   df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+   df.loc[:, "a"] = 5
+   df.dtypes
+
+Use ``df.loc[:, col] = value`` (or ``.iloc``) when you want to update every
+value of an existing column while keeping its dtype.

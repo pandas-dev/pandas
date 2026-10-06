@@ -108,7 +108,12 @@ def cut(
     precision : int, default 3
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
-        Whether the first interval should be left-inclusive or not.
+        Whether values equal to the first bin edge are placed in the first bin.
+        Because the returned intervals must all be closed on the same side,
+        the left edge of the first default label is lowered slightly, so
+        integer bins get float labels. Values between the lowered edge and the
+        first bin edge are still NA. No effect when ``right=False`` or when
+        `bins` is an IntervalIndex.
     duplicates : {'raise', 'drop'}, default 'raise'
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
@@ -152,13 +157,15 @@ def cut(
 
     Notes
     -----
-    Any NA values will be NA in the result. Out of bounds values will be NA in
-    the resulting Series or Categorical object.
+    Any NA values will be NA in the result. Values that fall outside the range
+    of `bins` (or, when `bins` is a non-contiguous IntervalIndex, between two
+    bins) are not assigned to any bin and will be NA in the resulting Series or
+    Categorical object.
 
     ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
     to some predefined methods.
 
-    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
+    See :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
     Examples
     --------
@@ -343,7 +350,8 @@ def qcut(
 
     Notes
     -----
-    Out of bounds values will be NA in the resulting Categorical object
+    Out of bounds values will be NA in the resulting Categorical object.
+    See :ref:`the user guide <reshaping.tile>` for more examples.
 
     Examples
     --------
@@ -369,6 +377,8 @@ def qcut(
     x_idx, _ = _coerce_to_type(x_idx)
 
     if is_integer(q):
+        if q < 1:
+            raise ValueError("`q` should be a positive integer.")
         quantiles = np.linspace(0, 1, q + 1)
         # Round up rather than to nearest if not representable in base 2
         np.putmask(
@@ -376,8 +386,10 @@ def qcut(
             q * quantiles != np.arange(q + 1),
             np.nextafter(quantiles, 1),
         )
-    else:
+    elif is_list_like(q):
         quantiles = q
+    else:
+        raise ValueError("`q` should be a positive integer or list-like of quantiles.")
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 

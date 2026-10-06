@@ -7,7 +7,6 @@ from pandas._libs.parsers import (
 )
 
 import pandas as pd
-from pandas import NA
 import pandas._testing as tm
 from pandas.core.arrays import (
     ArrowStringArray,
@@ -93,7 +92,7 @@ def test_maybe_upcast_object(val, string_storage):
         result = _maybe_upcast(arr, use_dtype_backend=True)
 
         if string_storage == "python":
-            exp_val = "c" if val == "c" else NA
+            exp_val = "c" if val == "c" else pd.NA
             expected = pd.array(["a", "b", exp_val], dtype=pd.StringDtype())
         else:
             exp_val = "c" if val == "c" else None

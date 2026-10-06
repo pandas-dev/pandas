@@ -1,7 +1,6 @@
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex
 import pandas._testing as tm
 
 
@@ -10,7 +9,7 @@ def check_level_names(index, names):
 
 
 def test_slice_keep_name():
-    x = MultiIndex.from_tuples([("a", "b"), (1, 2), ("c", "d")], names=["x", "y"])
+    x = pd.MultiIndex.from_tuples([("a", "b"), (1, 2), ("c", "d")], names=["x", "y"])
     assert x[1:].names == x.names
 
 
@@ -56,7 +55,9 @@ def test_take_preserve_name(idx):
 def test_copy_names():
     # Check that adding a "names" parameter to the copy is honored
     # GH14302
-    multi_idx = MultiIndex.from_tuples([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
+    multi_idx = pd.MultiIndex.from_tuples(
+        [(1, 2), (3, 4)], names=["MyName1", "MyName2"]
+    )
     multi_idx1 = multi_idx.copy()
 
     assert multi_idx.equals(multi_idx1)
@@ -100,13 +101,13 @@ def test_names(idx):
     major_axis, minor_axis = idx.levels
     major_codes, minor_codes = idx.codes
     with pytest.raises(ValueError, match="^Length of names"):
-        MultiIndex(
+        pd.MultiIndex(
             levels=[major_axis, minor_axis],
             codes=[major_codes, minor_codes],
             names=["first"],
         )
     with pytest.raises(ValueError, match="^Length of names"):
-        MultiIndex(
+        pd.MultiIndex(
             levels=[major_axis, minor_axis],
             codes=[major_codes, minor_codes],
             names=["first", "second", "third"],
@@ -126,14 +127,14 @@ def test_duplicate_level_names_access_raises(idx):
 
 
 def test_get_names_from_levels():
-    idx = MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
 
     assert idx.levels[0].name == "a"
     assert idx.levels[1].name == "b"
 
 
 def test_setting_names_from_levels_raises():
-    idx = MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
     with pytest.raises(RuntimeError, match="set_names"):
         idx.levels[0].name = "foo"
 
@@ -162,9 +163,9 @@ def test_setting_names_from_levels_raises():
 )
 def test_name_mi_with_dict_like_duplicate_names(func, rename_dict, exp_names):
     # GH#20421
-    mi = MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=["x", "y", "x"])
+    mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=["x", "y", "x"])
     result = getattr(mi, func)(rename_dict)
-    expected = MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=exp_names)
+    expected = pd.MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=exp_names)
     tm.assert_index_equal(result, expected)
 
 
@@ -180,9 +181,9 @@ def test_name_mi_with_dict_like_duplicate_names(func, rename_dict, exp_names):
 )
 def test_name_mi_with_dict_like(func, rename_dict, exp_names):
     # GH#20421
-    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+    mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
     result = getattr(mi, func)(rename_dict)
-    expected = MultiIndex.from_arrays([[1, 2], [3, 4]], names=exp_names)
+    expected = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=exp_names)
     tm.assert_index_equal(result, expected)
 
 
@@ -196,6 +197,6 @@ def test_index_name_with_dict_like_raising():
 
 def test_multiindex_name_and_level_raising():
     # GH#20421
-    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+    mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
     with pytest.raises(TypeError, match="Can not pass level for dictlike `names`."):
         mi.set_names(names={"x": "z"}, level={"x": "z"})

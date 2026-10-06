@@ -21,7 +21,7 @@ from unicodedata import east_asian_width
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import (
     ABCNDFrame,
 )
 from pandas.core.dtypes.inference import (
+    is_complex,
     is_float,
     is_scalar,
 )
@@ -123,16 +124,14 @@ def _pprint_seq(
     if isinstance(seq, set):
         fmt = "{{{body}}}"
     elif isinstance(seq, frozenset):
-        fmt = "frozenset({{{body}}})"
+        fmt = "frozenset()" if not seq else "frozenset({{{body}}})"
     else:
         fmt = "[{body}]" if hasattr(seq, "__setitem__") else "({body})"
 
     if max_seq_items is False:
         max_items = None
     else:
-        max_items = (
-            max_seq_items or _global_config["display"]["max_seq_items"] or len(seq)
-        )
+        max_items = max_seq_items or config["display"]["max_seq_items"] or len(seq)
 
     s = iter(seq)
     # handle sets, no slicing
@@ -142,12 +141,9 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
-        if is_float(item) and notna(item):
-            # GH#60503
-            from pandas.io.formats.format import _trim_zeros_single_float
-
-            precision = _global_config["display"]["precision"]
-            item = _trim_zeros_single_float(f"{item:.{precision}f}")
+        if (is_float(item) or is_complex(item)) and notna(item):
+            # GH#60503, GH#25920
+            item = format_with_precision(item)
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
@@ -159,8 +155,34 @@ def _pprint_seq(
     return fmt.format(body=body)
 
 
+def format_with_precision(item: float | complex, sign: str = "") -> str:
+    """
+    Format a float or complex scalar using the ``display.precision`` option.
+
+    Trailing zeros after the decimal point are trimmed, leaving at least one.
+
+    Parameters
+    ----------
+    item : float or complex
+    sign : {"", " ", "+"}, default ""
+        Sign option of the format spec, applied to the real part.
+    """
+    precision = config["display"]["precision"]
+
+    def _fmt(val: float, sign: str) -> str:
+        str_float = f"{val:{sign}.{precision}f}".rstrip("0")
+        return str_float + "0" if str_float.endswith(".") else str_float
+
+    if is_float(item):
+        return _fmt(item, sign)
+    return f"({_fmt(item.real, sign)}{_fmt(item.imag, '+')}j)"
+
+
 def _pprint_dict(
-    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
+    seq: Mapping[Any, Any],
+    _nest_lvl: int = 0,
+    max_seq_items: int | None = None,
+    **kwds: Any,
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -174,7 +196,7 @@ def _pprint_dict(
     if max_seq_items is False:
         nitems = len(seq)
     else:
-        nitems = max_seq_items or _global_config["display"]["max_seq_items"] or len(seq)
+        nitems = max_seq_items or config["display"]["max_seq_items"] or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
         pairs.append(
@@ -231,7 +253,7 @@ def pprint_thing(
         return str(thing)
     elif (
         isinstance(thing, Mapping)
-        and _nest_lvl < _global_config["display"]["pprint_nest_depth"]
+        and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_dict(
             thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
@@ -255,7 +277,9 @@ def pprint_thing(
                 ABCNDFrame,
             ),
         )
-        and _nest_lvl < _global_config["display"]["pprint_nest_depth"]
+        # GH#64638 0-d arrays are not iterable; fall through to str()
+        and not (isinstance(thing, np.ndarray) and thing.ndim == 0)
+        and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_seq(
             # error: Argument 1 to "_pprint_seq" has incompatible type "object";
@@ -306,7 +330,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
     from IPython import get_ipython  # pyright: ignore[reportPrivateImportUsage]
 
     # error: Call to untyped function "get_ipython" in typed context
-    ip = get_ipython()  # type: ignore[no-untyped-call]
+    ip = get_ipython()
     if ip is None:
         # still not in IPython
         return
@@ -318,7 +342,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
         if mimetype not in formatters:
             # define tableschema formatter
             from IPython.core.formatters import BaseFormatter
-            from traitlets import ObjectName
+            from traitlets.traitlets import ObjectName
 
             class TableSchemaFormatter(BaseFormatter):
                 print_method = ObjectName("_repr_data_resource_")
@@ -344,7 +368,7 @@ def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
 
 def format_object_summary(
     obj: ListLike,
-    formatter: Callable,
+    formatter: Callable[..., Any],
     is_justify: bool = True,
     name: str | None = None,
     indent_for_name: bool = True,
@@ -377,7 +401,7 @@ def format_object_summary(
     """
     display_width, _ = get_console_size()
     if display_width is None:
-        display_width = _global_config["display"]["width"] or 80
+        display_width = config["display"]["width"] or 80
     if name is None:
         name = type(obj).__name__
 
@@ -396,7 +420,7 @@ def format_object_summary(
         sep = ",\n " + " " * len(name)
     else:
         sep = ","
-    max_seq_items = _global_config["display"]["max_seq_items"] or n
+    max_seq_items = config["display"]["max_seq_items"] or n
 
     # are we a truncated display
     is_truncated = n > max_seq_items
@@ -426,10 +450,6 @@ def format_object_summary(
     elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
         summary = f"[{first}]{close}"
-    elif n == 2 and not line_break_each_value:
-        first = formatter(obj[0])
-        last = formatter(obj[-1])
-        summary = f"[{first}, {last}]{close}"
     else:
         if max_seq_items == 1:
             # If max_seq_items=1 show only last element
@@ -565,7 +585,7 @@ class PrettyDict(dict[_KT, _VT]):
 
 class _TextAdjustment:
     def __init__(self) -> None:
-        self.encoding = _global_config["display"]["encoding"]
+        self.encoding = config["display"]["encoding"]
 
     def len(self, text: str) -> int:
         return len(text)
@@ -588,7 +608,7 @@ class _TextAdjustment:
 class _EastAsianTextAdjustment(_TextAdjustment):
     def __init__(self) -> None:
         super().__init__()
-        if _global_config["display"]["unicode"]["ambiguous_as_wide"]:
+        if config["display"]["unicode"]["ambiguous_as_wide"]:
             self.ambiguous_width = 2
         else:
             self.ambiguous_width = 1
@@ -625,7 +645,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
 
 
 def get_adjustment() -> _TextAdjustment:
-    use_east_asian_width = _global_config["display"]["unicode"]["east_asian_width"]
+    use_east_asian_width = config["display"]["unicode"]["east_asian_width"]
     if use_east_asian_width:
         return _EastAsianTextAdjustment()
     else:

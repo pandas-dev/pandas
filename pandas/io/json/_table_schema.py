@@ -6,6 +6,7 @@ https://specs.frictionlessdata.io/table-schema/
 
 from __future__ import annotations
 
+from datetime import timezone
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -149,6 +150,10 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
             zone = timezones.get_timezone(dtype.tz)
             if isinstance(zone, str):
                 field["tz"] = zone
+            elif isinstance(zone, timezone):
+                # fixed-offset stdlib timezone, e.g. timezone(timedelta(hours=1));
+                # str gives a round-trippable "UTC+HH:MM" (GH#39537)
+                field["tz"] = str(zone)
     elif isinstance(dtype, ExtensionDtype):
         field["extDtype"] = dtype.name
     return field

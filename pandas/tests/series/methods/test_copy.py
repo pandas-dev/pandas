@@ -1,17 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestCopy:
     @pytest.mark.parametrize("deep", ["default", None, False, True])
     def test_copy(self, deep):
-        ser = Series(np.arange(10), dtype="float64")
+        ser = pd.Series(np.arange(10), dtype="float64")
 
         # default deep is True
         if deep == "default":
@@ -36,10 +33,10 @@ class TestCopy:
     def test_copy_tzaware(self, deep):
         # GH#11794
         # copy of tz-aware
-        expected = Series([Timestamp("2012/01/01", tz="UTC")])
-        expected2 = Series([Timestamp("1999/01/01", tz="UTC")])
+        expected = pd.Series([pd.Timestamp("2012/01/01", tz="UTC")])
+        expected2 = pd.Series([pd.Timestamp("1999/01/01", tz="UTC")])
 
-        ser = Series([Timestamp("2012/01/01", tz="UTC")])
+        ser = pd.Series([pd.Timestamp("2012/01/01", tz="UTC")])
 
         if deep == "default":
             ser2 = ser.copy()
@@ -48,12 +45,14 @@ class TestCopy:
 
         # INFO(CoW) a shallow copy doesn't yet copy the data
         # but parent will not be modified (CoW)
+        ser_values = ser.array._ndarray
+        ser2_values = ser2.array._ndarray
         if deep is None or deep is False:
-            assert np.may_share_memory(ser.values, ser2.values)
+            assert np.may_share_memory(ser_values, ser2_values)
         else:
-            assert not np.may_share_memory(ser.values, ser2.values)
+            assert not np.may_share_memory(ser_values, ser2_values)
 
-        ser2[0] = Timestamp("1999/01/01", tz="UTC")
+        ser2[0] = pd.Timestamp("1999/01/01", tz="UTC")
 
         # Did not modify original Series
         tm.assert_series_equal(ser2, expected2)

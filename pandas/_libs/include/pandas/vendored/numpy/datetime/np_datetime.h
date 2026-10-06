@@ -88,6 +88,12 @@ int is_leapyear(npy_int64 year);
 npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts);
 
 /*
+ * Fills in the year, month, day in 'dts' based on the days
+ * offset from 1970. Uses Neri-Schneider branchless algorithm.
+ */
+void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts);
+
+/*
  * Compares two npy_datetimestruct objects chronologically
  */
 int cmp_npy_datetimestruct(const npy_datetimestruct *a,

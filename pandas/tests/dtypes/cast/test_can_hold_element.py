@@ -4,10 +4,6 @@ import pytest
 from pandas.core.dtypes.cast import can_hold_element
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Series,
-)
 
 
 def test_can_hold_element_range(any_int_numpy_dtype):
@@ -108,7 +104,7 @@ def test_can_hold_element_bool():
 def test_can_hold_element_categorical():
     # GH#56376
     arr = np.array([], dtype=np.float64)
-    cat = Categorical([1, 2, None])
+    cat = pd.Categorical([1, 2, None])
 
     assert can_hold_element(arr, cat)
 
@@ -127,9 +123,9 @@ def test_can_hold_element_ea_series_no_na(dtype, ea_dtype):
     # GH#47776
     arr = np.array([], dtype=dtype)
     if dtype.kind == "b":
-        ser = Series([True, False], dtype=ea_dtype)
+        ser = pd.Series([True, False], dtype=ea_dtype)
     else:
-        ser = Series([1, 2], dtype=ea_dtype)
+        ser = pd.Series([1, 2], dtype=ea_dtype)
 
     assert can_hold_element(arr, ser)
 
@@ -147,8 +143,34 @@ def test_can_hold_element_ea_series_with_na(dtype, ea_dtype):
     # GH#47776 - Series with NA cannot be held losslessly
     arr = np.array([], dtype=dtype)
     if dtype.kind == "b":
-        ser = Series([True, pd.NA], dtype=ea_dtype)
+        ser = pd.Series([True, pd.NA], dtype=ea_dtype)
     else:
-        ser = Series([1, pd.NA], dtype=ea_dtype)
+        ser = pd.Series([1, pd.NA], dtype=ea_dtype)
 
     assert not can_hold_element(arr, ser)
+
+
+@pytest.mark.parametrize("wrapper", [lambda values: values, pd.Series, pd.Index])
+@pytest.mark.parametrize("backend", ["numpy_nullable", "pyarrow"])
+def test_can_hold_element_ea_no_na_lossy_values(wrapper, backend):
+    # GH#47776 - even without NAs, the values themselves must fit losslessly;
+    #  previously these were silently held (e.g. -1 wrapping to 2**64-1).
+    if backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+        int_dtype, float_dtype = "int64[pyarrow]", "double[pyarrow]"
+    else:
+        int_dtype, float_dtype = "Int64", "Float64"
+
+    # signed values cannot go into an unsigned dtype
+    uint_arr = np.array([], dtype=np.uint64)
+    assert can_hold_element(uint_arr, wrapper(pd.array([1, 2, 3], dtype=int_dtype)))
+    assert not can_hold_element(
+        uint_arr, wrapper(pd.array([-1, 2, 3], dtype=int_dtype))
+    )
+
+    # values that overflow the target float dtype cannot be held
+    f32_arr = np.array([], dtype=np.float32)
+    assert can_hold_element(f32_arr, wrapper(pd.array([1.0, 2.0], dtype=float_dtype)))
+    assert not can_hold_element(
+        f32_arr, wrapper(pd.array([1e300, 2.0], dtype=float_dtype))
+    )

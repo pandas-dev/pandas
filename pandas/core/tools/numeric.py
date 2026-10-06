@@ -72,7 +72,7 @@ def to_numeric(
 
     Parameters
     ----------
-    arg : scalar, list, tuple, 1-d array, or Series
+    arg : scalar, list, tuple, 1-d array, Index, or Series
         Argument to be converted.
 
     errors : {'raise', 'coerce'}, default 'raise'
@@ -101,7 +101,7 @@ def to_numeric(
         performed on the data.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
-        Back-end data type applied to the resultant :class:`DataFrame`
+        Back-end data type applied to the result
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
         is as follows:
@@ -113,9 +113,19 @@ def to_numeric(
 
     Returns
     -------
-    ret
-        Numeric if parsing succeeded.
-        Return type depends on input.  Series if Series, otherwise ndarray.
+    scalar, Series, Index, numpy.ndarray, or ExtensionArray
+        Numeric scalars are returned unchanged. Other scalars are returned
+        as a NumPy scalar: ``np.int64`` if possible (``np.uint64`` for
+        positive values above the ``int64`` maximum), otherwise ``np.float64``,
+        before any ``downcast`` is applied. With ``dtype_backend="pyarrow"``,
+        a Python scalar is returned instead.
+        For 1-d: :class:`Series` if Series, :class:`Index` if Index,
+        otherwise an array as specified by ``dtype_backend``.
+
+        If ``errors='coerce'``, un-parseable values become ``NaN``
+        (or ``pd.NA`` if ``dtype_backend`` is not the default).
+        If ``errors='raise'`` (default),
+        a :exc:`ValueError` is raised for invalid values.
 
     Raises
     ------
@@ -175,6 +185,18 @@ def to_numeric(
     1    2.1
     2    3.0
     dtype: Float32
+
+    Scalar input returns a scalar:
+
+    >>> pd.to_numeric("42")
+    np.int64(42)
+    >>> pd.to_numeric("3.14")
+    np.float64(3.14)
+
+    Index input returns an Index:
+
+    >>> pd.to_numeric(pd.Index(["1", "2", "3"]))
+    Index([1, 2, 3], dtype='int64')
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
@@ -190,7 +212,9 @@ def to_numeric(
 
     if isinstance(arg, ABCSeries):
         is_series = True
-        values = arg.values
+        values = arg._values
+        if needs_i8_conversion(arg.dtype):
+            values = values.view("i8")
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):

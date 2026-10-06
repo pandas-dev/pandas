@@ -2,8 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.io.generate_legacy_storage_files import create_dataframe_all_types
@@ -80,18 +78,24 @@ class TestReadPyTablesHDF5:
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
 
-_legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"))
+_legacy_params = [
+    pytest.param(path, id=path.name)
+    for path in Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
+]
+# GH#64604 the data files are not installed, e.g. with a wheel install
+_legacy_params = _legacy_params or [
+    pytest.param(
+        None,
+        id="missing",
+        marks=pytest.mark.skip(reason="legacy hdf files not installed"),
+    )
+]
 
 
-@pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
-def test_legacy_files(datapath, legacy_file, using_infer_string, request):
+@pytest.mark.parametrize("legacy_file", _legacy_params)
+def test_legacy_files(legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
-    legacy_file = datapath(legacy_file)
-
-    if not np_version_gt2 and legacy_file.endswith("fixed.h5"):
-        # Files created for versions 2.0-3.0 used a numpy version >= 2.0, and
-        # unpickling the object dtype column fails with older numpy
-        pytest.skip("Fixed format pickle objects don't deserialize with numpy < 2.0")
+    legacy_file = str(legacy_file)
 
     result = pd.read_hdf(legacy_file)
 

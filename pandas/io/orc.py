@@ -16,7 +16,10 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.indexes.api import default_index
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
@@ -47,8 +50,10 @@ def read_orc(
     """
     Load an ORC object from the file path, returning a DataFrame.
 
-    This method reads an ORC (Optimized Row Columnar) file into a pandas
-    DataFrame using the `pyarrow.orc` library. ORC is a columnar storage format
+    This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
+    library.
+
+    ORC is a columnar storage format
     that provides efficient compression and fast retrieval for analytical workloads.
     It allows reading specific columns, handling different filesystem
     types (such as local storage, cloud storage via fsspec, or pyarrow filesystem),
@@ -62,6 +67,10 @@ def read_orc(
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.orc``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     columns : list, default None
         If not None, only these columns will be read from the file.
         Output always follows the ordering of the file and not the columns list.
@@ -154,11 +163,20 @@ def to_orc(
         if dtype of one or more columns is category, unsigned integers,
         intervals, periods or sparse.
     path : str, file-like object or None, default None
-        If a string, it will be used as Root Directory path
+        If a string, it will be used as the root directory path
         when writing a partitioned dataset. By file-like object,
         we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function). If path is None,
         a bytes object is returned.
+
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gs, and file. For file URLs, a host is expected. A local file could be:
+        ``file://localhost/path/to/table.orc``. A remote example could be:
+        ``s3://bucket/path/to/table.orc``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     engine : str, default 'pyarrow'
         ORC library to use.
     index : bool, optional
@@ -227,11 +245,9 @@ def to_orc(
     assert path is not None  # For mypy
     with get_handle(path, "wb", is_text=False) as handles:
         try:
-            orc.write_table(
-                pa.Table.from_pandas(df, preserve_index=index),
-                handles.handle,
-                **engine_kwargs,
-            )
+            with suppress_pyarrow_values_warning():
+                table = pa.Table.from_pandas(df, preserve_index=index)
+            orc.write_table(table, handles.handle, **engine_kwargs)
         except (TypeError, pa.ArrowNotImplementedError) as e:
             raise NotImplementedError(
                 "The dtype of one or more columns is not supported yet."

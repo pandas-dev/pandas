@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import time
 import operator
 import re
+from typing import Any
 
 import numpy as np
 import pytest
@@ -13,6 +14,7 @@ import pytest
 from pandas._typing import MergeHow
 
 import pandas as pd
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 # TODO:
 # * Binary methods (mul, div, etc.)
@@ -382,9 +384,11 @@ def test_finalize_called(ndframe_method):
     assert result.attrs == {"a": 1}
 
 
+@pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
 @not_implemented_mark
 def test_finalize_called_eval_numexpr():
-    pytest.importorskip("numexpr")
     df = pd.DataFrame({"A": [1, 2]})
     df.attrs["A"] = 1
     result = df.eval("A + 1", engine="numexpr")
@@ -631,8 +635,22 @@ def test_categorical_accessor(method):
         operator.methodcaller("sum"),
         lambda x: x.apply(lambda y: y),
         lambda x: x.agg("sum"),
+        lambda x: x.agg("prod"),
+        lambda x: x.agg("min"),
+        lambda x: x.agg("max"),
+        lambda x: x.agg("first"),
+        lambda x: x.agg("last"),
+        lambda x: x.agg("idxmin"),
+        lambda x: x.agg("idxmax"),
+        lambda x: x.agg("any"),
+        lambda x: x.agg("all"),
         lambda x: x.agg("mean"),
         lambda x: x.agg("median"),
+        lambda x: x.agg("std"),
+        lambda x: x.agg("var"),
+        lambda x: x.agg("sem"),
+        lambda x: x.agg("skew"),
+        lambda x: x.agg("kurt"),
     ],
 )
 def test_groupby_finalize(obj, method):
@@ -644,13 +662,20 @@ def test_groupby_finalize(obj, method):
 @pytest.mark.parametrize(
     "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
 )
+def test_groupby_finalize_duplicate_labels(obj):
+    # GH#46505 ensure allows_duplicate_labels propagates through groupby splitter
+    obj = obj.set_flags(allows_duplicate_labels=False)
+    result = obj.groupby([0, 0]).sum()
+    assert result.flags.allows_duplicate_labels is False
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
 @pytest.mark.parametrize(
     "method",
     [
         lambda x: x.agg(["sum", "count"]),
-        lambda x: x.agg("std"),
-        lambda x: x.agg("var"),
-        lambda x: x.agg("sem"),
         lambda x: x.agg("size"),
         lambda x: x.agg("ohlc"),
     ],
@@ -769,7 +794,7 @@ def test_merge_does_not_propagate_metadata_from_unequal_input_metadata():
 def test_merge_does_not_propagate_metadata_if_one_input_has_no_metadata(
     left_has_metadata: bool,
     right_has_metadata: bool,
-    expected: dict,
+    expected: dict[str, Any],
 ):
     left = pd.DataFrame({"test": [1]})
     right = pd.DataFrame({"test": [1]})

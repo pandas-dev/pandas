@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import Series
+import pandas as pd
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -24,7 +24,7 @@ class TestGetStandardColors:
         }
         with mpl.rc_context(rc=mpl_params):
             result = get_standard_colors(num_colors=num_colors)
-            assert result == expected
+            assert mpl.colors.same_color(result, expected)
 
     @pytest.mark.parametrize(
         "num_colors, expected",
@@ -42,10 +42,10 @@ class TestGetStandardColors:
         }
         with mpl.rc_context(rc=mpl_params):
             result = get_standard_colors(num_colors=num_colors)
-            assert result == expected
+            assert mpl.colors.same_color(result, expected)
 
     @pytest.mark.parametrize(
-        "num_colors, expected_name",
+        "num_colors, expected",
         [
             (1, ["C0"]),
             (3, ["C0", "C1", "C2"]),
@@ -68,11 +68,10 @@ class TestGetStandardColors:
             ),
         ],
     )
-    def test_default_colors_named_undefined_prop_cycle(self, num_colors, expected_name):
+    def test_default_colors_named_undefined_prop_cycle(self, num_colors, expected):
         with mpl.rc_context(rc={}):
-            expected = [mpl.colors.to_hex(x) for x in expected_name]
             result = get_standard_colors(num_colors=num_colors)
-            assert result == expected
+            assert mpl.colors.same_color(result, expected)
 
     @pytest.mark.parametrize(
         "num_colors, expected",
@@ -129,7 +128,7 @@ class TestGetStandardColors:
         result = get_standard_colors(color=color, num_colors=num_colors)
         assert result == expected
 
-    @pytest.mark.parametrize("color", ["", [], (), Series([], dtype="object")])
+    @pytest.mark.parametrize("color", ["", [], (), pd.Series([], dtype="object")])
     def test_empty_color_raises(self, color):
         with pytest.raises(ValueError, match="Invalid color argument"):
             get_standard_colors(color=color, num_colors=1)

@@ -12,48 +12,50 @@ for imp in ["pandas.util", "pandas.tools.hashing"]:
         pass
 
 
+def _make_factorize_data(dtype, N):
+    if dtype in ("int64", "Int64", "object"):
+        data = pd.Index(np.arange(N), dtype=dtype)
+    elif dtype == "float64":
+        data = pd.Index(np.random.randn(N), dtype=dtype)
+    elif dtype == "datetime64[ns]":
+        data = pd.date_range("2011-01-01", freq="h", periods=N)
+    elif dtype == "datetime64[ns, tz]":
+        data = pd.date_range("2011-01-01", freq="h", periods=N, tz="Asia/Tokyo")
+    elif dtype == "object_str":
+        data = pd.Index([f"i-{i}" for i in range(N)], dtype=object)
+    elif dtype == "string[pyarrow]":
+        data = pd.array(
+            pd.Index([f"i-{i}" for i in range(N)], dtype=object),
+            dtype="string[pyarrow]",
+        )
+    else:
+        raise NotImplementedError
+    return data
+
+
+_FACTORIZE_DTYPES = [
+    "int64",
+    "float64",
+    "object",
+    "object_str",
+    "datetime64[ns]",
+    "datetime64[ns, tz]",
+    "Int64",
+    "string[pyarrow]",
+]
+
+
 class Factorize:
     params = [
         [True, False],
         [True, False],
-        [
-            "int64",
-            "uint64",
-            "float64",
-            "object",
-            "object_str",
-            "datetime64[ns]",
-            "datetime64[ns, tz]",
-            "Int64",
-            "boolean",
-            "string[pyarrow]",
-        ],
+        _FACTORIZE_DTYPES,
     ]
     param_names = ["unique", "sort", "dtype"]
 
     def setup(self, unique, sort, dtype):
         N = 10**5
-
-        if dtype in ["int64", "uint64", "Int64", "object"]:
-            data = pd.Index(np.arange(N), dtype=dtype)
-        elif dtype == "float64":
-            data = pd.Index(np.random.randn(N), dtype=dtype)
-        elif dtype == "boolean":
-            data = pd.array(np.random.randint(0, 2, N), dtype=dtype)
-        elif dtype == "datetime64[ns]":
-            data = pd.date_range("2011-01-01", freq="h", periods=N)
-        elif dtype == "datetime64[ns, tz]":
-            data = pd.date_range("2011-01-01", freq="h", periods=N, tz="Asia/Tokyo")
-        elif dtype == "object_str":
-            data = pd.Index([f"i-{i}" for i in range(N)], dtype=object)
-        elif dtype == "string[pyarrow]":
-            data = pd.array(
-                pd.Index([f"i-{i}" for i in range(N)], dtype=object),
-                dtype="string[pyarrow]",
-            )
-        else:
-            raise NotImplementedError
-
+        data = _make_factorize_data(dtype, N)
         if not unique:
             data = data.repeat(5)
         self.data = data
@@ -61,8 +63,19 @@ class Factorize:
     def time_factorize(self, unique, sort, dtype):
         pd.factorize(self.data, sort=sort)
 
-    def peakmem_factorize(self, unique, sort, dtype):
-        pd.factorize(self.data, sort=sort)
+
+class FactorizePeakmem:
+    # peakmem is driven by allocation patterns that vary by dtype; unique/sort
+    # are held fixed to keep this benchmark small.
+    params = _FACTORIZE_DTYPES
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**5
+        self.data = _make_factorize_data(dtype, N).repeat(5)
+
+    def peakmem_factorize(self, dtype):
+        pd.factorize(self.data, sort=False)
 
 
 class Duplicated:
@@ -132,6 +145,10 @@ class DuplicatedMaskedArray:
 
 class Hashing:
     def setup_cache(self):
+        # setup_cache runs in a different sub-process where module-level setup is
+        # never called,so seed locally to keep the cached frame reproducible
+        # across runs.
+        np.random.seed(1234)
         N = 10**5
 
         df = pd.DataFrame(
@@ -177,13 +194,13 @@ class Quantile:
     params = [
         [0, 0.5, 1],
         ["linear", "nearest", "lower", "higher", "midpoint"],
-        ["float64", "int64", "uint64"],
+        ["float64", "int64"],
     ]
     param_names = ["quantile", "interpolation", "dtype"]
 
     def setup(self, quantile, interpolation, dtype):
         N = 10**5
-        if dtype in ["int64", "uint64"]:
+        if dtype == "int64":
             data = np.arange(N, dtype=dtype)
         elif dtype == "float64":
             data = np.random.randn(N)

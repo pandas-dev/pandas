@@ -97,6 +97,21 @@ def test_ufunc_passes_args(func, arg, expected):
     tm.assert_frame_equal(result, expected)
 
 
+def test_binary_ufunc_out_pandas_object():
+    # GH#43190 passing a DataFrame as the ufunc `out` argument used to recurse
+    #  infinitely (RecursionError / segfault) instead of writing the result.
+    a = pd.DataFrame([[1, 2]])
+    b = pd.DataFrame([[3, 4]])
+    out = pd.DataFrame([[0, 0]])
+
+    result = np.fmin(a, b, out=out)
+
+    expected = pd.DataFrame([[1, 2]])
+    tm.assert_frame_equal(result, expected)
+    # the result is also written into `out` in place
+    tm.assert_frame_equal(out, expected)
+
+
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
 def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
@@ -154,6 +169,19 @@ def test_binary_input_aligns_index(request, dtype):
     result = np.heaviside(df1, df2.values)
     expected = pd.DataFrame(
         [[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"], index=["a", "b"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_binary_input_aligns_duplicate_labels():
+    # GH#54416
+    df1 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=["A", "B"], index=[0, 0])
+    df2 = pd.DataFrame([[5.0, 6.0], [7.0, 8.0]], columns=["C", "C"], index=[0, 1])
+    result = np.heaviside(df1, df2)
+    expected = pd.DataFrame(
+        [[1.0, 1.0, np.nan, np.nan]] * 2 + [[np.nan] * 4],
+        index=[0, 0, 1],
+        columns=["A", "B", "C", "C"],
     )
     tm.assert_frame_equal(result, expected)
 
@@ -310,3 +338,40 @@ def test_array_ufuncs_for_many_arguments():
     )
     with pytest.raises(NotImplementedError, match=re.escape(msg)):
         ufunc(df, df, ser)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "period[D]"])
+def test_binary_logical_ufunc_datetimelike_raises(func, dtype):
+    # GH#68524 with two inputs a DataFrame np.asarray()s its columns before the
+    #  ufunc runs, so the column's own guard never sees them
+    df = pd.DataFrame({"A": pd.array(["2016-01-01", "2016-01-02"], dtype=dtype)})
+    other = pd.DataFrame({"A": [True, False]})
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(other, df)
+    with pytest.raises(TypeError, match=msg):
+        func(df, other)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+def test_binary_logical_ufunc_categorical_column_raises(func):
+    # GH#68524 the frame scan reads each block's dtype, and a Categorical hides
+    #  its datetimes behind kind "O"
+    values = pd.Categorical(pd.to_datetime(["2016-01-01", "2016-01-02"]))
+    df = pd.DataFrame({"A": values})
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(df, True)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns, US/Pacific]", "period[D]"])
+def test_logical_not_ufunc_datetimelike_raises(dtype):
+    # GH#68524 one input takes the BlockManager.apply path instead, and these two
+    #  dtypes returned a frame of False
+    df = pd.DataFrame({"A": pd.array(["2016-01-01", "2016-01-02"], dtype=dtype)})
+
+    with pytest.raises(TypeError, match="cannot perform the numpy op logical_not"):
+        np.logical_not(df)

@@ -100,7 +100,7 @@ class JSONArray(ExtensionArray):
             # TODO replace with public function
             from pandas._libs import lib
 
-            values = np.asarray(values, dtype=object)
+            values = construct_1d_object_array_from_listlike(values)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     def __getitem__(self, item):
@@ -143,6 +143,9 @@ class JSONArray(ExtensionArray):
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
+            if isinstance(key, slice):
+                key = range(*key.indices(len(self)))
+
             if not isinstance(value, (type(self), abc.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])

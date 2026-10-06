@@ -4,7 +4,7 @@
 
 _pandas_ is made with love by more than [2,000 volunteer contributors](https://github.com/pandas-dev/pandas/graphs/contributors).
 
-If you want to support pandas development, you can find information in the [donations page]({{ base_url }}donate.html).
+If you want to support pandas development, you can find information on the [donate page](https://opencollective.com/pandas).
 
 ## Active maintainers
 
@@ -59,7 +59,7 @@ If you want to support pandas development, you can find information in the [dona
 > We have identified visible gaps and obstacles in sustaining diversity and inclusion in the open-source communities and we are proactive in increasing
 > the diversity of our team.
 > We have a [code of conduct]({{ base_url }}community/coc.html) to ensure a friendly and welcoming environment.
-> Please send an email to [pandas-code-of-conduct-committee](mailto:pandas-coc@googlegroups.com), if you think we can do a
+> Please send an email to [pandas-code-of-conduct-committee](mailto:coc@pandas.pydata.org), if you think we can do a
 > better job at achieving this goal.
 
 ## Governance

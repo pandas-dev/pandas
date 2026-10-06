@@ -10,7 +10,9 @@ from typing import (
 import warnings
 
 from pandas.compat import pickle_compat
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.io.common import get_handle
 
@@ -40,6 +42,9 @@ def to_pickle(
     """
     Pickle (serialize) object to file.
 
+    .. deprecated:: 3.2.0
+        Use :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` instead.
+
     Parameters
     ----------
     obj : any object
@@ -48,6 +53,10 @@ def to_pickle(
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function.
         Also accepts URL. URL has to be of S3 or GCS.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     compression : str or dict, default 'infer'
         For on-the-fly compression of the output data. If 'infer' and
         'filepath_or_buffer' is path-like, then detect compression from the
@@ -65,12 +74,9 @@ def to_pickle(
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
     protocol : int
         Int which indicates which protocol should be used by the pickler,
-        default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
-        values for this parameter depend on the version of Python. For Python
-        2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a valid value.
-        For Python >= 3.4, 4 is a valid value. A negative value for the
-        protocol parameter is equivalent to setting its value to
-        HIGHEST_PROTOCOL.
+        default ``pickle.HIGHEST_PROTOCOL`` (see [1]_). A negative value for
+        the protocol parameter is equivalent to setting its value to
+        ``pickle.HIGHEST_PROTOCOL``.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -113,6 +119,29 @@ def to_pickle(
     3    3    8
     4    4    9
     """
+    warnings.warn(
+        "pandas.to_pickle is deprecated and will be removed in a future version. "
+        "Use the DataFrame.to_pickle or Series.to_pickle method instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    to_pickle_internal(
+        obj,
+        filepath_or_buffer,
+        compression=compression,
+        protocol=protocol,
+        storage_options=storage_options,
+    )
+
+
+def to_pickle_internal(
+    obj: Any,
+    filepath_or_buffer: FilePath | WriteBuffer[bytes],
+    compression: CompressionOptions = "infer",
+    protocol: int = pickle.HIGHEST_PROTOCOL,
+    storage_options: StorageOptions | None = None,
+) -> None:
+    # implementation of NDFrame.to_pickle; see to_pickle for parameters
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 
@@ -145,8 +174,12 @@ def read_pickle(
     ----------
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a binary ``readlines()`` function.
+        object implementing a binary ``read()`` function.
         Also accepts URL. URL is not limited to S3 and GCS.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
         'filepath_or_buffer' is path-like, then detect compression from the
@@ -189,8 +222,10 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 1.0
-    provided the object was serialized with to_pickle.
+    read_pickle is only guaranteed to be backwards compatible with pickles
+    created by the current or previous major version of pandas, provided the
+    object was serialized with to_pickle. For example, in pandas 3.x.y, the
+    earliest supported pickle would be from 2.0.0.
 
     Examples
     --------
@@ -204,7 +239,7 @@ def read_pickle(
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
+    >>> original_df.to_pickle("./dummy.pkl")  # doctest: +SKIP
 
     >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
     >>> unpickled_df  # doctest: +SKIP
@@ -216,7 +251,15 @@ def read_pickle(
     4    4    9
     """
     # TypeError for Cython complaints about object.__new__ vs Tick.__new__
-    excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
+    # ValueError for legacy Timestamp pickles that mix a value with
+    #  by-component arguments (GH#31930)
+    excs_to_catch = (
+        AttributeError,
+        ImportError,
+        ModuleNotFoundError,
+        TypeError,
+        ValueError,
+    )
     with get_handle(
         filepath_or_buffer,
         "rb",

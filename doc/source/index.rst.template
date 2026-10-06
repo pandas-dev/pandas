@@ -8,7 +8,7 @@
 pandas documentation
 ********************
 
-**Date**: |today| **Version**: |version|
+**Date**: |today| **Version**: {% raw %}{{ full_version }}{% endraw %}
 
 **Download documentation**: `Zipped HTML <pandas.zip>`__
 

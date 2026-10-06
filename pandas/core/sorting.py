@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
 )
 
@@ -32,7 +33,7 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
-        Hashable,
+        Iterable,
         Sequence,
     )
 
@@ -90,6 +91,14 @@ def get_indexer_indexer(
     target = ensure_key_mapped(target, key, levels=level)  # type: ignore[assignment]
     target = target._sort_levels_monotonic()
 
+    if (np.all(ascending) and target.is_monotonic_increasing) or (
+        not np.any(ascending) and target.is_monotonic_decreasing
+    ):
+        # GH#11080, GH#64883: on a non-MultiIndex, `level` is a no-op,
+        # so short-circuit even when level is specified.
+        if level is None or not isinstance(target, ABCMultiIndex):
+            return None
+
     if level is not None:
         _, indexer = target.sortlevel(
             level,  # type: ignore[arg-type]
@@ -97,11 +106,6 @@ def get_indexer_indexer(
             sort_remaining=sort_remaining,
             na_position=na_position,
         )
-    elif (np.all(ascending) and target.is_monotonic_increasing) or (
-        not np.any(ascending) and target.is_monotonic_decreasing
-    ):
-        # Check monotonic-ness before sort an index (GH 11080)
-        return None
     elif isinstance(target, ABCMultiIndex):
         codes = [lev.codes for lev in target._get_codes_for_sorting()]
         indexer = lexsort_indexer(
@@ -119,7 +123,10 @@ def get_indexer_indexer(
 
 
 def get_group_index(
-    labels, shape: Shape, sort: bool, xnull: bool
+    labels: Sequence[npt.NDArray[np.signedinteger]],
+    shape: Shape,
+    sort: bool,
+    xnull: bool,
 ) -> npt.NDArray[np.int64]:
     """
     For the particular label_list, gets the offsets into the hypothetical list
@@ -153,7 +160,7 @@ def get_group_index(
     The length of `labels` and `shape` must be identical.
     """
 
-    def _int64_cut_off(shape) -> int:
+    def _int64_cut_off(shape: list[int]) -> int:
         acc = 1
         for i, mul in enumerate(shape):
             acc *= int(mul)
@@ -161,10 +168,10 @@ def get_group_index(
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size: int) -> tuple[np.ndarray, int]:
+    def maybe_lift(lab: np.ndarray, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
-        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+        return (lab + 1, size + 1) if lib.has_sentinel(lab, -1) else (lab, size)
 
     labels = [ensure_int64(x) for x in labels]
     lshape = list(shape)
@@ -209,7 +216,7 @@ def get_group_index(
 
 
 def get_compressed_ids(
-    labels, sizes: Shape
+    labels: Sequence[npt.NDArray[np.signedinteger]], sizes: Shape
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
@@ -282,7 +289,7 @@ def decons_obs_group_ids(
         If nulls are excluded; i.e. -1 labels are passed through.
     """
     if not xnull:
-        lift = np.fromiter(((a == -1).any() for a in labels), dtype=np.intp)
+        lift = np.fromiter((lib.has_sentinel(a, -1) for a in labels), dtype=np.intp)
         arr_shape = np.asarray(shape, dtype=np.intp) + lift
         shape = tuple(arr_shape)
 
@@ -301,9 +308,9 @@ def decons_obs_group_ids(
 
 def lexsort_indexer(
     keys: Sequence[ArrayLike | Index | Series],
-    orders=None,
+    orders: bool | Sequence[bool] | None = None,
     na_position: str = "last",
-    key: Callable | None = None,
+    key: Callable[..., Any] | None = None,
     codes_given: bool = False,
 ) -> npt.NDArray[np.intp]:
     """
@@ -336,21 +343,46 @@ def lexsort_indexer(
     if na_position not in ["last", "first"]:
         raise ValueError(f"invalid na_position: {na_position}")
 
+    orders_iter: Iterable[bool]
     if isinstance(orders, bool):
-        orders = itertools.repeat(orders, len(keys))
+        orders_iter = itertools.repeat(orders, len(keys))
     elif orders is None:
-        orders = itertools.repeat(True, len(keys))
+        orders_iter = itertools.repeat(True, len(keys))
     else:
-        orders = reversed(orders)
+        orders_iter = reversed(orders)
 
     labels = []
 
-    for k, order in zip(reversed(keys), orders, strict=True):
+    for k, order in zip(reversed(keys), orders_iter, strict=True):
         k = ensure_key_mapped(k, key)
         if codes_given:
             codes = cast("np.ndarray", k)
             n = codes.max() + 1 if len(codes) else 0
         else:
+            # Fast path for numeric numpy arrays: skip Categorical
+            # conversion and pass values directly to np.lexsort.
+            arr = extract_array(k, extract_numpy=True)
+            if isinstance(arr, np.ndarray) and arr.dtype.kind in "fiub":
+                if arr.dtype.kind == "f":
+                    # For float dtypes, np.lexsort sorts NaN to the end.
+                    mask = np.isnan(arr)
+                    has_na = mask.any()
+                    if not order:
+                        # Descending: negate values. NaN stays NaN
+                        # and still sorts last.
+                        arr = -arr
+                        if na_position == "first" and has_na:
+                            arr[mask] = -np.inf
+                    elif na_position == "first" and has_na:
+                        arr = arr.copy()
+                        arr[mask] = -np.inf
+                elif not order:
+                    # int/uint/bool: no NaN possible, use bitwise NOT
+                    # for descending to avoid overflow with negation.
+                    arr = ~arr
+                labels.append(arr)
+                continue
+
             cat = Categorical(k, ordered=True)
             codes = cat.codes
             n = len(cat.categories)
@@ -374,7 +406,7 @@ def nargsort(
     kind: SortKind = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
-    key: Callable | None = None,
+    key: Callable[..., Any] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.intp]:
     """
@@ -453,7 +485,9 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
+def nargminmax(
+    values: ExtensionArray, method: str, axis: AxisInt = 0
+) -> int | np.ndarray:
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -486,10 +520,17 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     return _nanargminmax(arr_values, mask, func)
 
 
-def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
+def _nanargminmax(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], func: Callable[..., Any]
+) -> int:
     """
     See nanargminmax.__doc__.
     """
+    if mask.size and mask.all():
+        # func would raise "empty sequence" for an array that is not empty;
+        # match the message nanops raises for the numpy-backed dtypes
+        raise ValueError("Encountered all NA values")
+
     idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
@@ -498,7 +539,9 @@ def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
 
 
 def _ensure_key_mapped_multiindex(
-    index: MultiIndex, key: Callable, level=None
+    index: MultiIndex,
+    key: Callable[..., Any],
+    level: Level | list[Level] | None = None,
 ) -> MultiIndex:
     """
     Returns a new MultiIndex in which key has been applied
@@ -528,11 +571,13 @@ def _ensure_key_mapped_multiindex(
 
     if level is not None:
         if isinstance(level, (str, int)):
-            level_iter = [level]
+            level_iter: list[Level] = [level]
         else:
-            level_iter = level
+            level_iter = cast("list[Level]", level)
 
-        sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
+        sort_levels: range | set[int] = {
+            index._get_level_number(lev) for lev in level_iter
+        }
     else:
         sort_levels = range(index.nlevels)
 
@@ -545,11 +590,15 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    return type(index).from_arrays(mapped)
+    # key may return an array without a name, keep the level names so
+    # that levels can still be referred to by name
+    return type(index).from_arrays(mapped, names=index.names)
 
 
 def ensure_key_mapped(
-    values: ArrayLike | Index | Series, key: Callable | None, levels=None
+    values: ArrayLike | Index | Series,
+    key: Callable[..., Any] | None,
+    levels: Level | list[Level] | None = None,
 ) -> ArrayLike | Index | Series:
     """
     Applies a callable key function to the values function and checks
@@ -596,35 +645,6 @@ def ensure_key_mapped(
     return result
 
 
-def get_indexer_dict(
-    label_list: list[np.ndarray], keys: list[Index]
-) -> dict[Hashable, npt.NDArray[np.intp]]:
-    """
-    Returns
-    -------
-    dict:
-        Labels mapped to indexers.
-    """
-    shape = tuple(len(x) for x in keys)
-
-    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-    if np.all(group_index == -1):
-        # Short-circuit, lib.indices_fast will return the same
-        return {}
-    ngroups = (
-        ((group_index.size and group_index.max()) + 1)
-        if is_int64_overflow_possible(shape)
-        else np.prod(shape, dtype="i8")
-    )
-
-    sorter = get_group_index_sorter(group_index, ngroups)
-
-    sorted_labels = [lab.take(sorter) for lab in label_list]
-    group_index = group_index.take(sorter)
-
-    return lib.indices_fast(sorter, group_index, keys, sorted_labels)
-
-
 # ----------------------------------------------------------------------
 # sorting levels...cleverly?
 
@@ -656,15 +676,15 @@ def get_group_index_sorter(
     np.ndarray[np.intp]
     """
     if ngroups is None:
-        ngroups = 1 + group_index.max()
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))  # type: ignore[operator]
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(
             ensure_platform_int(group_index),
-            ngroups,
+            ngroups,  # type: ignore[arg-type]
         )
         # sorter _should_ already be intp, but mypy is not yet able to verify
     else:

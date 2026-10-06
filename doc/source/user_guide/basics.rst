@@ -219,6 +219,10 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
    )
    dfmi.sub(column, axis=0, level="second")
 
+When operating with a plain Python list, pandas aligns it to the **columns**
+of the DataFrame (not the rows); to broadcast row-wise, pass ``axis=0`` to
+the explicit method, e.g. ``df.add([1, 2, 3], axis=0)``.
+
 Series and Index also support the :func:`divmod` builtin. This function takes
 the floor division and modulo operation at the same time returning a two-tuple
 of the same type as the left hand side. For example:
@@ -702,6 +706,55 @@ We can also pass infinite values to define the bins:
    factor = pd.cut(arr, [-np.inf, 0, np.inf])
    factor
 
+.. _basics.float_precision:
+
+Floating-point precision
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas stores real-valued data using 64-bit floating point by default.
+Floating-point numbers can represent only a finite set of values: a decimal
+number like ``0.03`` is stored as the nearest representable binary fraction,
+and the result of every arithmetic operation is rounded to the nearest
+representable value. As a consequence, computations that would give identical
+results in exact arithmetic can differ, typically around the 16th significant
+digit, depending on how they are carried out:
+
+.. ipython:: python
+
+   ser = pd.Series(0.03, index=range(60))
+   ser.head(20).mean() == ser.mean()
+
+Both means display as ``0.03`` by default, but they are not identical:
+
+.. ipython:: python
+
+   means = pd.Series([ser.head(20).mean(), ser.mean()])
+   with pd.option_context("display.precision", 20):
+       print(means)
+
+This is not specific to pandas: it is inherent to `IEEE 754
+<https://en.wikipedia.org/wiki/IEEE_754>`__ floating-point arithmetic, which
+is used by virtually all modern hardware and software. See the `Python
+tutorial <https://docs.python.org/3/tutorial/floatingpoint.html>`__ for an
+accessible introduction.
+
+For this reason, avoid relying on exact equality of *computed* floating-point
+values. In particular, using computed floats as labels — for example grouping
+on a column produced by a ``mean`` — can split what displays as a single
+value into multiple groups:
+
+.. ipython:: python
+
+   means.nunique()
+
+If you need to compare or group on computed floats, round them first with
+:meth:`~Series.round`, compare with :func:`numpy.isclose`, or bin the values
+with :func:`~pandas.cut`:
+
+.. ipython:: python
+
+   means.round(10).nunique()
+
 .. _basics.apply:
 
 Function application
@@ -848,6 +901,36 @@ statistics methods, takes an optional ``axis`` argument:
    df.apply(np.cumsum)
    df.apply(np.exp)
 
+.. warning::
+
+   For a general Python callable, :meth:`~DataFrame.apply` invokes it once per
+   column (or once per row with ``axis=1``) in a Python-level loop. It is a
+   tool for flexibility, not speed: when a vectorized equivalent exists, it
+   will generally be much faster. Every example above can be written more
+   directly without ``apply``:
+
+   .. ipython:: python
+
+      df.mean()            # df.apply(lambda x: np.mean(x))
+      df.mean(axis=1)      # df.apply(lambda x: np.mean(x), axis=1)
+      df.max() - df.min()  # df.apply(lambda x: x.max() - x.min())
+      df.cumsum()          # df.apply(np.cumsum)
+      np.exp(df)           # df.apply(np.exp)
+
+   The first four avoid the per-column loop and are several times faster on a
+   wide frame. The last is a NumPy ufunc, which ``apply`` recognizes and
+   applies to the whole frame at once, so the two are equally fast; the
+   direct spelling is simply clearer.
+
+   Before reaching for ``apply``, look for a vectorized alternative: a
+   DataFrame or Series method, an arithmetic or comparison operation
+   (see :ref:`basics.binop`), or an accessor method such as the
+   :ref:`vectorized string methods <text.string_methods>` under ``.str`` or
+   the :ref:`datetime properties <basics.dt_accessors>` under ``.dt``.
+   Reserve ``apply`` for logic with no vectorized equivalent, such as a
+   function from a third-party library that operates on one row or column
+   at a time.
+
 The :meth:`~DataFrame.apply` method will also dispatch on a string method name.
 
 .. ipython:: python
@@ -879,6 +962,9 @@ maximum value for each column occurred:
    )
    tsdf.apply(lambda x: x.idxmax())
 
+(In this case the built-in ``tsdf.idxmax()`` gives the same result more
+simply; ``apply`` is shown for illustration.)
+
 You may also pass additional arguments and keyword arguments to the :meth:`~DataFrame.apply`
 method.
 
@@ -904,6 +990,7 @@ Series operation on each column or row:
    tsdf
    tsdf.apply(pd.Series.interpolate)
 
+(Here too, ``tsdf.interpolate()`` is the idiomatic spelling.)
 
 Finally, :meth:`~DataFrame.apply` takes an argument ``raw`` which is False by default, which
 converts each row or column into a Series before applying the function. When
@@ -1628,7 +1715,7 @@ This enables nice expressions like this:
 
    s[s.dt.day == 2]
 
-You can easily produces tz aware transformations:
+You can easily produce tz aware transformations:
 
 .. ipython:: python
 
@@ -2363,7 +2450,7 @@ You can also pass the name of a dtype in the `NumPy dtype hierarchy
 
    df.select_dtypes(include=["bool"])
 
-:meth:`~pandas.DataFrame.select_dtypes` also works with generic dtypes as well.
+:meth:`~pandas.DataFrame.select_dtypes` also works with generic dtypes.
 
 For example, to select all numeric and boolean columns while excluding unsigned
 integers:

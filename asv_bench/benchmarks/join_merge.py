@@ -328,6 +328,26 @@ class I8Merge:
         merge(self.left, self.right, how=how)
 
 
+class MultiIntKeyMerge:
+    params = [["inner", "left", "outer"], [True, False]]
+    param_names = ["how", "sort"]
+
+    def setup(self, how, sort):
+        N = 1_000_000
+        self.left = DataFrame(
+            {
+                "k1": np.random.randint(0, 1000, N),
+                "k2": np.random.randint(0, 100, N),
+                "value": np.random.randn(N),
+            }
+        )
+        self.right = self.left[["k1", "k2"]].drop_duplicates().reset_index(drop=True)
+        self.right["value2"] = np.random.randn(len(self.right))
+
+    def time_merge_multi_int(self, how, sort):
+        merge(self.left, self.right, on=["k1", "k2"], how=how, sort=sort)
+
+
 class UniqueMerge:
     params = [4_000_000, 1_000_000]
     param_names = ["unique_elements"]
@@ -454,6 +474,7 @@ class MergeAsof:
                 "time": np.random.randint(0, one_count / 20, one_count),
                 "key": np.random.choice(list(string.ascii_uppercase), one_count),
                 "key2": np.random.randint(0, 25, one_count),
+                "key3": np.random.randint(0, 100000, one_count),
                 "value1": np.random.randn(one_count),
             }
         )
@@ -462,6 +483,7 @@ class MergeAsof:
                 "time": np.random.randint(0, two_count / 20, two_count),
                 "key": np.random.choice(list(string.ascii_uppercase), two_count),
                 "key2": np.random.randint(0, 25, two_count),
+                "key3": np.random.randint(0, 100000, two_count),
                 "value2": np.random.randn(two_count),
             }
         )
@@ -487,6 +509,8 @@ class MergeAsof:
         self.df2e = df2[["time", "key", "key2", "value2"]]
         self.df1f = df1[["timeu64", "value1"]]
         self.df2f = df2[["timeu64", "value2"]]
+        self.df1g = df1[["time", "key3", "value1"]]
+        self.df2g = df2[["time", "key3", "value2"]]
 
     def time_on_int(self, direction, tolerance):
         merge_asof(
@@ -519,6 +543,16 @@ class MergeAsof:
             self.df2c,
             on="time",
             by="key2",
+            direction=direction,
+            tolerance=tolerance,
+        )
+
+    def time_by_int_many_groups(self, direction, tolerance):
+        merge_asof(
+            self.df1g,
+            self.df2g,
+            on="time",
+            by="key3",
             direction=direction,
             tolerance=tolerance,
         )
@@ -585,6 +619,47 @@ class Align:
 
     def time_series_align_left_monotonic(self):
         self.ts1.align(self.ts2, join="left")
+
+
+class MergeRangeLikeFastPath:
+    """
+    Benchmarks for merge(sort=False) where one side is unsorted and the other
+    side's key is sorted/unique and range-like (eligible for maybe_sequence_to_range
+    -> RangeIndex.get_indexer fast-path).
+    """
+
+    params = [50_000, 200_000, 1_000_000, 5_000_000]
+    param_names = ["n"]
+
+    def setup(self, n):
+        rng = np.random.default_rng(0)
+        step = 2
+
+        left_sorted = DataFrame({"k": np.arange(n, dtype=np.int64), "v": 1})
+        self.left_unsorted = left_sorted.iloc[rng.permutation(n)].reset_index(drop=True)
+        self.left_sorted = left_sorted
+
+        right_sorted = DataFrame({"k": np.arange(0, n, step, dtype=np.int64), "w": 1})
+        self.right_sorted = right_sorted
+        self.right_unsorted = right_sorted.iloc[
+            rng.permutation(len(right_sorted))
+        ].reset_index(drop=True)
+
+        left_miss = self.left_unsorted.copy()
+        left_miss["k"] = left_miss["k"] + (10 * n)
+        self.left_miss = left_miss
+
+    def time_left_join_sorted_baseline(self, n):
+        self.left_sorted.merge(self.right_sorted, on="k", how="left", sort=False)
+
+    def time_left_join_unsorted_left(self, n):
+        self.left_unsorted.merge(self.right_sorted, on="k", how="left", sort=False)
+
+    def time_right_join_unsorted_right(self, n):
+        self.left_sorted.merge(self.right_unsorted, on="k", how="right", sort=False)
+
+    def time_left_join_zero_match_unsorted_left(self, n):
+        self.left_miss.merge(self.right_sorted, on="k", how="left", sort=False)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

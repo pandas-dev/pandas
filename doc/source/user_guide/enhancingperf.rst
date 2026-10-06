@@ -440,10 +440,11 @@ to the `Numba issue tracker. <https://github.com/numba/numba/issues/new/choose>`
 Expression evaluation via :func:`~pandas.eval`
 ----------------------------------------------
 
-The top-level function :func:`pandas.eval` implements performant expression evaluation of
+The top-level function :func:`pandas.eval` implements expression evaluation of
 :class:`~pandas.Series` and :class:`~pandas.DataFrame`. Expression evaluation allows operations
 to be expressed as strings and can potentially provide a performance improvement
-by evaluate arithmetic and boolean expression all at once for large :class:`~pandas.DataFrame`.
+by evaluating arithmetic and boolean expressions all at once for large :class:`~pandas.DataFrame`
+with sufficiently complex expressions.
 
 .. note::
 
@@ -452,7 +453,10 @@ by evaluate arithmetic and boolean expression all at once for large :class:`~pan
    :func:`~pandas.eval` is many orders of magnitude slower for
    smaller expressions or objects than plain Python. A good rule of thumb is
    to only use :func:`~pandas.eval` when you have a
-   :class:`~pandas.DataFrame` with more than 10,000 rows.
+   :class:`~pandas.DataFrame` with more than 100,000 rows **and** an expression
+   that involves multiple operations. For simple expressions
+   (e.g., a single comparison or arithmetic operation), :func:`~pandas.eval`
+   adds overhead and will be slower regardless of :class:`~pandas.DataFrame` size.
 
 Supported syntax
 ~~~~~~~~~~~~~~~~
@@ -744,10 +748,15 @@ computation. The two lines are two different engines.
 .. image:: ../_static/eval-perf.png
 
 You will only see the performance benefits of using the ``numexpr`` engine with :func:`pandas.eval` if your :class:`~pandas.DataFrame`
-has more than approximately 100,000 rows.
+has more than approximately 100,000 rows. Even then, the benefit depends on expression complexity:
+the more operations in the expression, the greater the potential speedup. For simple expressions
+(e.g., ``df["a"] + df["b"]``), standard Python/NumPy operations will be faster regardless of
+:class:`~pandas.DataFrame` size because :func:`~pandas.eval` has parsing and compilation overhead
+that outweighs any benefit from ``numexpr``.
 
 This plot was created using a :class:`DataFrame` with 3 columns each containing
-floating point values generated using ``numpy.random.randn()``.
+floating point values generated using ``numpy.random.randn()`` and the expression
+``a + b * (c ** 2 + b ** 2 - a) / (a * c) ** 3``.
 
 Expression evaluation limitations with ``numexpr``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

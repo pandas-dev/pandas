@@ -2,7 +2,7 @@
 # Inspired by numpy's cibuildwheel config https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 #
 # In an attempt to save CI resources, wheel builds do
-# not run on each push but only weekly and for releases.
+# not run on each push but only weekly and on release tag pushes.
 # Wheel builds can be triggered from the Actions page
 # (if you have the permissions) on a commit to main.
 #
@@ -13,8 +13,6 @@
 name: Wheel builder
 
 on:
-  release:
-    types: [published]
   schedule:
   # 3:27 UTC every day
   - cron: "27 3 * * *"
@@ -25,6 +23,10 @@ on:
       - "doc/**"
       - "web/**"
   workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash -euxo pipefail {0}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -38,54 +40,46 @@ jobs:
     permissions:
       contents: read
     if: >-
-      (github.event_name == 'schedule') ||
+      github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
     runs-on: ubuntu-24.04
-    outputs:
-      sdist_file: ${{ steps.save-path.outputs.sdist_name }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.11'
+          python-version: '3.14'
+
+      - name: Install build
+        run: python -m pip install build
 
       - name: Build sdist
-        run: |
-          python -m pip install build
-          python -m build --sdist
+        run: python -m build --sdist
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      - name: Check sdist
+        run: ls -l --human-readable ./dist
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sdist
           path: ./dist/*
-
-      - name: Sanity check sdist files
-        run: |
-          ls ./dist
-
-      - name: Output sdist name
-        id: save-path
-        shell: bash -el {0}
-        run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_OUTPUT"
 
   build_wheels:
     needs: build_sdist
     permissions:
       contents: read
-    name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+    name: Build wheel for ${{ matrix.python }}-${{ matrix.buildplat[1] }}
     if: >-
-      (github.event_name == 'schedule') ||
+      github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
@@ -93,115 +87,50 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # GitHub Actions doesn't support pairing matrix values together, let's improvise
-        # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
-        - [ubuntu-24.04, manylinux_x86_64]
-        - [ubuntu-24.04, musllinux_x86_64]
-        - [ubuntu-24.04-arm, manylinux_aarch64]
-        - [ubuntu-24.04-arm, musllinux_aarch64]
-        - [macos-15-intel, macosx_x86_64]
-        - [macos-15, macosx_arm64]
-        - [windows-2025, win_amd64]
-        - [windows-11-arm, win_arm64]
-        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
+          - [ubuntu-24.04, manylinux_x86_64]
+          - [ubuntu-24.04, musllinux_x86_64]
+          - [ubuntu-24.04-arm, manylinux_aarch64]
+          - [ubuntu-24.04-arm, musllinux_aarch64]
+          - [macos-15-intel, macosx_x86_64]
+          - [macos-15, macosx_arm64]
+          - [windows-2025, win_amd64]
+          - [windows-11-arm, win_arm64]
+        python: ["cp311", "cp312", "cp313", "cp314", "cp314t", "cp315", "cp315t"]
         include:
-        # Build Pyodide wheels and upload them to Anaconda.org
-        # NOTE: this job is similar to the one in unit-tests.yml except for the fact
-        # that it uses cibuildwheel instead of a standard Pyodide xbuildenv setup.
-        - buildplat: [ubuntu-24.04, pyodide_wasm32]
-          python: ["cp312", "3.12"]
-          cibw_build_frontend: 'build'
-        exclude:
-        # BackendUnavailable: Cannot import 'mesonpy'
-          - buildplat: [windows-11-arm, win_arm64]
-            python: ["cp313t", "3.13"]
-    concurrency:
-      # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.buildplat[0] }}-${{ matrix.buildplat[1] }}-${{ matrix.python[0]}}-build-wheels
-      cancel-in-progress: true
+          - buildplat: [ubuntu-24.04, pyodide_wasm32]
+            python: cp312
 
     steps:
-      - name: Checkout pandas
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-
-      - name: Set up MSVC environment for ARM64
-        if: matrix.buildplat[1] == 'win_arm64'
-        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
-        with:
-          arch: arm64
-
-      # TODO: Build wheels from sdist again
-      # There's some sort of weird race condition?
-      # within Github that makes the sdist be missing files
-
-      # We need to build wheels from the sdist since the sdist
-      # removes unnecessary files from the release
-      - name: Download sdist (not macOS)
-        #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
+      - name: Download sdist
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: sdist
           path: ./dist
 
-      - name: Output sdist name (macOS)
-        id: save-path
-        shell: bash -el {0}
+      - name: Save sdist name to environment variable
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
-      # Python version used to build sdist doesn't matter
-      # wheel will be built from sdist with the correct version
-      - name: Unzip sdist (macOS)
-        if: ${{ startsWith(matrix.buildplat[1], 'macosx') }}
-        run: |
-          tar -xzf ./dist/${{ env.sdist_name }} -C ./dist
-
-      - name: Output sdist name (macOS)
-        id: save-path2
-        shell: bash -el {0}
-        run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
-
       - name: Build wheels
-        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
+        uses: pypa/cibuildwheel@e090b81e30c4d855ea63bf4b6e59204c09a101ae # v4.2.1
         with:
-         package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
-        env:
-          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
-          CIBW_PLATFORM: ${{ (matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide') || (matrix.buildplat[1] == 'win_arm64' && 'windows') || 'auto' }}
-          CIBW_ARCHS: ${{ matrix.buildplat[1] == 'win_arm64' && 'ARM64' || 'auto' }}
-          CIBW_BEFORE_BUILD_WINDOWS: 'python -m pip install delvewheel'
+          package-dir: ./dist/${{ env.sdist_name }}
+          only: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
 
-      - name: Set up Python for validation/upload (non-ARM64 Windows & other OS)
-        # micromamba is not available for ARM64 Windows
-        if: matrix.buildplat[1] != 'win_arm64'
-        uses: mamba-org/setup-micromamba@add3a49764cedee8ee24e82dfde87f5bc2914462 # v2
+      - name: Set up Python for validation
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          environment-name: wheel-env
-          # Use a fixed Python, since we might have an unreleased Python not
-          # yet present on conda-forge
-          create-args: >-
-            python=3.11
-            wheel
-          cache-downloads: true
-          cache-environment: true
+          python-version: '3.14'
 
-      - name: Install wheel for win_arm64
-        # installing wheel here because micromamba step was skipped
-        if: matrix.buildplat[1] == 'win_arm64'
-        shell: bash -el {0}
-        # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
-        run: python -m pip install wheel cryptography==46.0.3
+      - name: Install wheel
+        run: python -m pip install wheel
 
       - name: Validate wheel RECORD
-        shell: bash -el {0}
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
 
   upload_nightly:
@@ -217,26 +146,167 @@ jobs:
     needs:
       - build_sdist
       - build_wheels
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Download all artefacts
+      - name: Download all artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: dist
           merge-multiple: true
 
       - name: Upload wheels & sdist
-        uses: scientific-python/upload-nightly-action@5748273c71e2d8d3a61f3a11a16421c8954f9ecf # 0.6.3
+        uses: scientific-python/upload-nightly-action@16fa02eacee1655195143de09f03676e60ef2bf5 # 0.6.5
         with:
           artifacts_path: dist
           anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
+  stubs_tests:
+    # run the pandas-stubs tests (which error on warnings) against the nightly wheel;
+    # on failure, open or update a single issue here. See GH#54095.
+    name: pandas-stubs tests against pandas nightly
+    # !cancelled(): an unrelated failed build_wheels leg would otherwise skip this job.
+    # Manual runs are allowed on any branch of a fork, for testing this job.
+    if: >
+      !cancelled() &&
+      ((github.event_name == 'schedule' && github.repository == 'pandas-dev/pandas') ||
+      (github.event_name == 'workflow_dispatch' &&
+      (github.repository != 'pandas-dev/pandas' || github.ref == 'refs/heads/main')))
+    needs: build_wheels
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write # open/update the failure issue
+    env:
+      ISSUE_TITLE: "CI: pandas-stubs tests fail against pandas nightly"
+      STUBS_TEAM: "@pandas-dev/pandas-stubs-team"
+    steps:
+      - name: Checkout pandas-stubs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pandas-dev/pandas-stubs
+          persist-credentials: false
+
+      - name: Download pandas wheel
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: cp314-manylinux_x86_64
+          path: ${{ runner.temp }}/pandas-wheel
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install pandas-stubs test dependencies
+        run: |
+          python -m pip install poetry
+          poetry install --no-root
+          poetry run python -m pip install pytest-reportlog
+
+      - name: Install pandas wheel
+        env:
+          WHEEL_DIR: ${{ runner.temp }}/pandas-wheel
+        run: |
+          poetry run python -m pip install "$WHEEL_DIR"/*.whl
+          poetry run python -c "import pandas; print(pandas.__version__)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Run pandas-stubs tests
+        id: tests
+        run: poetry run pytest --report-log=pytest-log.jsonl
+
+      - name: Open or update issue on failure
+        id: issue
+        if: failure() && steps.tests.outcome == 'failure'
+        uses: scientific-python/issue-from-pytest-log-action@35b4e0a9e06f8e7e261778289cf4b968b722662d # v1.6.2
+        with:
+          log-path: pytest-log.jsonl
+          issue-title: ${{ env.ISSUE_TITLE }}
+          issue-label: "CI,Typing"
+
+      # the action only edits the body of an existing issue, so ping once per issue
+      - name: Ping pandas-stubs team on a new issue
+        if: failure() && steps.issue.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=$(
+            gh api "repos/$GITHUB_REPOSITORY/issues?state=open&creator=github-actions%5Bbot%5D&labels=CI,Typing&per_page=100" \
+              | jq -r --arg title "$ISSUE_TITLE" 'map(select(.title == $title))[0].number'
+          )
+          if ! gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$number/comments" --jq ".[].body" \
+              | grep -F "$STUBS_TEAM" > /dev/null; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" \
+              --body "$STUBS_TEAM the pandas-stubs tests are failing against pandas nightly."
+          fi
+
+  report_failure:
+    # Keep one open issue while nightly builds fail, closed by the next passing night. GH#55903
+    name: Report nightly build failures
+    permissions:
+      issues: write           # open, comment on, and close the tracking issue
+    if: >-
+      !cancelled() &&
+      github.repository == 'pandas-dev/pandas' &&
+      github.event_name == 'schedule'
+    needs:
+      - build_sdist
+      - build_wheels
+      - upload_nightly
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          FAILED: ${{ contains(needs.*.result, 'failure') }}
+        with:
+          script: |
+            const TITLE = 'CI: Nightly wheel builds are failing';
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const runUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              ...repo, state: 'open', creator: 'github-actions[bot]', per_page: 100,
+            });
+            const issue = openIssues.find(item => !item.pull_request && item.title === TITLE);
+
+            if (process.env.FAILED !== 'true') {
+              if (issue) {
+                await github.rest.issues.createComment({
+                  ...repo, issue_number: issue.number, body: `Passing again as of ${runUrl}`,
+                });
+                await github.rest.issues.update({
+                  ...repo, issue_number: issue.number, state: 'closed', state_reason: 'completed',
+                });
+              }
+              return;
+            }
+
+            if (issue) {
+              await github.rest.issues.createComment({
+                ...repo, issue_number: issue.number, body: `Failing run: ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                ...repo,
+                title: TITLE,
+                labels: ['CI'],
+                body: [
+                  'The scheduled wheel build failed, so no nightly wheels were uploaded.',
+                  'This issue is managed by the `report_failure` job in',
+                  '`.github/workflows/wheels.yml` and closes on the next passing night.',
+                  'Closing it by hand while builds still fail opens a new one on the next failing night.',
+                  '',
+                  `Failing run: ${runUrl}`,
+                ].join('\n'),
+              });
+            }
+
   publish:
     if: >
       github.repository == 'pandas-dev/pandas' &&
-      github.event_name == 'release' &&
-      startsWith(github.ref, 'refs/tags/v')
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v') &&
+      ( ! endsWith(github.ref, 'dev0'))
 
     needs:
       - build_sdist
@@ -251,7 +321,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Download all artefacts
+      - name: Download all artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: dist          # everything lands in ./dist/**
@@ -267,7 +337,69 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       - name: Publish to **PyPI** (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: upload
           skip-existing: true
+
+  create_release:
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v') &&
+      ( ! endsWith(github.ref, 'dev0'))
+
+    needs:
+      - build_sdist
+      - publish
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release notes templates
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/release_notes
+          sparse-checkout-cone-mode: false
+
+      - name: Download sdist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sdist
+          path: ./dist
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export VERSION="${GITHUB_REF_NAME#v}"
+          export BASE_VERSION="${VERSION%%rc*}"
+          export MINOR_VERSION="${BASE_VERSION%.*}"
+
+          if [[ "$VERSION" == *rc* ]]; then
+            TEMPLATE="rc"
+            PRERELEASE="--prerelease"
+          elif [[ "${BASE_VERSION##*.}" != "0" ]]; then
+            TEMPLATE="patch"
+            PRERELEASE=""
+          else
+            TEMPLATE="minor"
+            PRERELEASE=""
+          fi
+
+          envsubst '${VERSION} ${BASE_VERSION} ${MINOR_VERSION}' \
+            < ".github/release_notes/$TEMPLATE.md" > notes.md
+          cat notes.md
+
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "pandas $VERSION" \
+            --notes-file notes.md \
+            --draft \
+            $PRERELEASE \
+            dist/pandas-*.tar.gz

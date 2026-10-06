@@ -11,15 +11,8 @@ import pytest
 from pandas.compat import PY314
 from pandas.errors import ParserError
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
 
 if PY314:
     # TODO: write a regex that works with all new possitibilities here
@@ -41,7 +34,6 @@ else:
         ({"quotechar": 2}, f'"quotechar" must be {MSG2}, not int'),
     ],
 )
-@skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
 def test_bad_quote_char(all_parsers, kwargs, msg):
     data = "1,2,3"
     parser = all_parsers
@@ -57,19 +49,24 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
         (10, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
     ],
 )
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 def test_bad_quoting(all_parsers, quoting, msg):
     data = "1,2,3"
     parser = all_parsers
 
-    with pytest.raises(TypeError, match=msg):
+    if parser.engine == "pyarrow":
+        # pyarrow rejects ``quoting`` outright before any value validation.
+        msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+        err = ValueError
+    else:
+        err = TypeError
+    with pytest.raises(err, match=msg):
         parser.read_csv(StringIO(data), quoting=quoting)
 
 
 def test_quote_char_basic(all_parsers):
     parser = all_parsers
     data = 'a,b,c\n1,2,"cat"'
-    expected = DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
+    expected = pd.DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
 
     result = parser.read_csv(StringIO(data), quotechar='"')
     tm.assert_frame_equal(result, expected)
@@ -78,7 +75,7 @@ def test_quote_char_basic(all_parsers):
 @pytest.mark.parametrize("quote_char", ["~", "*", "%", "$", "@", "P"])
 def test_quote_char_various(all_parsers, quote_char):
     parser = all_parsers
-    expected = DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
+    expected = pd.DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
 
     data = 'a,b,c\n1,2,"cat"'
     new_data = data.replace('"', quote_char)
@@ -87,13 +84,19 @@ def test_quote_char_various(all_parsers, quote_char):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 @pytest.mark.parametrize("quote_char", ["", None])
 def test_null_quote_char(all_parsers, quoting, quote_char):
     kwargs = {"quotechar": quote_char, "quoting": quoting}
     data = "a,b,c\n1,2,3"
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and quoting != csv.QUOTE_MINIMAL:
+        # any non-default value of ``quoting`` is rejected outright
+        msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
 
     if quoting != csv.QUOTE_NONE:
         # Sanity checking.
@@ -111,7 +114,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
             parser.read_csv(StringIO(data), **kwargs)
     elif all_parsers.engine != "python":
         # Python doesn't support null/blank quote chars in their csv parsers
-        expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+        expected = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
         result = parser.read_csv(StringIO(data), **kwargs)
         tm.assert_frame_equal(result, expected)
 
@@ -132,14 +135,23 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
         ({"quotechar": '"', "quoting": csv.QUOTE_NONNUMERIC}, [[1.0, 2.0, "foo"]]),
     ],
 )
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
-def test_quoting_various(all_parsers, kwargs, exp_data):
+def test_quoting_various(all_parsers, kwargs, exp_data, request):
     data = '1,2,"foo"'
     parser = all_parsers
     columns = ["a", "b", "c"]
 
+    if parser.engine == "pyarrow":
+        if kwargs.get("quoting", csv.QUOTE_MINIMAL) != csv.QUOTE_MINIMAL:
+            # any non-default value of ``quoting`` is rejected outright
+            msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), names=columns, **kwargs)
+            return
+        mark = pytest.mark.xfail(reason="ParserError: Empty CSV file or block")
+        request.applymarker(mark)
+
     result = parser.read_csv(StringIO(data), names=columns, **kwargs)
-    expected = DataFrame(exp_data, columns=columns)
+    expected = pd.DataFrame(exp_data, columns=columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -155,7 +167,7 @@ def test_double_quote(all_parsers, doublequote, exp_data, request):
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), quotechar='"', doublequote=doublequote)
-    expected = DataFrame(exp_data, columns=["a", "b"])
+    expected = pd.DataFrame(exp_data, columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -164,7 +176,7 @@ def test_quotechar_unicode(all_parsers, quotechar):
     # see gh-14477
     data = "a\n1"
     parser = all_parsers
-    expected = DataFrame({"a": [1]})
+    expected = pd.DataFrame({"a": [1]})
 
     result = parser.read_csv(StringIO(data), quotechar=quotechar)
     tm.assert_frame_equal(result, expected)
@@ -182,7 +194,7 @@ def test_unbalanced_quoting(all_parsers, balanced, request):
 
     if balanced:
         # Re-balance the quoting and read in without errors.
-        expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+        expected = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
         result = parser.read_csv(StringIO(data + '"'))
         tm.assert_frame_equal(result, expected)
     else:

@@ -12,10 +12,8 @@ import pytest
 
 from pandas._libs.tslibs.offsets import CDay
 
-from pandas import (
-    _testing as tm,
-    read_pickle,
-)
+import pandas as pd
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -76,7 +74,6 @@ class TestCustomBusinessDay:
         xp_egypt = datetime(2013, 5, 5)
         assert xp_egypt == dt + 2 * bday_egypt
 
-    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
@@ -94,7 +91,7 @@ class TestCustomBusinessDay:
     def test_pickle_compat_0_14_1(self, datapath):
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
         pth = datapath("tseries", "offsets", "data", "cday-0.14.1.pickle")
-        cday0_14_1 = read_pickle(pth)
+        cday0_14_1 = pd.read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
 

@@ -6,7 +6,7 @@ test here to confirm these works as the same
 import numpy as np
 import pytest
 
-from pandas import MultiIndex
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
@@ -15,14 +15,14 @@ def test_fillna(index_or_series_obj):
     # GH 11343
     obj = index_or_series_obj
 
-    if isinstance(obj, MultiIndex):
+    if isinstance(obj, pd.MultiIndex):
         msg = "fillna is not defined for MultiIndex"
         with pytest.raises(NotImplementedError, match=msg):
             obj.fillna(0)
         return
 
     # values will not be changed
-    fill_value = obj.values[0] if len(obj) > 0 else 0
+    fill_value = obj._values[0] if len(obj) > 0 else 0
     result = obj.fillna(fill_value)
 
     tm.assert_equal(obj, result)
@@ -41,7 +41,7 @@ def test_fillna_null(null_obj, index_or_series_obj):
         pytest.skip(f"{klass} doesn't allow for NA operations")
     elif len(obj) < 1:
         pytest.skip("Test doesn't make sense on empty data")
-    elif isinstance(obj, MultiIndex):
+    elif isinstance(obj, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     obj = obj.copy(deep=True)
@@ -59,3 +59,11 @@ def test_fillna_null(null_obj, index_or_series_obj):
 
     # check shallow_copied
     assert obj is not result
+
+
+def test_fillna_with_tuple_on_object_index():
+    # GH#37681 np.putmask should not unpack tuple fill values
+    idx = pd.Index([(0, 1), (1, 2), None], tupleize_cols=False)
+    result = idx.fillna((9, 9))
+    expected = pd.Index([(0, 1), (1, 2), (9, 9)], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)

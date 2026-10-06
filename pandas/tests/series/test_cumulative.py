@@ -282,3 +282,85 @@ class TestSeriesCumulativeOps:
         msg = re.escape(f"operation 'cumprod' not supported for dtype '{ser.dtype}'")
         with pytest.raises(TypeError, match=msg):
             ser.cumprod(skipna=skipna)
+
+    @pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            ([-4.0, -3.0, -2.0], [-4.0, -3.0, -2.0]),
+            ([float("-inf"), -1.0], [float("-inf"), -1.0]),
+            ([-4.0, -3.0, 5.0, -2.0], [-4.0, -3.0, 5.0, 5.0]),
+        ],
+    )
+    def test_cummax_pyarrow_float_uses_negative_infinity_start(
+        self, dtype, values, expected
+    ):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(values, dtype=dtype)
+
+        result = ser.cummax()
+        expected = pd.Series(expected, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_cummin_pyarrow_float_uses_infinity_start(self):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        ser = pd.Series([float("inf"), float("inf"), 1.0], dtype="float64[pyarrow]")
+
+        result = ser.cummin()
+        expected = pd.Series(
+            [float("inf"), float("inf"), 1.0], dtype="float64[pyarrow]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_cummax_pyarrow_float_with_nulls(self, skipna):
+        # GH#66257
+        pytest.importorskip("pyarrow")
+        ser = pd.Series([-4.0, None, -2.0], dtype="float64[pyarrow]")
+
+        result = ser.cummax(skipna=skipna)
+        if skipna:
+            expected = pd.Series([-4.0, None, -2.0], dtype="float64[pyarrow]")
+        else:
+            expected = pd.Series([-4.0, None, None], dtype="float64[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+
+def test_td64_cumsum_overflow():
+    # GH#66551: a running total leaving int64 bounds used to wrap silently
+    ser = pd.Series([pd.Timedelta.max] * 2)
+    msg = "overflow in timedelta operation"
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        ser.cumsum()
+
+    # the wrap does not have to be in the final entry
+    ser = pd.Series([pd.Timedelta(2**62, "ns")] * 3)
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        ser.cumsum()
+
+
+def test_td64_cumsum_on_nat_sentinel():
+    # GH#66551: a running total of exactly int64.min is representable but
+    #  indistinguishable from NaT once stored
+    ser = pd.Series([pd.Timedelta(-(2**62), "ns")] * 2)
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
+        ser.cumsum()
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+def test_td64_cumsum_all_nat(skipna):
+    # GH#66551: the NaT sentinels must not be mistaken for an overflow
+    ser = pd.Series(np.array(["NaT"] * 3, dtype="m8[ns]"))
+    result = ser.cumsum(skipna=skipna)
+    tm.assert_series_equal(result, ser)
+
+
+def test_td64_cumsum_nat_positions_exempt():
+    # GH#66551: with skipna=False everything after the NaT is NaT anyway, so
+    #  the entries it masks must not raise
+    ser = pd.Series([pd.Timedelta.max, pd.NaT, pd.Timedelta.max])
+    result = ser.cumsum(skipna=False)
+    expected = pd.Series([pd.Timedelta.max, pd.NaT, pd.NaT])
+    tm.assert_series_equal(result, expected)

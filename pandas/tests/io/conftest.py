@@ -34,7 +34,7 @@ def salaries_table(datapath):
 
 @pytest.fixture
 def feather_file(datapath):
-    return datapath("io", "data", "feather", "feather-0_3_1.feather")
+    return datapath("io", "data", "feather", "simple_dataset.feather")
 
 
 @pytest.fixture

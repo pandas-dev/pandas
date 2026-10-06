@@ -21,7 +21,6 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -48,16 +47,7 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension import base
 
-is_windows_or_32bit = (is_platform_windows() and not np_version_gt2) or not IS64
-
-pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in divide:RuntimeWarning"
-    ),
-    pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
-    # overflow only relevant for Floating dtype cases cases
-    pytest.mark.filterwarnings("ignore:overflow encountered in reduce:RuntimeWarning"),
-]
+is_windows_or_32bit = not IS64
 
 
 def make_data():
@@ -270,15 +260,13 @@ class TestMaskedArrays(base.ExtensionTests):
             # TODO: Why does Window Numpy 2.0 dtype depend on skipna?
             cmp_dtype = (
                 "Int32"
-                if (is_platform_windows() and (not np_version_gt2 or not skipna))
-                or not IS64
+                if (is_platform_windows() and not skipna) or not IS64
                 else "Int64"
             )
         elif is_unsigned_integer_dtype(arr.dtype):
             cmp_dtype = (
                 "UInt32"
-                if (is_platform_windows() and (not np_version_gt2 or not skipna))
-                or not IS64
+                if (is_platform_windows() and not skipna) or not IS64
                 else "UInt64"
             )
         elif arr.dtype.kind == "b":
@@ -287,8 +275,7 @@ class TestMaskedArrays(base.ExtensionTests):
             elif op_name in ["sum", "prod"]:
                 cmp_dtype = (
                     "Int32"
-                    if (is_platform_windows() and (not np_version_gt2 or not skipna))
-                    or not IS64
+                    if (is_platform_windows() and not skipna) or not IS64
                     else "Int64"
                 )
             else:

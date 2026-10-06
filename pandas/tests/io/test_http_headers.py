@@ -19,9 +19,6 @@ pytestmark = [
     pytest.mark.single_cpu,
     pytest.mark.network,
     pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
-    pytest.mark.filterwarnings(
         "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
     ),
 ]
@@ -169,9 +166,11 @@ def test_to_parquet_to_disk_with_storage_options(engine):
     pytest.importorskip(engine)
 
     true_df = pd.DataFrame({"column_name": ["column_value"]})
-    msg = (
-        "storage_options passed with file object or non-fsspec file path|"
-        "storage_options passed with buffer, or non-supported URL"
+    msg = "|".join(
+        [
+            "storage_options passed with file object or non-fsspec file path",
+            "storage_options passed with buffer, or non-supported URL",
+        ]
     )
     with pytest.raises(ValueError, match=msg):
         true_df.to_parquet("/tmp/junk.parquet", storage_options=headers, engine=engine)

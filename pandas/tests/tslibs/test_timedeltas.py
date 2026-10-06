@@ -3,16 +3,15 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import Resolution
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     delta_to_nanoseconds,
     ints_to_pytimedelta,
+    parse_timedelta_string_reso,
 )
 
-from pandas import (
-    Timedelta,
-    offsets,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -20,18 +19,18 @@ import pandas._testing as tm
     "obj,expected",
     [
         (np.timedelta64(14, "D"), 14 * 24 * 3600 * 1e9),
-        (Timedelta(minutes=-7), -7 * 60 * 1e9),
-        (Timedelta(minutes=-7).to_pytimedelta(), -7 * 60 * 1e9),
-        (Timedelta(seconds=1234e-9), 1234),  # GH43764, GH40946
+        (pd.Timedelta(minutes=-7), -7 * 60 * 1e9),
+        (pd.Timedelta(minutes=-7).to_pytimedelta(), -7 * 60 * 1e9),
+        (pd.Timedelta(seconds=1234e-9), 1234),  # GH43764, GH40946
         (
-            Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
+            pd.Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
             111,
         ),  # GH43764
         (
-            Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
+            pd.Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
             24 * 3600e9 + 111,
         ),  # GH43764
-        (offsets.Nano(125), 125),
+        (pd.offsets.Nano(125), 125),
     ],
 )
 def test_delta_to_nanoseconds(obj, expected):
@@ -81,13 +80,13 @@ def test_unsupported_td64_unit_raises(unit):
         "Only unambiguous timedelta values durations are supported. "
         "Allowed units are 'W', 'D', 'h', 'm', 's', 'ms', 'us', 'ns'",
     ):
-        Timedelta(np.timedelta64(1, unit))
+        pd.Timedelta(np.timedelta64(1, unit))
 
 
 def test_huge_nanoseconds_overflow():
     # GH 32402
-    assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
-    assert delta_to_nanoseconds(Timedelta(nanoseconds=1e10)) == 1e10
+    assert delta_to_nanoseconds(pd.Timedelta(1e10)) == 1e10
+    assert delta_to_nanoseconds(pd.Timedelta(nanoseconds=1e10)) == 1e10
 
 
 @pytest.mark.parametrize(
@@ -102,11 +101,11 @@ def test_kwarg_assertion(kwargs):
     )
 
     with pytest.raises(ValueError, match=re.escape(err_message)):
-        Timedelta(**kwargs)
+        pd.Timedelta(**kwargs)
 
     with pytest.raises(ValueError, match=re.escape(err_message)):
         # GH#53801 'unit' misspelled as 'units'
-        Timedelta(1, units="hours")
+        pd.Timedelta(1, units="hours")
 
 
 class TestArrayToTimedelta64:
@@ -138,7 +137,7 @@ def test_ints_to_pytimedelta(unit):
     tm.assert_numpy_array_equal(res, expected)
 
     res = ints_to_pytimedelta(arr, box=True)
-    expected = np.array([Timedelta(x) for x in arr], dtype=object)
+    expected = np.array([pd.Timedelta(x) for x in arr], dtype=object)
     tm.assert_numpy_array_equal(res, expected)
 
 
@@ -151,3 +150,43 @@ def test_ints_to_pytimedelta_unsupported(unit):
     msg = "Only resolutions 's', 'ms', 'us', 'ns' are supported"
     with pytest.raises(NotImplementedError, match=msg):
         ints_to_pytimedelta(arr, box=True)
+
+
+@pytest.mark.parametrize(
+    "label, expected_reso",
+    [
+        # unit-based format: the finest unit written, not the value
+        ("720s", "second"),  # GH#33603 - not "minute" even though == 12min
+        ("2000ms", "millisecond"),  # not "second" even though == 2s
+        ("2D 0 hours", "hour"),  # finest of the two written units
+        ("120s 0 days", "second"),  # order of units does not matter
+        ("1.5min", "minute"),  # the written unit; the value refines this
+        ("3.5s", "second"),
+        ("1000", "nanosecond"),  # bare number is nanoseconds
+        ("2000ns", "nanosecond"),
+        # hh:mm:ss always carries a seconds field
+        ("1:00:00", "second"),
+        ("1:01:00", "second"),
+        ("0:0:1.100000", "second"),  # fraction handled by the value, not here
+        # ISO 8601 durations
+        ("PT120S", "second"),  # not "minute"
+        ("PT2M", "minute"),
+        ("P1DT12H", "hour"),
+        ("P2D", "day"),
+        ("P2DT0H", "hour"),  # the T..H marker forces hour resolution
+        ("P1DT1H30M45S", "second"),
+    ],
+)
+def test_parse_timedelta_string_reso(label, expected_reso):
+    # GH#33603 - the resolution reflects the finest unit written in the string,
+    #  determined by the same single pass that computes the value.
+    parsed, code = parse_timedelta_string_reso(label)
+    assert parsed == pd.Timedelta(label)
+    assert Resolution(code) == Resolution.from_attrname(expected_reso)
+
+
+def test_parse_timedelta_string_reso_nat():
+    # GH#33603 - NaT parses to NaT; the reported resolution is unused
+    parsed, code = parse_timedelta_string_reso("NaT")
+    assert parsed is pd.NaT
+    assert Resolution(code) == Resolution.RESO_SEC

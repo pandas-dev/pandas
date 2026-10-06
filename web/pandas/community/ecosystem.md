@@ -35,6 +35,7 @@ authors to coordinate on the namespace.
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+  | [pd-money](https://github.com/aalhajmee/pd-money)                     | `money`    | `Series`              |
 
 ### Data types
 
@@ -86,48 +87,13 @@ that convert the outputs of popular natural language processing libraries into p
 ### Plotting backends
 
 pandas uses [Matplotlib](https://matplotlib.org/) by default for plotting. This can be
-changed with the with `plotting.backend` option:
+changed with the `plotting.backend` option:
 
 ```python
 pd.set_option("plotting.backend", "<plotting-backend-name>")
 ```
 
 This is the list of known plotting backends:
-
-#### [Altair](https://altair-viz.github.io/)
-
-Altair is a declarative statistical visualization library for Python.
-With Altair, you can spend more time understanding your data and its
-meaning. Altair's API is simple, friendly and consistent and built on
-top of the powerful Vega-Lite JSON specification. This elegant
-simplicity produces beautiful and effective visualizations with a
-minimal amount of code. Altair works with Pandas DataFrames.
-
-[altair-pandas](https://github.com/altair-viz/altair_pandas) provides
-the pandas Altair backend via:
-
-```python
-pd.set_option("plotting.backend", "altair")
-```
-
-#### [Bokeh](https://docs.bokeh.org)
-
-Bokeh is a Python interactive visualization library for large datasets
-that natively uses the latest web technologies. Its goal is to provide
-elegant, concise construction of novel graphics in the style of
-Protovis/D3, while delivering high-performance interactivity over large
-data to thin clients.
-
-[Pandas-Bokeh](https://github.com/PatrikHlobil/Pandas-Bokeh) provides a
-high level API for Bokeh that can be loaded as a native Pandas plotting
-backend via:
-
-```python
-pd.set_option("plotting.backend", "pandas_bokeh")
-```
-
-It is very similar to the matplotlib plotting backend, but provides
-interactive web-based charts and maps.
 
 #### [hvplot](https://hvplot.holoviz.org/index.html)
 
@@ -262,7 +228,9 @@ For example, here is how to load the
 import pandas as pd
 
 # Load the IMDB dataset
-df = pd.read_parquet("hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet")
+df = pd.read_parquet(
+    "hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet"
+)
 ```
 
 Tip: on a dataset page, click on "Use this dataset" to get the code to load it in pandas.
@@ -296,10 +264,14 @@ Example:
 ```python
 import ntv_pandas as npd
 
-jsn = df.npd.to_json(table=False)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
-df  = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
+jsn = df.npd.to_json(
+    table=False
+)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
+df = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
 
-df.equals(npd.read_json(df.npd.to_json(df)))  # `True` in any case, whether `table=True` or not
+df.equals(
+    npd.read_json(df.npd.to_json(df))
+)  # `True` in any case, whether `table=True` or not
 ```
 
 #### [pandas-datareader](https://github.com/pydata/pandas-datareader)
@@ -362,11 +334,15 @@ Bodo also provides a SQL engine that can query distributed pandas dataframes eff
 import pandas as pd
 import bodo
 
+
 @bodo.jit
 def process_data():
     df = pd.read_parquet("my_data.pq")
-    df2 = pd.DataFrame({"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)})
+    df2 = pd.DataFrame(
+        {"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)}
+    )
     df2.to_parquet("out.pq")
+
 
 process_data()
 ```
@@ -441,6 +417,10 @@ to make data processing pipelines more readable and robust.
 Dataframes contain information that pandera explicitly validates at runtime. This is useful in
 production-critical data pipelines or reproducible research settings.
 
+#### [pd-money](https://github.com/aalhajmee/pd-money)
+
+A comprehensive extension for financial data cleaning, performance analysis, and valuation.
+
 #### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
@@ -466,7 +446,7 @@ This helps one to scale your pandas code base, at the same time, keeping mainten
 
 For more information, see [documentation](https://hamilton.readthedocs.io/).
 
-#### [IPython](https://ipython.org/documentation.html)
+#### [IPython](https://ipython.readthedocs.io/)
 
 IPython is an interactive command shell and distributed computing
 environment. IPython tab completion works with Pandas methods and also

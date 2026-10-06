@@ -26,7 +26,7 @@ from pandas.core.arrays.datetimelike import dtype_to_unit
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
-    GroupbyIndexer,
+    GroupByIndexer,
 )
 from pandas.core.util.numba_ import (
     get_jit_arguments,
@@ -43,7 +43,7 @@ from pandas.core.window.online import (
 )
 from pandas.core.window.rolling import (
     BaseWindow,
-    BaseWindowGroupby,
+    BaseWindowGroupBy,
 )
 
 if TYPE_CHECKING:
@@ -521,6 +521,14 @@ class ExponentialMovingWindow(BaseWindow):
         1  1.666667  4.666667  7.666667
         2  2.428571  5.428571  8.428571
         """
+        if callable(func):
+            # GH#41700 BaseWindow.aggregate falls back to ``self.apply(...)``,
+            #  which ExponentialMovingWindow does not implement.
+            raise NotImplementedError(
+                f"{type(self).__name__}.aggregate does not support arbitrary "
+                "callables; supported aggregations are mean, sum, std, var, "
+                "cov, corr."
+            )
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
@@ -1005,12 +1013,12 @@ class ExponentialMovingWindow(BaseWindow):
 
 
 @set_module("pandas.api.typing")
-class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
+class ExponentialMovingWindowGroupBy(BaseWindowGroupBy, ExponentialMovingWindow):
     """
     Provide an exponential moving window groupby implementation.
     """
 
-    _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
+    _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupBy._attributes
 
     def __init__(self, obj, *args, _grouper=None, **kwargs) -> None:
         super().__init__(obj, *args, _grouper=_grouper, **kwargs)
@@ -1023,15 +1031,15 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
                 self.halflife,
             )
 
-    def _get_window_indexer(self) -> GroupbyIndexer:
+    def _get_window_indexer(self) -> GroupByIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
 
         Returns
         -------
-        GroupbyIndexer
+        GroupByIndexer
         """
-        window_indexer = GroupbyIndexer(
+        window_indexer = GroupByIndexer(
             groupby_indices=self._grouper.indices,
             window_indexer=ExponentialMovingWindowIndexer,
         )
@@ -1158,9 +1166,6 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         is_frame = self._selected_obj.ndim == 2
         if update_times is not None:
             raise NotImplementedError("update_times is not implemented.")
-        update_deltas = np.ones(
-            max(self._selected_obj.shape[-1] - 1, 0), dtype=np.float64
-        )
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
@@ -1183,13 +1188,14 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             else:
                 result_kwargs["name"] = self._selected_obj.name
             np_array = self._selected_obj.astype(np.float64).to_numpy()
+        update_deltas = np.ones(max(len(np_array) - 1, 0), dtype=np.float64)
         ewma_func = generate_online_numba_ewma_func(
             **get_jit_arguments(self.engine_kwargs)
         )
         result = self._mean.run_ewm(
             np_array if is_frame else np_array[:, np.newaxis],
             update_deltas,
-            self.min_periods,
+            self.min_periods,  # type: ignore[arg-type]
             ewma_func,
         )
         if not is_frame:

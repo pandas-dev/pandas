@@ -11,7 +11,6 @@
 # serve to show the default.
 from datetime import datetime
 import doctest
-import importlib
 import inspect
 import logging
 import os
@@ -114,6 +113,7 @@ sys.setrecursionlimit(5000)
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
+sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath("../sphinxext"))
 sys.path.extend(
     [
@@ -121,6 +121,7 @@ sys.path.extend(
         os.path.join(os.path.dirname(__file__), "..", "../..", "sphinxext")
     ]
 )
+from signature_overrides import apply_signature_overrides
 
 # -- General configuration -----------------------------------------------
 
@@ -214,15 +215,6 @@ numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 numpydoc_validation_checks = {"all"}
 numpydoc_validation_exclude = {
-    # Jinja2 Styler template attributes (docstrings not owned by pandas)
-    r"pandas\.io\.formats\.style\.Styler\.env$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_style$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_table$",
-    r"pandas\.io\.formats\.style\.Styler\.template_latex$",
-    r"pandas\.io\.formats\.style\.Styler\.template_typst$",
-    r"pandas\.io\.formats\.style\.Styler\.template_string$",
-    r"pandas\.io\.formats\.style\.Styler\.loader$",
     # Error/warning classes with no numpydoc-style docstrings
     r"pandas\.errors\.InvalidComparison$",
     r"pandas\.errors\.LossySetitemError$",
@@ -230,7 +222,11 @@ numpydoc_validation_exclude = {
     r"pandas\.errors\.IncompatibilityWarning$",
     r"pandas\.errors\.PyperclipException$",
     r"pandas\.errors\.PyperclipWindowsException$",
+    # Offset class docstrings - parameters (PR02) and order (GL07)
+    # Note: the order is ignored intentionally (to put Attributes/Methods at the end)
+    r"pandas\.tseries\.offsets\.[a-zA-Z0-9]+$",
     # Offset .base properties
+    r"pandas\.tseries\.offsets\.BaseOffset\.base$",
     r"pandas\.tseries\.offsets\.DateOffset\.base$",
     r"pandas\.tseries\.offsets\.BusinessDay\.base$",
     r"pandas\.tseries\.offsets\.BusinessHour\.base$",
@@ -390,34 +386,14 @@ numpydoc_validation_exclude = {
     # Series attributes processed by autodoc but not in api.rst
     r"pandas\.Series\.axes$",
     r"pandas\.Series\.transpose$",
-    # DatetimeIndex properties whose docstrings are inherited (GL08)
-    r"pandas\.DatetimeIndex\.year$",
-    r"pandas\.DatetimeIndex\.month$",
-    r"pandas\.DatetimeIndex\.day$",
-    r"pandas\.DatetimeIndex\.hour$",
-    r"pandas\.DatetimeIndex\.minute$",
-    r"pandas\.DatetimeIndex\.second$",
-    r"pandas\.DatetimeIndex\.microsecond$",
-    r"pandas\.DatetimeIndex\.nanosecond$",
-    r"pandas\.DatetimeIndex\.dayofyear$",
-    r"pandas\.DatetimeIndex\.day_of_year$",
-    r"pandas\.DatetimeIndex\.dayofweek$",
-    r"pandas\.DatetimeIndex\.day_of_week$",
-    r"pandas\.DatetimeIndex\.weekday$",
-    r"pandas\.DatetimeIndex\.quarter$",
-    r"pandas\.DatetimeIndex\.is_month_start$",
-    r"pandas\.DatetimeIndex\.is_month_end$",
-    r"pandas\.DatetimeIndex\.is_quarter_start$",
-    r"pandas\.DatetimeIndex\.is_quarter_end$",
-    r"pandas\.DatetimeIndex\.is_year_start$",
-    r"pandas\.DatetimeIndex\.is_year_end$",
-    r"pandas\.DatetimeIndex\.is_leap_year$",
-    # Deprecated aliases (GH#46768)
+    # Deprecated aliases (GH#46768): no See Also/Examples by design
     r"pandas\.Timestamp\.dayofweek$",
     r"pandas\.Timestamp\.dayofyear$",
     r"pandas\.Timestamp\.daysinmonth$",
     r"pandas\.Period\.dayofweek$",
     r"pandas\.Period\.dayofyear$",
+    r"pandas\.DatetimeIndex\.dayofweek$",
+    r"pandas\.DatetimeIndex\.dayofyear$",
     r"pandas\.DatetimeIndex\.daysinmonth$",
     r"pandas\.PeriodIndex\.dayofweek$",
     r"pandas\.PeriodIndex\.dayofyear$",
@@ -425,6 +401,14 @@ numpydoc_validation_exclude = {
     r"pandas\.Series\.dt\.dayofweek$",
     r"pandas\.Series\.dt\.dayofyear$",
     r"pandas\.Series\.dt\.daysinmonth$",
+    # Deprecated weekday property (GH#12816)
+    r"pandas\.Period\.weekday$",
+    r"pandas\.DatetimeIndex\.weekday$",
+    r"pandas\.PeriodIndex\.weekday$",
+    r"pandas\.Series\.dt\.weekday$",
+    # Relaxed-rules class page (GH#63084): not instantiated by users, so
+    # the constructor parameters are not documented (PR01)
+    r"pandas\.api\.typing\.Expression$",
 }
 
 # matplotlib plot directive
@@ -433,7 +417,10 @@ plot_formats = [("png", 90)]
 plot_html_show_formats = False
 plot_html_show_source_link = False
 plot_pre_code = """import numpy as np
-import pandas as pd"""
+import pandas as pd
+
+import random
+random.seed(42)"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
@@ -456,7 +443,7 @@ master_doc = "index"
 # General information about the project.
 project = "pandas"
 # We have our custom "pandas_footer.html" template, using copyright for the current year
-copyright = f"{datetime.now().year},"
+copyright = f"{datetime.now().year},"  # noqa: TID251
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -465,11 +452,11 @@ copyright = f"{datetime.now().year},"
 # The short X.Y version.
 import pandas  # isort:skip
 
-# version = '%s r%s' % (pandas.__version__, svn_version())
-version = os.environ.get("PANDAS_VERSION", str(pandas.__version__))
+full_version = os.environ.get("PANDAS_VERSION", str(pandas.__version__))
+version = ".".join(full_version.split(".")[:2])
 
 # The full version, including alpha/beta/rc tags.
-release = version
+release = full_version.split("+")[0]  # remove local version identifier for display
 
 # The language for content autogenerated by Sphinx. Refer to documentation
 # for a list of supported languages.
@@ -524,13 +511,13 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-if ".dev" in version or ("rc" in version and "+" in version):
+if ".dev" in full_version or ("rc" in full_version and "+" in full_version):
     switcher_version = "dev"
-elif "rc" in version:
-    switcher_version = ".".join(version.split(".")[:2]) + " (rc)"
+elif "rc" in full_version:
+    switcher_version = version + " (rc)"
 else:
     # only keep major.minor version number to match versions.json
-    switcher_version = ".".join(version.split(".")[:2])
+    switcher_version = version
 
 html_theme_options = {
     "external_links": [],
@@ -605,64 +592,13 @@ html_favicon = "../../web/pandas/static/img/favicon.ico"
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
 
+# Our html theme does not have "show source" button in the sidebar, so also
+# don't copy source files to the html output to save space.
+html_copy_source = False
+
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
-
-# Add redirect for previously existing API pages
-# each item is like `(from_old, to_new)`
-# To redirect a class and all its methods, see below
-# https://github.com/pandas-dev/pandas/issues/16186
-
-moved_api_pages = [
-    ("pandas.core.common.isnull", "pandas.isna"),
-    ("pandas.core.common.notnull", "pandas.notna"),
-    ("pandas.core.reshape.get_dummies", "pandas.get_dummies"),
-    ("pandas.tools.merge.concat", "pandas.concat"),
-    ("pandas.tools.merge.merge", "pandas.merge"),
-    ("pandas.tools.pivot.pivot_table", "pandas.pivot_table"),
-    ("pandas.tseries.tools.to_datetime", "pandas.to_datetime"),
-    ("pandas.io.clipboard.read_clipboard", "pandas.read_clipboard"),
-    ("pandas.io.excel.ExcelFile.parse", "pandas.ExcelFile.parse"),
-    ("pandas.io.excel.read_excel", "pandas.read_excel"),
-    ("pandas.io.html.read_html", "pandas.read_html"),
-    ("pandas.io.json.read_json", "pandas.read_json"),
-    ("pandas.io.parsers.read_csv", "pandas.read_csv"),
-    ("pandas.io.parsers.read_fwf", "pandas.read_fwf"),
-    ("pandas.io.parsers.read_table", "pandas.read_table"),
-    ("pandas.io.pickle.read_pickle", "pandas.read_pickle"),
-    ("pandas.io.pytables.HDFStore.append", "pandas.HDFStore.append"),
-    ("pandas.io.pytables.HDFStore.get", "pandas.HDFStore.get"),
-    ("pandas.io.pytables.HDFStore.put", "pandas.HDFStore.put"),
-    ("pandas.io.pytables.HDFStore.select", "pandas.HDFStore.select"),
-    ("pandas.io.pytables.read_hdf", "pandas.read_hdf"),
-    ("pandas.io.sql.read_sql", "pandas.read_sql"),
-    ("pandas.io.sql.read_frame", "pandas.read_frame"),
-    ("pandas.io.sql.write_frame", "pandas.write_frame"),
-    ("pandas.io.stata.read_stata", "pandas.read_stata"),
-]
-
-# Again, tuples of (from_old, to_new)
-moved_classes = [
-    ("pandas.tseries.resample.Resampler", "pandas.core.resample.Resampler"),
-    ("pandas.formats.style.Styler", "pandas.io.formats.style.Styler"),
-]
-
-for old, new in moved_classes:
-    # the class itself...
-    moved_api_pages.append((old, new))
-
-    mod, classname = new.rsplit(".", 1)
-    klass = getattr(importlib.import_module(mod), classname)
-    methods = [
-        x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
-    ]
-    # ... and each of its public methods
-    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
-
-if include_api:
-    html_additional_pages = {
-        "generated/" + page[0]: "api_redirect.html" for page in moved_api_pages
-    }
+# html_additional_pages = {}
 
 
 header = f"""\
@@ -684,8 +620,8 @@ header = f"""\
 
 
 html_context = {
-    "redirects": dict(moved_api_pages),
     "header": header,
+    "full_version": full_version,
 }
 
 # If false, no module index is generated.
@@ -757,11 +693,10 @@ latex_documents = [
 
 if include_api:
     intersphinx_mapping = {
-        "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
+        "dateutil": ("https://dateutil.readthedocs.io/en/stable/", None),
         "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
         "python": ("https://docs.python.org/3/", None),
-        "scipy": ("https://docs.scipy.org/doc/scipy/", None),
         "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
@@ -959,6 +894,10 @@ def linkcode_resolve(domain, info) -> str | None:
         except AttributeError:
             return None
 
+    if isinstance(obj, type):
+        if hasattr(obj, "_module_source"):
+            obj.__module__, obj._module_source = obj._module_source, obj.__module__
+
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
@@ -986,12 +925,15 @@ def linkcode_resolve(domain, info) -> str | None:
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
-    if "+" in version:
+    if isinstance(obj, type) and hasattr(obj, "_module_source"):
+        obj.__module__, obj._module_source = obj._module_source, obj.__module__
+
+    if "+" in full_version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"
-            f"v{version}/pandas/{fn}{linespec}"
+            f"v{full_version}/pandas/{fn}{linespec}"
         )
 
 
@@ -1019,20 +961,28 @@ def process_class_docstrings(app, what, name, obj, options, lines) -> None:
         joined = "\n".join(lines)
 
         templates = [
-            """.. rubric:: Attributes
-
-.. autosummary::
-   :toctree:
-
-   None
-""",
-            """.. rubric:: Methods
-
-.. autosummary::
-   :toctree:
-
-   None
-""",
+            "\n".join(  # noqa: FLY002
+                [
+                    ".. rubric:: Attributes",
+                    "",
+                    "",
+                    "",
+                    "========  ==========",
+                    "**None**    ",
+                    "========  ==========",
+                ]
+            ),
+            "\n".join(  # noqa: FLY002
+                [
+                    ".. rubric:: Methods",
+                    "",
+                    "",
+                    "",
+                    "========  ==========",
+                    "**None**    ",
+                    "========  ==========",
+                ]
+            ),
         ]
 
         for template in templates:
@@ -1052,6 +1002,8 @@ _BUSINED_ALIASES = [
         "CBMonthBegin",
     ]
 ]
+
+apply_signature_overrides()
 
 
 def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
@@ -1126,7 +1078,6 @@ linkcheck_ignore = [
             "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
             "https://nbviewer.ipython.org/gist/metakermit/5720498",
             "https://numpy.org/doc/stable/user/basics.byteswapping.html",
-            "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
             "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
             "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",
             "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm",

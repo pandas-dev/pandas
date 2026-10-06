@@ -95,6 +95,18 @@ Which can be used as a boolean filter to drop duplicate rows.
 
    df2.loc[~df2.index.duplicated(), :]
 
+This approach keeps the first occurrence of each label. To keep the last occurrence instead, you can pass ``keep="last"``:
+
+.. ipython:: python
+
+   df2.loc[~df2.index.duplicated(keep="last"), :]
+
+If you want to remove all occurrences of duplicated labels, you can use ``keep=False``:
+
+.. ipython:: python
+
+   df2.loc[~df2.index.duplicated(keep=False), :]
+
 If you need additional logic to handle duplicate labels, rather than just
 dropping the repeats, using :meth:`~DataFrame.groupby` on the index is a common
 trick. For example, we'll resolve duplicates by taking the average of all rows
@@ -198,7 +210,7 @@ operations.
 
 .. warning::
 
-   This is an experimental feature. Currently, many methods fail to
-   propagate the ``allows_duplicate_labels`` value. In future versions
-   it is expected that every method taking or returning one or more
-   DataFrame or Series objects will propagate ``allows_duplicate_labels``.
+   Many methods do not yet propagate the ``allows_duplicate_labels``
+   value through to their result. The long-term goal is for every
+   method that takes or returns a :class:`DataFrame` or :class:`Series`
+   to preserve it.

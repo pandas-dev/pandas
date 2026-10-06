@@ -68,7 +68,7 @@ def to_timedelta(
 
 @overload
 def to_timedelta(
-    arg: list | tuple | range | ArrayLike | Index,
+    arg: list[Any] | tuple[Any, ...] | range | ArrayLike | Index,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
 ) -> TimedeltaIndex: ...
@@ -80,8 +80,8 @@ def to_timedelta(
     | int
     | float
     | timedelta
-    | list
-    | tuple
+    | list[Any]
+    | tuple[Any, ...]
     | range
     | ArrayLike
     | Index
@@ -159,7 +159,7 @@ def to_timedelta(
     Parsing a list or array of strings:
 
     >>> pd.to_timedelta(["1 days 06:05:01.00003", "15.5us", "nan"])
-    TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT],
+    TimedeltaIndex(['1 days 06:05:01.000030000', '0 days 00:00:00.000015500', NaT],
                    dtype='timedelta64[ns]', freq=None)
 
     Converting numbers by specifying the `unit` keyword argument:
@@ -167,10 +167,10 @@ def to_timedelta(
     >>> pd.to_timedelta(np.arange(5), unit="s")
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
-                   dtype='timedelta64[s]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit="D")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[s]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
     """
     if unit is not None:
         unit = parse_timedelta_unit(unit)
@@ -237,7 +237,7 @@ def _convert_listlike(
     elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "m":
         return arg
 
-    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)
 
     from pandas import TimedeltaIndex
 

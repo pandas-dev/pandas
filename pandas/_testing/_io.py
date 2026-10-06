@@ -13,6 +13,8 @@ from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
+from pandas.io.pickle import to_pickle_internal
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
@@ -34,7 +36,7 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     ----------
     obj : any object
         The object to pickle and then re-read.
-    path : str, path object or file-like object, default None
+    tmp_path : Path
         The path where the pickled object is written and then read.
 
     Returns
@@ -42,11 +44,13 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     pandas object
         The original object that was pickled and then re-read.
     """
-    pd.to_pickle(obj, tmp_path)
+    to_pickle_internal(obj, tmp_path)
     return pd.read_pickle(tmp_path)
 
 
-def round_trip_pathlib(writer, reader, tmp_path: Path):
+def round_trip_pathlib(
+    writer: Callable[[Path], Any], reader: Callable[[Path], Any], tmp_path: Path
+) -> DataFrame | Series:
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -56,7 +60,7 @@ def round_trip_pathlib(writer, reader, tmp_path: Path):
         IO writing function (e.g. DataFrame.to_csv )
     reader : callable
         IO reading function (e.g. pd.read_csv )
-    path : str, default None
+    tmp_path : Path
         The path where the object is written and then read.
 
     Returns
@@ -69,7 +73,9 @@ def round_trip_pathlib(writer, reader, tmp_path: Path):
     return obj
 
 
-def write_to_compressed(compression, path: str, data, dest: str = "test") -> None:
+def write_to_compressed(
+    compression: str, path: str, data: bytes, dest: str = "test"
+) -> None:
     """
     Write data to a compressed file.
 
@@ -91,7 +97,7 @@ def write_to_compressed(compression, path: str, data, dest: str = "test") -> Non
     args: tuple[Any, ...] = (data,)
     mode = "wb"
     method = "write"
-    compress_method: Callable
+    compress_method: Callable[..., Any]
 
     if compression == "zip":
         compress_method = zipfile.ZipFile

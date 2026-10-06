@@ -47,10 +47,12 @@ class TestDataFrameUnaryOperators:
     )
     def test_neg_raises(self, df_data, using_infer_string):
         df = pd.DataFrame({"a": df_data})
-        msg = (
-            "bad operand type for unary -: 'str'|"
-            r"bad operand type for unary -: 'DatetimeArray'|"
-            "unary '-' not supported for dtype"
+        msg = "|".join(
+            [
+                "bad operand type for unary -: 'str'",
+                "bad operand type for unary -: 'DatetimeArray'",
+                "unary '-' not supported for dtype",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             (-df)
@@ -117,7 +119,6 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
     def test_pos_object_raises(self):
         # GH#21380
         df = pd.DataFrame({"a": ["a", "b"]})

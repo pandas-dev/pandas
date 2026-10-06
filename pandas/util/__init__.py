@@ -1,4 +1,4 @@
-def __getattr__(key: str):
+def __getattr__(key: str) -> object:
     # These imports need to be lazy to avoid circular import errors
     if key == "hash_array":
         from pandas.core.util.hashing import hash_array
