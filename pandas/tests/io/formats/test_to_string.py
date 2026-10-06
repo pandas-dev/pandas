@@ -26,7 +26,7 @@ class TestDataFrameToStringFormatters:
     def test_keyword_deprecation(self):
         # GH 57280
         msg = (
-            "Starting with pandas version 4.0 all arguments of to_string "
+            "Starting with pandas version 4.0 all arguments of Series.to_string "
             "except for the argument 'buf' will be keyword-only."
         )
         s = pd.Series(["a", "b"])
