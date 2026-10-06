@@ -1011,6 +1011,24 @@ def test_mask_listlike_other_datetimelike_strings(values, other, inplace):
 
 
 @pytest.mark.parametrize(
+    "values, other",
+    [
+        (pd.date_range("2016-01-01", periods=3), "2020-01-01"),
+        (pd.period_range("2016-01-01", periods=3, freq="D"), "2020-01-01"),
+        (pd.timedelta_range("1 day", periods=3), "2D"),
+    ],
+)
+def test_where_2d_ndarray_other_datetimelike_strings(values, other):
+    # GH#70533 strings in a 2D ndarray other are parsed rather than upcasting
+    df = pd.DataFrame({"a": values, "b": values})
+    cond = pd.DataFrame({"a": [True, False, False], "b": [True, False, True]})
+    expected = df.where(cond, pd.Index([other], dtype=values.dtype)[0])
+
+    result = df.where(cond, np.array([[other] * 2] * 3, dtype=object))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "values",
     [
         pd.date_range("2016-01-01", periods=4),
