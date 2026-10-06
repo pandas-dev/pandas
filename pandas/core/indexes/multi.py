@@ -1395,7 +1395,7 @@ class MultiIndex(Index):
         elif not is_list_like(name):
             new_names = [name]
         else:
-            new_names = list(name)
+            new_names = list(cast("Iterable[Hashable]", name))
 
         if len(new_names) != self.nlevels:
             raise ValueError(
