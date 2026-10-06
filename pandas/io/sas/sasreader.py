@@ -173,11 +173,11 @@ def read_sas(
             "If this is a buffer object rather "
             "than a string name, you must specify a format string"
         )
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
-        if is_traversable(filepath_or_buffer):
-            fname = filepath_or_buffer.name.lower()
-        elif isinstance(filepath_or_buffer, str):
-            fname = filepath_or_buffer.lower()
+        path = stringify_path(filepath_or_buffer)
+        if is_traversable(path):
+            fname = path.name.lower()
+        elif isinstance(path, str):
+            fname = path.lower()
         else:
             raise ValueError(buffer_error_msg)
         if ".xpt" in fname:
