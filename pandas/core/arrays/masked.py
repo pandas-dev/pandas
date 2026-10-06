@@ -34,7 +34,10 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_is_view,
+    raise_if_float_outside_int64,
+)
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -172,7 +175,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if isna(values).all():
-            return type(self)._from_sequence(values, dtype=self.dtype)
+            try:
+                return type(self)._from_sequence(values, dtype=self.dtype)
+            except TypeError:
+                # e.g. NaT goes through inference instead, GH#70233
+                pass
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
@@ -437,15 +444,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if hasattr(value, "dtype"):
             their_kind = value.dtype.kind
-            # Compatible numeric/bool ndarrays defer to _coerce_to_array,
-            # which handles precision/NaN checks via _safe_cast.  Bool
-            # ndarrays are accepted for numeric targets to preserve the
-            # long-standing bool-as-int treatment exercised by Series.mask.
+            # Compatible numeric/bool arrays (ndarray or masked) defer to
+            # _coerce_to_array, which handles precision/NaN checks via
+            # _safe_cast.  Bool values are accepted for numeric targets to
+            # preserve the long-standing bool-as-int treatment exercised by
+            # Series.mask.
             if (kind == "b" and their_kind == "b") or (
                 kind in "iuf" and their_kind in "iufb"
             ):
-                if kind in "iuf" and isinstance(value, type(self)):
-                    return self._coerce_same_family(value)
                 return self._coerce_to_array(value, dtype=self.dtype)
         elif not is_list_like(value):
             # is_scalar in __setitem__ misses some non-listlike inputs
@@ -468,20 +474,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             or (kind in "iuf" and casted_kind in "iuf")
         ):
             raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
-        if kind in "iuf" and isinstance(casted, type(self)):
-            return self._coerce_same_family(casted)
         return self._coerce_to_array(casted, dtype=self.dtype)
-
-    def _coerce_same_family(
-        self, value: BaseMaskedArray
-    ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
-        # ``value`` is a masked array of the same numeric family as self.
-        # Coerce its underlying ndarray rather than the masked array itself:
-        # _coerce_to_array's isinstance fast path would raw-astype and
-        # silently wrap out-of-bounds values (GH#65510), whereas the ndarray
-        # takes the general path that rejects a lossy cast via _safe_cast.
-        data, _ = self._coerce_to_array(value._data, dtype=self.dtype)
-        return data, value._mask
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:
@@ -515,7 +508,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return bool(super().__contains__(key))
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim == 1:
             if not self._hasna:
                 for val in self._data:
@@ -725,7 +718,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 data.flags.writeable = False
         return data
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
@@ -796,9 +789,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             na_value = np.nan
         elif dtype.kind == "M":
             unit = np.datetime_data(dtype)[0]
-            na_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
+            if unit == "generic":
+                # numpy deprecates a unitless NaT; the cast is rejected
+                #  downstream, so the sentinel goes unused
+                na_value = lib.no_default
+            else:
+                na_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
         else:
             na_value = lib.no_default
+
+        if self.dtype.kind == "f" and dtype.kind in "mM":
+            # to_numpy narrows through int64 unchecked (GH#68926)
+            raise_if_float_outside_int64(self._data, dtype, mask=self._mask)
 
         # to_numpy will also raise, but we get somewhat nicer exception messages here
         if dtype.kind in "iu" and self._hasna:

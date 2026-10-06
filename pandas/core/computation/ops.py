@@ -224,7 +224,7 @@ class Op:
         self.operands = operands
         self.encoding = encoding
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Term | Op]:
         return iter(self.operands)
 
     def __repr__(self) -> str:
@@ -440,32 +440,36 @@ class BinOp(Op):
         """
 
         def stringify(value):
-            encoder: Callable
+            encoder: Callable[[object], str | bytes]
             if self.encoding is not None:
                 encoder = partial(pprint_thing_encoded, encoding=self.encoding)
             else:
                 encoder = pprint_thing
             return encoder(value)
 
+        def convert(term) -> None:
+            v = term.value
+            if isinstance(v, (int, float)):
+                v = stringify(v)
+            try:
+                v = Timestamp(ensure_decoded(v))
+            except ValueError:
+                if self.op in ("==", "!="):
+                    # leave unparsable values to compare unequal, matching
+                    #  comparisons outside of eval
+                    return
+                raise
+            if v.tz is not None:
+                v = v.tz_convert("UTC")
+            term.update(v)
+
         lhs, rhs = self.lhs, self.rhs
 
         if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.is_scalar:
-            v = rhs.value
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = Timestamp(ensure_decoded(v))
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            self.rhs.update(v)
+            convert(rhs)
 
         if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.is_scalar:
-            v = lhs.value
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = Timestamp(ensure_decoded(v))
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            self.lhs.update(v)
+            convert(lhs)
 
     def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs

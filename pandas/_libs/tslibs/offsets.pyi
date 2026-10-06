@@ -37,7 +37,7 @@ class BaseOffset:
     def __ne__(self, other: object, /) -> bool: ...
     def __hash__(self) -> int: ...
     @property
-    def kwds(self) -> dict: ...
+    def kwds(self) -> dict[str, Any]: ...
     @property
     def base(self) -> BaseOffset: ...
     @overload
@@ -127,7 +127,7 @@ class Tick(SingleConstructorOffset):
 
 def delta_to_tick(delta: timedelta) -> Tick: ...
 
-class Day(BaseOffset): ...
+class Day(SingleConstructorOffset): ...
 class Hour(Tick): ...
 class Minute(Tick): ...
 class Second(Tick): ...
@@ -271,7 +271,7 @@ class _CustomBusinessMonth(BusinessMixin):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -282,7 +282,7 @@ class CustomBusinessDay(BusinessDay):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -293,7 +293,7 @@ class CustomBusinessHour(BusinessHour):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         start: str | time | Collection[str | time] = ...,
         end: str | time | Collection[str | time] = ...,
@@ -306,7 +306,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -317,7 +317,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...

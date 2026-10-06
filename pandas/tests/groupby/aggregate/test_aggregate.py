@@ -753,7 +753,7 @@ class TestNamedAggregationSeries:
 
         # but we do allow this
         result = gr.agg([])
-        expected = pd.DataFrame(columns=[])
+        expected = pd.DataFrame(index=np.array([0, 1]), columns=[])
         tm.assert_frame_equal(result, expected)
 
     def test_series_named_agg_duplicates_no_raises(self):
@@ -1068,7 +1068,34 @@ def test_groupby_aggregate_empty_key_empty_return():
     # GH: 32580 Check if everything works, when return is empty
     df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
     result = df.groupby("a").agg({"b": []})
-    expected = pd.DataFrame(columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]))
+    expected = pd.DataFrame(
+        index=pd.Index([1, 2], name="a"),
+        columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_groupby_aggregate_empty_func(func):
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    result = df.groupby("a").agg(func)
+    if func == []:
+        columns = pd.MultiIndex(levels=[["b"], []], codes=[[], []])
+    else:
+        columns = df.columns[:0]
+    expected = pd.DataFrame(index=pd.Index([1, 2], name="a"), columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_groupby_aggregate_empty_func_as_index_false(func):
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    result = df.groupby("a", as_index=False).agg(func)
+    expected = pd.DataFrame({"a": [1, 2]})
+    if func == []:
+        expected.columns = pd.MultiIndex.from_tuples([("a", "")])
     tm.assert_frame_equal(result, expected)
 
 
@@ -2011,6 +2038,30 @@ def test_agg_lambda_complex128_dtype_conversion():
         index=pd.Index(["c1", "c2", "c3"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, value, expected_dtype",
+    [
+        (pd.StringDtype(na_value=np.nan), 2**70, object),
+        pytest.param("string[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        ("Int64", pd.NaT, "M8[s]"),
+        ("Float64", pd.NaT, "M8[s]"),
+        ("boolean", pd.NaT, "M8[s]"),
+    ],
+)
+def test_agg_lambda_result_dtype_cannot_hold(dtype, value, expected_dtype):
+    # GH#70233 used to raise instead of inferring the result dtype
+    df = pd.DataFrame({"key": [1, 1, 2], "val": pd.Series([1, 0, 1], dtype=dtype)})
+    result = df.groupby("key")["val"].agg(lambda x: value)
+    expected = pd.Series(
+        [value, value],
+        index=pd.Index([1, 2], name="key"),
+        name="val",
+        dtype=expected_dtype,
+    )
+    tm.assert_series_equal(result, expected)
 
 
 @td.skip_if_no("pyarrow")
