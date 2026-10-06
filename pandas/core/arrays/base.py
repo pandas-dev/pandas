@@ -9,6 +9,7 @@ An interface for extending pandas with custom arrays.
 
 from __future__ import annotations
 
+import contextvars
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -2952,6 +2953,38 @@ class ExtensionArray:
         ]
         return type(self)._from_sequence(rounded, dtype=self.dtype)
 
+    def __array_function__(self, func, types, args, kwargs):
+        for typ in types:
+            # defer to other types that override __array_function__; a subclass
+            #  delegating here with super() is not "other"
+            if not isinstance(self, typ) and typ.__array_function__ not in (
+                ExtensionArray.__array_function__,
+                np.ndarray.__array_function__,
+            ):
+                return NotImplemented
+
+        override = None
+        if not _IN_ARRAY_FUNCTION.get():
+            override = _ARRAY_FUNCTION_OVERRIDES.get(func)
+        implementation = getattr(func, "_implementation", None)
+        if override is None and implementation is None:
+            return NotImplemented
+
+        # numpy calls made while handling this one (e.g. np.setxor1d calling
+        #  np.concatenate) skip the overrides
+        token = _IN_ARRAY_FUNCTION.set(True)
+        try:
+            if override is not None:
+                result = override(*args, **kwargs)
+                if result is not NotImplemented:
+                    return result
+            if implementation is None:
+                return NotImplemented
+            # numpy's own default, see ndarray.__array_function__ in NEP 18
+            return implementation(*args, **kwargs)
+        finally:
+            _IN_ARRAY_FUNCTION.reset(token)
+
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # the fallback at the end of this method np.asarray()s the values: M8/m8
         #  survive to be truth-tested, the rest flatten to object
@@ -3233,6 +3266,53 @@ class ExtensionArray:
 
         # take() with allow_fill=True treats -1 as "fill with NA"
         return self.take(result_indices, allow_fill=True)
+
+
+# -----------------------------------------------------------------------------
+# __array_function__ helpers
+
+# True while ExtensionArray.__array_function__ is handling a call
+_IN_ARRAY_FUNCTION = contextvars.ContextVar("_IN_ARRAY_FUNCTION", default=False)
+
+
+# Overrides so these keep the extension dtype. Returning NotImplemented falls
+#  back to numpy's implementation.
+
+
+def _delete(arr, obj, axis=None):
+    # the ExtensionArray may be obj rather than arr
+    if (
+        not isinstance(arr, ExtensionArray)
+        or arr.ndim != 1
+        or axis not in (None, 0, -1)
+    ):
+        return NotImplemented
+    return arr.delete(obj)
+
+
+def _concatenate(arrays, axis=0, out=None, dtype=None, casting="same_kind"):
+    if (
+        not isinstance(arrays, (list, tuple))
+        or not arrays
+        or axis not in (None, 0, -1)
+        or out is not None
+        or dtype is not None
+        or casting != "same_kind"
+    ):
+        return NotImplemented
+    cls = type(arrays[0])
+    if not issubclass(cls, ExtensionArray) or not all(
+        type(arr) is cls and arr.ndim == 1 and arr.dtype == arrays[0].dtype
+        for arr in arrays
+    ):
+        return NotImplemented
+    return cls._concat_same_type(arrays)
+
+
+_ARRAY_FUNCTION_OVERRIDES: dict[Callable[..., Any], Callable[..., Any]] = {
+    np.delete: _delete,
+    np.concatenate: _concatenate,
+}
 
 
 class ExtensionArrayNaResult(ExtensionArray):
