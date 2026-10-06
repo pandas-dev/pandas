@@ -3463,38 +3463,40 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("how", ["left", "right", "outer"])
 @pytest.mark.parametrize(
-    "swap, suffixes, source",
+    "swap, how, key, data",
     [
-        (False, ("_l", None), "B_r"),
-        (False, (None, "_r"), None),
-        (True, (None, "_r"), "B_l"),
-        (True, ("_l", None), None),
+        (False, "left", [4, 5, 6], [13, np.nan, np.nan]),
+        (False, "right", [2, 3, 4], [11, 12, 13]),
+        (False, "outer", [2, 3, 4, 5, 6], [11, 12, 13, np.nan, np.nan]),
+        (True, "left", [2, 3, 4], [11, 12, 13]),
+        (True, "right", [4, 5, 6], [13, np.nan, np.nan]),
+        (True, "outer", [2, 3, 4, 5, 6], [11, 12, 13, np.nan, np.nan]),
     ],
 )
-def test_merge_index_key_one_side_suffixed(how, swap, suffixes, source):
+@pytest.mark.parametrize("key_suffixed", [False, True])
+def test_merge_index_key_one_side_suffixed(swap, how, key, data, key_suffixed):
     # GH#39192 both frames have a "B" column but only one gets suffixed
     keyed = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     indexed = pd.DataFrame({"B": [11, 12, 13], "C": [14, 15, 16]}, index=[2, 3, 4])
-    keys = {"left": [4, 5, 6], "right": [2, 3, 4], "outer": [2, 3, 4, 5, 6]}
+    keyed_suffix, indexed_suffix = ("_key", None) if key_suffixed else (None, "_data")
     if swap:
-        left, right, kwargs = indexed, keyed, {"left_index": True, "right_on": "B"}
-        keys["left"], keys["right"] = keys["right"], keys["left"]
+        left, right = indexed, keyed
+        kwargs = {"left_index": True, "right_on": "B"}
+        suffixes = (indexed_suffix, keyed_suffix)
     else:
-        left, right, kwargs = keyed, indexed, {"left_on": "B", "right_index": True}
+        left, right = keyed, indexed
+        kwargs = {"left_on": "B", "right_index": True}
+        suffixes = (keyed_suffix, indexed_suffix)
 
     result = merge(left, right, how=how, suffixes=suffixes, **kwargs)
-    both = merge(left, right, how=how, suffixes=("_l", "_r"), **kwargs)
-
-    suffixed = "B_l" if suffixes[0] else "B_r"
-    tm.assert_series_equal(result[suffixed], both[suffixed])
-    if source is None:
-        # "B" is the key column
-        expected = pd.Series(keys[how], index=result.index, name="B")
+    expected_data = pd.Series(data, index=result.index, name="B")
+    if key_suffixed:
+        tm.assert_series_equal(result["B"], expected_data)
     else:
-        expected = both[source].rename("B")
-    tm.assert_series_equal(result["B"], expected)
+        expected_key = pd.Series(key, index=result.index, name="B")
+        tm.assert_series_equal(result["B"], expected_key)
+        tm.assert_series_equal(result["B_data"], expected_data.rename("B_data"))
 
 
 def test_merge_array_key_does_not_fill_data_column():
