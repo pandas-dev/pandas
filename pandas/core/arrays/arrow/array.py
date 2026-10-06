@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under18p0,
     pa_version_under21p0,
     pa_version_under25p0,
 )
@@ -451,7 +452,9 @@ def _copy_pyarrow_buffers(
     Return an equal array that owns its buffers (GH#67990).
 
     ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
-    so dictionary types are rebuilt from copies of both halves.
+    so dictionary types are rebuilt from copies of both halves. It likewise
+    reuses the data buffers of view types, so those round-trip through a cast
+    first (pyarrow >= 18 only).
     """
     if isinstance(pa_array, pa.ChunkedArray):
         return pa.chunked_array(
@@ -464,6 +467,11 @@ def _copy_pyarrow_buffers(
             _copy_pyarrow_buffers(pa_array.dictionary),
             ordered=pa_array.type.ordered,
         )
+    if not pa_version_under18p0:
+        if pa.types.is_string_view(pa_array.type):
+            pa_array = pa_array.cast(pa.large_string()).cast(pa_array.type)
+        elif pa.types.is_binary_view(pa_array.type):
+            pa_array = pa_array.cast(pa.large_binary()).cast(pa_array.type)
     return pa.concat_arrays([pa_array])
 
 
@@ -1813,15 +1821,13 @@ class ArrowExtensionArray(
 
     def copy(self) -> Self:
         """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
+        Return a copy of the array.
 
         Returns
         -------
         type(self)
         """
-        return self._from_pyarrow_array(self._pa_array)
+        return self._from_pyarrow_array(_copy_pyarrow_buffers(self._pa_array))
 
     @overload
     def view(self, dtype: None = ...) -> Self: ...
