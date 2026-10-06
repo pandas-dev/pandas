@@ -203,3 +203,15 @@ class TestIntervalIndex:
             expected = index
         result = set_op(other, sort=sort)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("op_name", ["union", "symmetric_difference"])
+    def test_set_op_empty_rangeindex(self, closed, op_name, sort):
+        # GH#68343
+        index = monotonic_index(0, 5, closed=closed)
+        other = pd.RangeIndex(0)
+
+        result = getattr(index, op_name)(other, sort=sort)
+        tm.assert_index_equal(result, index)
+
+        result = getattr(other, op_name)(index, sort=sort)
+        tm.assert_index_equal(result, index)
