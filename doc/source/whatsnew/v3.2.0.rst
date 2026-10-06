@@ -215,6 +215,7 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` on ``complex`` data silently discarding the imaginary part, and :meth:`.GroupBy.var` raising; these now match :meth:`Series.std`, :meth:`Series.sem`, and :meth:`Series.var` (:issue:`43770`)
+- Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for every later window once a window held an extremely large value (:issue:`70633`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` and ``closed="right"`` returning shifted labels or incorrect aggregations (:issue:`44363`)
 
 Reshaping
