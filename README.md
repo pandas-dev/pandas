@@ -58,8 +58,7 @@ Here are just a few of the things that pandas does well:
   - Intelligent label-based [**slicing**][slicing], [**fancy
     indexing**][fancy-indexing], and [**subsetting**][subsetting] of
     large data sets
-  - Intuitive [**merging**][merging] and [**joining**][joining] data
-    sets
+  - Intuitive [**merging**][merging] and [**joining**][joining] data sets
   - Flexible [**reshaping**][reshape] and [**pivoting**][pivot-table] of
     data sets
   - [**Hierarchical**][mi] labeling of axes (possible to have multiple
