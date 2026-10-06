@@ -262,9 +262,9 @@ int parser_init(parser_t *self) {
                 "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
   self->word_ends = (int64_t *)malloc(sz * sizeof(int64_t));
-  self->max_words_cap = sz;
   self->words_cap = sz;
   self->words_len = 0;
+  self->max_words_needed = 0;
 
   // line pointers and metadata
   self->line_start = (int64_t *)malloc(sz * sizeof(int64_t));
@@ -330,21 +330,16 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     WORD VECTORS
   */
 
-  /**
-   * If we are reading in chunks, we need to be aware of the maximum number
-   * of words we have seen in previous chunks (self->max_words_cap), so
-   * that way, we can properly allocate when reading subsequent ones.
-   *
-   * Otherwise, we risk a buffer overflow if we mistakenly under-allocate
-   * just because a recent chunk did not have as many words.
-   */
-  const uint64_t length = self->words_len + nbytes < self->max_words_cap
-                              ? self->max_words_cap - nbytes - 1
-                              : self->words_len;
-
+  // Reserve the most words any call has needed, so after parser_trim_buffers
+  // a chunked read regrows word_ends to its peak, not once per input buffer.
+  // Record requests, not the rounded-up capacity: that compounds across
+  // reads, see test_read_chunksize_skipped_lines_many_reads.
+  if (self->words_len + nbytes > self->max_words_needed) {
+    self->max_words_needed = self->words_len + nbytes;
+  }
   self->word_ends =
-      (int64_t *)grow_buffer((void *)self->word_ends, length, &self->words_cap,
-                             nbytes, sizeof(int64_t), &status);
+      (int64_t *)grow_buffer((void *)self->word_ends, self->max_words_needed,
+                             &self->words_cap, 0, sizeof(int64_t), &status);
 
   if (status != 0) {
     return PARSER_OUT_OF_MEMORY;
@@ -1886,19 +1881,6 @@ int parser_trim_buffers(parser_t *self) {
   /*
     Free memory
    */
-
-  /**
-   * Before we free up space and trim, we should
-   * save how many words we saw when parsing, if
-   * it exceeds the maximum number we saw before.
-   *
-   * This is important for when we read in chunks,
-   * so that we can inform subsequent chunk parsing
-   * as to how many words we could possibly see.
-   */
-  if (self->words_cap > self->max_words_cap) {
-    self->max_words_cap = self->words_cap;
-  }
 
   /* trim word_ends */
   size_t new_cap = _next_pow2(self->words_len) + 1;

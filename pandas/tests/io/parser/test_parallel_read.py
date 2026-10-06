@@ -17,6 +17,7 @@ import io
 import itertools
 import mmap
 import os
+import re
 from typing import TYPE_CHECKING
 import warnings
 
@@ -299,11 +300,12 @@ class TestCanParallelizeCsv:
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(header=[0, 1]))
 
-    def test_rejects_index_col(self, tmp_path):
+    @pytest.mark.parametrize("index_col", [0, "a", [0, 1]])
+    def test_accepts_index_col(self, tmp_path, monkeypatch, index_col):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
-        assert not _can_parallelize_csv(path, self._kwds(index_col=0))
-        assert not _can_parallelize_csv(path, self._kwds(index_col="a"))
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert _can_parallelize_csv(path, self._kwds(index_col=index_col))
 
     def test_accepts_index_col_false(self, tmp_path):
         # index_col=False is allowed (suppresses implicit index)
@@ -312,10 +314,11 @@ class TestCanParallelizeCsv:
         # File is too small → False due to size, not index_col=False
         assert not _can_parallelize_csv(path, self._kwds(index_col=False))
 
-    def test_rejects_usecols(self, tmp_path):
+    def test_accepts_usecols(self, tmp_path, monkeypatch):
         path = tmp_path / "data.csv"
         path.write_text("a,b,c\n1,2,3\n", encoding="utf-8")
-        assert not _can_parallelize_csv(path, self._kwds(usecols=["a", "b"]))
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert _can_parallelize_csv(path, self._kwds(usecols=["a", "b"]))
 
     def test_rejects_small_file(self, tmp_path):
         path = tmp_path / "small.csv"
@@ -475,7 +478,6 @@ class TestReadCsvParallel:
             "parse_dates": None,
             "date_format": None,
             "dayfirst": False,
-            "cache_dates": True,
             "iterator": False,
             "chunksize": None,
             "compression": "infer",
@@ -588,6 +590,18 @@ class TestReadCsvParallel:
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
 
+    def test_usecols_past_header_returns_none(self, tmp_path, monkeypatch):
+        # Position 4 exists only in chunk 0, whose parser the one worker then
+        # reuses for the later chunks: they come back with fewer arrays than
+        # column labels.  (A wide *first* row would read as an implicit index.)
+        monkeypatch.setattr(_readers, "_PARALLEL_MIN_CHUNK_ROWS", 20)
+        path = tmp_path / "usecols.csv"
+        rows = [f"{i},1,2,3\n" for i in range(2000)]
+        rows[1] = "1,1,2,3,4\n"
+        path.write_text("a,b,c,d\n" + "".join(rows), encoding="utf-8")
+        kwds = self._base_kwds(path, usecols=[1, 2, 3, 4])
+        assert _read_csv_parallel(str(path), kwds, 1) is None
+
     def test_long_first_line_keeps_fine_split(self, tmp_path, monkeypatch):
         # The chunk count comes from an estimated row count.  The estimate
         # samples several lines across the data section, so one huge first
@@ -613,6 +627,30 @@ class TestReadCsvParallel:
         # 30k rows over the 2000-row chunk floor supports the full 4*3
         # split; an estimate from the first line alone would give 2 chunks.
         assert n_targets[0] >= 10
+
+    def test_usecols_piece_budget_counts_kept_columns(self, tmp_path, monkeypatch):
+        # The (column x chunk) budget bounds per-column conversion work, which
+        # columns dropped by usecols never do.
+        monkeypatch.setattr(_readers, "_PARALLEL_CHUNK_BYTES", 10_000)
+        monkeypatch.setattr(_readers, "_PARALLEL_MIN_CHUNK_ROWS", 50)
+        path = tmp_path / "wide.csv"
+        header = ",".join(f"c{j}" for j in range(200)) + "\n"
+        row = ",".join(str(j) for j in range(200)) + "\n"
+        path.write_text(header + row * 5000, encoding="utf-8")
+
+        n_targets = []
+
+        def spy(filepath, n_chunks, data_start, *args):
+            n_targets.append(n_chunks)
+            return _find_chunk_byte_offsets(filepath, n_chunks, data_start, *args)
+
+        monkeypatch.setattr("pandas.io.parsers.readers._find_chunk_byte_offsets", spy)
+        for usecols in (None, ["c3", "c100"]):
+            kwds = self._base_kwds(path, usecols=usecols)
+            assert _read_csv_parallel(str(path), kwds, 2) is not None
+        # 1800 pieces over 200 columns allow 9 chunks (rounded up to 10, a
+        # whole round of workers); over 2 columns the row bound of 100 binds
+        assert n_targets == [10, 100]
 
     def test_few_estimated_rows_returns_none(self, tmp_path):
         # ~300 long rows: even a 2-way split would leave each chunk far
@@ -646,6 +684,17 @@ class TestReadCsvParallel:
         path.write_text(lines, encoding="utf-8")
         kwds = self._base_kwds(path)
         assert _read_csv_parallel(str(path), kwds, 4) is None
+
+    def test_bare_cr_before_data_returns_none(self, tmp_path):
+        # The tokenizer ends a line at a bare \r but _find_data_start_offset
+        # does not, so data_start may be misplaced.  CRLF stays parallel.
+        path = tmp_path / "cr.csv"
+        body = b"".join(f"x{i},y{i}\n".encode() for i in range(5_000))
+        path.write_bytes(b"a,b\rc,d\n\n" + body)
+        kwds = self._base_kwds(path)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+        path.write_bytes(b"a,b\r\nc,d\r\n\r\n" + body)
+        assert _read_csv_parallel(str(path), kwds, 4) is not None
 
     def test_dtype_specified(self, tmp_path):
         path = tmp_path / "data.csv"
@@ -1006,6 +1055,30 @@ def test_parallel_blank_line_before_header_matches_serial(tmp_path, monkeypatch)
 
 
 @pytest.mark.parametrize(
+    "head,kwargs",
+    [
+        (b'a,"line\nbreak",c\rFIRST,ROW,HERE\n', {}),
+        (b"a,b,c\rFIRST,ROW,HERE\n\n", {}),
+        (b"junk\ra,b,c\nFIRST,ROW,HERE\n\n", {"skiprows": 1}),
+        (b"junk\rFIRST,ROW,HERE\n\n", {"skiprows": 1, "header": None}),
+    ],
+)
+def test_parallel_bare_cr_before_data_matches_serial(
+    tmp_path, monkeypatch, head, kwargs
+):
+    # A bare \r before the first data row used to misplace the first chunk's
+    # start, silently dropping FIRST,ROW,HERE or adding a junk row.
+    raw = head + b"".join(f"s{i},t{i},u{i}\n".encode() for i in range(500))
+    path = tmp_path / "bare_cr.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert result.iloc[0].tolist() == ["FIRST", "ROW", "HERE"]
+
+
+@pytest.mark.parametrize(
     "preamble,skiprows",
     [
         (b"\n", 0),
@@ -1335,6 +1408,166 @@ def test_parallel_implicit_index_matches_serial(tmp_path, monkeypatch):
     assert list(result.index[:2]) == ["idx0", "idx1"]
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"usecols": ["b", "d"]},
+        {"usecols": [3, 1]},
+        {"usecols": lambda name: name in {"c", "d"}},
+        {"usecols": ["b", "d"], "dtype": {"b": "float32", "c": "float32"}},
+        {"usecols": [1, 2], "converters": {2: str.upper}},
+        {"usecols": ["y", "w"], "names": ["w", "x", "y", "z"], "header": 0},
+        # negative index_col counts from the end of the kept columns
+        {"usecols": ["b", "d"], "index_col": -1},
+        {"usecols": [0, 2, 3], "index_col": [-1, 0]},
+    ],
+)
+def test_parallel_usecols_matches_serial(tmp_path, monkeypatch, kwargs):
+    raw = b"a,b,c,d\n" + b"".join(
+        f"{i},{i * 0.5},s{i % 7},{2**63 + i}\n".encode() for i in range(2000)
+    )
+    path = tmp_path / "usecols.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+@pytest.mark.parametrize("index_col", [0, "b", -1, [0, 2], ["c", 0]])
+def test_parallel_index_col_matches_serial(tmp_path, monkeypatch, index_col):
+    raw = b"a,b,c\n" + b"".join(
+        f"k{i},{i * 0.5},{i % 7}\n".encode() for i in range(2000)
+    )
+    path = tmp_path / "index_col.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, index_col=index_col)
+    expected = pd.read_csv(io.BytesIO(raw), index_col=index_col)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"dtype": {"a": "float64"}},
+        {"converters": {"a": lambda val: f"<{val}>"}},
+        {"na_values": {"a": ["3"]}},
+        {"dtype_backend": "numpy_nullable"},
+        {"header": None, "names": ["a", "b"]},
+    ],
+)
+def test_parallel_index_col_options_match_serial(tmp_path, monkeypatch, kwargs):
+    # options keyed by the index column's name must reach the index
+    raw = b"".join(f"{i},{i * 2}\n".encode() for i in range(2000))
+    if "names" not in kwargs:
+        raw = b"a,b\n" + raw
+    path = tmp_path / "index_col.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, index_col="a", **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), index_col="a", **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_usecols_short_names_falls_back(tmp_path, monkeypatch):
+    # names shorter than the data: workers size their parsers from names, so
+    # usecols=[0, 3] converts only column 0 but still returns both labels
+    raw = b"a,b,c,d\n" + b"".join(
+        f"{i},{i + 10},{i + 20},{i + 30}\n".encode() for i in range(2000)
+    )
+    path = tmp_path / "usecols.csv"
+    path.write_bytes(raw)
+    kwargs = {"header": 0, "names": ["x", "y"], "usecols": [0, 3], "index_col": False}
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["declined"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_usecols_no_header_length_warning(tmp_path, monkeypatch):
+    # serial skips the header/data length check under usecols; the
+    # name-inference read must not raise it either
+    raw = b"a,b,c\n" + b"".join(f"{i},1,2,3\n".encode() for i in range(2000))
+    path = tmp_path / "usecols.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    with tm.assert_produces_warning(None):
+        result = _read_forced_parallel(
+            path, monkeypatch, usecols=["a", "b"], index_col=False
+        )
+    expected = pd.read_csv(io.BytesIO(raw), usecols=["a", "b"], index_col=False)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.parametrize("usecols", [["a", "nope"], [0, 5], [0, "b"]])
+def test_parallel_invalid_usecols_raises_like_serial(tmp_path, monkeypatch, usecols):
+    raw = b"a,b\n" + b"".join(f"{i},{i}\n".encode() for i in range(2000))
+    path = tmp_path / "usecols.csv"
+    path.write_bytes(raw)
+
+    with pytest.raises(ValueError, match="secols") as expected:
+        pd.read_csv(io.BytesIO(raw), usecols=usecols)
+    with pytest.raises(ValueError, match=re.escape(str(expected.value))):
+        _read_forced_parallel(path, monkeypatch, usecols=usecols)
+
+
+def test_parallel_usecols_keeps_nothing_with_index_col_raises_like_serial(
+    tmp_path, monkeypatch
+):
+    raw = b"a,b,c\n" + b"".join(f"{i},1,2\n".encode() for i in range(2000))
+    path = tmp_path / "usecols.csv"
+    path.write_bytes(raw)
+    kwargs = {"usecols": lambda name: False, "index_col": 0}
+
+    with pytest.raises(IndexError) as expected:
+        pd.read_csv(io.BytesIO(raw), **kwargs)
+    with pytest.raises(IndexError, match=re.escape(str(expected.value))):
+        _read_forced_parallel(path, monkeypatch, **kwargs)
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_index_col_to_csv_round_trip(tmp_path, monkeypatch):
+    # to_csv's unnamed index header reads back as an unnamed index
+    df = pd.DataFrame({"x": range(2000), "y": [f"s{i}" for i in range(2000)]})
+    path = tmp_path / "round_trip.csv"
+    df.to_csv(path)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, index_col=0)
+    tm.assert_frame_equal(result, df)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.parametrize("index_col", [5, "nope"])
+def test_parallel_invalid_index_col_raises_like_serial(
+    tmp_path, monkeypatch, index_col
+):
+    raw = b"a,b\n" + b"".join(f"{i},{i}\n".encode() for i in range(2000))
+    path = tmp_path / "index_col.csv"
+    path.write_bytes(raw)
+
+    with pytest.raises((ValueError, IndexError)) as expected:
+        pd.read_csv(io.BytesIO(raw), index_col=index_col)
+    with pytest.raises(expected.type, match=str(expected.value)):
+        _read_forced_parallel(path, monkeypatch, index_col=index_col)
+
+
 def test_parallel_dialect_escapechar_matches_serial(tmp_path, monkeypatch):
     # dialect is merged into the kwds only inside TextFileReader, after the
     # eligibility check runs; a dialect-specified escapechar must still force
@@ -1407,9 +1640,9 @@ def _write_with_line_at_chunk_start(path, replacement: bytes, monkeypatch) -> in
     return boundary
 
 
-def _spy_on_chunk_offsets(monkeypatch) -> list:
+def _spy_on_chunk_offsets(monkeypatch) -> list[list[int]]:
     """Record the byte offsets each planned split actually uses."""
-    seen: list = []
+    seen: list[list[int]] = []
     real = _find_chunk_byte_offsets
 
     def spy(filepath, n_chunks, data_start, *args):
@@ -1421,7 +1654,7 @@ def _spy_on_chunk_offsets(monkeypatch) -> list:
     return seen
 
 
-def _assert_chunk_starts_at(seen: list, boundary: int) -> None:
+def _assert_chunk_starts_at(seen: list[list[int]], boundary: int) -> None:
     # Without this the tests below still pass on a coarser split - a ragged line
     # raises (and a skipped one is skipped) wherever it sits - while no longer
     # placing it at the chunk start that is the point of the fixture.
