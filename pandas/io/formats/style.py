@@ -149,6 +149,8 @@ class Styler(StylerRenderer):
     template_html_table : Jinja2 Template
     template_html_style : Jinja2 Template
     template_latex : Jinja2 Template
+    template_typst : Jinja2 Template
+    template_string : Jinja2 Template
     loader : Jinja2 Loader
 
     See Also
@@ -217,7 +219,7 @@ class Styler(StylerRenderer):
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
-        caption: str | tuple | list | None = None,
+        caption: str | tuple[str, str] | list[str] | None = None,
         table_attributes: str | None = None,
         cell_ids: bool = True,
         na_rep: str | None = None,
@@ -515,7 +517,7 @@ class Styler(StylerRenderer):
 
     def to_excel(
         self,
-        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
@@ -693,7 +695,7 @@ class Styler(StylerRenderer):
         hrules: bool | None = ...,
         clines: str | None = ...,
         label: str | None = ...,
-        caption: str | tuple | None = ...,
+        caption: str | tuple[str, str] | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         multirow_align: str | None = ...,
@@ -715,7 +717,7 @@ class Styler(StylerRenderer):
         hrules: bool | None = ...,
         clines: str | None = ...,
         label: str | None = ...,
-        caption: str | tuple | None = ...,
+        caption: str | tuple[str, str] | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         multirow_align: str | None = ...,
@@ -736,7 +738,7 @@ class Styler(StylerRenderer):
         hrules: bool | None = None,
         clines: str | None = None,
         label: str | None = None,
-        caption: str | tuple | None = None,
+        caption: str | tuple[str, str] | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         multirow_align: str | None = None,
@@ -1949,7 +1951,7 @@ class Styler(StylerRenderer):
 
     def _apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -2008,7 +2010,7 @@ class Styler(StylerRenderer):
 
     def apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -2099,7 +2101,7 @@ class Styler(StylerRenderer):
 
     def _apply_index(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: Axis = 0,
         level: Level | list[Level] | None = None,
         method: str = "apply",
@@ -2121,7 +2123,7 @@ class Styler(StylerRenderer):
 
     def apply_index(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -2198,7 +2200,7 @@ class Styler(StylerRenderer):
 
     def map_index(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         axis: AxisInt | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -2272,7 +2274,9 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def _map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
+    def _map(
+        self, func: Callable[..., Any], subset: Subset | None = None, **kwargs
+    ) -> Styler:
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
             subset = IndexSlice[:]
@@ -2281,7 +2285,9 @@ class Styler(StylerRenderer):
         self._update_ctx(result)
         return self
 
-    def map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
+    def map(
+        self, func: Callable[..., Any], subset: Subset | None = None, **kwargs
+    ) -> Styler:
         """
         Apply a CSS-styling function elementwise.
 
@@ -2552,7 +2558,7 @@ class Styler(StylerRenderer):
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str | tuple | list) -> Styler:
+    def set_caption(self, caption: str | tuple[str, str] | list[str]) -> Styler:
         """
         Set the text added to a ``<caption>`` HTML element.
 
@@ -3128,7 +3134,7 @@ class Styler(StylerRenderer):
         text_color_threshold: float = 0.408,
         vmin: float | None = None,
         vmax: float | None = None,
-        gmap: Sequence | None = None,
+        gmap: Sequence[Any] | None = None,
     ) -> Styler:
         """
         Color the background in a gradient style.
@@ -3285,7 +3291,7 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         vmin: float | None = None,
         vmax: float | None = None,
-        gmap: Sequence | None = None,
+        gmap: Sequence[Any] | None = None,
     ) -> Styler:
         """
         Color the text in a gradient style.
@@ -3475,11 +3481,11 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         axis: Axis | None = 0,
         *,
-        color: str | list | tuple | None = None,
+        color: str | list[str] | tuple[str, str] | None = None,
         cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
-        align: str | float | Callable = "mid",
+        align: str | float | Callable[..., Any] = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -3776,8 +3782,8 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
-        left: Scalar | Sequence | None = None,
-        right: Scalar | Sequence | None = None,
+        left: Scalar | Sequence[Any] | None = None,
+        right: Scalar | Sequence[Any] | None = None,
         inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
@@ -4210,7 +4216,7 @@ class Styler(StylerRenderer):
 
 
 def _validate_apply_axis_arg(
-    arg: NDFrame | Sequence | np.ndarray,
+    arg: NDFrame | Sequence[Any] | np.ndarray,
     arg_name: str,
     dtype: Any | None,
     data: NDFrame,
@@ -4270,7 +4276,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
+    gmap: Sequence[Any] | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
 ) -> list[str] | DataFrame:
     """
@@ -4289,11 +4295,13 @@ def _background_gradient(
     )
     # extend lower / upper bounds, compresses color range
     norm = _matplotlib.colors.Normalize(smin - (rng * low), smax + (rng * high))
+    # Normalize maps NaN to 0 when vmin == vmax; keep NaN so it gets the "bad" color
+    normed = np.where(np.isnan(gmap), np.nan, norm(gmap))
 
     if cmap is None:
-        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](norm(gmap))
+        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](normed)
     else:
-        rgbas = _matplotlib.colormaps.get_cmap(cmap)(norm(gmap))
+        rgbas = _matplotlib.colormaps.get_cmap(cmap)(normed)
 
     def relative_luminance(rgba) -> float:
         """
@@ -4341,8 +4349,8 @@ def _background_gradient(
 def _highlight_between(
     data: NDFrame,
     props: str,
-    left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
-    right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
+    left: Scalar | Sequence[Any] | np.ndarray | NDFrame | None = None,
+    right: Scalar | Sequence[Any] | np.ndarray | NDFrame | None = None,
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """
@@ -4408,8 +4416,8 @@ def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarra
 
 def _bar(
     data: NDFrame,
-    align: str | float | Callable,
-    colors: str | list | tuple,
+    align: str | float | Callable[..., Any],
+    colors: str | list[str] | tuple[str, str],
     cmap: Any,
     width: float,
     height: float,
@@ -4474,7 +4482,13 @@ def _bar(
             cell_css += f" {color} {end * 100:.1f}%, transparent {end * 100:.1f}%)"
         return cell_css
 
-    def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):
+    def css_calc(
+        x,
+        left: float,
+        right: float,
+        align: str,
+        color: str | list[str] | tuple[str, str],
+    ):
         """
         Return the correct CSS for bar placement based on calculated values.
 
@@ -4550,6 +4564,9 @@ def _bar(
             return ret
 
     values = data.to_numpy()
+    if values.dtype == object:
+        # pd.NA breaks np.nanmean, callable aligns and cmap, GH#56425
+        values = data.to_numpy(na_value=np.nan).astype(float)
     # A tricky way to address the issue where np.nanmin/np.nanmax fail to handle pd.NA.
     left = np.nanmin(data.min(skipna=True)) if vmin is None else vmin
     right = np.nanmax(data.max(skipna=True)) if vmax is None else vmax
