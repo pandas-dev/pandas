@@ -666,3 +666,57 @@ def test_weighted_var_big_window_no_segfault(win_types, center):
     expected = pd.Series(np.nan)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("ddof", [0, 1])
+@pytest.mark.parametrize("min_periods", [1, 2, 3])
+def test_weighted_var_boxcar_matches_unweighted(ddof, min_periods):
+    # GH#54333 the ddof correction used the window length rather than the
+    # number of observations, so windows holding missing values were wrong
+    # even for uniform weights.
+    pytest.importorskip("scipy")
+    ser = pd.Series([1.0, 2.0, np.nan, 4.0, 5.0, 7.0])
+    result = ser.rolling(3, win_type="boxcar", min_periods=min_periods).var(ddof=ddof)
+    expected = ser.rolling(3, min_periods=min_periods).var(ddof=ddof)
+    tm.assert_series_equal(result, expected)
+
+
+def test_weighted_var_weights_slide_with_the_window():
+    # GH#54333 each value kept the weight it was given when it entered the
+    # window, so the kernel rotated with position instead of sliding. Variance
+    # is translation invariant, so every window of consecutive integers must
+    # give the same result.
+    pytest.importorskip("scipy")
+    ser = pd.Series(np.arange(10, dtype=float))
+    result = ser.rolling(3, win_type="triang").var()
+    expected = pd.Series([np.nan, np.nan] + [0.75] * 8)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("win_type", ["boxcar", "triang", "hamming"])
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_weighted_var_matches_reference(win_type, ddof):
+    windows = pytest.importorskip("scipy.signal.windows")
+    ser = pd.Series([1.0, 2.0, np.nan, 4.0, 5.0, 7.0, 2.0, 9.0])
+    win_n, min_periods = 4, 2
+    weights = windows.get_window(win_type, win_n, fftbins=False)
+
+    values = ser.to_numpy()
+    expected = np.full(len(values), np.nan)
+    for i in range(len(values)):
+        # the window is right-aligned, so a partial one takes the tail weights
+        lo = max(0, i - win_n + 1)
+        window, w = values[lo : i + 1], weights[win_n - (i - lo + 1) :]
+        keep = ~np.isnan(window)
+        window, w = window[keep], w[keep]
+        nobs = len(window)
+        if nobs < min_periods or nobs <= ddof:
+            continue
+        mean = (w * window).sum() / w.sum()
+        t = (w * (window - mean) ** 2).sum()
+        expected[i] = t * nobs / ((nobs - ddof) * w.sum())
+
+    result = ser.rolling(win_n, win_type=win_type, min_periods=min_periods).var(
+        ddof=ddof
+    )
+    tm.assert_series_equal(result, pd.Series(expected))

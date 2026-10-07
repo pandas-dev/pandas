@@ -207,6 +207,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.Window.var` and :meth:`.Window.std` returning incorrect results: the weights did not slide with the window, and the degrees-of-freedom correction used the window length instead of the number of observations (:issue:`54333`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` and ``closed="right"`` returning shifted labels or incorrect aggregations (:issue:`44363`)
 -
 
