@@ -1031,6 +1031,19 @@ def test_parallel_dup_names_dict_dtype_matches_serial(tmp_path, monkeypatch):
     assert result.dtypes["a"] == result.dtypes["a.1"]
 
 
+def test_parallel_object_dtype_dict_matches_serial(tmp_path, monkeypatch):
+    # an object dtype must survive DataFrame construction, see GH#56047
+    raw = b"a,b,c\n" + b"".join(f"x{i},y{i},{i}\n".encode() for i in range(500))
+    path = tmp_path / "obj.csv"
+    path.write_bytes(raw)
+
+    dtype = {"a": object, "c": "float32"}
+    result = _read_forced_parallel(path, monkeypatch, dtype=dtype)
+    expected = pd.read_csv(io.BytesIO(raw), dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+    assert result.dtypes["a"] == object
+
+
 def test_parallel_comment_before_header_matches_serial(tmp_path, monkeypatch):
     # A full-line comment above the header shifts the preamble byte offset;
     # the header row must not be ingested as data (GH#64347).
