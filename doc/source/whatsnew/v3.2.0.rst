@@ -158,6 +158,7 @@ Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` silently ignoring a compiled ``re.Pattern`` for :class:`ArrowDtype` ``string`` and ``large_string`` dtypes, including a :class:`Categorical` of them (:issue:`69026`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``regex=True`` on :class:`ArrowDtype` ``string`` and ``large_string`` dtypes raising or silently coercing a replacement the column cannot hold instead of casting to ``object`` (:issue:`70458`)
+- Bug in :meth:`Series.str.contains`, :meth:`Series.str.match`, :meth:`Series.str.fullmatch`, :meth:`Series.str.replace` and :meth:`Series.str.count` with the pyarrow-backed string dtypes where ``\w``, ``\d``, ``\s`` and ``\b`` (and their negations) in a regular expression only matched ASCII characters, unlike the Unicode-aware matching of Python's ``re`` used for ``object`` dtype (:issue:`70770`)
 -
 
 Interval

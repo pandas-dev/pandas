@@ -1006,3 +1006,52 @@ def test_setitem_with_different_string_storage():
 def test_has_regex_unsupported_code(pat, expected):
     # https://github.com/pandas-dev/pandas/issues/60833
     assert ArrowStringArrayMixin._has_unsupported_regex(pat) == expected
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        (r"\w+", True),
+        (r"\W", True),
+        (r"\d{3}", True),
+        (r"\D", True),
+        (r"\s+", True),
+        (r"\S", True),
+        (r"\bword\b", True),
+        (r"\B", True),
+        (r"[^\w\s]", True),
+        (r"[\w-]", True),
+        (r"(?:x\S)*", True),
+        (r"(foo|bar\d)", True),
+        (r"(?>\w)", True),
+        (r"[a-z0-9_]+", False),
+        (r"\\w", False),
+        (r"abc", False),
+        (r"", False),
+    ],
+)
+def test_has_unicode_sensitive_regex(pat, expected):
+    # GH#70770
+    assert ArrowStringArrayMixin._has_unicode_sensitive_regex(pat) == expected
+
+
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"\w", [4, 6, 2, 3, 2]),
+        (r"\s", [0, 1, 0, 0, 1]),
+        (r"\d", [0, 0, 0, 3, 0]),
+        (r"\b", [2, 4, 2, 2, 4]),
+    ],
+)
+def test_count_unicode_regex_classes(any_string_dtype, pat, expected_data):
+    # GH#70770
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+    ser = pd.Series(
+        ["café", "été nœl", "東京", "١٢٣", "a\xa0b"], dtype=any_string_dtype
+    )
+    result = ser.str.count(pat)
+    expected = pd.Series(expected_data, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)

@@ -108,6 +108,75 @@ class ArrowStringArrayMixin:
         return has_unsupported_code(tokens)
 
     @staticmethod
+    def _has_unicode_sensitive_regex(pat: str | re.Pattern[str]) -> bool:
+        """
+        Determine if regex pattern uses ``\\w``, ``\\d``, ``\\s`` or ``\\b``
+        (or their negations), which only match ASCII characters in RE2 / pyarrow
+        but are Unicode-aware in Python's ``re``.
+        """
+        from re import _parser  # type: ignore[attr-defined]
+
+        categories = {
+            _parser.CATEGORY_WORD,
+            _parser.CATEGORY_NOT_WORD,
+            _parser.CATEGORY_DIGIT,
+            _parser.CATEGORY_NOT_DIGIT,
+            _parser.CATEGORY_SPACE,
+            _parser.CATEGORY_NOT_SPACE,
+        }
+        boundaries = {_parser.AT_BOUNDARY, _parser.AT_NON_BOUNDARY}
+        repeats = {
+            _parser.MAX_REPEAT,
+            _parser.MIN_REPEAT,
+            _parser.POSSESSIVE_REPEAT,
+        }
+
+        def uses_unicode_class(tokens) -> bool:
+            for op_code, argument in tokens:
+                if op_code == _parser.IN:
+                    if any(
+                        code == _parser.CATEGORY and arg in categories
+                        for code, arg in argument
+                    ):
+                        return True
+                elif op_code == _parser.AT:
+                    if argument in boundaries:
+                        return True
+                elif op_code == _parser.SUBPATTERN:
+                    if uses_unicode_class(argument[3]):
+                        return True
+                elif op_code == _parser.BRANCH:
+                    if any(uses_unicode_class(branch) for branch in argument[1]):
+                        return True
+                elif op_code in repeats:
+                    if uses_unicode_class(argument[2]):
+                        return True
+                elif op_code == _parser.ATOMIC_GROUP:
+                    if uses_unicode_class(argument):
+                        return True
+            return False
+
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        try:
+            tokens = _parser.parse(str_pat)
+        except re.error:
+            return False
+        return uses_unicode_class(tokens)
+
+    def _needs_python_regex(self, pat: str | re.Pattern[str]) -> bool:
+        """
+        Whether a regex operation must use Python's ``re`` instead of pyarrow.
+        """
+        if self._has_unsupported_regex(pat):
+            return True
+        # all-ASCII data keeps the faster pyarrow path; min_count=0 so that an
+        #  empty or all-null array also reports True
+        return (
+            self._has_unicode_sensitive_regex(pat)
+            and not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py()
+        )
+
+    @staticmethod
     def _is_re_pattern_with_flags(pat: str | re.Pattern[str]) -> bool:
         # check if `pat` is a compiled regex pattern with flags that are not
         # supported by pyarrow

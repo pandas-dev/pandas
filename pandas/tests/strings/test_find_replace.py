@@ -1037,6 +1037,33 @@ def test_replace_lookarounds(any_string_dtype, pat, expected_data):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, repl, expected_data",
+    [
+        (
+            r"[^\w\s]",
+            "",
+            ["café crème", "MüllerLüdenscheidt", "東京 2024", "a\xa0 b"],
+        ),
+        (r"\s+", " ", ["café crème!", "Müller-Lüdenscheidt", "東京 2024", "a b"]),
+        (
+            r"\bt",
+            "T",
+            ["café crème!", "Müller-Lüdenscheidt", "東京 2024", "a\xa0 b"],
+        ),
+    ],
+)
+def test_replace_unicode_regex_classes(any_string_dtype, pat, repl, expected_data):
+    # GH#70770
+    ser = pd.Series(
+        ["café crème!", "Müller-Lüdenscheidt", "東京 2024", "a\xa0 b"],
+        dtype=any_string_dtype,
+    )
+    result = ser.str.replace(pat, repl, regex=True)
+    expected = pd.Series(expected_data, dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_replace_end_of_string(any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/63613
     ser = pd.Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
@@ -1624,6 +1651,31 @@ def test_fullmatch_lookarounds(any_string_dtype, pat):
         [False, True if pat == "ab" else False, False, False, null_result],
         dtype=expected_dtype,
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, pat, expected_data",
+    [
+        ("contains", r"\W", [False, True, True, False]),
+        ("contains", r"\d", [False, False, True, True]),
+        ("match", r"\w+\s", [False, False, True, False]),
+        ("fullmatch", r"\w+", [True, False, False, True]),
+        ("fullmatch", r"\w+(?:\s\w+)*", [True, False, True, True]),
+    ],
+)
+def test_match_methods_unicode_regex_classes(
+    any_string_dtype, method, pat, expected_data
+):
+    # GH#70770
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    ser = pd.Series(
+        ["naïve", "Müller-Lüdenscheidt", "東京 2024", "١٢٣"], dtype=any_string_dtype
+    )
+    result = getattr(ser.str, method)(pat)
+    expected = pd.Series(expected_data, dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

@@ -450,7 +450,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or (regex and self._has_unsupported_regex(pat))
+            or (regex and self._needs_python_regex(pat))
             # a compiled pattern is not a valid literal; defer to the object path
             or (not regex and isinstance(pat, re.Pattern))
         ):
@@ -471,7 +471,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
+            or self._needs_python_regex(pat)
         ):
             return super()._str_match(pat, case, flags, na)
 
@@ -488,7 +488,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
+            or self._needs_python_regex(pat)
         ):
             return super()._str_fullmatch(pat, case, flags, na)
 
@@ -513,7 +513,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # https://docs.python.org/3/library/re.html
                 isinstance(repl, str) and r"\g<" in repl
             )
-            or (regex and self._has_unsupported_regex(pat))
+            or (regex and self._needs_python_regex(pat))
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
@@ -534,7 +534,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
+            or self._needs_python_regex(pat)
         ):
             return super()._str_count(pat, flags)
 
