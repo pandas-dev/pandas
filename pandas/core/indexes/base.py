@@ -8261,7 +8261,7 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
     if isinstance(sequence, (range, ExtensionArray)) or len(sequence) == 1:
         return sequence
     elif isinstance(sequence, (ABCSeries, Index)):
-        if not (isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"):
+        if not lib.is_np_dtype(sequence.dtype, "i"):
             return sequence
     elif isinstance(sequence, np.ndarray):
         if not (
