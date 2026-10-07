@@ -462,6 +462,10 @@ def _copy_pyarrow_buffers(
             [_copy_pyarrow_buffers(chunk) for chunk in pa_array.chunks],
             type=pa_array.type,
         )
+    if isinstance(pa_array, pa.ExtensionArray):
+        return pa.ExtensionArray.from_storage(
+            pa_array.type, _copy_pyarrow_buffers(pa_array.storage)
+        )
     if pa.types.is_dictionary(pa_array.type):
         return pa.DictionaryArray.from_arrays(
             _copy_pyarrow_buffers(pa_array.indices),
