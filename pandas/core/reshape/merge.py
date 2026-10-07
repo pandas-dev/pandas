@@ -24,7 +24,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.errors import MergeError
+from pandas.errors import (
+    MergeError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -2328,8 +2331,8 @@ class _CrossMergeOperation(_MergeOperation):
         self.right_index = False
         self.indicator = indicator
         self.anti_join = False
-        self.left_on: list = []
-        self.right_on: list = []
+        self.left_on = []
+        self.right_on = []
         self.left_join_keys: list[ArrayLike] = []
         self.right_join_keys: list[ArrayLike] = []
         self.join_names: list[Hashable] = []
@@ -2970,13 +2973,15 @@ def _factorize_keys(
                 .dictionary_encode()
             )
 
+            # copy: on 32-bit, intp is int32 and to_numpy is a read-only view
+            # that putmask below would fail on, GH#57523
             llab, rlab, count = (
                 _safe_fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
-                .astype(np.intp, copy=False),
+                .astype(np.intp),
                 _safe_fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
-                .astype(np.intp, copy=False),
+                .astype(np.intp),
                 len(dc.dictionary),
             )
 
@@ -3384,6 +3389,15 @@ def _items_overlap_with_suffix(
         raise MergeError(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
             "not allowed.",
+        )
+    # GH#13659 left and right labels collide after suffixing, e.g. equal suffixes
+    cross_dups = llabels.intersection(rlabels)
+    if len(cross_dups):
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(cross_dups)} "
+            "is deprecated and will raise a MergeError in a future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

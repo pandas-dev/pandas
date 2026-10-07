@@ -1417,7 +1417,7 @@ class IntervalDtype(PandasExtensionDtype):
         raise TypeError(msg)
 
     @property
-    def type(self) -> type[Interval]:
+    def type(self) -> type[Interval[Any]]:
         return Interval
 
     def __str__(self) -> str_type:
@@ -1477,7 +1477,6 @@ class IntervalDtype(PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import IntervalArray
-        from pandas.core.arrays.arrow.array import to_pyarrow_type
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -1502,12 +1501,7 @@ class IntervalDtype(PandasExtensionDtype):
             results.append(iarr)
 
         if not results:
-            empty = pyarrow.array([], type=to_pyarrow_type(self.subtype))
-            return IntervalArray.from_arrays(
-                _convert(empty),
-                _convert(empty),
-                closed=self.closed,
-            )
+            return IntervalArray._from_sequence([], dtype=self)
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
@@ -2583,5 +2577,9 @@ class ArrowDtype(StorageExtensionDtype):
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """
         array_class = self.construct_array_type()
-        arr = array.cast(self.pyarrow_dtype, safe=True)
-        return array_class(arr)
+        # check_metadata=True also compares list field names, so those still
+        # get cast; skipping the no-op cast avoids a segfault on pyarrow<26,
+        # see https://github.com/apache/arrow/issues/37004
+        if not array.type.equals(self.pyarrow_dtype, check_metadata=True):
+            array = array.cast(self.pyarrow_dtype, safe=True)
+        return array_class(array)
