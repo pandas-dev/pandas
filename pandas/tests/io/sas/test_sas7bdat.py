@@ -1463,7 +1463,8 @@ def test_amd_page_unusable(datapath, corruption):
     fname = "dates_null.sas7bdat"
     data = corrupt(_with_amd_page(datapath, fname, 63718 + 22 + 24, b"DATETIME"))
     with SAS7BDATReader(io.BytesIO(data), encoding="infer") as reader:
-        assert reader.columns[1].format != "DATETIME"
+        # the bytes at the ref's offset in the text block that is present
+        assert reader.columns[1].format == "\x00\x00\x00\x00    "
 
     data = corrupt(_with_amd_page(datapath, fname, 63960 + 8 + 16, b"renamed"))
     with pytest.raises(ValueError, match="refers to text subheader 1"):
