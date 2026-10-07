@@ -2046,7 +2046,24 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
         """
 
         def func(x):
-            x = self._resampler_cls(x, timegrouper=self._timegrouper, gpr_index=self.ax)
+            timegrouper = copy.copy(self._timegrouper)
+            timegrouper._reset_cache()
+            key = timegrouper.key
+            if key is not None:
+                if isinstance(x, ABCSeries):
+                    indices = self._groupby.indices[x.name]
+                    obj = self.obj
+                    if self._timegrouper._indexer_deprecated is not None:
+                        obj = obj.take(
+                            self._timegrouper._indexer_deprecated.argsort(), axis=0
+                        )
+                    gpr_index = Index(obj[key].take(indices), name=key)
+                else:
+                    gpr_index = Index(x[key], name=key)
+            else:
+                gpr_index = x.index
+
+            x = self._resampler_cls(x, timegrouper=timegrouper, gpr_index=gpr_index)
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
@@ -2543,6 +2560,12 @@ class TimeGrouper(Grouper):
         kwargs["sort"] = True
 
         super().__init__(freq=freq, key=key, **kwargs)
+
+    def _reset_cache(self) -> None:
+        self._indexer_deprecated = None
+        self.binner = None
+        self._grouper = None
+        self._indexer = None
 
     def _get_resampler(self, obj: NDFrame) -> Resampler:
         """
