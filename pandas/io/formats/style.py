@@ -149,6 +149,8 @@ class Styler(StylerRenderer):
     template_html_table : Jinja2 Template
     template_html_style : Jinja2 Template
     template_latex : Jinja2 Template
+    template_typst : Jinja2 Template
+    template_string : Jinja2 Template
     loader : Jinja2 Loader
 
     See Also
@@ -4293,11 +4295,13 @@ def _background_gradient(
     )
     # extend lower / upper bounds, compresses color range
     norm = _matplotlib.colors.Normalize(smin - (rng * low), smax + (rng * high))
+    # Normalize maps NaN to 0 when vmin == vmax; keep NaN so it gets the "bad" color
+    normed = np.where(np.isnan(gmap), np.nan, norm(gmap))
 
     if cmap is None:
-        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](norm(gmap))
+        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](normed)
     else:
-        rgbas = _matplotlib.colormaps.get_cmap(cmap)(norm(gmap))
+        rgbas = _matplotlib.colormaps.get_cmap(cmap)(normed)
 
     def relative_luminance(rgba) -> float:
         """
@@ -4560,6 +4564,9 @@ def _bar(
             return ret
 
     values = data.to_numpy()
+    if values.dtype == object:
+        # pd.NA breaks np.nanmean, callable aligns and cmap, GH#56425
+        values = data.to_numpy(na_value=np.nan).astype(float)
     # A tricky way to address the issue where np.nanmin/np.nanmax fail to handle pd.NA.
     left = np.nanmin(data.min(skipna=True)) if vmin is None else vmin
     right = np.nanmax(data.max(skipna=True)) if vmax is None else vmax

@@ -8926,6 +8926,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = self._align_for_op(threshold, axis, flex=None)[1]
+                if axis is None and isinstance(threshold, ABCSeries):
+                    # _align_for_op aligned the 1D bound on self.columns;
+                    #  `where` below needs that spelled out (GH#68929)
+                    axis = 1
 
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
@@ -9426,7 +9430,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             end of `rule`.
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
-            Column must be datetime-like.
+            Column must be datetime-like. The ``on`` column is excluded from
+            the result; to keep it, resample ``df.set_index(on, drop=False)``
+            instead.
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.

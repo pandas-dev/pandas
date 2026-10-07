@@ -2019,10 +2019,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # SparseDtype._check_fill_value guarantees that a non-NA
             #  fill_value fits in the subtype, so only an NA needs promoting.
             npdtype, fill_value = maybe_promote(npdtype, fill_value)
-        elif isinstance(fill_value, (Timestamp, Timedelta)):
-            # np.full would route these through the stdlib datetime protocol
-            #  and so truncate to microseconds
-            fill_value = fill_value.asm8
+        else:
+            fill_value = _unbox_for_fill(npdtype, fill_value)
         npvalues = np.full(self.shape, fill_value, dtype=npdtype)
         npvalues[self.sp_index.indices] = self.sp_values
         return npvalues
