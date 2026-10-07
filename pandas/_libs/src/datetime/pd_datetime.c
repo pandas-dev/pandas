@@ -50,6 +50,9 @@ static void pandas_datetime_destructor(PyObject *op) {
  */
 static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
   PyObject *offset = extract_utc_offset(obj);
+  if (offset == NULL) {
+    return -1;
+  }
   /* Apply the time zone offset if datetime obj is tz-aware */
   if (offset != NULL) {
     if (offset == Py_None) {
