@@ -356,19 +356,6 @@ class PythonParser(ParserBase):
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
 
-    # legacy
-    def get_chunk(
-        self, size: int | None = None
-    ) -> tuple[
-        Index | None,
-        Sequence[Hashable] | MultiIndex,
-        Mapping[Hashable, ArrayLike | Series],
-    ]:
-        if size is None:
-            # error: "PythonParser" has no attribute "chunksize"
-            size = self.chunksize  # type: ignore[attr-defined]
-        return self._read_arrays(nrows=size)
-
     def _convert_data(
         self,
         data: Mapping[Hashable, np.ndarray],
