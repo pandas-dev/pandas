@@ -4127,9 +4127,12 @@ class ArrowExtensionArray(
             pa.chunked_array(result, type=pa.list_(self._pa_array.type))
         )
 
-    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
+    def _str_get_dummies(
+        self, sep: str = "|", dtype: NpDtype | None = None, *, regex: bool = True
+    ):
         if dtype is None:
             dtype = np.bool_
+        # Arrow already splits literally; both modes retain this behavior.
         split = pc.split_pattern(self._pa_array, sep)
         flattened_values = pc.list_flatten(split)
         uniques = flattened_values.unique()

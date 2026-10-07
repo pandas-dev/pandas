@@ -95,3 +95,46 @@ def test_get_dummies_with_str_dtype(any_string_dtype):
 
     with pytest.raises(ValueError, match=msg):
         s.str.get_dummies("|", dtype="datetime64[ns]")
+
+
+@pytest.mark.parametrize("sep", ["|", " | ", "||", ".*", "[x]", "::"])
+@pytest.mark.parametrize("dtype", [None, np.uint8, bool, "Int64", "boolean"])
+def test_get_dummies_regex_false(any_string_dtype, sep, dtype):
+    s = pd.Series([f"Remote{sep}On site", "Remote", "On site"], dtype=any_string_dtype)
+    result = s.str.get_dummies(sep=sep, dtype=dtype, regex=False)
+    expected = pd.DataFrame(
+        [[1, 1], [0, 1], [1, 0]], columns=["On site", "Remote"], dtype=dtype
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("sep", ["|", " | ", "||", "::"])
+def test_get_dummies_regex_true_preserves_default(any_string_dtype, sep):
+    s = pd.Series([f"Remote{sep}On site", "Remote", "On site"], dtype=any_string_dtype)
+    result = s.str.get_dummies(sep=sep, regex=True)
+    expected = s.str.get_dummies(sep=sep)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_get_dummies_regex_false_index():
+    idx = pd.Index(["Remote | On site", "Remote", "On site"], dtype=object)
+    result = idx.str.get_dummies(sep=" | ", regex=False)
+    expected = pd.MultiIndex.from_tuples(
+        [(1, 1), (0, 1), (1, 0)], names=["On site", "Remote"]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [object, "string[python]"])
+def test_get_dummies_regex_false_missing(dtype):
+    s = pd.Series(["Remote | On site", None, ""], dtype=dtype)
+    result = s.str.get_dummies(sep=" | ", regex=False)
+    expected = pd.DataFrame([[1, 1], [0, 0], [0, 0]], columns=["On site", "Remote"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("regex", [None, "False", 0, 1])
+def test_get_dummies_invalid_regex(regex):
+    s = pd.Series(["a|b"])
+    with pytest.raises(ValueError, match='For argument "regex"'):
+        s.str.get_dummies(regex=regex)
