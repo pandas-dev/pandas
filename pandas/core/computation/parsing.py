@@ -220,6 +220,31 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
     return substrings
 
 
+def backtick_quoted_names(source: str) -> dict[str, str]:
+    """
+    Map the identifier of each backtick-quoted name in ``source`` to the name.
+
+    Parameters
+    ----------
+    source : str
+        The Python source code string.
+
+    Returns
+    -------
+    dict[str, str]
+        The valid Python identifier that a backtick-quoted name is cleaned to
+        (see :func:`create_valid_python_identifier`), mapped to the name as
+        it would appear as a column label.
+    """
+    return {
+        create_valid_python_identifier(substring[1:-1]): substring[1:-1].replace(
+            "``", "`"
+        )
+        for is_backtick_quoted, substring in _split_by_backtick(source)
+        if is_backtick_quoted
+    }
+
+
 def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     """
     Tokenize a Python source code string.

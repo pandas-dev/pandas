@@ -452,6 +452,7 @@ def eval(
 
         # assign if needed
         assigner = parsed_expr.assigner
+        label = parsed_expr.assigner_label
         if env.target is not None and assigner is not None:
             target_modified = True
 
@@ -474,9 +475,9 @@ def eval(
             # to use a non-numeric indexer
             try:
                 if inplace and isinstance(target, NDFrame):
-                    target.loc[:, assigner] = ret
+                    target.loc[:, label] = ret
                 else:
-                    target[assigner] = ret  # pyright: ignore[reportIndexIssue]
+                    target[label] = ret  # pyright: ignore[reportIndexIssue]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
