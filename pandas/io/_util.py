@@ -26,6 +26,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
 import pandas as pd
 
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeArg,
         DtypeBackend,
+        DtypeObj,
     )
 
     from pandas.core.dtypes.base import ExtensionDtype
@@ -213,10 +215,12 @@ def _post_convert_dtypes(
             dtype = pandas_dtype(dtype)
 
         try:
-            df = df.astype(dtype)
+            casted = df.astype(dtype)
         except TypeError as err:
             # GH#44901 reraise to keep api consistent
             raise ValueError(str(err)) from err
+        validate_integer_casts(df, casted)
+        df = casted
 
         # GH#56136 IntegerDtype was used above to avoid lossy float64
         #  conversion in pyarrow; convert back to numpy now that the data
@@ -269,6 +273,74 @@ def _post_convert_dtypes(
             df.columns = new_cols
 
     return df
+
+
+def _numpy_dtype(dtype: DtypeObj) -> np.dtype | None:
+    # the numpy dtype a column's values compare as, if known
+    if isinstance(dtype, np.dtype):
+        return dtype
+    if isinstance(dtype, pd.SparseDtype):
+        return dtype.subtype
+    if isinstance(dtype, (BaseMaskedDtype, pd.ArrowDtype)):
+        return dtype.numpy_dtype
+    return None
+
+
+def _can_wrap(old: DtypeObj, new: DtypeObj) -> bool:
+    """
+    Whether casting from ``old`` to ``new`` can wrap around an integer value.
+    """
+    old_np = _numpy_dtype(old)
+    new_np = _numpy_dtype(new)
+    if old_np is None or new_np is None:
+        return False
+    if new_np.kind not in "iu" or old_np.kind not in "iuf":
+        return False
+    # NA cannot wrap, so e.g. Int64 -> int64 is as safe as int64 -> int64
+    return not np.can_cast(old_np, new_np)
+
+
+def validate_integer_casts(original: pd.DataFrame, casted: pd.DataFrame) -> None:
+    """
+    Apply validate_integer_cast to each column of a DataFrame cast.
+    """
+    for i, (old, new) in enumerate(zip(original.dtypes, casted.dtypes, strict=True)):
+        # check dtypes first; iloc on every column is slow for wide frames
+        if _can_wrap(old, new):
+            validate_integer_cast(original.iloc[:, i], casted.iloc[:, i])
+
+
+def validate_integer_cast(original: pd.Series, casted: pd.Series) -> None:
+    """
+    Raise if casting a column to an integer dtype wrapped around (GH#38013).
+
+    Discarding a float's fractional part is allowed, as in the python engine.
+    """
+    if not _can_wrap(original.dtype, casted.dtype):
+        return
+    mask = original.isna().to_numpy()
+    if mask.any():
+        original = original[~mask]
+        casted = casted[~mask]
+    # compare in numpy: pyarrow refuses to compare integers above 2**53
+    #  with doubles
+    before = original.to_numpy(dtype=_numpy_dtype(original.dtype))
+    after = casted.to_numpy(dtype=_numpy_dtype(casted.dtype))
+    if before.dtype.kind == "f":
+        truncated = np.trunc(before)
+        info = np.iinfo(after.dtype)
+        # check the bounds explicitly: a cast that saturates at info.max
+        #  compares equal to e.g. 2.0**63 once converted back to float
+        bad = (
+            (truncated < info.min) | (truncated >= info.max + 1) | (truncated != after)
+        )
+    else:
+        bad = before != after
+    if bad.any():
+        raise ValueError(
+            f"cannot safely convert passed user dtype of {casted.dtype} for "
+            f"{before.dtype} dtyped data in column {original.name}"
+        )
 
 
 def _maybe_convert_string_to_object(
