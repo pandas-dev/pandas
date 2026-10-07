@@ -1449,6 +1449,26 @@ class TestPandasContainer:
         with pytest.raises(AttributeError, match="_creso"):
             ser.to_json(date_format="iso")
 
+    def test_to_json_iso_datetime_conversion_failure_raises(self):
+        # GH#69461 PyDateTimeToIso returned NULL without setting errorMsg,
+        # which segfaulted instead of propagating the Python exception
+        class BadTZ(datetime.tzinfo):
+            def utcoffset(self, dt):
+                raise RuntimeError("boom")
+
+            def dst(self, dt):
+                return None
+
+            def tzname(self, dt):
+                return None
+
+        ser = pd.Series(
+            [datetime.datetime(2020, 1, 1, tzinfo=BadTZ())], dtype=object
+        )
+        with pytest.raises(RuntimeError, match="boom"):
+            ser.to_json(date_format="iso")
+
+    
     def test_default_handler(self):
         value = object()
         frame = pd.DataFrame({"a": [7, value]})
