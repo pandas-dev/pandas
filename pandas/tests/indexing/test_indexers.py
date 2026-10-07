@@ -19,8 +19,16 @@ def test_length_of_indexer():
 
 def test_length_of_indexer_boolean_index():
     # GH#68021 the boolean branch used indexer.sum(), which Index does not have
+    assert length_of_indexer(pd.array([True, False, True])) == 2
     assert length_of_indexer(pd.Index([True, False, True])) == 2
     assert length_of_indexer(pd.Series([True, False, True])) == 2
+
+
+def test_length_of_indexer_integer():
+    assert length_of_indexer(np.array([0, 1, 2])) == 3
+    assert length_of_indexer(pd.array([0, 1, 2])) == 3
+    assert length_of_indexer(pd.Index([0, 1, 2])) == 3
+    assert length_of_indexer(pd.Series([0, 1, 2])) == 3
 
 
 @pytest.mark.parametrize(
