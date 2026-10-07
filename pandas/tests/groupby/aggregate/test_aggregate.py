@@ -2109,6 +2109,30 @@ def test_agg_lambda_complex128_dtype_conversion():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, value, expected_dtype",
+    [
+        (pd.StringDtype(na_value=np.nan), 2**70, object),
+        pytest.param("string[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        ("Int64", pd.NaT, "M8[s]"),
+        ("Float64", pd.NaT, "M8[s]"),
+        ("boolean", pd.NaT, "M8[s]"),
+    ],
+)
+def test_agg_lambda_result_dtype_cannot_hold(dtype, value, expected_dtype):
+    # GH#70233 used to raise instead of inferring the result dtype
+    df = pd.DataFrame({"key": [1, 1, 2], "val": pd.Series([1, 0, 1], dtype=dtype)})
+    result = df.groupby("key")["val"].agg(lambda x: value)
+    expected = pd.Series(
+        [value, value],
+        index=pd.Index([1, 2], name="key"),
+        name="val",
+        dtype=expected_dtype,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
     # GH#59601

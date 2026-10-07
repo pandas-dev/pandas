@@ -176,9 +176,11 @@ def apply_wraps(func):
 
     def wrapper(self, other):
         if not isinstance(other, _Timestamp):
-            # BaseOffset.__add__ has already converted, but rollback and
-            #  rollforward are public and take any datetime-like.
+            # rollback and rollforward are public and take any datetime-like;
+            #  NaT also arrives here from __add__ via np.datetime64("NaT")
             other = Timestamp(other)
+            if other is NaT:
+                return NaT
 
         tz = other.tzinfo
         nano = other.nanosecond
