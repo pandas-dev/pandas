@@ -1156,6 +1156,54 @@ def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     ts.resample(freq).mean()
 
 
+def test_resample_non_unitary_anchored_offset_phase_is_data_dependent(unit):
+    # GH#29576: for a non-unitary anchored offset such as "2QS-MAR", the
+    # previous bin edge is computed via BaseOffset.rollback, which steps
+    # back exactly one offset (its n=1 form) regardless of the offset's
+    # own stride. As a result the bin phase tracks where the data starts
+    # rather than being fixed by the offset's startingMonth, and this is
+    # true uniformly for non-unitary MS/QS/YS offsets, not a quarter-only
+    # quirk. This pins the current, intentional behavior described on the
+    # issue; it is not the startingMonth-anchored semantics originally
+    # requested there (see test_resample_half_year_offset_anchors_on_
+    # starting_month below for the offset that provides those).
+    ser_jan_start = pd.Series(
+        np.zeros(365),
+        index=date_range("1950-01-01", periods=365, freq="D", unit=unit),
+    )
+    result_jan_start = ser_jan_start.resample("2QS-MAR").mean()
+    expected_jan_start = pd.Series(
+        0.0, index=date_range("1949-12-01", periods=3, freq="2QS-MAR", unit=unit)
+    )
+    tm.assert_series_equal(result_jan_start, expected_jan_start)
+
+    ser_mar_start = pd.Series(
+        np.zeros(365),
+        index=date_range("1950-03-01", periods=365, freq="D", unit=unit),
+    )
+    result_mar_start = ser_mar_start.resample("2QS-MAR").mean()
+    expected_mar_start = pd.Series(
+        0.0, index=date_range("1950-03-01", periods=2, freq="2QS-MAR", unit=unit)
+    )
+    tm.assert_series_equal(result_mar_start, expected_mar_start)
+
+
+def test_resample_half_year_offset_anchors_on_starting_month(unit):
+    # GH#29576 / GH#22362: HalfYearBegin/HalfYearEnd (GH#60946) anchor
+    # their bin phase on startingMonth regardless of where the data
+    # starts, unlike the non-unitary quarter offsets exercised above.
+    # This is the offset GH#29576 actually wanted from "2QS-MAR".
+    ser = pd.Series(
+        np.zeros(365),
+        index=date_range("1950-01-01", periods=365, freq="D", unit=unit),
+    )
+    result = ser.resample("HYS-MAR").mean()
+    expected = pd.Series(
+        0.0, index=date_range("1949-09-01", periods=3, freq="HYS-MAR", unit=unit)
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("label, sec", [[None, 2.0], ["right", "4.2"]])
 def test_resample_anchored_multiday(label, sec):
     # When resampling a range spanning multiple days, ensure that the
