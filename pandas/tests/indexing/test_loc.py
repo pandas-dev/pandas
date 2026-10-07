@@ -3403,6 +3403,19 @@ def test_loc_setitem_int_row_length_mismatch_message():
         df2.loc[0, ["a", "b"]] = [7, 8, 9]
 
 
+def test_loc_setitem_empty_frame_empty_column_key_length_mismatch():
+    # GH#58517 an empty multi-block frame takes the split path; an empty column
+    #  key with a non-empty value must raise the length-mismatch ValueError
+    #  instead of falling into the setitem-with-expansion branch
+    df = pd.DataFrame(
+        {"a": pd.Series([], dtype="int64"), "b": pd.Series([], dtype="float64")}
+    )
+    assert not df._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df.loc[:, []] = [1, 2, 3]
+
+
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
     [
