@@ -199,9 +199,10 @@ def test_dtype_float(parser, temp_file):
 
 
 def test_wrong_dtype(xml_books, parser, iterparse):
-    with pytest.raises(
-        ValueError, match=("Unable to parse string 'Everyday Italian' at position 0")
-    ):
+    msg = (
+        "Unable to convert column title to type Int64: invalid value 'Everyday Italian'"
+    )
+    with pytest.raises(ValueError, match=msg):
         read_xml(
             xml_books, dtype={"title": "Int64"}, parser=parser, iterparse=iterparse
         )
