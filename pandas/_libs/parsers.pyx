@@ -487,7 +487,8 @@ cdef class TextReader:
         # list.  See _convert_batched.
         list _batched_cols
         # worker count of the parallel read (0 = serial); numeric columns
-        # only batch once enough workers contend for bandwidth
+        # only batch once enough workers contend for bandwidth, and a failed
+        # conversion skips locating its value (the serial re-read does that)
         public int block_workers
         # String columns in the widest batched sweep this reader ran; exists
         # for test_pyarrow_string_fast_path_batches_columns_together and should
@@ -1838,8 +1839,7 @@ cdef class TextReader:
                         raise
                     values, _ = self._string_convert(i, start, end, na_filter,
                                                      na_hashset)
-                    # _try_uint64 does not parse NAs, so the retries must not
-                    #  fail on them
+                    # _try_uint64 skips NAs, so the retries must not fail on them
                     values[isnaobj(values)] = 0
                     if self.parser.thousands == b"\0":
                         convert = methodcaller("astype", dtype)
