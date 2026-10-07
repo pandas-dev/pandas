@@ -1,3 +1,4 @@
+import bz2
 import contextlib
 from datetime import datetime
 import io
@@ -947,6 +948,64 @@ def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
         ).read()
 
 
+@pytest.mark.parametrize(
+    "fname, field_offset, fmt",
+    [
+        ("productsales.sas7bdat", 8760, "<I"),
+        ("dates_null.sas7bdat", 65536 + 64728 + 6 * 8, "<q"),
+        ("test2.sas7bdat", 130616, "<I"),
+    ],
+    ids=["32-bit", "64-bit", "compressed"],
+)
+@pytest.mark.parametrize("from_path", [True, False])
+def test_row_count_larger_than_file_raises(
+    datapath, tmp_path, fname, field_offset, fmt, from_path
+):
+    # GH#70721 read() allocates its output for row_count rows before reading
+    #  any, so a corrupt count could exhaust memory instead of raising.
+    with open(datapath("io", "sas", "data", fname), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into(fmt, data, field_offset, 10**5)
+    if from_path:
+        src = tmp_path / fname
+        src.write_bytes(data)
+    else:
+        src = io.BytesIO(data)
+    with pytest.raises(ValueError, match="claims 100000 rows but can hold at most"):
+        pd.read_sas(src, format="sas7bdat", encoding=None)
+
+
+def _productsales_claiming_100000_rows(datapath):
+    with open(datapath("io", "sas", "data", "productsales.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<I", data, 8760, 10**5)
+    return bytes(data)
+
+
+def test_row_count_larger_than_file_counts_rows_already_read(datapath):
+    # GH#70721 productsales can hold at most 1546 rows, so the first chunk is
+    #  within that and the second is not
+    data = _productsales_claiming_100000_rows(datapath)
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=1000, encoding=None
+    ) as reader:
+        assert len(reader.read()) == 1000
+        with pytest.raises(ValueError, match="claims 100000 rows"):
+            reader.read()
+
+
+def test_truncated_file_reads_the_chunks_it_holds(datapath):
+    # GH#70721 the row-count bound is checked per read, so a truncated file
+    #  still yields its leading chunks; see test_0x00_control_byte
+    fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
+    with bz2.open(fname) as fd:
+        data = fd.read()
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=11_000, encoding=None
+    ) as reader:
+        assert reader.read().shape == (11_000, 20)
+
+
 def test_late_metadata_page_repeating_layout_reads(datapath):
     # GH#47339 the check above must not fire on a metadata page that follows the
     #  data pages and restates the layout the file was opened with -- the parser
@@ -988,8 +1047,9 @@ def _dates_null_with_overrun_data_page(datapath):
             2,
         ),
         (_dates_null_with_overrun_data_page, Exception, "Out of bounds read", 1000),
+        (_productsales_claiming_100000_rows, ValueError, "claims 100000 rows", 1000),
     ],
-    ids=["layout redefined", "page overrun"],
+    ids=["layout redefined", "page overrun", "row count past file"],
 )
 def test_chunked_read_closes_the_file_it_rejects(
     datapath, tmp_path, build, expected, match, chunksize
