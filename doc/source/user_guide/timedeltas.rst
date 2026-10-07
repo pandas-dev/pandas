@@ -282,6 +282,42 @@ yields another ``timedelta64[ns]`` dtypes Series.
    td * -1
    td * pd.Series([1, 2, 3, 4])
 
+.. _timedeltas.unit_preserving_arithmetic:
+
+Multiplying or dividing by a number keeps the resolution (``unit``) of the
+timedelta operand. When the result is not a whole number of that unit, the
+fractional part is truncated toward zero, so a coarse resolution can silently
+lose precision:
+
+.. ipython:: python
+
+   td_s = pd.Timedelta(1, unit="s").as_unit("s")
+   td_s.unit
+   td_s / 2
+   td_s * 1.99
+
+   ser_s = pd.Series(pd.to_timedelta([1, 2, 3], unit="s")).astype("timedelta64[s]")
+   ser_s / 2
+
+Convert to a finer resolution with :meth:`Timedelta.as_unit` or
+:meth:`Series.dt.as_unit` before the operation when the fractional part matters,
+or use floor division (``//``) when truncation is intended:
+
+.. ipython:: python
+
+   td_s.as_unit("ms") / 2
+   ser_s.dt.as_unit("ms") / 2
+
+Addition and subtraction between timedelta-like or datetime-like operands with
+different resolutions return the finer of the two resolutions, so no precision
+is lost in those operations.
+
+.. ipython:: python
+
+   td_ms = pd.Timedelta(500, unit="ms").as_unit("ms")
+   td_s + td_ms
+   (td_s + td_ms).unit
+
 Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
 ``Timedelta`` gives a series of integers.
 
