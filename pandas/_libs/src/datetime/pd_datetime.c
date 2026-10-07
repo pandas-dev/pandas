@@ -264,9 +264,8 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     if (!PyErr_Occurred()) {
       PyErr_SetString(PyExc_ValueError,
                       "Could not convert PyDateTime to numpy datetime");
-
-      return -1;
     }
+    return -1;
   }
 
   int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);

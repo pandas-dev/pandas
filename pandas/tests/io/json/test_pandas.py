@@ -2683,6 +2683,8 @@ class _DatetimeSubclass(datetime.datetime):
         lambda val: pd.Series([val], dtype=object),
         lambda val: pd.Series([{"a": val}], dtype=object),
         lambda val: pd.DataFrame({"a": pd.Series([val], dtype=object)}),
+        lambda val: pd.Series([1], index=pd.Index([val], dtype=object)),
+        lambda val: pd.DataFrame([[1]], columns=pd.Index([val], dtype=object)),
     ],
 )
 def test_to_json_iso_utcoffset_raises(dt_cls, box):
