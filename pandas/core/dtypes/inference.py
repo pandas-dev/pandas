@@ -217,7 +217,7 @@ def is_re_compilable(obj: object) -> bool:
     """
     try:
         re.compile(obj)  # type: ignore[call-overload]
-    except TypeError:
+    except (TypeError, re.error):
         return False
     else:
         return True
