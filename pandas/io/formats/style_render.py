@@ -67,6 +67,9 @@ class CSSDict(TypedDict):
 CSSStyles: TypeAlias = list[CSSDict]
 Subset = slice | Sequence[Any] | Index
 
+# Chromium ignores selectors past the 8192nd in a single rule, GH#40913
+_MAX_SELECTORS_PER_RULE = 8192
+
 
 class StylerRenderer:
     """
@@ -420,8 +423,12 @@ class StylerRenderer:
         }  # add the cell_ids styles map to the render dictionary in right format
         for k, attr in ctx_maps.items():
             map = [
-                {"props": list(props), "selectors": selectors}
+                {
+                    "props": list(props),
+                    "selectors": selectors[start : start + _MAX_SELECTORS_PER_RULE],
+                }
                 for props, selectors in getattr(self, attr).items()
+                for start in range(0, len(selectors), _MAX_SELECTORS_PER_RULE)
             ]
             d.update({k: map})
 
