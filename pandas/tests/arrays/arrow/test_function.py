@@ -11,7 +11,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under18p0
+from pandas.compat import (
+    pa_version_under18p0,
+    pa_version_under19p0,
+)
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -161,6 +164,19 @@ def test_copy_owns_nested_buffers(child, nested_type):
     if pa.types.is_dictionary(child.type):
         child, result_child = child.dictionary, result_child.dictionary
     assert result_child.buffers()[2].address != child.buffers()[2].address
+
+
+@pytest.mark.skipif(pa_version_under19p0, reason="pa.json_ needs pyarrow 19")
+def test_copy_owns_extension_storage_buffers():
+    # GH#61930 the storage of an extension type can be a view type
+    storage = pa.array(['{"a": "' + "x" * 20 + '"}', None], pa.string_view())
+    arr = ArrowExtensionArray(
+        pa.ExtensionArray.from_storage(pa.json_(pa.string_view()), storage)
+    )
+    result = arr.copy()
+    assert result._pa_array.equals(arr._pa_array)
+    result_storage = result._pa_array.chunk(0).storage
+    assert result_storage.buffers()[2].address != storage.buffers()[2].address
 
 
 def test_copy_deep_slice_releases_original():
