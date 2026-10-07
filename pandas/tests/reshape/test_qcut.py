@@ -70,6 +70,23 @@ def test_qcut_include_lowest():
     tm.assert_index_equal(ii.categories, ex_levels)
 
 
+@pytest.mark.parametrize(
+    "first, precision, expected_left",
+    [
+        (0.059, 3, 0.058),
+        (0.0205844933, 5, 0.020574),
+        (0.0205844933, 6, 0.0205835),
+        (0.0205844933, 8, 0.020584483),
+    ],
+)
+def test_qcut_precision_first_bin(first, precision, expected_left):
+    # GH 32127
+    result = pd.qcut([first, 0.5, 1.0], 2, precision=precision)
+
+    ex_levels = pd.IntervalIndex.from_breaks([expected_left, 0.5, 1.0])
+    tm.assert_index_equal(result.categories, ex_levels)
+
+
 def test_qcut_nas():
     arr = np.random.default_rng(2).standard_normal(100)
     arr[:20] = np.nan
