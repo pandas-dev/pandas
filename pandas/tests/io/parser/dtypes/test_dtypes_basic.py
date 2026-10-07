@@ -681,6 +681,19 @@ def test_conversion_error_without_single_failing_value(all_parsers, data):
         parser.read_csv(StringIO(data), dtype={"a": "date32[pyarrow]"})
 
 
+@skip_pyarrow  # the pyarrow engine does not report the position
+def test_conversion_error_locating_value_does_not_warn(all_parsers):
+    # GH#53966 converting "13/01/2020" alone warns about dayfirst, the column
+    #  as a whole does not
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a\n2020-01-01\n13/01/2020\n"
+
+    with tm.assert_produces_warning(None):
+        with pytest.raises(ValueError, match="column a to type date32"):
+            parser.read_csv(StringIO(data), dtype={"a": "date32[pyarrow]"})
+
+
 @skip_pyarrow  # chunksize is not supported by the pyarrow engine
 @pytest.mark.parametrize(
     "values, dtype",
@@ -786,6 +799,17 @@ def test_unsafe_cast_error_locates_value(c_parser_only):
     msg = "in column 0: value 2.5 at position 2"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), header=None, dtype={0: "int64"}, skiprows=1)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"thousands": ","}])
+def test_overflow_error_skips_na(c_parser_only, kwargs):
+    # GH#53966 the NA is not what overflowed, so it is not the value named
+    parser = c_parser_only
+    data = "b\nNA\n99999999999999999999\n"
+
+    msg = "type int64: invalid value '99999999999999999999' at position 1"
+    with pytest.raises(OverflowError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"b": "int64"}, **kwargs)
 
 
 def test_explicit_arrow_temporal_dtype(all_parsers):

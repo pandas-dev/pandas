@@ -97,6 +97,7 @@ cnp.import_array()
 from pandas._libs cimport util
 
 from pandas._libs import lib
+from pandas._libs.missing import isnaobj
 
 from pandas._libs.khash cimport (
     kh_destroy_float64,
@@ -1811,8 +1812,8 @@ cdef class TextReader:
                     f"_from_sequence_of_strings in order "
                     f"to be used in parser methods")
             except (ValueError, TypeError, OverflowError) as err:
-                raise conversion_error(result, dtype, name, self.row_offset,
-                                       convert, err) from err
+                raise self._conversion_error(result, dtype, name, convert,
+                                             err) from err
 
             return result, na_count, None
 
@@ -1837,14 +1838,17 @@ cdef class TextReader:
                         raise
                     values, _ = self._string_convert(i, start, end, na_filter,
                                                      na_hashset)
+                    # _try_uint64 does not parse NAs, so the retries must not
+                    #  fail on them
+                    values[isnaobj(values)] = 0
                     if self.parser.thousands == b"\0":
                         convert = methodcaller("astype", dtype)
                     else:
                         # int() rejects the separator our converters accepted
                         convert = partial(_astype_without, dtype=dtype,
                                           sep=chr(self.parser.thousands))
-                    raise conversion_error(values, dtype, name, self.row_offset,
-                                           convert, err) from err
+                    raise self._conversion_error(values, dtype, name, convert,
+                                                 err) from err
                 na_count = 0
 
             if result is not None and user_dtype and result.dtype != dtype:
@@ -1876,8 +1880,8 @@ cdef class TextReader:
             try:
                 return convert(result), na_count, None
             except ValueError as err:
-                raise conversion_error(result, dtype, name, self.row_offset,
-                                       convert, err) from err
+                raise self._conversion_error(result, dtype, name, convert,
+                                             err) from err
         elif dtype.kind == "b":
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
@@ -1919,6 +1923,13 @@ cdef class TextReader:
                             f"using parse_dates instead")
         else:
             raise TypeError(f"the dtype {dtype} is not supported for parsing")
+
+    cdef _conversion_error(self, values, dtype, name, convert, err):
+        if self.block_workers:
+            # a parallel read discards this error and re-reads serially
+            convert = None
+        return conversion_error(values, dtype, name, self.row_offset, convert,
+                                err)
 
     # -> tuple[ArrayLike, int]
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
@@ -2365,17 +2376,24 @@ def conversion_error(values, dtype, name, int64_t offset, convert, err):
     Build the error for a column of a ``dtype`` argument that failed to convert.
 
     Retries ``convert`` (the conversion that raised ``err``) on blocks, then
-    single values, of ``values`` up to the first value that fails on its own.
+    single values, of ``values`` up to the first value that fails on its own;
+    ``convert=None`` skips this and names no value.
     ``offset`` is the number of data rows read before ``values[0]``.
     """
-    position = _first_failure(values, convert)
-    if position != -1:
-        try:
-            convert(values[:position])
-        except (ValueError, TypeError, OverflowError):
-            # an earlier value fails only alongside others, e.g. against a
-            #  format inferred from the first value
-            position = -1
+    position = -1
+    if convert is not None:
+        with warnings.catch_warnings():
+            # a lone value can warn where the column did not, e.g. on
+            #  guessing a date format
+            warnings.simplefilter("ignore")
+            position = _first_failure(values, convert)
+            if position != -1:
+                try:
+                    convert(values[:position])
+                except (ValueError, TypeError, OverflowError):
+                    # an earlier value fails only alongside others, e.g.
+                    #  against a format inferred from the first value
+                    position = -1
     if position == -1:
         return _error_like(
             err, f"Unable to convert column {name} to type {dtype}: {err}")

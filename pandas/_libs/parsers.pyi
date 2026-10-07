@@ -29,7 +29,7 @@ def conversion_error(
     dtype: DtypeObj,
     name: Hashable,
     offset: int,
-    convert: Callable[[ArrayLike], ArrayLike],
+    convert: Callable[[ArrayLike], ArrayLike] | None,
     err: Exception,
 ) -> Exception: ...
 def unsafe_cast_error(
