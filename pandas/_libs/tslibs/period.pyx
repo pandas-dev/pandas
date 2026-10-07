@@ -3669,8 +3669,9 @@ cdef _parse_weekly_str(value, BaseOffset freq):
     Period.__str__ with weekly freq.
     """
     # GH#50803
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value):
-        # e.g. a trailing time, which Timestamp would accept, GH#48000
+    if len(value) != 21:
+        # The caller matched the format as a prefix, so this rejects trailing
+        #  text, e.g. a time, which Timestamp would accept, GH#48000
         raise ValueError("Could not parse as weekly-freq Period")
     start, end = value.split("/")
     start = Timestamp(start)
