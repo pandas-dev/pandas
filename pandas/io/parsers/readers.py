@@ -9,7 +9,6 @@ from __future__ import annotations
 import codecs
 from collections import (
     abc,
-    defaultdict,
     deque,
 )
 from concurrent.futures import ThreadPoolExecutor
@@ -95,6 +94,7 @@ from pandas.io.parsers.base_parser import (
     evaluate_callable_usecols,
     is_index_col,
     parser_defaults,
+    wrap_object_columns,
 )
 from pandas.io.parsers.c_parser_wrapper import (
     CParserWrapper,
@@ -1104,7 +1104,7 @@ def _read_csv_chunks(
             try:
                 # Raw column arrays, not DataFrames: per-chunk frame assembly
                 # holds the GIL and the concat would redo the block machinery.
-                _, chunk_columns, col_dict = reader._engine.read()
+                _, chunk_columns, col_dict = reader._engine._read_arrays()
             except Exception:
                 chunk_failed.set()
                 return
@@ -1132,8 +1132,8 @@ def _read_csv_chunks(
         return None
 
     dtype_arg = kwds.get("dtype")
-    # Mirror TextFileReader.read: a dict or str/object dtype needs a
-    # Series-per-column wrap, so it skips direct block assembly.
+    # A dict or str/object dtype may need object columns wrapped (see
+    # wrap_object_columns), so it skips direct block assembly.
     needs_series_wrap = isinstance(dtype_arg, dict) or (
         dtype_arg is not None and pandas_dtype(dtype_arg) in (np.str_, np.object_)
     )
@@ -1308,25 +1308,12 @@ def _read_csv_chunks(
 
     if needs_series_wrap:
         data = _concatenate_chunks(chunk_dicts, columns, warn_mixed=False)
-        if isinstance(dtype_arg, dict):
-            dtype: defaultdict[Hashable, Any] = defaultdict(lambda: None)
-            dtype.update(dtype_arg)
-        else:
-            dtype = defaultdict(lambda: dtype_arg)
-        new_col_dict = {
-            k: Series(
-                v,
-                index=index,
-                dtype=(
-                    dtype[k]
-                    if pandas_dtype(dtype[k]) in (np.str_, np.object_)
-                    else None
-                ),
-                copy=False,
-            )
-            for k, v in data.items()
-        }
-        return DataFrame(new_col_dict, columns=columns, index=index, copy=False)
+        return DataFrame(
+            wrap_object_columns(data, dtype_arg, index),
+            columns=columns,
+            index=index,
+            copy=False,
+        )
 
     if leftover_pos:
         leftover_names = [col_list[pos] for pos in leftover_pos]
@@ -3180,74 +3167,15 @@ class TextFileReader(abc.Iterator[DataFrame]):
         >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
         ...     df = reader.read()
         """
-        if self.engine == "pyarrow":
-            try:
-                # error: "ParserBase" has no attribute "read"
-                df = self._engine.read()  # type: ignore[attr-defined]
-            except Exception:
-                self.close()
-                raise
-        else:
+        if self.engine != "pyarrow":
+            # the pyarrow engine ignores nrows
             nrows = validate_integer("nrows", nrows)
-            try:
-                # error: "ParserBase" has no attribute "read"
-                (
-                    index,
-                    columns,
-                    col_dict,
-                ) = self._engine.read(  # type: ignore[attr-defined]
-                    nrows
-                )
-            except Exception:
-                self.close()
-                raise
-
-            if index is None:
-                if col_dict:
-                    # Any column is actually fine:
-                    new_rows = len(next(iter(col_dict.values())))
-                    index = RangeIndex(self._currow, self._currow + new_rows)
-                else:
-                    new_rows = 0
-            else:
-                new_rows = len(index)
-
-            if hasattr(self, "orig_options"):
-                dtype_arg = self.orig_options.get("dtype", None)
-            else:
-                dtype_arg = None
-
-            if isinstance(dtype_arg, dict):
-                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
-                dtype.update(dtype_arg)
-            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
-                np.str_,
-                np.object_,
-            ):
-                dtype = defaultdict(lambda: dtype_arg)
-            else:
-                dtype = None
-
-            if dtype is not None:
-                new_col_dict = {}
-                for k, v in col_dict.items():
-                    d = (
-                        dtype[k]
-                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
-                        else None
-                    )
-                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
-            else:
-                new_col_dict = col_dict
-
-            df = DataFrame(
-                new_col_dict,
-                columns=columns,
-                index=index,
-                copy=False,
-            )
-
-            self._currow += new_rows
+        try:
+            df = self._engine.read(nrows, row_offset=self._currow)
+        except Exception:
+            self.close()
+            raise
+        self._currow += len(df)
         return df
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
