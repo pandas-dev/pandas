@@ -69,6 +69,8 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+# the _VALID_URLS schemes urllib can open; the rest (e.g. sftp) go to fsspec, GH#46765
+_URLLIB_SCHEMES = {"http", "https", "ftp", "file"}
 _FSSPEC_URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*(::[A-Za-z0-9+\-+.]+)*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
@@ -392,7 +394,10 @@ def _get_filepath_or_buffer(
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
-    if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+    if (
+        isinstance(filepath_or_buffer, str)
+        and parse_url(filepath_or_buffer).scheme in _URLLIB_SCHEMES
+    ):
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
@@ -955,6 +960,7 @@ def get_handle(
             handle = _BytesIOWrapper(
                 handle,
                 encoding=ioargs.encoding,
+                errors=errors,
             )
         elif is_text and (
             compression or memory_map or _is_binary_mode(handle, ioargs.mode)
@@ -1171,9 +1177,15 @@ class _IOWrapper:
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
-    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8") -> None:
+    def __init__(
+        self,
+        buffer: StringIO | TextIOBase,
+        encoding: str = "utf-8",
+        errors: str = "strict",
+    ) -> None:
         self.buffer = buffer
         self.encoding = encoding
+        self.errors = errors
         # Because a character can be represented by more than 1 byte,
         # it is possible that reading will produce more bytes than n
         # We store the extra bytes in this overflow variable, and append the
@@ -1185,7 +1197,7 @@ class _BytesIOWrapper:
 
     def read(self, n: int | None = -1) -> bytes:
         assert self.buffer is not None
-        bytestring = self.buffer.read(n).encode(self.encoding)
+        bytestring = self.buffer.read(n).encode(self.encoding, self.errors)
         # When n=-1/n greater than remaining bytes: Read entire file/rest of file
         combined_bytestring = self.overflow + bytestring
         if n is None or n < 0 or n >= len(combined_bytestring):
