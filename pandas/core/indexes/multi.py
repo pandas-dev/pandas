@@ -1566,7 +1566,7 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
         >>> mi.memory_usage()
-        81
+        78
         """
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
