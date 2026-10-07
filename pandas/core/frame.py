@@ -999,7 +999,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self,
                 columns=None,
                 col_space=None,
-                na_rep="NaN",
                 formatters=None,
                 float_format=show_floats,
                 sparsify=None,
@@ -1028,7 +1027,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
-        na_rep: str = ...,
+        na_rep: str | lib.NoDefault = ...,
         formatters: fmt.FormattersType | None = ...,
         float_format: fmt.FloatFormatType | None = ...,
         sparsify: bool | None = ...,
@@ -1053,7 +1052,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
-        na_rep: str = ...,
+        na_rep: str | lib.NoDefault = ...,
         formatters: fmt.FormattersType | None = ...,
         float_format: fmt.FloatFormatType | None = ...,
         sparsify: bool | None = ...,
@@ -1077,7 +1076,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: int | list[int] | dict[Hashable, int] | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: fmt.FormattersType | None = None,
         float_format: fmt.FloatFormatType | None = None,
         sparsify: bool | None = None,
@@ -1113,8 +1112,9 @@ class DataFrame(NDFrame, OpsMixin):
             assumed to be aliases for the column names.
         index : bool, optional, default True
             Whether to print index (row) labels.
-        na_rep : str, optional, default 'NaN'
-            String representation of ``NaN`` to use.
+        na_rep : str, optional
+            String representation of missing values. By default ``NaN``,
+            ``NaT``, ``None`` and ``NA`` are each shown as themselves.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
@@ -3153,7 +3153,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: ColspaceArgType | None = ...,
         header: bool = ...,
         index: bool = ...,
-        na_rep: str = ...,
+        na_rep: str | lib.NoDefault = ...,
         formatters: FormattersType | None = ...,
         float_format: FloatFormatType | None = ...,
         sparsify: bool | None = ...,
@@ -3182,7 +3182,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: ColspaceArgType | None = ...,
         header: bool = ...,
         index: bool = ...,
-        na_rep: str = ...,
+        na_rep: str | lib.NoDefault = ...,
         formatters: FormattersType | None = ...,
         float_format: FloatFormatType | None = ...,
         sparsify: bool | None = ...,
@@ -3210,7 +3210,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: ColspaceArgType | None = None,
         header: bool = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: FormattersType | None = None,
         float_format: FloatFormatType | None = None,
         sparsify: bool | None = None,
@@ -3249,8 +3249,9 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to print column labels, default True.
         index : bool, optional, default True
             Whether to print index (row) labels.
-        na_rep : str, optional, default 'NaN'
-            String representation of ``NaN`` to use.
+        na_rep : str, optional
+            String representation of missing values. By default ``NaN``,
+            ``NaT``, ``None`` and ``NA`` are each shown as themselves.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
@@ -10339,7 +10340,8 @@ class DataFrame(NDFrame, OpsMixin):
         axis : int
         flex : bool or None, default False
             Whether this is a flex op, in which case we reindex.
-            None indicates not to check for alignment.
+            None indicates not to check a DataFrame `other` for alignment, and
+            to leave a Series `other` 1-D rather than broadcasting it to a frame.
         level : int or level name, default None
 
         Returns
@@ -10471,13 +10473,15 @@ class DataFrame(NDFrame, OpsMixin):
                 axis=axis,
                 level=level,
             )
-            right = left._maybe_align_series_as_frame(right, axis)
+            # flex=None is clip, which passes `right` on to `where`; an
+            #  EA-columned frame would make that go through object (GH#68929)
+            if flex is not None:
+                right = left._maybe_align_series_as_frame(right, axis)
         return left, right
 
     def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
         """
-        If the Series operand is not EA-dtype, we can broadcast to 2D and operate
-        blockwise.
+        Broadcast the Series operand to 2D so we can operate blockwise.
         """
         rvalues = series._values
         if lib.is_np_dtype(rvalues.dtype):

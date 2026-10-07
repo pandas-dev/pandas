@@ -57,6 +57,8 @@ class OpenpyxlWriter(ExcelWriter["Workbook"]):
 
         super().__init__(
             path,
+            date_format=date_format,
+            datetime_format=datetime_format,
             mode=mode,
             storage_options=storage_options,
             if_sheet_exists=if_sheet_exists,

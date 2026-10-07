@@ -173,17 +173,14 @@ Other enhancements
 - Added :meth:`arrays.SparseArray.from_indices` to construct a :class:`arrays.SparseArray` from sparse values and their indices without materializing a dense array (:issue:`43628`)
 - Added ``union_categories`` parameter to :func:`concat` to preserve categorical dtype by unioning categories when concatenating categoricals with different categories (:issue:`14177`)
 - Added reduction methods as public API on pandas-implemented extension arrays where applicable (:issue:`63512`)
-- Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
 - Improved the error message raised when constructing an :class:`IntervalIndex` or :class:`arrays.IntervalArray` with a left side greater than the right side, which now shows the offending intervals and their positions (:issue:`66807`)
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
-- MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
 - Removed Hypothesis as a test dependency (:issue:`66675`).
-- Time strings with a space before ``AM``/``PM`` (e.g. ``"3:25:00 PM"``) are now recognized; :meth:`Series.between_time` and :meth:`DataFrame.between_time` previously raised on them, and :meth:`Series.at_time` and :meth:`DataFrame.at_time` warned that they would raise in a future version. Casting such strings to a pyarrow time dtype (``time32``/``time64``) no longer silently gives a missing value (:issue:`18793`)
-- Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
+- Time strings with a space before ``AM``/``PM`` (e.g. ``"3:25:00 PM"``) are now recognized; :meth:`Series.between_time` and :meth:`DataFrame.between_time` previously raised on them, and :meth:`Series.at_time` and :meth:`DataFrame.at_time` warned that they would raise in a future version. Casting such strings to a pyarrow time dtype (``time32``/``time64``) no longer silently gives a missing value (:issue:`18793`)
 - Vertical bar plots with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` now format the x-axis with the same dynamic date tick labeling as line plots, instead of labeling every bar with the full string representation of its timestamp. The tick labels of such plots are no longer rotated by default, matching line plots; pass ``rot`` to override. Bar plots over a frequency the date ticks cannot be aligned to — a multiplied business-day, monthly, quarterly or annual frequency such as ``"3B"`` or ``"2ME"`` — keep the previous labeling (:issue:`1918`)
 
 .. ---------------------------------------------------------------------------
@@ -431,7 +428,10 @@ Other API changes
 
 Build
 ^^^^^
+- Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
 - C++20 is required to build from source (:issue:`66735`)
+- MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
+- Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.deprecations:
@@ -923,6 +923,8 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`Series.idxmin`, :meth:`Series.idxmax`, :meth:`Series.argmin`, :meth:`Series.argmax`, :meth:`Index.argmin`, and :meth:`Index.argmax` on object-dtype data raising ``TypeError`` when missing values were present alongside values that do not support comparison with ``float`` (e.g. strings or :class:`datetime.date` objects); with ``skipna=False`` they now raise ``ValueError`` like other dtypes instead of ``TypeError`` (:issue:`4147`)
 - Bug in :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`Series.min`, :meth:`Series.max`, :meth:`Index.min`, and :meth:`Index.max` on object-dtype data raising ``TypeError`` when missing values were present alongside values that do not support comparison with ``float`` (e.g. strings, :class:`datetime.date` objects, or mixed-timezone :class:`Timestamp` objects) (:issue:`4147`, :issue:`18588`, :issue:`24109`, :issue:`58707`, :issue:`61204`, :issue:`65500`)
+- Bug in :meth:`DataFrame.clip` with ``inplace=True`` and an extension-dtype array or :class:`Index` bound silently writing wrong values, disagreeing with the same call without ``inplace``; a NumPy-dtype bound was unaffected (:issue:`68929`)
+- Bug in :meth:`DataFrame.clip` with an extension-dtype array or :class:`Index` bound raising ``ValueError: Must specify axis=0 or 1`` when ``axis`` was not given, whereas a NumPy-dtype bound clipped along the columns (:issue:`68929`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` with ``axis=1`` ignoring ``skipna=False`` for :class:`StringDtype`, :class:`IntervalDtype`, and other extension dtypes, returning a value where a missing value was expected (:issue:`18588`)
 - Bug in :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`Series.min`, and :meth:`Series.max` on object-dtype data with ``skipna=False`` failing to propagate missing values, either raising ``TypeError`` or returning a value computed as though the missing values were absent; they now return a missing value (:issue:`4147`)
 - Bug in :meth:`DataFrame.sum` and :meth:`DataFrame.prod` with ``axis=1`` ignoring ``skipna=False`` for extension dtypes, returning a value where a missing value was expected (:issue:`18588`)
@@ -1093,6 +1095,7 @@ I/O
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``TypeError`` when passed a text-mode file handle (the engine requires a binary buffer) instead of a cryptic ``a bytes-like object is required`` error (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``ValueError`` for a list-valued ``header`` (MultiIndex columns are not supported by this engine) instead of a cryptic ``TypeError`` (:issue:`66059`)
+- :func:`read_csv` with ``engine="pyarrow"`` now respects ``encoding_errors`` for text buffers such as :class:`io.StringIO` instead of raising ``UnicodeEncodeError`` (:issue:`70405`)
 - :func:`read_csv` with ``engine="python"`` and ``index_col=False`` now honors ``on_bad_lines``, matching the ``c`` engine; previously a row with more fields than the first data row was truncated whatever ``on_bad_lines`` asked for, so ``"error"`` did not raise and a callable was never called (:issue:`49279`)
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
 - :func:`read_csv`, :func:`read_fwf`, and :func:`read_excel` with a numeric :class:`ArrowDtype` (e.g. ``dtype="double[pyarrow]"``) now raise ``ValueError`` for an empty field that is not treated as missing (e.g. with ``keep_default_na=False``), matching the behavior of numpy dtypes such as ``float64``; previously the value was silently stored as ``NaN`` but was not considered missing by :meth:`Series.isna` and :meth:`Series.fillna` (:issue:`66834`)
@@ -1115,6 +1118,7 @@ I/O
 - :meth:`DataFrame.to_json` and :meth:`Series.to_json` now raise an informative ``ValueError`` instead of a cryptic ``OverflowError: Maximum recursion level reached`` when a column contains an unsupported object type such as :class:`pathlib.Path` (:issue:`36211`)
 - :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection (:issue:`61385`)
 - Bug in :func:`read_csv` and :func:`read_table` with the default ``c`` engine raising ``ValueError`` for ``sep="\n"`` when a different ``lineterminator`` was given, instead of parsing the newline as an ordinary separator (:issue:`51801`)
+- Bug in :func:`read_sql_table` with SQLAlchemy 2.1 where floating point columns (e.g. MySQL ``DOUBLE``) were rounded to 10 decimal places (:issue:`70231`)
 - Fixed bug in :func:`read_csv` and :func:`read_table` where an explicit ``delimiter=None`` was treated as if no separator had been passed, so the default separator was used instead of detecting the separator as ``sep=None`` does (:issue:`47024`)
 - Fixed bug in :func:`read_csv` where a field containing an embedded NUL byte was parsed as a float from the bytes before the NUL with both the ``c`` and the ``python`` engine, so e.g. ``"1.5\x00xyz"``, ``"1e3\x00xyz"`` and ``"inf\x00xyz"`` were read as ``1.5``, ``1000.0`` and ``inf`` with the trailing bytes silently discarded; such columns are now read as strings (:issue:`66524`)
 - Fixed bug in :func:`read_csv` where a non-ASCII single-character ``sep`` was handed to the ``c`` engine instead of falling back to the ``python`` engine on platforms whose filesystem encoding is not UTF-8, silently mis-splitting the file or raising ``UnicodeDecodeError`` (:issue:`46456`)
@@ -1416,6 +1420,7 @@ ExtensionArray
 - Bug in :attr:`Series.list` raising error when using negative indices with PyArrow list dtypes (:issue:`63221`)
 - Bug in :func:`read_parquet` and other conversions from PyArrow with ``dtype_backend="pyarrow"`` where accessing an element of a list-of-interval column (or another list of a struct-backed PyArrow extension type) crashed the interpreter (:issue:`69869`)
 - Bug in :meth:`DataFrame.sort_values` raising ``ValueError`` when sorting on a column with PyArrow null dtype (:issue:`54908`)
+- Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on PyArrow-backed dtypes raising when ``values`` held a mix of types PyArrow cannot combine (:issue:`70300`)
 - Bug in the ``prod``, ``mean``, ``median``, ``std``, ``var``, ``sem``, ``skew`` and ``kurt`` methods of a :class:`.StringArray` (and ``np.prod``, ``np.mean``, ``np.std`` and ``np.var``, which dispatch to them) not rejecting the string dtype, returning a value or raising an unrelated error instead of the ``TypeError`` the equivalent :class:`Series` reduction raises (:issue:`68389`)
 - Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).

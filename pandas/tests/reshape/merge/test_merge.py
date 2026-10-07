@@ -2480,7 +2480,10 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
 def test_merge_duplicate_suffix(how, expected):
     left_df = pd.DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
     right_df = pd.DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
-    result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
+    # GH#13659
+    msg = "Passing 'suffixes' which cause duplicate columns"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
     expected = pd.DataFrame(expected)
     expected.columns = ["A", "B_x", "B_x"]
 

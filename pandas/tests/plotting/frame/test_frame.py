@@ -4,6 +4,7 @@ from datetime import (
     date,
     datetime,
 )
+from decimal import Decimal
 import itertools
 import re
 import string
@@ -890,6 +891,17 @@ class TestDataFramePlots:
 
             _check_plot_works(df.plot.scatter, x=x, y=y)
 
+    def test_scatterplot_arrow_binary(self):
+        # GH#64535
+        pa = pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": pd.Series([b"x", b"y", b"z"], dtype=pd.ArrowDtype(pa.binary())),
+            }
+        )
+        _check_plot_works(df.plot.scatter, x="a", y="b")
+
     @pytest.mark.parametrize("ordered", [True, False])
     @pytest.mark.parametrize(
         "categories",
@@ -1164,6 +1176,31 @@ class TestDataFramePlots:
         )
         result = df.plot.box(return_type=return_type)
         _check_box_return_type(result, return_type)
+
+    @pytest.mark.parametrize(
+        "kind, kwargs",
+        [("area", {}), ("box", {}), ("box", {"by": "g"}), ("kde", {})],
+    )
+    def test_plot_arrow_decimal(self, kind, kwargs):
+        # GH#64535
+        pa = pytest.importorskip("pyarrow")
+        if kind == "kde":
+            pytest.importorskip("scipy")
+        dec = pd.Series(
+            [Decimal("1.5"), None, Decimal("3.25")],
+            dtype=pd.ArrowDtype(pa.decimal128(5, 2)),
+        )
+        df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": dec, "g": ["x", "y", "x"]})
+        ret = _check_plot_works(df.plot, default_axes=bool(kwargs), kind=kind, **kwargs)
+        # the decimal column "b" must be plotted, not dropped
+        if kwargs:
+            _check_text_labels([ax.title for ax in ret], ["a", "b"])
+            for ax in ret:
+                _check_text_labels(ax.get_xticklabels(), ["x", "y"])
+        elif kind == "box":
+            _check_text_labels(ret.get_xticklabels(), ["a", "b"])
+        else:
+            _check_legend_labels(ret, labels=["a", "b"])
 
     def test_kde_df(self):
         pytest.importorskip("scipy")
