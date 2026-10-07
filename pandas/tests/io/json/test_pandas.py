@@ -1462,13 +1462,10 @@ class TestPandasContainer:
             def tzname(self, dt):
                 return None
 
-        ser = pd.Series(
-            [datetime.datetime(2020, 1, 1, tzinfo=BadTZ())], dtype=object
-        )
+        ser = pd.Series([datetime.datetime(2020, 1, 1, tzinfo=BadTZ())], dtype=object)
         with pytest.raises(RuntimeError, match="boom"):
             ser.to_json(date_format="iso")
 
-    
     def test_default_handler(self):
         value = object()
         frame = pd.DataFrame({"a": [7, value]})
