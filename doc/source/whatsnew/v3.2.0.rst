@@ -154,6 +154,9 @@ Conversion
 -
 -
 
+- Bug in :class:`DataFrame` constructor silently converting ``IntEnum`` members to plain :class:`int` when ``dtype=object`` was specified; constructing from mixed-type data with ``dtype=object`` now also preserves the original Python types instead of converting them (:issue:`59380`)
+-
+
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` silently ignoring a compiled ``re.Pattern`` for :class:`ArrowDtype` ``string`` and ``large_string`` dtypes, including a :class:`Categorical` of them (:issue:`69026`)
