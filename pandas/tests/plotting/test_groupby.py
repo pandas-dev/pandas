@@ -7,6 +7,7 @@ import pandas as pd
 from pandas.tests.plotting.common import (
     _check_axes_shape,
     _check_legend_labels,
+    _check_legend_marker,
 )
 
 pytest.importorskip("matplotlib")
@@ -156,6 +157,14 @@ class TestDataFrameGroupByPlots:
 
         axes = df.groupby("c")["a"].plot(legend=True)
         _check_legend_labels(axes.iloc[0], ["1", "2"])
+
+    def test_groupby_plot_series_legend_markers(self):
+        # GH#9920 - every group's legend entry keeps its marker
+        df = pd.DataFrame({"x": [2, 3, 2, 3, 2, 3], "key": [1, 2, 1, 2, 1, 2]})
+
+        axes = df.groupby("key")["x"].plot(style="*", legend=True)
+        _check_legend_labels(axes.iloc[0], ["1", "2"])
+        _check_legend_marker(axes.iloc[0], expected_markers=["*", "*"])
 
     def test_groupby_hist_series_with_legend_raises(self):
         # GH 6279 - SeriesGroupBy histogram with legend and label raises
