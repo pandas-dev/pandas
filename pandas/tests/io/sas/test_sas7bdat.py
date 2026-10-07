@@ -1283,3 +1283,128 @@ def test_utf8_translation_table_rejects_context_dependent(encoding):
     # once a continuation byte follows; raw_unicode_escape instead maps every
     # byte one to one yet still reads b"\\u0041" as "A".
     assert _utf8_translation_table(encoding) is None
+
+
+def test_amd_page(datapath):
+    # GH#60809 a column renamed after the file was written keeps its new name on
+    #  an amd page after the data; SAS rewriting the file moves it inline
+    df = pd.read_sas(
+        datapath("io", "sas", "data", "amd_page.sas7bdat.bz2"), encoding="infer"
+    )
+    expected = pd.read_sas(
+        datapath("io", "sas", "data", "amd_page_resaved.sas7bdat.bz2"),
+        encoding="infer",
+    )
+    assert df.columns[11] == "TotalNoise"
+    tm.assert_frame_equal(df, expected)
+
+
+def _with_amd_page(datapath, fname, field_offset, text):
+    # fname with an amd page appended holding one column text subheader, and the
+    #  ref at field_offset (from the end of the header) pointed into it
+    path = datapath("io", "sas", "data", fname)
+    with SAS7BDATReader(path) as reader:
+        header_length = reader.header_length
+        page_length = reader._page_length
+        bit_offset = reader._page_bit_offset
+        int_len = reader._int_length
+    with open(path, "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<HHH", data, header_length + field_offset, 1, 8, len(text))
+
+    amd_page = bytearray(page_length)
+    struct.pack_into("<HHH", amd_page, bit_offset, const.page_amd_type, 1, 1)
+    block = struct.pack("<H", 8 + len(text)) + bytes(6) + text
+    subheader = b"\xfd" + b"\xff" * (int_len - 1) + block
+    position = page_length // 2
+    amd_page[position : position + len(subheader)] = subheader
+    struct.pack_into(
+        "<qqBB" if int_len == 8 else "<iiBB",
+        amd_page,
+        bit_offset + const.subheader_pointers_offset,
+        position,
+        len(subheader),
+        0,
+        1,
+    )
+    return bytes(data) + bytes(amd_page)
+
+
+@pytest.mark.parametrize(
+    "field_offset, text, attr, expected",
+    [
+        # datetimecol's name ref, then its format and label refs
+        (63960 + 8 + 16, b"renamed", "name", "renamed"),
+        (63718 + 22 + 24, b"DATETIME", "format", "DATETIME"),
+        (63718 + 28 + 24, b"new label", "label", "new label"),
+    ],
+)
+def test_amd_page_column_text(datapath, field_offset, text, attr, expected):
+    # GH#60809 column text on an amd page was not found or read from the wrong
+    #  text; a wrong format turned a datetime column into float
+    data = _with_amd_page(datapath, "dates_null.sas7bdat", field_offset, text)
+    with SAS7BDATReader(io.BytesIO(data), encoding="infer") as reader:
+        assert getattr(reader.columns[1], attr) == expected
+        df = reader.read()
+    assert df["datecol"].dtype.kind == "M"
+    assert df.iloc[:, 1].dtype.kind == "M"
+
+
+def test_column_name_text_missing_raises(datapath):
+    # GH#60809 a name ref past the column text with no amd page to supply it
+    data = _with_amd_page(datapath, "dates_null.sas7bdat", 63960 + 8 + 16, b"renamed")
+    with pytest.raises(ValueError, match="refers to text subheader 1"):
+        pd.read_sas(io.BytesIO(data[:-65536]), format="sas7bdat", encoding="infer")
+
+
+def test_amd_page_rows_after_scan(datapath):
+    # GH#60809 cars has rows on the pages after its metadata, so they are read
+    #  after the amd scan has moved through the file
+    data = _with_amd_page(datapath, "cars.sas7bdat", 3060 + 4 + 32, b"renamed")
+    expected = pd.read_sas(datapath("io", "sas", "data", "cars.sas7bdat"))
+    expected = expected.rename(columns={"WGT": "renamed"})
+
+    result = pd.read_sas(io.BytesIO(data), format="sas7bdat")
+    tm.assert_frame_equal(result, expected)
+
+    with pd.read_sas(io.BytesIO(data), format="sas7bdat", chunksize=100) as reader:
+        result = pd.concat(reader)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_amd_page_zstd(datapath, tmp_path):
+    # GH#60809 a zstd stream cannot seek back to the rows after the amd scan
+    zstandard = pytest.importorskip("zstandard")
+    data = _with_amd_page(datapath, "cars.sas7bdat", 3060 + 4 + 32, b"renamed")
+    path = tmp_path / "cars.sas7bdat.zst"
+    path.write_bytes(zstandard.ZstdCompressor().compress(data))
+    result = pd.read_sas(path)
+    expected = pd.read_sas(io.BytesIO(data), format="sas7bdat")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("corruption", ["truncated", "pointer past page"])
+def test_amd_page_unusable(datapath, corruption):
+    # GH#60809 an unusable amd page is skipped: a format ref past the column
+    #  text falls back to clamping, as before, and a name ref raises
+    def corrupt(data):
+        if corruption == "truncated":
+            return data[: -65536 // 2]
+        data = bytearray(data)
+        pointer = (
+            len(data)
+            - 65536
+            + const.page_bit_offset_x64
+            + const.subheader_pointers_offset
+        )
+        struct.pack_into("<q", data, pointer, 65536)
+        return bytes(data)
+
+    fname = "dates_null.sas7bdat"
+    data = corrupt(_with_amd_page(datapath, fname, 63718 + 22 + 24, b"DATETIME"))
+    with SAS7BDATReader(io.BytesIO(data), encoding="infer") as reader:
+        assert reader.columns[1].format != "DATETIME"
+
+    data = corrupt(_with_amd_page(datapath, fname, 63960 + 8 + 16, b"renamed"))
+    with pytest.raises(ValueError, match="refers to text subheader 1"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding="infer")
