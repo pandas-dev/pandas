@@ -943,6 +943,36 @@ def test_concat_multiindex_with_category():
     tm.assert_frame_equal(result, expected)
 
 
+def test_concat_multiindex_with_different_name_order():
+    df1 = pd.DataFrame(
+        {
+            "c1": pd.Series(list("abc"), dtype="category"),
+            "c2": pd.Series(list("eee"), dtype="category"),
+            "i2": pd.Series([1, 2, 3]),
+        }
+    )
+    df1 = df1.set_index(["c1", "c2"])
+    df2 = pd.DataFrame(
+        {
+            "c1": pd.Series(list("abc"), dtype="category"),
+            "c2": pd.Series(list("eee"), dtype="category"),
+            "i2": pd.Series([4, 5, 6]),
+        }
+    )
+    df2 = df2.set_index(["c2", "c1"])  # reverse order
+    result = pd.concat([df1, df2])
+    expected = pd.DataFrame(
+        {
+            "c1": pd.Series(list("abcabc"), dtype="category"),
+            "c2": pd.Series(list("eeeeee"), dtype="category"),
+            "i2": pd.Series([1, 2, 3, 4, 5, 6]),
+        }
+    )
+    expected = expected.set_index(["c1", "c2"])
+    tm.assert_frame_equal(result, expected)
+    assert df2.index.names != expected.index.names  # df2 index names are not mutated
+
+
 def test_concat_ea_upcast():
     # GH#54848
     df1 = pd.DataFrame(["a"], dtype="string")
