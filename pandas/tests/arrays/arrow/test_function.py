@@ -167,15 +167,27 @@ def test_copy_owns_nested_buffers(child, nested_type):
 
 
 @pytest.mark.skipif(pa_version_under19p0, reason="pa.json_ needs pyarrow 19")
-def test_copy_owns_extension_storage_buffers():
+@pytest.mark.parametrize("nested_type", [None, "list", "struct"])
+def test_copy_owns_extension_storage_buffers(nested_type):
     # GH#61930 the storage of an extension type can be a view type
     storage = pa.array(['{"a": "' + "x" * 20 + '"}', None], pa.string_view())
-    arr = ArrowExtensionArray(
-        pa.ExtensionArray.from_storage(pa.json_(pa.string_view()), storage)
-    )
+    ext = pa.ExtensionArray.from_storage(pa.json_(pa.string_view()), storage)
+    if nested_type == "list":
+        chunk = pa.ListArray.from_arrays(pa.array([0, 1, 2], pa.int32()), ext)
+    elif nested_type == "struct":
+        chunk = pa.StructArray.from_arrays([ext], ["f"])
+    else:
+        chunk = ext
+    arr = ArrowExtensionArray(chunk)
     result = arr.copy()
     assert result._pa_array.equals(arr._pa_array)
-    result_storage = result._pa_array.chunk(0).storage
+
+    result_chunk = result._pa_array.chunk(0)
+    if nested_type == "list":
+        result_chunk = result_chunk.values
+    elif nested_type == "struct":
+        result_chunk = result_chunk.field(0)
+    result_storage = result_chunk.storage
     assert result_storage.buffers()[2].address != storage.buffers()[2].address
 
 
