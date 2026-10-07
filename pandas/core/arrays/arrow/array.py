@@ -484,10 +484,13 @@ def _copy_pyarrow_buffers(
 
 def _has_dictionary_or_view_child(pa_type: pa.DataType) -> bool:
     """
-    Whether any child type, at any depth, is a dictionary or view type.
+    Whether any child type (or its extension storage), at any depth, is a dictionary
+    or view type.
     """
     for i in range(pa_type.num_fields):
         child = pa_type.field(i).type
+        if isinstance(child, pa.BaseExtensionType):
+            child = child.storage_type
         if (
             pa.types.is_dictionary(child)
             or pa.types.is_string_view(child)
