@@ -1514,7 +1514,8 @@ def test_embedded_nul_raises_for_explicit_int_dtype(c_parser_only):
     parser = c_parser_only
     data = b'a\n"1\x00xyz"\n2\n'
 
-    with pytest.raises(ValueError, match="Unable to parse string"):
+    msg = "column a to type Int64: invalid value .* at position 0"
+    with pytest.raises(ValueError, match=msg):
         parser.read_csv(BytesIO(data), dtype="Int64")
 
 
@@ -1528,7 +1529,8 @@ def test_embedded_nul_raises_for_boolean_dtype(c_parser_only, field):
     parser = c_parser_only
     data = f'a\nTrue\n"{field}"\n'.encode()
 
-    with pytest.raises(ValueError, match="cannot be cast to bool"):
+    msg = "column a to type boolean: invalid value .* at position 1"
+    with pytest.raises(ValueError, match=msg):
         parser.read_csv(BytesIO(data), dtype="boolean")
 
 
@@ -1615,7 +1617,7 @@ def _raise_on_five(value):
             "a,b\n" + "".join(f"{i},{'oops' if i == 5 else i}\n" for i in range(20)),
             {"dtype": {"b": "int64"}},
             ValueError,
-            "invalid literal for int",
+            "invalid value 'oops' at position 5",
         ),
         (
             "a,b\n" + "".join(f"{i},{i}\n" for i in range(20)),
@@ -1867,20 +1869,32 @@ def test_converter_unhashable_output_with_na_values(c_parser_only, converter, va
     tm.assert_frame_equal(result, expected)
 
 
+def test_bool_dtype_error_locates_value(c_parser_only):
+    # GH#53966; the python engine reads any non-empty string as True instead
+    parser = c_parser_only
+    data = "b\nTrue\nFalse\nx\n"
+
+    msg = "column b to type bool: invalid value 'x' at position 2"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"b": bool})
+
+
 @pytest.mark.parametrize(
-    "data, kwargs, dtype, offender",
+    "data, kwargs, dtype, offender, position",
     [
         (
             "a;b\na;1,20\nb;22,3\nc;1.234,56\n",
             {"decimal": ","},
             "float64",
             "1.234,56",
+            2,
         ),
         (
             "a;b\na;1,000\nb;x\n",
             {"thousands": ","},
             "int64",
             "x",
+            1,
         ),
         (
             # overflowing-but-valid token before the offender
@@ -1888,14 +1902,16 @@ def test_converter_unhashable_output_with_na_values(c_parser_only, converter, va
             {},
             "int64",
             "x",
+            1,
         ),
     ],
 )
 def test_unparseable_dtype_names_offending_value(
-    c_parser_only, data, kwargs, dtype, offender
+    c_parser_only, data, kwargs, dtype, offender, position
 ):
     # GH#59299 name the value the parser rejected, not an earlier valid one
     parser = c_parser_only
 
-    with pytest.raises(ValueError, match=re.escape(repr(offender))):
+    msg = re.escape(f"column b to type {dtype}: invalid value {offender!r}")
+    with pytest.raises(ValueError, match=f"{msg} at position {position}$"):
         parser.read_csv(StringIO(data), sep=";", dtype={"b": dtype}, **kwargs)

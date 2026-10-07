@@ -6,11 +6,15 @@ for all of the parsers defined in parsers.py
 from collections import defaultdict
 from decimal import Decimal
 from io import StringIO
+import re
 
 import numpy as np
 import pytest
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    parsers as libparsers,
+)
 from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     EmptyDataError,
@@ -23,6 +27,7 @@ import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize("dtype", [str, object])
@@ -491,7 +496,7 @@ def test_explicit_arrow_numeric_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
     # hex is rejected, matching dtype="int64" (not silently parsed as 31)
-    with pytest.raises(ValueError, match="Unable to parse string"):
+    with pytest.raises(ValueError, match="invalid value '0x1F' at position 0"):
         parser.read_csv(StringIO("a\n0x1F\n"), dtype={"a": "int64[pyarrow]"})
 
 
@@ -542,17 +547,245 @@ def test_empty_field_invalid_for_float_dtype(all_parsers, dtype):
     parser = all_parsers
     data = "id,A\n1,1.5\n2,\n3,2.0\n"
 
-    if parser.engine == "python" and dtype == "float":
-        msg = "Unable to convert column A to type float64"
-    elif parser.engine == "pyarrow" and dtype == "double[pyarrow]":
-        msg = r"Failed to parse string: '' as a scalar of type double"
-    elif dtype == "double[pyarrow]":
-        msg = r"could not convert string to double"
+    if parser.engine == "pyarrow":
+        msg = "Error while type casting for column 'A'"
     else:
-        msg = r"could not convert string to float"
-
+        expected_dtype = "float64" if dtype == "float" else re.escape(dtype)
+        msg = f"column A to type {expected_dtype}: invalid value '' at position 1"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype={"A": dtype}, keep_default_na=False)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "uint64", "float64", "Int64", "Float64", "boolean"]
+)
+def test_conversion_error_locates_value(all_parsers, dtype):
+    # GH#53966
+    parser = all_parsers
+    data = "A,B\n1,x\n0,y\n4 foo,z\n1,w\n"
+
+    if parser.engine == "pyarrow":
+        # the pyarrow engine names the column but not the row
+        if dtype == "boolean":
+            msg = "Need to pass bool-like values"
+        else:
+            msg = "'4 foo'.*: Error while type casting for column 'A'"
+    else:
+        msg = (
+            f"Unable to convert column A to type {dtype}: "
+            f"invalid value '4 foo' at position 2"
+        )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"A": dtype})
+
+
+@skip_pyarrow  # the pyarrow engine does not report the position
+@pytest.mark.parametrize(
+    "data, dtype, kwargs, error, msg",
+    [
+        # a value that only overflows also fails, so it is the one named
+        (
+            "b\n99999999999999999999\nx\n",
+            "Int64",
+            {},
+            ValueError,
+            "type Int64: invalid value '99999999999999999999' at position 0",
+        ),
+        ("b\n1\nx\n", "complex128", {}, ValueError, "invalid value 'x' at position 1"),
+        (
+            "b\n1\n99999999999999999999\n",
+            "int64",
+            {},
+            OverflowError,
+            # the python engine has already parsed it as a Python int
+            "type int64: invalid value '?99999999999999999999'? at position 1",
+        ),
+        (
+            "b\n1\n99999999999999999999\n",
+            "Int64",
+            {},
+            OverflowError,
+            "type Int64: invalid value '99999999999999999999' at position 1",
+        ),
+        ("b\n1\n2.5\n", "Int64", {}, TypeError, "invalid value '2.5' at position 1"),
+        (
+            "b\n1\nx\n",
+            "int64",
+            {"dtype_backend": "pyarrow"},
+            ValueError,
+            "type int64: invalid value 'x' at position 1",
+        ),
+        # mixing a value above int64 with a negative one
+        (
+            "b\n18446744073709551615\n-1\n",
+            "uint64",
+            {},
+            (ValueError, OverflowError),
+            "type uint64: invalid value '-1' at position 1",
+        ),
+        (
+            "b\n1,000\n99,999,999,999,999,999,999\n",
+            "int64",
+            {"thousands": ",", "sep": ";"},
+            OverflowError,
+            "type int64: invalid value '?99,?999,?999.* at position 1",
+        ),
+        (
+            "b\n1\n-1\n",
+            "uint8",
+            {},
+            ValueError,
+            "uint8 for int64 dtyped data in column b: value -1 at position 1",
+        ),
+    ],
+)
+def test_conversion_error_failure_kinds(all_parsers, data, dtype, kwargs, error, msg):
+    # GH#53966 the exception class of the failed conversion is kept
+    parser = all_parsers
+    if kwargs.get("dtype_backend") == "pyarrow":
+        pytest.importorskip("pyarrow")
+
+    with pytest.raises(error, match=msg):
+        parser.read_csv(StringIO(data), dtype={"b": dtype}, **kwargs)
+
+
+@skip_pyarrow  # the pyarrow engine does not report the position
+def test_conversion_error_keeps_arrow_error_class(all_parsers):
+    # GH#53966
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "b\n1\n300\n"
+
+    msg = r"type uint8\[pyarrow\]: invalid value '300' at position 1"
+    with pytest.raises(pa.ArrowInvalid, match=msg):
+        parser.read_csv(StringIO(data), dtype={"b": "uint8[pyarrow]"})
+
+
+@skip_pyarrow  # the pyarrow engine does not report the position
+@pytest.mark.parametrize(
+    "data",
+    [
+        "a\n2020-01-01\n01/02/2020\n",
+        # "foo" is the first value failing on its own, but not the first culprit
+        "a\n2020-01-01\n2020-01-02\n01/02/2020\nfoo\n",
+    ],
+)
+def test_conversion_error_without_single_failing_value(all_parsers, data):
+    # GH#53966 the date format is inferred from the first value, so
+    #  "01/02/2020" only fails alongside it; name the column alone
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+
+    msg = r"column a to type date32\[day\]\[pyarrow\]: time data \"01/02/2020\""
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"a": "date32[pyarrow]"})
+
+
+@skip_pyarrow  # chunksize is not supported by the pyarrow engine
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        (["1", "2", "3"], "int64"),
+        (["True", "False", "True"], bool),
+        (["True", "False", "True"], "int64"),
+    ],
+)
+def test_na_in_int_or_bool_dtype_error_locates_value(all_parsers, values, dtype):
+    # GH#53966 the label, not the column's position in the file, and the
+    #  position of the first NA counted across chunks
+    parser = all_parsers
+    data = "a,b,c\n" + "".join(f"{i},{i},{val}\n" for i, val in enumerate(values))
+    data += "9,9,\n"
+
+    with pytest.raises(ValueError, match="column c.* at position 3$"):
+        with parser.read_csv(
+            StringIO(data), usecols=["c"], dtype={"c": dtype}, chunksize=2
+        ) as reader:
+            list(reader)
+
+
+def test_conversion_error_position_after_failed_chunk(python_parser_only):
+    # GH#53966 the python engine can read a caller's buffer past a failed
+    #  chunk; the c engine closes the reader instead
+    parser = python_parser_only
+    data = "b\n" + "\n".join(["1", "1", "1", "x", "1", "1", "1", "y", "1"]) + "\n"
+
+    with parser.read_csv(StringIO(data), dtype={"b": "int64"}, chunksize=3) as reader:
+        reader.get_chunk()
+        with pytest.raises(ValueError, match="invalid value 'x' at position 3"):
+            reader.get_chunk()
+        with pytest.raises(ValueError, match="invalid value 'y' at position 7"):
+            reader.get_chunk()
+
+
+@skip_pyarrow  # the pyarrow engine does not report the position
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_conversion_error_without_header(all_parsers, dtype):
+    # GH#53966 the column is named by its label, i.e. its position
+    parser = all_parsers
+    data = "1,2\n1,x\n"
+
+    msg = f"Unable to convert column 1 to type {dtype}: invalid value 'x' at position 1"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), header=None, dtype={1: dtype})
+
+
+@skip_pyarrow  # chunksize is not supported by the pyarrow engine
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_conversion_error_position_spans_chunks(all_parsers, dtype):
+    # GH#53966 the position counts from the first data row, not the chunk's
+    parser = all_parsers
+    data = "A\n" + "\n".join(["1"] * 7 + ["oops"] + ["1"] * 3) + "\n"
+
+    msg = (
+        f"Unable to convert column A to type {dtype}: "
+        f"invalid value 'oops' at position 7"
+    )
+    with parser.read_csv(StringIO(data), dtype={"A": dtype}, chunksize=3) as reader:
+        assert len(reader.get_chunk()) == 3
+        assert len(reader.get_chunk()) == 3
+        with pytest.raises(ValueError, match=msg):
+            reader.get_chunk()
+
+
+@skip_pyarrow  # comment is not supported by the pyarrow engine
+def test_conversion_error_position_counts_data_rows(all_parsers):
+    # GH#53966 skipped, commented and blank lines are not data rows
+    parser = all_parsers
+    data = "junk\nA\n1\n\n# note\n2\noops\n"
+
+    msg = "invalid value 'oops' at position 2"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"A": "int64"}, skiprows=1, comment="#")
+
+
+def test_conversion_error_position_low_memory_chunks(c_parser_only, monkeypatch):
+    # GH#53966 with low_memory, every row is its own internal chunk
+    parser = c_parser_only
+    data = "A\n" + "\n".join(["1"] * 20 + ["oops"]) + "\n"
+    monkeypatch.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 1)
+
+    msg = "invalid value 'oops' at position 20"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"A": "Int64"})
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"A": "int64"})
+
+
+def test_unsafe_cast_error_locates_value(c_parser_only):
+    # GH#53966
+    parser = c_parser_only
+    data = "A\n1\n2\n2.5\n3\n"
+
+    msg = (
+        "cannot safely convert passed user dtype of int64 for float64 dtyped data "
+        "in column A: value 2.5 at position 2"
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"A": "int64"})
+    msg = "in column 0: value 2.5 at position 2"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), header=None, dtype={0: "int64"}, skiprows=1)
 
 
 def test_explicit_arrow_temporal_dtype(all_parsers):
@@ -1017,10 +1250,10 @@ GH,100102040,202,0205"""
 @pytest.mark.parametrize(
     "dtype, err, msg",
     [
-        ("UInt8", TypeError, "cannot safely cast non-equivalent int64 to uint8"),
-        ("Int8", TypeError, "cannot safely cast non-equivalent int64 to int8"),
-        ("uint8", ValueError, "cannot safely convert passed user dtype of uint8"),
-        ("int8", ValueError, "cannot safely convert passed user dtype of int8"),
+        ("UInt8", TypeError, "type UInt8: invalid value '-1' at position 0"),
+        ("Int8", TypeError, "type Int8: invalid value '257' at position 1"),
+        ("uint8", ValueError, "user dtype of uint8 .* value -1 at position 0"),
+        ("int8", ValueError, "user dtype of int8 .* value 257 at position 1"),
     ],
 )
 def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_backend):
