@@ -1370,6 +1370,10 @@ cdef class PyObjectHashTable(HashTable):
 
     def sizeof(self, deep: bool = False) -> int:
         """ return the size of my table in bytes """
+        # GH#66593: Python keys may be shared with an Index's backing array.
+        # Counting their referents here would double-count that storage.
+        # Index.memory_usage accounts for separately retained object arrays
+        # where the backing-array relationship is known.
         overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
         for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
         for_pairs =  self.table.n_buckets * (sizeof(PyObject *) +  # keys

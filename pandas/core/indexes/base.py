@@ -50,6 +50,7 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
@@ -5503,7 +5504,21 @@ class Index(IndexOpsMixin, PandasObject):
 
         # include our engine hashtable, only if it's already cached
         if "_engine" in self._cache:
-            result += self._engine.sizeof(deep=deep)
+            engine = self._engine
+            result += engine.sizeof(deep=deep)
+            if isinstance(self._values, ArrowExtensionArray) and isinstance(
+                engine, libindex.IndexEngine
+            ):
+                values = engine.values
+                if values.dtype == object:
+                    # _get_engine_target uses astype(object) for these Arrow
+                    # values, giving the engine a separate object array from
+                    # the Arrow storage already counted by _memory_usage.
+                    # Object/Python-string indexes instead share their backing
+                    # array with the engine.
+                    result += values.nbytes
+                    if deep and not PYPY:
+                        result += lib.memory_usage_of_objects(values)
         return result
 
     @final
