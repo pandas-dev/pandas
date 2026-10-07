@@ -1,3 +1,4 @@
+import bz2
 import contextlib
 from datetime import datetime
 import io
@@ -364,7 +365,98 @@ def test_inconsistent_number_of_rows(datapath):
     # Regression test for issue #16615. (PR #22628)
     fname = datapath("io", "sas", "data", "load_log.sas7bdat")
     df = pd.read_sas(fname, encoding="latin-1")
-    assert len(df) == 2097
+    # GH#15963 9 of the 2097 rows in the file are marked deleted
+    assert len(df) == 2088
+
+
+@pytest.mark.parametrize("last_on_page", [False, True])
+@pytest.mark.parametrize("chunksize", [None, 1, 69, 278, 2087])
+def test_deleted_rows(datapath, tmp_path, chunksize, last_on_page):
+    # GH#15963 load_log marks rows deleted on a mix page (page 0) and on a data
+    # page (page 4). Clearing those pages' flag gives the same file with every
+    # row kept.
+    fname = datapath("io", "sas", "data", "load_log.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, encoding="latin-1")) as rdr:
+        header_length = rdr.header_length
+        page_length = rdr._page_length
+        bit_offset = rdr._page_bit_offset
+    raw = Path(fname).read_bytes()
+    data = bytearray(raw)
+    for page in [0, 4]:
+        # The flag is in the low byte of the little-endian page type
+        data[header_length + page * page_length + bit_offset] &= ~0x80
+    undeleted = tmp_path / "undeleted.sas7bdat"
+    undeleted.write_bytes(data)
+
+    deleted = [68, 69, 70, 71, 96, 1217, 1218, 1219, 1220]
+    if last_on_page:
+        # Also delete the last row of each page, so skipping it moves to the
+        # next page. (page, offset of its bitmap, rows on the page, first row)
+        data = bytearray(raw)
+        for page, bitmap, nrows, first in [(0, 62913, 278, 0), (4, 65499, 292, 1154)]:
+            row = nrows - 1
+            pos = header_length + page * page_length + bitmap + row // 8
+            data[pos] |= 0x80 >> (row % 8)
+            deleted.append(first + row)
+        fname = tmp_path / "more_deleted.sas7bdat"
+        fname.write_bytes(data)
+
+    expected = pd.read_sas(undeleted, encoding="latin-1")
+    assert expected.loc[96].isna().all()
+    expected = expected.drop(index=deleted).reset_index(drop=True)
+
+    if chunksize is None:
+        result = pd.read_sas(fname, encoding="latin-1")
+    else:
+        with pd.read_sas(fname, encoding="latin-1", chunksize=chunksize) as rdr:
+            result = pd.concat(rdr)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "name, page, first, rows",
+    [
+        ("cars", 0, 0, [0, 110]),  # x86 little-endian, mix page
+        ("cars", 1, 111, [0, 175]),  # x86 little-endian, data page
+        ("test10", 0, 0, [3, 9]),  # x86 big-endian
+        ("test13", 0, 0, [3, 9]),  # x64 big-endian
+    ],
+)
+def test_deleted_rows_other_layouts(datapath, tmp_path, name, page, first, rows):
+    # GH#15963 the only real file with deleted rows is x64 little-endian, so
+    # mark rows deleted in files with the other layouts.
+    fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, encoding="latin-1")) as rdr:
+        expected = rdr.read()
+        start = rdr.header_length + page * rdr._page_length
+        page_end = start + rdr._page_length
+        bit_offset = rdr._page_bit_offset
+        pointer_length = rdr._subheader_pointer_length
+        row_length = rdr.row_length
+        order = rdr.byte_order
+        deleted_pointer_offset = 24 if rdr.U64 else 12
+    data = bytearray(Path(fname).read_bytes())
+    page_type, block_count, subheader_count = struct.unpack_from(
+        order + "3H", data, start + bit_offset
+    )
+    struct.pack_into(order + "H", data, start + bit_offset, page_type | 0x80)
+    rows_start = bit_offset + 8 + subheader_count * pointer_length
+    rows_start += rows_start % 8
+    nrows = block_count - subheader_count
+    rows_end = start + rows_start + nrows * row_length
+    # Put the bitmap in the first unused bytes after the rows
+    bitmap = data.index(bytes((nrows + 7) // 8), rows_end, page_end)
+    struct.pack_into(
+        order + "I", data, start + deleted_pointer_offset, bitmap - rows_end
+    )
+    for row in rows:
+        data[bitmap + row // 8] |= 0x80 >> (row % 8)
+    path = tmp_path / "deleted.sas7bdat"
+    path.write_bytes(data)
+
+    result = pd.read_sas(path, encoding="latin-1")
+    expected = expected.drop(index=[first + row for row in rows])
+    tm.assert_frame_equal(result, expected.reset_index(drop=True))
 
 
 def test_zero_variables(datapath):
@@ -856,6 +948,64 @@ def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
         ).read()
 
 
+@pytest.mark.parametrize(
+    "fname, field_offset, fmt",
+    [
+        ("productsales.sas7bdat", 8760, "<I"),
+        ("dates_null.sas7bdat", 65536 + 64728 + 6 * 8, "<q"),
+        ("test2.sas7bdat", 130616, "<I"),
+    ],
+    ids=["32-bit", "64-bit", "compressed"],
+)
+@pytest.mark.parametrize("from_path", [True, False])
+def test_row_count_larger_than_file_raises(
+    datapath, tmp_path, fname, field_offset, fmt, from_path
+):
+    # GH#70721 read() allocates its output for row_count rows before reading
+    #  any, so a corrupt count could exhaust memory instead of raising.
+    with open(datapath("io", "sas", "data", fname), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into(fmt, data, field_offset, 10**5)
+    if from_path:
+        src = tmp_path / fname
+        src.write_bytes(data)
+    else:
+        src = io.BytesIO(data)
+    with pytest.raises(ValueError, match="claims 100000 rows but can hold at most"):
+        pd.read_sas(src, format="sas7bdat", encoding=None)
+
+
+def _productsales_claiming_100000_rows(datapath):
+    with open(datapath("io", "sas", "data", "productsales.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<I", data, 8760, 10**5)
+    return bytes(data)
+
+
+def test_row_count_larger_than_file_counts_rows_already_read(datapath):
+    # GH#70721 productsales can hold at most 1546 rows, so the first chunk is
+    #  within that and the second is not
+    data = _productsales_claiming_100000_rows(datapath)
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=1000, encoding=None
+    ) as reader:
+        assert len(reader.read()) == 1000
+        with pytest.raises(ValueError, match="claims 100000 rows"):
+            reader.read()
+
+
+def test_truncated_file_reads_the_chunks_it_holds(datapath):
+    # GH#70721 the row-count bound is checked per read, so a truncated file
+    #  still yields its leading chunks; see test_0x00_control_byte
+    fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
+    with bz2.open(fname) as fd:
+        data = fd.read()
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=11_000, encoding=None
+    ) as reader:
+        assert reader.read().shape == (11_000, 20)
+
+
 def test_late_metadata_page_repeating_layout_reads(datapath):
     # GH#47339 the check above must not fire on a metadata page that follows the
     #  data pages and restates the layout the file was opened with -- the parser
@@ -897,8 +1047,9 @@ def _dates_null_with_overrun_data_page(datapath):
             2,
         ),
         (_dates_null_with_overrun_data_page, Exception, "Out of bounds read", 1000),
+        (_productsales_claiming_100000_rows, ValueError, "claims 100000 rows", 1000),
     ],
-    ids=["layout redefined", "page overrun"],
+    ids=["layout redefined", "page overrun", "row count past file"],
 )
 def test_chunked_read_closes_the_file_it_rejects(
     datapath, tmp_path, build, expected, match, chunksize

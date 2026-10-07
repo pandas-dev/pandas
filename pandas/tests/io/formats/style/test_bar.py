@@ -345,6 +345,24 @@ def test_styler_bar_with_NA_values():
     assert expected_substring in html_output2
 
 
+@pytest.mark.parametrize("dtype", [object, "Int64", "Float64", "int64[pyarrow]"])
+@pytest.mark.parametrize(
+    "kwargs", [{"align": "mean"}, {"align": np.nanmedian}, {"cmap": "viridis"}]
+)
+@pytest.mark.parametrize("axis", [0, None])
+def test_bar_with_NA_values_align_and_cmap(dtype, kwargs, axis):
+    # GH#56425
+    if dtype == "int64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    if "cmap" in kwargs:
+        pytest.importorskip("matplotlib")
+    df = pd.DataFrame({"A": [1, 2, pd.NA, 4], "B": [pd.NA, 5, 6, -7]}, dtype=dtype)
+    expected_df = pd.DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 5, 6, -7]})
+    result = df.style.bar(subset=["A", "B"], axis=axis, **kwargs)._compute().ctx
+    expected = expected_df.style.bar(axis=axis, **kwargs)._compute().ctx
+    assert result == expected
+
+
 def test_style_bar_with_pyarrow_NA_values():
     pytest.importorskip("pyarrow")
     data = """name,age,test1,test2,teacher
