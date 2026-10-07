@@ -122,16 +122,16 @@ _frame_reduction_names = frozenset(
 )
 
 
-def _mixes_signedness_into_float(dtypes: list[DtypeObj]) -> bool:
+def _stack_as_object(dtypes: list[DtypeObj]) -> bool:
     """
-    Whether stacking results of these dtypes would cast signed and unsigned
-    integers to a float, which rounds values above 2**53.
+    Whether results of these dtypes must be stacked as object to keep their
+    values: bools mixed with other dtypes can be cast to numbers, and signed
+    with unsigned integers to a float, which rounds values above 2**53.
     """
-    # bool is excluded: find_common_type gives object for it, but DataFrame
-    # concat casts bool to a number
-    numeric = [dtype for dtype in dtypes if dtype.kind != "b"]
-    kinds = {dtype.kind for dtype in numeric}
-    return {"i", "u"} <= kinds and find_common_type(numeric).kind == "f"
+    kinds = {dtype.kind for dtype in dtypes}
+    if "b" in kinds and len(kinds) > 1:
+        return True
+    return {"i", "u"} <= kinds and find_common_type(dtypes).kind == "f"
 
 
 @set_module("pandas.api.executors")
@@ -1194,9 +1194,9 @@ class FrameApply(NDFrameApply):
             frames = [
                 row.to_frame(name).T for name, row in zip(func_names, rows, strict=True)
             ]
-            if _mixes_signedness_into_float([row.dtype for row in rows]):
-                # GH#65031 e.g. uint64 max with int64 count; see
-                # test_agg_list_like_unsigned_and_signed_is_object
+            if _stack_as_object([row.dtype for row in rows]):
+                # GH#65031 see test_agg_list_like_unsigned_and_signed_is_object
+                # and test_agg_list_like_bool_with_numeric_is_object
                 frames = [frame.astype(object) for frame in frames]
             pieces.append(concat(frames))
 

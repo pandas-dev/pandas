@@ -2070,11 +2070,24 @@ def test_agg_list_like_unsigned_and_signed_is_object(request, dtype, funcs, big)
     assert result.loc["count", "a"] == 2
 
 
+@pytest.mark.parametrize("dtype", ["int64", "float64"])
+@pytest.mark.parametrize("funcs", [["max", "any"], ["max", "all", "sum"]])
+def test_agg_list_like_bool_with_numeric_is_object(dtype, funcs):
+    # GH#65031 bool results are not cast to numbers, as in Series.agg
+    df = pd.DataFrame({"a": pd.Series([5, 1], dtype=dtype)})
+
+    result = df.agg(funcs)
+
+    tm.assert_series_equal(result["a"], df["a"].agg(funcs))
+    assert result["a"].dtype == object
+    assert result.loc[funcs[1], "a"] is True
+
+
 @pytest.mark.parametrize("funcs", [["sum", "mean"], ["min", "max", "mean"]])
 @pytest.mark.parametrize("values", [[10**17, 10**17 + 16], [10**17, 10**17 + 1]])
 def test_agg_list_like_signed_int_and_float_is_float(funcs, values):
-    # GH#65031 only mixing signed with unsigned gives object; int64 with float64
-    # stays float64 as in Series.agg, whatever the values
+    # GH#65031 int64 with float64 stays float64 as in Series.agg, whatever the
+    # values
     df = pd.DataFrame({"a": values})
 
     result = df.agg(funcs)
