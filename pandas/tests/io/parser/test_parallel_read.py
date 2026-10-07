@@ -19,7 +19,10 @@ import mmap
 import os
 import re
 import sqlite3
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -2465,9 +2468,9 @@ def test_row_blocked_conversion_late_dtype_miss(tmp_path, monkeypatch, threads):
     tm.assert_frame_equal(result, expected)
 
 
-def _spy_on_parallel_result(monkeypatch) -> list:
+def _spy_on_parallel_result(monkeypatch) -> list[Any]:
     """Record what each parallel read returned (None = fell back to serial)."""
-    returned: list = []
+    returned: list[Any] = []
 
     def spy(filepath, kwds, n_workers):
         result = _read_csv_parallel(filepath, kwds, n_workers)
