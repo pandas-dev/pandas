@@ -300,6 +300,9 @@ class SAS7BDATReader(SASReader):
 
     _int_length: int
     _cached_page: bytes | None
+    _string_chunk: np.ndarray
+    _str_offsets: np.ndarray
+    _str_valid: np.ndarray
     encoding: str | None
 
     def __init__(
@@ -345,7 +348,9 @@ class SAS7BDATReader(SASReader):
 
         self._current_row_in_file_index = 0
         self._current_row_on_page_index = 0
-        self._current_row_in_file_index = 0
+        # Deleted rows skipped so far; row_count and _current_row_in_file_index
+        # count them too.
+        self._deleted_row_count = 0
 
         self.handles = get_handle(
             path_or_buf, "rb", is_text=False, compression=compression
@@ -479,10 +484,12 @@ class SAS7BDATReader(SASReader):
             self._int_length = 8
             self._page_bit_offset = const.page_bit_offset_x64
             self._subheader_pointer_length = const.subheader_pointer_length_x64
+            self._page_deleted_pointer_offset = const.page_deleted_pointer_offset_x64
         else:
             self.U64 = False
             self._page_bit_offset = const.page_bit_offset_x86
             self._subheader_pointer_length = const.subheader_pointer_length_x86
+            self._page_deleted_pointer_offset = const.page_deleted_pointer_offset_x86
             self._int_length = 4
         buf = self._read_bytes(const.align_2_offset, const.align_2_length)
         if buf == const.align_1_checker_value:
@@ -962,6 +969,16 @@ class SAS7BDATReader(SASReader):
             # so that their spare capacity is not held alongside the copies above.
             del p
 
+            n = self._current_row_in_chunk_index
+            if n < nrows and self._current_row_in_file_index >= self.row_count:
+                # row_count includes deleted rows, so the buffers have room for
+                # rows the parser skipped. A file that runs out of pages early
+                # stops short of row_count, is not trimmed, and still raises.
+                self._byte_chunk = self._byte_chunk[:, : 8 * n]
+                self._string_chunk = self._string_chunk[:, :n]
+                self._str_offsets = self._str_offsets[:, : n + 1]
+                self._str_valid = self._str_valid[:, :n]
+
             rslt = self._chunk_to_dataframe()
         except Exception:
             # However this chunk failed -- a page that does not hold what it
@@ -1070,7 +1087,7 @@ class SAS7BDATReader(SASReader):
 
     def _chunk_to_dataframe(self) -> DataFrame:
         n = self._current_row_in_chunk_index
-        m = self._current_row_in_file_index
+        m = self._current_row_in_file_index - self._deleted_row_count
         ix = range(m - n, m)
         rslt = {}
 

@@ -18,6 +18,7 @@ import itertools
 import mmap
 import os
 import re
+import sqlite3
 from typing import TYPE_CHECKING
 import warnings
 
@@ -1945,6 +1946,30 @@ def test_parallel_worker_exception_falls_back_to_serial(tmp_path, monkeypatch):
     assert [str(warning.message) for warning in recorded] == [
         _converter_dtype_warning("col1")
     ]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
+def test_parallel_thread_affine_converter_falls_back_to_serial(tmp_path, monkeypatch):
+    # A converter using a SQLite connection fails on a worker thread; the
+    # serial read on the caller's thread succeeds (GH#68505).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(1000))
+    path = tmp_path / "sqlite.csv"
+    path.write_bytes(raw)
+
+    connection = sqlite3.connect(":memory:")
+
+    def lookup(value):
+        return connection.execute("SELECT ?", (int(value),)).fetchone()[0]
+
+    outcomes = _track_parallel(monkeypatch)
+    try:
+        result = _read_forced_parallel(path, monkeypatch, converters={"col1": lookup})
+    finally:
+        connection.close()
+
+    assert outcomes == ["declined"]
+    expected = pd.read_csv(io.BytesIO(raw))
+    tm.assert_frame_equal(result, expected)
 
 
 def test_parallel_bad_value_raises_like_serial(tmp_path, monkeypatch):
