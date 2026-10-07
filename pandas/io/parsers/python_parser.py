@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections import abc
 import csv
+from functools import partial
 from io import StringIO
+from operator import methodcaller
 import re
 from typing import (
     IO,
@@ -17,6 +19,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.parsers import (
+    conversion_error,
+    unsafe_cast_error,
+)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -38,6 +44,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -62,6 +69,7 @@ from pandas.io.parsers.base_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Mapping,
@@ -107,6 +115,8 @@ class PythonParser(ParserBase):
         self.buf_pos: list[int] = []
         self.pos = 0
         self.line_pos = 0
+        # data rows converted by earlier reads, to locate conversion errors
+        self._row_offset = 0
         self._first_row_len = 0
         self._header_row_len = 0
 
@@ -325,7 +335,11 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
-        conv_data = self._convert_data(data)
+        try:
+            conv_data = self._convert_data(data)
+        finally:
+            # also on failure: reading a caller's buffer can continue past it
+            self._row_offset += len(alldata[0]) if alldata else 0
         conv_data = self._do_date_conversions(columns, conv_data)
 
         index, result_columns = self._make_index(alldata, columns, indexnamerow)
@@ -486,7 +500,11 @@ class PythonParser(ParserBase):
                 if cast_type and (cvals.dtype != cast_type or is_ea):
                     if not is_ea and na_count > 0:
                         if is_bool_dtype(cast_type):
-                            raise ValueError(f"Bool column has NA values in column {c}")
+                            position = self._row_offset + isna(cvals).argmax()
+                            raise ValueError(
+                                f"Bool column has NA values in column {c} at "
+                                f"position {position}"
+                            )
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
@@ -541,32 +559,44 @@ class PythonParser(ParserBase):
         # use the EA's implementation of casting
         elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
+            convert: Callable[[ArrayLike], ArrayLike]
+            if isinstance(cast_type, BooleanDtype):
+                values = np.array([str(val) for val in values], dtype=object)
+                # error: Unexpected keyword argument "true_values" for
+                # "_from_sequence_of_strings" of "ExtensionArray"
+                convert = partial(  # type: ignore[call-arg]
+                    array_type._from_sequence_of_strings,
+                    dtype=cast_type,
+                    true_values=self.true_values,  # pyright: ignore[reportCallIssue]
+                    false_values=self.false_values,  # pyright: ignore[reportCallIssue]
+                    none_values=self.na_values,  # pyright: ignore[reportCallIssue]
+                )
+            else:
+                convert = partial(array_type._from_sequence_of_strings, dtype=cast_type)
             try:
-                if isinstance(cast_type, BooleanDtype):
-                    # error: Unexpected keyword argument "true_values" for
-                    # "_from_sequence_of_strings" of "ExtensionArray"
-                    values_str = [str(val) for val in values]
-                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
-                        values_str,
-                        dtype=cast_type,
-                        true_values=self.true_values,  # pyright: ignore[reportCallIssue]
-                        false_values=self.false_values,  # pyright: ignore[reportCallIssue]
-                        none_values=self.na_values,  # pyright: ignore[reportCallIssue]
-                    )
-                else:
-                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
+                return convert(values)
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
                     "_from_sequence_of_strings in order to be used in parser methods"
                 ) from err
+            except (ValueError, TypeError, OverflowError) as err:
+                raise conversion_error(
+                    values, cast_type, column, self._row_offset, convert, err
+                ) from err
 
         elif isinstance(values, ExtensionArray):
-            casted: ArrayLike = values.astype(cast_type, copy=False)
             # with dtype_backend="pyarrow", _infer_types has already boxed the
             #  column, so an explicit numpy integer dtype reaches this branch,
             #  not the one below
-            _validate_integer_cast(values, casted, cast_type, column)
+            convert = methodcaller("astype", cast_type, copy=False)
+            try:
+                casted: ArrayLike = convert(values)
+            except (ValueError, OverflowError) as err:
+                raise conversion_error(
+                    values, cast_type, column, self._row_offset, convert, err
+                ) from err
+            _validate_integer_cast(values, casted, cast_type, column, self._row_offset)
             values = casted
         elif issubclass(cast_type.type, str):
             # TODO: why skipna=True here and False above? some tests depend
@@ -576,13 +606,14 @@ class PythonParser(ParserBase):
                 values, skipna=True, convert_na_value=False
             )
         else:
+            convert = partial(astype_array, dtype=cast_type, copy=True)
             try:
-                casted = astype_array(values, cast_type, copy=True)
-            except ValueError as err:
-                raise ValueError(
-                    f"Unable to convert column {column} to type {cast_type}"
+                casted = convert(values)
+            except (ValueError, OverflowError) as err:
+                raise conversion_error(
+                    values, cast_type, column, self._row_offset, convert, err
                 ) from err
-            _validate_integer_cast(values, casted, cast_type, column)
+            _validate_integer_cast(values, casted, cast_type, column, self._row_offset)
             values = casted
         return values
 
@@ -1611,7 +1642,7 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
 
 
 def _validate_integer_cast(
-    original: ArrayLike, casted: ArrayLike, cast_type: np.dtype, column
+    original: ArrayLike, casted: ArrayLike, cast_type: np.dtype, column, offset: int
 ) -> None:
     """
     Raise if casting to an integer dtype wrapped around (GH#55232).
@@ -1625,9 +1656,8 @@ def _validate_integer_cast(
         # discarding a float's fractional part is not wraparound and stays
         #  allowed (see test_read_fwf.py::test_dtype)
         values = np.trunc(values)
-    if (np.asarray(casted) != values).any():
-        raise ValueError(
-            f"cannot safely convert passed user dtype of "
-            f"{cast_type} for {values.dtype.name} dtyped data in "
-            f"column {column}"
+    changed = np.asarray(casted) != values
+    if changed.any():
+        raise unsafe_cast_error(
+            np.asarray(original), changed, cast_type, column, offset
         )
