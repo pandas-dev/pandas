@@ -2126,8 +2126,11 @@ class ArrowExtensionArray(
             return indices, uniques
 
         if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
+            # dictionary_encode is a no-op on already-encoded input, so cast back
+            # to the value type and re-encode when nulls must be encoded, or when
+            # a chunk stores the null as a dictionary value (GH#66490)
+            dict_has_null = any(c.dictionary.null_count > 0 for c in data.chunks)
+            if null_encoding == "encode" or dict_has_null:
                 data = data.cast(data.type.value_type)
                 encoded = data.dictionary_encode(null_encoding=null_encoding)
             else:
