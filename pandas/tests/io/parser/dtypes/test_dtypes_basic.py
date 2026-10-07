@@ -1120,8 +1120,8 @@ def test_integer_dtype_truncates_float(pyarrow_parser_only):
 
 
 def test_uint64_max_read_as_float_raises(pyarrow_parser_only):
-    # GH#38013 pyarrow infers this value as the float 2**64, which is out of
-    #  range, so it cannot be cast back exactly
+    # GH#38013 a pyarrow inference limitation, not desired behavior: pyarrow
+    #  reads this value as the float 2**64, which is out of range for uint64
     parser = pyarrow_parser_only
     with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
         parser.read_csv(StringIO("x\n18446744073709551615\n"), dtype={"x": "uint64"})
