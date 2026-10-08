@@ -467,11 +467,10 @@ def main(
     # nested inside it, or contain it).
     src = source_path.resolve()
     tgt = target_path.resolve()
-    if src == tgt or src in tgt.parents or tgt in src.parents:
+    if tgt.is_relative_to(src) or src.is_relative_to(tgt):
         raise ValueError(
-            "Target path must not overlap with the source path "
-            "(they must not be equal, or one nested inside the other), "
-            "as the source files would be removed before rendering."
+            "Target path must not equal, contain, or be inside the source "
+            "path, as the source files would be removed before rendering."
         )
 
     # Sanity check: validate that versions.json is valid JSON

@@ -104,45 +104,18 @@ def _create_minimal_source(path) -> None:
     (path / "versions.json").write_text("{}", encoding="utf-8")
 
 
-def test_web_main_same_source_and_target(tmp_path) -> None:
-    # GH#70082: building with --target-path pointing at the source directory
-    # used to remove the source files before rendering.
+@pytest.mark.parametrize("target", ["site", "site/build", "."])
+def test_web_main_overlapping_source_and_target(tmp_path, target) -> None:
+    # GH#70082: an overlapping target is removed before rendering, which
+    # would delete the source files.
     source = tmp_path / "site"
-    _create_minimal_source(source)
-
-    with pytest.raises(ValueError, match="overlap with the source path"):
-        main(source, source)
-
+    source.mkdir()
+    (source / "config.yml").touch()
+    with pytest.raises(
+        ValueError, match="Target path must not equal, contain, or be inside"
+    ):
+        main(source, tmp_path / target)
     assert (source / "config.yml").exists()
-    assert (source / "versions.json").exists()
-
-
-def test_web_main_target_inside_source(tmp_path) -> None:
-    # GH#70082: a target nested inside the source directory would also
-    # delete source files when it is removed before rendering.
-    source = tmp_path / "site"
-    _create_minimal_source(source)
-    target = source / "build"
-
-    with pytest.raises(ValueError, match="overlap with the source path"):
-        main(source, target)
-
-    assert (source / "config.yml").exists()
-    assert (source / "versions.json").exists()
-
-
-def test_web_main_source_inside_target(tmp_path) -> None:
-    # GH#70082: a target containing the source directory would remove the
-    # source files as well.
-    source = tmp_path / "site"
-    _create_minimal_source(source)
-    target = tmp_path
-
-    with pytest.raises(ValueError, match="overlap with the source path"):
-        main(source, target)
-
-    assert (source / "config.yml").exists()
-    assert (source / "versions.json").exists()
 
 
 def test_web_main_disjoint_source_and_target(tmp_path) -> None:
