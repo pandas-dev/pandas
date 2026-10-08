@@ -633,7 +633,7 @@ the pandas-equivalent operations compared to software you already know:
         :shadow: md
 
         `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__, the statistical software suite,
-        uses the ``data set`` structure, which closely corresponds pandas' ``DataFrame``.
+        uses the ``data set`` structure, which closely corresponds to pandas' ``DataFrame``.
         Also SAS vectorized operations such as filtering or string processing operations
         have similar functions in pandas.
 
