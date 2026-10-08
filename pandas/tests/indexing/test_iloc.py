@@ -1353,6 +1353,38 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
+    def test_setitem_zerodim_np_array(self):
+        # GH#70256 a 0-d ndarray key should set like the scalar it holds
+        key = np.array(1)
+
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, dtype="Int64")
+        df.iloc[key] = 9
+        expected = pd.DataFrame({"a": [1, 9, 3], "b": [4, 9, 6]}, dtype="Int64")
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, dtype="Int64")
+        df.iloc[key, 0] = 9
+        assert df.iloc[1, 0] == 9
+        assert df.iloc[1, 1] == 5
+
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]})
+        df.iloc[key] = 9
+        assert df.iloc[1].tolist() == [9.0, 9.0]
+
+        df = pd.DataFrame(
+            {
+                "a": pd.date_range("2000", periods=3),
+                "b": pd.date_range("2001", periods=3),
+            }
+        )
+        df.iloc[key, [0, 1]] = pd.Timestamp("2010-01-01")
+        assert df.iloc[1, 0] == pd.Timestamp("2010-01-01")
+        assert df.iloc[1, 1] == pd.Timestamp("2010-01-01")
+
+        s = pd.Series([1, 2, 3])
+        s.iloc[key] = 9
+        assert s.iloc[1] == 9
+
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = pd.Categorical(["A", "B", "C"])

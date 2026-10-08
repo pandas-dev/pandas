@@ -989,6 +989,14 @@ class _LocationIndexer(_NDFrameIndexerBase):
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
 
+        # GH#70256: a 0-d ndarray key is the scalar it holds. getitem already
+        # unwraps these in _getitem_axis; setitem must do the same before the
+        # key is treated as an array indexer.
+        if isinstance(key, tuple):
+            key = tuple(item_from_zerodim(k) for k in key)
+        else:
+            key = item_from_zerodim(key)
+
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
             key = (list(x) if is_iterator(x) else x for x in key)

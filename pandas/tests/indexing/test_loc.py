@@ -1352,6 +1352,23 @@ class TestLocBaseIndependent:
         result = s.loc[np.array(0)]
         assert result == 1
 
+    def test_setitem_zerodim_np_array(self):
+        # GH#70256
+        key = np.array(1)
+        df = pd.DataFrame(
+            {
+                "a": pd.date_range("2000", periods=3),
+                "b": pd.date_range("2001", periods=3),
+            }
+        )
+        df.loc[key] = pd.Timestamp("2010-01-01")
+        assert df.loc[1, "a"] == pd.Timestamp("2010-01-01")
+        assert df.loc[1, "b"] == pd.Timestamp("2010-01-01")
+
+        s = pd.Series([1, 2, 3])
+        s.loc[key] = 9
+        assert s.loc[1] == 9
+
     def test_loc_reverse_assignment(self):
         # GH26939
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
