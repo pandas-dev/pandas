@@ -2204,6 +2204,21 @@ def test_agg_relabel_with_name_match_duplicate_columns():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_relabel_with_name_match_named_columns():
+    # GH#68000 the result's columns are unnamed whether or not the output name
+    #  matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
+    df.columns.name = "metric"
+
+    result = df.groupby("A").agg(B=("B", "sum"))
+    expected = df.groupby("A").agg(x=("B", "sum"))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multiple_partial_functions_same_name():
     # GH#28570
     quant50 = partial(np.percentile, q=50)
