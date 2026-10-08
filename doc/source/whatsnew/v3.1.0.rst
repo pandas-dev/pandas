@@ -1340,7 +1340,6 @@ Reshaping
 - Bug in :meth:`Series.unstack` with ``sort=False`` always placing a ``NaN`` column first without reordering the corresponding values (:issue:`66672`)
 - Fixed bug in :meth:`DataFrame.pivot_table` with ``margins=True`` and a dictionary ``aggfunc`` raising ``KeyError`` when a column in the data is missing from the dictionary (:issue:`66151`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
-- In :func:`merge` now raises an informative ``ValueError`` when an array-like passed to ``left_on`` or ``right_on`` does not match the length of the corresponding DataFrame, instead of a confusing ``KeyError`` (:issue:`58279`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
 
 Sparse

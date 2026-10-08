@@ -216,12 +216,12 @@ def merge(
         Column or index level names to join on in the left DataFrame. Can also
         be an array or list of arrays of the length of the left DataFrame.
         These arrays are used as the values to join on, as if they were
-        columns of the DataFrame, not as column labels..
+        columns of the DataFrame, not as column labels.
     right_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the right DataFrame. Can also
         be an array or list of arrays of the length of the right DataFrame.
         These arrays are used as the values to join on, as if they were
-        columns of the DataFrame, not as column labels..
+        columns of the DataFrame, not as column labels.
     left_index : bool, default False
         Use the index from the left DataFrame as the join key(s). If it is a
         MultiIndex, the number of keys in the other DataFrame (either the index
@@ -1596,16 +1596,6 @@ class _MergeOperation:
         is_lkey = lambda x: isinstance(x, _known) and len(x) == len(left)
         is_rkey = lambda x: isinstance(x, _known) and len(x) == len(right)
 
-        def _validate_key_length(key, obj: DataFrame, side: str) -> None:
-            # An array-like key must match the length of its frame; otherwise it
-            # would be misinterpreted as a column label further below.
-            if isinstance(key, _known) and len(key) != len(obj):
-                raise ValueError(
-                    f"{side}_on array-like has length {len(key)}, but the {side} "
-                    f"DataFrame has length {len(obj)}. Array-like keys must have "
-                    f"the same length as the {side} DataFrame."
-                )
-
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
         # regular pd.merge(), users cannot specify both 'left_index' and
@@ -1621,8 +1611,6 @@ class _MergeOperation:
             for lk, rk in zip(self.left_on, self.right_on, strict=True):
                 lk = extract_array(lk, extract_numpy=True)
                 rk = extract_array(rk, extract_numpy=True)
-                _validate_key_length(lk, left, "left")
-                _validate_key_length(rk, right, "right")
                 if is_lkey(lk):
                     lk = cast("ArrayLike", lk)
                     left_keys.append(lk)
@@ -1668,7 +1656,6 @@ class _MergeOperation:
                         join_names.append(left.index.name)
         elif _any(self.left_on):
             for k in self.left_on:
-                _validate_key_length(k, left, "left")
                 if is_lkey(k):
                     k = extract_array(k, extract_numpy=True)
                     k = cast("ArrayLike", k)
@@ -1690,7 +1677,6 @@ class _MergeOperation:
         elif _any(self.right_on):
             for k in self.right_on:
                 k = extract_array(k, extract_numpy=True)
-                _validate_key_length(k, right, "right")
                 if is_rkey(k):
                     k = cast("ArrayLike", k)
                     right_keys.append(k)
@@ -1985,6 +1971,19 @@ class _MergeOperation:
                 left_on = [None] * n
         if len(right_on) != len(left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
+
+        for side, keys, obj in (
+            ("left", left_on, self.left),
+            ("right", right_on, self.right),
+        ):
+            for key in keys:
+                if isinstance(key, _known) and len(key) != len(obj):
+                    name = "on" if self.on is not None else f"{side}_on"
+                    raise ValueError(
+                        f"{name} array-like has length {len(key)}, but the {side} "
+                        f"DataFrame has length {len(obj)}. Array-like keys must "
+                        f"have the same length as the {side} DataFrame."
+                    )
 
         return left_on, right_on
 
