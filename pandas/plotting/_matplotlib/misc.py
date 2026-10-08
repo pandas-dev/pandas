@@ -454,7 +454,7 @@ def autocorrelation_plot(
         ax.set_xlim(1, n)
         ax.set_ylim(-1.0, 1.0)
         if figsize is not None:
-            ax.figure.set_size_inches(figsize)
+            plt.gcf().set_size_inches(figsize)
     mean = np.mean(data)
     c0 = np.sum((data - mean) ** 2) / n
 
