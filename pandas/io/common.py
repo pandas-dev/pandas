@@ -394,6 +394,18 @@ def _get_filepath_or_buffer(
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
+    if isinstance(filepath_or_buffer, str) and any(char in mode for char in "wax+"):
+        parsed = parse_url(filepath_or_buffer)
+        if parsed.scheme == "file" and parsed.netloc.lower() in ("", "localhost"):
+            # GH#55828 urlopen can only read; write to the path urllib reads from
+            import urllib.request
+
+            path = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+            filepath_or_buffer = urllib.request.url2pathname(path)
+        elif parsed.scheme in _URLLIB_SCHEMES:
+            # GH#55828 the urlopen branch below would silently discard the write
+            raise ValueError(f"Cannot write to URL: {filepath_or_buffer}")
+
     if (
         isinstance(filepath_or_buffer, str)
         and parse_url(filepath_or_buffer).scheme in _URLLIB_SCHEMES
