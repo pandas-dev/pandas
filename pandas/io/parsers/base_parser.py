@@ -510,7 +510,17 @@ class ParserBase:
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
-                na_count = parsers.sanitize_objects(values, na_values)
+                try:
+                    na_count = parsers.sanitize_objects(values, na_values)
+                except TypeError:
+                    na_count = 0
+                    for i, val in enumerate(values):
+                        try:
+                            if val in na_values:
+                                values[i] = np.nan
+                                na_count += 1
+                        except TypeError:
+                            pass
                 result = values
             else:
                 if non_default_dtype_backend:
@@ -534,19 +544,32 @@ class ParserBase:
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = parsers.sanitize_objects(values, na_values)
+                try:
+                    na_count = parsers.sanitize_objects(values, na_values)
+                except TypeError:
+                    na_count = 0
+                    for i, val in enumerate(values):
+                        try:
+                            if val in na_values:
+                                values[i] = np.nan
+                                na_count += 1
+                        except TypeError:
+                            pass
 
         if (
             result.dtype == np.object_
             and try_num_bool
             and (len(result) == 0 or not isinstance(result[0], int))
         ):
-            result, bool_mask = libops.maybe_convert_bool(
-                np.asarray(values),
-                true_values=self.true_values,
-                false_values=self.false_values,
-                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]
-            )
+            try:
+                result, bool_mask = libops.maybe_convert_bool(
+                    np.asarray(values),
+                    true_values=self.true_values,
+                    false_values=self.false_values,
+                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]
+                )
+            except TypeError:
+                bool_mask = None
             if result.dtype == np.bool_ and non_default_dtype_backend:
                 if bool_mask is None:
                     bool_mask = np.zeros(result.shape, dtype=np.bool_)
