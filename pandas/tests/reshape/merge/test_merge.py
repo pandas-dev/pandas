@@ -3492,3 +3492,13 @@ def test_merge_on_wrong_length_arraylike_raises(box):
     msg = "right_on array-like has length 3, but the right DataFrame has length 2"
     with pytest.raises(ValueError, match=msg):
         merge(left, right, left_on="a", right_on=box([1, 2, 3]))
+
+
+def test_merge_on_wrong_length_arraylike_raises_with_on():
+    # GH#58279
+    left = pd.DataFrame({"a": [1, 2, 3]})
+    right = pd.DataFrame({"a": [1, 2, 3]})
+
+    msg = "^on array-like has length 2"
+    with pytest.raises(ValueError, match=msg):
+        merge(left, right, on=pd.Index([1, 2]))
