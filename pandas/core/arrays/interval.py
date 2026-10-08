@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     IntervalDtype,
@@ -216,7 +217,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ) -> Self:
-        data = extract_array(data, extract_numpy=True)
+        data = extract_array(data, extract_numpy=True, extract_range=True)
 
         if isinstance(data, cls):
             left: IntervalSide = data._left
@@ -234,6 +235,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # might need to convert empty or purely na data
             data = _maybe_convert_platform_interval(data)
+            if isinstance(data, ExtensionArray):
+                # GH#68343 non-interval EA, e.g. from astype
+                data = np.asarray(data)
             left, right, infer_closed = intervals_to_interval_bounds(
                 data, validate_closed=closed is None
             )
@@ -1012,8 +1016,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
 
-        left: IntervalSide = np.concatenate([interval.left for interval in to_concat])
-        right: IntervalSide = np.concatenate([interval.right for interval in to_concat])
+        # concat_compat instead of np.concatenate to retain an ExtensionDtype
+        #  subtype GH#64297
+        left = concat_compat([interval._left for interval in to_concat])
+        right = concat_compat([interval._right for interval in to_concat])
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 
