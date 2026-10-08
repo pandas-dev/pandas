@@ -631,9 +631,7 @@ class ExtensionArray:
             else:
                 return False
         else:
-            # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
-            # attribute "any"
-            return (item == self).any()  # type: ignore[union-attr]
+            return (item == self).any()  # type: ignore[return-value]
 
     # error: Signature of "__eq__" incompatible with supertype "object"
     def __eq__(self, other: object) -> ArrayLike:  # type: ignore[override]
@@ -2525,7 +2523,7 @@ class ExtensionArray:
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
-    ):
+    ) -> bool | np.bool_ | NAType:
         raise TypeError(
             f"'{type(self).__name__}' with dtype {self.dtype} "
             f"does not support operation 'all'"
@@ -2538,7 +2536,7 @@ class ExtensionArray:
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
-    ):
+    ) -> bool | np.bool_ | NAType:
         raise TypeError(
             f"'{type(self).__name__}' with dtype {self.dtype} "
             f"does not support operation 'any'"
@@ -3434,21 +3432,63 @@ class ExtensionArray:
 
 class ExtensionArrayNaResult(ExtensionArray):
     @overload
-    def any(self, *, skipna: Literal[True] = ...) -> bool: ...
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: Literal[True] = ...,
+        **kwargs,
+    ) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool) -> bool | NAType: ...
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool | NAType: ...
 
-    def any(self, *, skipna: bool = True) -> bool | NAType:
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool | NAType:
         raise AbstractMethodError(self)
 
     @overload
-    def all(self, *, skipna: Literal[True] = ...) -> bool: ...
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: Literal[True] = ...,
+        **kwargs,
+    ) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool) -> bool | NAType: ...
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool | NAType: ...
 
-    def all(self, *, skipna: bool = True) -> bool | NAType:
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool | NAType:
         raise AbstractMethodError(self)
 
     def sum(

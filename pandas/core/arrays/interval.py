@@ -847,8 +847,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
 
-    def min(self, *, axis: AxisInt | None = None, skipna: bool = True) -> IntervalOrNA:
+    def min(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
+        nv.validate_min((), {"keepdims": keepdims, **kwargs})
 
         if not len(self):
             return self._na_value
@@ -864,8 +872,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[0]
         return obj[indexer]
 
-    def max(self, *, axis: AxisInt | None = None, skipna: bool = True) -> IntervalOrNA:
+    def max(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> IntervalOrNA:
         nv.validate_minmax_axis(axis, self.ndim)
+        nv.validate_max((), {"keepdims": keepdims, **kwargs})
 
         if not len(self):
             return self._na_value

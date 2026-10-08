@@ -1773,9 +1773,7 @@ class _MergeOperation:
 
                     mask = ~np.isnan(lk)
                     match = lk == casted
-                    # error: Item "ExtensionArray" of
-                    # "ExtensionArray | Any" has no attribute "all"
-                    if not match[mask].all():  # type: ignore[union-attr]
+                    if not match[mask].all():
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
@@ -1795,9 +1793,7 @@ class _MergeOperation:
 
                     mask = ~np.isnan(rk)
                     match = rk == casted
-                    # error: Item "ExtensionArray" of
-                    # "ExtensionArray | Any" has no attribute "all"
-                    if not match[mask].all():  # type: ignore[union-attr]
+                    if not match[mask].all():
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "

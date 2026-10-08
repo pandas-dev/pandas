@@ -1955,7 +1955,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         result = getattr(nanops, f"nan{name}")(self._densify(), skipna=skipna, **kwargs)
         return maybe_box_datetimelike(result, self.dtype.subtype)
 
-    def all(self, axis=None, *args, skipna: bool = True, **kwargs) -> bool:
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool:
         """
         Tests whether all elements evaluate True
 
@@ -1963,10 +1970,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ----------
         axis : int, default None
             Not Used. NumPy compatibility.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False, NA is evaluated for truthiness
             like any other value.
-        *args, **kwargs
+        **kwargs
             Not Used. NumPy compatibility.
 
         Returns
@@ -1977,7 +1986,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         numpy.all
         """
-        nv.validate_all(args, kwargs)
+        nv.validate_all((), {"axis": axis, "keepdims": keepdims, **kwargs})
         skipna = validate_bool_kwarg(skipna, "skipna")
 
         if self.dtype.subtype.kind == "M":
@@ -2005,18 +2014,27 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return values.all().item()
 
-    def any(self, axis: AxisInt = 0, *args, skipna: bool = True, **kwargs) -> bool:
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool:
         """
         Tests whether at least one of elements evaluate True
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False, NA is evaluated for truthiness
             like any other value.
-        *args, **kwargs
+        **kwargs
             Not Used. NumPy compatibility.
 
         Returns
@@ -2027,7 +2045,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         --------
         numpy.any
         """
-        nv.validate_any(args, kwargs)
+        nv.validate_any((), {"axis": axis, "keepdims": keepdims, **kwargs})
         skipna = validate_bool_kwarg(skipna, "skipna")
 
         if self.dtype.subtype.kind == "M":
@@ -2055,10 +2073,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def sum(
         self,
-        axis: AxisInt = 0,
-        min_count: int = 0,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        *args,
+        min_count: int = 0,
         **kwargs,
     ) -> Scalar:
         """
@@ -2066,22 +2085,24 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
             Not Used. NumPy compatibility.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
         min_count : int, default 0
             The required number of valid values to perform the summation. If fewer
             than ``min_count`` valid values are present, the result will be the missing
             value indicator for subarray type.
-        skipna : bool, default True
-            Exclude NA/null values. If False and NA is present, return NA.
-        *args, **kwargs
+        **kwargs
             Not Used. NumPy compatibility.
 
         Returns
         -------
         scalar
         """
-        nv.validate_sum(args, kwargs)
+        nv.validate_sum((), {"axis": axis, "keepdims": keepdims, **kwargs})
         skipna = validate_bool_kwarg(skipna, "skipna")
 
         if self.dtype.subtype.kind == "O" and not self._null_fill_value:
@@ -2137,9 +2158,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def prod(
         self,
         *,
-        axis: AxisInt = 0,
-        min_count: int = 0,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
+        min_count: int = 0,
         **kwargs,
     ) -> Scalar:
         """
@@ -2147,14 +2169,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
             Not Used. NumPy compatibility.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
         min_count : int, default 0
             The required number of valid values to perform the multiplication. If
             fewer than ``min_count`` valid values are present, the result will be
             the missing value indicator for subarray type.
-        skipna : bool, default True
-            Exclude NA/null values. If False and NA is present, return NA.
         **kwargs
             Not Used. NumPy compatibility.
 
@@ -2173,7 +2197,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.prod()
         np.int64(6)
         """
-        nv.validate_prod((), kwargs)
+        nv.validate_prod((), {"axis": axis, "keepdims": keepdims, **kwargs})
         skipna = validate_bool_kwarg(skipna, "skipna")
         return self._dense_reduce("prod", skipna=skipna, min_count=min_count)
 
@@ -2209,24 +2233,33 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fill_value=self.fill_value,
         )
 
-    def mean(self, axis: Axis = 0, *args, skipna: bool = True, **kwargs):
+    def mean(
+        self,
+        *,
+        axis: Axis | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         """
         Mean of non-NA/null values.
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False and NA is present, return NA.
-        *args, **kwargs
+        **kwargs
             Not Used. NumPy compatibility.
 
         Returns
         -------
         scalar
         """
-        nv.validate_mean(args, kwargs)
+        nv.validate_mean((), kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
@@ -2255,7 +2288,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def median(
         self,
         *,
-        axis: AxisInt = 0,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
     ):
@@ -2264,7 +2298,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False and NA is present, return NA.
@@ -2292,9 +2328,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def var(
         self,
         *,
-        axis: AxisInt = 0,
-        ddof: int = 1,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
+        ddof: int = 1,
         **kwargs,
     ):
         """
@@ -2302,13 +2339,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
             Not Used. NumPy compatibility.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
         ddof : int, default 1
             Delta degrees of freedom. The divisor used in calculations is
             ``N - ddof``, where ``N`` is the number of non-NA/null values.
-        skipna : bool, default True
-            Exclude NA/null values. If False and NA is present, return NA.
         **kwargs
             Not Used. NumPy compatibility.
 
@@ -2333,9 +2372,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def std(
         self,
         *,
-        axis: AxisInt = 0,
-        ddof: int = 1,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
+        ddof: int = 1,
         **kwargs,
     ):
         """
@@ -2343,13 +2383,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
             Not Used. NumPy compatibility.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
         ddof : int, default 1
             Delta degrees of freedom. The divisor used in calculations is
             ``N - ddof``, where ``N`` is the number of non-NA/null values.
-        skipna : bool, default True
-            Exclude NA/null values. If False and NA is present, return NA.
         **kwargs
             Not Used. NumPy compatibility.
 
@@ -2374,9 +2416,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def sem(
         self,
         *,
-        axis: AxisInt = 0,
-        ddof: int = 1,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
+        ddof: int = 1,
         **kwargs,
     ):
         """
@@ -2384,13 +2427,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
             Not Used. NumPy compatibility.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
         ddof : int, default 1
             Delta degrees of freedom. The divisor used in calculations is
             ``N - ddof``, where ``N`` is the number of non-NA/null values.
-        skipna : bool, default True
-            Exclude NA/null values. If False and NA is present, return NA.
         **kwargs
             Not Used. NumPy compatibility.
 
@@ -2415,7 +2460,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def skew(
         self,
         *,
-        axis: AxisInt = 0,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
     ):
@@ -2424,7 +2470,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False and NA is present, return NA.
@@ -2452,7 +2500,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def kurt(
         self,
         *,
-        axis: AxisInt = 0,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
     ):
@@ -2461,7 +2510,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False and NA is present, return NA.
@@ -2486,16 +2537,27 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         skipna = validate_bool_kwarg(skipna, "skipna")
         return self._dense_reduce("kurt", skipna=skipna)
 
-    def max(self, *, axis: AxisInt | None = None, skipna: bool = True):
+    def max(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         """
         Max of array values, ignoring NA values if specified.
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Whether to ignore NA values.
+        **kwargs
+            Not Used. NumPy compatibility.
 
         Returns
         -------
@@ -2504,16 +2566,27 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_minmax_axis(axis, self.ndim)
         return self._min_max("max", skipna=skipna)
 
-    def min(self, *, axis: AxisInt | None = None, skipna: bool = True):
+    def min(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         """
         Min of array values, ignoring NA values if specified.
 
         Parameters
         ----------
-        axis : int, default 0
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Whether to ignore NA values.
+        **kwargs
+            Not Used. NumPy compatibility.
 
         Returns
         -------

@@ -1066,30 +1066,50 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return super()._wrap_reduction_result(axis, result)
 
     def any(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> bool:
-        nv.validate_any((), kwargs)
+        nv.validate_any((), {"keepdims": keepdims, **kwargs})
         return self._reduce("any", axis=axis, skipna=skipna, **kwargs)
 
     def all(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> bool:
-        nv.validate_all((), kwargs)
+        nv.validate_all((), {"keepdims": keepdims, **kwargs})
         return self._reduce("all", axis=axis, skipna=skipna, **kwargs)
 
     def min(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> Scalar:
-        nv.validate_min((), kwargs)
+        nv.validate_min((), {"keepdims": keepdims, **kwargs})
         result = masked_reductions.min(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
     def max(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> Scalar:
-        nv.validate_max((), kwargs)
+        nv.validate_max((), {"keepdims": keepdims, **kwargs})
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
@@ -1099,11 +1119,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
         **kwargs,
     ) -> Scalar:
-        nv.validate_sum((), kwargs)
+        nv.validate_sum((), {"keepdims": keepdims, **kwargs})
         result = masked_reductions.sum(
             values=self._ndarray,
             mask=self.isna(),
@@ -1114,29 +1135,101 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return self._wrap_reduction_result(axis, result)
 
     # Without these, NumpyExtensionArray's methods bypass _reduce's gate, GH#68389
-    def prod(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("prod", skipna=skipna, **kwargs)
+    def prod(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "prod", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
-    def mean(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("mean", skipna=skipna, **kwargs)
+    def mean(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "mean", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
-    def median(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("median", skipna=skipna, **kwargs)
+    def median(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "median", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
-    def std(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("std", skipna=skipna, **kwargs)
+    def std(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "std", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
-    def var(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("var", skipna=skipna, **kwargs)
+    def var(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "var", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
-    def sem(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("sem", skipna=skipna, **kwargs)
+    def sem(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "sem", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
-    def skew(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("skew", skipna=skipna, **kwargs)
+    def skew(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "skew", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
-    def kurt(self, *, skipna: bool = True, **kwargs) -> Scalar:
-        return self._reduce("kurt", skipna=skipna, **kwargs)
+    def kurt(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Scalar:
+        return self._reduce(
+            "kurt", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def value_counts(self, dropna: bool = True) -> Series:
         result = super().value_counts(dropna=dropna)
