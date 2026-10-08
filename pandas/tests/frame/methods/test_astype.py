@@ -317,6 +317,16 @@ class TestAstype:
         with pytest.raises(TypeError, match=xpr):
             df["A"].astype(cls)
 
+    @pytest.mark.parametrize(
+        "cls", [pd.CategoricalDtype, pd.DatetimeTZDtype, pd.IntervalDtype]
+    )
+    def test_astype_dict_dtype_class_raises_for_several_columns(self, cls):
+        # GH#63433 several columns going to one dtype are cast together; a dtype
+        #  class must still raise as it does column by column
+        df = pd.DataFrame({"A": ["a", "b"], "B": ["c", "d"]})
+        with pytest.raises(TypeError, match=f"Expected an instance of {cls.__name__}"):
+            df.astype({"A": cls, "B": cls})
+
     def test_astype_extension_dtypes(self, any_int_ea_dtype):
         # GH#22578
         dtype = any_int_ea_dtype

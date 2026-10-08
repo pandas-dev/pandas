@@ -1683,33 +1683,22 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         existing blocks as views, so this is linear in the number of columns rather
         than setting each replaced column in turn.
         """
-        replaced = np.concatenate([locs for locs, _ in pieces])
-        keep = np.delete(np.arange(self.shape[0], dtype=np.intp), replaced)
+        is_replaced = np.zeros(self.shape[0], dtype=bool)
+        for locs, _ in pieces:
+            is_replaced[locs] = True
 
         blocks = []
-        # Keep the other columns as views: for each block, one view per run of
-        #  its kept columns that sit next to each other inside the block, placed
-        #  wherever those columns are in the frame. An untouched block is reused.
-        blknos = self.blknos[keep]
-        blklocs = self.blklocs[keep]
-        order = np.lexsort((blklocs, blknos))
-        keep, blknos, blklocs = keep[order], blknos[order], blklocs[order]
-        new_run = np.ones(len(keep), dtype=bool)
-        new_run[1:] = (np.diff(blknos) != 0) | (np.diff(blklocs) != 1)
-        starts = np.flatnonzero(new_run)
-        ends = np.append(starts[1:], len(keep)) if len(keep) else starts
-        for start, end in zip(starts, ends, strict=True):
-            blk = self.blocks[blknos[start]]
-            bp = BlockPlacement(keep[start:end])
-            if blklocs[start] == 0 and end - start == len(blk.mgr_locs):
-                nb = blk.copy(deep=False)
-                nb.mgr_locs = bp
-            else:
-                first = blklocs[start]
-                nb = blk.getitem_block_columns(
-                    slice(first, first + end - start), new_mgr_locs=bp
+        for blk in self.blocks:
+            # Keep each run of adjacent kept columns within a block as one view.
+            mgr_locs = blk.mgr_locs.as_array
+            kept = np.concatenate([[False], ~is_replaced[mgr_locs], [False]])
+            bounds = np.flatnonzero(np.diff(kept))
+            for start, end in zip(bounds[::2], bounds[1::2], strict=True):
+                blocks.append(
+                    blk.getitem_block_columns(
+                        slice(start, end), BlockPlacement(mgr_locs[start:end])
+                    )
                 )
-            blocks.append(nb)
         for locs, mgr in pieces:
             for blk in mgr.blocks:
                 nb = blk.copy(deep=False)
