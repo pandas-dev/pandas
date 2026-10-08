@@ -679,7 +679,12 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
 
 
 @set_module("pandas.plotting")
-def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
+def autocorrelation_plot(
+    series: Series,
+    ax: Axes | None = None,
+    figsize: tuple[float, float] | None = None,
+    **kwargs,
+) -> Axes:
     """
     Autocorrelation plot for time series.
 
@@ -698,6 +703,11 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
         The time series to visualize.
     ax : Matplotlib axis object, optional
         The matplotlib axis object to use.
+    figsize : tuple of float, optional
+        Size of the figure (width, height) in inches. Ignored if ``ax`` is
+        passed.
+
+        .. versionadded:: 3.2.0
     **kwargs
         Options to pass to matplotlib plotting method.
 
@@ -726,7 +736,9 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
         >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
+    return plot_backend.autocorrelation_plot(
+        series=series, ax=ax, figsize=figsize, **kwargs
+    )
 
 
 class _Options(dict[str, Any]):

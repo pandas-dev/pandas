@@ -439,7 +439,12 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     return ax
 
 
-def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwds) -> Axes:
+def autocorrelation_plot(
+    series: Series,
+    ax: Axes | None = None,
+    figsize: tuple[float, float] | None = None,
+    **kwds,
+) -> Axes:
     import matplotlib.pyplot as plt
 
     n = len(series)
@@ -448,6 +453,8 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwds) -> Axes
         ax = plt.gca()
         ax.set_xlim(1, n)
         ax.set_ylim(-1.0, 1.0)
+        if figsize is not None:
+            ax.figure.set_size_inches(figsize)
     mean = np.mean(data)
     c0 = np.sum((data - mean) ** 2) / n
 
