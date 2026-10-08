@@ -52,11 +52,15 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import RelativeDeltaOffset
 from pandas.compat.pyarrow import HAS_PYARROW
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
+from pandas.core.dtypes.astype import raise_if_float_outside_int64
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
@@ -244,7 +248,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "hour",
         "minute",
         "second",
-        "weekday",
         "day_of_week",
         "day_of_year",
         "quarter",
@@ -253,11 +256,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "nanosecond",
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
-    # GH#46768 - deprecated but still need to be accessible via .dt accessor
-    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
-    _datetimelike_ops: list[str] = (
-        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "tz"]
-    )
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + _other_ops + ["unit", "tz"]
     _datetimelike_methods: list[str] = [
         "to_period",
         "tz_localize",
@@ -1948,14 +1947,12 @@ default 'raise'
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.day_of_week` instead.
+            Use :attr:`DatetimeArray.day_of_week` instead.
         """
         # GH#12816
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
-            f"{type(self).__name__}.weekday is deprecated and will be removed "
-            "in a future version. Use DatetimeIndex.day_of_week or "
+            "DatetimeArray.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeArray.day_of_week or "
             "Series.dt.day_of_week instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
@@ -1968,10 +1965,8 @@ default 'raise'
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.day_of_week` instead.
+            Use :attr:`DatetimeArray.day_of_week` instead.
         """
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
             "DatetimeArray.dayofweek is deprecated and will be removed in a "
             "future version. Use DatetimeArray.day_of_week instead.",
@@ -2024,10 +2019,8 @@ default 'raise'
         The ordinal day of the year.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.day_of_year` instead.
+            Use :attr:`DatetimeArray.day_of_year` instead.
         """
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
             "DatetimeArray.dayofyear is deprecated and will be removed in a "
             "future version. Use DatetimeArray.day_of_year instead.",
@@ -2116,10 +2109,8 @@ default 'raise'
         The number of days in the month.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.days_in_month` instead.
+            Use :attr:`DatetimeArray.days_in_month` instead.
         """
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
             "DatetimeArray.daysinmonth is deprecated and will be removed in a "
             "future version. Use DatetimeArray.days_in_month instead.",
@@ -2653,10 +2644,11 @@ def _sequence_to_dt64(
     Raises
     ------
     TypeError : PeriodDType data is passed
+    OutOfBoundsDatetime : float data outside the int64 domain is passed
     """
 
     # By this point we are assured to have either a numpy array or Index
-    data, copy = maybe_convert_dtype(data, copy, tz=tz)
+    data, copy = maybe_convert_dtype(data, copy, tz=tz, out_unit=out_unit)
     data_dtype = getattr(data, "dtype", None)
 
     out_dtype = DT64NS_DTYPE
@@ -2668,7 +2660,7 @@ def _sequence_to_dt64(
         #  also complex or categorical or other extension
         data = cast("np.ndarray", data)
         copy = False
-        if lib.infer_dtype(data, skipna=False) == "integer":
+        if lib.is_integer_array(data, skipna=False):
             # Much more performant than going through array_to_datetime
             data = data.astype(np.int64)
         elif tz is not None and ambiguous == "raise":
@@ -2847,7 +2839,9 @@ def objects_to_datetime64(
         raise TypeError(result)
 
 
-def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
+def maybe_convert_dtype(
+    data, copy: bool, tz: tzinfo | None = None, out_unit: str | None = None
+):
     """
     Convert data based on dtype conventions, issuing
     errors where appropriate.
@@ -2857,6 +2851,8 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     data : np.ndarray or pd.Index
     copy : bool
     tz : tzinfo or None, default None
+    out_unit : str or None, default None
+        Resolution the float data is destined for; named in the error message.
 
     Returns
     -------
@@ -2866,12 +2862,15 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     Raises
     ------
     TypeError : PeriodDType data is passed
+    OutOfBoundsDatetime : float data outside the int64 domain is passed
     """
     if not hasattr(data, "dtype"):
         # e.g. collections.deque
         return data, copy
 
     if is_float_dtype(data.dtype):
+        out_dtype = DT64NS_DTYPE if out_unit is None else np.dtype(f"M8[{out_unit}]")
+        raise_if_float_outside_int64(np.asarray(data), out_dtype)
         # pre-2.0 we treated these as wall-times, inconsistent with ints
         # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes.
         # Note: data.astype(np.int64) fails ARM tests, see

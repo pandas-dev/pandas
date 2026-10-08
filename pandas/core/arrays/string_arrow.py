@@ -4,6 +4,7 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
+    Any,
     Self,
 )
 
@@ -187,9 +188,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
         try:
             arr = pa.array(values, from_pandas=True)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
+            # OverflowError for e.g. 2**70; safe=True so
+            #  [nan, 2**64 - 1] stays object instead of rounding, GH#70233
             values = construct_1d_object_array_from_listlike(values)
-            return lib.maybe_convert_objects(values, convert_non_numeric=True)
+            return lib.maybe_convert_objects(
+                values, convert_non_numeric=True, safe=True
+            )
         if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
             return self._from_pyarrow_array(arr)
         if self.dtype.na_value is np.nan:
@@ -424,7 +429,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     @classmethod
     def _preprocess_re_pattern(
-        cls, pat: str | re.Pattern, case: bool, flags: int
+        cls, pat: str | re.Pattern[str], case: bool, flags: int
     ) -> tuple[str, bool, int]:
         pattern, case, flags = cls._unwrap_re_pattern(pat, case, flags)
 
@@ -458,7 +463,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -475,7 +480,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -492,8 +497,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern[str],
+        repl: str | Callable[..., Any],
         n: int = -1,
         case: bool = True,
         flags: int = 0,
@@ -525,7 +530,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
-    def _str_count(self, pat: str | re.Pattern, flags: int = 0):
+    def _str_count(self, pat: str | re.Pattern[str], flags: int = 0):
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
