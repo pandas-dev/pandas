@@ -1858,11 +1858,8 @@ class DataFrame(NDFrame, OpsMixin):
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is not a view on
-            another array. If ``copy=True``, a new copy is always made, even
-            if not strictly necessary. If ``copy=False`` (the default), a copy
-            is avoided when possible, but one may still be made depending on
-            the dtype and how the data is stored, so the result is not
-            guaranteed to be a view.
+            another array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the dtypes of the DataFrame columns.
