@@ -186,8 +186,6 @@ def test_frame_consistency(groupby_func):
         exclude_expected = {"axis"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
-    elif groupby_func in ("rank",):
-        exclude_expected = {"numeric_only"}
     elif groupby_func in ("quantile",):
         exclude_expected = {"method", "axis"}
     elif groupby_func in ["corrwith"]:
@@ -246,8 +244,6 @@ def test_series_consistency(request, groupby_func):
         exclude_result = {"numeric_only"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
-    elif groupby_func in ("rank",):
-        exclude_expected = {"numeric_only"}
     elif groupby_func in ("idxmin", "idxmax"):
         exclude_expected = {"args", "kwargs"}
     elif groupby_func in ("quantile",):
