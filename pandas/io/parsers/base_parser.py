@@ -561,15 +561,12 @@ class ParserBase:
             and try_num_bool
             and (len(result) == 0 or not isinstance(result[0], int))
         ):
-            try:
-                result, bool_mask = libops.maybe_convert_bool(
-                    np.asarray(values),
-                    true_values=self.true_values,
-                    false_values=self.false_values,
-                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]
-                )
-            except TypeError:
-                bool_mask = None
+            result, bool_mask = libops.maybe_convert_bool(
+                np.asarray(values),
+                true_values=self.true_values,
+                false_values=self.false_values,
+                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]
+            )
             if result.dtype == np.bool_ and non_default_dtype_backend:
                 if bool_mask is None:
                     bool_mask = np.zeros(result.shape, dtype=np.bool_)
