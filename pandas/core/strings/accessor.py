@@ -17,6 +17,7 @@ from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -3014,6 +3015,8 @@ class StringMethods(NoNewAttributesMixin):
         self,
         sep: str = "|",
         dtype: NpDtype | None = None,
+        *,
+        regex: bool = True,
     ):
         """
         Return DataFrame of dummy/indicator variables for Series.
@@ -3027,6 +3030,16 @@ class StringMethods(NoNewAttributesMixin):
             String to split on.
         dtype : dtype, default np.int64
             Data type for new columns. Only a single dtype is allowed.
+        regex : bool, default True
+            Whether to retain the existing separator interpretation. If False,
+            always treat `sep` as a literal string. If True, preserve the
+            existing backend-specific behavior: object and Python-backed strings
+            interpret multi-character separators as regular expressions when
+            extracting labels, while single-character separators and the Arrow
+            backend use literal splitting. True does not enable full regular
+            expression support throughout the encoding algorithm.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -3057,14 +3070,21 @@ class StringMethods(NoNewAttributesMixin):
         0   True   True    False
         1   False  False   False
         2   True   False   True
+
+        Use a literal separator containing spaces and a pipe:
+
+        >>> pd.Series(["Remote | On site"]).str.get_dummies(" | ", regex=False)
+           On site  Remote
+        0        1       1
         """
         from pandas.core.frame import DataFrame
 
+        regex = validate_bool_kwarg(regex, "regex", none_allowed=False)
         if dtype is not None and not (is_numeric_dtype(dtype) or is_bool_dtype(dtype)):
             raise ValueError("Only numeric or boolean dtypes are supported for 'dtype'")
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        result, name = self._data.array._str_get_dummies(sep, dtype)
+        result, name = self._data.array._str_get_dummies(sep, dtype, regex=regex)
         if is_extension_array_dtype(dtype):
             return self._wrap_result(
                 DataFrame(result, columns=name, dtype=dtype),
