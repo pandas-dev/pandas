@@ -485,3 +485,28 @@ class TestExpressions:
 
         assert arith.dtype.type is np.dtype(dtype).type
         assert where.dtype.type is np.dtype(dtype).type
+
+    @pytest.mark.parametrize("dtype", ["float32", "int32"])
+    @pytest.mark.parametrize("scalar", [3, 0.1, np.float32(0.1)])
+    @pytest.mark.parametrize(
+        "opname", ["__add__", "__radd__", "__mul__", "__truediv__", "__eq__", "__lt__"]
+    )
+    def test_scalar_op_matches_numpy(
+        self, opname, scalar, dtype, frame_or_series, monkeypatch
+    ):
+        # GH#61951 numexpr gave Python scalars int64/float64, so the result was
+        # upcast (float32 -> float64) and comparisons used the wrong precision
+        obj = frame_or_series(np.array([-2, 0, 0.1, 1, 2.5, 3]).astype(dtype))
+        op = getattr(obj, opname)
+        with pd.option_context("compute.use_numexpr", False):
+            expected = op(scalar)
+
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            expr.set_test_mode(True)
+            result = op(scalar)
+            used_numexpr = expr.get_test_result()
+            expr.set_test_mode(False)
+
+        assert used_numexpr, "Did not use numexpr as expected."
+        tm.assert_equal(result, expected)

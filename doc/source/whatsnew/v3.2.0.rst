@@ -146,7 +146,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in arithmetic and comparison operations between a :class:`Series` or :class:`DataFrame` with more than 1,000,000 elements and a scalar giving different results than for smaller objects when ``numexpr`` is installed, e.g. upcasting ``float32`` and ``int32`` to ``float64`` and ``int64`` or comparing ``float32`` values at ``float64`` precision (:issue:`61951`)
 -
 
 Conversion

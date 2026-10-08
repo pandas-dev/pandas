@@ -128,6 +128,22 @@ def normalize_numexpr_result(result):
     return result
 
 
+def _cast_python_scalar(value, other):
+    """
+    Cast a Python int or float operand to the dtype NumPy would use for it.
+
+    numexpr treats Python scalars as int64/float64, so e.g. float32 array * float
+    gives float64, while NumPy treats them as "weak" (NEP 50) and gives float32.
+    Casting the scalar to the NumPy result dtype first makes the numexpr result
+    match NumPy, see GH#61951.
+
+    Raises OverflowError if the value does not fit, e.g. 2**40 for int32.
+    """
+    if type(value) in (int, float):
+        return np.result_type(other, value).type(value)
+    return value
+
+
 def _evaluate_numexpr(op, op_str, left_op, right_op):
     result = None
 
@@ -137,10 +153,9 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
             # we were originally called by a reversed op method
             left_op, right_op = right_op, left_op
 
-        left_value = left_op
-        right_value = right_op
-
         try:
+            left_value = _cast_python_scalar(left_op, right_op)
+            right_value = _cast_python_scalar(right_op, left_op)
             result = ne.evaluate(
                 f"left_value {op_str} right_value",
                 local_dict={"left_value": left_value, "right_value": right_value},
@@ -150,6 +165,10 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
         except TypeError:
             # numexpr raises eg for array ** array with integers
             # (https://github.com/pydata/numexpr/issues/379)
+            pass
+        except OverflowError:
+            # the scalar does not fit the array dtype, e.g. int32 array + 2**40;
+            # fall back to NumPy, which raises or compares correctly
             pass
         except NotImplementedError:
             if _bool_arith_fallback(op_str, left_op, right_op):
