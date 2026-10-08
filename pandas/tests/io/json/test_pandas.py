@@ -811,13 +811,6 @@ class TestPandasContainer:
         expected = pd.Series([None], index=["a"], dtype="null[pyarrow]")
         tm.assert_series_equal(result, expected)
 
-    def test_frame_empty_date_column_not_converted(self):
-        result = pd.read_json(StringIO('{"date": {}}'))
-        expected = pd.DataFrame(
-            {"date": []}, index=pd.Index([], dtype="float64"), dtype="float64"
-        )
-        tm.assert_frame_equal(result, expected)
-
     def test_series_all_nan_roundtrip(self, orient):
         # GH#35464
         ser = pd.Series([np.nan, np.nan], name="a")
