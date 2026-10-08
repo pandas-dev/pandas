@@ -3018,6 +3018,7 @@ def test_datetime_with_timezone_roundtrip(conn, request):
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_out_of_bounds_datetime(conn, request):
     # GH 26761
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
     assert data.to_sql(name="test_datetime_obb", con=conn, index=False) == 1
@@ -3025,6 +3026,14 @@ def test_out_of_bounds_datetime(conn, request):
     expected = pd.DataFrame(
         np.array([datetime(9999, 1, 1)], dtype="M8[us]"), columns=["date"]
     )
+    tm.assert_frame_equal(result, expected)
+
+    # GH#9261 read_sql_query should match read_sql_table
+    result = sql.read_sql_query("SELECT * FROM test_datetime_obb", conn)
+    if "sqlite" in conn_name:
+        # sqlite has no native datetime type
+        assert isinstance(result.loc[0, "date"], str)
+        result["date"] = pd.to_datetime(result["date"])
     tm.assert_frame_equal(result, expected)
 
 
