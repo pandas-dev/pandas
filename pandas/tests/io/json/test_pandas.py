@@ -796,6 +796,40 @@ class TestPandasContainer:
         result = pd.read_json(data, typ="series", dtype=dtype)
         tm.assert_series_equal(result, expected)
 
+    def test_series_all_null_not_datetime(self):
+        # GH#35464
+        result = pd.read_json(StringIO('{"a": null}'), typ="series")
+        expected = pd.Series([np.nan], index=["a"])
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_series_all_null_not_datetime_pyarrow(self):
+        # GH#35464
+        result = pd.read_json(
+            StringIO('{"a": null}'), typ="series", dtype_backend="pyarrow"
+        )
+        expected = pd.Series([None], index=["a"], dtype="null[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+    def test_frame_empty_date_column_not_converted(self):
+        result = pd.read_json(StringIO('{"date": {}}'))
+        expected = pd.DataFrame(
+            {"date": []}, index=pd.Index([], dtype="float64"), dtype="float64"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_series_all_nan_roundtrip(self, orient):
+        # GH#35464
+        ser = pd.Series([np.nan, np.nan], name="a")
+        data = StringIO(ser.to_json(orient=orient))
+        result = pd.read_json(data, typ="series", orient=orient)
+        expected = ser
+        if orient in ("values", "records"):
+            expected = expected.reset_index(drop=True)
+        if orient != "split":
+            expected = expected.rename(None)
+        tm.assert_series_equal(result, expected)
+
     def test_frame_from_json_precise_float(self):
         df = pd.DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
         result = pd.read_json(StringIO(df.to_json()), precise_float=True)
