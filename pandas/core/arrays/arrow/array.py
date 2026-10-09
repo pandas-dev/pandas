@@ -49,6 +49,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -2835,6 +2836,8 @@ class ArrowExtensionArray(
                     f"does not support operation '{name}'"
                 )
 
+        if "min_count" in kwargs:
+            kwargs["min_count"] = validate_min_count(kwargs["min_count"])
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
         if name in ["any", "all", "sum", "prod"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0

@@ -1954,17 +1954,30 @@ def test_ea_reduction_method_ddof(any_numeric_ea_and_arrow_dtype, op_name, ddof)
         ),
     ],
 )
-def test_negative_min_count_deprecated(frame_or_series, how, dtype):
+@pytest.mark.parametrize("min_count", [-1, -1.0])
+def test_negative_min_count_deprecated(frame_or_series, how, dtype, min_count):
     # GH#50022; pyarrow used to raise OverflowError
     obj = frame_or_series([2.0, np.nan, 3.0], dtype=dtype)
     expected = getattr(obj, how)(min_count=0)
     msg = "Passing a negative value for 'min_count' is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = getattr(obj, how)(min_count=-1)
+        result = getattr(obj, how)(min_count=min_count)
     if frame_or_series is pd.Series:
         assert result == expected
     else:
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+def test_negative_min_count_deprecated_arrow_array(how):
+    # GH#50022
+    pytest.importorskip("pyarrow")
+    arr = pd.array([2, None, 3], dtype="int64[pyarrow]")
+    expected = getattr(arr, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(arr, how)(min_count=-1)
+    assert result == expected
 
 
 def test_negative_min_count_deprecated_timedelta_index():

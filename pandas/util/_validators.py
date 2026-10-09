@@ -343,7 +343,7 @@ def validate_min_count(min_count: int) -> int:
     int
         ``min_count``, with negative values replaced by 0.
     """
-    if isinstance(min_count, (int, np.integer)) and min_count < 0:
+    if (lib.is_integer(min_count) or lib.is_float(min_count)) and min_count < 0:
         warnings.warn(
             "Passing a negative value for 'min_count' is deprecated and will "
             "raise in a future version of pandas. Pass min_count=0 instead.",
