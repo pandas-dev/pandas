@@ -154,6 +154,19 @@ def test_agg_consistency(step):
     tm.assert_index_equal(result, expected)
 
 
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"A": [1.0, 2.0, 4.0]})
+    result = df.rolling(2).agg({"A": "std"}, ddof=0)
+    expected = df.rolling(2).std(ddof=0)
+    tm.assert_frame_equal(result, expected)
+
+    pytest.importorskip("scipy")
+    result = df.rolling(2, win_type="gaussian").agg({"A": "mean"}, std=1)
+    expected = df.rolling(2, win_type="gaussian").mean(std=1)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_nested_dicts():
     # API change for disallowing these types of nested dicts
     df = pd.DataFrame({"A": range(5), "B": range(0, 10, 2)})

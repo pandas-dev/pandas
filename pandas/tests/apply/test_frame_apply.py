@@ -1921,10 +1921,32 @@ def test_agg_mapping_func_deprecated():
     )
     tm.assert_frame_equal(result, expected)
 
-    # TODO: the result below is wrong, should be fixed (GH53325)
+    # GH#23889
     result = df.agg({"x": foo1}, 0, 3, c=4)
-    expected = pd.DataFrame([2, 3, 4], columns=["x"])
+    expected = df + 7
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"x": [np.nan, np.nan], "y": [1.0, 2.0]})
+    result = df.agg({"x": "sum", "y": ["sum"]}, min_count=3)
+    expected = pd.DataFrame({"x": [np.nan], "y": [np.nan]}, index=["sum"])
+    tm.assert_frame_equal(result, expected)
+
+    # duplicate columns
+    df.columns = ["x", "x"]
+    result = df.agg({"x": "sum"}, min_count=2)
+    expected = pd.Series([np.nan, 3.0], index=["x", "x"])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_dict_reducer_with_args():
+    # GH#23889 forwarding args must not turn the reduction into an elementwise map
+    df = pd.DataFrame({"x": [1.0, 2.0]})
+    result = df.apply({"x": np.sum}, args=(0,))
+    expected = pd.Series([3.0], index=["x"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_std():

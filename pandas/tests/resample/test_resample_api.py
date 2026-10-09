@@ -380,6 +380,17 @@ def test_agg_empty_func_groupby(func):
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    df = pd.DataFrame(
+        {"A": [np.nan, np.nan, 1.0, 2.0]},
+        index=date_range("2020-01-01", periods=4, freq="s"),
+    )
+    result = df.resample("2s").agg({"A": "sum"}, min_count=1)
+    expected = df.resample("2s").sum(min_count=1)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list

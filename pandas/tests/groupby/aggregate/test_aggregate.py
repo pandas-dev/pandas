@@ -509,6 +509,19 @@ def test_groupby_agg_dict_with_getitem():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_agg_dict_forwards_args_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"key": [1, 1, 2], "x": [np.nan, np.nan, 1.0]})
+    gb = df.groupby("key")
+    result = gb.agg({"x": "sum"}, min_count=1)
+    expected = pd.DataFrame({"x": [np.nan, 1.0]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+    result = gb.agg({"x": lambda ser, a, b=0: a + b}, 3, b=4)
+    expected = pd.DataFrame({"x": [7, 7]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_agg_dict_dup_columns():
     # GH#55006
     df = pd.DataFrame(
