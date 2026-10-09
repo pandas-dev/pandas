@@ -166,6 +166,43 @@ def test_append_names_dont_match():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("n", [2, 3, 4, 5, 8, 9])
+def test_append_many(n):
+    # GH#70884
+    pieces = [
+        pd.MultiIndex.from_product([[i + 1, i], [f"x{i}", "a"]], names=["k", "v"])
+        for i in range(n)
+    ]
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_tuples(
+        [tup for piece in pieces for tup in piece], names=["k", "v"]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], pd.Index(list(range(n + 1)), name="k"))
+    tm.assert_index_equal(
+        result.levels[1], pd.Index(["a", *(f"x{i}" for i in range(n))], name="v")
+    )
+
+
+def test_append_many_mixed_dtypes():
+    # GH#70884
+    values = [
+        np.array([1], dtype="int64"),
+        np.array([2], dtype="int64"),
+        np.array([3], dtype="uint64"),
+        np.array([4.5]),
+    ]
+    pieces = [pd.MultiIndex.from_arrays([value, ["a"]]) for value in values]
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2, 3, 4.5], dtype=object), ["a"] * 4]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], expected.levels[0])
+
+
 def test_append_mixed_date_tzaware_timestamp():
     # GH#68577 the combined level cannot be converted to datetime64, so it
     #  stays object instead of raising "Mixed timezones detected"
