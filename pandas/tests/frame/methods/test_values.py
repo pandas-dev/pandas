@@ -215,6 +215,29 @@ class TestDataFrameValues:
         values = mixed_int_frame[["C"]].values
         assert values.dtype == np.uint8
 
+    @pytest.mark.parametrize(
+        "cats, other, expected_dtype",
+        [([1, 2], [3, 4], np.float64), ([True, False], [True, False], object)],
+    )
+    def test_values_categorical_with_nan(self, cats, other, expected_dtype):
+        # GH#38240 NaN in a categorical column was cast to the other column's
+        # int/bool dtype
+        df = pd.DataFrame({"a": pd.Categorical(cats, categories=cats), "b": other})
+        # the interleaved dtype is cached before the in-place setitem
+        assert df.values.dtype == np.array(other).dtype
+        df.iloc[1, 0] = np.nan
+
+        expected = np.array(
+            [[cats[0], other[0]], [np.nan, other[1]]], dtype=expected_dtype
+        )
+        tm.assert_numpy_array_equal(df.values, expected)
+        tm.assert_numpy_array_equal(df.to_numpy(), expected)
+        tm.assert_numpy_array_equal(df.T.values, expected.T)
+        tm.assert_numpy_array_equal(df.to_numpy(na_value=np.nan), expected)
+
+        expected[1, 0] = -1
+        tm.assert_numpy_array_equal(df.to_numpy(na_value=-1), expected)
+
 
 class TestPrivateValues:
     def test_private_values_dt64tz(self):
