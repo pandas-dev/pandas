@@ -23,6 +23,7 @@ from pandas.io._util import (
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
+    stringify_path,
 )
 
 if TYPE_CHECKING:
@@ -129,9 +130,19 @@ def read_orc(
 
     check_dtype_backend(dtype_backend)
 
+    if filesystem is not None:
+        # open the path only through the given filesystem (GH#58746)
+        pa_table = orc.read_table(
+            source=stringify_path(path),
+            columns=columns,
+            filesystem=filesystem,
+            **kwargs,
+        )
+        return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
+
     with get_handle(path, "rb", is_text=False) as handles:
         source = handles.handle
-        if is_fsspec_url(path) and filesystem is None:
+        if is_fsspec_url(path):
             pa = import_optional_dependency("pyarrow")
             pa_fs = import_optional_dependency("pyarrow.fs")
             try:

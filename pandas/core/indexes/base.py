@@ -73,6 +73,7 @@ from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
     common_dtype_categorical_compat,
+    construct_1d_object_array_from_listlike,
     find_result_type,
     infer_dtype_from,
     maybe_unbox_numpy_scalar,
@@ -8257,12 +8258,18 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (range, ExtensionArray)):
+    if isinstance(sequence, (range, ExtensionArray)) or len(sequence) == 1:
         return sequence
-    elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
-        return sequence
-    elif isinstance(sequence, (ABCSeries, Index)) and not (
-        isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"
+    elif isinstance(sequence, (ABCSeries, Index)):
+        if not lib.is_np_dtype(sequence.dtype, "i"):
+            return sequence
+    elif isinstance(sequence, np.ndarray):
+        if not (
+            sequence.dtype.kind in "iu" or lib.is_integer_array(sequence, skipna=False)
+        ):
+            return sequence
+    elif not lib.is_integer_array(
+        construct_1d_object_array_from_listlike(sequence), skipna=False
     ):
         return sequence
     if len(sequence) == 0:

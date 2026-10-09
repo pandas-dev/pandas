@@ -2255,11 +2255,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # This method can consume the un-normalized {column: aggfunc} form, but only
         #  when the columns are unique: dict aggregation fans a single key out to
         #  every matching column, while named aggregation must produce exactly one
-        #  output per keyword.
+        #  output per keyword. The columns must also be unnamed, since the dict
+        #  form keeps columns.name and the normalized form drops it.
         #  `func is None` is a precondition for relabeling at all, and short-circuits
         #  materializing _obj_with_exclusions on the far more common plain-agg path.
-        allow_skip_normalization = (
-            func is None and self._obj_with_exclusions.columns.is_unique
+        allow_skip_normalization = func is None and (
+            self._obj_with_exclusions.columns.is_unique
+            and self._obj_with_exclusions.columns.name is None
         )
         relabeling, func, columns, order = reconstruct_func(
             func, allow_skip_normalization, **kwargs

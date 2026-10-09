@@ -142,3 +142,35 @@ def test_class():
     )
     with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         Foo().baz("qux", "quox")
+
+
+class SubFoo(Foo):
+    pass
+
+
+def test_subclass_name():
+    # GH#48650
+    msg = (
+        rf"Starting with pandas version {WARNING_CATEGORY.version()} all arguments "
+        r"of SubFoo\.baz except for the argument \'bar\' will be keyword-only"
+    )
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
+        SubFoo().baz("qux", "quox")
+
+
+class Bar:
+    @deprecate_nonkeyword_arguments(
+        WARNING_CATEGORY, allowed_args=["self"], name="public_name"
+    )
+    def _private(self, bar=None): ...
+
+
+class SubBar(Bar):
+    pass
+
+
+def test_subclass_name_with_explicit_name():
+    # GH#48650
+    msg = r"all arguments of SubBar\.public_name will be keyword-only"
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
+        SubBar()._private("qux")
