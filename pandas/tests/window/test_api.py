@@ -51,6 +51,21 @@ def test_getitem_multiindex_tuple_key(method, kwargs):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [("rolling", {"window": 2}), ("expanding", {}), ("ewm", {"com": 1})],
+)
+def test_groupby_getitem_multiindex_tuple_key(method, kwargs):
+    # GH#13914
+    mi = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("k", "")])
+    df = pd.DataFrame([[1, 4, 1], [2, 5, 1], [3, 6, 2]], columns=mi)
+    gb = df.groupby(("k", ""))
+    with tm.assert_produces_warning(None):
+        result = getattr(gb, method)(**kwargs)[("A", 1)].mean()
+    expected = getattr(gb[[("A", 1)]], method)(**kwargs).mean()[("A", 1)]
+    tm.assert_series_equal(result, expected)
+
+
 def test_select_bad_cols():
     df = pd.DataFrame([[1, 2]], columns=["A", "B"])
     g = df.rolling(window=5)
