@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -168,6 +170,28 @@ class TestDataFrameRound:
         tm.assert_frame_equal(df.round({"col1": 0, "col2": 1}), round_0)
         with tm.assert_produces_warning(UserWarning, match=msg):
             tm.assert_frame_equal(df.round({"col3": 1}), df)
+
+    @pytest.mark.parametrize(
+        "decimals", [2, dict.fromkeys("abcd", 2), pd.Series(dict.fromkeys("abcd", 2))]
+    )
+    def test_round_object_columns(self, decimals):
+        # GH#55114
+        df = pd.DataFrame(
+            {
+                "a": [Decimal("1.234"), None, True],
+                "b": [Decimal("1.234"), "x", pd.Timestamp("2020-01-01")],
+                "c": [Decimal("1.234"), Decimal("Infinity"), None],
+            },
+            dtype=object,
+        )
+        df["d"] = [1.234, 2.345, 3.456]
+        result = df.round(decimals)
+        expected = df.copy()
+        expected["a"] = pd.Series([Decimal("1.23"), None, True], dtype=object)
+        expected["d"] = [1.23, 2.35, 3.46]
+        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result["a"], df["a"].round(2))
+        assert result["a"].iloc[2] is True
 
     def test_round_with_duplicate_columns(self):
         # GH#11611

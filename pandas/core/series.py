@@ -110,6 +110,7 @@ from pandas.core import (
 )
 from pandas.core.accessor import Accessor
 from pandas.core.apply import SeriesApply
+from pandas.core.array_algos.transforms import round_object
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.arrow import (
     ListAccessor,
@@ -2916,8 +2917,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.copy()
 
         if is_object_dtype(self.dtype):
-            values = self._values
-            result = lib.map_infer(values, lambda x: round(x, decimals), convert=False)
+            result = round_object(self._values, decimals)
             return self._constructor(result, index=self.index, copy=False).__finalize__(
                 self, method="round"
             )
