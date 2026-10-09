@@ -27,6 +27,9 @@ class TimestampConstruction:
     def time_parse_dateutil(self):
         Timestamp("2017/08/25 08:16:14 AM")
 
+    def time_parse_month_name(self):
+        Timestamp("Fri, 25 Aug 2017 08:16:14 -0500")
+
     def time_parse_today(self):
         Timestamp("today")
 
