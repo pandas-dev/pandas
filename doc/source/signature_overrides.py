@@ -131,6 +131,34 @@ _OFFSET_SIGNATURES = {
         "end",
         "offset",
     ),
+    pd.tseries.offsets.Day: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Hour: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Minute: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Second: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Milli: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Micro: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Nano: (
+        "n",
+        "normalize",
+    ),
 }
 
 
