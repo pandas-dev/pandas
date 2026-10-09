@@ -3164,5 +3164,8 @@ def test_median_skipna_false_keeps_complex(na_first):
         [complex(np.nan), 2 + 3j] if na_first else [2 + 3j, complex(np.nan)],
         index=list(cols),
     )
-    tm.assert_series_equal(df.median(skipna=False), expected)
-    tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)
+    msg = "The median of complex data is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df.median(skipna=False), expected)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)
