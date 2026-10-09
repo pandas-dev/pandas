@@ -200,3 +200,13 @@ def test_multiindex_name_and_level_raising():
     mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
     with pytest.raises(TypeError, match="Can not pass level for dictlike `names`."):
         mi.set_names(names={"x": "z"}, level={"x": "z"})
+
+
+@pytest.mark.parametrize("func", ["rename", "set_names"])
+@pytest.mark.parametrize("arg", [False, 0])
+def test_rename_positional_second_arg_raises(func, arg):
+    # GH#33778 a positional second argument used to be read as `level`
+    mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+    msg = "takes 2 positional arguments but 3 were given"
+    with pytest.raises(TypeError, match=msg):
+        getattr(mi, func)(["foo", "bar"], arg)
