@@ -7,4 +7,4 @@
 Check exactly one of the following, per the [automated contributions policy](https://pandas.pydata.org/docs/dev/development/contributing.html#automated-contributions-policy):
 
 - [ ] I did **not** use AI to develop this pull request.
-- [ ] I used AI to develop this pull request. I prompted it to follow `AGENTS.md`, I have reviewed and understood every change, and I have described above how I used it and exactly which tool, model version, and effort setting — e.g. `claude opus 4.8 (xhigh)`, not just `claude`.
+- [ ] I used AI to develop this pull request. I prompted it to follow `AGENTS.md`, [`pandas-review`](https://pandas.pydata.org/docs/dev/development/contributing.html#self-review-with-pandas-review) reported `LGTM` or `NITS ONLY`, I have reviewed and understood every change, and I have described above how I used it and exactly which tool, model version, and effort setting — e.g. `claude opus 4.8 (xhigh)`, not just `claude`.
