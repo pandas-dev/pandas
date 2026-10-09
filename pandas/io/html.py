@@ -965,12 +965,23 @@ def _parse(
     storage_options,
     **kwargs,
 ):
+    # only fall back to the next flavor on a missing dependency when the user
+    # did not ask for a specific one
+    fallback_on_import_error = flavor is None
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
-    retained = None
+    retained: Exception | None = None
     for flav in flavor:
-        parser = _parser_dispatch(flav)
+        try:
+            parser = _parser_dispatch(flav)
+        except ImportError as caught:
+            if not fallback_on_import_error:
+                raise
+            # if no flavor is importable, report the first (preferred) one
+            if retained is None:
+                retained = caught
+            continue
         p = parser(
             io,
             compiled_match,
