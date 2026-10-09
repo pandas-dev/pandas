@@ -35,7 +35,7 @@ authors to coordinate on the namespace.
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
-  | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+  | [woodwork](https://github.com/alteryx/woodwork)                      | `ww`       | `Series`, `DataFrame` |
   | [pd-money](https://github.com/aalhajmee/pd-money)                     | `money`    | `Series`              |
 
 ### Data types
