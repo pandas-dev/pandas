@@ -10,6 +10,16 @@ import pandas._testing as tm
 
 
 class TestAstype:
+    def test_astype_categoricaldtype_casts_values(self):
+        # GH#66688
+        dtype = pd.CategoricalDtype(pd.Index(["1", "2"], dtype="string"))
+
+        with tm.assert_produces_warning(None):
+            result = pd.Index([1, 2]).astype(dtype)
+
+        expected = pd.CategoricalIndex(["1", "2"], dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
     def test_astype(self):
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
