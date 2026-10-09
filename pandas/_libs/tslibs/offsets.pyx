@@ -4451,8 +4451,9 @@ cdef class QuarterEnd(QuarterOffset):
         The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    startingMonth : int, default 3
+    startingMonth : int or None, default None
         The month of the year in which quarters end.
+        If None, defaults to 3 (March).
 
     See Also
     --------
@@ -4500,8 +4501,9 @@ cdef class QuarterBegin(QuarterOffset):
         The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    startingMonth : int, default 3
+    startingMonth : int or None, default None
         The month of the year in which quarters start.
+        If None, defaults to 3 (March).
 
     See Also
     --------
