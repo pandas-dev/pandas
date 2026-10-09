@@ -1630,7 +1630,7 @@ def test_nanvar_family_float16_overflow(use_bottleneck, method, values):
 @pytest.mark.parametrize("use_bottleneck", [True, False])
 @pytest.mark.parametrize("method", ["var", "std", "sem"])
 def test_nanvar_family_float32_precision(use_bottleneck, method):
-    # GH#??? bottleneck accumulates float32 in float32
+    # GH#70945 Ensure correctness of result regardless of compute.use_bottleneck
     rng = np.random.default_rng(2)
     values = (rng.standard_normal(1_000_000) * 3 + 1000).astype(np.float32)
     df = pd.DataFrame({"a": values})
