@@ -6,6 +6,10 @@ This is a community-maintained list of projects that build on pandas in order to
 in the PyData space. The pandas core development team does not necessarily endorse any particular
 project on this list or have any knowledge of the maintenance status of any particular library.
 
+To add a project, open a pull request editing
+[this page](https://github.com/pandas-dev/pandas/blob/main/web/pandas/community/ecosystem.md).
+Projects that are archived, deprecated, or inactive for about two years may be removed.
+
 ## Extensions
 
 pandas has different ways to allow third-party packages to enhance its
@@ -27,10 +31,8 @@ authors to coordinate on the namespace.
   | -------------------------------------------------------------------- | ---------- | --------------------- |
   | [akimbo](https://akimbo.readthedocs.io/en/latest/)                   | `ak`       | `Series`              |
   | [bigframes](https://dataframes.bigquery.dev/)                        | `bigquery` | `DataFrame`           |
-  | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
-  | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
@@ -51,7 +53,7 @@ Arrays](https://awkward-array.org/) inside pandas' Series and
 DataFrame. It also provides an accessor for using awkward functions
 on Series that are of awkward type.
 
-#### [db-dtypes](https://github.com/googleapis/python-db-dtypes-pandas)
+#### [db-dtypes](https://github.com/googleapis/google-cloud-python/tree/main/packages/db-dtypes)
 
 db-dtypes provides an extension types for working with types like
 DATE, TIME, and JSON from database systems. This package is used
@@ -63,13 +65,6 @@ a natural numpy type.
 Pandas-Genomics provides an extension type and extension array for working
  with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
-
-#### [Physipandas](https://github.com/mocquin/physipandas)
-
-Physipandas provides an extension for manipulating physical quantities
- (like scalar and numpy.ndarray) in association with a physical unit
- (like meter or joule) and additional features for integration of
- `physipy` accessors with pandas Series and Dataframe.
 
 #### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
@@ -301,19 +296,19 @@ The following data feeds are available:
 - Stooq Index Data
 - MOEX Data
 
-#### [pandas-gbq](https://github.com/googleapis/python-bigquery-pandas)
+#### [pandas-gbq](https://github.com/googleapis/google-cloud-python/tree/main/packages/pandas-gbq)
 
 pandas-gbq provides high performance reads and writes to and from
 [Google BigQuery](https://cloud.google.com/bigquery/). Previously (before version 2.2.0),
 these methods were exposed as `pandas.read_gbq` and `DataFrame.to_gbq`.
 Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
 
-#### [pandaSDMX](https://pandasdmx.readthedocs.io)
+#### [sdmx1](https://sdmx1.readthedocs.io)
 
-pandaSDMX is a library to retrieve and acquire statistical data and
-metadata disseminated in [SDMX](https://sdmx.org) 2.1, an
+sdmx1 is a library to retrieve and acquire statistical data and
+metadata disseminated in [SDMX](https://sdmx.org) 2.1 and 3.0, an
 ISO-standard widely used by institutions such as statistics offices,
-central banks, and international organisations. pandaSDMX can expose
+central banks, and international organisations. sdmx1 can expose
 datasets and related structural metadata including data flows,
 code-lists, and data structure definitions as pandas Series or
 MultiIndexed DataFrames.
@@ -385,11 +380,12 @@ multiple engines. It helps in bridging the gap between local Python environments
 (like pandas) and remote storage and execution systems like Hadoop components
 (like HDFS, Impala, Hive, Spark) and SQL databases (Postgres, etc.).
 
-#### [Koalas](https://koalas.readthedocs.io/en/latest/)
+#### [pandas API on Spark](https://spark.apache.org/pandas-on-spark/)
 
-Koalas provides a familiar pandas DataFrame interface on top of Apache
-Spark. It enables users to leverage multi-cores on one machine or a
-cluster of machines to speed up or scale their DataFrame code.
+The pandas API on Spark (`pyspark.pandas`, formerly Koalas) provides a familiar
+pandas DataFrame interface on top of Apache Spark. It enables users to leverage
+multi-cores on one machine or a cluster of machines to speed up or scale their
+DataFrame code.
 
 #### [Modin](https://github.com/modin-project/modin)
 
@@ -428,7 +424,7 @@ Pyjanitor provides a clean API for cleaning data, using method chaining.
 
 ## Development tools for pandas
 
-#### [Hamilton](https://github.com/dagworks-inc/hamilton)
+#### [Hamilton](https://github.com/apache/hamilton)
 
 Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was
 designed to help one manage a Pandas code base, specifically with respect to
@@ -489,15 +485,11 @@ manipulation and visualization more interactive and fun:
 6. SQL integration: marimo allows users to write SQL queries against any
    pandas dataframes existing in memory.
 
-#### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
+#### [pandas-stubs](https://github.com/pandas-dev/pandas-stubs)
 
-While pandas repository is partially typed, the package itself doesn't expose this information for external use.
-Install pandas-stubs to enable basic type coverage of pandas API.
-
-Learn more by reading through these issues [14468](https://github.com/pandas-dev/pandas/issues/14468),
-[26766](https://github.com/pandas-dev/pandas/issues/26766), [28142](https://github.com/pandas-dev/pandas/issues/28142).
-
-See installation and usage instructions on the [GitHub page](https://github.com/VirtusLab/pandas-stubs).
+pandas does not expose its own type annotations for external use. pandas-stubs,
+maintained by the pandas development team, provides type stubs for the public
+pandas API for use with type checkers such as mypy and pyright.
 
 #### [Spyder](https://www.spyder-ide.org/)
 
@@ -624,7 +616,7 @@ modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
-#### [STUMPY](https://github.com/TDAmeritrade/stumpy)
+#### [STUMPY](https://github.com/stumpy-dev/stumpy)
 
 STUMPY is a powerful and scalable Python library for modern time series analysis.
 At its core, STUMPY efficiently computes something called a
