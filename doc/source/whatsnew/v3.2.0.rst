@@ -119,7 +119,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69632`, :issue:`69748`, :issue:`70140`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
-- Performance improvement in :meth:`Series.min`, :meth:`Series.max`, :meth:`DataFrame.min`, and :meth:`DataFrame.max` for numeric data, and in :meth:`Series.median`, :meth:`Series.std`, and :meth:`Series.var` (and their :class:`DataFrame` counterparts) when bottleneck is installed (:issue:`???`)
+- Performance improvement in :meth:`Series.min`, :meth:`Series.max`, :meth:`DataFrame.min`, and :meth:`DataFrame.max` for numeric data, and in :meth:`Series.median`, :meth:`Series.std`, and :meth:`Series.var` (and their :class:`DataFrame` counterparts) when bottleneck is installed (:issue:`70950`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.bug_fixes:
