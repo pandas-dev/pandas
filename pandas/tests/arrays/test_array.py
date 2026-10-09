@@ -735,3 +735,51 @@ def test_numpy_datetime_like_to_string(data, dtype, expected_data):
     )
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arraylike",
+    [pd.Series, pd.Index, pd.array, np.array],
+)
+def test_comparison_between_arraylike_preserve_na(arraylike):
+    # GH#63328
+    data_1 = [0, 1, 2]
+    data_2 = [1, 1, pd.NA]
+    data_3 = [pd.NA, pd.NA, pd.NA]
+    if arraylike is pd.Series:
+        expected_1 = pd.Series([False, True, pd.NA], dtype="boolean")
+        expected_2 = pd.Series([pd.NA, pd.NA, pd.NA], dtype="boolean")
+        expected_3 = pd.Series([pd.NA, pd.NA, pd.NA], dtype="object")
+    else:
+        expected_1 = pd.array([False, True, pd.NA], dtype="boolean")
+        expected_2 = pd.array([pd.NA, pd.NA, pd.NA], dtype="boolean")
+        if arraylike is pd.array:
+            expected_3 = pd.array([pd.NA, pd.NA, pd.NA], dtype="boolean")
+        elif arraylike is np.array:
+            expected_3 = pd.array([pd.NA, pd.NA, pd.NA], dtype="object")
+        else:
+            expected_3 = np.array([pd.NA, pd.NA, pd.NA], dtype="object")
+
+    # Pandas array only returns result with object dtype when the input
+    # data consists entirely of object-like types (in the case, data_3).
+    # Furthermore, when both sides are Pandas arrays, the returned dtype
+    # is always boolean.
+    result_1 = pd.array(data_1) == arraylike(data_2)
+    tm.assert_equal(result_1, expected_1)
+    result_1 = arraylike(data_2) == pd.array(data_1)
+    tm.assert_equal(result_1, expected_1)
+
+    result_1 = pd.array(data_2) == arraylike(data_1)
+    tm.assert_equal(result_1, expected_1)
+    result_1 = arraylike(data_1) == pd.array(data_2)
+    tm.assert_equal(result_1, expected_1)
+
+    result_2 = pd.array(data_2) == arraylike(data_3)
+    tm.assert_equal(result_2, expected_2)
+    result_2 = arraylike(data_3) == pd.array(data_2)
+    tm.assert_equal(result_2, expected_2)
+
+    result_2 = pd.array(data_3) == arraylike(data_2)
+    tm.assert_equal(result_2, expected_3)
+    result_2 = arraylike(data_2) == pd.array(data_3)
+    tm.assert_equal(result_2, expected_3)
