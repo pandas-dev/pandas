@@ -199,6 +199,7 @@ I/O
 - Fixed bug in :func:`read_csv` where callable ``skiprows`` received incorrect row numbers on 32-bit big-endian architectures (:issue:`69985`)
 - Bug in :class:`ExcelWriter` with ``engine="openpyxl"`` ignoring ``date_format`` and ``datetime_format`` (:issue:`44284`, :issue:`59882`)
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
+- Fixed a segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``date_format="iso"`` when datetime conversion raises an exception (:issue:`69461`)
 -
 
 Period
