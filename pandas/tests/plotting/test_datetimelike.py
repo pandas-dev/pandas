@@ -87,7 +87,7 @@ class TestTSPlot:
         tm.assert_numpy_array_equal(ydata, np.asarray(values))
 
     def test_irregular_tz_aware_year_tick_labels(self, tz_aware_fixture):
-        # GH#15754 year ticks were labeled one year early in US/Eastern
+        # GH#15754 year ticks were labeled one year early with pytz zones
         tz = tz_aware_fixture
         index = DatetimeIndex(["2011-10-01 09:00", "2016-10-01 09:00"], tz="UTC")
         index = index.tz_convert(tz)
