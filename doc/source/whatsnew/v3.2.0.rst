@@ -87,12 +87,14 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
+- :meth:`Series.argsort` arguments ``order`` and ``stable`` now match the behaviour of ``numpy.argsort`` instead of being discarded without doing anything (:issue:`64255`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated :meth:`Series.argsort` 4th positional argument, previously called ``stable`` and which did nothing, to match signature of ``numpy.argsort`` (:issue:`64255`)
 
 .. _whatsnew_320.deprecations.depr1:
 
