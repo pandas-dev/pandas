@@ -172,6 +172,39 @@ def test_getitem(test_frame):
     )
 
 
+def test_getitem_multiindex_tuple_key():
+    # GH#13914
+    df = pd.DataFrame(
+        [[1, 4], [2, 5], [3, 6]],
+        columns=pd.MultiIndex.from_tuples([("A", 1), ("A", 2)]),
+        index=date_range("2013-01-01", periods=3, freq="s"),
+    )
+    r = df.resample("2s")
+
+    with tm.assert_produces_warning(None):
+        result = r[("A", 1)].sum()
+    expected = df[("A", 1)].resample("2s").sum()
+    tm.assert_series_equal(result, expected)
+
+    # partial key matches DataFrame.__getitem__
+    result = r[("A",)].sum()
+    expected = df[("A",)].resample("2s").sum()
+    tm.assert_frame_equal(result, expected)
+
+    # empty tuple is not a label, so it stays deprecated
+    with tm.assert_produces_warning(Pandas4Warning, match="Passing a tuple"):
+        result = r[()].sum()
+    assert result.shape == (2, 0)
+
+    result = r.agg({("A", 1): "sum", ("A", 2): "mean"})
+    expected = pd.concat(
+        [df[("A", 1)].resample("2s").sum(), df[("A", 2)].resample("2s").mean()],
+        axis=1,
+    )
+    expected.columns = df.columns
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("key", [["D"], ["A", "D"]])
 def test_select_bad_cols(key, test_frame):
     g = test_frame.resample("h")
