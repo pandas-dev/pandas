@@ -2041,6 +2041,8 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
 
         self._groupby = groupby
         self._timegrouper = copy.copy(parent._timegrouper)
+        # exclude the grouping and `on` columns, GH#32162
+        self.exclusions = parent.exclusions | groupby.exclusions
 
         self.ax = parent.ax
         self.obj = parent.obj

@@ -220,6 +220,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.resample` followed by :meth:`.Resampler.aggregate` with a list of functions aggregating the grouping and ``on`` columns, raising ``TypeError`` or returning them as extra result columns (:issue:`32162`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` on ``complex`` data silently discarding the imaginary part, and :meth:`.GroupBy.var` raising; these now match :meth:`Series.std`, :meth:`Series.sem`, and :meth:`Series.var` (:issue:`43770`)
