@@ -351,7 +351,7 @@ def validate_min_count(min_count: int) -> int:
             stacklevel=find_stack_level(),
         )
         return 0
-    return min_count
+    return min_count  # pyright: ignore[reportReturnType]
 
 
 def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
