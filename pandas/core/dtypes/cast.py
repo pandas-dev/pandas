@@ -1471,10 +1471,11 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
     object_with_dtype : object with a ``dtype`` attribute, optional
         The data (e.g. a Series or array) that ``value`` came from. Pass this
         whenever ``value`` is an element of the data or is derived from its
-        elements: object dtype stores arbitrary user objects, so a NumPy
-        scalar coming from object-dtype data is a stored value rather than a
-        boxing artifact, and is returned unchanged. Omit for values whose
-        type does not follow the data's dtype, e.g. positions, counts, and
+        elements: data whose dtype has kind ``"O"`` (e.g. object dtype, or a
+        Categorical or Sparse dtype backed by object values) stores arbitrary
+        user objects, so a NumPy scalar coming from such data is a stored
+        value rather than a boxing artifact, and is returned unchanged. Omit for values
+        whose type does not follow the data's dtype, e.g. positions, counts, and
         the results of any/all. The ``.dtype`` attribute is only accessed if
         unboxing is actually going to happen, so passing the object rather
         than its dtype avoids that cost on hot paths.
@@ -1486,7 +1487,7 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
     """
     result = value
     if using_python_scalars() and isinstance(value, np.generic):
-        if object_with_dtype is not None and object_with_dtype.dtype == object:
+        if object_with_dtype is not None and object_with_dtype.dtype.kind == "O":
             return result
         if isinstance(result, np.longdouble):
             result = float(result)

@@ -732,6 +732,21 @@ def test_getitem_object_dtype_preserves_numpy_scalars(indexer):
     assert result is value
 
 
+@pytest.mark.parametrize(
+    "method",
+    [tm.getitem, tm.loc, tm.iloc, tm.at, tm.iat, lambda x: list(x)],
+    ids=["getitem", "loc", "iloc", "at", "iat", "iter"],
+)
+def test_getitem_object_categorical_preserves_numpy_scalars(method):
+    # GH#64266
+    value = np.int8(1)
+    cat = pd.Categorical(pd.Index([value, np.int8(2)], dtype=object))
+    ser = pd.Series(cat)
+    with pd.option_context("future.python_scalars", True):
+        result = method(ser)[0]
+    assert result is value
+
+
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
