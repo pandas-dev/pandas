@@ -307,3 +307,19 @@ def test_drop_duplicates_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         ser.drop_duplicates(inplace=True)
     tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "nan, builtin",
+    [
+        (np.float64("nan"), float("nan")),
+        (np.float32("nan"), float("nan")),
+        (np.complex128(complex("nan")), complex("nan")),
+    ],
+)
+def test_drop_duplicates_object_numpy_nan_scalars(nan, builtin):
+    # GH#16632 distinct numpy NaN scalars, and builtin NaNs, are duplicates
+    ser = pd.Series([nan, nan.copy(), builtin, "text"], dtype=object)
+    result = ser.drop_duplicates()
+    expected = ser.iloc[[0, 3]]
+    tm.assert_series_equal(result, expected)

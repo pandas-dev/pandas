@@ -176,6 +176,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with a large ``limit`` raising on 32-bit platforms and being very slow on long runs of missing values (:issue:`34936`)
+- Bug in :meth:`Series.drop_duplicates`, :meth:`Series.unique`, :meth:`Series.value_counts`, :meth:`Series.isin` and related methods on ``object`` dtype treating NumPy NaN scalars such as ``np.float64("nan")`` as distinct values (:issue:`16632`)
 -
 
 MultiIndex
