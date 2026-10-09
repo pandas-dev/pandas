@@ -580,6 +580,16 @@ def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("klass", [pd.MultiIndex.from_tuples, list])
+def test_intersection_all_missing_level(nulls_fixture, klass):
+    # GH#26846
+    mi = pd.MultiIndex.from_arrays([[nulls_fixture] * 3, ["a1", "a2", "a3"]])
+    other = klass([(nulls_fixture, "a1"), (nulls_fixture, "a3")])
+    result = mi.intersection(other)
+    expected = pd.MultiIndex.from_arrays([[nulls_fixture] * 2, ["a1", "a3"]])
+    tm.assert_index_equal(result, expected)
+
+
 def test_union_with_missing_values_on_both_sides(nulls_fixture):
     # GH#38623
     mi1 = pd.MultiIndex.from_arrays([[1, nulls_fixture]])
