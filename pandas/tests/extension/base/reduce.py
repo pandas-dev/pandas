@@ -1,3 +1,4 @@
+import re
 from typing import (
     Any,
     final,
@@ -7,6 +8,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.extensions import ExtensionArray
 
 
 class BaseReduceTests:
@@ -179,6 +181,18 @@ class BaseReduceTests:
             )
             with pytest.raises((TypeError, AttributeError), match=msg):
                 getattr(ser.array, op_name)(**kwargs)
+            return
+
+        if (
+            getattr(type(data), op_name) is getattr(ExtensionArray, op_name)
+        ) and op_name != "count":
+            # GH 68959 Reduction function not overwritten in subclass should raise
+            msg = re.escape(
+                f"'{type(data).__name__}' with dtype {data.dtype} does not support"
+                f" operation '{op_name}'"
+            )
+            with pytest.raises(TypeError, match=msg):
+                getattr(ser.array, op_name)()
             return
 
         res_op = getattr(ser.array, op_name)

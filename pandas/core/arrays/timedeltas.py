@@ -397,15 +397,23 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
         dtype: NpDtype | None = None,
         out=None,
-        keepdims: bool = False,
         initial=None,
-        skipna: bool = True,
         min_count: int = 0,
+        **kwargs,
     ):
         nv.validate_sum(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
+            (),
+            {
+                "dtype": dtype,
+                "out": out,
+                "keepdims": keepdims,
+                "initial": initial,
+                **kwargs,
+            },
         )
 
         result = nanops.nansum(
@@ -417,14 +425,17 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
         dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
-        keepdims: bool = False,
-        skipna: bool = True,
+        **kwargs,
     ):
         nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
+            (),
+            {"dtype": dtype, "out": out, "keepdims": keepdims, **kwargs},
+            fname="std",
         )
 
         result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)

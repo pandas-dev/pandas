@@ -1793,12 +1793,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def sum(
         self,
         *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_sum((), kwargs)
+        nv.validate_sum((), {"keepdims": keepdims, **kwargs})
 
         result = masked_reductions.sum(
             self._data,
@@ -1814,12 +1815,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def prod(
         self,
         *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_prod((), kwargs)
+        nv.validate_prod((), {"keepdims": keepdims, **kwargs})
 
         result = masked_reductions.prod(
             self._data,
@@ -1832,8 +1834,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "prod", result, skipna=skipna, min_count=min_count, axis=axis
         )
 
-    def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
-        nv.validate_mean((), kwargs)
+    def mean(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        nv.validate_mean((), {"keepdims": keepdims, **kwargs})
         result = masked_reductions.mean(
             self._data,
             self._mask,
@@ -1842,32 +1851,73 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("mean", result, skipna=skipna, axis=axis)
 
-    def median(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def median(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         nv.validate_median((), kwargs)
-        result = self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce(
+            "median", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
         return self._wrap_reduction_result("median", result, skipna=skipna, axis=axis)
 
-    def kurt(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def kurt(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="kurt")
-        result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce(
+            "kurt", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
         return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
 
     def sem(
-        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        ddof: int = 1,
+        **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        result = self._reduce("sem", skipna=skipna, axis=axis, ddof=ddof, **kwargs)
+        result = self._reduce(
+            "sem", skipna=skipna, keepdims=keepdims, axis=axis, ddof=ddof, **kwargs
+        )
         return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
 
-    def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def skew(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="skew")
-        result = self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce(
+            "skew", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
         return self._wrap_reduction_result("skew", result, skipna=skipna, axis=axis)
 
     def var(
-        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        ddof: int = 1,
+        **kwargs,
     ):
-        nv.validate_stat_ddof_func((), kwargs, fname="var")
+        nv.validate_stat_ddof_func((), {"keepdims": keepdims, **kwargs}, fname="var")
         result = masked_reductions.var(
             self._data,
             self._mask,
@@ -1878,9 +1928,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("var", result, skipna=skipna, axis=axis)
 
     def std(
-        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        ddof: int = 1,
+        **kwargs,
     ):
-        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        nv.validate_stat_ddof_func((), {"keepdims": keepdims, **kwargs}, fname="std")
         result = masked_reductions.std(
             self._data,
             self._mask,
@@ -1890,8 +1946,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("std", result, skipna=skipna, axis=axis)
 
-    def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
-        nv.validate_min((), kwargs)
+    def min(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        nv.validate_min((), {"keepdims": keepdims, **kwargs})
         result = masked_reductions.min(
             self._data,
             self._mask,
@@ -1900,8 +1963,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("min", result, skipna=skipna, axis=axis)
 
-    def max(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
-        nv.validate_max((), kwargs)
+    def max(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        nv.validate_max((), {"keepdims": keepdims, **kwargs})
         result = masked_reductions.max(
             self._data,
             self._mask,
@@ -1915,16 +1985,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @overload
     def any(
-        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: Literal[True] = ...,
+        **kwargs,
     ) -> np.bool_: ...
 
     @overload
     def any(
-        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
     ) -> np.bool_ | NAType: ...
 
     def any(
-        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> np.bool_ | NAType:
         """
         Return whether any element is truthy.
@@ -1936,13 +2021,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         Parameters
         ----------
+        axis : int, optional, default 0
+            Axis along which to perform the operation.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA values. If the entire array is NA and `skipna` is
             True, then the result will be False, as for an empty array.
             If `skipna` is False, the result will still be True if there is
             at least one element that is truthy, otherwise NA will be returned
             if there are NA's present.
-        axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
@@ -1986,7 +2074,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
         <NA>
         """
-        nv.validate_any((), kwargs)
+        nv.validate_any((), {"keepdims": keepdims, **kwargs})
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._falsey_value)
@@ -2009,16 +2097,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @overload
     def all(
-        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: Literal[True] = ...,
+        **kwargs,
     ) -> np.bool_: ...
 
     @overload
     def all(
-        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
     ) -> np.bool_ | NAType: ...
 
     def all(
-        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> np.bool_ | NAType:
         """
         Return whether all elements are truthy.
@@ -2030,13 +2133,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         Parameters
         ----------
+        axis : int, optional, default 0
+            Axis along which to perform the operation.
+        keepdims : bool, default False
+            If this is True, the axes which are reduced are left in the result as
+            dimensions with size one. With this option, the result will broadcast
+            correctly against the input array.
         skipna : bool, default True
             Exclude NA values. If the entire array is NA and `skipna` is
             True, then the result will be True, as for an empty array.
             If `skipna` is False, the result will still be False if there is
             at least one element that is falsey, otherwise NA will be returned
             if there are NA's present.
-        axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
@@ -2080,7 +2188,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
         np.False_
         """
-        nv.validate_all((), kwargs)
+        nv.validate_all((), {"keepdims": keepdims, **kwargs})
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._truthy_value)

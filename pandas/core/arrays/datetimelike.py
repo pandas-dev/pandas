@@ -1514,7 +1514,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return super()._quantile(qs=qs, interpolation=interpolation)
 
     @_period_dispatch
-    def min(self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs):
+    def min(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         """
         Return the minimum value of the Array or minimum along
         an axis.
@@ -1525,14 +1532,21 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Index.min : Return the minimum value in an Index.
         Series.min : Return the minimum value in a Series.
         """
-        nv.validate_min((), kwargs)
+        nv.validate_min((), {"keepdims": keepdims, **kwargs})
         nv.validate_minmax_axis(axis, self.ndim)
 
         result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     @_period_dispatch
-    def max(self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs):
+    def max(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         """
         Return the maximum value of the Array or maximum along
         an axis.
@@ -1543,22 +1557,33 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Index.max : Return the maximum value in an Index.
         Series.max : Return the maximum value in a Series.
         """
-        nv.validate_max((), kwargs)
+        nv.validate_max((), {"keepdims": keepdims, **kwargs})
         nv.validate_minmax_axis(axis, self.ndim)
 
         result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0):
+    def mean(
+        self,
+        *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
         """
         Return the mean value of the Array.
 
         Parameters
         ----------
-        skipna : bool, default True
-            Whether to ignore any NaT elements.
         axis : int, optional, default 0
             Axis for the function to be applied on.
+        keepdims : bool, default False
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Whether to ignore any NaT elements.
+        **kwargs
+            Not Used. NumPy compatibility.
 
         Returns
         -------
@@ -1594,6 +1619,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
+        nv.validate_mean((), {"keepdims": keepdims, **kwargs})
         if isinstance(self.dtype, PeriodDtype):
             # See discussion in GH#24757
             raise TypeError(
@@ -1608,8 +1634,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._wrap_reduction_result(axis, result)
 
     @_period_dispatch
-    def median(self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs):
-        nv.validate_median((), kwargs)
+    def median(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ):
+        nv.validate_median((), {"keepdims": keepdims, **kwargs})
 
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")
@@ -2363,11 +2396,25 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
     # Reductions
 
-    def any(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool:
         # GH#34479 the nanops call will raise a TypeError for non-td64 dtype
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
-    def all(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool:
         # GH#34479 the nanops call will raise a TypeError for non-td64 dtype
 
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())

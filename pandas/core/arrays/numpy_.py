@@ -449,11 +449,12 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
-        out=None,
         keepdims: bool = False,
         skipna: bool = True,
+        out=None,
+        **kwargs,
     ):
-        nv.validate_any((), {"out": out, "keepdims": keepdims})
+        nv.validate_any((), {"out": out, "keepdims": keepdims, **kwargs})
         result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
@@ -461,27 +462,38 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
-        out=None,
         keepdims: bool = False,
         skipna: bool = True,
+        out=None,
+        **kwargs,
     ):
-        nv.validate_all((), {"out": out, "keepdims": keepdims})
+        nv.validate_all((), {"out": out, "keepdims": keepdims, **kwargs})
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     def min(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> Scalar:
-        nv.validate_min((), kwargs)
+        nv.validate_min((), {"keepdims": keepdims, **kwargs})
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
     def max(
-        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
     ) -> Scalar:
-        nv.validate_max((), kwargs)
+        nv.validate_max((), {"keepdims": keepdims, **kwargs})
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
@@ -491,11 +503,12 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
         **kwargs,
     ) -> Scalar:
-        nv.validate_sum((), kwargs)
+        nv.validate_sum((), {"keepdims": keepdims, **kwargs})
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
@@ -505,11 +518,12 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
         **kwargs,
     ) -> Scalar:
-        nv.validate_prod((), kwargs)
+        nv.validate_prod((), {"keepdims": keepdims, **kwargs})
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
@@ -519,12 +533,15 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
-        dtype: NpDtype | None = None,
-        out=None,
         keepdims: bool = False,
         skipna: bool = True,
+        dtype: NpDtype | None = None,
+        out=None,
+        **kwargs,
     ):
-        nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
+        nv.validate_mean(
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims, **kwargs}
+        )
         result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
@@ -532,13 +549,20 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
-        out=None,
-        overwrite_input: bool = False,
         keepdims: bool = False,
         skipna: bool = True,
+        out=None,
+        overwrite_input: bool = False,
+        **kwargs,
     ):
         nv.validate_median(
-            (), {"out": out, "overwrite_input": overwrite_input, "keepdims": keepdims}
+            (),
+            {
+                "out": out,
+                "overwrite_input": overwrite_input,
+                "keepdims": keepdims,
+                **kwargs,
+            },
         )
         result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
@@ -547,14 +571,17 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
         dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
-        keepdims: bool = False,
-        skipna: bool = True,
+        **kwargs,
     ):
         nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
+            (),
+            {"dtype": dtype, "out": out, "keepdims": keepdims, **kwargs},
+            fname="std",
         )
         result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
@@ -563,14 +590,17 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
         dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
-        keepdims: bool = False,
-        skipna: bool = True,
+        **kwargs,
     ):
         nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
+            (),
+            {"dtype": dtype, "out": out, "keepdims": keepdims, **kwargs},
+            fname="var",
         )
         result = nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
@@ -579,14 +609,17 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
         dtype: NpDtype | None = None,
         out=None,
         ddof: int = 1,
-        keepdims: bool = False,
-        skipna: bool = True,
+        **kwargs,
     ):
         nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
+            (),
+            {"dtype": dtype, "out": out, "keepdims": keepdims, **kwargs},
+            fname="sem",
         )
         result = nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
@@ -595,13 +628,16 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
-        dtype: NpDtype | None = None,
-        out=None,
         keepdims: bool = False,
         skipna: bool = True,
+        dtype: NpDtype | None = None,
+        out=None,
+        **kwargs,
     ):
         nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
+            (),
+            {"dtype": dtype, "out": out, "keepdims": keepdims, **kwargs},
+            fname="kurt",
         )
         result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
@@ -610,13 +646,16 @@ class NumpyExtensionArray(
         self,
         *,
         axis: AxisInt | None = None,
-        dtype: NpDtype | None = None,
-        out=None,
         keepdims: bool = False,
         skipna: bool = True,
+        dtype: NpDtype | None = None,
+        out=None,
+        **kwargs,
     ):
         nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
+            (),
+            {"dtype": dtype, "out": out, "keepdims": keepdims, **kwargs},
+            fname="skew",
         )
         result = nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
