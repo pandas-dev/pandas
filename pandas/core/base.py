@@ -221,7 +221,10 @@ class SelectionMixin(Generic[NDFrameT]):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, tuple):
+        # a tuple column key (e.g. MultiIndex) selects like DataFrame.__getitem__
+        if isinstance(key, tuple) and not (
+            self.obj.ndim == 2 and len(key) > 0 and key in self.obj.columns
+        ):
             warnings.warn(
                 "Passing a tuple to __getitem__ is deprecated and "
                 "will raise a KeyError in a future version. Use a list instead.",

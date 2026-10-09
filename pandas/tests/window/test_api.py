@@ -35,6 +35,22 @@ def test_getitem(step):
     tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns[[1, 3]])
 
 
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [("rolling", {"window": 2}), ("expanding", {}), ("ewm", {"com": 1})],
+)
+def test_getitem_multiindex_tuple_key(method, kwargs):
+    # GH#13914
+    df = pd.DataFrame(
+        [[1, 4], [2, 5], [3, 6]],
+        columns=pd.MultiIndex.from_tuples([("A", 1), ("A", 2)]),
+    )
+    with tm.assert_produces_warning(None):
+        result = getattr(df, method)(**kwargs)[("A", 1)].mean()
+    expected = getattr(df[("A", 1)], method)(**kwargs).mean()
+    tm.assert_series_equal(result, expected)
+
+
 def test_select_bad_cols():
     df = pd.DataFrame([[1, 2]], columns=["A", "B"])
     g = df.rolling(window=5)
