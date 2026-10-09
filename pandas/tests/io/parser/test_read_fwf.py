@@ -851,6 +851,49 @@ def test_colspecs_with_comment():
     tm.assert_frame_equal(result, expected)
 
 
+def test_comment_line_outside_inferred_colspecs():
+    # GH#53922 the inferred colspecs start after the comment character, so the
+    #  comment line was sliced into data
+    data = """\
+# file :: atlas/series/CMIP5one/rcp85/monthly/world/time_tas_Amon.dat
+   93.5000       17.9877     2093   1
+   94.5000       18.0374     2094   1
+"""
+    result = read_fwf(StringIO(data), comment="#", header=None)
+    expected = pd.DataFrame(
+        [[93.5, 17.9877, 2093, 1], [94.5, 18.0374, 2094, 1]], columns=range(4)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_inline_comment_outside_colspecs():
+    # GH#53922 a comment starting between columns ends the line
+    data = "  1  2  3\n  4# 5  6\n"
+    result = read_fwf(
+        StringIO(data),
+        colspecs=[(0, 3), (4, 6), (7, 9)],
+        comment="#",
+        header=None,
+    )
+    expected = pd.DataFrame([[1, 2.0, 3.0], [4, np.nan, np.nan]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_comment_char_in_na_value_inside_colspecs():
+    # GH#53922 a comment character inside a column is still handled per field,
+    #  so na_values containing it keep working (GH#34002)
+    data = "  1  2    3  4\n  7  8 #N/A 11\n"
+    result = read_fwf(
+        StringIO(data),
+        colspecs=[(0, 3), (3, 6), (6, 11), (11, 14)],
+        comment="#",
+        na_values="#N/A",
+        header=None,
+    )
+    expected = pd.DataFrame([[1, 2, 3.0, 4], [7, 8, np.nan, 11]])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_skip_rows_and_n_rows():
     # GH#44021
     data = """a\tb
