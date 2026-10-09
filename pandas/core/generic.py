@@ -6992,9 +6992,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
-        This finds the smallest dtype that can hold all values, or uses
-        extension dtypes (e.g. nullable integer, string, boolean) so that
-        missing values are represented by ``pd.NA`` instead of ``np.nan``.
+        This methods converts columns using default NumPy dtypes to nullable
+        dtypes (using ``pd.NA`` as missing value indicator).
 
         Parameters
         ----------
@@ -7061,11 +7060,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
-        Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
-        ``convert_string``, ``convert_integer``, ``convert_boolean`` and
-        ``convert_floating``, it is possible to turn off individual conversions
-        to ``StringDtype``, the integer extension types, ``BooleanDtype``
-        or floating extension types, respectively.
+        Series in a DataFrame) to dtypes that support ``pd.NA``.
 
         For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
         rules as during normal Series/DataFrame construction.  Then, if possible,
@@ -8926,6 +8921,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = self._align_for_op(threshold, axis, flex=None)[1]
+                if axis is None and isinstance(threshold, ABCSeries):
+                    # _align_for_op aligned the 1D bound on self.columns;
+                    #  `where` below needs that spelled out (GH#68929)
+                    axis = 1
 
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values

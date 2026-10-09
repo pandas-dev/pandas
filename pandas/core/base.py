@@ -619,9 +619,8 @@ class IndexOpsMixin(OpsMixin):
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is not a view on
-            another array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            another array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.

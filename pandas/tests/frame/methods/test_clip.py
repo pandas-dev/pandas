@@ -205,3 +205,24 @@ class TestDataFrameClip:
         expected = pd.DataFrame([1, 3])
         result = df.clip(upper=[3])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "axis, expected",
+        [
+            (None, [[15, 25], [30, 40]]),
+            (0, [[15, 20], [30, 40]]),
+            (1, [[15, 25], [30, 40]]),
+        ],
+    )
+    @pytest.mark.parametrize("box", [pd.array, pd.Index])
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_clip_extension_dtype_bound(self, axis, expected, box, inplace):
+        # GH#68929 an extension-dtype bound must not push the result to object,
+        #  and with axis=None it aligns on the columns like a list bound does
+        df = pd.DataFrame([[10, 20], [30, 40]])
+
+        result = df.clip(lower=box([15, 25], dtype="Int64"), axis=axis, inplace=inplace)
+
+        if inplace:
+            result = df
+        tm.assert_frame_equal(result, pd.DataFrame(expected))

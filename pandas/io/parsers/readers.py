@@ -10,6 +10,7 @@ import codecs
 from collections import (
     abc,
     defaultdict,
+    deque,
 )
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
@@ -18,7 +19,9 @@ import io
 import mmap
 import os
 import queue
+import re
 import sys
+import threading
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -89,6 +92,7 @@ from pandas.io.common import (
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    evaluate_callable_usecols,
     is_index_col,
     parser_defaults,
 )
@@ -106,6 +110,7 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Iterable,
+        Iterator,
         Mapping,
         Sequence,
     )
@@ -259,6 +264,10 @@ _PARALLEL_TAPER_RATIO = 0.2
 # avoids oversubscribing the machine.  mode.max_threads overrides it in either
 # direction.
 _MAX_DEFAULT_WORKERS = 6
+
+# bytes read per call while looking for the row to sniff for sep=None
+_SNIFF_CHUNK_SIZE = 64 * 1024
+
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -421,13 +430,12 @@ def _read(
             try:
                 result = _read_csv_parallel(_filepath, kwds, _n_workers)
             except (ParserError, UnicodeDecodeError, OverflowError):
-                # e.g. a chunk boundary landed inside a quoted field containing
-                # an embedded newline, or a chunk of only huge ints converted
-                # where the mixed whole-file column would have stayed a string
-                # (GH#66259).  The serial path below handles anything the
-                # parallel path cannot -- and raises in turn if it too fails.
-                # Other exceptions propagate: they signal a parallel-path bug,
-                # not ineligible input.
+                # e.g. the one-line sample that infers the column names ends
+                # inside a quoted field (GH#66259).  The serial path below
+                # handles anything the parallel path cannot -- and raises in
+                # turn if it too fails.
+                # Other exceptions from outside the chunk reads propagate: they
+                # signal a parallel-path bug, not ineligible input.
                 result = None
             if result is not None:
                 return result
@@ -485,8 +493,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
       tracking absolute line numbers across chunks.
     * ``header`` is a single integer or ``None`` - multi-level headers complicate
       the preamble boundary.
-    * ``usecols`` is ``None`` - column selection changes the mapping between raw
-      column positions and names in non-first chunks.
     * The separator is a single ASCII character or ``r"\\s+"``, and ``quotechar``
       is a single ASCII character - anything else forces the python engine
       inside ``TextFileReader``.
@@ -511,9 +517,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
       are at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
 
     Note that a chunk boundary landing on a newline embedded inside a quoted
-    field leaves that chunk's parser inside an open quote at EOF, which raises
-    ``ParserError`` in the worker and triggers the serial fallback in
-    :func:`_read` - it does not corrupt data silently.
+    field leaves that chunk's parser inside an open quote at EOF, so the chunk
+    fails and the read falls back to serial - it does not corrupt data
+    silently.
     """
     # Must be a local file path, not a URL or file-like object.
     if is_file_like(filepath_or_buffer):
@@ -576,9 +582,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
         if codec_name not in ("utf-8", "utf-8-sig"):
             return False
 
-    # Separators that force the python-engine fallback inside TextFileReader
-    # (sep=None sniffing, or multi-char/regex seps other than r"\s+") cannot
-    # use the C-engine buffer-loading fast path.
+    # sep=None is only resolved once TextFileReader opens the file, and
+    # multi-char/regex seps other than r"\s+" force the python engine, so
+    # neither can use the C-engine buffer-loading fast path.
     delimiter = kwds.get("delimiter", ",")
     if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
         return False
@@ -639,10 +645,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
 
     # skipfooter: the C engine doesn't support it anyway, but be explicit.
     if kwds.get("skipfooter", 0) > 0:
-        return False
-
-    # usecols changes the column name ↔ position mapping in non-first chunks.
-    if kwds.get("usecols") is not None:
         return False
 
     # Only bother for files large enough to amortise the threading overhead.
@@ -808,12 +810,10 @@ def _read_csv_parallel(
 
     Returns ``None`` when parallel reading turns out not to be applicable
     after all (the data section cannot be split, the engine falls back to
-    python, the one-line sample used to infer column names has no columns, or
-    per-chunk dtype inference disagrees in a way that would not match the
-    serial result); the caller then reads serially.  Splitting is
-    done at raw ``\\n`` boundaries, so a boundary inside a quoted field raises
-    ``ParserError`` from the affected worker - the caller treats that as a
-    serial-fallback signal too.
+    python, the one-line sample used to infer column names has no columns,
+    ``usecols`` selects different columns in different chunks, per-chunk
+    dtype inference disagrees in a way that would not match the serial
+    result, or any chunk fails to parse); the caller then reads serially.
     """
     warning_sink: list[tuple[str, type[Warning]]] = []
     try:
@@ -893,6 +893,10 @@ def _read_csv_chunks(
     with open(filepath, "rb") as fd:
         preamble = fd.read(data_start)
         first_line = fd.readline()
+    # The tokenizer also ends a line at a bare \r, which readline does not, so
+    # data_start could be misplaced without the row count check below noticing.
+    if b"\r" in (preamble + first_line).replace(b"\r\n", b""):
+        return None
 
     # Only the column names and the row count are kept, so the sample is parsed
     # as strings: a value that converts on its own line but not for the whole
@@ -905,6 +909,8 @@ def _read_csv_chunks(
         "converters": None,
         "dtype_backend": lib.no_default,
         "index_col": parse_index_col,
+        # The workers apply usecols themselves, so they need every column's name.
+        "usecols": None,
     }
     try:
         name_reader = TextFileReader(name_buf, **name_kwds)
@@ -919,8 +925,12 @@ def _read_csv_chunks(
         # eligibility checks did not anticipate; load_buffer needs the C engine.
         name_reader.close()
         return None
-    name_reader._engine._warning_sink = warning_sink
-    name_reader._engine._reader.warning_sink = warning_sink
+    # This read ignores usecols, so it can warn about dropped columns or about
+    # header/data length, which serial skips under usecols; chunk 0's worker
+    # re-reads its data line with usecols applied.
+    name_sink = warning_sink if kwds.get("usecols") is None else []
+    name_reader._engine._warning_sink = name_sink
+    name_reader._engine._reader.warning_sink = name_sink
     if name_reader._engine._reader.leading_cols:
         # Data rows have more fields than the header (implicit index).  The
         # chunk workers would fail on the extra field; bail out up front.
@@ -958,7 +968,13 @@ def _read_csv_chunks(
         if not all(is_integer(pos) for pos in index_engine.index_col):
             # an index_col name matching no column; the serial read raises
             return None
-        index_positions = [int(pos) % len(col_names) for pos in index_engine.index_col]
+        # positions count only the columns usecols keeps, as the workers return
+        assert index_engine.orig_names is not None
+        n_cols = len(index_engine.orig_names)
+        if not n_cols:
+            # usecols kept no columns; let the serial read raise
+            return None
+        index_positions = [int(pos) % n_cols for pos in index_engine.index_col]
         if len(set(index_positions)) != len(index_positions):
             # serial _make_index pops a different column for a repeat, e.g.
             # index_col=[0, 0]
@@ -997,10 +1013,20 @@ def _read_csv_chunks(
     # the file: a 128 MB file gets the same split as one just over the size
     # gate.  Raise it to follow the bytes, bounded by the piece budget and by
     # the row floor, since a file can be byte-rich and row-poor.  Only ever
-    # raised, so no file comes out coarser than before.
+    # raised, so no file comes out coarser than before.  The budget counts
+    # only the columns usecols keeps: the dropped ones are never converted.
+    n_used = len(col_names)
+    if kwds.get("usecols") is not None:
+        try:
+            used = set(evaluate_callable_usecols(kwds["usecols"], col_names))
+        except TypeError:
+            # e.g. unhashable entries; the chunks fail and the serial read raises
+            pass
+        else:
+            n_used = min(n_used, len(used))
     size_target = min(
         data_size // _PARALLEL_CHUNK_BYTES,
-        _PARALLEL_MAX_COLUMN_PIECES // max(len(col_names), 1),
+        _PARALLEL_MAX_COLUMN_PIECES // max(n_used, 1),
         est_rows // _PARALLEL_MIN_CHUNK_ROWS,
     )
     # A count that is not a multiple of the worker count spends its last round
@@ -1041,6 +1067,7 @@ def _read_csv_chunks(
     for chunk_idx in range(n_chunks):
         chunk_queue.put(chunk_idx)
     results: list[Any] = [None] * n_chunks
+    chunk_failed = threading.Event()
     workers_readers: list[Any] = []
 
     def _worker() -> None:
@@ -1060,7 +1087,7 @@ def _read_csv_chunks(
         reader._engine._warning_sink = warning_sink
         reader._engine._reader.warning_sink = warning_sink
         workers_readers.append(reader)
-        while True:
+        while not chunk_failed.is_set():
             try:
                 chunk_idx = chunk_queue.get_nowait()
             except queue.Empty:
@@ -1074,9 +1101,13 @@ def _read_csv_chunks(
             # On a reused parser a zero-row chunk would raise StopIteration
             # and close the reader; reset so it returns empty meta instead.
             reader._engine._first_chunk = True
-            # Raw column arrays, not DataFrames: per-chunk frame assembly
-            # holds the GIL and the concat would redo the block machinery.
-            _, chunk_columns, col_dict = reader._engine.read()
+            try:
+                # Raw column arrays, not DataFrames: per-chunk frame assembly
+                # holds the GIL and the concat would redo the block machinery.
+                _, chunk_columns, col_dict = reader._engine.read()
+            except Exception:
+                chunk_failed.set()
+                return
             results[chunk_idx] = (chunk_columns, col_dict)
 
     def _copy_pieces(jobs: list[tuple[np.ndarray, int, np.ndarray]]) -> None:
@@ -1131,6 +1162,12 @@ def _read_csv_chunks(
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
                 fut.result()
+            if chunk_failed.is_set():
+                # Let the serial read raise: a chunk's error can be an artifact
+                # of the split (a boundary inside a quoted newline), and even a
+                # genuine one differs from serial in which error comes first
+                # and in the row positions it reports.
+                return None
 
             # A column of only NA tokens and ints too large for int64 converts
             # to no numeric dtype, and is then emitted with its NA tokens left
@@ -1162,6 +1199,14 @@ def _read_csv_chunks(
             columns = list(chunk_results[0][0])
             chunk_dicts = [col_dict for _, col_dict in chunk_results]
             col_list = list(chunk_dicts[0])
+            # Under usecols, chunk arrays can disagree with their labels or
+            # across chunks; see test_usecols_past_header_returns_none and
+            # test_parallel_usecols_short_names_falls_back.
+            if len(columns) != len(col_list) or any(
+                list(chunk_columns) != columns or list(col_dict) != col_list
+                for chunk_columns, col_dict in chunk_results[1:]
+            ):
+                return None
             if col_list:
                 total = sum(len(chunk_dict[col_list[0]]) for chunk_dict in chunk_dicts)
 
@@ -1432,8 +1477,7 @@ def read_csv(
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine, which will be used automatically.
+        sniffer tool, ``csv.Sniffer``; the pyarrow engine does not support it.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -2040,8 +2084,7 @@ def read_table(
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine, which will be used automatically.
+        sniffer tool, ``csv.Sniffer``; the pyarrow engine does not support it.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -2866,8 +2909,8 @@ class TextFileReader(abc.Iterator[DataFrame]):
         sep = options["delimiter"]
 
         if sep is None:
-            # sniffing the separator with csv.Sniffer is python-engine only
-            if engine in ("c", "pyarrow"):
+            # the c engine sniffs the separator in _make_engine
+            if engine == "pyarrow":
                 fallback_reason = f"the '{engine}' engine does not support sep=None"
                 engine = "python"
         elif len(sep) > 1:
@@ -3054,11 +3097,52 @@ class TextFileReader(abc.Iterator[DataFrame]):
             raise ValueError(msg)
 
         try:
+            if engine == "c" and self.options.get("delimiter", ",") is None:
+                assert not isinstance(f, list)  # rejected above for the c engine
+                return mapping[engine](self._sniff_delimiter(f), **self.options)
             return mapping[engine](f, **self.options)
         except Exception:
             if self.handles is not None:
                 self.handles.close()
             raise
+
+    def _sniff_delimiter(self, f: IO[Any]) -> _ReplayHandle:
+        """
+        Set the delimiter for ``sep=None`` by sniffing the first row that is not
+        in ``skiprows``, blank or a full-line comment.
+
+        Returns a handle that replays the data read here and then the rest of ``f``.
+        """
+        skiprows = self.options["skiprows"]
+        skipfunc = skiprows if callable(skiprows) else skiprows.__contains__
+        comment = self.options["comment"]
+        chunks: list[bytes | str] = []
+        delimiter = None
+        for pos, raw in enumerate(
+            _iter_physical_lines(f, chunks, self.options["lineterminator"])
+        ):
+            if skipfunc(pos) or not raw:
+                continue
+            line = raw.decode("utf-8-sig", "replace") if isinstance(raw, bytes) else raw
+            line += "\n"
+            if comment is not None and comment in line:
+                line = line[: line.find(comment)]
+                if not line:
+                    continue
+            delimiter = csv.Sniffer().sniff(line).delimiter
+            break
+
+        if delimiter is None:
+            # nothing to sniff; the c engine reports the empty file
+            delimiter = ","
+        elif len(delimiter.encode("utf-8", "surrogatepass")) > 1:
+            raise ValueError(
+                f"sep=None detected the separator {delimiter!r}, which the 'c' "
+                "engine does not support as it is more than one byte in utf-8; "
+                "specify engine='python'."
+            )
+        self.options["delimiter"] = delimiter
+        return _ReplayHandle(chunks, f)
 
     def _failover_to_python(self) -> None:
         raise AbstractMethodError(self)
@@ -3605,3 +3689,53 @@ def _validate_skipfooter(kwds: dict[str, Any]) -> None:
             raise ValueError("'skipfooter' not supported for iteration")
         if kwds.get("nrows"):
             raise ValueError("'skipfooter' not supported with 'nrows'")
+
+
+def _iter_physical_lines(
+    handle: IO[Any], chunks: list[bytes | str], lineterminator: str | None
+) -> Iterator[bytes | str]:
+    """
+    Yield each line of ``handle`` without its terminator, appending every chunk
+    read to ``chunks``.
+    """
+    eol: re.Pattern[Any] | None = None
+    partial: list[Any] = []
+    skip_lf = False
+    while True:
+        chunk = handle.read(_SNIFF_CHUNK_SIZE)
+        if not chunk:
+            tail = partial[0][:0].join(partial) if partial else ""
+            if tail:
+                yield tail
+            return
+        chunks.append(chunk)
+        if eol is None:
+            pattern = re.escape(lineterminator) if lineterminator else r"\r\n|\r|\n"
+            eol = re.compile(pattern.encode() if isinstance(chunk, bytes) else pattern)
+        start = 0
+        if skip_lf and chunk[:1] in (b"\n", "\n"):
+            # the second half of a "\r\n" split across chunks
+            start = 1
+        for match in eol.finditer(chunk, start):
+            partial.append(chunk[start : match.start()])
+            yield chunk[:0].join(partial)
+            partial = []
+            start = match.end()
+        partial.append(chunk[start:])
+        skip_lf = not lineterminator and chunk[-1:] in (b"\r", "\r")
+
+
+class _ReplayHandle:
+    """
+    Serve ``chunks`` and then the rest of ``handle`` through ``read``, the only
+    method the c engine calls on its source; it accepts reads of any length.
+    """
+
+    def __init__(self, chunks: list[bytes | str], handle: IO[Any]) -> None:
+        self._chunks = deque(chunks)
+        self._handle = handle
+
+    def read(self, size: int) -> bytes | str:
+        if self._chunks:
+            return self._chunks.popleft()
+        return self._handle.read(size)

@@ -86,6 +86,23 @@ class TestTSPlot:
         ydata = ax.get_lines()[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.asarray(values))
 
+    def test_irregular_tz_aware_year_tick_labels(self, tz_aware_fixture):
+        # GH#15754 year ticks were labeled one year early with pytz zones
+        tz = tz_aware_fixture
+        index = DatetimeIndex(["2011-10-01 09:00", "2016-10-01 09:00"], tz="UTC")
+        index = index.tz_convert(tz)
+        values = [-0.26, -0.01]
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(2)
+        pd.Series(values, index=index).plot(ax=ax1)
+        pd.Series(values, index=index.tz_localize(None)).plot(ax=ax2)
+        ax1.get_figure().canvas.draw()
+
+        result = [label.get_text() for label in ax1.get_xticklabels()]
+        expected = [label.get_text() for label in ax2.get_xticklabels()]
+        assert "2016" in result
+        assert result == expected
+
     def test_fontsize_set_correctly(self):
         # For issue #8765
         df = pd.DataFrame(
@@ -1417,6 +1434,15 @@ class TestTSPlot:
                 == "100ms"
             )
 
+    def test_plot_multiplied_nano_freq(self):
+        # GH#20575 128Hz data; dropping the multiplier made the date locator
+        # enumerate every nanosecond in view
+        idx = date_range(0, periods=2, freq="7812500ns")
+        ser = pd.Series([1.0, 2.0], index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        assert ax.freq == "7812500ns"
+
     def test_irreg_dtypes(self):
         # date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
@@ -2078,15 +2104,15 @@ class TestTSPlot:
             Period("2020-01-05", freq="D").ordinal,
         )
 
-    def test_bar_plot_date_axis_rot_applies_to_minor_ticks(self):
-        # GH#1918 - the minor ticks carry most of the date labels, and they are
-        # only created once format_dateaxis installs the dynamic locators, so
-        # rot and fontsize have to be applied after that
+    @pytest.mark.parametrize("xlim", [None, ("2020-01-01", "2020-01-02")])
+    def test_bar_plot_date_axis_rot_applies_to_minor_ticks(self, xlim):
+        # GH#1918 - the minor ticks carry most of the date labels; with a
+        # narrow xlim they are only created once _post_plot_logic widens the view
         s = pd.Series(
             np.arange(10.0), index=date_range("2020-01-01", periods=10, freq="D")
         )
 
-        ax = s.plot(kind="bar", rot=45, fontsize=16)
+        ax = s.plot(kind="bar", rot=45, fontsize=16, xlim=xlim)
 
         ax.get_figure().canvas.draw()
         labels = ax.get_xticklabels() + ax.get_xticklabels(minor=True)
@@ -2094,6 +2120,23 @@ class TestTSPlot:
         assert drawn
         assert {t.get_rotation() for t in drawn} == {45.0}
         assert {t.get_fontsize() for t in drawn} == {16.0}
+
+    @pytest.mark.parametrize("freq", ["D", "3h"])
+    def test_bar_plot_date_axis_subplots_sharex(self, freq):
+        # GH#1918 - as for line plots, only the bottom subplot gets date labels
+        idx = date_range("2020-01-01", periods=10, freq=freq)
+        df = pd.DataFrame({"a": np.arange(10.0), "b": np.arange(10.0)}, index=idx)
+
+        axes = df.plot(kind="bar", subplots=True)
+
+        axes[0].get_figure().canvas.draw()
+
+        def drawn(ax):
+            labels = ax.get_xticklabels() + ax.get_xticklabels(minor=True)
+            return [t.get_text() for t in labels if t.get_visible() and t.get_text()]
+
+        assert drawn(axes[0]) == []
+        assert drawn(axes[1])
 
     def test_bar_plot_datetime_xticks(self):
         # GH#1918 - the converter has to be registered before the user's ticks

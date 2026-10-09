@@ -73,6 +73,7 @@ from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
     common_dtype_categorical_compat,
+    construct_1d_object_array_from_listlike,
     find_result_type,
     infer_dtype_from,
     maybe_unbox_numpy_scalar,
@@ -4269,17 +4270,11 @@ class Index(IndexOpsMixin, PandasObject):
         kind : {'loc', 'getitem'}
         """
 
-        # potentially cast the bounds to integers
-        start, stop, step = key.start, key.stop, key.step
-
-        # figure out if this is a positional indexer
-        is_index_slice = is_valid_positional_slice(key)
-
         # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
-            if is_index_slice:
+            if is_valid_positional_slice(key):
                 # In this case the _validate_indexer checks below are redundant
                 return key
             elif self.dtype.kind in "iu":
@@ -4289,37 +4284,9 @@ class Index(IndexOpsMixin, PandasObject):
                 self._validate_indexer("slice", key.step, "getitem")
                 return key
 
-        # convert the slice to an indexer here; checking that the user didn't
-        #  pass a positional slice to loc
-        is_positional = is_index_slice and self._should_fallback_to_positional
-
-        # if we are mixed and have integers
-        if is_positional:
-            try:
-                # Validate start & stop
-                if start is not None:
-                    self.get_loc(start)
-                if stop is not None:
-                    self.get_loc(stop)
-                is_positional = False
-            except KeyError:
-                pass
-
         if com.is_null_slice(key):
-            # It doesn't matter if we are positional or label based
-            indexer = key
-        elif is_positional:
-            if kind == "loc":
-                # GH#16121, GH#24612, GH#31810
-                raise TypeError(
-                    "Slicing a positional slice with .loc is not allowed, "
-                    "Use .loc with labels or .iloc with positions instead.",
-                )
-            indexer = key
-        else:
-            indexer = self.slice_indexer(start, stop, step)
-
-        return indexer
+            return key
+        return self.slice_indexer(key.start, key.stop, key.step)
 
     @final
     def _raise_invalid_indexer(
@@ -6407,18 +6374,6 @@ class Index(IndexOpsMixin, PandasObject):
             # would convert to numpy arrays and raise later any way) - GH29926
             raise InvalidIndexError(key)
 
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should an integer key be treated as positional?
-        """
-        return self.inferred_type not in {
-            "integer",
-            "mixed-integer",
-            "floating",
-            "complex",
-        }
-
     def get_indexer_non_unique(
         self, target: Axes
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
@@ -8303,12 +8258,18 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (range, ExtensionArray)):
+    if isinstance(sequence, (range, ExtensionArray)) or len(sequence) == 1:
         return sequence
-    elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
-        return sequence
-    elif isinstance(sequence, (ABCSeries, Index)) and not (
-        isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"
+    elif isinstance(sequence, (ABCSeries, Index)):
+        if not lib.is_np_dtype(sequence.dtype, "i"):
+            return sequence
+    elif isinstance(sequence, np.ndarray):
+        if not (
+            sequence.dtype.kind in "iu" or lib.is_integer_array(sequence, skipna=False)
+        ):
+            return sequence
+    elif not lib.is_integer_array(
+        construct_1d_object_array_from_listlike(sequence), skipna=False
     ):
         return sequence
     if len(sequence) == 0:
