@@ -824,7 +824,7 @@ def to_arrays(
     elif isinstance(data[0], abc.Mapping):
         arr, columns = _list_of_dict_to_arrays(data, columns)
     elif isinstance(data[0], ABCSeries):
-        arr, columns = _list_of_series_to_arrays(data, columns)
+        return _list_of_series_to_arrays(data, columns, dtype)
     else:
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
@@ -883,9 +883,8 @@ def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
 def _list_of_series_to_arrays(
     data: list[Any],
     columns: Index | None,
-) -> tuple[np.ndarray, Index]:
-    # returned np.ndarray has ndim == 2
-
+    dtype: DtypeObj | None,
+) -> tuple[list[ArrayLike], Index]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -907,8 +906,25 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_nd(values, indexer))
 
+    first = aligned_values[0]
+    if (
+        dtype is None
+        and isinstance(first, ExtensionArray)
+        and all(
+            isinstance(arr, ExtensionArray) and arr.dtype == first.dtype
+            for arr in aligned_values
+        )
+    ):
+        # GH#56231 preserve a uniform EA dtype, which np.vstack would lose.
+        #  With a dtype, keep the constructor's casting (EA.astype can be lossy)
+        flat = type(first)._concat_same_type(aligned_values)
+        ncols = len(columns)
+        row_starts = np.arange(len(aligned_values)) * ncols
+        arrays: list[ArrayLike] = [flat.take(row_starts + i) for i in range(ncols)]
+        return arrays, columns
+
     content = np.vstack(aligned_values)
-    return content, columns
+    return _finalize_columns_and_data(content, columns, dtype)
 
 
 def _list_of_dict_to_arrays(
