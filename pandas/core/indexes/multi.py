@@ -8,7 +8,10 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
-from functools import wraps
+from functools import (
+    reduce,
+    wraps,
+)
 from itertools import zip_longest
 from sys import getsizeof
 from typing import (
@@ -2753,9 +2756,7 @@ class MultiIndex(Index):
             levels = []
             names = []
             for i in range(self.nlevels):
-                level_values = self.levels[i]
-                for mi in other:
-                    level_values = level_values.union(mi.levels[i])
+                level_values = _union_levels([mi.levels[i] for mi in [self, *other]])
                 level_codes = [
                     recode_for_categories(
                         mi.codes[i], mi.levels[i], level_values, copy=False
@@ -5056,6 +5057,17 @@ class MultiIndex(Index):
 def _raise_key_length_error(key_length: int, nlevels: int) -> NoReturn:
     """One spelling of the over-long-key message for every site that raises it."""
     raise KeyError(f"Key length ({key_length}) exceeds index depth ({nlevels})")
+
+
+def _union_levels(levels: list[Index]) -> Index:
+    if not lib.dtypes_all_equal([level.dtype for level in levels]):
+        return reduce(Index.union, levels)
+
+    while len(levels) > 1:
+        levels = [
+            reduce(Index.union, levels[i : i + 2]) for i in range(0, len(levels), 2)
+        ]
+    return levels[0]
 
 
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
