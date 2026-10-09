@@ -294,20 +294,16 @@ def check_reduction_matches_series(index, opname, skipna):
     # not to_series, which infers str from object dtype
     ser = pd.Series(index)
     warn = None
-    if index.dtype.kind == "c" and opname in ["skew", "kurt"]:
-        warn = np.exceptions.ComplexWarning
+    if index.dtype.kind == "c" and opname == "median":
+        warn = Pandas4Warning
     try:
-        with tm.assert_produces_warning(
-            warn, match="discards the imaginary", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(warn, match="median of complex data"):
             expected = getattr(ser, opname)(skipna=skipna)
     except TypeError as err:
         with pytest.raises(TypeError, match=re.escape(str(err))):
             getattr(index, opname)(skipna=skipna)
         return
-    with tm.assert_produces_warning(
-        warn, match="discards the imaginary", check_stacklevel=False
-    ):
+    with tm.assert_produces_warning(warn, match="median of complex data"):
         result = getattr(index, opname)(skipna=skipna)
     assert type(result) is type(expected)
     tm.assert_almost_equal(result, expected)
