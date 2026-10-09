@@ -1627,6 +1627,19 @@ def test_nanvar_family_float16_overflow(use_bottleneck, method, values):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.parametrize("use_bottleneck", [True, False])
+@pytest.mark.parametrize("method", ["var", "std", "sem"])
+def test_nanvar_family_float32_precision(use_bottleneck, method):
+    # GH#??? bottleneck accumulates float32 in float32
+    rng = np.random.default_rng(2)
+    values = (rng.standard_normal(1_000_000) * 3 + 1000).astype(np.float32)
+    df = pd.DataFrame({"a": values})
+    expected = getattr(df.astype(np.float64), method)().astype(np.float32)
+    with pd.option_context("compute.use_bottleneck", use_bottleneck):
+        result = getattr(df, method)()
+    tm.assert_series_equal(result, expected, rtol=1e-4)
+
+
 @pytest.mark.parametrize("with_nan", [True, False])
 @pytest.mark.parametrize(
     "values",
