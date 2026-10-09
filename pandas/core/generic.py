@@ -7060,11 +7060,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
-        Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
-        ``convert_string``, ``convert_integer``, ``convert_boolean`` and
-        ``convert_floating``, it is possible to turn off individual conversions
-        to ``StringDtype``, the integer extension types, ``BooleanDtype``
-        or floating extension types, respectively.
+        Series in a DataFrame) to dtypes that support ``pd.NA``.
 
         For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
         rules as during normal Series/DataFrame construction.  Then, if possible,
