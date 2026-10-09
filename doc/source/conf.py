@@ -375,6 +375,8 @@ numpydoc_validation_exclude = {
     r"pandas\.ExcelWriter\.supported_extensions$",
     # ExcelFile
     r"pandas\.ExcelFile\.close$",
+    # Styler class attributes, documented by one-line #: comments
+    r"pandas\.io\.formats\.style\.Styler\.(env|loader|template_\w+)$",
     # Index attributes and methods processed by autodoc but not in api.rst
     r"pandas\.Index\.nlevels$",
     r"pandas\.Index\.diff$",

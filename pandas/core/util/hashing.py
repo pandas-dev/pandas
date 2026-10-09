@@ -420,10 +420,12 @@ def _hash_ndarray(
         try:
             vals = hash_object_array(vals, hash_key, encoding)
         except TypeError:
-            # we have mixed types
-            vals = hash_object_array(
-                vals.astype(str).astype(object), hash_key, encoding
-            )
+            # we have mixed types; leave bytes as-is since numpy's astype(str)
+            # can only decode them as ASCII, GH#27215
+            is_bytes = np.array([isinstance(val, bytes) for val in vals], dtype=bool)
+            strs = vals.copy()
+            strs[~is_bytes] = vals[~is_bytes].astype(str)
+            vals = hash_object_array(strs, hash_key, encoding)
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30

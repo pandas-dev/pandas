@@ -158,6 +158,30 @@ should already exist.
    # Install the build dependencies
    python -m pip install -r requirements-dev.txt
 
+.. _contributing.pixi:
+
+Option 3: using pixi
+~~~~~~~~~~~~~~~~~~~~
+
+pandas CI creates its environments with `pixi <https://pixi.prefix.dev/latest/>`_ from
+``pixi.toml`` and the lock file ``pixi.lock``, so pixi can reproduce the environment
+of a CI job.
+
+* `Install pixi <https://pixi.prefix.dev/latest/installation/>`_
+* Pick one of the environments defined in ``pixi.toml``, e.g. ``py313``. To reproduce a
+  CI job, use the ``environment`` of that job in ``.github/workflows/``; most job names
+  include it. Some jobs also set environment variables such as ``PANDAS_FUTURE`` or ``LANG``;
+  see ``.github/workflows/unit-tests.yml`` and ``.github/actions/run-tests/action.yml``.
+* In place of Step 3 below, build pandas and run tests with the tasks CI uses:
+
+.. code-block:: bash
+
+   pixi run -e py313 build-pandas --editable
+   pixi run -e py313 ci-test-pandas "-m not single_cpu" auto pandas/tests/frame
+
+   # Or activate the environment and use it as usual
+   pixi shell -e py313
+
 Step 3: build and install pandas
 --------------------------------
 

@@ -2040,6 +2040,30 @@ def test_agg_lambda_complex128_dtype_conversion():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, value, expected_dtype",
+    [
+        (pd.StringDtype(na_value=np.nan), 2**70, object),
+        pytest.param("string[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        ("Int64", pd.NaT, "M8[s]"),
+        ("Float64", pd.NaT, "M8[s]"),
+        ("boolean", pd.NaT, "M8[s]"),
+    ],
+)
+def test_agg_lambda_result_dtype_cannot_hold(dtype, value, expected_dtype):
+    # GH#70233 used to raise instead of inferring the result dtype
+    df = pd.DataFrame({"key": [1, 1, 2], "val": pd.Series([1, 0, 1], dtype=dtype)})
+    result = df.groupby("key")["val"].agg(lambda x: value)
+    expected = pd.Series(
+        [value, value],
+        index=pd.Index([1, 2], name="key"),
+        name="val",
+        dtype=expected_dtype,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
     # GH#59601
@@ -2170,6 +2194,21 @@ def test_agg_relabel_with_name_match_duplicate_columns():
     df = pd.DataFrame(
         [[0, 1, 2], [0, 3, 4], [1, 5, 6], [1, 7, 8]], columns=["A", "B", "B"]
     )
+
+    result = df.groupby("A").agg(B=("B", "sum"))
+    expected = df.groupby("A").agg(x=("B", "sum"))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_named_columns():
+    # GH#68000 the result's columns are unnamed whether or not the output name
+    #  matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
+    df.columns.name = "metric"
 
     result = df.groupby("A").agg(B=("B", "sum"))
     expected = df.groupby("A").agg(x=("B", "sum"))

@@ -18,6 +18,7 @@ from typing import (
     Literal,
     NoReturn,
     Self,
+    TypeAlias,
     cast,
     final,
     overload,
@@ -214,6 +215,8 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
+
+    _StylerKwargs: TypeAlias = dict[str, Any] | list[dict[str, Any]]
 
 
 def _is_np_bool_backed(obj: NDFrame) -> bool:
@@ -522,7 +525,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def _construct_axes_dict(
         self, axes: Sequence[Axis] | None = None, **kwargs: AxisInt
-    ) -> dict:
+    ) -> dict[Any, Any]:
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
         # error: Argument 1 to "update" of "MutableMapping" has incompatible type
@@ -759,7 +762,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return obj
 
     @final
-    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
+    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list[Any]) -> None:
         """
         This is called from the cython code when we set the `index` attribute
         directly, e.g. `series.index = [1, 2, 3]`.
@@ -1820,7 +1823,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # "object" defined the type as "Callable[[object], int]")
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Iterate over info axis.
 
@@ -2104,7 +2107,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def to_excel(
         self,
-        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         *,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
@@ -2831,7 +2834,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index_label: IndexLabel | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -3051,6 +3054,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> with engine.connect() as conn:
         ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
+
+        >>> engine.dispose()
 
         .. versionadded:: 2.2.0
 
@@ -3608,7 +3613,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         column_format_: dict[str, Any] = {"axis": 1, **base_format_}
 
         if isinstance(float_format, str):
-            float_format_: Callable | None = lambda x: float_format % x
+            float_format_: Callable[..., Any] | None = lambda x: float_format % x
         else:
             float_format_ = float_format
 
@@ -3618,7 +3623,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 return alt_format_(x)
 
-        formatters_: list | tuple | dict | Callable | None = None
+        formatters_: dict[Any, Any] | Callable[..., Any] | None = None
         if isinstance(formatters, list):
             formatters_ = {
                 c: partial(_wrap, alt_format_=formatters[i])
@@ -3643,8 +3648,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         format_index_names_ = [index_format_, column_format_]
 
         # Deal with hiding indexes and relabelling column names
-        hide_: list[dict] = []
-        relabel_index_: list[dict] = []
+        hide_: list[dict[str, Any]] = []
+        relabel_index_: list[dict[str, Any]] = []
         if columns:
             hide_.append(
                 {
@@ -3700,12 +3705,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf=None,
         *,
-        hide: dict | list[dict] | None = None,
-        relabel_index: dict | list[dict] | None = None,
-        format: dict | list[dict] | None = None,
-        format_index: dict | list[dict] | None = None,
-        format_index_names: dict | list[dict] | None = None,
-        render_kwargs: dict | None = None,
+        hide: _StylerKwargs | None = None,
+        relabel_index: _StylerKwargs | None = None,
+        format: _StylerKwargs | None = None,
+        format_index: _StylerKwargs | None = None,
+        format_index_names: _StylerKwargs | None = None,
+        render_kwargs: dict[str, Any] | None = None,
     ):
         """
         Render object to a LaTeX tabular, longtable, or nested table.
@@ -3777,7 +3782,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         sep: str = ...,
         na_rep: str = ...,
-        float_format: str | Callable | None = ...,
+        float_format: str | Callable[..., Any] | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
@@ -3804,7 +3809,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         sep: str = ...,
         na_rep: str = ...,
-        float_format: str | Callable | None = ...,
+        float_format: str | Callable[..., Any] | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
@@ -3831,7 +3836,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         sep: str = ",",
         na_rep: str = "",
-        float_format: str | Callable | None = None,
+        float_format: str | Callable[..., Any] | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool | list[str] = True,
         index: bool = True,
@@ -7256,7 +7261,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame,
+        value: Hashable | Mapping[Any, Any] | Series | DataFrame,
         *,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -8948,6 +8953,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = self._align_for_op(threshold, axis, flex=None)[1]
+                if axis is None and isinstance(threshold, ABCSeries):
+                    # _align_for_op aligned the 1D bound on self.columns;
+                    #  `where` below needs that spelled out (GH#68929)
+                    axis = 1
 
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
@@ -9448,7 +9457,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             end of `rule`.
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
-            Column must be datetime-like.
+            Column must be datetime-like. The ``on`` column is excluded from
+            the result; to keep it, resample ``df.set_index(on, drop=False)``
+            instead.
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
