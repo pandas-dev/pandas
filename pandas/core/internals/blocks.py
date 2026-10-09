@@ -546,9 +546,9 @@ class Block(PandasObject, libinternals.Block):
         convert_integer: bool = True,
         convert_boolean: bool = True,
         convert_floating: bool = True,
-        dtype_backend: DtypeBackend | None = "numpy_nullable",
+        dtype_backend: DtypeBackend | Literal["default"] = "numpy_nullable",
     ) -> list[Block]:
-        if dtype_backend is None:
+        if dtype_backend == "default":
             res_values = convert_to_default_dtype(self.values)
             if res_values is self.values:
                 return [self.copy(deep=False)]

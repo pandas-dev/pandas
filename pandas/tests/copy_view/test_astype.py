@@ -252,13 +252,13 @@ def test_convert_dtypes(using_infer_string):
         (pd.date_range("2020-01-01", periods=3, unit="ns"), "timestamp[ns][pyarrow]"),
     ],
 )
-def test_convert_dtypes_backend_none(values, dtype):
+def test_convert_dtypes_backend_default(values, dtype):
     # GH#35694 without missing values the result can be a view of the input
     if "pyarrow" in dtype:
         pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": pd.Series(values).astype(dtype)})
     df_orig = df.copy()
-    result = df.convert_dtypes(dtype_backend=None)
+    result = df.convert_dtypes(dtype_backend="default")
     assert not result._mgr._has_no_reference(0)
 
     result.iloc[0, 0] = result.iloc[1, 0]
