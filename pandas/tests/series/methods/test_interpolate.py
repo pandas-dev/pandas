@@ -172,6 +172,16 @@ class TestSeriesInterpolateData:
         interp_s = ser.reindex(new_index).interpolate(method="akima", der=1)
         tm.assert_series_equal(interp_s.loc[1:3], expected)
 
+    def test_interpolate_akima_datetime_index(self):
+        # GH#21276 squaring a >3s gap in ns overflowed int64 in scipy<1.3
+        pytest.importorskip("scipy")
+        idx = pd.to_datetime([0, 1, 2, 3, 4, 6, 7], unit="s").as_unit("ns")
+        ser = pd.Series([1, 2, 3, np.nan, np.nan, 4, 5], index=idx)
+
+        result = ser.interpolate(method="akima")
+        expected = pd.Series([1.0, 2.0, 3.0, 3.6015625, 3.6875, 4.0, 5.0], index=idx)
+        tm.assert_series_equal(result, expected)
+
     def test_interpolate_piecewise_polynomial(self):
         pytest.importorskip("scipy")
         ser = pd.Series([10, 11, 12, 13])
