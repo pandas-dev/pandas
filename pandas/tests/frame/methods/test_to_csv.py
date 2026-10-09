@@ -1478,3 +1478,45 @@ class TestDataFrameToCSV:
         ]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
+
+    def test_to_csv_chunksize_datetime_format(self):
+        # GH#55481: to_csv with chunksize should produce consistent datetime
+        # formatting across all chunks, not per-chunk formatting.
+        # Use a column where the full column is NOT dates-only (has a non-midnight
+        # value) but individual chunks may be dates-only.
+        df = pd.DataFrame(
+            {
+                "dt": pd.to_datetime(
+                    [
+                        "2023-01-01 00:00:00",
+                        "2023-01-02 00:00:00",
+                        "2023-01-03 12:00:00",
+                        "2023-01-04 00:00:00",
+                        "2023-01-05 00:00:00",
+                    ]
+                )
+            }
+        )
+        # Without chunksize: full column is not dates-only, so no special format
+        result_no_chunks = df.to_csv()
+        # With chunksize=2: should produce the same output
+        result_with_chunks = df.to_csv(chunksize=2)
+        assert result_no_chunks == result_with_chunks
+
+        # Also test with timedelta
+        df_td = pd.DataFrame(
+            {
+                "td": pd.to_timedelta(
+                    [
+                        "1 days 00:00:00",
+                        "2 days 00:00:00",
+                        "3 days 12:00:00",
+                        "4 days 00:00:00",
+                        "5 days 00:00:00",
+                    ]
+                )
+            }
+        )
+        result_no_chunks_td = df_td.to_csv()
+        result_with_chunks_td = df_td.to_csv(chunksize=2)
+        assert result_no_chunks_td == result_with_chunks_td

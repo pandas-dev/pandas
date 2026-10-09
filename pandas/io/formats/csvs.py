@@ -31,6 +31,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.arrays import DatetimeArray, TimedeltaArray
 from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_handle
@@ -307,23 +308,41 @@ class CSVFormatter:
     def _save_body(self) -> None:
         nrows = len(self.data_index)
         chunks = (nrows // self.chunksize) + 1
+
+        # Compute effective date_format and skip_dates_only_check based on full
+        # columns to ensure consistent formatting across chunks (GH#55481)
+        skip_dates_only_check = False
+        for col in self.obj.columns:
+            values = self.obj[col]._values
+            if isinstance(values, (DatetimeArray, TimedeltaArray)):
+                if not values._is_dates_only:
+                    skip_dates_only_check = True
+                    break
+
+        number_format = {
+            **self._number_format,
+            "skip_dates_only_check": skip_dates_only_check,
+        }
+
         for i in range(chunks):
             start_i = i * self.chunksize
             end_i = min(start_i + self.chunksize, nrows)
             if start_i >= end_i:
                 break
-            self._save_chunk(start_i, end_i)
+            self._save_chunk(start_i, end_i, number_format)
 
-    def _save_chunk(self, start_i: int, end_i: int) -> None:
+    def _save_chunk(
+        self, start_i: int, end_i: int, number_format: dict[str, Any]
+    ) -> None:
         # create the data for a chunk
         slicer = slice(start_i, end_i)
         df = self.obj.iloc[slicer]
 
-        res = df._get_values_for_csv(**self._number_format)
+        res = df._get_values_for_csv(**number_format)
         data = list(res._iter_column_arrays())
 
         ix = (
-            self.data_index[slicer]._get_values_for_csv(**self._number_format)
+            self.data_index[slicer]._get_values_for_csv(**number_format)
             if self.nlevels != 0
             else np.empty(end_i - start_i)
         )

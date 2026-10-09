@@ -1209,6 +1209,7 @@ class DataFrame(NDFrame, OpsMixin):
         decimal: str,
         na_rep: str,
         quoting,  # int csv.QUOTE_FOO from stdlib
+        skip_dates_only_check: bool = False,
     ) -> DataFrame:
         # helper used by to_csv
         mgr = self._mgr.get_values_for_csv(
@@ -1217,6 +1218,7 @@ class DataFrame(NDFrame, OpsMixin):
             decimal=decimal,
             na_rep=na_rep,
             quoting=quoting,
+            skip_dates_only_check=skip_dates_only_check,
         )
         return self._constructor_from_mgr(mgr, axes=mgr.axes)
 

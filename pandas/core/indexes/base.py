@@ -1617,6 +1617,7 @@ class Index(IndexOpsMixin, PandasObject):
         float_format: str_t | None = None,
         date_format: str_t | None = None,
         quoting: int | None = None,
+        skip_dates_only_check: bool = False,
     ) -> npt.NDArray[np.object_]:
         return get_values_for_csv(
             self._values,
@@ -1625,6 +1626,7 @@ class Index(IndexOpsMixin, PandasObject):
             float_format=float_format,
             date_format=date_format,
             quoting=quoting,
+            skip_dates_only_check=skip_dates_only_check,
         )
 
     def _summary(self, name: str_t | None = None) -> str_t:
@@ -8555,6 +8557,7 @@ def get_values_for_csv(
     quoting: int | None = None,
     float_format: str_t | None = None,
     decimal: str = ".",
+    skip_dates_only_check: bool = False,
 ) -> npt.NDArray[np.object_]:
     """
     Convert to types which can be consumed by the standard library's
@@ -8573,7 +8576,11 @@ def get_values_for_csv(
 
     if isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
         if values.ndim == 1:
-            result = values._format_native_types(na_rep=na_rep, date_format=date_format)
+            result = values._format_native_types(
+                na_rep=na_rep,
+                date_format=date_format,
+                skip_dates_only_check=skip_dates_only_check,
+            )
             result = result.astype(object, copy=False)
             return result
 
@@ -8581,7 +8588,9 @@ def get_values_for_csv(
         results_converted = []
         for i in range(len(values)):
             result = values[i, :]._format_native_types(
-                na_rep=na_rep, date_format=date_format
+                na_rep=na_rep,
+                date_format=date_format,
+                skip_dates_only_check=skip_dates_only_check,
             )
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)

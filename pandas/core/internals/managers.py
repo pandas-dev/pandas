@@ -642,7 +642,14 @@ class BaseBlockManager(PandasObject):
         return self.apply("convert_dtypes", **kwargs)
 
     def get_values_for_csv(
-        self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
+        self,
+        *,
+        float_format,
+        date_format,
+        decimal,
+        na_rep: str = "nan",
+        quoting=None,
+        skip_dates_only_check: bool = False,
     ) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
@@ -655,6 +662,7 @@ class BaseBlockManager(PandasObject):
             float_format=float_format,
             date_format=date_format,
             decimal=decimal,
+            skip_dates_only_check=skip_dates_only_check,
         )
 
     @property

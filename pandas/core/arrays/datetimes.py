@@ -753,9 +753,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Rendering Methods
 
     def _format_native_types(
-        self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
+        self,
+        *,
+        na_rep: str | float = "NaT",
+        date_format=None,
+        skip_dates_only_check: bool = False,
+        **kwargs,
     ) -> npt.NDArray[np.object_]:
-        if date_format is None and self._is_dates_only:
+        if date_format is None and not skip_dates_only_check and self._is_dates_only:
             # Only dates and no timezone: provide a default format
             date_format = "%Y-%m-%d"
 
