@@ -431,4 +431,29 @@ class Append:
         self.left.append(self.right)
 
 
+class AppendMany:
+    params = ["datetime64[ns]", "int64", "str"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N1 = 200
+        N2 = 1000
+
+        if dtype == "datetime64[ns]":
+            level1 = date_range("2000-01-01", periods=N1 * N2, freq="s", unit="ns")
+        elif dtype == "int64":
+            level1 = Index(np.arange(N1 * N2))
+        elif dtype == "str":
+            level1 = Index([f"i-{i:06d}" for i in range(N1 * N2)], dtype="str")
+        else:
+            raise NotImplementedError
+
+        self.pieces = [
+            MultiIndex.from_product([level1[i::N1], ["a", "b"]]) for i in range(N1)
+        ]
+
+    def time_append_many(self, dtype):
+        self.pieces[0].append(self.pieces[1:])
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
