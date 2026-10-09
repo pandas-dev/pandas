@@ -354,6 +354,24 @@ class TestCategoricalOps:
         b = pd.Categorical(["b"], categories=["b", "a"])
         assert not a.equals(b)
 
+    def test_compare_unordered_mixed_dtype_categories_different_order(self):
+        # GH#51543
+        a = pd.Categorical([1, 2, "b"], categories=[1, 2, "b"])
+        b = pd.Categorical([1, "b", "b"], categories=[1, "b", 2])
+        tm.assert_numpy_array_equal(a == b, np.array([True, False, True]))
+        tm.assert_numpy_array_equal(a != b, np.array([False, True, False]))
+
+        c = pd.Categorical([1, 2, "b"], categories=["b", 2, 1])
+        assert a.equals(c)
+
+        # ordered categoricals still require the same order
+        a_ord = a.as_ordered()
+        c_ord = c.as_ordered()
+        msg = "Categoricals can only be compared if 'categories' are the same."
+        with pytest.raises(TypeError, match=msg):
+            a_ord == c_ord
+        assert not a_ord.equals(c_ord)
+
     def test_numeric_like_ops(self):
         df = pd.DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
