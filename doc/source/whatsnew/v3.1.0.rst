@@ -890,6 +890,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Fixed bug in :func:`to_numeric` with ``errors="coerce"`` raising ``TypeError`` for object values containing unhashable nested elements, such as a tuple containing a list, instead of coercing them to ``NaN`` (:issue:`69916`)
 - Bug in :class:`DataFrame` constructor raising ``TypeError`` when given a list whose first element is a list-like dataclass (e.g. a :class:`collections.UserList` subclass); such elements are now treated as list-like rows (:issue:`41682`)
 - Bug in :class:`DataFrame` constructor where ``NaT`` in a :class:`TimedeltaIndex` row was incorrectly inferred as ``datetime64`` instead of ``timedelta64`` (:issue:`23985`)
 - Bug in :class:`DataFrame` constructor where constructing from a list of uniform-dtype arrays (e.g. pyarrow, :class:`CategoricalDtype`, nullable dtypes) lost the dtype (:issue:`49593`)
