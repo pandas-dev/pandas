@@ -373,3 +373,19 @@ def test_complex_ordering_deprecated(box, func, complex_dtype):
     msg = "deprecated on complex data"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         getattr(obj, func)()
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+@pytest.mark.parametrize(
+    "values, skipna",
+    [([], True), ([1j, np.nan], False), ([np.nan, np.nan], True)],
+)
+def test_complex_index_minmax_nan_result_deprecated(
+    func, values, skipna, complex_dtype
+):
+    # GH#43770 Index.min/max return NaN here without reaching nanops
+    idx = pd.Index(values, dtype=complex_dtype)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(idx, func)(skipna=skipna)
+    assert np.isnan(result)
