@@ -132,10 +132,19 @@ def test_parse_datetime_string_with_reso_nanosecond_reso():
             datetime(2020, 1, 5, 10, tzinfo=tzoffset(None, 19800)),
             "minute",
         ),
+        ("01-Jan-2012", datetime(2012, 1, 1), "day"),
+        ("1/13/2000 09:30", datetime(2000, 1, 13, 9, 30), "minute"),
+        ("13.1.2000 9:30 PM", datetime(2000, 1, 13, 21, 30), "minute"),
+        ("2005/11/09 10:15:32", datetime(2005, 11, 9, 10, 15, 32), "second"),
+        ("20010101 12", datetime(2001, 1, 1, 12), "hour"),
+        ("201710290300", datetime(2017, 10, 29, 3), "minute"),
+        ("1 2005", datetime(2005, 1, 1), "month"),
     ],
 )
-def test_parse_datetime_string_with_reso_month_name(date_str, expected, expected_reso):
-    # GH#65381 parsed without dateutil
+def test_parse_datetime_string_with_reso_without_dateutil(
+    date_str, expected, expected_reso
+):
+    # GH#65381
     parsed, reso = parse_datetime_string_with_reso(date_str)
     assert parsed == expected
     assert parsed.tzinfo == expected.tzinfo
@@ -151,29 +160,39 @@ def test_parse_datetime_string_with_reso_month_name(date_str, expected, expected
         "5 January 2020 10:00 PM",
         "Jan 5 2020 10:00:00.5 UTC",
         "Jan 5 2020 10:00 -0800",
+        "05-Jan-2012 10:00 UTC",
+        "1/2/2000 09:30",
+        "13/1/2000 9:30:15 PM",
+        "2005/11/13 10:15",
+        "20010101 1234",
+        "20171029030015",
+        "2005 11",
         # left to dateutil
         "Jan 5 0001",
         "Jan 1th 2020",
         "Jan 13,2020 11:48 PM",
         "Sep 1 08:34:19 1970 10:00",
+        "2005/11/09 10:15",
+        "20010102",
     ],
 )
-def test_month_name_strings_match_dateutil(date_str):
-    # GH#65381
-    result = parsing.py_parse_datetime_string(date_str)
-    expected = du_parse(date_str, default=datetime(1, 1, 1))
+@pytest.mark.parametrize("dayfirst", [False, True])
+def test_strings_match_dateutil(date_str, dayfirst):
+    # GH#65381 formats parsed without dateutil must give dateutil's result
+    result = parsing.py_parse_datetime_string(date_str, dayfirst=dayfirst)
+    expected = du_parse(date_str, default=datetime(1, 1, 1), dayfirst=dayfirst)
     assert result == expected
     assert result.utcoffset() == expected.utcoffset()
 
 
-def test_month_name_string_nanoseconds():
+def test_parse_without_dateutil_nanoseconds():
     # GH#65381
     result = pd.Timestamp("Jan 5 2020 10:00:00.000000789")
     assert result == pd.Timestamp("2020-01-05 10:00:00.000000789")
     assert result.unit == "ns"
 
 
-def test_month_name_string_invalid_day():
+def test_parse_without_dateutil_invalid_day():
     # GH#65381
     msg = "day is out of range for month: Feb 30 2020"
     with pytest.raises(parsing.DateParseError, match=msg):
