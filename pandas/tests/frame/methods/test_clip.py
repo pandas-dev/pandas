@@ -226,3 +226,13 @@ class TestDataFrameClip:
         if inplace:
             result = df
         tm.assert_frame_equal(result, pd.DataFrame(expected))
+
+    def test_clip_ordered_categorical(self):
+        # GH#49217 the bounds are ordered by category position, not by value
+        dtype = pd.CategoricalDtype(["a", "c", "b"], ordered=True)
+        df = pd.DataFrame({"x": ["a", "c", "b"], "y": ["b", "a", "c"]}, dtype=dtype)
+        result = df.clip("c", "b")
+        expected = pd.DataFrame(
+            {"x": ["c", "c", "b"], "y": ["b", "c", "c"]}, dtype=dtype
+        )
+        tm.assert_frame_equal(result, expected)

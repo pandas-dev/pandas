@@ -171,3 +171,27 @@ class TestSeriesClip:
         tm.assert_series_equal(result, expected)
         # the np.clip ufunc dispatches to Series.clip
         tm.assert_series_equal(np.clip(ser, bound, 1), expected)
+
+    @pytest.mark.parametrize(
+        "categories, lower, upper, expected",
+        [
+            (["a", "c", "b"], "c", "b", ["c", "c", "b"]),
+            (["a", "c", "b"], "b", "c", ["c", "c", "b"]),
+            ([3, 1, 2], 3, 1, [3, 1, 1]),
+            ([3, 1, 2], 1, 3, [3, 1, 1]),
+            (
+                list(pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-02"])),
+                pd.Timestamp("2020-01-03"),
+                "2020-01-01",
+                list(pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-01"])),
+            ),
+            # a dtype that cannot be hashed
+            ([(1, 2), 3, (0, 1)], 3, 3, [3, 3, 3]),
+        ],
+    )
+    def test_clip_ordered_categorical(self, categories, lower, upper, expected):
+        # GH#49217 the bounds are ordered by category position, not by value
+        dtype = pd.CategoricalDtype(categories, ordered=True)
+        ser = pd.Series(categories, dtype=dtype)
+        result = ser.clip(lower, upper)
+        tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
