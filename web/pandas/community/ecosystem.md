@@ -33,7 +33,6 @@ authors to coordinate on the namespace.
   | [bigframes](https://dataframes.bigquery.dev/)                        | `bigquery` | `DataFrame`           |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
-  | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
@@ -519,13 +518,6 @@ both automatically and on-demand.
 
 
 ## Other related libraries
-
-#### [Compose](https://github.com/alteryx/compose)
-
-Compose is a machine learning tool for labeling data and prediction engineering.
-It allows you to structure the labeling process by parameterizing
-prediction problems and transforming time-driven relational data into
-target values with cutoff times that can be used for supervised learning.
 
 #### [D-Tale](https://github.com/man-group/dtale)
 
