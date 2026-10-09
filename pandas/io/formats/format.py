@@ -1823,6 +1823,7 @@ def get_format_timedelta64(
     values: TimedeltaArray,
     na_rep: str | float = "NaT",
     box: bool = False,
+    skip_dates_only_check: bool = False,
 ) -> Callable[..., Any]:
     """
     Return a formatter function for a range of timedeltas.
@@ -1830,7 +1831,7 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    if values._is_dates_only:
+    if not skip_dates_only_check and values._is_dates_only:
         format = None
     else:
         i8 = values.asi8
