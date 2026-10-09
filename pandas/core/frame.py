@@ -17056,10 +17056,7 @@ class DataFrame(NDFrame, OpsMixin):
                         result = bvalues._reduce(name, axis=0, skipna=skipna, **kwds)
                     if result is not None:
                         out = df._constructor_sliced(result, index=df.index, copy=False)
-                        if out_dtype is not None and not (
-                            isinstance(out.dtype, ExtensionDtype)
-                            and out.dtype._is_boolean
-                        ):
+                        if out_dtype is not None and out.dtype != "boolean":
                             out = out.astype(out_dtype)
                         return out
                 # GH#51474: block-wise axis=1 reduction avoiding an expensive
@@ -17140,11 +17137,10 @@ class DataFrame(NDFrame, OpsMixin):
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
         out.name = None
-        if out_dtype is not None and not (
-            isinstance(out.dtype, ExtensionDtype) and out.dtype._is_boolean
-        ):
-            # Keep nullable boolean results (e.g. "boolean", "bool[pyarrow]"),
-            # which can hold NA when skipna=False
+        if out_dtype is not None and out.dtype.kind != "b" and not out.isna().any():
+            # Keep boolean results that can hold NA when skipna=False (e.g.
+            # "boolean", "bool[pyarrow]"), and object results mixing such
+            # dtypes that hold NA, since NA can't be cast to bool
             out = out.astype(out_dtype)
         elif name not in ["any", "all"] and any(
             dtype == object for dtype in df._blk_dtypes
