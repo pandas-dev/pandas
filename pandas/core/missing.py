@@ -1110,7 +1110,10 @@ def _interp_limit(
 
     def inner(invalid, limit: int):
         limit = min(limit, N - 1)
-        windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
+        # windowed[i] is invalid[i : i + limit + 1].all(); a cumsum keeps this
+        # O(N) instead of O(N * limit), see GH#34936
+        counts = np.concatenate([[0], invalid.cumsum()])
+        windowed = counts[limit + 1 :] - counts[: N - limit] == limit + 1
         idx = np.union1d(
             np.where(windowed)[0] + limit,
             np.where((~invalid[: limit + 1]).cumsum() == 0)[0],

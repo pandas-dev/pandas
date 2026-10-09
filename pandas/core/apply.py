@@ -23,7 +23,10 @@ from pandas.util._decorators import (
     set_module,
 )
 
-from pandas.core.dtypes.cast import is_nested_object
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    is_nested_object,
+)
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
@@ -57,6 +60,7 @@ if TYPE_CHECKING:
         Generator,
         Hashable,
         Iterable,
+        Mapping,
         MutableMapping,
         Sequence,
     )
@@ -68,6 +72,7 @@ if TYPE_CHECKING:
         AggObjType,
         Axis,
         AxisInt,
+        DtypeObj,
         NDFrameT,
         npt,
     )
@@ -118,6 +123,18 @@ _frame_reduction_names = frozenset(
 )
 
 
+def _stack_as_object(dtypes: list[DtypeObj]) -> bool:
+    """
+    Whether results of these dtypes must be stacked as object to keep their
+    values: bools mixed with other dtypes can be cast to numbers, and signed
+    with unsigned integers to a float, which rounds values above 2**53.
+    """
+    kinds = {dtype.kind for dtype in dtypes}
+    if "b" in kinds and len(kinds) > 1:
+        return True
+    return {"i", "u"} <= kinds and find_common_type(dtypes).kind == "f"
+
+
 @set_module("pandas.api.executors")
 class BaseExecutionEngine(abc.ABC):
     """
@@ -137,9 +154,9 @@ class BaseExecutionEngine(abc.ABC):
     def map(
         data: Series | DataFrame | np.ndarray,
         func: AggFuncType,
-        args: tuple,
+        args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        decorator: Callable | None,
+        decorator: Callable[..., Any] | None,
         skip_na: bool,
     ):
         """
@@ -180,9 +197,9 @@ class BaseExecutionEngine(abc.ABC):
     def apply(
         data: Series | DataFrame | np.ndarray,
         func: AggFuncType,
-        args: tuple,
+        args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        decorator: Callable,
+        decorator: Callable[..., Any],
         axis: Axis,
     ):
         """
@@ -664,7 +681,7 @@ class Apply(metaclass=abc.ABCMeta):
         self,
         selected_obj: Series | DataFrame,
         result_index: list[Hashable],
-        result_data: list,
+        result_data: list[Any],
     ):
         from pandas import Index
         from pandas.core.groupby.groupby import BaseGroupBy
@@ -994,7 +1011,7 @@ class FrameApply(NDFrameApply):
     @abc.abstractmethod
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         pass
 
     @abc.abstractmethod
@@ -1148,7 +1165,7 @@ class FrameApply(NDFrameApply):
         elif self.kwargs.get("bool_only"):
             obj = obj._get_bool_data()
 
-        if obj.columns.empty or not func_names:
+        if obj.columns.empty or len(func_names) == 0:
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
@@ -1157,7 +1174,7 @@ class FrameApply(NDFrameApply):
         for dtype in groups:
             cols = groups[dtype]
             sub = obj[cols]
-            group_pieces: list[DataFrame] = []
+            rows: list[Series] = []
             for func_name in func_names:
                 try:
                     row = getattr(sub, func_name)(*self.args, **self.kwargs)
@@ -1172,9 +1189,17 @@ class FrameApply(NDFrameApply):
                     # by the columns; anything else would silently misalign
                     # in the concat below.
                     return None
-                # to_frame().T avoids the slow DataFrame(list-of-Series) path
-                group_pieces.append(row.to_frame(func_name).T)
-            pieces.append(concat(group_pieces))
+                rows.append(row)
+
+            # to_frame().T avoids the slow DataFrame(list-of-Series) path
+            frames = [
+                row.to_frame(name).T for name, row in zip(func_names, rows, strict=True)
+            ]
+            if _stack_as_object([row.dtype for row in rows]):
+                # GH#65031 see test_agg_list_like_unsigned_and_signed_is_object
+                # and test_agg_list_like_bool_with_numeric_is_object
+                frames = [frame.astype(object) for frame in frames]
+            pieces.append(concat(frames))
 
         result = concat(pieces, axis=1)
         result = result.reindex(columns=obj.columns)
@@ -1387,7 +1412,7 @@ class FrameRowApply(FrameApply):
     @functools.cache
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
 
@@ -1413,7 +1438,7 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1543,7 +1568,7 @@ class FrameColumnApply(FrameApply):
 
     @staticmethod
     def _make_ea_row_builder(
-        col_arrays: list, dtype: ExtensionDtype, cls: type[ExtensionArray]
+        col_arrays: Sequence[Any], dtype: ExtensionDtype, cls: type[ExtensionArray]
     ) -> Callable[[int], ExtensionArray]:
         """Build a callable that constructs an EA row for a given row index.
 
@@ -1590,7 +1615,7 @@ class FrameColumnApply(FrameApply):
     @functools.cache
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
         from pandas.core._numba.extensions import maybe_cast_str
@@ -1617,7 +1642,7 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1764,7 +1789,7 @@ class SeriesApply(NDFrameApply):
 
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         obj = self.obj
 
         if isinstance(func, np.ufunc):
@@ -1793,7 +1818,7 @@ class SeriesApply(NDFrameApply):
 
 
 class GroupByApply(Apply):
-    obj: GroupBy | Resampler | BaseWindow
+    obj: GroupBy[Any] | Resampler | BaseWindow
 
     def __init__(
         self,
@@ -1914,7 +1939,7 @@ class ResamplerWindowApply(GroupByApply):
         raise NotImplementedError
 
 
-def _groupby_result_index(obj: BaseGroupBy) -> Index:
+def _groupby_result_index(obj: BaseGroupBy[Any]) -> Index:
     """
     Index of a groupby aggregation result, used when there is nothing to aggregate.
     """
@@ -2080,7 +2105,7 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
 
 def normalize_keyword_aggregation(
-    kwargs: dict,
+    kwargs: Mapping[str, Any],
 ) -> tuple[
     MutableMapping[Hashable, list[AggFuncTypeBase]],
     tuple[str, ...],
@@ -2160,7 +2185,7 @@ def _make_unique_kwarg_list(
 
 def relabel_result(
     result: DataFrame | Series,
-    func: dict[str, list[Callable | str]],
+    func: dict[str, list[Callable[..., Any] | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
 ) -> dict[Hashable, Series]:
@@ -2349,7 +2374,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def validate_func_kwargs(
-    kwargs: dict,
+    kwargs: Mapping[str, Any],
 ) -> tuple[list[str], list[str | Callable[..., Any]]]:
     """
     Validates types of user-provided "named aggregation" kwargs.
