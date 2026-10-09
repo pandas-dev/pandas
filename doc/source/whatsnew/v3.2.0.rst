@@ -152,7 +152,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in the :class:`DataFrame` constructor, :meth:`DataFrame.from_dict` with ``orient="index"``, and :meth:`DataFrame.from_records` splitting a ``str`` or ``bytes`` row into its elements when the first row was list-like; such rows now raise ``TypeError`` (:issue:`50461`)
 -
 
 Strings

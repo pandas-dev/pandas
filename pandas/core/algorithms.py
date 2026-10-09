@@ -1874,7 +1874,8 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     from pandas.core.internals.construction import to_arrays
     from pandas.core.sorting import lexsort_indexer
 
-    arrays, _ = to_arrays(values, None)
+    # a str element is ordered as the tuple of its characters
+    arrays, _ = to_arrays(values, None, split_str_rows=True)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
 
