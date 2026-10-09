@@ -625,3 +625,12 @@ def test_safe_sort_multiindex():
         [pd.Series([1, 2, pd.NA, pd.NA], dtype="Int64"), [1, 2, 3, 3]]
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_safe_sort_tuples_mixed_with_str():
+    # GH#50461 the DataFrame constructor rejects a str row after a tuple row, but
+    #  safe_sort still orders a str element as the tuple of its characters
+    values = np.array([("b", 1), "ab", ("a", 2)], dtype=object)
+    result = safe_sort(values)
+    expected = np.array([("a", 2), "ab", ("b", 1)], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)

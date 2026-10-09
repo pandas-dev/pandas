@@ -225,6 +225,12 @@ class TestFromDict:
         with pytest.raises(ValueError, match=msg):
             pd.DataFrame.from_dict({"b": 8, "a": 6})
 
+    def test_from_dict_orient_index_list_then_str_raises(self):
+        # GH#50461 the str value used to be split into characters
+        msg = "When the first row of data is list-like, all rows must be list-like"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame.from_dict({"a": ["A1", "A2"], "b": "B"}, orient="index")
+
     def test_from_dict_orient_invalid(self):
         msg = (
             "Expected 'index', 'columns' or 'tight' for orient parameter. "
