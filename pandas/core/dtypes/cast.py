@@ -181,6 +181,8 @@ def maybe_box_native(value: Scalar | NAType | None) -> Scalar | NAType | None:
         value = int(value)
     elif is_bool(value):
         value = bool(value)
+    elif is_complex(value):
+        value = complex(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
     elif value is NA:

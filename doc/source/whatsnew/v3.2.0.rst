@@ -152,7 +152,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
 -
 
 Strings
