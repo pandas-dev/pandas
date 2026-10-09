@@ -1417,6 +1417,15 @@ class TestTSPlot:
                 == "100ms"
             )
 
+    def test_plot_multiplied_nano_freq(self):
+        # GH#20575 128Hz data; dropping the multiplier made the date locator
+        # enumerate every nanosecond in view
+        idx = date_range(0, periods=2, freq="7812500ns")
+        ser = pd.Series([1.0, 2.0], index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        assert ax.freq == "7812500ns"
+
     def test_irreg_dtypes(self):
         # date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
