@@ -193,6 +193,69 @@ class TestXport:
         tm.assert_numpy_array_equal(result, np.zeros(3))
         assert list(np.signbit(result)) == [False, True, False]
 
+    def test_convert_dates(self, datapath):
+        # GH#70876 numeric columns with a SAS date or datetime format are
+        # converted like the SAS7BDAT reader does. dates.xpt was written with
+        # pyreadstat (file_format_version=5): DT has format DATE9., DTTM has
+        # DATETIME20., NUM has the non-date format BEST12., ID has none.
+        path = datapath("io", "sas", "data", "dates.xpt")
+        expected = pd.DataFrame(
+            {
+                "ID": [1.0, 2.0, 3.0, 4.0],
+                "DT": pd.to_datetime(
+                    ["1960-01-01", "2021-02-16", None, "1899-12-31"]
+                ).as_unit("s"),
+                "DTTM": pd.to_datetime(
+                    [
+                        "1960-01-01 00:00:00",
+                        "2021-02-16 10:07:55",
+                        None,
+                        "1959-12-31 23:59:59",
+                    ]
+                ).as_unit("ms"),
+                "NUM": [1.5, -2.25, np.nan, 1e10],
+                "TXT": ["a", "bb", "", "dddd"],
+            }
+        )
+
+        result = read_sas(path, encoding="infer")
+        tm.assert_frame_equal(result, expected)
+
+        with XportReader(path, encoding="infer") as reader:
+            tm.assert_frame_equal(reader.read(), expected)
+
+    def test_convert_dates_false(self, datapath):
+        # GH#70876 the raw SAS day and second counts
+        path = datapath("io", "sas", "data", "dates.xpt")
+        with XportReader(path, encoding="infer", convert_dates=False) as reader:
+            result = reader.read()
+
+        expected = pd.DataFrame(
+            {
+                "ID": [1.0, 2.0, 3.0, 4.0],
+                "DT": [0.0, 22327.0, np.nan, -21915.0],
+                "DTTM": [0.0, 22327.0 * 86400 + 36475, np.nan, -1.0],
+                "NUM": [1.5, -2.25, np.nan, 1e10],
+                "TXT": ["a", "bb", "", "dddd"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dates_chunked(self, datapath):
+        # GH#70876 every chunk is converted, not only the first
+        path = datapath("io", "sas", "data", "dates.xpt")
+        expected = read_sas(path, encoding="infer")
+        assert expected["DT"].dtype == "M8[s]"
+        assert expected["DTTM"].dtype == "M8[ms]"
+
+        with read_sas(path, encoding="infer", chunksize=3) as reader:
+            chunks = list(reader)
+        assert [len(chunk) for chunk in chunks] == [3, 1]
+        for chunk in chunks:
+            assert chunk["DT"].dtype == "M8[s]"
+            assert chunk["DTTM"].dtype == "M8[ms]"
+        tm.assert_frame_equal(pd.concat(chunks), expected)
+
     def test_cport_header_found_raises(self, datapath):
         # Test with DEMO_PUF.cpt, the beginning of puf2019_1_fall.xpt
         # from https://www.cms.gov/files/zip/puf2019.zip
