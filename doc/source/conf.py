@@ -1044,11 +1044,37 @@ def rstjinja(app, docname, source) -> None:
     source[0] = rendered
 
 
+def resolve_pandas_toplevel_xref(app, env, node, contnode):
+    """
+    Retry an unresolved ``py`` reference with a ``pandas.`` prefix.
+
+    numpydoc emits "See Also" entries like ``DataFrame.pipe`` as unqualified
+    references, which Sphinx fails to resolve on pages whose current module is
+    not ``pandas`` (e.g. ``pandas.api.typing``), see GH#31661.
+    """
+    if node.get("refdomain") != "py":
+        return None
+    target = node.get("reftarget", "")
+    if not target or target.startswith("pandas."):
+        return None
+    py_domain = env.get_domain("py")
+    return py_domain.resolve_xref(
+        env,
+        node.get("refdoc"),
+        app.builder,
+        node.get("reftype", "obj"),
+        f"pandas.{target}",
+        node,
+        contnode,
+    )
+
+
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
+    app.connect("missing-reference", resolve_pandas_toplevel_xref)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
