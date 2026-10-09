@@ -6236,7 +6236,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
         columns : single label or list-like
-            No change is made to the Series; use 'index' or 'labels' instead.
+            Ignored; use 'index' or 'labels' instead.
+
+            .. deprecated:: 3.2.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
@@ -6314,7 +6316,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         inplace = self._check_inplace_deprecation(inplace, "drop")
 
-        return super().drop(
+        result = super().drop(
             labels=labels,
             axis=axis,
             index=index,
@@ -6323,6 +6325,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             inplace=inplace,
             errors=errors,
         )
+        if columns is not None:
+            # GH#39509; warn after super().drop so calls it rejects don't warn
+            warnings.warn(
+                "Series.drop ignores the 'columns' keyword. Passing it is "
+                "deprecated and will raise in a future version. Use 'index' "
+                "or 'labels' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     def pop(self, item: Hashable) -> Any:
         """

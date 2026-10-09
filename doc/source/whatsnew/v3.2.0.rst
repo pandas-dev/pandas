@@ -109,6 +109,7 @@ Other deprecations
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
+- Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
