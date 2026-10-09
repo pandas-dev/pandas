@@ -207,6 +207,19 @@ def test_multiindex_name_and_level_raising():
 def test_rename_positional_second_arg_raises(func, arg):
     # GH#33778 a positional second argument used to be read as `level`
     mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
-    msg = "takes 2 positional arguments but 3 were given"
+    msg = "positional arguments but 3 were given"
     with pytest.raises(TypeError, match=msg):
         getattr(mi, func)(["foo", "bar"], arg)
+
+
+def test_rename_name_keyword():
+    # GH#33778 the `name` keyword documented on Index.rename was rejected
+    mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+    expected = mi.set_names(["foo", "bar"])
+    tm.assert_index_equal(mi.rename(name=["foo", "bar"]), expected)
+    tm.assert_index_equal(mi.rename(names=["foo", "bar"]), expected)
+
+    with pytest.raises(TypeError, match="Pass only one of 'name' and 'names'"):
+        mi.rename(["foo", "bar"], names=["foo", "bar"])
+    with pytest.raises(TypeError, match="missing required argument: 'name'"):
+        mi.rename()
