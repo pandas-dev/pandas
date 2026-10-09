@@ -23,6 +23,7 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 import warnings
@@ -145,7 +146,7 @@ class SeriesFormatter:
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         name: bool = False,
         float_format: str | None = None,
         dtype: bool = True,
@@ -381,8 +382,9 @@ class DataFrameFormatter:
         it is assumed to be aliases for the column names.
     index : bool, optional, default True
         Whether to print index (row) labels.
-    na_rep : str, optional, default 'NaN'
-        String representation of ``NaN`` to use.
+    na_rep : str, optional
+        String representation of missing values. By default ``NaN``,
+        ``NaT``, ``None`` and ``NA`` are each shown as themselves.
     formatters : list, tuple or dict of one-param. functions, optional
         Formatter functions to apply to columns' elements by position or
         name.
@@ -437,7 +439,7 @@ class DataFrameFormatter:
         col_space: ColspaceArgType | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
@@ -770,7 +772,7 @@ class DataFrameFormatter:
             leading_space=self.index,
         )
 
-    def _get_formatter(self, i: str | int) -> Callable | None:
+    def _get_formatter(self, i: str | int) -> Callable[..., Any] | None:
         if isinstance(self.formatters, (list, tuple)):
             if is_integer(i):
                 i = cast("int", i)
@@ -905,7 +907,7 @@ class DataFrameRenderer:
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
-        classes: str | list | tuple | None = None,
+        classes: str | list[str] | tuple[str, ...] | None = None,
         notebook: bool = False,
         border: int | bool | None = None,
         table_id: str | None = None,
@@ -1111,16 +1113,16 @@ def format_name(name: Hashable) -> str:
 
 def format_array(
     values: ArrayLike,
-    formatter: Callable | None,
+    formatter: Callable[..., Any] | None,
     float_format: FloatFormatType | None = None,
-    na_rep: str = "NaN",
+    na_rep: str | lib.NoDefault = lib.no_default,
     digits: int | None = None,
     space: str | int | None = None,
     justify: str = "right",
     decimal: str = ".",
     leading_space: bool | None = True,
     quoting: int | None = None,
-    fallback_formatter: Callable | None = None,
+    fallback_formatter: Callable[..., Any] | None = None,
 ) -> list[str]:
     """
     Format an array for printing.
@@ -1153,12 +1155,12 @@ def format_array(
     if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-        if na_rep == "NaN":
+        if na_rep is lib.no_default:
             na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
-        if na_rep == "NaN":
+        if na_rep is lib.no_default:
             na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
@@ -1200,8 +1202,8 @@ class _GenericArrayFormatter:
         self,
         values: ArrayLike,
         digits: int = 7,
-        formatter: Callable | None = None,
-        na_rep: str = "NaN",
+        formatter: Callable[..., Any] | None = None,
+        na_rep: str | lib.NoDefault = lib.no_default,
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
         justify: str = "right",
@@ -1209,11 +1211,13 @@ class _GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
-        fallback_formatter: Callable | None = None,
+        fallback_formatter: Callable[..., Any] | None = None,
     ) -> None:
         self.values = values
         self.digits = digits
-        self.na_rep = na_rep
+        # the default shows each kind of missing value as itself, GH#54872
+        self._na_rep_is_default = na_rep is lib.no_default
+        self.na_rep = "NaN" if na_rep is lib.no_default else na_rep
         self.space = space
         self.formatter = formatter
         self.float_format = float_format
@@ -1252,7 +1256,9 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
+                if not self._na_rep_is_default:
+                    return self.na_rep
+                elif x is None:
                     return "None"
                 elif x is NA:
                     return str(NA)
@@ -1321,7 +1327,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         self,
         float_format: FloatFormatType | None = None,
         threshold: float | None = None,
-    ) -> Callable:
+    ) -> Callable[..., Any]:
         """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
         if float_format is None:
@@ -1373,6 +1379,26 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
         return formatter
 
+    def _fixed_width_format(self, kind: Literal["f", "e"]) -> Callable[..., str]:
+        # np.longdouble.__format__ casts to float64, which turns values outside
+        # its range into 0 or inf, so format those with numpy (GH#17809)
+        if (
+            self.values.dtype == np.longdouble
+            and np.finfo(np.longdouble).precision > np.finfo(np.float64).precision
+        ):
+            return partial(
+                _format_longdouble,
+                kind=kind,
+                digits=self.digits,
+                leading_space=self.leading_space,
+            )
+
+        if self.leading_space is True:
+            fmt_str = "{value: .{digits:d}{kind}}"
+        else:
+            fmt_str = "{value:.{digits:d}{kind}}"
+        return partial(fmt_str.format, digits=self.digits, kind=kind)
+
     def get_result_as_array(self) -> np.ndarray:
         """
         Returns the float values converted into strings using
@@ -1380,7 +1406,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         """
 
         def format_with_na_rep(
-            values: ArrayLike, formatter: Callable, na_rep: str
+            values: ArrayLike, formatter: Callable[..., Any], na_rep: str
         ) -> np.ndarray:
             mask = isna(values)
             formatted = np.array(
@@ -1392,7 +1418,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return formatted
 
         def format_complex_with_na_rep(
-            values: ArrayLike, formatter: Callable, na_rep: str
+            values: ArrayLike, formatter: Callable[..., Any], na_rep: str
         ) -> np.ndarray:
             real_values = np.real(values).ravel()  # type: ignore[arg-type]
             imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
@@ -1462,11 +1488,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         float_format: FloatFormatType | None
         if self.float_format is None:
             if self.fixed_width:
-                if self.leading_space is True:
-                    fmt_str = "{value: .{digits:d}f}"
-                else:
-                    fmt_str = "{value:.{digits:d}f}"
-                float_format = partial(fmt_str.format, digits=self.digits)
+                float_format = self._fixed_width_format("f")
             else:
                 float_format = self.float_format
         else:
@@ -1495,11 +1517,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         has_small_values = ((abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
-            if self.leading_space is True:
-                fmt_str = "{value: .{digits:d}e}"
-            else:
-                fmt_str = "{value:.{digits:d}e}"
-            float_format = partial(fmt_str.format, digits=self.digits)
+            float_format = self._fixed_width_format("e")
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -1565,7 +1583,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             array,
             formatter,
             float_format=self.float_format,
-            na_rep=self.na_rep,
+            na_rep=lib.no_default if self._na_rep_is_default else self.na_rep,
             digits=self.digits,
             space=self.space,
             justify=self.justify,
@@ -1599,7 +1617,7 @@ def _format_complex(value: complex, float_format: FloatFormatType | None) -> str
 
 def _maybe_format_float_intervals(
     values: ArrayLike,
-    formatter: Callable | None,
+    formatter: Callable[..., Any] | None,
     float_format: FloatFormatType | None,
     decimal: str,
 ) -> ArrayLike:
@@ -1757,7 +1775,7 @@ def _format_datetime64_dateonly(
 
 def get_format_datetime64(
     is_dates_only: bool, na_rep: str = "NaT", date_format: str | None = None
-) -> Callable:
+) -> Callable[..., Any]:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
@@ -1791,7 +1809,7 @@ def get_format_timedelta64(
     values: TimedeltaArray,
     na_rep: str | float = "NaT",
     box: bool = False,
-) -> Callable:
+) -> Callable[..., Any]:
     """
     Return a formatter function for a range of timedeltas.
     These will all have the same format argument
@@ -1862,6 +1880,21 @@ def _make_fixed_width(
 
     result = adjustment.justify(strings, max_len, mode=justify)
     return result, max_len
+
+
+def _format_longdouble(
+    value, kind: Literal["f", "e"], digits: int, leading_space: bool | None
+) -> str:
+    np_format = (
+        np.format_float_scientific if kind == "e" else np.format_float_positional
+    )
+    # at precision 0, numpy keeps the trailing decimal point
+    # (e.g. "2.") where str.format drops it; strip it to match
+    trim: Literal["-", "k"] = "-" if digits == 0 else "k"
+    result = np_format(value, precision=digits, unique=False, trim=trim)
+    if leading_space is True and not result.startswith("-"):
+        result = " " + result
+    return result
 
 
 def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[str]:
