@@ -94,6 +94,16 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "startingMonth",
     ),
+    pd.tseries.offsets.BHalfYearEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BHalfYearBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
 }
 
 
