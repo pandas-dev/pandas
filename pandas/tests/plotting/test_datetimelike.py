@@ -221,6 +221,118 @@ class TestTSPlot:
         first_y = first_line.get_ydata()[0]
         assert ax.format_coord(first_x, first_y) == "t = 2014-01-01  y = 1.000000"
 
+    @pytest.mark.parametrize(
+        "freq, expected",
+        [
+            ("MS", ["2015-01", "2015-04", "2015-07", "2015-10"]),
+            ("QE", ["2015Q1", "2015Q4", "2016Q3", "2017Q2"]),
+            ("B", ["2015-01-01", "2015-01-06", "2015-01-09", "2015-01-14"]),
+            ("W", ["2015-01-04", "2015-01-25", "2015-02-15", "2015-03-08"]),
+            (
+                "h",
+                [
+                    "2015-01-01 00:00",
+                    "2015-01-01 03:00",
+                    "2015-01-01 06:00",
+                    "2015-01-01 09:00",
+                ],
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("via_kwarg", [True, False])
+    def test_user_set_xticks_labeled(self, freq, expected, via_kwarg):
+        # GH#18881 - ticks set by the user were labeled "" except where they
+        # happened to coincide with one of pandas' own major ticks
+        idx = date_range("2015-01-01", periods=10, freq=freq)
+        ser = pd.Series(range(10), index=idx)
+        if via_kwarg:
+            ax = ser.plot(xticks=idx[::3])
+        else:
+            ax = ser.plot()
+            ax.set_xticks(idx[::3])
+        ax.get_figure().canvas.draw()
+
+        assert [label.get_text() for label in ax.get_xticklabels()] == expected
+        # pandas' minor labels ("Feb", "Mar", ...) no longer show between them
+        assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
+
+    def test_user_set_xticks_labeled_period_index(self):
+        # GH#18881
+        ser = pd.Series(range(10), index=period_range("2015-01", periods=10, freq="M"))
+        ax = ser.plot()
+        ax.set_xticks(ser.index[::3])
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["2015-01", "2015-04", "2015-07", "2015-10"]
+
+    def test_user_set_xticks_labeled_bar(self):
+        # GH#18881
+        idx = date_range("2015-01-01", periods=10, freq="MS")
+        ax = pd.Series(range(10), index=idx).plot(kind="bar", xticks=idx[::3])
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["2015-01", "2015-04", "2015-07", "2015-10"]
+
+    def test_user_set_major_locator_labeled(self):
+        # GH#18881
+        idx = date_range("2015-01-01", periods=10, freq="MS")
+        ax = pd.Series(range(10), index=idx).plot()
+        ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(3))
+        ax.get_figure().canvas.draw()
+
+        lo, hi = ax.get_xlim()
+        labels = [
+            label.get_text()
+            for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=True)
+            if lo <= tick <= hi
+        ]
+        assert labels == ["2015-01", "2015-04", "2015-07", "2015-10"]
+        assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
+
+    def test_user_set_major_locator_between_periods_unlabeled(self):
+        # GH#18881 - a generic locator can put ticks between two periods
+        idx = date_range("2015-01-01", periods=10, freq="MS")
+        ax = pd.Series(range(10), index=idx).plot()
+        ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(0.5))
+        ax.set_xlim(541, 543)
+        ax.get_figure().canvas.draw()
+
+        labels = {
+            float(tick): label.get_text()
+            for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=True)
+            if 541 <= tick <= 543
+        }
+        assert labels == {
+            541.0: "2015-02",
+            541.5: "",
+            542.0: "2015-03",
+            542.5: "",
+            543.0: "2015-04",
+        }
+
+        # float noise in a locator's arithmetic still names the period
+        ax.set_xticks([542.0000000000001])
+        ax.get_figure().canvas.draw()
+        assert [label.get_text() for label in ax.get_xticklabels()] == ["2015-03"]
+
+    @pytest.mark.parametrize("route", ["minorticks_on", "set_xticks"])
+    def test_user_set_minor_ticks_unlabeled(self, route):
+        # GH#18881 - replacing only the minor ticks leaves them unlabeled, as
+        # matplotlib does, rather than crowding pandas' major labels
+        idx = date_range("2015-01-01", periods=30, freq="ME")
+        ax = pd.Series(range(30), index=idx).plot()
+        if route == "minorticks_on":
+            ax.minorticks_on()
+        else:
+            ax.set_xticks(idx[1::2], minor=True)
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["Jan\n2015", "Jan\n2016", "Jan\n2017"]
+        assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
+
     def test_bday_set_xlim_with_strings_or_datetimes(self):
         # GH#64244 - After a BDay plot, ax.set_xlim() with string or datetime
         # arguments should convert them to business-day ordinals via
