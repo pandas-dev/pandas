@@ -223,8 +223,7 @@ Reshaping
 
 Sparse
 ^^^^^^
--
--
+- Bug in setting integer :class:`SparseDtype` values into an integer :class:`Series` or :class:`Index` (``__setitem__``, ``.loc``, ``.iloc``, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.update`, :meth:`Index.putmask`) raising ``AttributeError: 'SparseDtype' object has no attribute 'itemsize'`` (:issue:`68457`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
