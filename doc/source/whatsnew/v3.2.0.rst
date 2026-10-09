@@ -108,7 +108,7 @@ deprecation2
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
-- Deprecated :meth:`Series.median` and :meth:`DataFrame.median` on ``complex`` data; in a future version these will raise ``TypeError``. Take the median of the real and imaginary parts separately instead (:issue:`43770`)
+- Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, and ``cummax`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 

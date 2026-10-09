@@ -3164,8 +3164,17 @@ def test_median_skipna_false_keeps_complex(na_first):
         [complex(np.nan), 2 + 3j] if na_first else [2 + 3j, complex(np.nan)],
         index=list(cols),
     )
-    msg = "The median of complex data is deprecated"
+    msg = "deprecated on complex data"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         tm.assert_series_equal(df.median(skipna=False), expected)
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_complex_min_max_axis1_multiblock_deprecated(func):
+    # GH#43770 the multi-block axis=1 path does not go through nanops
+    df = pd.DataFrame({"a": [1 + 2j, 3j], "b": [1, 2]})
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(df, func)(axis=1)

@@ -1020,26 +1020,31 @@ def nanmean(
     return the_mean
 
 
-def _warn_complex_median(func: F) -> F:
-    # GH#43770 complex has no ordering, so no median; replace with
-    #  @disallow("c8", "c16") when the deprecation is enforced
+def warn_complex_unordered() -> None:
+    # GH#43770 complex has no natural ordering; each caller raises TypeError
+    #  instead when this deprecation is enforced
+    warnings.warn(
+        "min, max, median, idxmin, and similar methods are deprecated on complex "
+        "data and will raise a TypeError in a future version, as complex numbers "
+        "have no natural ordering. Use the real and imaginary parts, or the "
+        "absolute value, instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
+def _deprecate_complex(func: F) -> F:
     @functools.wraps(func)
-    def wrapper(values: np.ndarray, **kwargs):
+    def wrapper(values: np.ndarray, *args, **kwargs):
         if values.dtype.kind == "c":
-            warnings.warn(
-                "The median of complex data is deprecated and will raise a "
-                "TypeError in a future version. Take the median of the real "
-                "and imaginary parts separately instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        return func(values, **kwargs)
+            warn_complex_unordered()
+        return func(values, *args, **kwargs)
 
     return cast("F", wrapper)
 
 
 @_ensure_numeric_input
-@_warn_complex_median
+@_deprecate_complex
 @bottleneck_switch()
 def nanmedian(
     values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
@@ -1514,6 +1519,7 @@ def _get_arg_values(
 
 
 def _nanminmax(meth, fill_value_typ):
+    @_deprecate_complex
     @bottleneck_switch(name=f"nan{meth}")
     @_datetimelike_compat
     def reduction(
@@ -1567,6 +1573,7 @@ nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 
+@_deprecate_complex
 def nanargmax(
     values: np.ndarray,
     *,
@@ -1616,6 +1623,7 @@ def nanargmax(
     return result
 
 
+@_deprecate_complex
 def nanargmin(
     values: np.ndarray,
     *,
@@ -2168,6 +2176,12 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
 
     # This should go through ea interface
     assert values.dtype.kind not in "mM"
+
+    if values.dtype.kind == "c" and accum_func in [
+        np.minimum.accumulate,
+        np.maximum.accumulate,
+    ]:
+        warn_complex_unordered()
 
     # We will be applying this function to block values
     if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):

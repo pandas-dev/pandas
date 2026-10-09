@@ -335,7 +335,7 @@ def test_complex_reduction_raises(func, complex_dtype):
 def test_complex_median_deprecated(complex_dtype, use_bottleneck):
     # GH#43770
     ser = pd.Series([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
-    msg = "The median of complex data is deprecated"
+    msg = "deprecated on complex data"
     with pd.option_context("compute.use_bottleneck", use_bottleneck):
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.median()
@@ -347,3 +347,29 @@ def test_complex_median_deprecated(complex_dtype, use_bottleneck):
         tm.assert_series_equal(
             result, pd.Series([2 + 3j], index=[0], dtype=complex_dtype)
         )
+
+
+@pytest.mark.parametrize(
+    "box, func",
+    [
+        (box, func)
+        for box in [pd.Series, pd.DataFrame, pd.Index]
+        for func in [
+            "min",
+            "max",
+            "idxmin",
+            "idxmax",
+            "argmin",
+            "argmax",
+            "cummin",
+            "cummax",
+        ]
+        if hasattr(box, func)
+    ],
+)
+def test_complex_ordering_deprecated(box, func, complex_dtype):
+    # GH#43770 complex has no natural ordering
+    obj = box([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(obj, func)()
