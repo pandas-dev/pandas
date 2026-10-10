@@ -488,6 +488,16 @@ class TestCategoricalIndex:
         expected = df.iloc[[2, 3, 4]]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_slice_missing_bound_not_in_categories(self):
+        # GH#70295
+        ser = pd.Series(range(4), index=pd.CategoricalIndex(list("abcd")))
+        msg = (
+            "cannot do slice indexing on CategoricalIndex with these "
+            r"indexers \[aa\] of type str"
+        )
+        with pytest.raises(TypeError, match=msg):
+            ser.loc["aa":"c"]
+
     def test_loc_and_at_with_categorical_index(self):
         # GH 20629
         df = pd.DataFrame(

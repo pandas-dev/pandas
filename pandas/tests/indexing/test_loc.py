@@ -156,7 +156,6 @@ class TestLoc:
                 slice(1, 3),
                 [
                     pd.Index(list("abcd"), dtype=object),
-                    pd.Index([2, 4, "null", 8], dtype=object),
                     None,
                     pd.date_range("20130101", periods=4),
                     pd.Index(range(0, 12, 3), dtype=np.float64),
@@ -164,6 +163,7 @@ class TestLoc:
                 None,
                 TypeError,
             ],
+            [slice(1, 3), [pd.Index([2, 4, "null", 8], dtype=object)], None, KeyError],
             [
                 slice("20130102", "20130104"),
                 [pd.date_range("20130101", periods=4)],
@@ -3544,6 +3544,26 @@ def test_loc_setitem_int_slice_decimal_multiindex_level(frame_or_series):
     tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
     obj.loc[0:4] = 99
     tm.assert_equal(obj, expected)
+
+
+@pytest.mark.parametrize("values", [[Decimal(1), Decimal(3), Decimal(5)], [1, 2.5, 5]])
+def test_loc_slice_object_numeric_index_missing_bound(values, frame_or_series):
+    # GH#70295 bounds missing from a monotonic index slice by sort order
+    index = pd.Index(values, dtype=object)
+    obj = frame_or_series(range(3), index=index)
+
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    tm.assert_equal(obj.loc[2:9], obj.iloc[1:])
+
+
+@pytest.mark.parametrize("values", [["b", "a", "c"], ["b", np.nan, "a"]])
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_loc_slice_unsorted_string_index_numeric_bound(values, dtype, frame_or_series):
+    # GH#70295 sorting cannot help, so raise TypeError rather than KeyError
+    obj = frame_or_series(range(3), index=pd.Index(values, dtype=dtype))
+    msg = r"cannot do slice indexing on Index with these indexers \[1\] of type int"
+    with pytest.raises(TypeError, match=msg):
+        obj.loc[1:2]
 
 
 def test_loc_datetimelike_mismatched_dtypes():
