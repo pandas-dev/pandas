@@ -41,7 +41,10 @@ from dateutil.tz import tzoffset
 from pandas._config import get_option
 
 from pandas._libs.portable cimport getdigit_ascii
-from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
+from pandas._libs.tslibs.ccalendar cimport (
+    MONTH_TO_CAL_NUM,
+    get_days_in_month,
+)
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
     npy_unit_to_attrname,
@@ -248,6 +251,259 @@ cdef bint _does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
+# ----------------------------------------------------------------------
+# Common formats parsed without dateutil
+
+cdef dict _month_numbers = {
+    name.lower(): num
+    for num, names in enumerate(DEFAULTPARSER.info.MONTHS, start=1)
+    for name in names
+}
+# longest first, to avoid backtracking from "Jan" to "January"
+cdef str _month_names = "|".join(sorted(_month_numbers, key=len, reverse=True))
+cdef str _weekday_names = "|".join(sorted(
+    {name.lower() for names in DEFAULTPARSER.info.WEEKDAYS for name in names},
+    key=len,
+    reverse=True,
+))
+cdef str _weekday = rf"(?:(?:{_weekday_names})(?:\ *,\ *|\ +))?"
+cdef str _time = (
+    r"(?P<hour>\d{1,2}):(?P<minute>\d{2})"
+    r"(?::(?P<second>\d{2})(?:\.(?P<fraction>\d+))?)?"
+)
+cdef object _flags = re.VERBOSE | re.IGNORECASE | re.ASCII
+
+cdef enum DateKind:
+    MONTH_NAME   # groups: month_name, day, [suffix], year
+    NUMERIC      # groups: first, second, year; day/month order as in dateutil
+    YEAR_FIRST   # groups: year, month, day
+    COMPACT      # YYYYMMDD[HHMM[SS]] or YYYYMMDD HH[MM[SS]]
+    YEAR_MONTH   # groups: year, month or month2, year2
+    CTIME        # groups: month_name, day, year and the time
+
+# Each is tried in turn at the start of the string; all but COMPACT, YEAR_MONTH
+# and CTIME may be followed by _time_tail_pattern.
+cdef list _date_patterns = [
+    (MONTH_NAME, re.compile(
+        rf"""\ *{_weekday}
+        (?P<month_name>{_month_names})\ +(?P<day>\d{{1,2}})(?P<suffix>[a-z]{{2}})?
+        ,?\ +(?P<year>\d{{4}})  # dateutil reads "13,2020" as a decimal
+        """,
+        _flags,
+    )),
+    (MONTH_NAME, re.compile(
+        rf"""\ *{_weekday}
+        (?P<day>\d{{1,2}})(?P<suffix>[a-z]{{2}})?\ +(?P<month_name>{_month_names})
+        ,?\ +(?P<year>\d{{4}})
+        """,
+        _flags,
+    )),
+    (MONTH_NAME, re.compile(
+        rf"""\ *(?P<day>\d{{1,2}})(?P<sep>[-/.])(?P<month_name>{_month_names})
+        (?P=sep)(?P<year>\d{{4}})
+        """,
+        _flags,
+    )),
+    (NUMERIC, re.compile(
+        r"\ *(?P<first>\d{1,2})(?P<sep>[-/.])(?P<second>\d{1,2})"
+        r"(?P=sep)(?P<year>\d{4})",
+        _flags,
+    )),
+    (YEAR_FIRST, re.compile(
+        r"\ *(?P<year>\d{4})(?P<sep>[-/.])(?P<month>\d{1,2})"
+        r"(?P=sep)(?P<day>\d{1,2})",
+        _flags,
+    )),
+    (COMPACT, re.compile(
+        r"""\ *(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})
+        (?:(?P<joined_time>\d{4}(?:\d{2})?)|\ +(?P<spaced_time>\d{2}(?:\d{2}){0,2}))?
+        \ *\Z
+        """,
+        _flags,
+    )),
+    (YEAR_MONTH, re.compile(
+        r"""\ *(?:(?P<year>\d{4})[\ /](?P<month>\d{1,2})
+        |(?P<month2>\d{1,2})[\ /](?P<year2>\d{4}))\ *\Z
+        """,
+        _flags,
+    )),
+    (CTIME, re.compile(
+        rf"""\ *{_weekday}
+        (?P<month_name>{_month_names})\ +(?P<day>\d{{1,2}})
+        \ +{_time}\ +(?P<year>\d{{4}})\ *\Z
+        """,
+        _flags,
+    )),
+]
+cdef object _time_tail_pattern = re.compile(
+    rf"""
+    (?:
+        (?:\ +|(?-i:T)){_time}
+        (?:\ *(?P<ampm>am|pm)\b)?
+        (?:
+            \ *(?P<sign>[+-])(?P<offset_hour>\d{{2}}):?(?P<offset_minute>\d{{2}})
+          | \ +(?-i:(?P<utc>UTC|GMT|Z))
+        )?
+    )?
+    \ *\Z
+    """,
+    _flags,
+)
+
+
+cdef str _ordinal_suffix(int day):
+    if 10 <= day <= 20 or day % 10 == 0 or day % 10 > 3:
+        return "th"
+    return ("st", "nd", "rd")[day % 10 - 1]
+
+
+cdef datetime _parse_without_dateutil(
+    str date_string, bint dayfirst, NPY_DATETIMEUNIT* out_bestunit, int64_t* nanos
+):
+    """
+    Parse common non-ISO formats without going through dateutil.
+
+    Handles month names ("Tue, Jan 5, 2020", "05-Jan-2020 10:00 PM"), numeric
+    dates with a 4-digit year ("1/5/2020 09:30", "2020/01/05 10:00:00 +0000"),
+    compact digits ("20200105 1230", "202001051230"), "2020 1" and ctime
+    ("Thu Sep 25 10:36:28 2003"), giving the same result as dateutil_parse.
+
+    Returns None for anything else, and the caller falls back to dateutil_parse,
+    so this must only accept strings that dateutil parses the same way.
+    """
+    cdef:
+        DateKind kind
+        int year, month, day, first, second_field
+        int hour = 0, minute = 0, second = 0, microsecond = 0, offset_seconds
+        bint has_seconds = False
+        str suffix, digits, fraction, ampm, reso
+        object match = None, time_match = None, tz = None
+
+    for kind, pattern in _date_patterns:
+        match = pattern.match(date_string)
+        if match is None:
+            continue
+        if kind == COMPACT or kind == YEAR_MONTH or kind == CTIME:
+            break
+        time_match = _time_tail_pattern.match(date_string, match.end())
+        if time_match is not None:
+            break
+    else:
+        return None
+
+    if kind == MONTH_NAME or kind == CTIME:
+        month = _month_numbers[match["month_name"].lower()]
+        day = int(match["day"])
+        year = int(match["year"])
+        suffix = match.groupdict().get("suffix")
+        if suffix is not None and suffix.lower() != _ordinal_suffix(day):
+            return None
+    elif kind == NUMERIC:
+        first, second_field = int(match["first"]), int(match["second"])
+        year = int(match["year"])
+        if first > 31:
+            return None
+        if first > 12 or (dayfirst and second_field <= 12):
+            day, month = first, second_field
+        else:
+            month, day = first, second_field
+    elif kind == YEAR_MONTH:
+        year = int(match["year"] or match["year2"])
+        month = int(match["month"] or match["month2"])
+        day = 1
+    else:
+        # YEAR_FIRST or COMPACT
+        year = int(match["year"])
+        month = int(match["month"])
+        day = int(match["day"])
+        if dayfirst and day <= 12:
+            # dateutil reads these as year-day-month
+            return None
+
+    if year < 100:
+        # dateutil applies its two-digit-year rules to e.g. "0001"
+        return None
+    if not 1 <= month <= 12 or not 1 <= day <= get_days_in_month(year, month):
+        return None
+
+    if kind == YEAR_MONTH:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_M
+        return datetime_new(year, month, day, 0, 0, 0, 0, None)
+
+    if kind == COMPACT:
+        digits = match["joined_time"] or match["spaced_time"]
+        if digits is None:
+            out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
+            return datetime_new(year, month, day, 0, 0, 0, 0, None)
+        hour = int(digits[:2])
+        if len(digits) >= 4:
+            minute = int(digits[2:4])
+        if len(digits) == 6:
+            second = int(digits[4:])
+        if hour > 23 or minute > 59 or second > 59:
+            return None
+        out_bestunit[0] = (
+            NPY_DATETIMEUNIT.NPY_FR_h if len(digits) == 2
+            else NPY_DATETIMEUNIT.NPY_FR_m if len(digits) == 4
+            else NPY_DATETIMEUNIT.NPY_FR_s
+        )
+        return datetime_new(year, month, day, hour, minute, second, 0, None)
+
+    if kind != CTIME:
+        match = time_match
+    if match["hour"] is None:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
+        return datetime_new(year, month, day, 0, 0, 0, 0, None)
+
+    hour = int(match["hour"])
+    minute = int(match["minute"])
+    if match["second"] is not None:
+        has_seconds = True
+        second = int(match["second"])
+    fraction = match["fraction"]
+    if fraction is not None:
+        # like dateutil, keep the first 6 digits as microseconds
+        microsecond = int(fraction[:6].ljust(6, "0"))
+    if hour > 23 or minute > 59 or second > 59:
+        return None
+
+    if kind != CTIME:
+        ampm = match["ampm"]
+        if ampm is not None:
+            if not 1 <= hour <= 12:
+                return None
+            ampm = ampm.lower()
+            if ampm == "pm" and hour < 12:
+                hour += 12
+            elif ampm == "am" and hour == 12:
+                hour = 0
+
+        if match["sign"] is not None:
+            if int(match["offset_hour"]) > 23 or int(match["offset_minute"]) > 59:
+                return None
+            offset_seconds = (
+                int(match["offset_hour"]) * 3600 + int(match["offset_minute"]) * 60
+            )
+            if match["sign"] == "-":
+                offset_seconds = -offset_seconds
+            if offset_seconds == 0:
+                tz = timezone.utc
+            else:
+                tz = tzoffset(None, offset_seconds)
+        elif match["utc"] is not None:
+            tz = timezone.utc
+
+    if not has_seconds:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_m
+    elif microsecond % 1000 == 0:
+        # dateutil_parse refines the resolution from the string in this case
+        reso = _find_subsecond_reso(date_string, nanos=nanos)
+        out_bestunit[0] = attrname_to_npy_unit[reso]
+    else:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_us
+    return datetime_new(year, month, day, hour, minute, second, microsecond, tz)
+
+
 def py_parse_datetime_string(
     str date_string, bint dayfirst=False, bint yearfirst=False
 ):
@@ -303,6 +559,10 @@ cdef datetime parse_datetime_string(
         return dt
 
     dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
+    if dt is not None:
+        return dt
+
+    dt = _parse_without_dateutil(date_string, dayfirst, out_bestunit, nanos)
     if dt is not None:
         return dt
 
@@ -417,6 +677,11 @@ def parse_datetime_string_with_reso(
             return parsed, reso
 
     parsed = _parse_delimited_date(date_string, dayfirst, &out_bestunit)
+    if parsed is not None:
+        reso = npy_unit_to_attrname[out_bestunit]
+        return parsed, reso
+
+    parsed = _parse_without_dateutil(date_string, dayfirst, &out_bestunit, NULL)
     if parsed is not None:
         reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
