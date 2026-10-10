@@ -187,16 +187,17 @@ class VariableWindowMethods(Methods):
 
 
 class SkewKurtNumericStability:
-    # data that can trip the skew/kurt cancellation check into recomputing
-    # windows from scratch, a path uniform random data doesn't reach (GH#68934)
-    params = (
-        [("rolling", {"window": 100}), ("expanding", {})],
-        ["symmetric", "heavy_tailed", "outlier"],
-        ["skew", "kurt"],
-    )
-    param_names = ["window_kwargs", "data", "method"]
+    # data that triggered skew/kurt rescans before GH#68934
+    params = [
+        ("rolling", "symmetric", "skew"),
+        ("rolling", "heavy_tailed", "kurt"),
+        ("rolling", "outlier", "kurt"),
+        ("expanding", "symmetric", "skew"),
+    ]
+    param_names = ["case"]
 
-    def setup(self, window_kwargs, data, method):
+    def setup(self, case):
+        window, data, method = case
         N = 10**5
         rng = np.random.default_rng(0)
         if data == "symmetric":
@@ -206,11 +207,12 @@ class SkewKurtNumericStability:
         else:
             arr = rng.standard_normal(N)
             arr[N // 3] = 1e6
-        window, kwargs = window_kwargs
+        kwargs = {"window": 100} if window == "rolling" else {}
         self.window = getattr(pd.Series(arr), window)(**kwargs)
+        self.method = method
 
-    def time_method(self, window_kwargs, data, method):
-        getattr(self.window, method)()
+    def time_method(self, case):
+        getattr(self.window, self.method)()
 
 
 class Pairwise:
