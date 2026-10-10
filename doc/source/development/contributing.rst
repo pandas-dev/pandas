@@ -27,6 +27,8 @@ following guidelines:
 * You must fully review and modify the result of the automated tool.
 * You must ensure the contribution fully abides by all documented, contribution conventions in pandas.
 * You must not use AI to speak for you when interacting with the community.
+* You must run your pull request through :ref:`pandas-review <contributing.ai.self_review>` until it reports
+  ``LGTM`` or ``NITS ONLY`` before expecting a review.
 
 A useful disclosure names the tool, the model and version it ran, and any reasoning-effort or thinking setting, so
 that reviewers know how much scrutiny to apply: ``claude opus 4.8 (xhigh)`` tells us something, ``claude`` does not.
@@ -49,6 +51,29 @@ are your own words.
 This policy applies to any contribution made to pandas, including submitted issues or pull requests. Maintainers
 reserve the right to discern whether automated tooling was used and reject contributions that do not follow all of
 the above guidelines. Maintainers may also ban users from contributing to pandas who violate these guidelines 2 or more times.
+
+.. _contributing.ai.self_review:
+
+Self-review with pandas-review
+------------------------------
+
+`pandas-review <https://github.com/pandas-dev/pandas/blob/main/.claude/skills/pandas-review/SKILL.md>`_
+is an agent skill that reviews your change the way a maintainer would and ends with a verdict. If you used an
+automated tool, run it before you open a pull request and again before you re-request review, and don't expect a
+review until it reports ``LGTM`` or ``NITS ONLY``.
+
+* **Claude Code:** from your pandas clone, run ``/pandas-review`` to review the current branch, or
+  ``/pandas-review 12345`` for an open pull request.
+* **Other tools:** ask the agent to follow ``.claude/skills/pandas-review/SKILL.md``, giving it the pull request
+  number if there is one.
+
+It needs an authenticated `GitHub CLI <https://cli.github.com/>`_ (``gh``), and works best in a built development
+environment with the branch checked out, so it can run the tests. Use the strongest model your tool offers at a high
+effort setting, in a fresh session rather than the one that wrote the change; weaker settings produce more noise.
+
+``LGTM`` and ``NITS ONLY`` both mean stop: rerunning on an unchanged diff turns up new optional nits, not blockers.
+If you disagree with a finding, explain why on the pull request in your own words. Comments from maintainers take
+precedence over anything the tool says.
 
 .. _contributing.bug_reports:
 
