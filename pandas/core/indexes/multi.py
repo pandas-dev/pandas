@@ -4736,22 +4736,30 @@ class MultiIndex(Index):
             return result.set_names(result_names)
 
     def _convert_can_do_setop(self, other):
-        result_names = self.names
-
         if not isinstance(other, Index):
             if len(other) == 0:
                 return self[:0], self.names
-            else:
-                msg = "other must be a MultiIndex or a list of tuples"
+            # from_tuples would split a str/bytes-like entry into its elements
+            #  and treat it as a tuple of level values, see GH#39699
+            if not any(
+                issubclass(entry_type, (str, bytes, bytearray, memoryview))
+                for entry_type in set(map(type, other))
+            ):
                 try:
                     other = MultiIndex.from_tuples(other, names=self.names)
                 except (ValueError, TypeError) as err:
-                    # ValueError raised by tuples_to_object_array if we
-                    #  have non-object dtype
-                    raise TypeError(msg) from err
-        else:
-            result_names = get_unanimous_names(self, other)
+                    # wrong-length rows raise rather than becoming flat labels
+                    if all(is_list_like(entry) for entry in other):
+                        raise TypeError(
+                            "other must be a MultiIndex or a list of tuples"
+                        ) from err
+                else:
+                    return other, self.names
+            # entries are not all tuples; treat them as flat labels, matching
+            #  an Index operand, see GH#39699
+            other = Index(other, tupleize_cols=False)
 
+        result_names = get_unanimous_names(self, other)
         return other, result_names
 
     # --------------------------------------------------------------------
