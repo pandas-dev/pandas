@@ -3,6 +3,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import pickle
 import zoneinfo
 from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
@@ -246,7 +247,12 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
         else:
             return 0
     elif is_zoneinfo(tz):
-        tz_py = _ZoneInfo(tz.key)
+        tz_py = get_zoneinfo_twin(tz)
+        if tz_py is None:
+            # i.e. ZoneInfo.from_file; without a twin we cannot see the
+            #  transitions, so report not-fixed and let callers take the
+            #  tzinfo-API path.  GH#64379
+            return 0
         if tz_py._fixed_offset:
             return 1
         else:
@@ -296,6 +302,39 @@ cdef datetime _UTC_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 cdef int64_t _MIN_TRANS_SECONDS = -(-(NPY_NAT + 1) // 1_000_000_000)
 
 
+cdef tzinfo get_zoneinfo_twin(tzinfo tz):
+    """
+    Get the pure-python ``zoneinfo`` implementation of `tz`.
+
+    The cached-transition fast path needs transition data that only the
+    pure-python implementation exposes, and the only handle we have for
+    rebuilding it is ``tz.key``.  That handle is good when `tz` was loaded
+    from the installed tzdata under that key, but ``ZoneInfo.from_file``
+    objects have no reliable key (absent or not necessarily matching with
+    tzdata).  In those cases we have no way to see the transitions and callers
+    must fall back to the tzinfo API.  GH#64379
+
+    Whether the key describes the object is decided by asking it to pickle.
+    The stdlib documents that a ``from_file`` object cannot be pickled,
+    because its data is not recoverable from its key.
+
+    Parameters
+    ----------
+    tz : ZoneInfo
+
+    Returns
+    -------
+    zoneinfo._zoneinfo.ZoneInfo or None
+    """
+    try:
+        tz.__reduce__()
+    except pickle.PicklingError:
+        # i.e. ZoneInfo.from_file; both implementations refuse to pickle it
+        return None
+
+    return _ZoneInfo(tz.key)
+
+
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
     Get transition times and UTC offsets for a ZoneInfo timezone.
@@ -325,7 +364,9 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int year, last_year, std_offset, dst_offset
         bint valid
 
-    tz_py = _ZoneInfo(tz.key)
+    # NB: non-None; Localizer and tz_localize_to_utc_single (via
+    #  is_fixed_offset) keep no-twin zones away from get_dst_info.  GH#64379
+    tz_py = get_zoneinfo_twin(tz)
 
     if tz_py._fixed_offset:
         fixed_offset_seconds = int(tz_py._tz_after.utcoff.total_seconds())
