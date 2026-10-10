@@ -9116,11 +9116,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 #  looking each one up the way the comparison will
                 categories = dtype.categories
                 if lower in categories and upper in categories:
-                    positions = categories.get_loc(lower), categories.get_loc(upper)
+                    lower_pos = categories.get_loc(lower)
+                    upper_pos = categories.get_loc(upper)
                     # a partial date string can match several categories
-                    if all(is_integer(pos) for pos in positions):
-                        if positions[0] > positions[1]:
-                            lower, upper = upper, lower
+                    if (
+                        is_integer(lower_pos)
+                        and is_integer(upper_pos)
+                        and lower_pos > upper_pos
+                    ):
+                        lower, upper = upper, lower
             else:
                 lower, upper = min(lower, upper), max(lower, upper)
 
