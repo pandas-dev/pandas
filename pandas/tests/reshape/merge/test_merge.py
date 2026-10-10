@@ -2926,6 +2926,18 @@ def test_merge_different_index_names():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_on_index_different_index_names(join_type):
+    # GH#16249
+    left = pd.DataFrame({"a": [1]}, index=pd.DatetimeIndex(["2016-02-01"], name="lhs"))
+    right = pd.DataFrame(
+        {"b": [1.5, 2.5]},
+        index=pd.DatetimeIndex(["2016-02-01", "2016-02-02"], name="rhs"),
+    )
+    result = merge(left, right, how=join_type, left_index=True, right_index=True)
+    expected_name = "rhs" if join_type == "right" else "lhs"
+    assert result.index.name == expected_name
+
+
 def test_merge_ea(any_numeric_ea_dtype, join_type):
     # GH#44240
     left = pd.DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
 from datetime import (
@@ -1165,6 +1166,14 @@ def test_read_iris_query_chunksize(conn, request):
     )
     assert iris_frame.shape == (0, 5)
     assert "SepalWidth" in iris_frame.columns
+
+
+def test_read_sql_query_chunksize_consumed_in_other_thread(sqlite_str_iris):
+    # GH#19457
+    chunks = read_sql_query("SELECT * FROM iris", sqlite_str_iris, chunksize=7)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        iris_frame = executor.submit(pd.concat, chunks).result()
+    check_iris_frame(iris_frame)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
