@@ -838,6 +838,11 @@ This is like an ``append`` operation on the ``DataFrame``.
    dfi.loc[3] = 5
    dfi
 
+.. note::
+
+   Enlarging by a row copies the existing data, so adding many rows one at a
+   time is slow. See :ref:`merging.append.row` for adding several rows at once.
+
 .. _indexing.basics.get_value:
 
 Fast scalar value getting and setting
