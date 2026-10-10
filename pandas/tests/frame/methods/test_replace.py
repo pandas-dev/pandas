@@ -1326,6 +1326,39 @@ class TestDataFrameReplace:
         with pytest.raises(TypeError, match=msg):
             df.replace(lambda x: x.strip())
 
+    @pytest.mark.parametrize(
+        "replace_kwargs",
+        [
+            {"to_replace": "a1", "value": lambda m: "X"},
+            {"to_replace": r"\d", "value": lambda m: "X", "regex": True},
+            {"to_replace": ["a1"], "value": [lambda m: "X"]},
+            {"to_replace": {"a1": lambda m: "X"}},
+            {"regex": {r"\d": lambda m: "X"}},
+        ],
+    )
+    def test_replace_invalid_value_callable(self, replace_kwargs):
+        # GH#68199 replace() should raise instead of storing a callable
+        # value, however it is spelled (scalar, regex, list-like, or
+        # dict-like)
+        df = pd.DataFrame({"one": ["a1", "b2"]})
+        msg = "'value' cannot be callable, got invalid type 'function'"
+        with pytest.raises(TypeError, match=msg):
+            df.replace(**replace_kwargs)
+
+    @pytest.mark.parametrize(
+        "replace_kwargs",
+        [
+            {"to_replace": 1, "value": pd.Timestamp},
+            {"to_replace": {1: pd.Timestamp}},
+        ],
+    )
+    def test_replace_value_class(self, replace_kwargs):
+        # GH#68199 a class is callable but is still a valid value
+        df = pd.DataFrame({"one": [1, 2]})
+        result = df.replace(**replace_kwargs)
+        expected = pd.DataFrame({"one": [pd.Timestamp, 2]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_ellipsis(self):
         # GH#50373 Ellipsis should be accepted as a scalar to_replace
         df = pd.DataFrame({"a": [1, 2, 3], "b": [..., ..., ...]})
