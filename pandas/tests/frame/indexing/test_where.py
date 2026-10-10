@@ -882,9 +882,8 @@ def test_where_tuple_other_bool(dtype):
 
 @pytest.mark.parametrize("other", [("x", "y", "z"), {"zz": 1}])
 def test_where_listlike_scalar_other(any_string_dtype, other):
-    # GH#37681, GH#63842 a tuple is a valid scalar and a dict has no element
-    #  order to line up against the mask, so -- as for object dtype -- either
-    #  is filled in whole
+    # GH#37681, GH#63842 a tuple is a valid scalar and a dict is keyed, not
+    #  positional, so -- as for object dtype -- either is filled in whole
     ser = pd.Series(["a", "b", "c"], dtype=any_string_dtype)
     result = ser.where(pd.Series([True, False, True]), other)
     expected = pd.Series(["a", other, "c"], dtype=object)

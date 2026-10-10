@@ -10294,7 +10294,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (
                 self.ndim == 1
                 and is_list_like(other)
-                # a dict or set has no element order
+                # a dict is keyed and a set unordered, so neither lines up by position
                 and not isinstance(other, (np.ndarray, ExtensionArray, set, frozenset))
                 and not is_dict_like(other)
                 # outside numeric and bool dtypes a tuple is one element, as
