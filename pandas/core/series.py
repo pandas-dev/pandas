@@ -2202,7 +2202,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        pandas.api.typing.SeriesGroupBy
+        :class:`pandas.api.typing.SeriesGroupBy`
             Returns a groupby object that contains information about the groups.
 
         See Also

@@ -976,7 +976,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             output[asheetname] = parser.read(nrows=nrows)
 
-            if header_names:
+            if header_names and len(output[asheetname].columns) > 0:
                 output[asheetname].columns = output[asheetname].columns.set_names(
                     header_names
                 )

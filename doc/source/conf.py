@@ -408,9 +408,12 @@ numpydoc_validation_exclude = {
     r"pandas\.DatetimeIndex\.weekday$",
     r"pandas\.PeriodIndex\.weekday$",
     r"pandas\.Series\.dt\.weekday$",
-    # Relaxed-rules class page (GH#63084): not instantiated by users, so
-    # the constructor parameters are not documented (PR01)
+    # Relaxed-rules class pages (GH#63084, GH#19302): not instantiated by
+    # users, so the constructor parameters are not documented (PR01), and
+    # See Also needs the pandas. prefix to link from pandas.api.typing (SA05)
     r"pandas\.api\.typing\.Expression$",
+    r"pandas\.api\.typing\.DataFrameGroupBy$",
+    r"pandas\.api\.typing\.SeriesGroupBy$",
 }
 
 # matplotlib plot directive
