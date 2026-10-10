@@ -1624,7 +1624,7 @@ matplotlib `table <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axe
 
    plt.close("all")
 
-**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documentation <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
+**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.table.html>`__ for more.
 
 .. _visualization.colormaps:
 
