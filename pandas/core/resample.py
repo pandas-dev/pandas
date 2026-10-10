@@ -559,7 +559,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = grouped.apply(how, *args, **kwargs)
+            pass
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -569,10 +569,12 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             else:
                 raise
 
-            # we have a non-reducing function
-            # try to evaluate
-            result = grouped.apply(how, *args, **kwargs)
+        else:
+            return self._wrap_result(result)
 
+        # fall back to apply outside the except blocks so its errors are not
+        #  chained onto the aggregate error, GH#50980
+        result = grouped.apply(how, *args, **kwargs)
         return self._wrap_result(result)
 
     @final
