@@ -5,6 +5,7 @@ import collections
 from copy import deepcopy
 import datetime as dt
 from functools import partial
+import inspect
 from json import loads
 import operator
 import pickle
@@ -6751,20 +6752,55 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
-            results = []
-            for i, (col_name, col) in enumerate(self.items()):
-                cdt = dtype_ser.iat[i]
-                if isna(cdt):
-                    res_col = col.copy(deep=False)
-                else:
+            # GH#63433: cast only the listed columns, grouped by target dtype, and
+            #  assemble the result from those plus the untouched columns.
+            locs_by_dtype: dict[Any, list[int]] = {}
+            mask = dtype_ser.notna()
+            for loc, column_dtype in zip(
+                np.flatnonzero(mask), dtype_ser[mask], strict=True
+            ):
+                locs_by_dtype.setdefault(column_dtype, []).append(int(loc))
+            if not locs_by_dtype:
+                return self.copy(deep=False)
+
+            pieces = []
+            for column_dtype, locs in locs_by_dtype.items():
+                # A dtype class goes column by column: Series.astype rejects it,
+                #  while casting several columns at once would instantiate it.
+                is_class = inspect.isclass(column_dtype) and issubclass(
+                    column_dtype, ExtensionDtype
+                )
+                if errors == "raise" and not is_class:
                     try:
-                        res_col = col.astype(dtype=cdt, errors=errors)
-                    except ValueError as ex:
-                        ex.args = (
-                            f"{ex}: Error while type casting for column '{col_name}'",
-                        )
+                        casted = self.iloc[:, locs].astype(column_dtype)
+                    except (ValueError, TypeError):
+                        # Find the column that fails so the error can name it.
+                        for i in locs:
+                            try:
+                                self._ixs(i, axis=1).astype(column_dtype)
+                            except (ValueError, TypeError) as ex:
+                                if isinstance(ex, ValueError):
+                                    ex.args = (
+                                        f"{ex}: Error while type casting for "
+                                        f"column '{self.columns[i]}'",
+                                    )
+                                raise ex from None
                         raise
-                results.append(res_col)
+                else:
+                    casted = concat(
+                        [
+                            self._ixs(i, axis=1).astype(column_dtype, errors=errors)
+                            for i in locs
+                        ],
+                        axis=1,
+                    )
+                pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))
+
+            mgr = self._mgr
+            assert isinstance(mgr, BlockManager)  # Series case is handled above
+            new_mgr = mgr.replace_columns(pieces)
+            new = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            return new.__finalize__(self, method="astype")
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs

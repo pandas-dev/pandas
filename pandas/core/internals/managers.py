@@ -1672,6 +1672,40 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         axes = [new_columns, self.axes[1]]
         return type(self)(tuple(nbs), axes, verify_integrity=False)
 
+    def replace_columns(
+        self, pieces: list[tuple[npt.NDArray[np.intp], BlockManager]]
+    ) -> Self:
+        """
+        Replace the columns at the given positions with the columns of other managers.
+
+        Each piece is ``(positions, manager)``: the manager's columns, in order, take
+        the place of the columns at ``positions``. The other columns keep their
+        existing blocks as views, so this is linear in the number of columns rather
+        than setting each replaced column in turn.
+        """
+        is_replaced = np.zeros(self.shape[0], dtype=bool)
+        for locs, _ in pieces:
+            is_replaced[locs] = True
+
+        blocks = []
+        for blk in self.blocks:
+            # Keep each run of adjacent kept columns within a block as one view.
+            mgr_locs = blk.mgr_locs.as_array
+            kept = np.concatenate([[False], ~is_replaced[mgr_locs], [False]])
+            bounds = np.flatnonzero(np.diff(kept))
+            for start, end in zip(bounds[::2], bounds[1::2], strict=True):
+                blocks.append(
+                    blk.getitem_block_columns(
+                        slice(start, end), BlockPlacement(mgr_locs[start:end])
+                    )
+                )
+        for locs, mgr in pieces:
+            for blk in mgr.blocks:
+                nb = blk.copy(deep=False)
+                nb.mgr_locs = BlockPlacement(locs[blk.mgr_locs.indexer])
+                blocks.append(nb)
+        return type(self)(tuple(blocks), self.axes, verify_integrity=False)
+
     # ----------------------------------------------------------------
     # Block-wise Operation
 
