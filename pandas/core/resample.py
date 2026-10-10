@@ -878,7 +878,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             * 'index', 'values': use the actual numerical values of the index.
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial': Passed to
+              'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
               values of the index.  Both 'polynomial' and 'spline' require that
@@ -886,9 +886,9 @@ class Resampler(BaseGroupBy[Any], PandasObject):
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
               instead of Pandas first order `spline`.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
-              'cubicspline': Wrappers around the SciPy interpolation methods of
-              similar names. See `Notes`.
+            * 'barycentric', 'krogh', 'piecewise_polynomial', 'spline',
+              'pchip', 'akima', 'cubicspline': Wrappers around the SciPy
+              interpolation methods of similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 

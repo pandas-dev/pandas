@@ -8228,7 +8228,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'values': Interpolation based on the numerical values
               in the DataFrame, treating them as equally spaced along the index.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial': Passed to
+              'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
               values of the index.  Both 'polynomial' and 'spline' require that
@@ -8236,9 +8236,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
               instead of Pandas first order `spline`.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
-              'cubicspline': Wrappers around the SciPy interpolation methods of
-              similar names. See `Notes`.
+            * 'barycentric', 'krogh', 'piecewise_polynomial', 'spline',
+              'pchip', 'akima', 'cubicspline': Wrappers around the SciPy
+              interpolation methods of similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
@@ -8268,7 +8268,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Keyword arguments to pass on to the interpolating function. Not
             all methods use them: the ``'linear'``, ``'time'``, ``'index'``,
             and ``'values'`` methods use NumPy and ignore any extra keyword
-            arguments (for example, ``left`` and ``right``).
+            arguments (for example, ``left`` and ``right``) other than
+            ``fill_value="extrapolate"``.
+
+            NaNs before the first or after the last valid value are filled
+            with the nearest valid value by the NumPy-based methods and left
+            as NaN by the `scipy.interpolate.interp1d` methods. Pass
+            ``fill_value="extrapolate"`` to extrapolate them instead. Leading
+            NaNs are only filled when ``limit_direction`` is 'backward' or
+            'both'.
 
         Returns
         -------

@@ -907,3 +907,137 @@ class TestSeriesInterpolateData:
         result = ser.interpolate(method="linear")
         expected = pd.Series([1.0, 2.0, 3.0], dtype="Float64")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["linear", "index", "values"])
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_interpolate_fill_value_extrapolate(self, method, dtype):
+        # GH#31949 np.interp-based methods repeated the edge values
+        ser = pd.Series(
+            [np.nan, 1.0, np.nan, 4.0, 5.0, np.nan],
+            index=[0, 1, 2, 3, 4, 10],
+            dtype=dtype,
+        )
+        result = ser.interpolate(
+            method=method, fill_value="extrapolate", limit_direction="both"
+        )
+        if method == "linear":
+            # ignores the index
+            expected_values = [-0.5, 1.0, 2.5, 4.0, 5.0, 6.0]
+        else:
+            expected_values = [-0.5, 1.0, 2.5, 4.0, 5.0, 11.0]
+        expected = pd.Series(expected_values, index=ser.index, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "index, expected_values",
+        [
+            (pd.Index([100, 103, 106, 109], dtype="uint64"), [0.0, 1.0, 2.0, 3.0]),
+            # i8 values above 2**53 that would collapse in float64
+            (pd.date_range("2020-01-01", periods=4, freq="3ns"), [0.0, 1.0, 2.0, 3.0]),
+            # distances that overflow int64
+            (
+                pd.Index([-9 * 10**18, 10**18, 2 * 10**18, 3 * 10**18]),
+                [-9.0, 1.0, 2.0, 3.0],
+            ),
+        ],
+    )
+    def test_interpolate_fill_value_extrapolate_index_dtype(
+        self, index, expected_values
+    ):
+        # GH#31949
+        ser = pd.Series([np.nan, 1.0, 2.0, np.nan], index=index)
+        result = ser.interpolate(
+            method="index", fill_value="extrapolate", limit_direction="both"
+        )
+        expected = pd.Series(expected_values, index=index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values, expected_values",
+        [
+            (
+                pd.to_datetime([None, "2024-01-02", "2024-01-04", None]),
+                pd.to_datetime(
+                    ["2023-12-31", "2024-01-02", "2024-01-04", "2024-01-06"]
+                ),
+            ),
+            (
+                pd.to_timedelta([None, "1D", "3D", None]),
+                pd.to_timedelta(["-1D", "1D", "3D", "5D"]),
+            ),
+        ],
+    )
+    def test_interpolate_fill_value_extrapolate_datetimelike_values(
+        self, values, expected_values
+    ):
+        # GH#31949
+        result = pd.Series(values).interpolate(
+            fill_value="extrapolate", limit_direction="both"
+        )
+        tm.assert_series_equal(result, pd.Series(expected_values))
+
+    def test_interpolate_fill_value_extrapolate_complex(self):
+        # GH#31949
+        ser = pd.Series([np.nan, 1 + 1j, 2 + 2j, np.nan])
+        result = ser.interpolate(fill_value="extrapolate", limit_direction="both")
+        expected = pd.Series([0j, 1 + 1j, 2 + 2j, 3 + 3j])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_fill_value_extrapolate_inf(self):
+        # GH#31949 inf - inf gives NaN, as with method="slinear", without warning
+        ser = pd.Series([np.nan, np.inf, np.inf, np.nan])
+        result = ser.interpolate(fill_value="extrapolate", limit_direction="both")
+        expected = pd.Series([np.nan, np.inf, np.inf, np.nan])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values, exc",
+        [
+            (
+                pd.to_datetime([None, "2200-01-01", "2260-01-01", None]).as_unit("ns"),
+                pd.errors.OutOfBoundsDatetime,
+            ),
+            (
+                pd.to_datetime(
+                    [None, "1700-01-01", "1760-01-01", "1761-01-01"]
+                ).as_unit("ns"),
+                pd.errors.OutOfBoundsDatetime,
+            ),
+            (
+                pd.to_timedelta([None, "-100000D", "100000D", None]).as_unit("ns"),
+                pd.errors.OutOfBoundsTimedelta,
+            ),
+        ],
+    )
+    def test_interpolate_fill_value_extrapolate_out_of_bounds(self, values, exc):
+        # GH#31949
+        ser = pd.Series(values)
+        with pytest.raises(exc, match="Extrapolated values are out of bounds"):
+            ser.interpolate(fill_value="extrapolate", limit_direction="both")
+
+    @pytest.mark.parametrize(
+        "kwargs, expected_values",
+        [
+            ({}, [np.nan, 1.0, 4.0, 9.0, 16.0, 23.0]),
+            (
+                {"limit_direction": "both", "limit_area": "inside"},
+                [np.nan, 1.0, 4.0, 9.0, 16.0, np.nan],
+            ),
+        ],
+    )
+    def test_interpolate_fill_value_extrapolate_unfilled_duplicate_edge(
+        self, kwargs, expected_values
+    ):
+        # GH#31949 the duplicated left edge is not extrapolated, so no raise
+        index = [0, 1, 1, 2, 3, 4]
+        ser = pd.Series([np.nan, 1.0, 4.0, 9.0, 16.0, np.nan], index=index)
+        result = ser.interpolate(method="index", fill_value="extrapolate", **kwargs)
+        expected = pd.Series(expected_values, index=index)
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_fill_value_extrapolate_duplicate_edge_raises(self):
+        # GH#31949
+        ser = pd.Series([1.0, 4.0, 9.0, np.nan], index=[2, 3, 3, 4])
+        msg = "requires the two outermost non-missing values"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(method="index", fill_value="extrapolate")
