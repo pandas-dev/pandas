@@ -65,6 +65,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -2839,6 +2840,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   10   7
         2   11  17
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_sum
 
@@ -2938,6 +2940,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   16   10
         2   30   72
         """
+        min_count = validate_min_count(min_count)
 
         def prod_compat(obj: NDFrameT):
             # GH#18588: see min_compat below
@@ -2955,7 +2958,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def min(
         self,
         numeric_only: bool = False,
-        min_count: int = -1,
+        min_count: int = 0,
         skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -2976,7 +2979,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 numeric_only no longer accepts ``None``.
 
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
 
@@ -3048,6 +3051,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   2  2
         2   5  8
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_min_max
 
@@ -3079,7 +3083,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def max(
         self,
         numeric_only: bool = False,
-        min_count: int = -1,
+        min_count: int = 0,
         skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -3100,7 +3104,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 numeric_only no longer accepts ``None``.
 
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
 
@@ -3172,6 +3176,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   8  5
         2   6  9
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_min_max
 
@@ -3199,7 +3204,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def first(
-        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
     ) -> NDFrameT:
         """
         Compute the first entry of each column within each group.
@@ -3212,7 +3217,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
@@ -3260,6 +3265,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  1
         3  6.0  3
         """
+        min_count = validate_min_count(min_count)
 
         def first_compat(obj: NDFrameT):
             def first(x: Series):
@@ -3286,7 +3292,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def last(
-        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
     ) -> NDFrameT:
         """
         Compute the last entry of each column within each group.
@@ -3300,7 +3306,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default False
             Include only float, int, boolean columns. If None, will attempt to use
             everything, then use only numeric data.
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
@@ -3330,6 +3336,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  2
         3  6.0  3
         """
+        min_count = validate_min_count(min_count)
 
         def last_compat(obj: NDFrameT):
             def last(x: Series):

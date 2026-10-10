@@ -60,6 +60,7 @@ from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
     validate_inclusive,
+    validate_min_count,
 )
 
 from pandas.core.dtypes.astype import astype_is_view
@@ -12068,6 +12069,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+        min_count = validate_min_count(min_count)
 
         return self._reduce(
             func,
