@@ -397,6 +397,23 @@ def test_orc_uri_path(temp_file):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("fs_kind", ["pyarrow", "fsspec"])
+def test_read_orc_filesystem(temp_file, fs_kind):
+    # GH#58746 a relative path must be resolved by the filesystem, not the cwd
+    expected = pd.DataFrame({"int": list(range(1, 4))})
+    expected.to_orc(temp_file)
+    if fs_kind == "pyarrow":
+        pa_fs = pytest.importorskip("pyarrow.fs")
+        filesystem = pa_fs.SubTreeFileSystem(
+            str(temp_file.parent), pa_fs.LocalFileSystem()
+        )
+    else:
+        dirfs = pytest.importorskip("fsspec.implementations.dirfs")
+        filesystem = dirfs.DirFileSystem(temp_file.parent)
+    result = pd.read_orc(temp_file.name, filesystem=filesystem)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "index",
     [

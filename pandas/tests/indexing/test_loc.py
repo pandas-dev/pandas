@@ -8,6 +8,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 from dateutil.tz import gettz
@@ -3402,6 +3403,19 @@ def test_loc_setitem_int_row_length_mismatch_message():
         df2.loc[0, ["a", "b"]] = [7, 8, 9]
 
 
+def test_loc_setitem_empty_frame_empty_column_key_length_mismatch():
+    # GH#58517 an empty multi-block frame takes the split path; an empty column
+    #  key with a non-empty value must raise the length-mismatch ValueError
+    #  instead of falling into the setitem-with-expansion branch
+    df = pd.DataFrame(
+        {"a": pd.Series([], dtype="int64"), "b": pd.Series([], dtype="float64")}
+    )
+    assert not df._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df.loc[:, []] = [1, 2, 3]
+
+
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
     [
@@ -3476,7 +3490,8 @@ def test_loc_with_positional_slice_raises():
     # GH#31840
     ser = pd.Series(range(4), index=["A", "B", "C", "D"])
 
-    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+    msg = r"cannot do slice indexing on Index with these indexers \[3\] of type int"
+    with pytest.raises(TypeError, match=msg):
         ser.loc[:3] = 2
 
 
@@ -3496,16 +3511,39 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
-            # GH#31840 enforce incorrect behavior
+        with pytest.raises(TypeError, match=msg):
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
-        # GH#31840 enforce incorrect behavior
+    with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1] = 2
+
+
+def test_loc_setitem_int_slice_decimal_index(frame_or_series):
+    # GH#70219 integer slice bounds are labels for a Decimal index, as in getitem
+    pa = pytest.importorskip("pyarrow")
+    values = [Decimal(1), Decimal(3), Decimal(5)]
+    index = pd.Index(pd.array(values, dtype=pd.ArrowDtype(pa.decimal128(5, 2))))
+    obj = frame_or_series(range(3), index=index)
+
+    expected = frame_or_series([99, 99, 2], index=index)
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    obj.loc[0:4] = 99
+    tm.assert_equal(obj, expected)
+
+
+def test_loc_setitem_int_slice_decimal_multiindex_level(frame_or_series):
+    # GH#70219
+    level = pd.Index([Decimal(1), Decimal(3), Decimal(5)], dtype=object)
+    index = pd.MultiIndex.from_arrays([level, ["a", "b", "c"]])
+    obj = frame_or_series(range(3), index=index)
+
+    expected = frame_or_series([99, 99, 2], index=index)
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    obj.loc[0:4] = 99
+    tm.assert_equal(obj, expected)
 
 
 def test_loc_datetimelike_mismatched_dtypes():

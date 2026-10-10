@@ -4,6 +4,7 @@ from functools import partial
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -11,6 +12,8 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import nanops
+
+MEDIAN_MSG = "The median of complex data is deprecated"
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -933,8 +936,10 @@ def test_object_complex_matches_native(func, scalar):
     vals = [scalar(1 + 2j), scalar(3 - 1j), scalar(-2j)]
     objarr = np.empty(3, dtype=object)
     objarr[:] = vals
-    expected = getattr(nanops, func)(np.array(vals, dtype=np.complex128))
-    assert getattr(nanops, func)(objarr) == expected
+    warn = Pandas4Warning if func == "nanmedian" else None
+    with tm.assert_produces_warning(warn, match=MEDIAN_MSG):
+        expected = getattr(nanops, func)(np.array(vals, dtype=np.complex128))
+        assert getattr(nanops, func)(objarr) == expected
 
 
 @pytest.mark.parametrize(
@@ -953,7 +958,8 @@ def test_object_nat_is_na(func, nat):
 def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
     # the imaginary part was silently discarded on builds without bottleneck
     values = np.array([1 + 2j, 3 + 4j, 5j, 1j])
-    assert nanops.nanmedian(values) == 0.5 + 3.5j
+    with tm.assert_produces_warning(Pandas4Warning, match=MEDIAN_MSG):
+        assert nanops.nanmedian(values) == 0.5 + 3.5j
 
 
 @pytest.mark.parametrize("dtype", ["float32", "float64", "complex64", "complex128"])
@@ -961,11 +967,14 @@ def test_nanmedian_skipna_false_keeps_dtype(disable_bottleneck, dtype):
     # GH#68487 the propagated NaN was a bare float, so the 2-D result took its
     #  dtype from whichever slice was reduced first
     values = np.array([1, np.nan, 3], dtype=dtype)
+    warn = Pandas4Warning if values.dtype.kind == "c" else None
 
-    result = nanops.nanmedian(values, skipna=False)
+    with tm.assert_produces_warning(warn, match=MEDIAN_MSG):
+        result = nanops.nanmedian(values, skipna=False)
     assert result.dtype == values.dtype
 
-    result = nanops.nanmedian(values.reshape(1, 3), axis=1, skipna=False)
+    with tm.assert_produces_warning(warn, match=MEDIAN_MSG):
+        result = nanops.nanmedian(values.reshape(1, 3), axis=1, skipna=False)
     assert result.dtype == values.dtype
 
 
@@ -1616,6 +1625,19 @@ def test_nanvar_family_float16_overflow(use_bottleneck, method, values):
     with pd.option_context("compute.use_bottleneck", use_bottleneck):
         result = getattr(ser, method)()
     tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize("use_bottleneck", [True, False])
+@pytest.mark.parametrize("method", ["var", "std", "sem"])
+def test_nanvar_family_float32_precision(use_bottleneck, method):
+    # GH#70945 Ensure correctness of result regardless of compute.use_bottleneck
+    rng = np.random.default_rng(2)
+    values = (rng.standard_normal(1_000_000) * 3 + 1000).astype(np.float32)
+    df = pd.DataFrame({"a": values})
+    expected = getattr(df.astype(np.float64), method)().astype(np.float32)
+    with pd.option_context("compute.use_bottleneck", use_bottleneck):
+        result = getattr(df, method)()
+    tm.assert_series_equal(result, expected, rtol=1e-4)
 
 
 @pytest.mark.parametrize("with_nan", [True, False])

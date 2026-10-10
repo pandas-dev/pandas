@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
 from datetime import (
@@ -1165,6 +1166,14 @@ def test_read_iris_query_chunksize(conn, request):
     )
     assert iris_frame.shape == (0, 5)
     assert "SepalWidth" in iris_frame.columns
+
+
+def test_read_sql_query_chunksize_consumed_in_other_thread(sqlite_str_iris):
+    # GH#19457
+    chunks = read_sql_query("SELECT * FROM iris", sqlite_str_iris, chunksize=7)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        iris_frame = executor.submit(pd.concat, chunks).result()
+    check_iris_frame(iris_frame)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
@@ -2694,14 +2703,6 @@ def test_sql_open_close(temp_file, test_frame3):
     tm.assert_frame_equal(test_frame3, result)
 
 
-@td.skip_if_installed("sqlalchemy")
-def test_con_string_import_error():
-    conn = "mysql://root@localhost/pandas"
-    msg = "Using a URI string requires 'sqlalchemy'"
-    with pytest.raises(ImportError, match=msg):
-        sql.read_sql("SELECT * FROM iris", conn)
-
-
 def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     conn = sqlite_buildin_iris
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
@@ -3026,6 +3027,7 @@ def test_datetime_with_timezone_roundtrip(conn, request):
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_out_of_bounds_datetime(conn, request):
     # GH 26761
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
     assert data.to_sql(name="test_datetime_obb", con=conn, index=False) == 1
@@ -3033,6 +3035,14 @@ def test_out_of_bounds_datetime(conn, request):
     expected = pd.DataFrame(
         np.array([datetime(9999, 1, 1)], dtype="M8[us]"), columns=["date"]
     )
+    tm.assert_frame_equal(result, expected)
+
+    # GH#9261 read_sql_query should match read_sql_table
+    result = sql.read_sql_query("SELECT * FROM test_datetime_obb", conn)
+    if "sqlite" in conn_name:
+        # sqlite has no native datetime type
+        assert isinstance(result.loc[0, "date"], str)
+        result["date"] = pd.to_datetime(result["date"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -3928,6 +3938,31 @@ def test_valueerror_exception(sqlite_engine):
     df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
     with pytest.raises(ValueError, match="Empty table name specified"):
         df.to_sql(name="", con=conn, if_exists="replace", index=False)
+
+
+def test_to_sql_method_compile_error_propagates(sqlite_engine):
+    # GH#50062 - non-StatementError raised from a custom method should propagate
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    conn = sqlite_engine
+    pd.DataFrame({"a": [1.0]}).to_sql(name="test_compile_error", con=conn, index=False)
+
+    def insert_reflected(table, conn, keys, data_iter):
+        # reflect the existing table, which lacks column "b"
+        sql_table = sqlalchemy.Table(
+            table.name, sqlalchemy.MetaData(), autoload_with=conn
+        )
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
+        conn.execute(sqlalchemy.insert(sql_table).values(data))
+
+    df = pd.DataFrame({"a": [2.0], "b": [3]})
+    with pytest.raises(sqlalchemy.exc.CompileError, match="Unconsumed column names: b"):
+        df.to_sql(
+            name="test_compile_error",
+            con=conn,
+            if_exists="append",
+            index=False,
+            method=insert_reflected,
+        )
 
 
 @pytest.mark.parametrize("params", [(1,), [1], {"x": 1}])

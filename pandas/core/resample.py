@@ -32,6 +32,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -1161,6 +1162,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    7
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1219,6 +1221,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01   12
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1276,6 +1279,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1333,6 +1337,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1387,6 +1392,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1443,6 +1449,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )

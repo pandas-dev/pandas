@@ -3011,6 +3011,26 @@ def test_numeric_ea_axis_1(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype", ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        ("any", [True, pd.NA, pd.NA, True, False]),
+        ("all", [pd.NA, False, pd.NA, True, False]),
+    ],
+)
+def test_any_all_axis_1_skipna_false_kleene(dtype, op, expected):
+    # GH#57171
+    df = pd.DataFrame(
+        {"a": [True, False, None, True, False], "b": [None, None, None, True, False]},
+        dtype=dtype,
+    )
+    result = getattr(df, op)(axis=1, skipna=False)
+    tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
+
+
 @pytest.mark.parametrize("how", ["idxmax", "idxmin"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
@@ -3051,6 +3071,30 @@ def test_idxmax_idxmin_axis_1_ea_all_na_row_raises(how, skipna, dtype):
     df = pd.DataFrame(values, columns=["a", "b"]).astype(dtype)
     with pytest.raises(ValueError, match="[Ee]ncountered an?.*NA value"):
         getattr(df, how)(axis=1, skipna=skipna)
+
+
+@pytest.mark.parametrize(
+    "how, expected_labels", [("idxmax", ["b", "c", "b"]), ("idxmin", ["c", "b", "c"])]
+)
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "str",
+        pd.CategoricalDtype(["a", "b", "c"]),
+        "string[pyarrow]",
+        "large_string[pyarrow]",
+    ],
+)
+def test_idxmax_idxmin_axis_1_preserves_columns_dtype(how, expected_labels, dtype):
+    # GH#56272
+    if "pyarrow" in str(dtype):
+        pytest.importorskip("pyarrow")
+    columns = pd.Index(["a", "b", "c"]).astype(dtype)
+    df = pd.DataFrame([[1, 4, 0], [5, 2, 9], [2, 8, 1]], columns=columns)
+
+    result = getattr(df, how)(axis=1)
+    expected = pd.Series(expected_labels, dtype=dtype)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("skipna", [True, False])
@@ -3164,5 +3208,8 @@ def test_median_skipna_false_keeps_complex(na_first):
         [complex(np.nan), 2 + 3j] if na_first else [2 + 3j, complex(np.nan)],
         index=list(cols),
     )
-    tm.assert_series_equal(df.median(skipna=False), expected)
-    tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)
+    msg = "The median of complex data is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df.median(skipna=False), expected)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)

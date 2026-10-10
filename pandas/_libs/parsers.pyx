@@ -204,8 +204,9 @@ cdef extern from "pandas/parser/tokenizer.h":
         BLHM_SKIP
 
     ctypedef char* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
-                                  int *status, const char *encoding_errors)
-    ctypedef void (*io_cleanup)(void *src)
+                                  int *status,
+                                  const char *encoding_errors) noexcept nogil
+    ctypedef void (*io_cleanup)(void *src) noexcept nogil
 
     ctypedef struct parser_t:
         void *source
@@ -228,7 +229,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         int64_t *word_ends
         uint64_t words_len
         uint64_t words_cap
-        uint64_t max_words_cap   # maximum word cap encountered
+        uint64_t max_words_needed  # most word slots any reservation needed
 
         int64_t word_start       # position start of current field
 
@@ -316,7 +317,8 @@ cdef extern from "pandas/parser/pd_parser.h":
     void del_rd_source(void *src) nogil
 
     char* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status, const char *encoding_errors)
+                          size_t *bytes_read, int *status,
+                          const char *encoding_errors) nogil
 
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
@@ -371,7 +373,7 @@ cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
 
 cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    size_t *bytes_read, int *status,
-                                   const char *encoding_errors) noexcept:
+                                   const char *encoding_errors) noexcept nogil:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
 cdef void del_rd_source_wrapper(void *src) noexcept nogil:
@@ -703,7 +705,7 @@ cdef class TextReader:
                     # need to artificially skip the final line
                     # which is still a header line
                     header = list(header)
-                    header.append(header[-1] + 1)
+                    header.append(max(header) + 1)
                     self.parser.header_end = header[-1]
                     self.has_mi_columns = 1
                 else:
@@ -870,13 +872,15 @@ cdef class TextReader:
 
         if self.parser.header_start >= 0:
 
-            # Header is in the file
+            # Header is in the file. Tokenize in file order, so the rows exempt
+            # from the field-count check do not depend on header order (GH#47011)
+            for hr in sorted(prelim_header):
+                if self.parser.lines < hr + 1:
+                    self._tokenize_rows(hr + 2)
+
             for level, hr in enumerate(prelim_header):
 
                 this_header = []
-
-                if self.parser.lines < hr + 1:
-                    self._tokenize_rows(hr + 2)
 
                 if self.parser.lines == 0:
                     field_count = 0
@@ -2992,9 +2996,9 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                         fallback = True
                         break
 
-                if fixed_ok:
-                    out_local = 0
-                else:
+                # parse_iso_8601_datetime only sets out_local on some paths
+                out_local = 0
+                if not fixed_ok:
                     ret = parse_iso_8601_datetime(
                         word, <int>word_len, 0,
                         &dts, &out_bestunit, &out_local, &out_tzoffset,

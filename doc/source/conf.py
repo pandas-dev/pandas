@@ -208,6 +208,7 @@ with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     )
 autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
+maximum_signature_line_length = 88
 
 # numpydoc
 numpydoc_show_class_members = False
@@ -375,6 +376,8 @@ numpydoc_validation_exclude = {
     r"pandas\.ExcelWriter\.supported_extensions$",
     # ExcelFile
     r"pandas\.ExcelFile\.close$",
+    # Styler class attributes, documented by one-line #: comments
+    r"pandas\.io\.formats\.style\.Styler\.(env|loader|template_\w+)$",
     # Index attributes and methods processed by autodoc but not in api.rst
     r"pandas\.Index\.nlevels$",
     r"pandas\.Index\.diff$",
@@ -406,9 +409,12 @@ numpydoc_validation_exclude = {
     r"pandas\.DatetimeIndex\.weekday$",
     r"pandas\.PeriodIndex\.weekday$",
     r"pandas\.Series\.dt\.weekday$",
-    # Relaxed-rules class page (GH#63084): not instantiated by users, so
-    # the constructor parameters are not documented (PR01)
+    # Relaxed-rules class pages (GH#63084, GH#19302): not instantiated by
+    # users, so the constructor parameters are not documented (PR01), and
+    # See Also needs the pandas. prefix to link from pandas.api.typing (SA05)
     r"pandas\.api\.typing\.Expression$",
+    r"pandas\.api\.typing\.DataFrameGroupBy$",
+    r"pandas\.api\.typing\.SeriesGroupBy$",
 }
 
 # matplotlib plot directive
