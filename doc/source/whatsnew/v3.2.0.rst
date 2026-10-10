@@ -155,8 +155,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
--
+- Bug in :meth:`DataFrame.astype` and :meth:`Series.astype` silently accepting a NumPy structured (compound) dtype and producing an unusable object; this now raises ``NotImplementedError``, matching the constructors (:issue:`4464`)
 
 Strings
 ^^^^^^^
