@@ -104,7 +104,28 @@ class CParserWrapper(ParserBase):
         if kwds["dtype_backend"] == "pyarrow":
             # Fail here loudly instead of in cython after reading
             import_optional_dependency("pyarrow")
-        self._reader = parsers.TextReader(src, **kwds)
+        # Where the data starts, for _bad_line_error_with_file_line; a source
+        # that cannot be re-read counts line breaks as it is read instead
+        self._src = src
+        self._src_start = None
+        count_quoted_newlines = False
+        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
+            try:
+                if src.seekable():
+                    self._src_start = src.tell()
+            except (AttributeError, OSError, ValueError):
+                pass
+            count_quoted_newlines = self._src_start is None
+        self._reader_kwds = kwds
+        try:
+            self._reader = parsers.TextReader(
+                src, count_quoted_newlines=count_quoted_newlines, **kwds
+            )
+        except ParserError as err:
+            exact = self._bad_line_error_with_file_line(err)
+            if exact is None:
+                raise
+            raise exact from None
         # Let the pyarrow string fast path return raw pending-column handles;
         # read() wraps them into one ExtensionArray per column at the end.
         self._reader.defer_pa_wrap = True
@@ -187,6 +208,30 @@ class CParserWrapper(ParserBase):
             self.index_names = [None] * len(self.index_names)
 
         self._implicit_index = self._reader.leading_cols > 0
+
+    def _bad_line_error_with_file_line(self, err: ParserError) -> ParserError | None:
+        """
+        Re-read the data to report a bad line by its line in the file.
+
+        The C parser numbers bad lines by record, which differs from the line in
+        the file when fields contain line breaks.  Counting those costs a pass
+        over the tokens, so it is only done once a bad line has been found.
+        """
+        if self._src_start is None or "fields in line" not in str(err):
+            return None
+        self._src.seek(self._src_start)
+        reader = None
+        try:
+            reader = parsers.TextReader(
+                self._src, count_quoted_newlines=True, **self._reader_kwds
+            )
+            reader.tokenize_to_end()
+        except ParserError as exact:
+            return exact
+        finally:
+            if reader is not None:
+                reader.close()
+        return None
 
     def close(self) -> None:
         # close handles opened by C parser
@@ -308,6 +353,11 @@ class CParserWrapper(ParserBase):
                     data = {
                         key: _wrap_deferred_pa(values) for key, values in data.items()
                     }
+        except ParserError as err:
+            exact = self._bad_line_error_with_file_line(err)
+            if exact is None:
+                raise
+            raise exact from None
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False

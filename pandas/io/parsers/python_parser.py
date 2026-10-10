@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import abc
 import csv
 from io import StringIO
+import itertools
 import re
 from typing import (
     IO,
@@ -88,6 +89,31 @@ if TYPE_CHECKING:
 _BOM = "\ufeff"
 
 
+def _row_texts(rows: list[list[Scalar]]) -> list[str]:
+    """Each row's fields joined by NUL, for counting the line breaks they hold."""
+    try:
+        return ["\x00".join(row) for row in rows]  # type: ignore[arg-type]
+    except TypeError:
+        return [
+            "\x00".join(field for field in row if isinstance(field, str))
+            for row in rows
+        ]
+
+
+def _lines_spanned(texts: list[str]) -> int:
+    """Lines the rows with these texts occupied in the file."""
+    return len(texts) + "\x00".join(texts).count("\n")
+
+
+def _holds_lone_carriage_return(texts: list[str]) -> bool:
+    """
+    Whether a field holds a "\r" not followed by "\n", which csv.reader may count
+    as a line break but _lines_spanned does not.
+    """
+    blob = "\x00".join(texts)
+    return blob.count("\r") != blob.count("\r\n")
+
+
 class PythonParser(ParserBase):
     _no_thousands_columns: set[int]
     # field counts the file itself implies; set only when index_col is False
@@ -102,11 +128,33 @@ class PythonParser(ParserBase):
 
         self.data: Iterator[list[str]] | list[list[Scalar]] = []
         self.buf: list[list[Any]] = []
-        # Line number of each line pushed onto self.buf. Every site that shrinks
-        # self.buf drops entries from the front, so it stays a suffix of this list.
+        # Line number of each line pushed onto self.buf, and the line in the file
+        # it starts on (None if unknown). Every site that shrinks self.buf drops
+        # entries from the front, so it stays a suffix of these lists.
         self.buf_pos: list[int] = []
+        self._buf_starts: list[int | None] = []
         self.pos = 0
         self.line_pos = 0
+        # Bad-line messages report the line in the file a record starts on
+        # (GH#16286), found from the csv reader's line count.  The reader does
+        # not count lines taken off the handle before it was built.
+        self._csv_reader: Any = None
+        self._reader_line_base = 0
+        # Set once a field holds a lone "\r", which the reader may have
+        # counted as a line break; line numbers are then unknown.
+        self._reader_lines_unreliable = False
+        # The batch _get_lines last returned, before it dropped comment, blank
+        # and footer rows, plus the start lines of its buffered rows and of its
+        # first newly read row; see _row_line_numbers.
+        self._batch_raw: list[list[Scalar]] = []
+        self._batch_buf_starts: list[int | None] = []
+        self._batch_first_new: int | None = None
+        # how many of those rows were left once the footer was dropped
+        self._batch_n_before_footer = 0
+        # For _csv_error_line: the rows _get_lines has read so far in this
+        # batch, and the reader's line count before the row _next_line is reading.
+        self._batch_rows: list[list[Scalar]] | None = None
+        self._peek_lines_before: int | None = None
         self._first_row_len = 0
         self._header_row_len = 0
 
@@ -256,10 +304,14 @@ class PythonParser(ParserBase):
                 # Note: encoding is irrelevant here
                 line_rdr = csv.reader(StringIO(line), dialect=dia)
                 self.buf.extend(list(line_rdr))
+                # readline took one line per record up to here
+                self._buf_starts.extend([self.pos] * len(self.buf))
                 self.buf_pos.append(self.pos - 1)
 
             # Note: encoding is irrelevant here
             reader = csv.reader(f, dialect=dia, strict=True)
+            self._csv_reader = reader
+            self._reader_line_base = self.pos
 
         else:
 
@@ -899,6 +951,7 @@ class PythonParser(ParserBase):
         return not line or all(not x for x in line)
 
     def _next_line(self) -> list[Scalar]:
+        start_line: int | None = None
         if isinstance(self.data, list):
             while self.skipfunc(self.pos):
                 if self.pos >= len(self.data):
@@ -930,10 +983,18 @@ class PythonParser(ParserBase):
                 self.pos += 1
 
             while True:
+                if self._csv_reader is not None:
+                    self._peek_lines_before = self._reader_line()
+                    start_line = self._peek_lines_before + 1
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
+                self._peek_lines_before = None
                 self.pos += 1
 
                 if orig_line is not None:
+                    if _holds_lone_carriage_return(_row_texts([orig_line])):
+                        self._reader_lines_unreliable = True
+                    if self._reader_lines_unreliable:
+                        start_line = None
                     line = self._check_comments([orig_line])[0]
 
                     if self.skip_blank_lines:
@@ -953,10 +1014,80 @@ class PythonParser(ParserBase):
 
         self.line_pos += 1
         self.buf.append(line)
+        self._buf_starts.append(start_line)
         self.buf_pos.append(self.pos - 1)
         return line
 
-    def _alert_malformed(self, msg: str, row_num: int) -> None:
+    def _csv_error_line(self, row_num: int) -> int:
+        """
+        The line the record that raised csv.Error starts on (GH#16286), or its
+        record number `row_num` if that is not known.
+        """
+        if self._reader_lines_unreliable:
+            return row_num
+        if self._peek_lines_before is not None:
+            return self._peek_lines_before + 1
+        if self._batch_rows is None or self._batch_first_new is None:
+            return row_num
+        texts = _row_texts(self._batch_rows)
+        if _holds_lone_carriage_return(texts):
+            self._reader_lines_unreliable = True
+            return row_num
+        return self._batch_first_new + _lines_spanned(texts)
+
+    def _reader_line(self) -> int:
+        """The last line in the file the csv reader has read."""
+        return self._reader_line_base + self._csv_reader.line_num
+
+    def _new_row_starts(
+        self, rows: list[list[Scalar]], first_line: int | None
+    ) -> list[int | None]:
+        """
+        The line each of `rows`, read in sequence from `first_line`, starts on.
+
+        Their spans are trusted only when they add up to the reader's
+        position; records dropped by skiprows or csv.Error, or a lone "\r"
+        the reader may count as a line break, give Nones instead.
+        """
+        unknown: list[int | None] = [None] * len(rows)
+        if first_line is None:
+            return unknown
+        texts = _row_texts(rows)
+        if _holds_lone_carriage_return(texts):
+            self._reader_lines_unreliable = True
+            return unknown
+        starts: list[int | None] = list(
+            itertools.accumulate(
+                (1 + text.count("\n") for text in texts), initial=first_line
+            )
+        )
+        if starts[-1] != self._reader_line() + 1:
+            return unknown
+        return starts[:-1]
+
+    def _row_line_numbers(self, n_rows: int) -> list[int | None] | None:
+        """
+        The line in the file each of the last `n_rows` rows of the batch starts
+        on, None for a row whose line is not known.
+        """
+        raw = self._batch_raw
+        n_buf = len(self._batch_buf_starts)
+        starts = self._batch_buf_starts + self._new_row_starts(
+            raw[n_buf:], self._batch_first_new
+        )
+        # redo the dropping _get_lines did to find the records that became rows
+        raw = raw[: self._batch_n_before_footer]
+        kept = [
+            idx
+            for idx, row in enumerate(self._check_comments(raw))
+            if not self.skip_blank_lines or self._remove_empty_lines([row])
+        ]
+        # read() may have taken the index-names row off the front
+        if not 0 <= len(kept) - n_rows <= 1:
+            return None
+        return [starts[idx] for idx in kept[len(kept) - n_rows :]]
+
+    def _alert_malformed(self, msg: str, line_num: int) -> None:
         """
         Alert a user about a malformed row, depending on value of
         `self.on_bad_lines` enum.
@@ -968,10 +1099,9 @@ class PythonParser(ParserBase):
         ----------
         msg: str
             The error message to display.
-        row_num: int
-            The row number where the parsing error occurred.
-            Because this row number is displayed, we 1-index,
-            even though we 0-index internally.
+        line_num: int
+            The 1-indexed line the bad record starts on (its record number if
+            that is unknown).
         """
         if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
             raise ParserError(msg)
@@ -979,7 +1109,7 @@ class PythonParser(ParserBase):
             self.on_bad_lines
         ):
             warnings.warn(
-                f"Skipping line {row_num}: {msg}\n",
+                f"Skipping line {line_num}: {msg}\n",
                 ParserWarning,
                 stacklevel=find_stack_level(),
             )
@@ -1027,7 +1157,7 @@ class PythonParser(ParserBase):
                     )
                     msg += ". " + reason
 
-                self._alert_malformed(msg, row_num)
+                self._alert_malformed(msg, self._csv_error_line(row_num))
             return None
 
     def _check_comments(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
@@ -1224,12 +1354,13 @@ class PythonParser(ParserBase):
                 actual_len = len(_content)
                 if actual_len > expected_len:
                     if callable(self.on_bad_lines):
-                        new_l = self.on_bad_lines(_content)
+                        # a copy: the row's line breaks are counted after the loop
+                        new_l = self.on_bad_lines(list(_content))
                         if new_l is not None:
                             new_l = cast("list[Scalar]", new_l)
                             if len(new_l) > expected_len:
                                 row_num = self.pos - (content_len - i + footers)
-                                bad_lines.append((row_num, len(new_l), "callable"))
+                                bad_lines.append((row_num, i, len(new_l), "callable"))
                                 new_l = new_l[:expected_len]
                             content.append(new_l)
 
@@ -1238,15 +1369,19 @@ class PythonParser(ParserBase):
                         self.BadLineHandleMethod.BLHM_WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
-                        bad_lines.append((row_num, actual_len, "normal"))
+                        bad_lines.append((row_num, i, actual_len, "normal"))
                         if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
                             break
                 else:
                     content.append(_content)
 
-            for row_num, actual_len, source in bad_lines:
+            line_nums = self._row_line_numbers(content_len) if bad_lines else None
+            for row_num, index, actual_len, source in bad_lines:
+                line_num = row_num + 1
+                if line_nums is not None and (known := line_nums[index]) is not None:
+                    line_num = known
                 msg = (
-                    f"Expected {expected_len} fields in line {row_num + 1}, "
+                    f"Expected {expected_len} fields in line {line_num}, "
                     f"saw {actual_len}"
                 )
                 if source == "callable":
@@ -1263,7 +1398,10 @@ class PythonParser(ParserBase):
                     )
                     msg += ". " + reason
 
-                self._alert_malformed(msg, row_num + 1)
+                self._alert_malformed(msg, line_num)
+
+        # the records were only kept for the bad-line messages
+        self._batch_raw = []
 
         # see gh-13320
         zipped_content = list(lib.to_object_array(content, min_width=col_len).T)
@@ -1290,6 +1428,9 @@ class PythonParser(ParserBase):
     def _get_lines(self, rows: int | None = None) -> list[list[Scalar]]:
         lines = self.buf
         new_rows = None
+        self._peek_lines_before = None
+        buf_starts = self._buf_starts[len(self._buf_starts) - len(self.buf) :]
+        first_new = None
         num_buffered = len(self.buf)
         first_new_pos = self.pos
         # `rows` gets reused as a counter below, so latch whether we read to EOF
@@ -1300,12 +1441,19 @@ class PythonParser(ParserBase):
             # we already have the lines in the buffer
             if len(self.buf) >= rows:
                 new_rows, self.buf = self.buf[:rows], self.buf[rows:]
+                buf_starts = buf_starts[:rows]
 
             # need some lines
             else:
                 rows -= len(self.buf)
 
         if new_rows is None:
+            first_new = (
+                None
+                if self._csv_reader is None or self._reader_lines_unreliable
+                else self._reader_line() + 1
+            )
+            self._batch_first_new = first_new
             if isinstance(self.data, list):
                 if self.pos > len(self.data):
                     raise StopIteration
@@ -1339,13 +1487,21 @@ class PythonParser(ParserBase):
                         lines.extend(new_rows)
                     else:
                         rows = 0
+                        self._batch_rows = new_rows
+                        try:
+                            while True:
+                                next_row = self._next_iter_line(
+                                    row_num=self.pos + rows + 1
+                                )
+                                rows += 1
 
-                        while True:
-                            next_row = self._next_iter_line(row_num=self.pos + rows + 1)
-                            rows += 1
-
-                            if next_row is not None:
-                                new_rows.append(next_row)
+                                if next_row is not None:
+                                    new_rows.append(next_row)
+                                else:
+                                    # the skipped record's lines are not in new_rows
+                                    self._batch_rows = None
+                        finally:
+                            self._batch_rows = None
 
                 except StopIteration:
                     len_new_rows = len(new_rows)
@@ -1358,6 +1514,9 @@ class PythonParser(ParserBase):
             self.buf = []
         else:
             lines = new_rows
+        self._batch_raw = lines
+        self._batch_buf_starts = buf_starts
+        self._batch_first_new = first_new
 
         if self.skipfooter:
             if read_to_eof:
@@ -1367,6 +1526,7 @@ class PythonParser(ParserBase):
                 # count, so there is no footer to measure from; keep the
                 # pre-GH#36827 behavior.
                 lines = lines[: -self.skipfooter]
+        self._batch_n_before_footer = len(lines)
 
         lines = self._check_comments(lines)
         if self.skip_blank_lines:

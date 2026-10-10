@@ -140,6 +140,41 @@ skip
             reader.read(nrows)
 
 
+@skip_pyarrow  # does not report a line number
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_bad_line_number_counts_quoted_newlines(all_parsers, on_bad_lines):
+    # GH#16286: report the line in the file, not the record number
+    parser = all_parsers
+    data = 'a,b,c\n1,2,"x\n\n\n\n\n\n\n"\n4,5,6,7\n'
+
+    if on_bad_lines == "error":
+        with pytest.raises(ParserError, match="Expected 3 fields in line 10, saw 4"):
+            parser.read_csv(StringIO(data))
+    else:
+        with tm.assert_produces_warning(
+            ParserWarning, match="Skipping line 10:", check_stacklevel=False
+        ):
+            parser.read_csv(StringIO(data), on_bad_lines="warn")
+
+
+@skip_pyarrow  # does not report a line number
+@pytest.mark.parametrize(
+    "data, line",
+    [
+        ("a,b\n1,x\\\ny\n4,5,6\n", 4),
+        ('a,b\n1,"x\\\ny"\n4,5,6\n', 4),
+        # the bad record holds the escaped newline
+        ("a,b\n1,2\n4,x\\\ny,6\n", 3),
+        ('a,b\n1,2\n4,"x\\\ny",6\n', 3),
+    ],
+)
+def test_bad_line_number_counts_escaped_newlines(all_parsers, data, line):
+    # GH#16286
+    parser = all_parsers
+    with pytest.raises(ParserError, match=f"fields in line {line}, saw 3"):
+        parser.read_csv(StringIO(data), escapechar="\\")
+
+
 def test_catch_too_many_names(all_parsers):
     # see gh-5156
     data = """\

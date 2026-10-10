@@ -194,6 +194,7 @@ void parser_set_default_options(parser_t *self) {
   self->preloaded = 0;
   self->header_done = 0;
   self->prev_line_fields = -1;
+  self->count_quoted_newlines = 0;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -274,6 +275,8 @@ int parser_init(parser_t *self) {
   self->lines_cap = sz;
   self->lines = 0;
   self->file_lines = 0;
+  self->quoted_newlines = 0;
+  self->newlines_counted_to = 0;
 
   if (self->stream == NULL || self->word_ends == NULL ||
       self->line_start == NULL || self->line_fields == NULL) {
@@ -443,6 +446,34 @@ static void parser_append_warningf(parser_t *self, const char *fmt, ...) {
   append_warning(self, self->warn_buf);
 }
 
+// Add the line terminators in the stream up to offset end to quoted_newlines.
+// Counting lazily, only when a line number is reported or the stream is about
+// to be shifted, keeps the work out of tokenize_bytes.
+static void count_quoted_newlines_to(parser_t *self, int64_t end) {
+  if (end <= self->newlines_counted_to) {
+    return;
+  }
+  const char term = self->lineterminator == '\0' ? '\n' : self->lineterminator;
+  const char *p = self->stream + self->newlines_counted_to;
+  const char *stop = self->stream + end;
+  uint64_t n = 0;
+  // Blocks of 255 so a byte counter cannot overflow, which lets compilers
+  // vectorize the loop; std::count is several times slower.
+  while (stop - p >= 255) {
+    uint8_t block = 0;
+    for (int i = 0; i < 255; i++) {
+      block += p[i] == term;
+    }
+    n += block;
+    p += 255;
+  }
+  for (; p < stop; p++) {
+    n += *p == term;
+  }
+  self->quoted_newlines += n;
+  self->newlines_counted_to = end;
+}
+
 // remaining_input is the number of bytes of the current read buffer that the
 // caller has not consumed yet; see the short-row padding below.
 static int end_line(parser_t *self, int64_t remaining_input) {
@@ -484,6 +515,16 @@ static int end_line(parser_t *self, int64_t remaining_input) {
 
   if (!in_header && (ex_fields >= 0) && (fields > ex_fields) &&
       !(self->usecols)) {
+    // file_lines counts records; line_offset makes it the 1-based line in the
+    // file where this record starts
+    uint64_t line_offset = 0;
+    if (self->count_quoted_newlines) {
+      const int64_t first = self->line_start[self->lines];
+      count_quoted_newlines_to(self,
+                               first == 0 ? 0 : self->word_ends[first - 1] + 1);
+      line_offset = self->quoted_newlines;
+    }
+
     // increment file line count
     self->file_lines++;
 
@@ -493,12 +534,11 @@ static int end_line(parser_t *self, int64_t remaining_input) {
     // reset field count
     self->line_fields[self->lines] = 0;
 
-    // file_lines is now the actual file line number (starting at 1)
     if (self->on_bad_lines == BLHM_ERROR) {
       parser_set_error_msgf(self,
                             "Expected %" PRId64 " fields in line %" PRIu64
                             ", saw %" PRId64 "\n",
-                            ex_fields, self->file_lines, fields);
+                            ex_fields, self->file_lines + line_offset, fields);
       return -1;
     } else {
       // simply skip bad lines
@@ -506,7 +546,8 @@ static int end_line(parser_t *self, int64_t remaining_input) {
         parser_append_warningf(self,
                                "Skipping line %" PRIu64 ": expected %" PRId64
                                " fields, saw %" PRId64 "\n",
-                               self->file_lines, ex_fields, fields);
+                               self->file_lines + line_offset, ex_fields,
+                               fields);
       }
     }
   } else {
@@ -1373,6 +1414,8 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         } else {
           self->state = IN_FIELD_IN_SKIP_LINE;
         }
+      } else if (IS_TERMINATOR(c)) {
+        self->quoted_newlines++;
       }
       break;
 
@@ -1834,6 +1877,11 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   } else {
     /* every word is being deleted */
     char_count = self->stream_len;
+  }
+
+  if (self->count_quoted_newlines) {
+    count_quoted_newlines_to(self, (int64_t)char_count);
+    self->newlines_counted_to -= (int64_t)char_count;
   }
 
   /* move stream, only if something to move */

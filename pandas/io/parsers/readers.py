@@ -1086,6 +1086,9 @@ def _read_csv_chunks(
         reader._engine._reader.block_workers = n_workers
         reader._engine._warning_sink = warning_sink
         reader._engine._reader.warning_sink = warning_sink
+        # A bad line falls back to a serial read, which reports its line
+        # number; the worker's own re-read would only tokenize its empty source.
+        reader._engine._src_start = None
         workers_readers.append(reader)
         while not chunk_failed.is_set():
             try:
