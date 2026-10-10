@@ -1430,7 +1430,9 @@ class PythonParser(ParserBase):
         lines = self.buf
         new_rows = None
         self._peek_lines_before = None
-        buf_starts = self._buf_starts[len(self._buf_starts) - len(self.buf) :]
+        buf_starts: list[int | None] = self._buf_starts[
+            len(self._buf_starts) - len(self.buf) :
+        ]
         if len(buf_starts) != len(self.buf):
             buf_starts = [None] * len(self.buf)
         first_new = None
