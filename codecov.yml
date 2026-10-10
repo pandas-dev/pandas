@@ -10,3 +10,8 @@ coverage:
     patch: off
 
 github_checks: false
+
+flags:
+  # the C/C++ Coverage job skips most PRs; reuse its last report so totals don't swing
+  c:
+    carryforward: true
