@@ -3516,9 +3516,8 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 res: ArrayLike
                 if isinstance(self._values, ArrowExtensionArray):
-                    # the merge emits keys in order, so duplicates are adjacent.
-                    # Take from self, not the merge output: the join target
-                    # round-trips through NumPy, lossy for time64[ns]
+                    # merge output is sorted, so duplicates are adjacent. Take
+                    # from self: the join target is lossy for time64[ns]
                     taken = self._values.take(indexer)
                     fast = taken._unique_by_run_ends()
                     res = taken.unique() if fast is None else fast

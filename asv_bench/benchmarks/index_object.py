@@ -37,9 +37,8 @@ class SetOperations:
         int_left = Index(np.arange(N))
         ea_int_left = Index(np.arange(N), dtype="Int64")
         str_left = Index([f"i-{i}" for i in range(N)], dtype=object)
-        # zero-padded so the strings really are sorted: the libjoin fastpath is
-        # only reachable for a monotonic index
         arrow_int_left = Index(np.arange(N), dtype="int64[pyarrow]")
+        # zero-padded so the strings sort, as libjoin needs a monotonic index
         arrow_str_left = Index(
             [f"i-{i:07d}" for i in range(N)], dtype="string[pyarrow]"
         )
@@ -67,11 +66,8 @@ class SetOperations:
 
 
 class IntersectionDedup:
-    # SetOperations only intersects all-unique values with a near-copy of
-    # themselves. What deduplicating the merge result costs depends on how many
-    # distinct values survive, and on whether a sorted fastpath applies at all:
-    # signed zeros are equal to the comparison that orders the values but are
-    # distinct values, so they rule one out.
+    # Dedup cost of Arrow intersections across cardinalities; signed zeros
+    # disable the sorted fastpath.
     params = (
         [
             "int64",
@@ -112,21 +108,19 @@ class IntersectionDedup:
         }[scenario]
 
         if dtype in ("string[pyarrow]", "object"):
-            # zero-padded so the strings really are sorted: the libjoin fastpath
-            # is only reachable for a monotonic index
+            # zero-padded so the strings sort, as libjoin needs a monotonic index
             values = [f"i-{i:07d}" for i in values]
         index = Index(values, dtype=dtype)
 
         if scenario == "chunked":
-            # take() gathers across the chunks before the dedup sees them, so
-            # this tracks that gather rather than the dedup itself
+            # mostly measures take() across chunks, not the dedup
             parts = [Index(p, dtype=dtype) for p in np.array_split(values, 100)]
             self.left, self.right = parts[0].append(parts[1:]), index[:-1]
         elif scenario == "partial_overlap":
-            # half the keys match, which is the shape a caller is likelier to have
+            # half the keys match
             self.left, self.right = index[:N], index[N // 2 :]
         else:
-            # nearly every key matches, concentrating the work in the dedup
+            # nearly every key matches
             self.left, self.right = index, index[:-1]
 
     def time_intersection(self, dtype, scenario):

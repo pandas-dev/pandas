@@ -1059,7 +1059,7 @@ def test_union_disjoint_monotonic_sorted():
     ],
 )
 def test_intersection_arrow_duplicates(dtype):
-    # GH#66498 duplicates on both sides collapse in the Arrow dedup
+    # GH#66498
     left = pd.Index([1, 1, 2, 2, 3, 3, 4], dtype=dtype)
     right = pd.Index([2, 2, 3, 4, 4, 5], dtype=dtype)
 
@@ -1071,8 +1071,7 @@ def test_intersection_arrow_duplicates(dtype):
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
 def test_intersection_arrow_signed_zero(dtype):
-    # GH#66498 PyArrow keeps -0.0 and 0.0 distinct, so both survive. Checked
-    # via signbit: assert_index_equal considers them equal and cannot fail.
+    # GH#66498 both survive; check signbit since assert_index_equal can't
     left = pd.Index([-0.0, 0.0, 1.0], dtype=dtype)
     right = pd.Index([-0.0, 0.0, 2.0], dtype=dtype)
 
@@ -1084,11 +1083,10 @@ def test_intersection_arrow_signed_zero(dtype):
 
 @td.skip_if_no("pyarrow")
 def test_intersection_arrow_chunked_run_across_seam():
-    # GH#66498 a run of 2 spanning a chunk boundary must still collapse
+    # GH#66498
     left = pd.Index([1, 2, 2], dtype="int64[pyarrow]").append(
         pd.Index([2, 3], dtype="int64[pyarrow]")
     )
-    # guard against the test silently no longer covering the seam
     assert left._values._pa_array.num_chunks == 2
 
     result = left.intersection(pd.Index([2, 3], dtype="int64[pyarrow]"))
@@ -1098,10 +1096,8 @@ def test_intersection_arrow_chunked_run_across_seam():
 
 
 def test_monotonic_index_has_monotonic_join_target(index):
-    # GH#66498 the merge output is sorted only because a monotonic index has a
-    # monotonic join target, which is nowhere stated as a contract. Pin it.
+    # GH#66498 the Arrow intersection dedup relies on this
     if not index._can_use_libjoin:
-        # this also excludes MultiIndex, whose join target is not a flat array
         pytest.skip("_get_join_target is only used under _can_use_libjoin")
 
     target = index._get_join_target()
@@ -1118,17 +1114,13 @@ def test_monotonic_index_has_monotonic_join_target(index):
 
 @td.skip_if_no("pyarrow")
 def test_intersection_arrow_lossy_join_target():
-    # GH#66498 time64[ns] round-trips through datetime.time in the join
-    # target, which holds only microseconds, so the merge output is not a
-    # faithful copy. The dedup must read from self instead.
+    # GH#66498 the join target truncates time64[ns] to microseconds
     left = pd.Index([1, 1, 2, 3], dtype="time64[ns][pyarrow]")
     right = pd.Index([2, 3, 4], dtype="time64[ns][pyarrow]")
 
     result = left.intersection(right)
 
-    # not asserting these are *correct* -- the lossy join target predates this
-    # path -- only that they come from the input rather than the corrupted
-    # merge output, and are deduplicated
+    # not checking correctness, only that values come from the input
     result_ns = result._values._pa_array.cast("int64").to_pylist()
     left_ns = left._values._pa_array.cast("int64").to_pylist()
     assert len(result_ns) == len(set(result_ns))
@@ -1136,8 +1128,7 @@ def test_intersection_arrow_lossy_join_target():
 
 
 def test_intersection_arrow_dictionary_no_run_end_kernel():
-    # GH#66498 dictionary has no run-end kernel; this must fall back rather
-    # than raise ArrowNotImplementedError
+    # GH#66498 dictionary has no run-end kernel
     pa = pytest.importorskip("pyarrow")
 
     dtype = pd.ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
@@ -1161,9 +1152,7 @@ def test_intersection_arrow_dictionary_no_run_end_kernel():
     ],
 )
 def test_intersection_arrow_interleaved_signed_zero(dtype, left_values, expected_len):
-    # GH#66498 -0.0 and 0.0 are equal to the comparison that makes an index
-    # monotonic but distinct to the encoder, so they can interleave and leave
-    # duplicates that are sorted yet not adjacent
+    # GH#66498 interleaved -0.0 and 0.0 are sorted but not adjacent
     left = pd.Index(left_values, dtype=dtype)
     assert left.is_monotonic_increasing
     right = pd.Index([0.0, -0.0, 1.0], dtype=dtype)
@@ -1171,7 +1160,7 @@ def test_intersection_arrow_interleaved_signed_zero(dtype, left_values, expected
     result = left.intersection(right)
 
     assert len(result) == expected_len
-    # no value may repeat, comparing bit patterns so -0.0 and 0.0 stay distinct
+    # no repeats, with -0.0 and 0.0 distinct
     signs = np.signbit(np.asarray(result.astype("float64"))).tolist()
     pairs = list(zip(result.tolist(), signs, strict=True))
     assert len(set(pairs)) == len(pairs)
