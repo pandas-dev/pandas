@@ -1076,6 +1076,15 @@ class TestParquetPyArrow(Base):
         result = read_parquet(temp_file, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    def test_nested_list_compliant(self, pa, temp_file):
+        # GH#43689 nested lists use the Parquet-spec "element" field name
+        pq = pytest.importorskip("pyarrow.parquet")
+        df = pd.DataFrame({"a": [[[1, 2, 3]], [[4, 5, 6]]]})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = pq.ParquetFile(temp_file).schema.column(0).path
+        assert result == "a.list.element.list.element"
+
     # from the direct pyarrow.Table.from_pandas call, see GH#68426
     @pytest.mark.filterwarnings(
         "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
