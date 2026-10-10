@@ -215,11 +215,13 @@ def merge(
     left_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the left DataFrame. Can also
         be an array or list of arrays of the length of the left DataFrame.
-        These arrays are treated as if they are columns.
+        These arrays are used as the values to join on, as if they were
+        columns of the DataFrame, not as column labels.
     right_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the right DataFrame. Can also
         be an array or list of arrays of the length of the right DataFrame.
-        These arrays are treated as if they are columns.
+        These arrays are used as the values to join on, as if they were
+        columns of the DataFrame, not as column labels.
     left_index : bool, default False
         Use the index from the left DataFrame as the join key(s). If it is a
         MultiIndex, the number of keys in the other DataFrame (either the index
@@ -1969,6 +1971,19 @@ class _MergeOperation:
                 left_on = [None] * n
         if len(right_on) != len(left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
+
+        for side, keys, obj in (
+            ("left", left_on, self.left),
+            ("right", right_on, self.right),
+        ):
+            for key in keys:
+                if isinstance(key, _known) and len(key) != len(obj):
+                    name = "on" if self.on is not None else f"{side}_on"
+                    raise ValueError(
+                        f"{name} array-like has length {len(key)}, but the {side} "
+                        f"DataFrame has length {len(obj)}. Array-like keys must "
+                        f"have the same length as the {side} DataFrame."
+                    )
 
         return left_on, right_on
 

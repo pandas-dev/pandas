@@ -3489,3 +3489,28 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     else:
         expected = pd.DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [pd.Index, np.array])
+def test_merge_on_wrong_length_arraylike_raises(box):
+    # GH#58279
+    left = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    right = pd.DataFrame({"a": [1, 2], "c": [7, 8]})
+
+    msg = "left_on array-like has length 2, but the left DataFrame has length 3"
+    with pytest.raises(ValueError, match=msg):
+        merge(left, right, left_on=box(["x", "y"]), right_on="a")
+
+    msg = "right_on array-like has length 3, but the right DataFrame has length 2"
+    with pytest.raises(ValueError, match=msg):
+        merge(left, right, left_on="a", right_on=box([1, 2, 3]))
+
+
+def test_merge_on_wrong_length_arraylike_raises_with_on():
+    # GH#58279
+    left = pd.DataFrame({"a": [1, 2, 3]})
+    right = pd.DataFrame({"a": [1, 2, 3]})
+
+    msg = "^on array-like has length 2"
+    with pytest.raises(ValueError, match=msg):
+        merge(left, right, on=pd.Index([1, 2]))
