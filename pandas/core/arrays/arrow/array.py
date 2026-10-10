@@ -2064,6 +2064,66 @@ class ArrowExtensionArray(
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
 
+    @staticmethod
+    def _refactorize_dictionary(
+        data: pa.ChunkedArray, null_encoding: Literal["mask", "encode"]
+    ) -> pa.ChunkedArray:
+        """
+        Re-encode dictionary-typed ``data`` so that its dictionary is a factorization
+        of the values it holds.
+
+        A stored dictionary is not one: entries can be unreferenced or duplicated, and
+        a null can live in the dictionary rather than the indices. See GH#69024.
+        """
+        value_type = data.type.value_type
+        if pa.types.is_dictionary(value_type):
+            # the cast strips the outer level; re-encode the inner dictionary
+            return ArrowExtensionArray._refactorize_dictionary(
+                data.cast(value_type), null_encoding
+            )
+        try:
+            # Re-factorize in index space. Decoding instead materializes the values,
+            # which silently overflows the 32-bit offsets past 2GiB of them.
+            chunks = []
+            for chunk in data.chunks:
+                if chunk.dictionary.null_count > 0:
+                    # pyarrow refuses to unify dictionaries holding a null, so move
+                    #  the null entries into the indices first
+                    masked = chunk.dictionary.dictionary_encode(null_encoding="mask")
+                    indices = pc.take(masked.indices, chunk.indices)
+                    chunk = pa.DictionaryArray.from_arrays(
+                        indices.cast(chunk.indices.type), masked.dictionary
+                    )
+                chunks.append(chunk)
+            combined = pa.chunked_array(chunks, type=data.type).combine_chunks()
+            # masked, so a null entry becomes a null id, merging with a null index
+            deduped = combined.dictionary.dictionary_encode(null_encoding="mask")
+            ids = pc.take(deduped.indices, combined.indices).dictionary_encode(
+                null_encoding=null_encoding
+            )
+            dictionary = pc.take(deduped.dictionary, ids.dictionary)
+        except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
+            # Index space needs dictionary_encode and take kernels for the value
+            # type, and a unified dictionary that fits the chunks' index type.
+            # Assembling the result is kept out of the try, so an unexpected
+            # failure there is not read as a missing kernel and answered by
+            # decoding the column.
+            pass
+        else:
+            return pa.chunked_array(
+                [pa.DictionaryArray.from_arrays(ids.indices, dictionary)]
+            )
+        try:
+            return data.cast(value_type).dictionary_encode(null_encoding=null_encoding)
+        except pa.ArrowNotImplementedError:
+            if null_encoding == "encode" and data.null_count > 0:
+                # returning data unencoded would leave the nulls in index space,
+                #  where factorize replaces them with the -1 sentinel that
+                #  use_na_sentinel=False promises not to use
+                raise
+            # see test_factorize_dictionary_unsupported_value_type
+            return data
+
     def factorize(
         self,
         use_na_sentinel: bool = True,
@@ -2113,7 +2173,9 @@ class ArrowExtensionArray(
         ['Ant', 'Badger', 'Cobra', 'Deer']
         Length: 4, dtype: str
         """
-        null_encoding = "mask" if use_na_sentinel else "encode"
+        null_encoding: Literal["mask", "encode"] = (
+            "mask" if use_na_sentinel else "encode"
+        )
 
         data = self._pa_array
 
@@ -2127,12 +2189,7 @@ class ArrowExtensionArray(
             return indices, uniques
 
         if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            else:
-                encoded = data
+            encoded = self._refactorize_dictionary(data, null_encoding)
         else:
             encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:

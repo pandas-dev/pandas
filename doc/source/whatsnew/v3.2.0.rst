@@ -236,6 +236,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in :func:`factorize` and groupby operations with a PyArrow ``dictionary`` dtype producing groups for values no longer present (e.g. after filtering) or splitting one value across two groups; ``uniques`` are now ordered by first appearance, as for other dtypes (:issue:`69024`)
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
 
