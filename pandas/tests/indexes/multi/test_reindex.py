@@ -142,6 +142,17 @@ def test_reindex_flat_non_object_target():
     tm.assert_numpy_array_equal(indexer, expected)
 
 
+def test_reindex_tuples_of_other_lengths():
+    # GH#50293
+    mi = pd.MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+    idx = pd.Index([("a", "b"), ("b",), ("a", "b", "c")], tupleize_cols=False)
+    res, indexer = mi.reindex(idx)
+
+    tm.assert_index_equal(res, idx)
+    expected = np.array([0, -1, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(indexer, expected)
+
+
 def test_reindex_limit_arg_with_multiindex():
     # GH21247
 
