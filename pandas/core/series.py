@@ -3381,10 +3381,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         DataFrame.corr : Compute pairwise correlation of columns.
         DataFrame.corrwith : Compute pairwise correlation between rows or
             columns of two DataFrame objects.
+        plotting.autocorrelation_plot : Autocorrelation plot for time series.
 
         Notes
         -----
         If the Pearson correlation is not well defined return 'NaN'.
+
+        Values can differ from :func:`pandas.plotting.autocorrelation_plot`,
+        which uses the mean and variance of the whole Series rather than of the
+        overlapping portions.
 
         Examples
         --------
