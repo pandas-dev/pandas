@@ -1,0 +1,16 @@
+.. _whatsnew_320:
+
+What's new in 3.2.0 (Month XX, 2026)
+------------------------------------
+
+These are the changes in pandas 3.2.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+Bug fixes
+~~~~~~~~~
+
+I/O
+^^^
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where passing a dict ``dtype`` that did not name the ``index_col`` column raised ``IndexError`` when ``dtype_backend="pyarrow"``, instead of leaving the index column to be inferred and applying the remaining ``dtype`` keys (:issue:`68041`)
