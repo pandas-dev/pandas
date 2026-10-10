@@ -4533,9 +4533,9 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _sanitize_converted(ndarray[object] values, set na_set):
-    # GH#13302: na_values match the converter's output, as in the python
-    # engine. Unlike sanitize_objects this tolerates unhashable output, which
-    # only a converter can produce.
+    # GH#13302, GH#56848: na_values match the converter's output. Both
+    # _sanitize_converted and sanitize_objects tolerate unhashable output,
+    # which converters can produce.
     cdef:
         Py_ssize_t i
         object val
@@ -4586,17 +4586,24 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
 
     for i in range(n):
         val = values[i]
-        if val in na_values:
-            values[i] = onan
-            na_count += 1
-        elif val in bool_set:
-            # GH60088: Skip memoization
-            # since 1 == 1.0 == True == np.True_
-            # and 0 == 0.0 == False == np.False_
-            values[i] = val
-        elif val in memo:
-            values[i] = memo[val]
-        else:
-            memo[val] = val
+        if type(val).__hash__ is None:
+            # GH#56848: unhashable output from converters cannot
+            # match na_values or be memoized
+            continue
+        try:
+            if val in na_values:
+                values[i] = onan
+                na_count += 1
+            elif val in bool_set:
+                # GH60088: Skip memoization
+                # since 1 == 1.0 == True == np.True_
+                # and 0 == 0.0 == False == np.False_
+                values[i] = val
+            elif val in memo:
+                values[i] = memo[val]
+            else:
+                memo[val] = val
+        except TypeError:
+            pass
 
     return na_count

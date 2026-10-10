@@ -438,3 +438,54 @@ def test_converters_raising_on_empty_field(all_parsers, request):
 
     with pytest.raises(ValueError, match="could not convert string to float"):
         parser.read_csv(StringIO(data), converters={"a": float})
+
+
+@pytest.mark.parametrize(
+    "converter,values",
+    [
+        (lambda x: [x], [["1"], ["CAT"], ["3"]]),
+        # hashable type whose __hash__ raises
+        (lambda x: (x, [x]), [("1", ["1"]), ("CAT", ["CAT"]), ("3", ["3"])]),
+    ],
+)
+def test_converter_unhashable_output_with_na_values(all_parsers, converter, values):
+    # GH#13302, GH#56848 matching na_values against the converter's output must not
+    # reject output that cannot be hashed across C and Python parsers.
+    parser = all_parsers
+    data = "A\n1\nCAT\n3"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), converters={"A": converter}, na_values="CAT"
+            )
+        return
+
+    result = parser.read_csv(
+        StringIO(data), converters={"A": converter}, na_values="CAT"
+    )
+    expected = pd.DataFrame({"A": values})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "converter,values",
+    [
+        (lambda x: [int(i) for i in x.split(",")], [[1, 2], [3, 4]]),
+        (lambda x: {"val": int(x.split(",")[0])}, [{"val": 1}, {"val": 3}]),
+    ],
+)
+def test_converter_unhashable_collections(all_parsers, converter, values):
+    # GH#56848 custom converters returning unhashable collections (lists/dicts)
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO('A\n"1,2"\n"3,4"'), converters={"A": converter})
+        return
+
+    data = 'A\n"1,2"\n"3,4"'
+    result = parser.read_csv(StringIO(data), converters={"A": converter})
+    expected = pd.DataFrame({"A": values})
+    tm.assert_frame_equal(result, expected)
