@@ -8,6 +8,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 from dateutil.tz import gettz
@@ -245,7 +246,7 @@ class TestLoc:
                 pd.IndexSlice[:, False],
                 pd.Series([1], name=False),
             ),
-            (pd.Series([1], index=pd.Index([False])), False, [1]),
+            (pd.Series([1], index=pd.Index([False])), False, 1),
             (
                 pd.DataFrame([[1]], index=pd.Index([False])),
                 False,
@@ -1423,13 +1424,13 @@ class TestLocBaseIndependent:
 
         # regression test for GH#34526
         itr_idx = range(2, rows)
-        result = np.nan_to_num(df.loc[itr_idx].values)
+        result = df.loc[itr_idx].values
         expected = spmatrix.toarray()[itr_idx]
         tm.assert_numpy_array_equal(result, expected)
 
         # regression test for GH#34540
         result = df.loc[itr_idx].dtypes.values
-        expected = np.full(cols, pd.SparseDtype(dtype))
+        expected = np.full(cols, pd.SparseDtype(dtype, np.array(0, dtype=dtype).item()))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_loc_getitem_listlike_all_retains_sparse(self):
@@ -1441,16 +1442,18 @@ class TestLocBaseIndependent:
         # GH34687
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = pd.DataFrame.sparse.from_spmatrix(sp_sparse.eye(5, dtype=np.int64))
+        df = pd.DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
         result = df.loc[range(2)]
         expected = pd.DataFrame(
-            [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]],
-            dtype=pd.SparseDtype(np.int64),
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
+            dtype=pd.SparseDtype("float64", 0.0),
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[range(2)].loc[range(1)]
-        expected = pd.DataFrame([[1, 0, 0, 0, 0]], dtype=pd.SparseDtype(np.int64))
+        expected = pd.DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=pd.SparseDtype("float64", 0.0)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_sparse_series(self):
@@ -2150,9 +2153,11 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
-        with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            result = pd.DataFrame({"x": range(size_cutoff)}, dtype="int64")
+        with monkeypatch.context() as m:
+            m.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            # RangeIndex lookups bypass the engine
+            index = pd.Index(np.arange(size_cutoff))
+            result = pd.DataFrame({"x": range(size_cutoff)}, index=index, dtype="int64")
             result.loc[size_cutoff] = size_cutoff
         expected = pd.DataFrame({"x": range(size_cutoff + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
@@ -2602,6 +2607,8 @@ class TestLocSetitemWithExpansion:
             #  then coerced back into the int64 column
             ("int64[pyarrow]", pd.Period("2021-01-01", freq="D")),
             ("int64[pyarrow]", pd.Interval(5, 6)),
+            # used to raise in _post_expansion_casting, GH#70233
+            ("int64[pyarrow]", 2**70),
         ],
     )
     def test_loc_setitem_with_expansion_lossy_pre_cast(self, dtype, item):
@@ -2617,6 +2624,41 @@ class TestLocSetitemWithExpansion:
 
         expected = pd.DataFrame({"a": pd.Series([*original, item], dtype=object)})
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, item",
+        [
+            (pd.StringDtype(na_value=np.nan), 2**70),
+            ("Int64", pd.NaT),
+            ("boolean", pd.NaT),
+            ("int64[pyarrow]", 2**70),
+        ],
+    )
+    def test_loc_setitem_with_expansion_series_cannot_hold(self, dtype, item):
+        # GH#70233 a value the dtype cannot hold used to raise instead of
+        #  widening to object
+        if "pyarrow" in str(dtype):
+            pytest.importorskip("pyarrow")
+        ser = pd.Series([1, 0], dtype=dtype)
+        original = list(ser)
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = item
+
+        expected = pd.Series([*original, item], dtype=object)
+        tm.assert_series_equal(ser, expected)
+
+    def test_loc_setitem_with_expansion_all_na_str_large_int(self):
+        # GH#70233 the value must not be rounded through float64
+        pytest.importorskip("pyarrow")
+        dtype = pd.StringDtype("pyarrow", na_value=np.nan)
+        ser = pd.Series([np.nan, np.nan], dtype=dtype)
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = 2**64 - 1
+
+        expected = pd.Series([np.nan, np.nan, 2**64 - 1], dtype=object)
+        tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_with_expansion_sparse_na(self):
         # GH#65431 pre-casting NaN gives Sparse[float64, nan], not the column's
@@ -3361,6 +3403,19 @@ def test_loc_setitem_int_row_length_mismatch_message():
         df2.loc[0, ["a", "b"]] = [7, 8, 9]
 
 
+def test_loc_setitem_empty_frame_empty_column_key_length_mismatch():
+    # GH#58517 an empty multi-block frame takes the split path; an empty column
+    #  key with a non-empty value must raise the length-mismatch ValueError
+    #  instead of falling into the setitem-with-expansion branch
+    df = pd.DataFrame(
+        {"a": pd.Series([], dtype="int64"), "b": pd.Series([], dtype="float64")}
+    )
+    assert not df._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df.loc[:, []] = [1, 2, 3]
+
+
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
     [
@@ -3435,7 +3490,8 @@ def test_loc_with_positional_slice_raises():
     # GH#31840
     ser = pd.Series(range(4), index=["A", "B", "C", "D"])
 
-    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+    msg = r"cannot do slice indexing on Index with these indexers \[3\] of type int"
+    with pytest.raises(TypeError, match=msg):
         ser.loc[:3] = 2
 
 
@@ -3455,16 +3511,39 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
-            # GH#31840 enforce incorrect behavior
+        with pytest.raises(TypeError, match=msg):
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
-        # GH#31840 enforce incorrect behavior
+    with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1] = 2
+
+
+def test_loc_setitem_int_slice_decimal_index(frame_or_series):
+    # GH#70219 integer slice bounds are labels for a Decimal index, as in getitem
+    pa = pytest.importorskip("pyarrow")
+    values = [Decimal(1), Decimal(3), Decimal(5)]
+    index = pd.Index(pd.array(values, dtype=pd.ArrowDtype(pa.decimal128(5, 2))))
+    obj = frame_or_series(range(3), index=index)
+
+    expected = frame_or_series([99, 99, 2], index=index)
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    obj.loc[0:4] = 99
+    tm.assert_equal(obj, expected)
+
+
+def test_loc_setitem_int_slice_decimal_multiindex_level(frame_or_series):
+    # GH#70219
+    level = pd.Index([Decimal(1), Decimal(3), Decimal(5)], dtype=object)
+    index = pd.MultiIndex.from_arrays([level, ["a", "b", "c"]])
+    obj = frame_or_series(range(3), index=index)
+
+    expected = frame_or_series([99, 99, 2], index=index)
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    obj.loc[0:4] = 99
+    tm.assert_equal(obj, expected)
 
 
 def test_loc_datetimelike_mismatched_dtypes():
@@ -4170,3 +4249,145 @@ def test_loc_setitem_single_column_key_1d_value_non_unique_index():
     )
     expected["b"] = [1.0, 2.0, 3.0, 0.0]
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        # string dtypes
+        ("python", np.nan),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_loc_setitem_single_column_frame_ea_dtype(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66527
+    # column boolean mask that sets into the single column of a 1-column df
+    if isinstance(dtype, tuple):
+        dtype = pd.StringDtype(*dtype)
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+
+    # setting with a 2d dataframe
+    df.loc[:, box([True])] = df * 2
+
+    expected = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype) * 2})
+    tm.assert_frame_equal(df, expected)
+
+    df.loc[[0, 1], box([True])] = df.loc[[0, 1], :] * 2
+
+    arr = pd.array([1, 2, 3], dtype=dtype) * 2
+    arr[[0, 1]] = arr[[0, 1]] * 2
+    expected = pd.DataFrame({"a": arr})
+    tm.assert_frame_equal(df, expected)
+
+    # setting with a scalar
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    scalar = df.iloc[1, 0]
+
+    df.loc[:, box([True])] = scalar
+
+    expected = pd.DataFrame({"a": pd.array([scalar] * 3, dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+    df.loc[[0, 1], box([True])] = scalar * 2
+
+    expected = pd.DataFrame(
+        {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
+    )
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["float64", "Float64"],
+)
+@pytest.mark.parametrize(
+    "box",
+    [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_loc_setitem_empty_boolean_column_mask(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66255
+    df = pd.DataFrame({"a": [1, 2, 3, np.nan]}, dtype=dtype)
+    df_orig = df.copy()
+
+    # setting scalar
+    df.loc[:, box([False])] = 100
+
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+@pytest.mark.parametrize(
+    "box",
+    # Series boolean key needs to be aligned with the indexed axis
+    [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_loc_setitem_empty_boolean_column_mask_frame_value(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66255
+    df = pd.DataFrame({"a": [1, 2, 3, np.nan]}, dtype=dtype)
+    df_orig = df.copy()
+
+    # setting frame
+    df.loc[:, box([False])] = df * 2
+
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        "Float64",
+        ("python", np.nan),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize(
+    "col_key",
+    [[False], np.array([False]), pd.Index([False]), pd.array([False]), []],
+    ids=["list", "ndarray", "Index", "pd.array", "empty-list"],
+)
+@pytest.mark.parametrize(
+    "row_key",
+    [[0, 1], np.array([True, True, False]), slice(None)],
+    ids=["list", "mask", "null-slice"],
+)
+def test_setitem_empty_column_indexer_single_column_ea(
+    indexer_li, dtype, col_key, row_key
+):
+    # GH#70232 column key selecting no columns in a 1-column EA frame
+    if isinstance(dtype, tuple):
+        dtype = pd.StringDtype(*dtype)
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    df_orig = df.copy()
+
+    indexer_li(df)[row_key, col_key] = df.iloc[2, 0]
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", pd.StringDtype("python", np.nan)]
+)
+@pytest.mark.parametrize("col_key", [[False], []], ids=["mask", "empty-list"])
+@pytest.mark.parametrize(
+    "row_key",
+    [[0, 1], np.array([True, True, False]), slice(None)],
+    ids=["list", "mask", "null-slice"],
+)
+def test_loc_setitem_empty_column_indexer_single_column_ea_frame_value(
+    dtype, col_key, row_key
+):
+    # GH#70232 frame value aligned to the empty column selection
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    df_orig = df.copy()
+    value = pd.DataFrame({"a": pd.array([3, 2, 1], dtype=dtype)})
+
+    df.loc[row_key, col_key] = value
+    tm.assert_frame_equal(df, df_orig)

@@ -55,7 +55,7 @@ class TextReader:
         names: Sequence[Hashable] | None = ...,
         tokenize_chunksize: int = ...,  # int64_t
         delim_whitespace: bool = ...,
-        converters: Mapping[Hashable, Callable] | None = ...,
+        converters: Mapping[Hashable, Callable[..., Any]] | None = ...,
         skipinitialspace: bool = ...,
         escapechar: bytes | str | None = ...,  # single-character only
         doublequote: bool = ...,
@@ -66,15 +66,15 @@ class TextReader:
         decimal: bytes | str = ...,  # single-character only
         thousands: bytes | str | None = ...,  # single-character only
         dtype: Dtype | dict[Hashable, Dtype] = ...,
-        usecols: UsecolsArgType = ...,
+        usecols: UsecolsArgType[Hashable] = ...,
         error_bad_lines: bool = ...,
         warn_bad_lines: bool = ...,
         na_filter: bool = ...,
         na_values: set[str] | Mapping[Hashable, set[str]] = ...,
         na_fvalues: set[float] | Mapping[Hashable, set[float]] = ...,
         keep_default_na: bool = ...,
-        true_values: list | None = ...,
-        false_values: list | None = ...,
+        true_values: list[str] | None = ...,
+        false_values: list[str] | None = ...,
         allow_leading_cols: bool = ...,
         skiprows: int | Iterable[int] | Callable[[Hashable], bool] | None = ...,
         skipfooter: int = ...,  # int64_t

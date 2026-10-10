@@ -36,7 +36,10 @@ from pandas.errors import (
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
@@ -616,9 +619,8 @@ class IndexOpsMixin(OpsMixin):
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is not a view on
-            another array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            another array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
@@ -786,7 +788,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> idx = pd.Index([np.nan, np.nan])
         >>> idx
-        Index([nan, nan], dtype='float64')
+        Index([NaN, NaN], dtype='float64')
         >>> idx.empty
         False
         """
@@ -845,9 +847,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        np.int64(2)
+        2
         >>> s.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -858,12 +860,14 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmax(skipna=skipna)
+            result = delegate.argmax(skipna=skipna)
         else:
-            result = nanops.nanargmax(delegate, skipna=skipna)
-            # error: Incompatible return value type (got "Union[int, ndarray]", expected
-            # "int")
-            return result  # type: ignore[return-value]
+            # error: Incompatible types in assignment (expression has type
+            # "int | ndarray", variable has type "int")
+            result = nanops.nanargmax(  # type: ignore[assignment]
+                delegate, skipna=skipna
+            )
+        return maybe_unbox_numpy_scalar(result)
 
     def argmin(
         self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
@@ -918,9 +922,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        np.int64(2)
+        2
         >>> s.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -931,14 +935,16 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            return delegate.argmin(skipna=skipna)
+            result = delegate.argmin(skipna=skipna)
         else:
-            result = nanops.nanargmin(delegate, skipna=skipna)
-            # error: Incompatible return value type (got "Union[int, ndarray]", expected
-            # "int")
-            return result  # type: ignore[return-value]
+            # error: Incompatible types in assignment (expression has type
+            # "int | ndarray", variable has type "int")
+            result = nanops.nanargmin(  # type: ignore[assignment]
+                delegate, skipna=skipna
+            )
+        return maybe_unbox_numpy_scalar(result)
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
@@ -977,7 +983,7 @@ class IndexOpsMixin(OpsMixin):
 
     to_list = tolist
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Return an iterator of the values.
 
@@ -1612,7 +1618,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: int64
 
         >>> ser.searchsorted(4)
-        np.int64(3)
+        3
 
         >>> ser.searchsorted([0, 4])
         array([0, 3])
@@ -1631,7 +1637,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: datetime64[us]
 
         >>> ser.searchsorted("3/14/2000")
-        np.int64(3)
+        3
 
         >>> ser = pd.Categorical(
         ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
@@ -1669,14 +1675,15 @@ class IndexOpsMixin(OpsMixin):
         values = self._values
         if not isinstance(values, np.ndarray):
             # Going through EA.searchsorted directly improves performance GH#38083
-            return values.searchsorted(value, side=side, sorter=sorter)
-
-        return algorithms.searchsorted(
-            values,
-            value,
-            side=side,
-            sorter=sorter,
-        )
+            result = values.searchsorted(value, side=side, sorter=sorter)
+        else:
+            result = algorithms.searchsorted(
+                values,
+                value,
+                side=side,
+                sorter=sorter,
+            )
+        return maybe_unbox_numpy_scalar(result)
 
     def drop_duplicates(self, *, keep: DropKeep = "first") -> Self:
         duplicated = self._duplicated(keep=keep)

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
+    InvalidIndexError,
     OutOfBoundsDatetime,
     Pandas4Warning,
 )
@@ -263,6 +264,22 @@ class TestFillNA:
         idx = pd.TimedeltaIndex(["1 days", "2 days", "1 days", pd.NaT, pd.NaT])
         df = pd.DataFrame({"a": pd.Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
+
+    def test_fillna_categorical_no_missing_values(self):
+        # GH#24079 a categorical column with nothing to fill does not raise
+        #  when the fill value is not one of its categories
+        df = pd.DataFrame(
+            {"cats": pd.Categorical(["a", "b", "a"]), "vals": [2.0, np.nan, 1.0]}
+        )
+        expected = pd.DataFrame(
+            {"cats": pd.Categorical(["a", "b", "a"]), "vals": [2.0, -9999.0, 1.0]}
+        )
+
+        result = df.fillna(-9999)
+        tm.assert_frame_equal(result, expected)
+
+        df.fillna(-9999, inplace=True)
+        tm.assert_frame_equal(df, expected)
 
     def test_fillna_with_categorical_series(self):
         # https://github.com/pandas-dev/pandas/issues/56329
@@ -919,3 +936,16 @@ def test_fillna_with_duplicate_index_and_unique_fill_frame():
     result = df.fillna(df_fillna)
     expected = pd.DataFrame({"a": [10.0, 20.0, 5.0]}, index=[0, 1, 0])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_fillna_fill_frame_with_duplicate_labels_raises(axis):
+    # GH#27672
+    df = pd.DataFrame({"A": [1.0, np.nan], "B": [np.nan, 2.0]}, index=["a", "b"])
+    if axis == "index":
+        value = pd.DataFrame({"A": [1, 0, 2], "B": [1, 2, 3]}, index=["b", "a", "b"])
+    else:
+        value = pd.DataFrame([[1, 2, 3]] * 2, index=["a", "b"], columns=["A", "B", "B"])
+    msg = "Cannot align with an object that has duplicate labels"
+    with pytest.raises(InvalidIndexError, match=msg):
+        df.fillna(value)

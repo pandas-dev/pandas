@@ -1417,7 +1417,7 @@ class IntervalDtype(PandasExtensionDtype):
         raise TypeError(msg)
 
     @property
-    def type(self) -> type[Interval]:
+    def type(self) -> type[Interval[Any]]:
         return Interval
 
     def __str__(self) -> str_type:
@@ -1483,21 +1483,25 @@ class IntervalDtype(PandasExtensionDtype):
         else:
             chunks = array.chunks
 
+        # np.asarray can't take an ExtensionDtype, e.g. DatetimeTZDtype
+        subtype_is_numpy = isinstance(self.subtype, np.dtype)
+
+        def _convert(values: pyarrow.Array):
+            if subtype_is_numpy:
+                return np.asarray(values, dtype=self.subtype)
+            return self.subtype.__from_arrow__(values)
+
         results = []
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            left = _convert(arr.field("left"))
+            right = _convert(arr.field("right"))
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
-            return IntervalArray.from_arrays(
-                np.array([], dtype=self.subtype),
-                np.array([], dtype=self.subtype),
-                closed=self.closed,
-            )
+            return IntervalArray._from_sequence([], dtype=self)
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
@@ -2177,7 +2181,7 @@ class SparseDtype(ExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
         # with other compatible extension dtypes
-        from pandas.core.dtypes.cast import np_find_common_type
+        from pandas.core.dtypes.cast import find_common_type
 
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
@@ -2202,11 +2206,11 @@ class SparseDtype(ExtensionDtype):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-        np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
-        # error: Argument 1 to "np_find_common_type" has incompatible type
-        # "*Generator[Any | dtype[Any] | ExtensionDtype, None, None]";
-        # expected "dtype[Any]"  [arg-type]
-        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)  # type: ignore [arg-type]
+        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        # GH#69028 find_common_type rather than np_find_common_type: numpy widens
+        #  bool with a numeric to that numeric, and drops the subtype for two
+        #  datetime64/timedelta64 dtypes; pandas gets both right
+        return SparseDtype(find_common_type(np_dtypes), fill_value=fill_value)
 
 
 @register_extension_dtype
@@ -2539,12 +2543,27 @@ class ArrowDtype(StorageExtensionDtype):
             #  decimal/time/binary/list -> object.  GH#62343
             return first
 
-        new_dtype = find_common_type(
-            [
-                dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
-                for dtype in non_null_dtypes
-            ]
-        )
+        def unwrap(dtype: DtypeObj) -> DtypeObj:
+            if not isinstance(dtype, ArrowDtype):
+                return dtype
+            pa_dtype = dtype.pyarrow_dtype
+            if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+                # numpy_dtype drops the tz, which would unify tz-aware dtypes
+                #  into a tz-naive one (GH#69029)
+                return DatetimeTZDtype(unit=pa_dtype.unit, tz=pa_dtype.tz)
+            return dtype.numpy_dtype
+
+        try:
+            unwrapped = [unwrap(dtype) for dtype in non_null_dtypes]
+        except (KeyError, ValueError):
+            # pa.timestamp does not validate its tz, so it can carry a label
+            #  pandas cannot resolve; see test_get_common_dtype_unresolvable_tz
+            #  (GH#69029)
+            return None
+
+        new_dtype = find_common_type(unwrapped)
+        if isinstance(new_dtype, DatetimeTZDtype):
+            return type(self)(pa.timestamp(new_dtype.unit, tz=new_dtype.tz))
         if not isinstance(new_dtype, np.dtype):
             return None
         try:
@@ -2558,5 +2577,9 @@ class ArrowDtype(StorageExtensionDtype):
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """
         array_class = self.construct_array_type()
-        arr = array.cast(self.pyarrow_dtype, safe=True)
-        return array_class(arr)
+        # check_metadata=True also compares list field names, so those still
+        # get cast; skipping the no-op cast avoids a segfault on pyarrow<26,
+        # see https://github.com/apache/arrow/issues/37004
+        if not array.type.equals(self.pyarrow_dtype, check_metadata=True):
+            array = array.cast(self.pyarrow_dtype, safe=True)
+        return array_class(array)
