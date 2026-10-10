@@ -103,6 +103,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
+        DtypeObj,
         IndexLabel,
         JoinHow,
         MergeHow,
@@ -1298,47 +1299,68 @@ class _MergeOperation:
 
             take_left, take_right = None, None
 
+            # GH#16480 numeric key columns of differing dtypes: a left (right) join
+            # keeps the left (right) key's dtype, an outer join the common dtype;
+            # datetime keys keep GH#55212's finer-resolution rule instead
+            lkey_dtype = self.left_join_keys[i].dtype
+            rkey_dtype = self.right_join_keys[i].dtype
+            numeric_mismatch = (
+                name in result
+                # object if _maybe_coerce_merge_keys found no common numeric dtype
+                and result[name].dtype != object
+                and _is_numeric_mismatch(lkey_dtype, rkey_dtype)
+            )
+            common_dtype = None
+            if numeric_mismatch and self.how == "outer":
+                common_dtype = find_common_type([lkey_dtype, rkey_dtype])
+                # e.g. int64[pyarrow] vs Int64: no common numeric dtype, leave as is
+                numeric_mismatch = common_dtype != object
+
             if name in result:
-                if left_indexer is not None or right_indexer is not None:
-                    if name in self.left:
-                        if left_has_missing is None:
-                            left_has_missing = (
-                                False
-                                if left_indexer is None
-                                else lib.has_sentinel(left_indexer, -1)
-                            )
-
-                        right_key_dtype = self.right_join_keys[i].dtype
-                        needs_resolution_cast = (
-                            result[name].dtype.kind == "M"
-                            and right_key_dtype.kind == "M"
-                            and result[name].dtype != right_key_dtype
+                if name in self.left:
+                    if left_has_missing is None:
+                        left_has_missing = (
+                            False
+                            if left_indexer is None
+                            else lib.has_sentinel(left_indexer, -1)
                         )
-                        if left_has_missing or needs_resolution_cast:
-                            take_right = self.right_join_keys[i]
 
-                            if result[name].dtype != self.left[name].dtype:
-                                take_left = self.left[name]._values
+                    needs_resolution_cast = (
+                        result[name].dtype.kind == "M"
+                        and rkey_dtype.kind == "M"
+                        and result[name].dtype != rkey_dtype
+                    )
+                    needs_cast = numeric_mismatch and self.how in ("outer", "right")
+                    if left_has_missing or needs_resolution_cast or needs_cast:
+                        take_right = self.right_join_keys[i]
 
-                    elif name in self.right:
-                        if right_has_missing is None:
-                            right_has_missing = (
-                                False
-                                if right_indexer is None
-                                else lib.has_sentinel(right_indexer, -1)
-                            )
+                        # a right join on mismatched numeric keys uses only rvals
+                        if result[name].dtype != self.left[name].dtype and not (
+                            numeric_mismatch and self.how == "right"
+                        ):
+                            take_left = self.left[name]._values
 
-                        left_key_dtype = self.left_join_keys[i].dtype
-                        needs_resolution_cast = (
-                            result[name].dtype.kind == "M"
-                            and left_key_dtype.kind == "M"
-                            and result[name].dtype != left_key_dtype
+                elif name in self.right:
+                    if right_has_missing is None:
+                        right_has_missing = (
+                            False
+                            if right_indexer is None
+                            else lib.has_sentinel(right_indexer, -1)
                         )
-                        if right_has_missing or needs_resolution_cast:
-                            take_left = self.left_join_keys[i]
 
-                            if result[name].dtype != self.right[name].dtype:
-                                take_right = self.right[name]._values
+                    needs_resolution_cast = (
+                        result[name].dtype.kind == "M"
+                        and lkey_dtype.kind == "M"
+                        and result[name].dtype != lkey_dtype
+                    )
+                    needs_cast = numeric_mismatch and self.how in ("outer", "left")
+                    if right_has_missing or needs_resolution_cast or needs_cast:
+                        take_left = self.left_join_keys[i]
+
+                        if result[name].dtype != self.right[name].dtype and not (
+                            numeric_mismatch and self.how == "left"
+                        ):
+                            take_right = self.right[name]._values
 
             else:
                 take_left = self.left_join_keys[i]
@@ -1366,17 +1388,52 @@ class _MergeOperation:
                     rvals = algos.take_nd(taker, right_indexer, fill_value=rfill)
 
                 mask_left = None if left_indexer is None else left_indexer == -1
+                left_all_missing = mask_left is not None and mask_left.all()
+                right_all_missing = (
+                    right_indexer is not None and (right_indexer == -1).all()
+                )
+                if left_all_missing and right_all_missing:
+                    # empty result: an anti join keeps its own side's key, other
+                    #  joins use the common dtype below
+                    left_all_missing = self.anti_join and self.how == "right"
+                    right_all_missing = self.anti_join and self.how == "left"
 
+                # an untaken key is the input's own array (a range indexer skips the
+                #  take too); copy it so writes to a result column can't reach the
+                #  input. An index level is immutable, so it can share memory.
+                is_label = result._is_label_reference(name)
+                key_is_level = not is_label and result._is_level_reference(name)
+                copy_left = not key_is_level and (
+                    left_indexer is None
+                    or (
+                        take_left is None
+                        and is_range_indexer(left_indexer, len(self.left))
+                    )
+                )
+                copy_right = not key_is_level and (
+                    right_indexer is None
+                    or (
+                        take_right is None
+                        and is_range_indexer(right_indexer, len(self.right))
+                    )
+                )
+
+                if numeric_mismatch and self.how == "left":
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=copy_left)
+                    result_dtype = lvals.dtype
+                elif numeric_mismatch and self.how == "right":
+                    key_col = Index(rvals, dtype=rvals.dtype, copy=copy_right)
+                    result_dtype = rvals.dtype
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
-                if mask_left is not None and mask_left.all():
-                    key_col = Index(rvals, dtype=rvals.dtype, copy=False)
+                elif left_all_missing:
+                    key_col = Index(rvals, dtype=rvals.dtype, copy=copy_right)
                     result_dtype = rvals.dtype
-                elif right_indexer is not None and (right_indexer == -1).all():
-                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
+                elif right_all_missing:
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=copy_left)
                     result_dtype = lvals.dtype
                 else:
-                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=copy_left)
                     if mask_left is not None:
                         key_col = key_col.where(~mask_left, rvals)
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
@@ -1390,11 +1447,15 @@ class _MergeOperation:
                         # dtype instead of degrading to object.
                         result_dtype = key_col.dtype
 
-                if result._is_label_reference(name):
+                if numeric_mismatch and common_dtype is not None:
+                    # outer join, including the all-missing arms above
+                    result_dtype = common_dtype
+
+                if is_label:
                     result[name] = result._constructor_sliced(
                         key_col, dtype=result_dtype, index=result.index
                     )
-                elif result._is_level_reference(name):
+                elif key_is_level:
                     if isinstance(result.index, MultiIndex):
                         key_col.name = name
                         idx_list = [
@@ -3298,6 +3359,16 @@ def _fuse_int64_keys(
         lkey += _shift_to_int64(lview, cmin, stride)
         rkey += _shift_to_int64(rview, cmin, stride)
     return lkey, rkey
+
+
+def _is_numeric_mismatch(ldtype: DtypeObj, rdtype: DtypeObj) -> bool:
+    return (
+        ldtype != rdtype
+        and is_numeric_dtype(ldtype)
+        and is_numeric_dtype(rdtype)
+        and not is_bool_dtype(ldtype)
+        and not is_bool_dtype(rdtype)
+    )
 
 
 def _should_fill(lname, rname) -> bool:
