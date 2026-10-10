@@ -1260,6 +1260,10 @@ def rank(
     mask : bool ndarray, optional
         Boolean array indicating which elements to exclude from ranking.
     """
+    if values.dtype.kind == "c":
+        # GH#43770 complex has no natural ordering
+        raise TypeError(f"dtype '{values.dtype}' does not support operation 'rank'")
+
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)
 
