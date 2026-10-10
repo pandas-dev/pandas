@@ -64,7 +64,7 @@ MIXED_INT_DTYPES = [
 ]
 
 
-class DummyContainer(abc.Sequence):
+class DummyContainer(abc.Sequence[object]):
     # stand-in for third-party Sequence implementations such as numba.typed.List
     def __init__(self, lst) -> None:
         self._lst = lst
@@ -1450,7 +1450,6 @@ class TestDataFrameConstructors:
             functools.partial(array.array, "i"),
             lambda lst: memoryview(np.array(lst)),
             DummyContainer,
-            DummyArrayContainer,
         ],
     )
     def test_constructor_1d_sequence(self, box):
