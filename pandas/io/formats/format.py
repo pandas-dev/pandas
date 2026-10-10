@@ -95,6 +95,7 @@ from pandas.io.common import (
     stringify_path,
 )
 from pandas.io.formats import printing
+from pandas.io.formats.console import get_console_size
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -315,10 +316,8 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     >>> repr(df) == df.to_string(**repr_params)
     True
     """
-    from pandas.io.formats import console
-
     if config["display"]["expand_frame_repr"]:
-        line_width, _ = console.get_console_size()
+        line_width, _ = get_console_size()
     else:
         line_width = None
     return {
@@ -594,8 +593,9 @@ class DataFrameFormatter:
         if not self._is_in_terminal():
             return self.max_cols
 
-        width, _ = get_terminal_size()
-        if self._is_screen_narrow(width):
+        # honor display.width, GH#21337
+        width, _ = get_console_size()
+        if width is not None and self._is_screen_narrow(width):
             return width
         else:
             return self.max_cols
