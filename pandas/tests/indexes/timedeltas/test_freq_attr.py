@@ -1,6 +1,7 @@
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 from pandas.tseries.offsets import (
     BaseOffset,
@@ -67,3 +68,27 @@ class TestFreq:
 
         # Original was not altered. freq is now Index-level state.
         assert tdi.freq == "2D"
+
+    @pytest.mark.parametrize("freq", ["2D", Day(2), "48h", Hour(48)])
+    def test_set_freq(self, freq):
+        # GH#61094
+        idx = pd.TimedeltaIndex(["0 days", "2 days", "4 days"])
+        result = idx.set_freq(freq)
+        assert result.freq == freq
+        assert isinstance(result.freq, BaseOffset)
+        assert idx.freq is None
+        tm.assert_index_equal(result, idx, check_freq=False)
+
+        assert result.set_freq(None).freq is None
+        assert result.freq == freq
+
+    def test_set_freq_errors(self):
+        # GH#61094
+        idx = pd.TimedeltaIndex(["0 days", "2 days", "4 days"])
+        msg = r"<2 \* BusinessDays> is a non-fixed frequency"
+        with pytest.raises(ValueError, match=msg):
+            idx.set_freq("2B")
+
+        msg = "TimedeltaArray/Index freq must be a Tick"
+        with pytest.raises(TypeError, match=msg):
+            pd.TimedeltaIndex([]).set_freq(MonthEnd(1))
