@@ -4,10 +4,11 @@ Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 
 from decimal import Decimal
 import inspect
-import warnings
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -331,9 +332,18 @@ def test_object_stat_matches_numeric_dtype(opname, data, numeric_dtype):
     obj = pd.Series(data, dtype=object)
     expected_obj = pd.Series(np.array(data, dtype=numeric_dtype))
 
-    with warnings.catch_warnings():
-        # skew/kurt of complex data warn about the discarded imaginary part
-        warnings.simplefilter("ignore", np.exceptions.ComplexWarning)
+    if numeric_dtype == "complex128" and opname in ["skew", "kurt"]:
+        # GH#43770 the imaginary part would be discarded
+        msg = f"reduction operation '{opname}' not allowed for this dtype"
+        for ser in [obj, expected_obj]:
+            with pytest.raises(TypeError, match=msg):
+                getattr(ser, opname)()
+        return
+
+    warn = (
+        Pandas4Warning if numeric_dtype == "complex128" and opname == "median" else None
+    )
+    with tm.assert_produces_warning(warn, match="The median of complex data"):
         expected = getattr(expected_obj, opname)()
         result = getattr(obj, opname)()
 

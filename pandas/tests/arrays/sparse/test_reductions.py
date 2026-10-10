@@ -622,12 +622,8 @@ def test_frame_std_datetime64_widens_to_timedelta64():
     tm.assert_series_equal(result, expected)
 
 
-# skew/kurt cast to float64 inside nanops, on the dense path too
-@pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
-)
 @pytest.mark.parametrize("fill_value", [np.nan, 1 + 1j])
-@pytest.mark.parametrize("name", ["var", "std", "sem", "skew", "kurt"])
+@pytest.mark.parametrize("name", ["var", "std", "sem"])
 def test_frame_complex_reduction_narrows_to_real(name, fill_value):
     # GH#68194 these map complex to real, which np.result_type widens straight back
     values = np.array([1 + 2j, 3 - 1j, 5 + 0j])
@@ -654,6 +650,9 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
     tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize(
     "name, kwargs",
     [("median", {"skipna": False}), ("sem", {"ddof": 5}), ("std", {"ddof": 5})],
@@ -685,7 +684,7 @@ def test_describe():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
+    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "subtype,fill_value,dense_dtype",
@@ -711,6 +710,12 @@ def test_reductions_with_na_fill_value_match_dense(
     arr = SparseArray([1.0, np.nan, 5.0, np.nan]).astype(
         pd.SparseDtype(subtype, fill_value)
     )
+    if subtype == "complex128" and name in ["skew", "kurt"]:
+        # GH#43770
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            getattr(pd.Series(arr), name)(skipna=skipna)
+        return
+
     dense = pd.Series(
         [np.nan if pd.isna(value) else value for value in arr], dtype=dense_dtype
     )
