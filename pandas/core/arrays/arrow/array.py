@@ -7,6 +7,7 @@ from datetime import (
 )
 from decimal import Decimal
 import functools
+from numbers import Rational
 import operator
 import re
 import textwrap
@@ -3394,7 +3395,16 @@ class ArrowExtensionArray(
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
-        self_temporal = _is_temporal_pa_type(self._pa_array.type)
+        pa_type = self._pa_array.type
+        if pa.types.is_integer(pa_type):
+            # GH#68638 pyarrow truncates the fractional part instead of refusing
+            #  the value; the masked dtypes raise. Its safe cast catches a numpy
+            #  array but not a list, so list-likes are checked here too
+            value = lib.item_from_zerodim(value)
+            bad = _first_truncated_to_integer(value)
+            if bad is not None:
+                raise TypeError(f"Invalid value '{bad!s}' for dtype '{self.dtype}'")
+        self_temporal = _is_temporal_pa_type(pa_type)
         if self_temporal is not None:
             value_temporal = _is_temporal_value(value)
             if value_temporal is not None and value_temporal != self_temporal:
@@ -3408,9 +3418,9 @@ class ArrowExtensionArray(
                     # _box_pa would still cast, and e.g. double -> timestamp has
                     #  no cast kernel. len() is the element count only for a 1-D
                     #  value, so anything else stays with _box_pa
-                    return pa.nulls(len(value), type=self._pa_array.type)
+                    return pa.nulls(len(value), type=pa_type)
         try:
-            value = self._box_pa(value, self._pa_array.type)
+            value = self._box_pa(value, pa_type)
         except pa.ArrowTypeError as err:
             msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
@@ -4733,6 +4743,82 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return self._from_pyarrow_array(result)
+
+
+def _truncates_to_integer(value) -> bool:
+    """
+    Whether an integer-typed pyarrow column would silently drop part of ``value``.
+
+    A missing value is not lossy; a non-finite one has no integral form at all.
+    See GH#68638.
+    """
+    if lib.is_float(value):
+        return not isna(value) and not value.is_integer()
+    if lib.is_integer(value):
+        return False
+    if isinstance(value, Decimal):
+        if isna(value):
+            return False
+        return not value.is_finite() or value != value.to_integral_value()
+    if isinstance(value, Rational):
+        # Fraction; the integers short-circuit above rather than pay this ABC lookup
+        return value.denominator != 1
+    return False
+
+
+def _may_truncate_to_integer(values) -> bool:
+    """
+    Whether ``values`` could hold anything an integer-typed pyarrow column would
+    truncate. Cheaper than inspecting the entries. See GH#68638.
+    """
+    return lib.infer_dtype(values, skipna=True) not in (
+        "integer",
+        "boolean",
+        "string",
+        "empty",
+    )
+
+
+def _first_truncated_to_integer(value):
+    """
+    The first entry of ``value`` an integer-typed pyarrow column would truncate,
+    or None if there is none. See GH#68638.
+    """
+    if not is_list_like(value) or isinstance(value, (pa.Array, pa.ChunkedArray)):
+        # a pyarrow container is cast, not converted, so pyarrow rejects a lossy
+        #  value itself; see test_setitem_lossy_float_pyarrow_container_raises
+        return value if _truncates_to_integer(value) else None
+
+    dtype = getattr(value, "dtype", None)
+    if getattr(dtype, "kind", None) in ("i", "u", "b"):
+        # skip materializing a container whose own dtype has nothing to drop
+        return None
+    if isinstance(value, (list, tuple)) and not _may_truncate_to_integer(value):
+        # same, for a container that has no dtype to ask
+        return None
+
+    if isinstance(value, np.ndarray):
+        arr = value
+    else:
+        try:
+            arr = np.asarray(value)
+        except ValueError:
+            # ragged, handled the way _box_pa_array handles it
+            arr = construct_1d_object_array_from_listlike(value)
+    if arr.dtype.kind == "f":
+        lossy = ~isna(arr) & ((arr != np.trunc(arr)) | np.isinf(arr))
+        return arr[lossy].flat[0] if lossy.any() else None
+    if arr.dtype.kind != "O":
+        # pyarrow refuses every other numpy dtype that could have one
+        return None
+    flat = arr.ravel()
+    if not _may_truncate_to_integer(flat):
+        return None
+    for item in flat:
+        item = lib.item_from_zerodim(item)
+        if _truncates_to_integer(item):
+            return item
+    return None
 
 
 def transpose_homogeneous_pyarrow(

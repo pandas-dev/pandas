@@ -5,10 +5,13 @@ from datetime import (
     time,
 )
 from decimal import Decimal
+from fractions import Fraction
 import re
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -615,3 +618,170 @@ def test_setitem_float_nan_is_na(using_nan_is_na):
         ser[2] = np.nan
         assert isinstance(ser[2], float)
         assert np.isnan(ser[2])
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index])
+def test_replace_lossy_float_raises(box):
+    # GH#68638 the replacement silently landed as 1
+    obj = box([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value '1.5'"):
+        obj.replace(2, 1.5)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        lambda ser: ser.where([True, False, True], 1.5),
+        lambda ser: ser.mask([False, True, False], 1.5),
+        lambda ser: ser.fillna(1.5),
+        lambda ser: ser.clip(lower=1.5),
+        lambda ser: ser.update(pd.Series([1.5])),
+        lambda ser: ser.reindex([0, 1, 5], fill_value=1.5),
+    ],
+    ids=["where", "mask", "fillna", "clip", "update", "reindex"],
+)
+def test_lossy_float_raises(op):
+    # GH#68638 every caller that routes through _validate_setitem_value
+    ser = pd.Series([1, None, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value '1.5'"):
+        op(ser)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        1.5,
+        Decimal("1.5"),
+        np.array(1.5),
+        Fraction(3, 2),
+        float("inf"),
+        Decimal("Infinity"),
+    ],
+)
+def test_setitem_lossy_float_raises(value):
+    # GH#68638 pyarrow truncated a fractional value; a non-finite one raised
+    #  ArrowInvalid
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[1] = value
+    assert list(arr) == [1, 2, 3]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        [9.5, 8.5],
+        (9.5, 8.5),
+        np.array([9.5, 8.5]),
+        np.array([np.inf, 1.0]),
+        [Decimal("1.5"), Decimal("2")],
+        [Fraction(3, 2), 8],
+    ],
+)
+def test_setitem_lossy_float_list_like_raises(value):
+    # GH#68638 pa.array's safe cast catches a numpy array but truncates a list,
+    #  so every container has to reach the same TypeError the scalar does
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:2] = value
+    assert list(arr) == [1, 2, 3]
+
+
+def test_setitem_integral_list_like_still_accepted():
+    # GH#68638 the list path must not reject values the column can hold
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[:2] = [9, 8]
+    assert list(arr) == [9, 8, 3]
+
+
+def test_arrow_string_accepts_pyarrow_string_scalar():
+    # GH#68638 Series.where stored a character code of the string
+    arr = pd.array(["a", None], dtype="string[pyarrow]")
+    assert list(arr.fillna(pa.scalar("x"))) == ["a", "x"]
+    ser = pd.Series(["a", "b"], dtype="string[pyarrow]")
+    result = ser.where([True, False], pa.scalar("xy"))
+    tm.assert_series_equal(result, pd.Series(["a", "xy"], dtype="string[pyarrow]"))
+    arr[1] = pa.scalar("y")
+    assert list(arr) == ["a", "y"]
+
+
+@pytest.mark.parametrize(
+    "value", [pa.scalar(1, type=pa.int64()), pa.scalar(1.5), pa.scalar(True)]
+)
+def test_arrow_string_rejects_non_string_pyarrow_scalar(value):
+    # GH#68638 pyarrow would cast a number or a bool to its string form
+    arr = pd.array(["a", None], dtype="string[pyarrow]")
+    with pytest.raises(TypeError, match="Value should be a string"):
+        arr[0] = value
+    with pytest.raises(TypeError, match="Value should be a string"):
+        arr.fillna(value)
+
+
+def test_arrow_string_accepts_typed_null_scalar():
+    # GH#68638 a typed null pa.Scalar means "assign NA", matching
+    #  int64[pyarrow]'s test_setitem_typed_null_scalar_not_rejected
+    arr = pd.array(["a", "b"], dtype="string[pyarrow]")
+    arr[0] = pa.scalar(None, type=pa.int64())
+    assert arr[0] is pd.NA
+
+
+@pytest.mark.parametrize("value", [b"z", np.array([1, 2], dtype=object)])
+def test_arrow_string_fillna_rejects_non_string(value):
+    # GH#68419 fillna rejects a non-string as setitem does
+    arr = pd.array(["a", None], dtype="string[pyarrow]")
+    with pytest.raises(TypeError, match="Value should be a string"):
+        arr.fillna(value)
+
+
+@pytest.mark.parametrize(
+    "box",
+    [pa.array, lambda values: pa.chunked_array([values])],
+    ids=["array", "chunked"],
+)
+def test_setitem_lossy_float_pyarrow_container_raises(box):
+    # GH#68638 a pyarrow container is skipped by the check because pyarrow's own
+    #  cast already refuses it, so it raises ArrowInvalid rather than TypeError
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(pa.ArrowInvalid, match="truncated"):
+        arr[:2] = box([9.5, 8.5])
+    assert list(arr) == [1, 2, 3]
+
+
+@pytest.mark.parametrize("value", [4, 4.0, Decimal("4"), np.array(4), Fraction(8, 2)])
+def test_setitem_integral_value_still_accepted(value):
+    # GH#68638 only a fractional value is refused
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[1] = value
+    assert arr[1] == 4
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        lambda idx: idx.putmask([False, True, False], 1.5),
+        lambda idx: idx.where([True, False, True], 1.5),
+    ],
+    ids=["putmask", "where"],
+)
+def test_index_lossy_float_upcasts(op):
+    # GH#68638 an Index widens where a Series raises, as it does for the masked dtypes
+    result = op(pd.Index([1, 2, 3], dtype="int64[pyarrow]"))
+    expected = pd.Index([1.0, 1.5, 3.0], dtype="double[pyarrow]")
+    tm.assert_index_equal(result, expected)
+
+
+def test_index_fillna_lossy_float_upcasts():
+    # GH#68638 Index.fillna has its own validate() call, so it needs its own case
+    idx = pd.Index([1, None, 3], dtype="int64[pyarrow]")
+    msg = "'float' is not supported as a fill value"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = idx.fillna(1.5)
+    expected = pd.Index([1.0, 1.5, 3.0], dtype="double[pyarrow]")
+    tm.assert_index_equal(result, expected)
+
+
+def test_fillna_lossy_float_list_like_raises():
+    # GH#68638 fillna reaches the container walk, not just the scalar check
+    arr = pd.array([1, None, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value '8.5'"):
+        arr.fillna([9.0, 8.5, 7.0])

@@ -160,6 +160,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :class:`StringDtype` with PyArrow storage rejecting a PyArrow string scalar in item assignment and :meth:`Series.fillna`, and :meth:`Series.where` with one storing a character code (:issue:`68638`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` silently ignoring a compiled ``re.Pattern`` for :class:`ArrowDtype` ``string`` and ``large_string`` dtypes, including a :class:`Categorical` of them (:issue:`69026`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``regex=True`` on :class:`ArrowDtype` ``string`` and ``large_string`` dtypes raising or silently coercing a replacement the column cannot hold instead of casting to ``object`` (:issue:`70458`)
 -
@@ -238,6 +239,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
+- Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`)
 
 Styler
 ^^^^^^
