@@ -129,8 +129,8 @@ class bottleneck_switch:
                     if k not in kwds:
                         kwds[k] = v
 
-            # GH#18976 bottleneck's nanmin/nanmax raise on empty input; skip it
-            #  and let each nanops function return the NA for its own dtype.
+            # GH#70950 bottleneck would return different dtype on empty input
+            # than no-bottleneck, so skip if size == 0.
             if (
                 _USE_BOTTLENECK
                 and skipna
@@ -142,11 +142,6 @@ class bottleneck_switch:
                     #  TypeError if called
                     kwds.pop("mask", None)
                     result = bn_func(values, axis=axis, **kwds)  # pyright: ignore[reportOptionalCall]
-
-                    # prefer to treat inf/-inf as NA, but must compute the func
-                    # twice :(
-                    if _has_infs(result):
-                        result = alt(values, axis=axis, skipna=skipna, **kwds)
                 else:
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
             else:
@@ -183,19 +178,6 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # crossref: https://github.com/pydata/bottleneck/issues/462
         return not (name in ["nanvar", "nanstd"] and dtype == np.float32)
     return False
-
-
-def _has_infs(result) -> bool:
-    if isinstance(result, np.ndarray):
-        if result.dtype in ("f8", "f4"):
-            # Note: outside of a nanops-specific test, we always have
-            #  result.ndim == 1, so there is no risk of this ravel making a copy.
-            return lib.has_infs(result.ravel("K"))
-    try:
-        return np.isinf(result).any()
-    except (TypeError, NotImplementedError):
-        # if it doesn't support infs, then it can't have infs
-        return False
 
 
 def _get_fill_value(
@@ -1520,7 +1502,8 @@ def _get_arg_values(
 
 
 def _nanminmax(meth, fill_value_typ):
-    @bottleneck_switch(name=f"nan{meth}")
+    nan_ufunc = np.fmin if meth == "min" else np.fmax
+
     @_datetimelike_compat
     def reduction(
         values: np.ndarray,
@@ -1533,6 +1516,26 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
+        if (
+            _USE_BOTTLENECK
+            and skipna
+            and mask is None
+            and values.ndim == 2
+            and axis is not None
+            and values.shape[axis] < 64
+            and dtype in (np.float64, np.float32, np.int64, np.int32)
+        ):
+            # GH#70950 bottleneck is faster when each reduced slice is short,
+            #  e.g. a DataFrame with few rows and many columns
+            return getattr(bn, f"nan{meth}")(values, axis=axis)
+
+        if mask is None and dtype.kind in "fiub":
+            if dtype.kind == "f" and skipna:
+                # fmin/fmax ignore NaN and return NaN only for an all-NaN
+                #  slice, so no mask or filled copy of values is needed
+                return nan_ufunc.reduce(values, axis=axis)
+            return getattr(values, meth)(axis)
+
         min_count = 1
         if dtype == object:
             # GH#65500: _get_values' +/-inf fill isn't comparable with arbitrary
