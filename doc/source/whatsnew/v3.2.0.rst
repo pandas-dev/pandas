@@ -185,6 +185,8 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
+- Bug in :meth:`MultiIndex.from_tuples` with an object ``ndarray``, :meth:`MultiIndex.append` and :meth:`Index.map` truncating or raising ``IndexError`` on tuples of different lengths; :meth:`MultiIndex.from_tuples` now raises a ``ValueError`` for an ``ndarray`` of tuples of different lengths (:issue:`50293`)
+- Bug in :meth:`Series.map`, :meth:`Index.get_indexer`, :meth:`DataFrame.reindex` and :attr:`DataFrame.loc` with a :class:`MultiIndex` raising ``IndexError`` or matching on a prefix when looking up tuples whose length differs from the number of levels (:issue:`50293`)
 -
 
 I/O

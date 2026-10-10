@@ -2780,7 +2780,7 @@ class MultiIndex(Index):
             # We only get here if other contains at least one index with tuples,
             # setting names to None automatically
             return MultiIndex.from_tuples(new_tuples)
-        except (TypeError, IndexError):
+        except (TypeError, ValueError):
             return Index(new_tuples, copy=False)
 
     def argsort(
@@ -3355,9 +3355,10 @@ class MultiIndex(Index):
                 try:
                     target = MultiIndex.from_tuples(target)
                 except (TypeError, ValueError):
-                    # not all tuples, see test_constructor_dict_multiindex_reindex_flat
-                    # ValueError: non-object target dtype (e.g. int), so the
-                    #  entries can't be tuples (GH#26460)
+                    # TypeError: not all tuples, see
+                    #  test_constructor_dict_multiindex_reindex_flat
+                    # ValueError: non-object dtype (GH#26460) or mixed-length
+                    #  tuples (GH#50293)
                     return target
 
         target = self._maybe_preserve_names(target, preserve_names)
