@@ -949,3 +949,100 @@ def test_fillna_fill_frame_with_duplicate_labels_raises(axis):
     msg = "Cannot align with an object that has duplicate labels"
     with pytest.raises(InvalidIndexError, match=msg):
         df.fillna(value)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_fillna_series_with_labels_matching_duplicate_columns(inplace):
+    # GH#36608 e.g. df.fillna(df.mean()) with duplicate columns fills by position
+    df = pd.DataFrame([[1.0, 10.0, np.nan], [np.nan, np.nan, 3.0]], columns=list("AAB"))
+    value = pd.Series([0.0, 9.0, 7.0], index=df.columns)
+    expected = pd.DataFrame([[1.0, 10.0, 7.0], [0.0, 9.0, 3.0]], columns=list("AAB"))
+    if inplace:
+        df.fillna(value, inplace=True)
+        result = df
+    else:
+        result = df.fillna(value)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fillna_series_with_labels_matching_subset_of_duplicate_columns():
+    # GH#36608 e.g. df.fillna(df.mean(numeric_only=True))
+    df = pd.DataFrame([[np.nan, 2.0, "a"], [1.0, np.nan, "b"]], columns=["A", "A", "s"])
+    result = df.fillna(df.mean(numeric_only=True))
+    expected = pd.DataFrame([[1.0, 2.0, "a"], [1.0, 2.0, "b"]], columns=["A", "A", "s"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fillna_series_with_labels_matching_duplicate_index_axis1():
+    # GH#36608
+    df = pd.DataFrame([[1.0, np.nan], [np.nan, np.nan]], index=["r", "r"])
+    value = pd.Series([5.0, 6.0], index=df.index)
+    result = df.fillna(value, axis=1)
+    expected = pd.DataFrame([[1.0, 5.0], [6.0, 6.0]], index=["r", "r"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("inplace", [True, False])
+def test_fillna_series_with_duplicate_labels_raises(axis, inplace):
+    # GH#36608 ambiguous which duplicate fills the column (or row, for axis=1)
+    df = pd.DataFrame({"a": [1.0, np.nan], "b": [np.nan, 2.0]})
+    labels = ["a", "a", "b"] if axis == 0 else [1, 1, 0]
+    value = pd.Series([0.0, 2.0, 3.0], index=labels)
+    expected = df.copy()
+    msg = "Cannot fill with a Series that has duplicate labels"
+    with pytest.raises(InvalidIndexError, match=msg):
+        df.fillna(value, axis=axis, inplace=inplace)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "columns, labels",
+    [
+        (pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]), ["a", "a"]),
+        (pd.DatetimeIndex(["2020-01-01", "2020-01-02"]), ["2020-01-01"] * 2),
+    ],
+)
+def test_fillna_series_with_duplicate_labels_raises_by_containment(columns, labels):
+    # GH#36608 a label matches the way df[label] would, e.g. a partial key
+    df = pd.DataFrame([[np.nan, np.nan]], columns=columns)
+    value = pd.Series([0.0, 2.0], index=labels)
+    msg = "Cannot fill with a Series that has duplicate labels"
+    with pytest.raises(InvalidIndexError, match=msg):
+        df.fillna(value)
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [pd.Index(["a", "b"]), pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")])],
+)
+def test_fillna_series_with_duplicate_labels_not_in_columns(columns):
+    # GH#36608 duplicates on labels we don't have are ignored, like unique ones
+    df = pd.DataFrame([[1.0, np.nan], [np.nan, 2.0]], columns=columns)
+    value = pd.Series([0.0, 1.0, 5.0], index=["z", "z", "a"])
+    result = df.fillna(value)
+    expected = pd.DataFrame([[1.0, np.nan], [5.0, 2.0]], columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fillna_series_with_labels_matching_duplicate_columns_inplace_upcast():
+    # GH#36608 the column whose dtype changes cannot be filled inplace
+    df = pd.DataFrame({"A": [np.nan, 1.0], "B": [pd.NaT, pd.Timestamp(1)]})
+    df.columns = ["A", "A"]
+    value = pd.Series([2.0, 3.0], index=df.columns)
+
+    # GH#45153 filling datetime with a float is deprecated
+    with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+        df.fillna(value, inplace=True)
+
+    expected = pd.DataFrame({"A": [2.0, 1.0], "B": [3.0, pd.Timestamp(1)]})
+    expected.columns = ["A", "A"]
+    tm.assert_frame_equal(df, expected)
+
+
+def test_fillna_series_with_labels_matching_duplicate_columns_limit():
+    # GH#36608
+    df = pd.DataFrame(np.nan, index=range(2), columns=list("AA"))
+    result = df.fillna(pd.Series([0.0, 9.0], index=df.columns), limit=1)
+    expected = pd.DataFrame([[0.0, 9.0], [np.nan, np.nan]], columns=list("AA"))
+    tm.assert_frame_equal(result, expected)

@@ -178,6 +178,7 @@ Indexing
 
 Missing
 ^^^^^^^
+- Bug in :meth:`DataFrame.fillna` with a :class:`Series` value with duplicate labels silently using the first duplicate for every matching column; labels matching the columns in order now fill by position, and other ambiguous matches raise (:issue:`36608`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with a large ``limit`` raising on 32-bit platforms and being very slow on long runs of missing values (:issue:`34936`)
 -
 
