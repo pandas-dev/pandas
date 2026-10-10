@@ -7410,7 +7410,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if inplace:
                     self._update_inplace(result)
                     result = self
+            elif (
+                isinstance(value, ABCSeries)
+                and not value.index.is_unique
+                and value.index.equals(result.columns)
+            ):
+                # GH#36608 duplicate labels matching our columns: fill by position
+                for loc in range(len(value)):
+                    target = result.iloc[:, loc]
+                    res_loc = target.fillna(value.iloc[loc], limit=limit)
+                    if inplace and res_loc.dtype == target.dtype:
+                        result.iloc[:, loc] = res_loc
+                    else:
+                        result.isetitem(loc, res_loc)
             else:
+                if isinstance(value, ABCSeries) and not value.index.is_unique:
+                    # GH#36608 otherwise ambiguous which value fills a column
+                    dups = value.index[value.index.duplicated()].unique()
+                    if any(label in result for label in dups):
+                        raise InvalidIndexError(
+                            "Cannot fill with a Series that has duplicate labels"
+                        )
                 for k, v in value.items():
                     if k not in result:
                         continue
