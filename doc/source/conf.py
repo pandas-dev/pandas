@@ -215,15 +215,6 @@ numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 numpydoc_validation_checks = {"all"}
 numpydoc_validation_exclude = {
-    # Jinja2 Styler template attributes (docstrings not owned by pandas)
-    r"pandas\.io\.formats\.style\.Styler\.env$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_style$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_table$",
-    r"pandas\.io\.formats\.style\.Styler\.template_latex$",
-    r"pandas\.io\.formats\.style\.Styler\.template_typst$",
-    r"pandas\.io\.formats\.style\.Styler\.template_string$",
-    r"pandas\.io\.formats\.style\.Styler\.loader$",
     # Error/warning classes with no numpydoc-style docstrings
     r"pandas\.errors\.InvalidComparison$",
     r"pandas\.errors\.LossySetitemError$",
@@ -384,6 +375,8 @@ numpydoc_validation_exclude = {
     r"pandas\.ExcelWriter\.supported_extensions$",
     # ExcelFile
     r"pandas\.ExcelFile\.close$",
+    # Styler class attributes, documented by one-line #: comments
+    r"pandas\.io\.formats\.style\.Styler\.(env|loader|template_\w+)$",
     # Index attributes and methods processed by autodoc but not in api.rst
     r"pandas\.Index\.nlevels$",
     r"pandas\.Index\.diff$",
@@ -395,34 +388,14 @@ numpydoc_validation_exclude = {
     # Series attributes processed by autodoc but not in api.rst
     r"pandas\.Series\.axes$",
     r"pandas\.Series\.transpose$",
-    # DatetimeIndex properties whose docstrings are inherited (GL08)
-    r"pandas\.DatetimeIndex\.year$",
-    r"pandas\.DatetimeIndex\.month$",
-    r"pandas\.DatetimeIndex\.day$",
-    r"pandas\.DatetimeIndex\.hour$",
-    r"pandas\.DatetimeIndex\.minute$",
-    r"pandas\.DatetimeIndex\.second$",
-    r"pandas\.DatetimeIndex\.microsecond$",
-    r"pandas\.DatetimeIndex\.nanosecond$",
-    r"pandas\.DatetimeIndex\.dayofyear$",
-    r"pandas\.DatetimeIndex\.day_of_year$",
-    r"pandas\.DatetimeIndex\.dayofweek$",
-    r"pandas\.DatetimeIndex\.day_of_week$",
-    r"pandas\.DatetimeIndex\.weekday$",
-    r"pandas\.DatetimeIndex\.quarter$",
-    r"pandas\.DatetimeIndex\.is_month_start$",
-    r"pandas\.DatetimeIndex\.is_month_end$",
-    r"pandas\.DatetimeIndex\.is_quarter_start$",
-    r"pandas\.DatetimeIndex\.is_quarter_end$",
-    r"pandas\.DatetimeIndex\.is_year_start$",
-    r"pandas\.DatetimeIndex\.is_year_end$",
-    r"pandas\.DatetimeIndex\.is_leap_year$",
-    # Deprecated aliases (GH#46768)
+    # Deprecated aliases (GH#46768): no See Also/Examples by design
     r"pandas\.Timestamp\.dayofweek$",
     r"pandas\.Timestamp\.dayofyear$",
     r"pandas\.Timestamp\.daysinmonth$",
     r"pandas\.Period\.dayofweek$",
     r"pandas\.Period\.dayofyear$",
+    r"pandas\.DatetimeIndex\.dayofweek$",
+    r"pandas\.DatetimeIndex\.dayofyear$",
     r"pandas\.DatetimeIndex\.daysinmonth$",
     r"pandas\.PeriodIndex\.dayofweek$",
     r"pandas\.PeriodIndex\.dayofyear$",
@@ -432,6 +405,7 @@ numpydoc_validation_exclude = {
     r"pandas\.Series\.dt\.daysinmonth$",
     # Deprecated weekday property (GH#12816)
     r"pandas\.Period\.weekday$",
+    r"pandas\.DatetimeIndex\.weekday$",
     r"pandas\.PeriodIndex\.weekday$",
     r"pandas\.Series\.dt\.weekday$",
     # Relaxed-rules class page (GH#63084): not instantiated by users, so

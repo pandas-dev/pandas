@@ -34,7 +34,10 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_is_view,
+    raise_if_float_outside_int64,
+)
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -172,7 +175,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if isna(values).all():
-            return type(self)._from_sequence(values, dtype=self.dtype)
+            try:
+                return type(self)._from_sequence(values, dtype=self.dtype)
+            except TypeError:
+                # e.g. NaT goes through inference instead, GH#70233
+                pass
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
@@ -501,7 +508,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return bool(super().__contains__(key))
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim == 1:
             if not self._hasna:
                 for val in self._data:
@@ -632,12 +639,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         dtype : dtype, default object
             The numpy dtype to convert to.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
-            the array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary. This is typically
-            only possible when no missing values are present and `dtype`
-            is the equivalent numpy dtype.
+            Whether to ensure that the returned value is not a view on
+            the array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view. A view is typically only possible
+            when no missing values are present and `dtype` is the
+            equivalent numpy dtype.
         na_value : scalar, optional
              Scalar missing value indicator to use in numpy array. Defaults
              to the native missing value indicator of this array (pd.NA).
@@ -711,7 +717,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 data.flags.writeable = False
         return data
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
@@ -782,9 +788,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             na_value = np.nan
         elif dtype.kind == "M":
             unit = np.datetime_data(dtype)[0]
-            na_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
+            if unit == "generic":
+                # numpy deprecates a unitless NaT; the cast is rejected
+                #  downstream, so the sentinel goes unused
+                na_value = lib.no_default
+            else:
+                na_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
         else:
             na_value = lib.no_default
+
+        if self.dtype.kind == "f" and dtype.kind in "mM":
+            # to_numpy narrows through int64 unchecked (GH#68926)
+            raise_if_float_outside_int64(self._data, dtype, mask=self._mask)
 
         # to_numpy will also raise, but we get somewhat nicer exception messages here
         if dtype.kind in "iu" and self._hasna:

@@ -55,7 +55,7 @@ def zero(request):
     --------
     arr = RangeIndex(5)
     arr / zeros
-    Index([nan, inf, inf, inf, inf], dtype='float64')
+    Index([NaN, inf, inf, inf, inf], dtype='float64')
     """
     return request.param
 

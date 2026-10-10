@@ -148,7 +148,7 @@ class WrappedCythonOp:
         self.how = how
         self.has_dropped_na = has_dropped_na
 
-    _CYTHON_FUNCTIONS: dict[str, dict] = {
+    _CYTHON_FUNCTIONS: dict[str, dict[str, Any]] = {
         "aggregate": {
             "any": functools.partial(libgroupby.group_any_all, val_test="any"),
             "all": functools.partial(libgroupby.group_any_all, val_test="all"),
@@ -189,6 +189,12 @@ class WrappedCythonOp:
     ):
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
+
+        if dtype.kind == "c" and how not in ["sum", "mean"]:
+            # GH#43770 only sum and mean have complex kernels (var/std/sem are
+            #  split into parts in _call_cython_op); the rest would raise an
+            #  opaque error or silently discard the imaginary part
+            raise TypeError(f"dtype '{dtype_str}' does not support operation '{how}'")
 
         # see if there is a fused-type version of function
         # only valid for numeric
@@ -243,8 +249,7 @@ class WrappedCythonOp:
 
         if how in ["median", "std", "sem", "skew", "kurt"]:
             # median only has a float64 implementation
-            # We should only get here with is_numeric, as non-numeric cases
-            #  should raise in _get_cython_function
+            # non-numeric and complex cases are handled before we get here
             values = ensure_float64(values)
 
         elif values.dtype.kind in "iu":
@@ -387,6 +392,28 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
+
+        if dtype.kind == "c" and self.how in ["var", "std", "sem"]:
+            # GH#43770 var(z) = var(z.real) + var(z.imag), matching numpy.
+            #  A value is NA if either part is NaN, so both parts share counts.
+            nan_mask = np.isnan(values)
+            res_real, res_imag = (
+                self._call_cython_op(
+                    np.where(nan_mask, np.nan, part),
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    comp_ids=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    initial=initial,
+                    **kwargs,
+                )
+                for part in [values.real, values.imag]
+            )
+            if self.how == "var":
+                return res_real + res_imag
+            return np.hypot(res_real, res_imag)
+
         is_numeric = dtype.kind in "iufcb"
 
         is_datetimelike = dtype.kind in "mM"
@@ -644,14 +671,14 @@ class BaseGrouper:
         yield from zip(keys, splitter, strict=True)
 
     @final
-    def _get_splitter(self, data: NDFrame) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame) -> DataSplitter[Any]:
         """
         Returns
         -------
         Generator yielding subsetted objects
         """
         if isinstance(data, Series):
-            klass: type[DataSplitter] = SeriesSplitter
+            klass: type[DataSplitter[Any]] = SeriesSplitter
         else:
             # i.e. DataFrame
             klass = FrameSplitter
@@ -745,7 +772,7 @@ class BaseGrouper:
         """
         ids = self.ids
         ngroups = self.ngroups
-        out: np.ndarray | list
+        out: np.ndarray | list[Any]
         if ngroups:
             if self.has_dropped_na:
                 out = np.bincount(ids + 1, minlength=ngroups + 1)[1:]
@@ -1146,7 +1173,7 @@ class BaseGrouper:
         return result
 
     @final
-    def agg_series(self, obj: Series, func: Callable) -> ArrayLike:
+    def agg_series(self, obj: Series, func: Callable[..., Any]) -> ArrayLike:
         """
         Parameters
         ----------
@@ -1162,7 +1189,7 @@ class BaseGrouper:
 
     @final
     def _aggregate_series_pure_python(
-        self, obj: Series, func: Callable
+        self, obj: Series, func: Callable[..., Any]
     ) -> npt.NDArray[np.object_]:
         result = np.empty(self.ngroups, dtype="O")
         initialized = False
@@ -1184,8 +1211,8 @@ class BaseGrouper:
 
     @final
     def apply_groupwise(
-        self, f: Callable, data: DataFrame | Series
-    ) -> tuple[list, bool]:
+        self, f: Callable[..., Any], data: DataFrame | Series
+    ) -> tuple[list[Any], bool]:
         mutated = False
         splitter = self._get_splitter(data)
         group_keys = self.result_index
@@ -1416,7 +1443,7 @@ class DataSplitter(Generic[NDFrameT]):
         self._slabels = sorted_ids
         self._sort_idx = sort_idx
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[NDFrame]:
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
             # we merely return signal the end
@@ -1446,7 +1473,7 @@ class DataSplitter(Generic[NDFrameT]):
         raise AbstractMethodError(self)
 
 
-class SeriesSplitter(DataSplitter):
+class SeriesSplitter(DataSplitter[Series]):
     _sorted_cls = Series
 
     def _chop(self, sdata: Series, slice_obj: slice, needs_finalize: bool) -> Series:
@@ -1460,7 +1487,7 @@ class SeriesSplitter(DataSplitter):
         return ser
 
 
-class FrameSplitter(DataSplitter):
+class FrameSplitter(DataSplitter[DataFrame]):
     _sorted_cls = DataFrame
 
     def _chop(

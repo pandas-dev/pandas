@@ -384,12 +384,11 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @pytest.mark.network
-    @pytest.mark.single_cpu
-    def test_bad_url_protocol(self, httpserver, flavor_read_html):
-        httpserver.serve_content("urlopen error unknown url type: git", code=404)
-        with pytest.raises(URLError, match="urlopen error unknown url type: git"):
-            flavor_read_html("git://github.com", match=".*Water.*")
+    def test_bad_url_protocol(self, flavor_read_html):
+        # GH#46765 schemes urllib cannot open go to fsspec
+        pytest.importorskip("fsspec")
+        with pytest.raises(ValueError, match="Protocol not known: telnet"):
+            flavor_read_html("telnet://github.com", match=".*Water.*")
 
     @pytest.mark.slow
     @pytest.mark.network

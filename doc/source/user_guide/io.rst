@@ -66,11 +66,10 @@ filepath_or_buffer : various
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. ``sep=None`` detects the separator from the first valid row
-  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
-  is supported only by the Python parsing engine, which will be used
-  automatically. In addition, separators longer than 1 character
-  and different from ``'\s+'`` will be interpreted as regular expressions and
-  will force the use of the Python parsing engine. Note that regex
+  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`;
+  the pyarrow engine does not support it. In addition, separators longer than
+  1 character and different from ``'\s+'`` will be interpreted as regular
+  expressions and will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, optional
   Alternative argument name for sep.
@@ -272,6 +271,9 @@ cache_dates : boolean, default True
   If True, use a cache of unique, converted dates to apply the datetime
   conversion. May produce significant speed-up when parsing duplicate
   date strings, especially ones with timezone offsets.
+
+  .. deprecated:: 3.2.0
+     The ``cache_dates`` argument will be removed in a future version.
 
 Iteration
 +++++++++
@@ -1430,15 +1432,13 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None``. Passing
-``engine='python'`` as well avoids the ``ParserWarning`` raised by the
-fallback.
+class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv("tmp2.csv", sep=":", index=False)
-   pd.read_csv("tmp2.csv", sep=None, engine="python")
+   pd.read_csv("tmp2.csv", sep=None)
 
 .. ipython:: python
    :suppress:
@@ -1512,7 +1512,7 @@ three engines:
    "Relative speed","fast","slowest","fastest on large workloads"
    "Multithreaded",":ref:`for large files <io.csv.parallel>`","no","yes"
    "Regex or multi-character ``sep``","no","yes","no"
-   "``sep=None`` (auto-detect the separator)","no","yes","no"
+   "``sep=None`` (auto-detect the separator)","yes","yes","no"
    "``skipfooter``","no","yes","no"
    "``low_memory``","yes","no","no"
    "``lineterminator``","yes","no","no"
@@ -1548,9 +1548,8 @@ considerably. This happens automatically when all of the following hold:
 * more than one thread is in use -- see ``mode.max_threads`` below, which
   defaults to ``1`` when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
-  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
-  ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
-  non-UTF-8 encodings
+  ``iterator``, ``chunksize``, ``nrows``, ``parse_dates``,
+  list/callable ``skiprows``, multi-row headers, or non-UTF-8 encodings
 
 Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
@@ -4297,8 +4296,9 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 .. note::
 
    Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
-   ``append`` is a no-op: the store is not modified and a ``UserWarning`` is
-   emitted. Use ``format='fixed'`` to store an empty object.
+   ``append`` is a no-op: nothing is written for that key and a ``UserWarning``
+   is emitted, though ``to_hdf(..., mode='w')`` still truncates the file. Use
+   ``format='fixed'`` to store an empty object.
 
 .. _io.hdf5-keys:
 
@@ -6014,9 +6014,9 @@ Example of a callable using PostgreSQL `COPY clause
 
           columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
-              table_name = '{}.{}'.format(table.schema, table.name)
+              table_name = '"{}"."{}"'.format(table.schema, table.name)
           else:
-              table_name = table.name
+              table_name = '"{}"'.format(table.name)
 
           sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
               table_name, columns)

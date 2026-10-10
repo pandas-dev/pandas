@@ -7,6 +7,11 @@ import dateutil.tz
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    PY314,
+    is_platform_windows,
+)
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -66,6 +71,31 @@ def test_get_values_for_csv():
     result = index._get_values_for_csv(na_rep="NaT", date_format="foo")
     expected = np.array(["foo", "NaT", "foo"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    not is_platform_windows(), reason="strftime raises ValueError only on Windows"
+)
+@pytest.mark.parametrize(
+    "fmt, msg",
+    [
+        pytest.param(
+            "%y",
+            "format %y requires year >= 1900 on Windows",
+            marks=pytest.mark.skipif(
+                PY314, reason="Python 3.14 supports %y before 1900 on Windows"
+            ),
+        ),
+        ("%-d", "Invalid format string"),
+    ],
+)
+def test_strftime_invalid_raises(fmt, msg):
+    # GH#58178 the ValueError used to be replaced by str(ts)
+    dti = pd.DatetimeIndex(["1820-01-01", "2020-01-02"])
+    with pytest.raises(ValueError, match=msg):
+        dti[0].strftime(fmt)
+    with pytest.raises(ValueError, match=msg):
+        dti.strftime(fmt)
 
 
 class TestDatetimeIndexRendering:
@@ -140,6 +170,19 @@ class TestDatetimeIndexRendering:
         expected = (
             "DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],\n"
             "              dtype='datetime64[us]', name='dates', freq='D')"
+        )
+        assert result == expected
+
+    def test_dti_repr_two_values_wraps_at_display_width(self):
+        # GH#16334
+        dti = pd.DatetimeIndex(
+            ["2017-01-01 12:00:00.000000001", "2017-01-02 12:00:00.000000001"]
+        ).tz_localize("US/Eastern")
+        result = repr(dti)
+        expected = (
+            "DatetimeIndex(['2017-01-01 12:00:00.000000001-05:00',\n"
+            "               '2017-01-02 12:00:00.000000001-05:00'],\n"
+            "              dtype='datetime64[ns, US/Eastern]', freq=None)"
         )
         assert result == expected
 

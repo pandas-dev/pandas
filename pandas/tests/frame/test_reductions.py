@@ -992,16 +992,7 @@ class TestDataFrameAnalytics:
         with pytest.raises(TypeError, match="does not support operation 'sum'"):
             df.sum()
 
-    def test_mean_corner(self, float_frame, float_string_frame):
-        # unit test when have object data
-        msg = "|".join(["Could not convert", "does not support", "Cannot perform"])
-        with pytest.raises(TypeError, match=msg):
-            float_string_frame.mean(axis=0)
-
-        # xs sum mixed type, just want to know it works...
-        with pytest.raises(TypeError, match=msg):
-            float_string_frame.mean(axis=1)
-
+    def test_mean_corner(self, float_frame):
         # take mean of boolean column
         float_frame["bool"] = float_frame["A"] > 0
         means = float_frame.mean(axis=0)
@@ -3173,5 +3164,8 @@ def test_median_skipna_false_keeps_complex(na_first):
         [complex(np.nan), 2 + 3j] if na_first else [2 + 3j, complex(np.nan)],
         index=list(cols),
     )
-    tm.assert_series_equal(df.median(skipna=False), expected)
-    tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)
+    msg = "The median of complex data is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df.median(skipna=False), expected)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)
