@@ -1745,17 +1745,15 @@ cdef void accumulate_moments_axis(
     if axis == 0:
         nouter = ncols
         ninner = nrows
-        # https://docs.cython.org/en/latest/src/userguide/memoryviews.html#memoryview-objects-and-cython-arrays
-        # strides is the stride along each dimension, in bytes.
-        is_contiguous = values.strides[0] == sizeof(float64_t)
-        if uses_mask:
-            is_contiguous = is_contiguous and mask.strides[0] == sizeof(uint8_t)
     else:
         nouter = nrows
         ninner = ncols
-        is_contiguous = values.strides[1] == sizeof(float64_t)
-        if uses_mask:
-            is_contiguous = is_contiguous and mask.strides[1] == sizeof(uint8_t)
+
+    # https://docs.cython.org/en/latest/src/userguide/memoryviews.html#memoryview-objects-and-cython-arrays
+    # strides is the stride along each dimension, in bytes.
+    is_contiguous = values.strides[axis] == sizeof(float64_t) and (
+        not uses_mask or mask.strides[axis] == sizeof(uint8_t)
+    )
 
     if is_contiguous:
         accumulate_moments_axis_contiguous(values, skipna, mask, uses_mask,
