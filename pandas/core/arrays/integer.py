@@ -8,6 +8,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import register_extension_dtype
@@ -65,7 +66,12 @@ class IntegerDtype(NumericDtype):
             return values.astype(dtype, copy=copy)
 
         casted = values.astype(dtype, copy=copy)
-        if (casted == values).all():
+        equal = casted == values
+        if equal.all():
+            return casted
+        if lib.is_string_array(values[~equal]):
+            # GH#34460 strs compare unequal to ints, but parsing them with
+            #  int() raises on any lossy value
             return casted
 
         raise TypeError(
