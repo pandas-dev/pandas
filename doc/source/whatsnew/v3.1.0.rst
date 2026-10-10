@@ -1118,6 +1118,7 @@ I/O
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` with ``quoting`` other than ``csv.QUOTE_MINIMAL`` no longer write ``float16`` and ``float32`` values with extra digits, e.g. ``8.569999694824219`` instead of ``8.57`` (:issue:`60699`)
 - :meth:`DataFrame.to_json` and :meth:`Series.to_json` now raise an informative ``ValueError`` instead of a cryptic ``OverflowError: Maximum recursion level reached`` when a column contains an unsupported object type such as :class:`pathlib.Path` (:issue:`36211`)
 - :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection (:issue:`61385`)
+- Bug in :func:`json_normalize` preserving a single-item list used as metadata instead of producing the historical scalar metadata value (:issue:`55559`)
 - Bug in :func:`read_csv` and :func:`read_table` with the default ``c`` engine raising ``ValueError`` for ``sep="\n"`` when a different ``lineterminator`` was given, instead of parsing the newline as an ordinary separator (:issue:`51801`)
 - Bug in :func:`read_sql_table` with SQLAlchemy 2.1 where floating point columns (e.g. MySQL ``DOUBLE``) were rounded to 10 decimal places (:issue:`70231`)
 - Fixed bug in :func:`read_csv` and :func:`read_table` where an explicit ``delimiter=None`` was treated as if no separator had been passed, so the default separator was used instead of detecting the separator as ``sep=None`` does (:issue:`47024`)

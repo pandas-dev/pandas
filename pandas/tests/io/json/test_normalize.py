@@ -151,6 +151,17 @@ class TestJSONNormalize:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_nested_record_path_with_single_item_list_metadata(self):
+        # GH 55559
+        data = [{"dimensions": ["foo"], "metrics": {"count": [1, 2, 3]}}]
+        result = pd.json_normalize(
+            data,
+            record_path=["metrics", "count"],
+            meta=["dimensions"],
+        )
+        expected = pd.DataFrame({0: [1, 2, 3], "dimensions": ["foo", "foo", "foo"]})
+        tm.assert_frame_equal(result, expected)
+
     def test_empty_array(self):
         result = pd.json_normalize([])
         expected = pd.DataFrame()
