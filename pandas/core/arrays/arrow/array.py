@@ -1317,10 +1317,32 @@ class ArrowExtensionArray(
                 raise ValueError("Lengths must match to compare")
             try:
                 boxed = self._box_pa(other)
-            except pa.lib.ArrowInvalid:
+            except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError):
                 # e.g. GH#60228 [1, "b"] we have to operate pointwise
-                res_values = [op(x, y) for x, y in zip(self, other, strict=True)]
-                result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
+                # GH#62682 isna on a list of array-likes gives a 2-D mask
+                other_arr = np.empty(len(other), dtype=object)
+                for pos, val in enumerate(other):
+                    other_arr[pos] = val
+                mask = isna(self) | isna(other_arr)
+                res_values: list[bool | None] = []
+                for left, right, na in zip(self, other, mask, strict=True):
+                    if na and op in (operator.eq, operator.ne):
+                        # GH#62682 evaluating these would raise for an operand
+                        #  whose __ne__ is `not self == other`
+                        res_values.append(None)
+                        continue
+                    # an ordered comparison runs even for an NA pair, so an
+                    #  unsupported one raises instead of answering all-NA
+                    res = op(left, right)
+                    if isinstance(res, np.ndarray) and pa.types.is_nested(ltype):
+                        # GH#62682 numpy broadcast a list-valued element, so
+                        #  bool() would give a real-looking answer
+                        result = ops.invalid_comparison(self, other, op)
+                        result = pa.array(result, type=pa.bool_())
+                        break
+                    res_values.append(None if na else bool(res))
+                else:
+                    result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
                 if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
@@ -1346,13 +1368,24 @@ class ArrowExtensionArray(
             else:
                 try:
                     result = pc_func(self._pa_array, self._box_pa(other))
-                except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                except (
+                    pa.lib.ArrowNotImplementedError,
+                    pa.lib.ArrowInvalid,
+                    pa.lib.ArrowTypeError,
+                ):
                     mask = isna(self) | isna(other)
                     valid = ~mask
                     result = np.zeros(len(self), dtype="bool")
                     np_array = np.array(self)
                     try:
-                        result[valid] = op(np_array[valid], other)
+                        if op is operator.ne and isinstance(other, BaseOffset):
+                            # GH#62682 numpy defers to the offset, whose __ne__
+                            #  is `not self == other`; Tick.__eq__ returns an
+                            #  array there, which `not` rejects
+                            result[valid] = operator.eq(np_array[valid], other)
+                            result[valid] = ~result[valid]
+                        else:
+                            result[valid] = op(np_array[valid], other)
                     except TypeError:
                         result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
@@ -1373,7 +1406,9 @@ class ArrowExtensionArray(
             f"dtype '{self.dtype}' with {other_type}"
         )
 
-    def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+    def _evaluate_op_method(
+        self, other, op, arrow_funcs, *, wrap_box_errors: bool = True
+    ) -> Self:
         if (
             is_list_like(other)
             and not isinstance(other, (np.ndarray, ExtensionArray, list))
@@ -1391,7 +1426,14 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other_original = other
         ops.raise_if_2d(other)
-        other = self._box_pa(other)
+        try:
+            other = self._box_pa(other)
+        except (pa.ArrowInvalid, pa.ArrowTypeError) as err:
+            # GH#62682 pyarrow could not convert `other`
+            if not wrap_box_errors:
+                # _arith_method retries the operation in object dtype
+                raise
+            raise TypeError(self._op_method_error_message(other_original, op)) from err
 
         if (
             pa.types.is_string(pa_type)
@@ -1544,7 +1586,9 @@ class ArrowExtensionArray(
             self._pa_array.type
         ):
             try:
-                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+                result = self._evaluate_op_method(
+                    other, op, ARROW_ARITHMETIC_FUNCS, wrap_box_errors=False
+                )
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 result = self._str_arith_method_object_fallback(other, op)
         else:

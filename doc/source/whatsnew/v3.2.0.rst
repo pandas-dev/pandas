@@ -238,6 +238,8 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
+- Bug in arithmetic and logical operations on PyArrow-backed data raising an opaque ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError``, instead of an informative ``TypeError``, when the other operand held objects PyArrow cannot convert, such as :class:`Categorical`, :class:`Interval`, or ``DateOffset`` objects (:issue:`62682`)
+- Bug in comparisons between PyArrow-backed data and objects PyArrow cannot convert raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError``; ``==``/``!=`` now compare elementwise, ordered comparisons raise ``TypeError``, and a missing value on either side propagates instead of answering ``False`` (:issue:`62682`)
 
 Styler
 ^^^^^^
