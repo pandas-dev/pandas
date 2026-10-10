@@ -3998,7 +3998,9 @@ class ArrowExtensionArray(
             )
             return self._convert_int_result(self._apply_re_fallback(func, pa_type))
 
-        result = pc.count_substring_regex(self._pa_array, pat, ignore_case=not case)
+        result = pc.count_substring_regex(
+            self._pa_array, self._with_python_whitespace(pat), ignore_case=not case
+        )
         return self._convert_int_result(result)
 
     def _str_replace(
@@ -4112,7 +4114,7 @@ class ArrowExtensionArray(
                 return extract_group(next(iter(groups)))
             return {col: extract_group(col) for col in groups}
 
-        result = pc.extract_regex(self._pa_array, pat)
+        result = pc.extract_regex(self._pa_array, self._with_python_whitespace(pat))
         if expand:
             return {
                 col: self._from_pyarrow_array(pc.struct_field(result, [i]))
@@ -4180,14 +4182,18 @@ class ArrowExtensionArray(
         if pat is None:
             split_func = pc.utf8_split_whitespace
         elif regex is True:
-            split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
+            split_func = functools.partial(
+                pc.split_pattern_regex, pattern=self._with_python_whitespace(pat)
+            )
         elif regex is False:
             split_func = functools.partial(pc.split_pattern, pattern=pat)
         # GH#58321: regex is None — infer: single-char literal, multi-char regex
         elif len(pat) == 1:
             split_func = functools.partial(pc.split_pattern, pattern=pat)
         else:
-            split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
+            split_func = functools.partial(
+                pc.split_pattern_regex, pattern=self._with_python_whitespace(pat)
+            )
         return self._from_pyarrow_array(split_func(self._pa_array, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1) -> Self:

@@ -28,6 +28,77 @@ if TYPE_CHECKING:
 
     from pandas._typing import Scalar
 
+# The characters ``\s`` matches in a Python ``re`` str pattern, i.e. those for which
+#  str.isspace() is True. RE2's ``\s`` only matches ``[\t\n\f\r ]``.
+_PYTHON_WHITESPACE = (
+    "\t\n\x0b\x0c\r\x1c\x1d\x1e\x1f \x85\xa0\u1680"
+    "\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
+    "\u2028\u2029\u202f\u205f\u3000"
+)
+# RE2's POSIX classes, e.g. "[:alpha:]", which may appear inside a set
+_POSIX_CLASS = re.compile(r"\[:\^?[a-z]+:\]")
+
+
+def _re2_escape(chars: str) -> str:
+    return "".join(f"\\x{{{ord(char):X}}}" for char in chars)
+
+
+def _re2_set(chars: str, negate: bool) -> str:
+    if not chars:
+        # RE2 has no empty set
+        return r"[\x00-\x{10FFFF}]" if negate else r"[^\x00-\x{10FFFF}]"
+    return f"[{'^' if negate else ''}{_re2_escape(chars)}]"
+
+
+def _scan_set(pattern: str, start: int) -> tuple[list[str], int] | None:
+    """
+    Split the body of the set opened by the "[" at ``start`` into its tokens.
+
+    Returns the tokens and the position after the closing "]", or None if the
+    set is not closed.
+    """
+    tokens = []
+    pos = start + 1
+    # a "]" right after "[" or "[^" is a literal
+    for leading in ("^", "]"):
+        if pattern.startswith(leading, pos):
+            tokens.append(leading)
+            pos += 1
+    while pos < len(pattern) and pattern[pos] != "]":
+        if posix := _POSIX_CLASS.match(pattern, pos):
+            token = posix.group()
+        elif pattern[pos] == "\\":
+            token = pattern[pos : pos + 2]
+        else:
+            token = pattern[pos]
+        tokens.append(token)
+        pos += len(token)
+    if pos >= len(pattern):
+        return None
+    return tokens, pos + 1
+
+
+def _set_with_python_whitespace(text: str, tokens: list[str]) -> str:
+    if "\\S" not in tokens:
+        body = "".join(
+            _re2_escape(_PYTHON_WHITESPACE) if token == "\\s" else token
+            for token in tokens
+        )
+        return f"[{body}]"
+    # RE2 has no set difference to spell e.g. [\S\d] with. But such a set
+    #  matches every non-whitespace character (none if negated), so only the
+    #  whitespace it matches has to be found out, which re can tell.
+    try:
+        compiled = re.compile(text)
+    except re.error:
+        # not a Python set, e.g. RE2 syntax like \p{L}
+        return text
+    matched = "".join(char for char in _PYTHON_WHITESPACE if compiled.match(char))
+    if tokens[0] == "^":
+        return _re2_set(matched, negate=False)
+    unmatched = "".join(char for char in _PYTHON_WHITESPACE if char not in matched)
+    return _re2_set(unmatched, negate=True)
+
 
 class ArrowStringArrayMixin:
     _pa_array: pa.ChunkedArray
@@ -138,6 +209,44 @@ class ArrowStringArrayMixin:
             case = False
             flags &= ~re.IGNORECASE
         return pattern, case, flags
+
+    @staticmethod
+    def _with_python_whitespace(pattern: str) -> str:
+        """
+        Rewrite ``\\s`` and ``\\S`` in ``pattern`` so that RE2 matches the same
+        characters with them as Python's ``re`` does.
+
+        This only rewrites the pattern, so it costs nothing per element.
+        """
+        if "\\s" not in pattern and "\\S" not in pattern:
+            return pattern
+        parts = []
+        pos = 0
+        while pos < len(pattern):
+            if pattern[pos] == "[":
+                scanned = _scan_set(pattern, pos)
+                if scanned is None:
+                    # invalid; leave it to pyarrow to raise
+                    return pattern
+                tokens, end = scanned
+                parts.append(_set_with_python_whitespace(pattern[pos:end], tokens))
+                pos = end
+            elif pattern.startswith("\\Q", pos):
+                # RE2 matches everything up to "\E" literally (Python rejects "\Q")
+                end = pattern.find("\\E", pos)
+                end = len(pattern) if end == -1 else end + 2
+                parts.append(pattern[pos:end])
+                pos = end
+            elif pattern[pos] == "\\":
+                escape = pattern[pos : pos + 2]
+                if escape in ("\\s", "\\S"):
+                    escape = _re2_set(_PYTHON_WHITESPACE, negate=escape == "\\S")
+                parts.append(escape)
+                pos += 2
+            else:
+                parts.append(pattern[pos])
+                pos += 1
+        return "".join(parts)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
@@ -321,6 +430,8 @@ class ArrowStringArrayMixin:
                 pa.chunked_array(result, type=self._pa_array.type)
             )
 
+        if regex:
+            pat = self._with_python_whitespace(pat)
         func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
@@ -453,6 +564,7 @@ class ArrowStringArrayMixin:
             raise NotImplementedError(f"contains not implemented with {flags=}")
 
         if regex:
+            pat = self._with_python_whitespace(pat)
             pa_contains = pc.match_substring_regex
         else:
             pa_contains = pc.match_substring
