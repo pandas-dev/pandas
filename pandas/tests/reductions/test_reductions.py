@@ -4,6 +4,7 @@ from datetime import (
     timedelta,
 )
 from decimal import Decimal
+import re
 
 import numpy as np
 import pytest
@@ -274,6 +275,38 @@ class TestReductions:
         expected = pd.Series({"A": pd.Timedelta(3), "B": 3})
         result = df.sum()
         tm.assert_series_equal(result, expected)
+
+
+INDEX_REDUCTIONS = [
+    "sum",
+    "prod",
+    "mean",
+    "median",
+    "std",
+    "var",
+    "sem",
+    "skew",
+    "kurt",
+]
+
+
+def check_reduction_matches_series(index, opname, skipna):
+    # not to_series, which infers str from object dtype
+    ser = pd.Series(index)
+    warn = None
+    if index.dtype.kind == "c" and opname == "median":
+        warn = Pandas4Warning
+    try:
+        with tm.assert_produces_warning(warn, match="median of complex data"):
+            expected = getattr(ser, opname)(skipna=skipna)
+    except TypeError as err:
+        with pytest.raises(TypeError, match=re.escape(str(err))):
+            getattr(index, opname)(skipna=skipna)
+        return
+    with tm.assert_produces_warning(warn, match="median of complex data"):
+        result = getattr(index, opname)(skipna=skipna)
+    assert type(result) is type(expected)
+    tm.assert_almost_equal(result, expected)
 
 
 class TestIndexReductions:
@@ -632,6 +665,82 @@ class TestIndexReductions:
         else:
             assert isinstance(result[0], np.integer)
             assert isinstance(result[1], np.floating)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_match_series(self, index_flat, opname, skipna):
+        # GH#50021
+        check_reduction_matches_series(index_flat, opname, skipna)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_match_series_with_missing(
+        self, index_with_missing, opname, skipna
+    ):
+        # GH#50021
+        check_reduction_matches_series(index_with_missing, opname, skipna)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_match_series_float_nan(self, opname, skipna):
+        # GH#50021 index_with_missing excludes numpy float
+        idx = pd.Index([1.0, np.nan, 3.0, 7.0])
+        check_reduction_matches_series(idx, opname, skipna)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    def test_reductions_multiindex_raise(self, opname):
+        # GH#50021
+        mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
+        with pytest.raises(TypeError, match=f"cannot perform {opname} with MultiIndex"):
+            getattr(mi, opname)()
+
+    def test_reduction_kwargs(self):
+        # GH#50021
+        idx = pd.Index([1.0, np.nan, 3.0])
+        assert np.isnan(idx.sum(min_count=3))
+        assert idx.var(ddof=0) == 1.0
+        with pytest.raises(ValueError, match="`axis` must be fewer than"):
+            idx.sum(axis=1)
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            idx.mean(foo=1)
+
+    @pytest.mark.parametrize(
+        "func, expected",
+        [(np.sum, 4.0), (np.prod, 3.0), (np.mean, 2.0), (np.std, 1.0), (np.var, 1.0)],
+    )
+    def test_numpy_reductions_dispatch(self, func, expected):
+        # GH#50021 numpy dispatches to the Index method, which skips NaN like Series
+        idx = pd.Index([1.0, np.nan, 3.0])
+        assert func(idx) == expected
+        assert func(idx) == func(idx.to_series())
+
+    def test_numpy_reductions_dispatch_masked(self):
+        # GH#50021
+        idx = pd.Index([1, None, 3], dtype="Int64")
+        assert np.sum(idx) == 4
+
+    @pytest.mark.parametrize(
+        "kwargs, exc, msg",
+        [
+            (
+                {"dtype": "float64"},
+                ValueError,
+                "the 'dtype' parameter is not supported",
+            ),
+            (
+                {"keepdims": True},
+                ValueError,
+                "the 'keepdims' parameter is not supported",
+            ),
+            ({"initial": 5}, ValueError, "the 'initial' parameter is not supported"),
+            ({"where": np.array([True, False])}, TypeError, "unexpected keyword"),
+        ],
+    )
+    def test_numpy_reductions_reject_numpy_kwargs(self, kwargs, exc, msg):
+        # GH#50021 like Series, the Index methods do not support these
+        idx = pd.Index([1.0, 2.0])
+        with pytest.raises(exc, match=msg):
+            np.sum(idx, **kwargs)
 
 
 class TestSeriesReductions:
@@ -2009,3 +2118,25 @@ def test_negative_min_count_deprecated_timedelta_index():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = tdi.sum(min_count=-1)
     assert result == tdi.sum(min_count=0)
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        "Int64",
+        pytest.param(
+            "float64[pyarrow]",
+            marks=pytest.mark.skipif(not HAS_PYARROW, reason="requires pyarrow"),
+        ),
+    ],
+)
+def test_negative_min_count_deprecated_index(how, dtype):
+    # GH#50022
+    idx = pd.Index([2, None, 3], dtype=dtype)
+    expected = getattr(idx, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(idx, how)(min_count=-1)
+    assert result == expected
