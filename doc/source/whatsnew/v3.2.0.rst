@@ -129,6 +129,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :attr:`DataFrame.values`, :meth:`DataFrame.to_numpy` and :meth:`DataFrame.transpose` silently converting missing values in a :class:`Categorical` column with integer or boolean categories to arbitrary integers or ``True`` (:issue:`38240`)
 - Bug in comparing a :class:`Categorical` with an iterator raising ``TypeError`` instead of treating it as a scalar, as with a tuple (:issue:`31646`)
 -
 
