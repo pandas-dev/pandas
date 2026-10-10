@@ -184,7 +184,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
 -
 
 I/O
