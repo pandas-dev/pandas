@@ -30,7 +30,11 @@ from pandas.core.dtypes.inference import is_integer
 
 from pandas.core.arrays.arrow.array import to_pyarrow_type
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    validate_integer_cast,
+    validate_integer_casts,
+)
 from pandas.io.common import mangle_dupe_names
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -429,7 +433,9 @@ class ArrowParserWrapper(ParserBase):
                         else (frame.columns[item], self.dtype.get(frame.columns[item]))
                     )
                     if new_dtype is not None:
-                        frame[key] = frame[key].astype(new_dtype)
+                        casted = frame[key].astype(new_dtype)
+                        validate_integer_cast(frame[key], casted)
+                        frame[key] = casted
                         del self.dtype[key]
 
             if self.dtype is not None and not isinstance(self.dtype, dict):
@@ -485,10 +491,12 @@ class ArrowParserWrapper(ParserBase):
                     if col not in parse_dates_cols
                 }
             try:
-                frame = frame.astype(self.dtype)
+                casted = frame.astype(self.dtype)
             except TypeError as err:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(str(err)) from err
+            validate_integer_casts(frame, casted)
+            frame = casted
         return frame
 
     def _finalize_pandas_output(

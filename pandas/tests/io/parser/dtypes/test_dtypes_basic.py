@@ -1012,7 +1012,6 @@ GH,100102040,202,0205"""
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
 @pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
 @pytest.mark.parametrize(
     "dtype, err, msg",
@@ -1030,12 +1029,15 @@ def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_b
     if dtype_backend == "pyarrow":
         pytest.importorskip("pyarrow")
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        # this engine raises ValueError for the nullable dtypes too
+        err = ValueError
+        msg = "cannot safely (cast non-equivalent|convert passed user dtype)"
     data = "x\n-1\n257\n"
     with pytest.raises(err, match=msg):
         parser.read_csv(StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend)
 
 
-@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
 @pytest.mark.parametrize(
     "data, dtype",
     [
@@ -1043,6 +1045,9 @@ def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_b
         ("x\n18446744073709551615\n1\n", "uint8"),
         # the requested dtype is the int64 that overflowed into the fallback
         ("x\n18446744073709551615\n1\n", "int64"),
+        # one past the int64 max; the pyarrow engine reads it as a float
+        #  whose cast to int64 can saturate rather than wrap
+        ("x\n9223372036854775808\n", "int64"),
         # parses as float rather than int, which both engines must check too
         ("x\n300.0\n1.0\n", "uint8"),
         ("x\n257.0\n1.0\n", "int8"),
@@ -1054,3 +1059,69 @@ def test_unsafe_integer_dtype_raises_for_non_int64_source(all_parsers, data, dty
     parser = all_parsers
     with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
         parser.read_csv(StringIO(data), dtype={"x": dtype})
+
+
+@pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
+@pytest.mark.parametrize("index_col", [None, 0])
+def test_out_of_range_int32_dtype_raises(all_parsers, index_col, dtype_backend):
+    # GH#38013 with a non-default dtype_backend, the pyarrow engine casts
+    #  index columns separately
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "x,y\n10000000000,0\n"
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(
+            StringIO(data),
+            dtype={"x": "int32"},
+            index_col=index_col,
+            dtype_backend=dtype_backend,
+        )
+
+
+@pytest.mark.parametrize(
+    "data, dtype, dtype_backend, expected",
+    [
+        ("x\n1e16\n", "int64[pyarrow]", lib.no_default, 10**16),
+        ("x\n1e16\n", "Int64", "pyarrow", 10**16),
+        ("x\n9223372036854775808\n", "uint64[pyarrow]", lib.no_default, 2**63),
+    ],
+)
+def test_in_range_integer_above_float_precision(
+    all_parsers, data, dtype, dtype_backend, expected
+):
+    # GH#38013 in-range values above 2**53 must not be rejected
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend
+    )
+    assert result["x"].tolist() == [expected]
+
+
+def test_sparse_integer_dtype(pyarrow_parser_only):
+    # GH#38013 the overflow check covers sparse dtypes by their subtype
+    parser = pyarrow_parser_only
+    result = parser.read_csv(
+        StringIO("x\n1\n300\n"), dtype={"x": pd.SparseDtype("int64")}
+    )
+    expected = pd.DataFrame({"x": pd.arrays.SparseArray([1, 300], dtype="int64")})
+    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(StringIO("x\n1\n300\n"), dtype={"x": pd.SparseDtype("int8")})
+
+
+def test_integer_dtype_truncates_float(pyarrow_parser_only):
+    # GH#38013 dropping the fractional part is not a wrap, as with the python
+    #  engine
+    parser = pyarrow_parser_only
+    result = parser.read_csv(StringIO("x\n1.5\n127.9\n-128.9\n"), dtype={"x": "int8"})
+    assert result["x"].tolist() == [1, 127, -128]
+
+
+def test_uint64_max_read_as_float_raises(pyarrow_parser_only):
+    # GH#38013 a pyarrow inference limitation, not desired behavior: pyarrow
+    #  reads this value as the float 2**64, which is out of range for uint64
+    parser = pyarrow_parser_only
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(StringIO("x\n18446744073709551615\n"), dtype={"x": "uint64"})
