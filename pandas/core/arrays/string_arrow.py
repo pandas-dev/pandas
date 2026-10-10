@@ -92,6 +92,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
+    This is the ``storage="pyarrow"`` implementation of :class:`StringDtype`.
+
     Parameters
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
