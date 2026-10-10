@@ -639,6 +639,7 @@ def _extrapolate_linear(
     for outside, edge, inner in [(left, 0, 1), (right, -1, -2)]:
         if not outside.any():
             continue
+        # 1-element arrays, not scalars: numpy scalars warn on the uint64 wraparound
         x_edge, x_inner = xvalid[[edge]], xvalid[[inner]]
         if x_edge[0] == x_inner[0]:
             # like method="slinear", which raises on duplicate x
