@@ -7413,12 +7413,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             elif (
                 isinstance(value, ABCSeries)
                 and not value.index.is_unique
-                and value.index.equals(result.columns)
+                # MultiIndex.isin raises on flat labels
+                and value.index.nlevels == result.columns.nlevels
+                and value.index.equals(result.columns[result.columns.isin(value.index)])
             ):
-                # GH#36608 duplicate labels matching our columns: fill by position
-                for loc in range(len(value)):
+                # GH#36608 labels match the columns (or a subset) in order
+                locs = np.flatnonzero(result.columns.isin(value.index))
+                for loc, fill_value in zip(locs, value, strict=True):
                     target = result.iloc[:, loc]
-                    res_loc = target.fillna(value.iloc[loc], limit=limit)
+                    res_loc = target.fillna(fill_value, limit=limit)
                     if inplace and res_loc.dtype == target.dtype:
                         result.iloc[:, loc] = res_loc
                     else:

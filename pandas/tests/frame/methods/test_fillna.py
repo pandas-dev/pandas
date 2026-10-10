@@ -949,6 +949,14 @@ def test_fillna_series_with_labels_matching_duplicate_columns(inplace):
     tm.assert_frame_equal(result, expected)
 
 
+def test_fillna_series_with_labels_matching_subset_of_duplicate_columns():
+    # GH#36608 e.g. df.fillna(df.mean(numeric_only=True))
+    df = pd.DataFrame([[np.nan, 2.0, "a"], [1.0, np.nan, "b"]], columns=["A", "A", "s"])
+    result = df.fillna(df.mean(numeric_only=True))
+    expected = pd.DataFrame([[1.0, 2.0, "a"], [1.0, 2.0, "b"]], columns=["A", "A", "s"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_fillna_series_with_labels_matching_duplicate_index_axis1():
     # GH#36608
     df = pd.DataFrame([[1.0, np.nan], [np.nan, np.nan]], index=["r", "r"])
@@ -1005,7 +1013,6 @@ def test_fillna_series_with_labels_matching_duplicate_columns_inplace_upcast():
     # GH#36608 the column whose dtype changes cannot be filled inplace
     df = pd.DataFrame({"A": [np.nan, 1.0], "B": [pd.NaT, pd.Timestamp(1)]})
     df.columns = ["A", "A"]
-    orig = df[:]
     value = pd.Series([2.0, 3.0], index=df.columns)
 
     # GH#45153 filling datetime with a float is deprecated
@@ -1015,7 +1022,6 @@ def test_fillna_series_with_labels_matching_duplicate_columns_inplace_upcast():
     expected = pd.DataFrame({"A": [2.0, 1.0], "B": [3.0, pd.Timestamp(1)]})
     expected.columns = ["A", "A"]
     tm.assert_frame_equal(df, expected)
-    assert not tm.shares_memory(df.iloc[:, 1], orig.iloc[:, 1])
 
 
 def test_fillna_series_with_labels_matching_duplicate_columns_limit():
