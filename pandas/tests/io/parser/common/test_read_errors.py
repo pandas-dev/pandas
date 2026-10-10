@@ -158,7 +158,6 @@ def test_catch_too_many_names(all_parsers):
         parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -362,22 +361,12 @@ def test_null_byte_char(all_parsers):
     names = ["a", "b"]
     parser = all_parsers
 
-    if parser.engine in ["c", "python"]:
-        # GH#19886 a lone NUL is a one-character value, not the empty string,
-        # so it is not an na_value. The C engine used to compare the
-        # NUL-terminated word and report NaN here.
-        expected = pd.DataFrame([["\x00", "foo"]], columns=names)
-        out = parser.read_csv(StringIO(data), names=names)
-        tm.assert_frame_equal(out, expected)
-    else:
-        if parser.engine == "pyarrow":
-            # CSV parse error: Empty CSV file or block: "
-            # cannot infer number of columns"
-            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
-        else:
-            msg = "NULL byte detected"
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), names=names)
+    # GH#19886 a lone NUL is a one-character value, not the empty string,
+    # so it is not an na_value. The C engine used to compare the
+    # NUL-terminated word and report NaN here.
+    expected = pd.DataFrame([["\x00", "foo"]], columns=names)
+    out = parser.read_csv(StringIO(data), names=names)
+    tm.assert_frame_equal(out, expected)
 
 
 def test_open_file(all_parsers, temp_file):

@@ -454,7 +454,6 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -486,10 +485,7 @@ def test_parse_delimited_date_swap_no_warning(
 ):
     parser = all_parsers
     expected = pd.DataFrame({0: [expected]}, dtype="datetime64[us]")
-    if parser.engine == "pyarrow":
-        if not dayfirst:
-            # "CSV parse error: Empty CSV file or block"
-            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
+    if parser.engine == "pyarrow" and dayfirst:
         msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(
@@ -503,8 +499,6 @@ def test_parse_delimited_date_swap_no_warning(
     tm.assert_frame_equal(result, expected)
 
 
-# ArrowInvalid: CSV parse error: Empty CSV file or block: cannot infer number of columns
-@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -519,6 +513,13 @@ def test_parse_delimited_date_swap_with_warning(
 ):
     parser = all_parsers
     expected = pd.DataFrame({0: [expected]}, dtype="datetime64[us]")
+    if parser.engine == "pyarrow" and dayfirst:
+        msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(date_string), header=None, dayfirst=dayfirst, parse_dates=[0]
+            )
+        return
     warning_msg = (
         "Parsing dates in .* format when dayfirst=.* was specified. "
         "Pass `dayfirst=.*` or specify a format to silence this warning."

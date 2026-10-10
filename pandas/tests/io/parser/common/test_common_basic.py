@@ -6,7 +6,11 @@ specific classification into the other test modules.
 import csv
 from datetime import datetime
 from inspect import signature
-from io import StringIO
+from io import (
+    BytesIO,
+    RawIOBase,
+    StringIO,
+)
 import os
 import re
 import sys
@@ -919,7 +923,6 @@ def test_read_csv_line_break_as_separator(key, sep, lineterminator, all_parsers)
         parser.read_csv(StringIO(data), lineterminator=lineterminator, **{key: sep})
 
 
-@skip_pyarrow
 def test_dict_keys_as_names(all_parsers):
     # GH: 36928
     data = "1,2"
@@ -961,7 +964,7 @@ def test_malformed_second_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: Length mismatch: Expected axis has 2 elements
 def test_short_single_line(all_parsers):
     # GH 47566
     parser = all_parsers
@@ -980,6 +983,90 @@ def test_short_multi_line(all_parsers):
     data = "1,2\n1,2"
     result = parser.read_csv(StringIO(data), header=None, names=columns)
     expected = pd.DataFrame({"a": [1, 1], "b": [2, 2], "c": [np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, expected",
+    [
+        (
+            "1,2,3",
+            {"names": ["a", "b", "c"]},
+            pd.DataFrame([[1, 2, 3]], columns=list("abc")),
+        ),
+        (
+            "1,2,3",
+            {"names": ["b", "c"]},
+            pd.DataFrame([[2, 3]], columns=["b", "c"], index=[1]),
+        ),
+        ("1,2,3", {"header": None}, pd.DataFrame([[1, 2, 3]])),
+        ("x,y,z\n1,2,3", {"header": None, "skiprows": 1}, pd.DataFrame([[1, 2, 3]])),
+    ],
+)
+def test_single_line_without_line_terminator(all_parsers, data, kwargs, expected):
+    # GH#62635
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+class _ShortReadStream(RawIOBase):
+    # seekable stream whose first ``short_reads`` reads return at most 4 bytes
+    def __init__(self, data: bytes, short_reads: int = sys.maxsize) -> None:
+        self._buffer = BytesIO(data)
+        self._short_reads = short_reads
+
+    def readable(self) -> bool:
+        return True
+
+    def seekable(self) -> bool:
+        return True
+
+    def seek(self, pos: int, whence: int = 0) -> int:
+        return self._buffer.seek(pos, whence)
+
+    def tell(self) -> int:
+        return self._buffer.tell()
+
+    def readinto(self, buf) -> int:
+        size = len(buf)
+        if self._short_reads > 0:
+            self._short_reads -= 1
+            size = min(size, 4)
+        chunk = self._buffer.read(size)
+        buf[: len(chunk)] = chunk
+        return len(chunk)
+
+
+def test_short_reads_without_line_terminator(all_parsers):
+    # GH#62635 the pyarrow engine's retry must not parse a partial read
+    parser = all_parsers
+    result = parser.read_csv(_ShortReadStream(b"1,2,3\n4,5,6"), names=list("abc"))
+    expected = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=list("abc"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_short_reads_larger_than_block(all_parsers):
+    # GH#62635 the pyarrow engine's retry must not re-parse a truncated prefix
+    parser = all_parsers
+    nrows = 200_000  # more than pyarrow's 1 MiB block
+    stream = _ShortReadStream(b"1,2,3\n" * nrows, short_reads=1)
+    if parser.engine == "pyarrow":
+        # pyarrow's first block is the 4-byte short read; the retry must re-raise
+        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+            parser.read_csv(stream, header=None)
+        return
+    result = parser.read_csv(stream, header=None)
+    assert result.shape == (nrows, 3)
+
+
+def test_single_line_without_line_terminator_mid_stream(all_parsers):
+    # GH#62635 the retry re-reads from where the handle was positioned
+    parser = all_parsers
+    handle = BytesIO(b"x,y,z\n1,2,3")
+    handle.readline()
+    result = parser.read_csv(handle, header=None)
+    expected = pd.DataFrame([[1, 2, 3]])
     tm.assert_frame_equal(result, expected)
 
 

@@ -164,9 +164,7 @@ def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip, re
             return
         # header=[0] is a singleton, so it behaves like header=0, but the
         # empty-frame dtypes still differ for the pyarrow engine
-        mark = pytest.mark.xfail(
-            reason="empty frame dtypes differ; apache/arrow#38676 without newline"
-        )
+        mark = pytest.mark.xfail(reason="empty frame dtypes differ")
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), header=header)
@@ -272,7 +270,7 @@ def test_read_csv_no_index_name(all_parsers, datapath):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # empty index gets float64 dtype instead of object
 def test_empty_with_index(all_parsers):
     # see gh-10184
     data = "x,y"
@@ -283,8 +281,7 @@ def test_empty_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# CSV parse error: Empty CSV file or block: cannot infer number of columns
-@skip_pyarrow
+@xfail_pyarrow  # empty index levels get float64 dtype instead of object
 def test_empty_with_multi_index(all_parsers):
     # see gh-10467
     data = "x,y,z"
@@ -297,8 +294,7 @@ def test_empty_with_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# CSV parse error: Empty CSV file or block: cannot infer number of columns
-@skip_pyarrow
+@xfail_pyarrow  # empty index levels get float64 dtype instead of object
 def test_empty_with_reversed_multi_index(all_parsers):
     data = "x,y,z"
     parser = all_parsers
