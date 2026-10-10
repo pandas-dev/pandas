@@ -466,6 +466,32 @@ def test_value_counts_na(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "keep, expected",
+    [
+        ("first", [False, False, False, True, True, False, True]),
+        ("last", [True, True, True, False, False, False, False]),
+        (False, [True, True, True, True, True, False, True]),
+    ],
+)
+def test_duplicated(dtype, keep, expected):
+    arr = pd.array(["a", "猫", pd.NA, "a", pd.NA, "é", "猫"], dtype=dtype)
+
+    result = arr.duplicated(keep=keep)
+
+    expected = np.array(expected)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_duplicated_empty(dtype):
+    arr = pd.array([], dtype=dtype)
+
+    result = arr.duplicated()
+
+    expected = np.array([], dtype=bool)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_value_counts_with_normalize(dtype):
     if dtype.na_value is np.nan:
         exp_dtype = np.float64
