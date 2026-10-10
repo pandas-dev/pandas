@@ -7418,8 +7418,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 and value.index.equals(result.columns[result.columns.isin(value.index)])
             ):
                 # GH#36608 labels match the columns (or a subset) in order
-                locs = np.flatnonzero(result.columns.isin(value.index))
-                for loc, fill_value in zip(locs, value, strict=True):
+                matched = np.flatnonzero(result.columns.isin(value.index))
+                for loc, fill_value in zip(matched, value, strict=True):
                     target = result.iloc[:, loc]
                     res_loc = target.fillna(fill_value, limit=limit)
                     if inplace and res_loc.dtype == target.dtype:
