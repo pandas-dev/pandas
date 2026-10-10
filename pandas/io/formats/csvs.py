@@ -303,11 +303,29 @@ class CSVFormatter:
             col_line.extend(columns._get_level_values(i))
             yield col_line
 
-        # Write out the index line if it's not empty.
-        # Otherwise, we will print out an extraneous
-        # blank line between the mi and the data rows.
         if self.encoded_labels and set(self.encoded_labels) != {""}:
             yield self.encoded_labels + [""] * len(columns)
+        elif self.index and self._first_row_reads_as_index_line():
+            # Otherwise skip the all-blank index line, unless read_csv would
+            # then take the first data row for it (GH#21995).
+            yield [""] * len(col_line)
+
+    def _first_row_reads_as_index_line(self) -> bool:
+        # Mirrors read_csv, which takes the line after a multi-row header as
+        # index names when it has at least as many blanks as non-index fields.
+        if len(self.obj) == 0:
+            return False
+        res = self.obj.iloc[:1]._get_values_for_csv(**self._number_format)
+        values = [arr[0] for arr in res._iter_column_arrays()]
+        index_values = self.data_index[:1]._get_values_for_csv(**self._number_format)
+        if self.nlevels > 1:
+            values += list(index_values[0])
+        else:
+            values.append(index_values[0])
+        num_blank = sum(
+            val is None or (isinstance(val, str) and not val) for val in values
+        )
+        return len(values) - self.nlevels <= num_blank
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
