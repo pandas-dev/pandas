@@ -196,6 +196,7 @@ I/O
 - Bug in :func:`read_sas` exhausting memory instead of raising ``ValueError`` on a SAS7BDAT file that claims more rows than it can hold, when read from an uncompressed file, a zip archive, or a ``BytesIO`` (:issue:`70721`)
 - Bug in :func:`read_sas` returning rows that were deleted from an uncompressed SAS7BDAT file (:issue:`15963`)
 - Bug in :func:`read_sas` with ``format="xport"`` reading zeros as ``5.397605e-79`` (:issue:`50670`)
+- Bug in :meth:`DataFrame.to_csv` with :class:`MultiIndex` columns and an unnamed index or ``index_label=False`` where a first row of missing values was read back by :func:`read_csv` as the index names and dropped; an empty index-names line is now written in this case (:issue:`21995`)
 - Bug in :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle` and similar writers where writing to a ``file://`` URL raised for a new file and silently left an existing file unchanged; writing to other URLs such as ``http://`` now raises instead of silently discarding the data (:issue:`55828`)
 - Bug in :meth:`DataFrame.to_excel` where a ``NaN`` label in :class:`MultiIndex` columns was written as the last value of that level instead of an empty cell (:issue:`62340`)
 - Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
