@@ -117,15 +117,9 @@ class CParserWrapper(ParserBase):
                 pass
             count_quoted_newlines = self._src_start is None
         self._reader_kwds = kwds
-        try:
-            self._reader = parsers.TextReader(
-                src, count_quoted_newlines=count_quoted_newlines, **kwds
-            )
-        except ParserError as err:
-            exact = self._bad_line_error_with_file_line(err)
-            if exact is None:
-                raise
-            raise exact from None
+        self._reader = parsers.TextReader(
+            src, count_quoted_newlines=count_quoted_newlines, **kwds
+        )
         # Let the pyarrow string fast path return raw pending-column handles;
         # read() wraps them into one ExtensionArray per column at the end.
         self._reader.defer_pa_wrap = True
