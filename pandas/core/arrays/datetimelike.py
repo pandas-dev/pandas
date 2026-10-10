@@ -53,6 +53,7 @@ from pandas._libs.tslibs.fields import (
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 from pandas._libs.tslibs.timedeltas import get_unit_for_round
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
+from pandas._libs.tslibs.tzconversion import tz_localize_rounded
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -2023,6 +2024,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             self = cast("DatetimeArray", self)
             naive = self.tz_localize(None)
             result = naive._round(freq, mode, ambiguous, nonexistent)
+            if ambiguous is None:
+                result_i8 = tz_localize_rounded(
+                    result.asi8, self.asi8, self.tz, mode, nonexistent, self._creso
+                )
+                return self._simple_new(
+                    result_i8.view(self._ndarray.dtype), dtype=self.dtype
+                )
             return result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent
             )
@@ -2041,7 +2049,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def round(  # type: ignore[override]
         self,
         freq,
-        ambiguous: TimeAmbiguous = "raise",
+        ambiguous: TimeAmbiguous | None = None,
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
         """
@@ -2058,9 +2066,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool-ndarray, 'NaT', 'raise' or None, default None
             Only relevant for DatetimeIndex:
 
+            - None resolves each ambiguous time to whichever of its two
+              occurrences is nearer the original time.
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
@@ -2149,7 +2159,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def floor(
         self,
         freq,
-        ambiguous: TimeAmbiguous = "raise",
+        ambiguous: TimeAmbiguous | None = None,
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
         """
@@ -2165,9 +2175,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool-ndarray, 'NaT', 'raise' or None, default None
             Only relevant for DatetimeIndex:
 
+            - None resolves each ambiguous time to the later of its two
+              occurrences that is not after the original time.
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
@@ -2243,6 +2255,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
 
+        >>> rng_tz.floor("2h")
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
+
         >>> rng_tz.floor("2h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
@@ -2256,7 +2272,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def ceil(
         self,
         freq,
-        ambiguous: TimeAmbiguous = "raise",
+        ambiguous: TimeAmbiguous | None = None,
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
         """
@@ -2272,9 +2288,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool-ndarray, 'NaT', 'raise' or None, default None
             Only relevant for DatetimeIndex:
 
+            - None resolves each ambiguous time to the earlier of its two
+              occurrences that is not before the original time.
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
@@ -2349,6 +2367,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         ``nonexistent`` to control how the timestamp should be re-localized.
 
         >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+        >>> rng_tz.ceil("h")
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
         >>> rng_tz.ceil("h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
