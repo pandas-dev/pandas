@@ -192,6 +192,15 @@ class TestPeriodRange:
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             pd.period_range(start=start_b, end=end_b)
 
+    def test_tzaware_warns(self):
+        # GH#47005
+        with tm.assert_produces_warning(UserWarning, match="drop timezone"):
+            result = pd.period_range(
+                "2022-01-01 06:00+02:00", "2022-01-01 09:00+02:00", freq="h"
+            )
+        expected = pd.period_range("2022-01-01 06:00", "2022-01-01 09:00", freq="h")
+        tm.assert_index_equal(result, expected)
+
 
 class TestPeriodRangeDisallowedFreqs:
     def test_constructor_U(self):

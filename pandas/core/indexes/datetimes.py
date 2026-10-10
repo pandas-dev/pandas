@@ -2139,7 +2139,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         lower, upper: pd.Timestamp
         """
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
-        per = Period(parsed, freq=freq)
+        # tz is re-applied below, GH#47005
+        per = Period(parsed.replace(tzinfo=None), freq=freq)
         start = per.start_time
         # Can't use end_time here bc that will subtract a microsecond
         #  instead of a nanosecond
