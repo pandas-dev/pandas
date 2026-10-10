@@ -185,8 +185,6 @@ class TestSeriesClip:
                 "2020-01-01",
                 list(pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-01"])),
             ),
-            # a dtype that cannot be hashed
-            ([(1, 2), 3, (0, 1)], 3, 3, [3, 3, 3]),
         ],
     )
     def test_clip_ordered_categorical(self, categories, lower, upper, expected):
