@@ -783,6 +783,57 @@ class BaseMethodsTests:
         ser.mask(~cond, other, inplace=True)
         tm.assert_equal(ser, expected)
 
+    def test_where_series_listlike_other(self, data):
+        # GH#63842 a list 'other' is lined up against the mask without
+        #  casting to object
+        cls = type(data)
+        first, second = data[:2]
+        ser = pd.Series(
+            cls._from_sequence([first, first, second, second], dtype=data.dtype)
+        )
+        cond = np.array([True, False, True, False])
+
+        result = ser.where(cond, [second, second, first, first])
+        expected = pd.Series(
+            cls._from_sequence([first, second, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(result, expected)
+
+        # a length-1 'other' is broadcast, as it is for numpy dtypes
+        result = ser.where(cond, [first])
+        expected = pd.Series(
+            cls._from_sequence([first, first, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_where_series_listlike_other_wrong_length(self, data):
+        # GH#63842 a length that is neither 1 nor len(self) cannot be lined up
+        cls = type(data)
+        first, second = data[:2]
+        ser = pd.Series(
+            cls._from_sequence([first, first, second, second], dtype=data.dtype)
+        )
+        cond = np.array([True, False, True, False])
+
+        msg = r"Length of values \(3\) does not match length of index \(4\)"
+        with pytest.raises(ValueError, match=msg):
+            ser.where(cond, [first, second, first])
+
+    def test_mask_listlike_other_inplace(self, data):
+        # GH#63842
+        cls = type(data)
+        first, second = data[:2]
+        ser = pd.Series(
+            cls._from_sequence([first, first, second, second], dtype=data.dtype)
+        )
+        cond = np.array([True, False, True, False])
+
+        ser.mask(~cond, [first], inplace=True)
+        expected = pd.Series(
+            cls._from_sequence([first, first, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(ser, expected)
+
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):
         arr = type(data)._from_sequence(data[:3], dtype=data.dtype)

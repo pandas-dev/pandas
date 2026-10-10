@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -847,6 +849,104 @@ def test_where_string_dtype(frame_or_series):
 
     obj.mask(~filter_ser, filtered_obj, inplace=True)
     tm.assert_equal(result, expected)
+
+
+def test_where_tuple_other_numeric_ea(any_numeric_ea_and_arrow_dtype):
+    # GH#63842 for numeric dtypes a tuple is lined up against the mask, as for
+    #  numpy dtypes
+    dtype = any_numeric_ea_and_arrow_dtype
+    ser = pd.Series(pd.array([1, 2, 3, 4], dtype=dtype))
+    cond = pd.Series([True, False, True, False])
+    expected = pd.Series(pd.array([1, 8, 3, 6], dtype=dtype))
+
+    result = ser.where(cond, (9, 8, 7, 6))
+    tm.assert_series_equal(result, expected)
+
+    ser.mask(~cond, (9, 8, 7, 6), inplace=True)
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["bool", "boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_where_tuple_other_bool(dtype):
+    # GH#63842
+    ser = pd.Series([True, True, True, True], dtype=dtype)
+    cond = pd.Series([True, False, True, False])
+    expected = pd.Series([True, False, True, False], dtype=dtype)
+
+    result = ser.where(cond, (False, False, False, False))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("other", [("x", "y", "z"), {"zz": 1}])
+def test_where_listlike_scalar_other(any_string_dtype, other):
+    # GH#37681, GH#63842 a tuple is a valid scalar and a dict is keyed, not
+    #  positional, so -- as for object dtype -- either is filled in whole
+    ser = pd.Series(["a", "b", "c"], dtype=any_string_dtype)
+    result = ser.where(pd.Series([True, False, True]), other)
+    expected = pd.Series(["a", other, "c"], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+def test_where_set_other_numeric_ea_raises(any_numeric_ea_and_arrow_dtype):
+    # GH#63842 a set has no element order, so it is not lined up against the
+    #  mask in hash order
+    ser = pd.Series(pd.array([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype))
+    with pytest.raises(TypeError):
+        ser.where(pd.Series([True, False, True]), {7, 8, 9})
+
+
+def test_index_where_listlike_other_keeps_ea_dtype(any_numeric_ea_and_arrow_dtype):
+    # GH#63842 Index.where and Index.putmask reach the same code path
+    dtype = any_numeric_ea_and_arrow_dtype
+    idx = pd.Index(pd.array([1, 2, 3, 4], dtype=dtype))
+    cond = np.array([True, False, True, False])
+
+    result = idx.where(cond, [9, 8, 7, 6])
+    tm.assert_index_equal(result, pd.Index(pd.array([1, 8, 3, 6], dtype=dtype)))
+
+    result = idx.putmask(~cond, [9, 8, 7, 6])
+    tm.assert_index_equal(result, pd.Index(pd.array([1, 8, 3, 6], dtype=dtype)))
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2016-01-01", periods=4),
+        pd.period_range("2016-01-01", periods=4),
+        pd.Categorical(list("abab")),
+    ],
+)
+def test_putmask_one_value_per_selected_position(values):
+    # GH#63842 a list with one value per True entry is left to _putmask
+    new = list(values[[3, 2]])
+    cond = [True, True, False, False]
+    expected = pd.Series(values[[3, 2, 2, 3]])
+
+    ser = pd.Series(values)
+    ser.mask(pd.Series(cond), new, inplace=True)
+    tm.assert_series_equal(ser, expected)
+
+    df = pd.DataFrame({"a": values})
+    df[pd.DataFrame({"a": cond})] = new
+    tm.assert_frame_equal(df, expected.to_frame("a"))
+
+
+def test_where_listlike_other_not_coerced_to_dtype(any_string_dtype):
+    # GH#63842 the list is not run through _from_sequence, which would turn 9
+    #  into "9" rather than upcasting
+    ser = pd.Series(pd.array(["a", "b", "c", "d"], dtype=any_string_dtype))
+    result = ser.where(pd.Series([True, False, True, False]), [9, 8, 7, 6])
+    tm.assert_series_equal(result, pd.Series(["a", 8, "c", 6], dtype=object))
+
+
+def test_where_listlike_other_unknown_category_raises():
+    # GH#63842 _from_sequence would turn the unknown category into NaN
+    cat = pd.Series(pd.Categorical(["a", "b", "a", "b"]))
+    with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
+        cat.where(pd.Series([True, False, True, False]), ["z", "z", "z", "z"])
 
 
 def test_where_bool_comparison():
