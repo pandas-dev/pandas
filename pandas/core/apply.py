@@ -37,7 +37,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -70,6 +72,7 @@ if TYPE_CHECKING:
         AggFuncTypeBase,
         AggFuncTypeDict,
         AggObjType,
+        ArrayLike,
         Axis,
         AxisInt,
         DtypeObj,
@@ -1385,10 +1388,52 @@ class FrameApply(NDFrameApply):
         if len(results) == 0 and constructor_sliced is Series:
             result = constructor_sliced(results, dtype=np.float64)
         else:
-            result = constructor_sliced(results)
+            values = self._pointwise_cast_results(results)
+            if values is None:
+                result = constructor_sliced(results)
+            else:
+                # GH#61812 retain the frame's extension dtype instead of
+                #  inferring one from the scalar results, as groupby.agg does
+                result = constructor_sliced(values, copy=False)
         result.index = res_index
 
         return result
+
+    def _pointwise_cast_results(self, results: ResType) -> ArrayLike | None:
+        """
+        The scalar results cast back to the frame's extension dtype, or None if
+        there is no dtype to retain and they should be inferred as before.
+
+        Only a frame with a single extension dtype qualifies: every value handed
+        to the function then had that dtype, so one result dtype is well-defined
+        for either axis.
+        """
+        dtypes = self.obj._mgr.get_dtypes()
+        if not isinstance(dtypes[0], ExtensionDtype):
+            return None
+        if isinstance(dtypes[0], SparseDtype):
+            # sparsity is a storage layout rather than a result dtype, and
+            #  SparseArray's cast drops a tz, see test_apply_sparse_not_retained
+            return None
+        if isinstance(dtypes[0], CategoricalDtype):
+            # the cast keeps category only if every result is a category, so the
+            #  dtype would depend on the values, see test_apply_categorical_not_retained
+            return None
+        if any(dtype != dtypes[0] for dtype in dtypes[1:]):
+            return None
+        # cast: a single ExtensionDtype implies an ExtensionArray
+        arr = cast("ExtensionArray", self.obj._get_column_array(0))
+        try:
+            values = arr._cast_pointwise_result(list(results.values()))
+        except Exception:
+            # Deliberately broad: retaining a dtype must not make a working
+            #  apply raise, see test_apply_ea_dtype_falls_back_when_cast_raises
+            return None
+        if not isinstance(values.dtype, ExtensionDtype):
+            # the cast fell back to inference; leave that to the constructor so
+            #  a frame with nothing to retain behaves exactly as before
+            return None
+        return values
 
     def apply_str(self) -> DataFrame | Series:
         # Caller is responsible for checking isinstance(self.func, str)
