@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -14,14 +11,14 @@ class DotSharedTests:
         raise NotImplementedError
 
     @pytest.fixture
-    def other(self) -> DataFrame:
+    def other(self) -> pd.DataFrame:
         """
         other is a DataFrame that is indexed so that obj.dot(other) is valid
         """
         raise NotImplementedError
 
     @pytest.fixture
-    def expected(self, obj, other) -> DataFrame:
+    def expected(self, obj, other) -> pd.DataFrame:
         """
         The expected result of obj.dot(other)
         """
@@ -83,13 +80,13 @@ class DotSharedTests:
 class TestSeriesDot(DotSharedTests):
     @pytest.fixture
     def obj(self):
-        return Series(
+        return pd.Series(
             np.random.default_rng(2).standard_normal(4), index=["p", "q", "r", "s"]
         )
 
     @pytest.fixture
     def other(self):
-        return DataFrame(
+        return pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 4)),
             index=["1", "2", "3"],
             columns=["p", "q", "r", "s"],
@@ -97,7 +94,7 @@ class TestSeriesDot(DotSharedTests):
 
     @pytest.fixture
     def expected(self, obj, other):
-        return Series(np.dot(obj.values, other.values), index=other.columns)
+        return pd.Series(np.dot(obj.values, other.values), index=other.columns)
 
     @classmethod
     def reduced_dim_assert(cls, result, expected):
@@ -110,7 +107,7 @@ class TestSeriesDot(DotSharedTests):
 class TestDataFrameDot(DotSharedTests):
     @pytest.fixture
     def obj(self):
-        return DataFrame(
+        return pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 4)),
             index=["a", "b", "c"],
             columns=["p", "q", "r", "s"],
@@ -118,7 +115,7 @@ class TestDataFrameDot(DotSharedTests):
 
     @pytest.fixture
     def other(self):
-        return DataFrame(
+        return pd.DataFrame(
             np.random.default_rng(2).standard_normal((4, 2)),
             index=["p", "q", "r", "s"],
             columns=["1", "2"],
@@ -126,7 +123,7 @@ class TestDataFrameDot(DotSharedTests):
 
     @pytest.fixture
     def expected(self, obj, other):
-        return DataFrame(
+        return pd.DataFrame(
             np.dot(obj.values, other.values), index=obj.index, columns=other.columns
         )
 
@@ -147,10 +144,10 @@ def test_arrow_dtype(dtype, exp_dtype):
     pytest.importorskip("pyarrow")
 
     cols = ["a", "b"]
-    df_a = DataFrame([[1, 2], [3, 4], [5, 6]], columns=cols, dtype="int32")
-    df_b = DataFrame([[1, 0], [0, 1]], index=cols, dtype=dtype)
+    df_a = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=cols, dtype="int32")
+    df_b = pd.DataFrame([[1, 0], [0, 1]], index=cols, dtype=dtype)
     result = df_a.dot(df_b)
-    expected = DataFrame([[1, 2], [3, 4], [5, 6]], dtype=exp_dtype)
+    expected = pd.DataFrame([[1, 2], [3, 4], [5, 6]], dtype=exp_dtype)
 
     tm.assert_frame_equal(result, expected)
 
@@ -163,9 +160,9 @@ def test_arrow_dtype_series(dtype, exp_dtype):
     pytest.importorskip("pyarrow")
 
     cols = ["a", "b"]
-    series_a = Series([1, 2], index=cols, dtype="int32")
-    df_b = DataFrame([[1, 0], [0, 1]], index=cols, dtype=dtype)
+    series_a = pd.Series([1, 2], index=cols, dtype="int32")
+    df_b = pd.DataFrame([[1, 0], [0, 1]], index=cols, dtype=dtype)
     result = series_a.dot(df_b)
-    expected = Series([1, 2], dtype=exp_dtype)
+    expected = pd.Series([1, 2], dtype=exp_dtype)
 
     tm.assert_series_equal(result, expected)

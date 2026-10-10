@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -17,6 +18,8 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
@@ -80,6 +83,7 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Mapping,
         Sequence,
     )
 
@@ -373,7 +377,7 @@ def _check_values_indices_shape_match(
 
 
 def dict_to_mgr(
-    data: dict,
+    data: dict[Hashable, Any],
     index,
     columns,
     *,
@@ -461,7 +465,7 @@ def dict_to_mgr(
 
 
 def nested_data_to_arrays(
-    data: Sequence,
+    data: Sequence[Any],
     columns: Index | None,
     index: Index | None,
     dtype: DtypeObj | None,
@@ -852,9 +856,24 @@ def to_arrays(
     return content, columns
 
 
-def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
+def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
+
+    # GH#65751 shorter sequences get padded with NaN out to the longest one,
+    #  which is deprecated.  A null scalar counts as length 1, mirroring the
+    #  handling in lib.to_object_array_tuples.
+    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    if len(lengths) > 1:
+        warnings.warn(
+            "Constructing a DataFrame from a list of sequences with mismatched "
+            "lengths is deprecated and will raise in a future version. The "
+            "shorter sequences are currently padded with NaN; make all "
+            "sequences the same length before constructing instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     if isinstance(data[0], tuple):
         content = lib.to_object_array_tuples(data)
     else:
@@ -864,7 +883,7 @@ def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
 
 
 def _list_of_series_to_arrays(
-    data: list,
+    data: list[Any],
     columns: Index | None,
 ) -> tuple[np.ndarray, Index]:
     # returned np.ndarray has ndim == 2
@@ -895,7 +914,7 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: list[dict],
+    data: list[Mapping[Hashable, Any]],
     columns: Index | None,
 ) -> tuple[np.ndarray, Index]:
     """

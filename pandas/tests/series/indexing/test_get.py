@@ -2,18 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Series,
-    date_range,
-)
 import pandas._testing as tm
 
 
 def test_get():
     # GH 6383
-    s = Series(
+    s = pd.Series(
         np.array(
             [
                 43,
@@ -44,7 +38,7 @@ def test_get():
     expected = 0
     assert result == expected
 
-    s = Series(
+    s = pd.Series(
         np.array(
             [
                 43,
@@ -69,7 +63,7 @@ def test_get():
                 54,
             ]
         ),
-        index=Index(
+        index=pd.Index(
             [
                 25.0,
                 36.0,
@@ -117,7 +111,7 @@ def test_get():
 
 def test_get_nan(float_numpy_dtype):
     # GH 8569
-    s = Index(range(10), dtype=float_numpy_dtype).to_series()
+    s = pd.Index(range(10), dtype=float_numpy_dtype).to_series()
     assert s.get(np.nan) is None
     assert s.get(np.nan, default="Missing") == "Missing"
 
@@ -126,7 +120,7 @@ def test_get_nan_multiple(float_numpy_dtype):
     # GH 8569
     # ensure that fixing "test_get_nan" above hasn't broken get
     # with multiple elements
-    s = Index(range(10), dtype=float_numpy_dtype).to_series()
+    s = pd.Index(range(10), dtype=float_numpy_dtype).to_series()
 
     idx = [2, 30]
     assert s.get(idx) is None
@@ -148,7 +142,7 @@ def test_get_with_default():
     d1 = np.arange(4, dtype="int64")
 
     for data, index in ((d0, d1), (d1, d0)):
-        s = Series(data, index=index)
+        s = pd.Series(data, index=index)
         for i, d in zip(index, data, strict=True):
             assert s.get(i) == d
             assert s.get(i, d) == d
@@ -165,14 +159,14 @@ def test_get_with_default():
     "arr",
     [
         np.random.default_rng(2).standard_normal(10),
-        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
+        pd.DatetimeIndex(pd.date_range("2020-01-01", periods=10), name="a").tz_localize(
             tz="US/Eastern"
         ),
     ],
 )
 def test_get_with_ea(arr):
     # GH#21260
-    ser = Series(arr, index=[2 * i for i in range(len(arr))])
+    ser = pd.Series(arr, index=[2 * i for i in range(len(arr))])
     assert ser.get(4) == ser.iloc[2]
 
     result = ser.get([4, 6])
@@ -186,7 +180,7 @@ def test_get_with_ea(arr):
     assert ser.get(-1) is None
     assert ser.get(ser.index.max() + 1) is None
 
-    ser = Series(arr[:6], index=list("abcdef"))
+    ser = pd.Series(arr[:6], index=list("abcdef"))
     assert ser.get("c") == ser.iloc[2]
 
     result = ser.get(slice("b", "d"))
@@ -202,7 +196,7 @@ def test_get_with_ea(arr):
     assert ser.get(len(ser)) is None
 
     # GH#21257
-    ser = Series(arr)
+    ser = pd.Series(arr)
     ser2 = ser[::2]
     assert ser2.get(1) is None
 
@@ -221,8 +215,8 @@ def test_getitem_get(string_series, object_series):
 
 def test_get_none():
     # GH#5652
-    s1 = Series(dtype=object)
-    s2 = Series(dtype=object, index=list("abc"))
+    s1 = pd.Series(dtype=object)
+    s2 = pd.Series(dtype=object, index=list("abc"))
     for s in [s1, s2]:
         result = s.get(None)
         assert result is None

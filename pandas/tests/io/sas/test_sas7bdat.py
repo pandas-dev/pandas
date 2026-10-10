@@ -1,9 +1,11 @@
+import bz2
 import contextlib
 from datetime import datetime
 import io
 import os
 from pathlib import Path
 import struct
+import weakref
 
 import numpy as np
 import pytest
@@ -13,6 +15,7 @@ from pandas._config import using_string_dtype
 from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
+    OutOfBoundsDatetime,
     Pandas4Warning,
 )
 
@@ -171,7 +174,8 @@ def test_encoding_default_deprecated_header_text_only(datapath):
     fname = datapath("io", "sas", "data", "datetime.sas7bdat")
     with open(fname, "rb") as fd:
         data = bytearray(fd.read())
-    assert b"s" not in SAS7BDATReader(fname, encoding=None)._column_types
+    with contextlib.closing(SAS7BDATReader(fname, encoding=None)) as rdr:
+        assert b"s" not in rdr._column_types
     # This file declares cp1251; make a column name non-ascii so latin-1 and
     #  the declared encoding disagree
     ix = data.index(b"DateTimeHi")
@@ -361,7 +365,98 @@ def test_inconsistent_number_of_rows(datapath):
     # Regression test for issue #16615. (PR #22628)
     fname = datapath("io", "sas", "data", "load_log.sas7bdat")
     df = pd.read_sas(fname, encoding="latin-1")
-    assert len(df) == 2097
+    # GH#15963 9 of the 2097 rows in the file are marked deleted
+    assert len(df) == 2088
+
+
+@pytest.mark.parametrize("last_on_page", [False, True])
+@pytest.mark.parametrize("chunksize", [None, 1, 69, 278, 2087])
+def test_deleted_rows(datapath, tmp_path, chunksize, last_on_page):
+    # GH#15963 load_log marks rows deleted on a mix page (page 0) and on a data
+    # page (page 4). Clearing those pages' flag gives the same file with every
+    # row kept.
+    fname = datapath("io", "sas", "data", "load_log.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, encoding="latin-1")) as rdr:
+        header_length = rdr.header_length
+        page_length = rdr._page_length
+        bit_offset = rdr._page_bit_offset
+    raw = Path(fname).read_bytes()
+    data = bytearray(raw)
+    for page in [0, 4]:
+        # The flag is in the low byte of the little-endian page type
+        data[header_length + page * page_length + bit_offset] &= ~0x80
+    undeleted = tmp_path / "undeleted.sas7bdat"
+    undeleted.write_bytes(data)
+
+    deleted = [68, 69, 70, 71, 96, 1217, 1218, 1219, 1220]
+    if last_on_page:
+        # Also delete the last row of each page, so skipping it moves to the
+        # next page. (page, offset of its bitmap, rows on the page, first row)
+        data = bytearray(raw)
+        for page, bitmap, nrows, first in [(0, 62913, 278, 0), (4, 65499, 292, 1154)]:
+            row = nrows - 1
+            pos = header_length + page * page_length + bitmap + row // 8
+            data[pos] |= 0x80 >> (row % 8)
+            deleted.append(first + row)
+        fname = tmp_path / "more_deleted.sas7bdat"
+        fname.write_bytes(data)
+
+    expected = pd.read_sas(undeleted, encoding="latin-1")
+    assert expected.loc[96].isna().all()
+    expected = expected.drop(index=deleted).reset_index(drop=True)
+
+    if chunksize is None:
+        result = pd.read_sas(fname, encoding="latin-1")
+    else:
+        with pd.read_sas(fname, encoding="latin-1", chunksize=chunksize) as rdr:
+            result = pd.concat(rdr)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "name, page, first, rows",
+    [
+        ("cars", 0, 0, [0, 110]),  # x86 little-endian, mix page
+        ("cars", 1, 111, [0, 175]),  # x86 little-endian, data page
+        ("test10", 0, 0, [3, 9]),  # x86 big-endian
+        ("test13", 0, 0, [3, 9]),  # x64 big-endian
+    ],
+)
+def test_deleted_rows_other_layouts(datapath, tmp_path, name, page, first, rows):
+    # GH#15963 the only real file with deleted rows is x64 little-endian, so
+    # mark rows deleted in files with the other layouts.
+    fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, encoding="latin-1")) as rdr:
+        expected = rdr.read()
+        start = rdr.header_length + page * rdr._page_length
+        page_end = start + rdr._page_length
+        bit_offset = rdr._page_bit_offset
+        pointer_length = rdr._subheader_pointer_length
+        row_length = rdr.row_length
+        order = rdr.byte_order
+        deleted_pointer_offset = 24 if rdr.U64 else 12
+    data = bytearray(Path(fname).read_bytes())
+    page_type, block_count, subheader_count = struct.unpack_from(
+        order + "3H", data, start + bit_offset
+    )
+    struct.pack_into(order + "H", data, start + bit_offset, page_type | 0x80)
+    rows_start = bit_offset + 8 + subheader_count * pointer_length
+    rows_start += rows_start % 8
+    nrows = block_count - subheader_count
+    rows_end = start + rows_start + nrows * row_length
+    # Put the bitmap in the first unused bytes after the rows
+    bitmap = data.index(bytes((nrows + 7) // 8), rows_end, page_end)
+    struct.pack_into(
+        order + "I", data, start + deleted_pointer_offset, bitmap - rows_end
+    )
+    for row in rows:
+        data[bitmap + row // 8] |= 0x80 >> (row % 8)
+    path = tmp_path / "deleted.sas7bdat"
+    path.write_bytes(data)
+
+    result = pd.read_sas(path, encoding="latin-1")
+    expected = expected.drop(index=[first + row for row in rows])
+    tm.assert_frame_equal(result, expected.reset_index(drop=True))
 
 
 def test_zero_variables(datapath):
@@ -433,7 +528,7 @@ def test_max_sas_date_iterator(datapath):
     results = []
     for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
         # GH 19732: Timestamps imported from sas will incur floating point errors
-        df.reset_index(inplace=True, drop=True)
+        df = df.reset_index(drop=True)
         results.append(df)
     expected = [
         pd.DataFrame(
@@ -462,6 +557,61 @@ def test_max_sas_date_iterator(datapath):
 
     tm.assert_frame_equal(results[0], expected[0])
     tm.assert_frame_equal(results[1], expected[1])
+
+
+@pytest.mark.parametrize("field_offset, what", [(65816, "date"), (65824, "datetime")])
+@pytest.mark.parametrize("value", [-(2.0**63), -1e300, 2.0**63, 1e300])
+def test_date_too_large_to_cast_raises(datapath, field_offset, what, value):
+    # GH#47339 a day or second count too large to fit int64 saturates when it is
+    #  cast: a negative one landed on the NaT sentinel and was read as missing,
+    #  while a positive one raised, but naming a date the file does not hold --
+    #  the same one whatever the file held. No real SAS date is anywhere near
+    #  this large, so such a cell means a corrupt file (or a non-date column
+    #  carrying a date format). 65816 and 65824 are the file offsets of the
+    #  first row's date and datetime cells.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<d", data, field_offset, value)
+    with pytest.raises(OutOfBoundsDatetime, match=rf"Out of bounds SAS {what} value"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize("value", [2.0**63 / 86400, -(2.0**63 / 86400)])
+def test_date_too_large_to_scale_to_seconds_raises(datapath, value):
+    # GH#47339 a day count is scaled by 86400 so that its fraction survives, so
+    #  the guard has to sit that much below the int64 bound: -(2**63 / 86400)
+    #  days scales to exactly float(iNaT), which the cast deliberately
+    #  round-trips to NaT -- silently missing data, which is what the guard is
+    #  there to stop. Date-only: the same magnitude as a second count is in range.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<d", data, 65816, value)
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds SAS date value"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize(
+    "day_count, expected_date",
+    [
+        (21762 + (13 * 3600 + 45 * 60 + 37) / 86400, "2019-08-01T13:45:37"),
+        (-0.5, "1959-12-31T12:00:00"),
+    ],
+)
+def test_fractional_date_keeps_time_of_day(datapath, day_count, expected_date):
+    # GH#47339 GH#56127 SAS stores a DATE value as a float64 day count and does
+    #  not force it whole, so a computed date-formatted column can carry a
+    #  fraction that the M8[D] cast dropped. That cast truncated toward zero, so
+    #  a date before the 1960 epoch came back a whole day late -- -0.5 read as
+    #  1960-01-01, not just at the wrong time of day. 65816 is the file offset
+    #  of the first row's date cell.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<d", data, 65816, day_count)
+    df = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+    expected = pd.Series(
+        np.array([expected_date, "NaT"], dtype="M8[s]"), name="datecol"
+    )
+    tm.assert_series_equal(df["datecol"], expected)
 
 
 def test_null_date(datapath):
@@ -604,6 +754,33 @@ def test_column_offset_past_row_raises(
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+@pytest.mark.parametrize(
+    "test_file, row_length_field_offset, int_len, row_length",
+    [
+        # byte offset of the row-size subheader's row_length field (it lands on
+        # page 1, not the header page, for these fixtures), the file's word
+        # size, and its known-good row length
+        ("test1.sas7bdat", 130612, 4, 816),  # 32-bit, uncompressed
+        ("test2.sas7bdat", 130612, 4, 809),  # 32-bit, RLE compressed
+        ("test7.sas7bdat", 130304, 8, 816),  # 64-bit
+    ],
+)
+def test_row_length_exceeds_page_size_raises(
+    datapath, test_file, row_length_field_offset, int_len, row_length
+):
+    # GH#66475 an inflated row_length overflowed the C `int` used in
+    # process_byte_array_with_data's offset + length bounds check in sas.pyx,
+    # causing a segfault instead of a clean error.
+    with open(datapath("io", "sas", "data", test_file), "rb") as fd:
+        data = bytearray(fd.read())
+    bad_value = 0x7FFFFFF0
+    data[row_length_field_offset : row_length_field_offset + int_len] = (
+        bad_value.to_bytes(int_len, "little")
+    )
+    with pytest.raises(ValueError, match=r"row_length \(\d+\) exceeds the page size"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
 @pytest.mark.parametrize("bad_length", [9, 16, 4096])
 def test_numeric_column_longer_than_8_bytes_raises(datapath, bad_length):
     # GH#47339 a numeric column is widened into 8 bytes of the output buffer, so
@@ -625,6 +802,279 @@ def test_column_offset_near_int64_max_raises(datapath, bad_offset):
     data[125532:125540] = bad_offset.to_bytes(8, "little")
     with pytest.raises(ValueError, match="the file is corrupt"):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+def _dates_null_with_late_metadata_page(
+    datapath,
+    sub_offset,
+    sub_length,
+    patches,
+    total_rows=6,
+    tail_page_type=const.page_data_type,
+):
+    """
+    dates_null.sas7bdat, with a metadata page inserted after its data rows.
+
+    dates_null is a 64-bit uncompressed file: a 65536-byte header followed by
+    one 65536-byte mix page holding two 16-byte rows. The copy built here claims
+    more rows than that page holds and continues with a metadata page carrying a
+    patched copy of the subheader at ``sub_offset``, so that the patch is
+    processed only once the parser has read past the mix page, and then with a
+    data page for the rows it still owes.
+    """
+    page_length = header_length = 65536
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+
+    rowsize = header_length + 64728
+    # row_count, and the number of rows the mix page is said to hold: enough
+    # rows are owed to reach the appended pages, and the mix page's own two are
+    # all it hands out.
+    struct.pack_into("<q", data, rowsize + 6 * 8, total_rows)
+    struct.pack_into("<q", data, rowsize + 15 * 8, 2)
+
+    # page type, block count and subheader count are the first three fields of
+    # a page header, and the pointers to its subheaders follow them
+    bit_offset = const.page_bit_offset_x64
+    pointers = bit_offset + const.subheader_pointers_offset
+
+    meta_page = bytearray(page_length)
+    struct.pack_into("<HHH", meta_page, bit_offset, const.page_meta_type, 0, 1)
+    sub_position = 4096
+    # the page's single subheader pointer: offset then length
+    struct.pack_into("<qq", meta_page, pointers, sub_position, sub_length)
+    subheader = bytearray(data[header_length + sub_offset :][:sub_length])
+    for field_offset, value in patches:
+        struct.pack_into("<q", subheader, field_offset, value)
+    meta_page[sub_position : sub_position + sub_length] = subheader
+
+    data_page = bytearray(page_length)
+    struct.pack_into("<HHH", data_page, bit_offset, tail_page_type, 4, 0)
+
+    return bytes(data) + bytes(meta_page) + bytes(data_page)
+
+
+@pytest.mark.parametrize(
+    "sub_offset, sub_length, patches",
+    [
+        # The row-size subheader, whose row_length the columns are laid out in.
+        #  Shrinking it leaves them hanging off the end of the row -- and, for
+        #  the last row on a page, off the page; growing it reads every column
+        #  from the wrong bytes. row_count and the mix page's share of it are
+        #  kept as page 0 declares them.
+        (64728, 808, [(5 * 8, 8), (6 * 8, 6), (15 * 8, 2)]),
+        (64728, 808, [(5 * 8, 4096), (6 * 8, 6), (15 * 8, 2)]),
+        # The column-size subheader. Above the number of columns the file
+        #  describes, the parser walks the offset and length arrays off their
+        #  ends; below it, a column the parser did read is dropped from the
+        #  frame and comes back all-NaN.
+        (64704, 24, [(8, 4096)]),
+        (64704, 24, [(8, 1)]),
+        # row_count, which each chunk's size is taken from: too many and the
+        #  reader keeps going past what the file holds, too few and it stops
+        #  short of rows the file does hold. The mix page's own share of it
+        #  moves the boundary between the pages the rows come from.
+        (64728, 808, [(5 * 8, 16), (6 * 8, 12), (15 * 8, 2)]),
+        (64728, 808, [(5 * 8, 16), (6 * 8, 2), (15 * 8, 2)]),
+        (64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 4)]),
+        # Replaying the column-name and column-attributes subheaders verbatim,
+        #  which append rather than overwrite: the file ends up describing each
+        #  of its columns twice.
+        (63960, 44, []),
+        (63900, 60, []),
+    ],
+    ids=[
+        "row_length shrunk",
+        "row_length grown",
+        "count grown",
+        "count shrunk",
+        "row_count grown",
+        "row_count shrunk",
+        "mix page row count",
+        "column names repeated",
+        "column attributes repeated",
+    ],
+)
+def test_late_metadata_page_changing_layout_raises(
+    datapath, sub_offset, sub_length, patches
+):
+    # GH#47339 the column ranges are validated against row_length when the file
+    #  is opened, but a metadata page may follow the first data page and rewrite
+    #  the layout the reader was built around.
+    data = _dates_null_with_late_metadata_page(
+        datapath, sub_offset, sub_length, patches
+    )
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
+    ) as reader:
+        # the chunk that walks onto the metadata page is the one that reports it
+        with pytest.raises(ValueError, match="changes the layout it declared"):
+            reader.read()
+
+
+def test_late_metadata_page_reached_mid_chunk_raises(datapath):
+    # GH#47339 the parser re-read the mix page's row count from the reader for
+    #  every row it took from such a page, so a metadata page reached partway
+    #  through a chunk moved the page-advance boundary for the rest of that same
+    #  chunk -- reading off the end of the page and failing an internal bounds
+    #  assertion, rather than being reported when the chunk ended.
+    data = _dates_null_with_late_metadata_page(
+        datapath,
+        64728,
+        808,
+        [(5 * 8, 16), (6 * 8, 5000), (15 * 8, 4000)],
+        total_rows=5000,
+        tail_page_type=const.page_mix_type,
+    )
+    with pytest.raises(ValueError, match="changes the layout it declared"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize("row_count", [4097, 2**31])
+def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
+    # GH#47339 the mix page's row count is how many rows the parser hands out
+    #  from such a page, so a count the page cannot hold keeps it reading past
+    #  the rows into the page padding and the metadata subheaders behind them.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    # the row-size subheader's row_count and mix-page row count; dates_null is a
+    #  65536-byte page of 16-byte rows, so 4096 is the most it could ever hold.
+    #  row_count moves too, since the smaller of the two bounds the mix page.
+    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, row_count)
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, row_count)
+    with pytest.raises(ValueError, match="does not fit in a 65536-byte page"):
+        pd.read_sas(
+            io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
+        ).read()
+
+
+@pytest.mark.parametrize(
+    "fname, field_offset, fmt",
+    [
+        ("productsales.sas7bdat", 8760, "<I"),
+        ("dates_null.sas7bdat", 65536 + 64728 + 6 * 8, "<q"),
+        ("test2.sas7bdat", 130616, "<I"),
+    ],
+    ids=["32-bit", "64-bit", "compressed"],
+)
+@pytest.mark.parametrize("from_path", [True, False])
+def test_row_count_larger_than_file_raises(
+    datapath, tmp_path, fname, field_offset, fmt, from_path
+):
+    # GH#70721 read() allocates its output for row_count rows before reading
+    #  any, so a corrupt count could exhaust memory instead of raising.
+    with open(datapath("io", "sas", "data", fname), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into(fmt, data, field_offset, 10**5)
+    if from_path:
+        src = tmp_path / fname
+        src.write_bytes(data)
+    else:
+        src = io.BytesIO(data)
+    with pytest.raises(ValueError, match="claims 100000 rows but can hold at most"):
+        pd.read_sas(src, format="sas7bdat", encoding=None)
+
+
+def _productsales_claiming_100000_rows(datapath):
+    with open(datapath("io", "sas", "data", "productsales.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<I", data, 8760, 10**5)
+    return bytes(data)
+
+
+def test_row_count_larger_than_file_counts_rows_already_read(datapath):
+    # GH#70721 productsales can hold at most 1546 rows, so the first chunk is
+    #  within that and the second is not
+    data = _productsales_claiming_100000_rows(datapath)
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=1000, encoding=None
+    ) as reader:
+        assert len(reader.read()) == 1000
+        with pytest.raises(ValueError, match="claims 100000 rows"):
+            reader.read()
+
+
+def test_truncated_file_reads_the_chunks_it_holds(datapath):
+    # GH#70721 the row-count bound is checked per read, so a truncated file
+    #  still yields its leading chunks; see test_0x00_control_byte
+    fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
+    with bz2.open(fname) as fd:
+        data = fd.read()
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=11_000, encoding=None
+    ) as reader:
+        assert reader.read().shape == (11_000, 20)
+
+
+def test_late_metadata_page_repeating_layout_reads(datapath):
+    # GH#47339 the check above must not fire on a metadata page that follows the
+    #  data pages and restates the layout the file was opened with -- the parser
+    #  advances onto the next page as soon as it takes the last row of the one
+    #  it is on, so a trailing metadata page is walked routinely.
+    data = _dates_null_with_late_metadata_page(
+        datapath, 64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 2)]
+    )
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
+    ) as reader:
+        assert len(reader.read()) == 2
+        assert len(reader.read()) == 2
+
+
+def _dates_null_with_overrun_data_page(datapath):
+    # a data page claiming far more rows than fit on it, so that the parser
+    # walks off the end of the page
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, 100000)
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2)
+    data_page = bytearray(65536)
+    struct.pack_into(
+        "<HHH", data_page, const.page_bit_offset_x64, const.page_data_type, 60000, 0
+    )
+    return bytes(data) + bytes(data_page)
+
+
+@pytest.mark.parametrize(
+    "build, expected, match, chunksize",
+    [
+        (
+            lambda datapath: _dates_null_with_late_metadata_page(
+                datapath, 64704, 24, [(8, 1)]
+            ),
+            ValueError,
+            "changes the layout it declared",
+            2,
+        ),
+        (_dates_null_with_overrun_data_page, Exception, "Out of bounds read", 1000),
+        (_productsales_claiming_100000_rows, ValueError, "claims 100000 rows", 1000),
+    ],
+    ids=["layout redefined", "page overrun", "row count past file"],
+)
+def test_chunked_read_closes_the_file_it_rejects(
+    datapath, tmp_path, build, expected, match, chunksize
+):
+    # GH#47339 GH#56127 read_sas closes the file for the caller only when it
+    #  reads the whole of it itself, so a chunked reader that gives up on a file
+    #  has to close it however it gave up. Read from a path, not a buffer: a
+    #  buffer the caller opened is deliberately left to the caller.
+    path = tmp_path / "rejected.sas7bdat"
+    path.write_bytes(build(datapath))
+    reader = pd.read_sas(path, format="sas7bdat", chunksize=chunksize, encoding=None)
+    with pytest.raises(expected, match=match):
+        while not reader.read().empty:
+            pass
+    assert reader.handles.handle.closed
+
+
+def test_dropped_reader_closes_the_file(datapath):
+    # GH#68973 the reader used to hold a list of its own bound methods, so it
+    #  outlived its last reference and kept its file open until a cyclic collection.
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    reader = pd.read_sas(fname, format="sas7bdat", chunksize=2, encoding=None)
+    handle = weakref.ref(reader.handles.handle)
+    del reader
+    assert handle() is None
 
 
 def test_0x40_control_byte(datapath):
@@ -655,6 +1105,20 @@ def _fast_string_path_available() -> bool:
     )
 
 
+# Sized per file to be the largest chunk that still lands boundaries in all four
+# positions the parser distinguishes: starting mid-page, spanning a page, falling
+# wholly inside a data page, and a short final chunk. Chunking these row counts
+# any finer only repeats those four at a few hundred chunks apiece.
+_string_path_chunksizes = {
+    "test1": 7,
+    "test2": 7,
+    "test3": 7,
+    "test16": 7,
+    "load_log": 250,
+    "productsales": 50,
+}
+
+
 # cp037 is EBCDIC: the one encoding here whose bytes below 0x80 are not their
 # own utf-8, so it is what exercises the parser's non-ascii_identity path.
 @pytest.mark.parametrize(
@@ -663,17 +1127,16 @@ def _fast_string_path_available() -> bool:
 )
 # test2 and test3 are the RLE- and RDC-compressed copies of test1, where the
 # parser reads cells out of the decompression buffer rather than the page.
-@pytest.mark.parametrize(
-    "name", ["test1", "test2", "test3", "test16", "load_log", "productsales"]
-)
-@pytest.mark.parametrize("chunksize", [None, 7])
+@pytest.mark.parametrize("name", list(_string_path_chunksizes))
+@pytest.mark.parametrize("chunked", [False, True])
 def test_string_fast_path_matches_object_path(
-    datapath, monkeypatch, encoding, name, chunksize
+    datapath, monkeypatch, encoding, name, chunked
 ):
     # GH#47339 string columns are built as pyarrow arrays directly rather than
     # via an object-dtype array of bytes; the two must agree, including on
     # which files fail to decode.
     fname = datapath("io", "sas", "data", f"{name}.sas7bdat")
+    chunksize = _string_path_chunksizes[name] if chunked else None
     if not _fast_string_path_available():
         expected_mode = const.string_mode_object
     elif encoding == "utf-8":
@@ -880,3 +1343,129 @@ def test_utf8_translation_table_rejects_context_dependent(encoding):
     # once a continuation byte follows; raw_unicode_escape instead maps every
     # byte one to one yet still reads b"\\u0041" as "A".
     assert _utf8_translation_table(encoding) is None
+
+
+def test_amd_page(datapath):
+    # GH#60809 a column renamed after the file was written keeps its new name on
+    #  an amd page after the data; SAS rewriting the file moves it inline
+    df = pd.read_sas(
+        datapath("io", "sas", "data", "amd_page.sas7bdat.bz2"), encoding="infer"
+    )
+    expected = pd.read_sas(
+        datapath("io", "sas", "data", "amd_page_resaved.sas7bdat.bz2"),
+        encoding="infer",
+    )
+    assert df.columns[11] == "TotalNoise"
+    tm.assert_frame_equal(df, expected)
+
+
+def _with_amd_page(datapath, fname, field_offset, text):
+    # fname with an amd page appended holding one column text subheader, and the
+    #  ref at field_offset (from the end of the header) pointed into it
+    path = datapath("io", "sas", "data", fname)
+    with SAS7BDATReader(path) as reader:
+        header_length = reader.header_length
+        page_length = reader._page_length
+        bit_offset = reader._page_bit_offset
+        int_len = reader._int_length
+    with open(path, "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<HHH", data, header_length + field_offset, 1, 8, len(text))
+
+    amd_page = bytearray(page_length)
+    struct.pack_into("<HHH", amd_page, bit_offset, const.page_amd_type, 1, 1)
+    block = struct.pack("<H", 8 + len(text)) + bytes(6) + text
+    subheader = b"\xfd" + b"\xff" * (int_len - 1) + block
+    position = page_length // 2
+    amd_page[position : position + len(subheader)] = subheader
+    struct.pack_into(
+        "<qqBB" if int_len == 8 else "<iiBB",
+        amd_page,
+        bit_offset + const.subheader_pointers_offset,
+        position,
+        len(subheader),
+        0,
+        1,
+    )
+    return bytes(data) + bytes(amd_page)
+
+
+@pytest.mark.parametrize(
+    "field_offset, text, attr, expected",
+    [
+        # datetimecol's name ref, then its format and label refs
+        (63960 + 8 + 16, b"renamed", "name", "renamed"),
+        (63718 + 22 + 24, b"DATETIME", "format", "DATETIME"),
+        (63718 + 28 + 24, b"new label", "label", "new label"),
+    ],
+)
+def test_amd_page_column_text(datapath, field_offset, text, attr, expected):
+    # GH#60809 column text on an amd page was not found or read from the wrong
+    #  text; a wrong format turned a datetime column into float
+    data = _with_amd_page(datapath, "dates_null.sas7bdat", field_offset, text)
+    with SAS7BDATReader(io.BytesIO(data), encoding="infer") as reader:
+        assert getattr(reader.columns[1], attr) == expected
+        df = reader.read()
+    assert df["datecol"].dtype.kind == "M"
+    assert df.iloc[:, 1].dtype.kind == "M"
+
+
+def test_column_name_text_missing_raises(datapath):
+    # GH#60809 a name ref past the column text with no amd page to supply it
+    data = _with_amd_page(datapath, "dates_null.sas7bdat", 63960 + 8 + 16, b"renamed")
+    with pytest.raises(ValueError, match="refers to text subheader 1"):
+        pd.read_sas(io.BytesIO(data[:-65536]), format="sas7bdat", encoding="infer")
+
+
+def test_amd_page_rows_after_scan(datapath):
+    # GH#60809 cars has rows on the pages after its metadata, so they are read
+    #  after the amd scan has moved through the file
+    data = _with_amd_page(datapath, "cars.sas7bdat", 3060 + 4 + 32, b"renamed")
+    expected = pd.read_sas(datapath("io", "sas", "data", "cars.sas7bdat"))
+    expected = expected.rename(columns={"WGT": "renamed"})
+
+    result = pd.read_sas(io.BytesIO(data), format="sas7bdat")
+    tm.assert_frame_equal(result, expected)
+
+    with pd.read_sas(io.BytesIO(data), format="sas7bdat", chunksize=100) as reader:
+        result = pd.concat(reader)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_amd_page_zstd(datapath, tmp_path):
+    # GH#60809 a zstd stream cannot seek back to the rows after the amd scan
+    zstandard = pytest.importorskip("zstandard")
+    data = _with_amd_page(datapath, "cars.sas7bdat", 3060 + 4 + 32, b"renamed")
+    path = tmp_path / "cars.sas7bdat.zst"
+    path.write_bytes(zstandard.ZstdCompressor().compress(data))
+    result = pd.read_sas(path)
+    expected = pd.read_sas(io.BytesIO(data), format="sas7bdat")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("corruption", ["truncated", "pointer past page"])
+def test_amd_page_unusable(datapath, corruption):
+    # GH#60809 an unusable amd page is skipped: a format ref past the column
+    #  text falls back to clamping, as before, and a name ref raises
+    def corrupt(data):
+        if corruption == "truncated":
+            return data[: -65536 // 2]
+        data = bytearray(data)
+        pointer = (
+            len(data)
+            - 65536
+            + const.page_bit_offset_x64
+            + const.subheader_pointers_offset
+        )
+        struct.pack_into("<q", data, pointer, 65536)
+        return bytes(data)
+
+    fname = "dates_null.sas7bdat"
+    data = corrupt(_with_amd_page(datapath, fname, 63718 + 22 + 24, b"DATETIME"))
+    with SAS7BDATReader(io.BytesIO(data), encoding="infer") as reader:
+        # the bytes at the ref's offset in the text block that is present
+        assert reader.columns[1].format == "\x00\x00\x00\x00    "
+
+    data = corrupt(_with_amd_page(datapath, fname, 63960 + 8 + 16, b"renamed"))
+    with pytest.raises(ValueError, match="refers to text subheader 1"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding="infer")

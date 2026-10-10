@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
-
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -92,10 +90,6 @@ class BaseInterfaceTests:
         result_copy1 = np.array(data, copy=True)
         result_copy2 = np.array(data, copy=True)
         assert not np.may_share_memory(result_copy1, result_copy2)
-
-        if not np_version_gt2:
-            # copy=False semantics are only supported in NumPy>=2.
-            return
 
         try:
             result_nocopy1 = np.array(data, copy=False)

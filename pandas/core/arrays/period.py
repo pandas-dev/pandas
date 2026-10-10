@@ -40,13 +40,13 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
 )
-from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
     Tick,
     delta_to_tick,
 )
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
+    INT_TO_PERIOD_DEPR_MSG,
     IncompatibleFrequency,
     Period,
     get_period_field_arr,
@@ -202,7 +202,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "minute",
         "second",
         "weekofyear",
-        "weekday",
         "week",
         "day_of_week",
         "day_of_year",
@@ -210,11 +209,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "qyear",
         "days_in_month",
     ]
-    # GH#46768 - deprecated but still need to be accessible via .dt accessor
-    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
-    _datetimelike_ops: list[str] = (
-        _field_ops + _object_ops + _bool_ops + _deprecated_ops
-    )
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     _dtype: PeriodDtype
@@ -301,6 +296,21 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             scalars = scalars.to_numpy(dtype=object, na_value=NaT)
 
         arrdata = np.asarray(scalars)
+        if arrdata.dtype.kind == "M":
+            # e.g. pyarrow timestamps or a list of np.datetime64; ensure_object
+            #  below would turn datetime64[ns] into integers, GH#70139
+            freq = dtype._freq if dtype is not None else None  # type: ignore[union-attr]
+            return cls._from_datetime64(arrdata, freq)
+        if (
+            arrdata.dtype.kind == "u"
+            and arrdata.size
+            and arrdata.max() > np.iinfo(np.int64).max
+        ):
+            # GH#64231 the int64 cast below would wrap these silently; read
+            #  them through the object path, which rejects them the way the
+            #  Period(int) scalar constructor does.
+            arrdata = arrdata.astype(object)
+
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
             if not lib.all_nans(arrdata):
                 raise TypeError(
@@ -310,6 +320,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return cls(ordinals, dtype=dtype)
 
         elif arrdata.dtype.kind in "iu":
+            # GH#64227 enforcing means dropping from_calendar_ordinals here and
+            #  reading arrdata as ordinals; the object-dtype and Period-scalar
+            #  paths in tslibs.period must be enforced at the same time or the
+            #  two interpretations diverge again.
+            warnings.warn(
+                INT_TO_PERIOD_DEPR_MSG,
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             arr = arrdata.astype(np.int64, copy=False)
             ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
             return cls(ordinals, dtype=dtype)
@@ -364,7 +383,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         return subarr, freq
 
     @classmethod
-    def _from_fields(cls, *, fields: dict, freq) -> Self:
+    def _from_fields(cls, *, fields: dict[str, Any], freq) -> Self:
         subarr, freq = _range_from_fields(freq=freq, **fields)
         dtype = PeriodDtype(freq)
         return cls._simple_new(subarr, dtype=dtype)
@@ -496,6 +515,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the year component for each period in the index.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this can differ
+        from the year shown in the period; see ``qyear``.
+
         See Also
         --------
         PeriodIndex.day_of_year : The ordinal day of the year.
@@ -504,6 +528,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             leap year.
         PeriodIndex.weekofyear : The week ordinal of the year.
         PeriodIndex.year : The year of the period.
+        PeriodIndex.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -520,10 +548,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the month component for each period in the index as an
         integer, where January is 1 and December is 12.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         See Also
         --------
         PeriodIndex.days_in_month : The number of days in the month.
         PeriodIndex.daysinmonth : The number of days in the month.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -539,6 +572,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the day-of-month component for each period in the index.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         See Also
         --------
         PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
@@ -548,6 +584,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         PeriodIndex.days_in_month : The number of days in the month.
         PeriodIndex.daysinmonth : The number of days in the month.
         PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -561,7 +599,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The hour of the period.
 
-        Returns the hour component for each period in the index.
+        Returns the hour of the start of each period, or 0 for daily
+        or coarser frequencies.
 
         See Also
         --------
@@ -581,7 +620,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The minute of the period.
 
-        Returns the minute component for each period in the index.
+        Returns the minute of the start of each period, or 0 for hourly
+        or coarser frequencies.
 
         See Also
         --------
@@ -602,7 +642,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The second of the period.
 
-        Returns the second component for each period in the index.
+        Returns the second of the start of each period, or 0 for minutely
+        or coarser frequencies.
 
         See Also
         --------
@@ -625,6 +666,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the week number (1 through 53) for each period in the index.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         See Also
         --------
         PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
@@ -632,6 +676,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         PeriodIndex.week : The week ordinal of the year.
         PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.year : The year of the period.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -649,6 +695,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the day-of-week component for each period, following the
         Python convention where Monday is 0 and Sunday is 6.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -659,6 +708,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         PeriodIndex.week : The week ordinal of the year.
         PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.weekofyear : The week ordinal of the year.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -674,13 +725,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_week` instead.
+            Use :attr:`PeriodArray.day_of_week` instead.
         """
         # GH#12816
         warnings.warn(
-            f"{type(self).__name__}.weekday is deprecated and will be removed "
-            "in a future version. Use PeriodIndex.day_of_week or "
-            "Series.dt.day_of_week instead.",
+            "PeriodArray.weekday is deprecated and will be removed "
+            "in a future version. Use PeriodArray.day_of_week instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -692,11 +742,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_week` instead.
+            Use :attr:`PeriodArray.day_of_week` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.dayofweek is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_week instead.",
@@ -713,6 +760,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the day-of-year component for each period, ranging from
         1 (January 1st) to 365 or 366 for leap years.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -723,6 +773,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.weekofyear : The week ordinal of the year.
         PeriodIndex.year : The year of the period.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -744,11 +796,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The ordinal day of the year.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_year` instead.
+            Use :attr:`PeriodArray.day_of_year` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.dayofyear is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_year instead.",
@@ -764,10 +813,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the quarter (1 through 4) for each period in the index.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this is the
+        fiscal quarter instead.
+
         See Also
         --------
         PeriodIndex.qyear : Fiscal year the Period lies in according to its
             starting-quarter.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -828,12 +884,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the total number of days in the month of each period,
         accounting for leap years.
 
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
         PeriodIndex.days_in_month : The number of days in the month.
         PeriodIndex.daysinmonth : The number of days in the month.
         PeriodIndex.month : The month as January=1, December=12.
+        PeriodIndex.start_time : Get the Timestamp for the start of each period.
+        PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
         Examples
         --------
@@ -866,11 +927,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The number of days in the month.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.days_in_month` instead.
+            Use :attr:`PeriodArray.days_in_month` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.daysinmonth is deprecated and will be removed in a "
             "future version. Use PeriodArray.days_in_month instead.",
@@ -899,7 +957,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         >>> idx.is_leap_year
         array([False,  True, False])
         """
-        return isleapyear_arr(np.asarray(self.year))
+        # NaT gives year == -1, which the modulo below reports as not-leap
+        year = np.asarray(self.year)
+        return (year % 400 == 0) | ((year % 4 == 0) & (year % 100 > 0))
 
     def to_timestamp(self, freq=None, how: str = "start") -> DatetimeArray:
         """
@@ -914,8 +974,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             's' otherwise.
-        how : {'s', 'e', 'start', 'end'}
+        how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the time period being converted.
+            Case-insensitive.
 
         Returns
         -------
@@ -1051,14 +1112,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         ----------
         freq : str
             A frequency.
-        how : str {'E', 'S'}, default 'E'
-            Whether the elements should be aligned to the end
-            or start within pa period.
-
-            * 'E', 'END', or 'FINISH' for end,
-            * 'S', 'START', or 'BEGIN' for start.
-
-            January 31st ('END') vs. January 1st ('START') for example.
+        how : {'end', 'start', 'e', 's'}, default 'end'
+            Whether the elements should be aligned to the end or start of
+            each period, e.g. January 31st vs. January 1st. Case-insensitive.
 
         Returns
         -------
@@ -1404,13 +1460,6 @@ def period_array(
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[Y-DEC]
 
-    Integers that look like years are handled
-
-    >>> period_array([2000, 2001, 2002], dtype=PeriodDtype("D"))
-    <PeriodArray>
-    ['2000-01-01', '2001-01-01', '2002-01-01']
-    Length: 3, dtype: period[D]
-
     Datetime-like strings may also be passed
 
     >>> period_array(
@@ -1488,9 +1537,9 @@ def dt64arr_to_periodarr(
         if isinstance(data, ABCIndex):
             data, freq = data._values, data.freq
         elif isinstance(data, ABCSeries):
-            # freq is always None for DatetimeArray inside a Series;
-            # data.dt.freq uses inferred_freq, which we are deprecating.
-            inferred_freq = data.dt.freq
+            # freq is always None for DatetimeArray inside a Series, so we
+            #  fall back to the inferred freq.
+            inferred_freq = data._values._inferred_freq_str
             if inferred_freq is not None:
                 warnings.warn(
                     "Constructing PeriodArray from a Series of datetime64 data "
@@ -1504,6 +1553,10 @@ def dt64arr_to_periodarr(
 
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
+
+    if freq is None:
+        # match the message from the object-dtype path in libperiod
+        raise ValueError("freq not specified and cannot be inferred")
 
     reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
@@ -1586,8 +1639,8 @@ def _range_from_fields(
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != FreqGroup.FR_QTR.value:
-                raise AssertionError("base must equal FR_QTR")
+            if FreqGroup.from_period_dtype_code(base) != FreqGroup.FR_QTR:
+                raise ValueError("freq must be a quarterly frequency")
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)

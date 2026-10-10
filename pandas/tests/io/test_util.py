@@ -3,7 +3,6 @@ import zoneinfo
 import pytest
 
 from pandas.compat import (
-    pa_version_under18p0,
     pa_version_under23p0,
 )
 
@@ -17,9 +16,6 @@ pytz = pytest.importorskip("pytz")
 
 
 pytestmark = [
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
     pytest.mark.filterwarnings(
         "ignore:Series.values returning an ndarray that drops timezone "
         "information:pandas.errors.Pandas4Warning"
@@ -57,7 +53,7 @@ def test_arrow_table_to_pandas_normalize_timezones_columns():
     table = pa.Table.from_pandas(df)
     result = arrow_table_to_pandas(table)
 
-    if pa_version_under23p0 and not pa_version_under18p0:
+    if pa_version_under23p0:
         expected.columns = expected.columns.as_unit("ns")
 
     tm.assert_frame_equal(result, expected, check_freq=False)

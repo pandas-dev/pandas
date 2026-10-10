@@ -148,7 +148,12 @@ class DocBuilder:
             SOURCE_PATH,
             os.path.join(BUILD_PATH, kind),
         ]
-        return subprocess.call(cmd)
+        # sphinx-build calls locale.setlocale(locale.LC_ALL, '') on startup,
+        # which adopts the system locale. We force the C locale here to ensure
+        # doc examples relying on C locale formatting (e.g. date/number formatting)
+        # build consistently regardless of the local machine.
+        env = {**os.environ, "LC_ALL": "C"}
+        return subprocess.call(cmd, env=env)
 
     def _open_browser(self, single_doc_html) -> None:
         """
@@ -189,13 +194,16 @@ class DocBuilder:
         Create in the build directory an html file with a redirect,
         for every row in REDIRECTS_FILE.
         """
+        html_path = os.path.join(BUILD_PATH, "html")
+        # some redirects are to files in the generated folder, so ensure this exists
+        os.makedirs(os.path.join(html_path, "generated"), exist_ok=True)
+
         with open(REDIRECTS_FILE, encoding="utf-8") as mapping_fd:
             reader = csv.reader(mapping_fd)
             for row in reader:
                 if not row or row[0].strip().startswith("#"):
                     continue
 
-                html_path = os.path.join(BUILD_PATH, "html")
                 path = os.path.join(html_path, *row[0].split("/")) + ".html"
 
                 if not self.include_api and (

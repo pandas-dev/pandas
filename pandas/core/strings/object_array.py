@@ -5,6 +5,7 @@ import re
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -173,8 +174,8 @@ class ObjectStringArrayMixin:
 
     def _str_replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern[str],
+        repl: str | Callable[..., Any],
         n: int = -1,
         case: bool = True,
         flags: int = 0,
@@ -231,7 +232,7 @@ class ObjectStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -240,12 +241,17 @@ class ObjectStringArrayMixin:
             flags |= re.IGNORECASE
 
         if isinstance(pat, re.Pattern):
-            # We need to check that flags matches pat.flags.
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-
-            if flags != pat.flags:
+            # pat already carries its own flags. IGNORECASE is the only one we
+            #  can contribute (via `case`), so it is the only bit we compare,
+            #  and only in the direction that would *add* it: a pat that is
+            #  already case-insensitive, e.g. via an inline "(?i)", is honored
+            #  as written. Comparing the full flag set would reject a pat
+            #  compiled with e.g. re.MULTILINE (GH#63108).
+            if flags & ~re.IGNORECASE:
+                raise ValueError(
+                    "Cannot pass flags in addition to an already-compiled pat"
+                )
+            if flags & re.IGNORECASE and not pat.flags & re.IGNORECASE:
                 raise ValueError("Cannot pass flags that do not match pat.flags")
             regex = pat
         else:
@@ -256,7 +262,7 @@ class ObjectStringArrayMixin:
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -353,7 +359,7 @@ class ObjectStringArrayMixin:
 
     def _str_split(
         self,
-        pat: str | re.Pattern | None = None,
+        pat: str | re.Pattern[str] | None = None,
         n=-1,
         expand: bool = False,
         regex: bool | None = None,
@@ -363,7 +369,7 @@ class ObjectStringArrayMixin:
                 n = -1
             f = lambda x: x.split(pat, n)
         else:
-            new_pat: str | re.Pattern
+            new_pat: str | re.Pattern[str]
             if regex is True or isinstance(pat, re.Pattern):
                 new_pat = re.compile(pat)
             elif regex is False:
@@ -502,7 +508,9 @@ class ObjectStringArrayMixin:
     def _str_removesuffix(self, suffix: str):
         return self._str_map(lambda x: x.removesuffix(suffix))
 
-    def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
+    def _str_extract(
+        self, pat: str | re.Pattern[str], flags: int = 0, expand: bool = True
+    ):
         regex = re.compile(pat, flags=flags)
         na_value = self.dtype.na_value  # type: ignore[attr-defined]
 

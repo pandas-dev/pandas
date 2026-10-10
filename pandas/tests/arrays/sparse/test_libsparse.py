@@ -6,7 +6,7 @@ import pytest
 import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
 
-from pandas import Series
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import (
     BlockIndex,
@@ -536,10 +536,10 @@ class TestSparseOperators:
         assert bfill == ifill
 
         # check versus Series...
-        xseries = Series(x, xdindex.indices)
+        xseries = pd.Series(x, xdindex.indices)
         xseries = xseries.reindex(np.arange(test_length)).fillna(xfill)
 
-        yseries = Series(y, ydindex.indices)
+        yseries = pd.Series(y, ydindex.indices)
         yseries = yseries.reindex(np.arange(test_length)).fillna(yfill)
 
         series_result = python_op(xseries, yseries)

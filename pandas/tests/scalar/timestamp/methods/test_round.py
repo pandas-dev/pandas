@@ -1,7 +1,3 @@
-from hypothesis import (
-    given,
-    strategies as st,
-)
 import numpy as np
 import pytest
 
@@ -84,6 +80,40 @@ class TestTimestampRound:
     def test_round_nonstandard_freq(self):
         with tm.assert_produces_warning(False):
             Timestamp("2016-10-17 12:00:00.001501031").round("1010ns")
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize(
+        "unit, freq, freq_unit",
+        [
+            ("s", "700ms", "ms"),
+            ("s", "2500ms", "ms"),
+            ("ms", "3us", "us"),
+            ("us", "300ns", "ns"),
+        ],
+    )
+    def test_round_freq_not_multiple_of_resolution(self, method, unit, freq, freq_unit):
+        # GH#67978 freq is neither a multiple nor a divisor of one unit of
+        #  self's resolution, so the result would not be representable.
+        #  The value is deliberately off the freq grid so the second half
+        #  below is not a no-op for any of the parametrizations.
+        ts = Timestamp("2020-01-01 00:00:06.500000001")
+
+        msg = rf"freq=.* is incompatible with unit={unit}"
+        with pytest.raises(ValueError, match=msg):
+            getattr(ts.as_unit(unit), method)(freq)
+
+        finer = ts.as_unit(freq_unit)
+        result = getattr(finer, method)(freq)
+        assert result != finer
+        assert result == getattr(finer.as_unit("ns"), method)(freq)
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize("unit, freq", [("s", "250ms"), ("us", "250ns")])
+    def test_round_freq_divides_resolution(self, method, unit, freq):
+        # GH#67978 freq divides one unit of self's resolution evenly, so every
+        #  representable value is already a multiple of freq
+        ts = Timestamp("2020-01-01 00:00:06").as_unit(unit)
+        assert getattr(ts, method)(freq) == ts
 
     def test_round_invalid_arg(self):
         stamp = Timestamp("2000-01-05 05:09:15.13")
@@ -389,17 +419,32 @@ class TestTimestampRound:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.round("s")
 
-    @pytest.mark.slow
-    @given(val=st.integers(iNaT + 1, lib.i8max))
+    @pytest.mark.parametrize(
+        "val",
+        [
+            iNaT + 1,
+            -1,
+            0,
+            1,
+            lib.i8max,
+            10**9 - 1,
+            10**9,
+            10**9 + 1,
+            60 * 10**9 - 1,
+            24 * 3600 * 10**9 - 1,
+            -(10**9 + 1),
+            -(60 * 10**9 - 1),
+            -(24 * 3600 * 10**9 - 1),
+        ],
+    )
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
     def test_round_sanity(self, val, method):
-        cls = Timestamp
         err_cls = OutOfBoundsDatetime
 
         val = np.int64(val)
-        ts = cls(val)
+        ts = Timestamp(val)
 
         def checker(ts, nanos, unit):
             # First check that we do raise in cases where we should
@@ -417,22 +462,22 @@ class TestTimestampRound:
                 if mod == 0:
                     # We should never be raising in this
                     pass
-                elif method is cls.ceil:
-                    if ub > cls.max._value:
+                elif method is Timestamp.ceil:
+                    if ub > Timestamp.max._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                elif method is cls.floor:
-                    if lb < cls.min._value:
+                elif method is Timestamp.floor:
+                    if lb < Timestamp.min._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
                 elif mod >= diff:
-                    if ub > cls.max._value:
+                    if ub > Timestamp.max._value:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                elif lb < cls.min._value:
+                elif lb < Timestamp.min._value:
                     with pytest.raises(err_cls, match=msg):
                         method(ts, unit)
                     return
@@ -444,11 +489,11 @@ class TestTimestampRound:
             assert diff < nanos
             assert res._value % nanos == 0
 
-            if method is cls.round:
+            if method is Timestamp.round:
                 assert diff <= nanos / 2
-            elif method is cls.floor:
+            elif method is Timestamp.floor:
                 assert res <= ts
-            elif method is cls.ceil:
+            elif method is Timestamp.ceil:
                 assert res >= ts
 
         nanos = 1

@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import Series
+import pandas as pd
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -128,7 +128,7 @@ class TestGetStandardColors:
         result = get_standard_colors(color=color, num_colors=num_colors)
         assert result == expected
 
-    @pytest.mark.parametrize("color", ["", [], (), Series([], dtype="object")])
+    @pytest.mark.parametrize("color", ["", [], (), pd.Series([], dtype="object")])
     def test_empty_color_raises(self, color):
         with pytest.raises(ValueError, match="Invalid color argument"):
             get_standard_colors(color=color, num_colors=1)

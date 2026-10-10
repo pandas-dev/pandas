@@ -38,28 +38,27 @@ The ``CustomBusinessHour`` is a mixture of ``BusinessHour`` and ``CustomBusiness
 allows you to specify arbitrary holidays. For details,
 see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    from pandas.tseries.offsets import CustomBusinessHour
-    from pandas.tseries.holiday import USFederalHolidayCalendar
-
-    bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
+   >>> from pandas.tseries.offsets import CustomBusinessHour
+   >>> from pandas.tseries.holiday import USFederalHolidayCalendar
+   >>> bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
 
 Friday before MLK Day
 
-.. ipython:: python
+.. code-block:: pycon
 
-    import datetime
+   >>> dt = datetime(2014, 1, 17, 15)
 
-    dt = datetime.datetime(2014, 1, 17, 15)
-
-    dt + bhour_us
+   >>> dt + bhour_us
+   Timestamp('2014-01-17 16:00:00')
 
 Tuesday after MLK Day (Monday is skipped because it's a holiday)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    dt + bhour_us * 2
+   >>> dt + bhour_us * 2
+   Timestamp('2014-01-21 09:00:00')
 
 .. _whatsnew_0181.deferred_ops:
 
@@ -72,10 +71,29 @@ You can now use ``.rolling(..)`` and ``.expanding(..)`` as methods on groupbys. 
 
 Previously you would have to do this to get a rolling window mean per-group:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
-   df
+   >>> df = pd.DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
+   ...                    'B': np.arange(40)})
+   >>> df
+       A   B
+   0   1   0
+   1   1   1
+   2   1   2
+   3   1   3
+   4   1   4
+   5   1   5
+   6   1   6
+   .. ..  ..
+   33  3  33
+   34  3  34
+   35  3  35
+   36  3  36
+   37  3  37
+   38  3  38
+   39  3  39
+
+   [40 rows x 2 columns]
 
 .. code-block:: ipython
 
@@ -126,23 +144,44 @@ Previously you would have to do this to get a rolling window mean per-group:
 
 Now you can do:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby("A").rolling(4).B.mean()
+   >>> df.groupby('A').rolling(4).B.mean()
+   A
+   1  0      NaN
+      1      NaN
+      2      NaN
+      3      1.5
+      4      2.5
+      5      3.5
+      6      4.5
+            ...
+   3  33     NaN
+      34     NaN
+      35    33.5
+      36    34.5
+      37    35.5
+      38    36.5
+      39    37.5
+   Name: B, dtype: float64
 
 For ``.resample(..)`` type of operations, previously you would have to:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(
-       {
-           "date": pd.date_range(start="2016-01-01", periods=4, freq="W"),
-           "group": [1, 1, 2, 2],
-           "val": [5, 6, 7, 8],
-       }
-   ).set_index("date")
+   >>> df = pd.DataFrame({'date': pd.date_range(start='2016-01-01',
+   ...                                          periods=4,
+   ...                                          freq='W'),
+   ...                    'group': [1, 1, 2, 2],
+   ...                    'val': [5, 6, 7, 8]}).set_index('date')
 
-   df
+   >>> df
+               group  val
+   date
+   2016-01-03      1    5
+   2016-01-10      1    6
+   2016-01-17      2    7
+   2016-01-24      2    8
 
 .. code-block:: ipython
 
@@ -211,10 +250,16 @@ Methods ``.where()`` and ``.mask()``
 These can accept a callable for the condition and ``other``
 arguments.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-   df.where(lambda x: x > 4, lambda x: x + 10)
+   >>> df = pd.DataFrame({'A': [1, 2, 3],
+   ...                    'B': [4, 5, 6],
+   ...                    'C': [7, 8, 9]})
+   >>> df.where(lambda x: x > 4, lambda x: x + 10)
+       A   B  C
+   0  11  14  7
+   1  12   5  8
+   2  13   6  9
 
 Methods ``.loc[]``, ``.iloc[]``, ``.ix[]``
 """"""""""""""""""""""""""""""""""""""""""
@@ -222,13 +267,19 @@ Methods ``.loc[]``, ``.iloc[]``, ``.ix[]``
 These can accept a callable, and a tuple of callable as a slicer. The callable
 can return a valid boolean indexer or anything which is valid for these indexer's input.
 
-.. ipython:: python
+.. code-block:: pycon
 
    # callable returns bool indexer
-   df.loc[lambda x: x.A >= 2, lambda x: x.sum() > 10]
+   >>> df.loc[lambda x: x.A >= 2, lambda x: x.sum() > 10]
+      B  C
+   1  5  8
+   2  6  9
 
    # callable returns list of labels
-   df.loc[lambda x: [1, 2], lambda x: ["A", "B"]]
+   >>> df.loc[lambda x: [1, 2], lambda x: ['A', 'B']]
+      A  B
+   1  2  5
+   2  3  6
 
 Indexing with ``[]``
 """"""""""""""""""""
@@ -237,17 +288,45 @@ Finally, you can use a callable in ``[]`` indexing of Series, DataFrame and Pane
 The callable must return a valid input for ``[]`` indexing depending on its
 class and index type.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df[lambda x: "A"]
+   >>> df[lambda x: 'A']
+   0    1
+   1    2
+   2    3
+   Name: A, dtype: int64
 
 Using these methods / indexers, you can chain data selection operations
 without using temporary variable.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   bb = pd.read_csv("data/baseball.csv", index_col="id")
-   (bb.groupby(["year", "team"]).sum(numeric_only=True).loc[lambda df: df.r > 100])
+   >>> bb = pd.read_csv('data/baseball.csv', index_col='id')
+   >>> (bb.groupby(['year', 'team'])
+   ...    .sum()
+   ...    .loc[lambda df: df.r > 100]
+   ... )
+              stint    g    ab    r    h  X2b  X3b  hr    rbi    sb   cs   bb  \
+   year team
+   2007 CIN       6  379   745  101  203   35    2  36  125.0  10.0  1.0  105
+        DET       5  301  1062  162  283   54    4  37  144.0  24.0  7.0   97
+        HOU       4  311   926  109  218   47    6  14   77.0  10.0  4.0   60
+        LAN      11  413  1021  153  293   61    3  36  154.0   7.0  5.0  114
+        NYN      13  622  1854  240  509  101    3  61  243.0  22.0  4.0  174
+        SFN       5  482  1305  198  337   67    6  40  171.0  26.0  7.0  235
+        TEX       2  198   729  115  200   40    4  28  115.0  21.0  4.0   73
+        TOR       4  459  1408  187  378   96    2  58  223.0   4.0  2.0  190
+
+                 so   ibb   hbp    sh    sf  gidp
+   year team
+   2007 CIN   127.0  14.0   1.0   1.0  15.0  18.0
+        DET   176.0   3.0  10.0   4.0   8.0  28.0
+        HOU   212.0   3.0   9.0  16.0   6.0  17.0
+        LAN   141.0   8.0   9.0   3.0   8.0  29.0
+        NYN   310.0  24.0  23.0  18.0  15.0  48.0
+        SFN   188.0  51.0   8.0  16.0   6.0  41.0
+        TEX   140.0   4.0   5.0   2.0   8.0  16.0
+        TOR   265.0  16.0  12.0   4.0  16.0  38.0
 
 .. _whatsnew_0181.partial_string_indexing:
 
@@ -336,24 +415,34 @@ Assembling datetimes
 
 ``pd.to_datetime()`` has gained the ability to assemble datetimes from a passed in ``DataFrame`` or a dict. (:issue:`8158`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(
-       {"year": [2015, 2016], "month": [2, 3], "day": [4, 5], "hour": [2, 3]}
-   )
-   df
+   >>> df = pd.DataFrame({'year': [2015, 2016],
+   ...                    'month': [2, 3],
+   ...                    'day': [4, 5],
+   ...                    'hour': [2, 3]})
+   >>> df
+      day  hour  month  year
+   0    4     2      2  2015
+   1    5     3      3  2016
 
 Assembling using the passed frame.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.to_datetime(df)
+   >>> pd.to_datetime(df)
+   0   2015-02-04 02:00:00
+   1   2016-03-05 03:00:00
+   dtype: datetime64[ns]
 
 You can pass only the columns that you need to assemble.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.to_datetime(df[["year", "month", "day"]])
+   >>> pd.to_datetime(df[['year', 'month', 'day']])
+   0   2015-02-04
+   1   2016-03-05
+   dtype: datetime64[ns]
 
 .. _whatsnew_0181.other:
 
@@ -372,21 +461,25 @@ Other enhancements
 
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 
-  .. ipython:: python
-     :okwarning:
+  .. code-block:: pycon
 
-     idx = pd.Index([1.0, 2.0, 3.0, 4.0], dtype="float")
+     >>> idx = pd.Index([1., 2., 3., 4.], dtype='float')
 
      # default, allow_fill=True, fill_value=None
-     idx.take([2, -1])
-     idx.take([2, -1], fill_value=True)
+     >>> idx.take([2, -1])
+     Float64Index([3.0, 4.0], dtype='float64')
+     >>> idx.take([2, -1], fill_value=True)
+     Float64Index([3.0, nan], dtype='float64')
 
 - ``Index`` now supports ``.str.get_dummies()`` which returns ``MultiIndex``, see :ref:`Creating Indicator Variables <text.indicator>` (:issue:`10008`, :issue:`10103`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     idx = pd.Index(["a|b", "a|c", "b|c"])
-     idx.str.get_dummies("|")
+     >>> idx = pd.Index(['a|b', 'a|c', 'b|c'])
+     >>> idx.str.get_dummies('|')
+     MultiIndex(levels=[[0, 1], [0, 1], [0, 1]],
+                labels=[[1, 1, 0], [1, 0, 1], [0, 1, 1]],
+                names=['a', 'b', 'c'])
 
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
@@ -443,10 +536,15 @@ Method ``.groupby(..).nth()`` changes
 
 The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_index`` argument is passed (:issue:`11039`):
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3]})
-   df
+   >>> df = DataFrame({'A' : ['a', 'b', 'a'],
+   ...                 'B' : [1, 2, 3]})
+   >>> df
+      A  B
+   0  a  1
+   1  b  2
+   2  a  3
 
 Previous behavior:
 
@@ -466,18 +564,25 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.groupby("A", as_index=True)["B"].nth(0)
-    df.groupby("A", as_index=False)["B"].nth(0)
+   >>> df.groupby('A', as_index=True)['B'].nth(0)
+   A
+   a    1
+   b    2
+   Name: B, dtype: int64
+   >>> df.groupby('A', as_index=False)['B'].nth(0)
+   0    1
+   1    2
+   Name: B, dtype: int64
 
 Furthermore, previously, a ``.groupby`` would always sort, regardless if ``sort=False`` was passed with ``.nth()``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   np.random.seed(1234)
-   df = pd.DataFrame(np.random.randn(100, 2), columns=["a", "b"])
-   df["c"] = np.random.randint(0, 4, 100)
+   >>> np.random.seed(1234)
+   >>> df = pd.DataFrame(np.random.randn(100, 2), columns=['a', 'b'])
+   >>> df['c'] = np.random.randint(0, 4, 100)
 
 Previous behavior:
 
@@ -503,10 +608,22 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby("c", sort=True).nth(1)
-   df.groupby("c", sort=False).nth(1)
+   >>> df.groupby('c', sort=True).nth(1)
+             a         b
+   c
+   0 -0.334077  0.002118
+   1  0.036142 -2.074978
+   2 -0.720589  0.887163
+   3  0.859588 -0.636524
+   >>> df.groupby('c', sort=False).nth(1)
+             a         b
+   c
+   2 -0.720589  0.887163
+   3  0.859588 -0.636524
+   0 -0.334077  0.002118
+   1  0.036142 -2.074978
 
 
 .. _whatsnew_0181.numpy_compatibility:
@@ -550,12 +667,14 @@ Using ``.apply`` on GroupBy resampling
 
 Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) now has the same output types as similar ``apply`` calls on other groupby operations. (:issue:`11742`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame(
-        {"date": pd.to_datetime(["10/10/2000", "11/10/2000"]), "value": [10, 13]}
-    )
-    df
+   >>> df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']),
+   ...                   'value': [10, 13]})
+   >>> df
+           date  value
+   0 2000-10-10     10
+   1 2000-11-10     13
 
 Previous behavior:
 

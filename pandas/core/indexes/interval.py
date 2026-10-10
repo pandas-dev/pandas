@@ -81,10 +81,7 @@ from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
 )
-from pandas.core.indexes.extension import (
-    ExtensionIndex,
-    inherit_names,
-)
+from pandas.core.indexes.extension import ExtensionIndex
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
@@ -145,21 +142,6 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-@inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
-@inherit_names(
-    [
-        "__array__",
-        "overlaps",
-        "contains",
-        "closed_left",
-        "closed_right",
-        "open_left",
-        "open_right",
-        "is_empty",
-    ],
-    IntervalArray,
-)
-@inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
 @set_module("pandas")
 class IntervalIndex(ExtensionIndex):
     """
@@ -250,18 +232,358 @@ class IntervalIndex(ExtensionIndex):
 
     _typ = "intervalindex"
 
-    # annotate properties pinned via inherit_names
-    closed: IntervalClosedType
-    is_non_overlapping_monotonic: bool
-    closed_left: bool
-    closed_right: bool
-    open_left: bool
-    open_right: bool
-
     _data: IntervalArray
     _values: IntervalArray
     _can_hold_strings = False
     _data_cls = IntervalArray
+
+    # --------------------------------------------------------------------
+    # Descriptors and methods dispatched to the underlying IntervalArray
+
+    @cache_readonly
+    def closed(self) -> IntervalClosedType:
+        """
+        String describing the inclusive side of the intervals.
+
+        Either ``left``, ``right``, ``both`` or ``neither``.
+
+        See Also
+        --------
+        IntervalIndex.set_closed : Return an IntervalIndex identical to the
+            current one, but closed on the specified side.
+        Interval.closed : Returns inclusive side of the Interval.
+
+        Examples
+        --------
+        >>> interv_idx = pd.interval_range(start=0, end=2)
+        >>> interv_idx
+        IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+        >>> interv_idx.closed
+        'right'
+        """
+        return self._data.closed
+
+    @cache_readonly
+    def is_non_overlapping_monotonic(self) -> bool:
+        """
+        Return True if the IntervalIndex is non-overlapping and monotonic.
+
+        Non-overlapping means no Intervals share points, and monotonic means
+        either monotonic increasing or monotonic decreasing.
+
+        See Also
+        --------
+        IntervalIndex.overlaps : Check an IntervalIndex elementwise for
+            overlaps.
+        IntervalIndex.is_overlapping : Return True if the IntervalIndex has
+            overlapping intervals.
+
+        Examples
+        --------
+        >>> interv_idx = pd.interval_range(start=0, end=2)
+        >>> interv_idx
+        IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+        >>> interv_idx.is_non_overlapping_monotonic
+        True
+
+        >>> interv_idx = pd.interval_range(start=0, end=2, closed="both")
+        >>> interv_idx
+        IntervalIndex([[0, 1], [1, 2]], dtype='interval[int64, both]')
+        >>> interv_idx.is_non_overlapping_monotonic
+        False
+        """
+        return self._data.is_non_overlapping_monotonic
+
+    @property
+    def closed_left(self) -> bool:
+        """
+        Check if the intervals are closed on the left side.
+
+        All intervals in an IntervalIndex share the same ``closed`` value,
+        so this describes the index as a whole rather than element-wise.
+
+        See Also
+        --------
+        IntervalIndex.closed_right : Check if the intervals are closed on
+            the right side.
+        IntervalIndex.open_left : Boolean inverse of closed_left.
+
+        Examples
+        --------
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="left")
+        >>> iv_idx.closed_left
+        True
+
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="right")
+        >>> iv_idx.closed_left
+        False
+        """
+        return self._data.closed_left
+
+    @property
+    def closed_right(self) -> bool:
+        """
+        Check if the intervals are closed on the right side.
+
+        All intervals in an IntervalIndex share the same ``closed`` value,
+        so this describes the index as a whole rather than element-wise.
+
+        See Also
+        --------
+        IntervalIndex.closed_left : Check if the intervals are closed on
+            the left side.
+        IntervalIndex.open_right : Boolean inverse of closed_right.
+
+        Examples
+        --------
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="right")
+        >>> iv_idx.closed_right
+        True
+
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="left")
+        >>> iv_idx.closed_right
+        False
+        """
+        return self._data.closed_right
+
+    @property
+    def open_left(self) -> bool:
+        """
+        Check if the intervals are open on the left side.
+
+        All intervals in an IntervalIndex share the same ``closed`` value,
+        so this describes the index as a whole rather than element-wise.
+
+        See Also
+        --------
+        IntervalIndex.open_right : Check if the intervals are open on the
+            right side.
+        IntervalIndex.closed_left : Boolean inverse of open_left.
+
+        Examples
+        --------
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="left")
+        >>> iv_idx.open_left
+        False
+
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="right")
+        >>> iv_idx.open_left
+        True
+        """
+        return self._data.open_left
+
+    @property
+    def open_right(self) -> bool:
+        """
+        Check if the intervals are open on the right side.
+
+        All intervals in an IntervalIndex share the same ``closed`` value,
+        so this describes the index as a whole rather than element-wise.
+
+        See Also
+        --------
+        IntervalIndex.open_left : Check if the intervals are open on the
+            left side.
+        IntervalIndex.closed_right : Boolean inverse of open_right.
+
+        Examples
+        --------
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="right")
+        >>> iv_idx.open_right
+        False
+
+        >>> iv_idx = pd.interval_range(start=0, end=2, closed="left")
+        >>> iv_idx.open_right
+        True
+        """
+        return self._data.open_right
+
+    @property
+    def is_empty(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicates if an interval is empty, meaning it contains no points.
+
+        An interval is considered empty if its left and right endpoints are
+        equal, and it is not closed on both sides. Returns a boolean ndarray
+        positionally indicating the emptiness of each interval.
+
+        Returns
+        -------
+        numpy.ndarray[bool]
+            A boolean ndarray positionally indicating if an Interval is empty.
+
+        See Also
+        --------
+        Interval.is_empty : Indicates if a scalar Interval is empty.
+        IntervalIndex.length : Return the length of each interval.
+
+        Examples
+        --------
+        >>> ivs = [
+        ...     pd.Interval(0, 0, closed="neither"),
+        ...     pd.Interval(1, 2, closed="neither"),
+        ... ]
+        >>> pd.IntervalIndex(ivs).is_empty
+        array([ True, False])
+
+        Missing values are not considered empty:
+
+        >>> ivs = [pd.Interval(0, 0, closed="neither"), np.nan]
+        >>> pd.IntervalIndex(ivs).is_empty
+        array([ True, False])
+        """
+        # error: Incompatible return value type (got "bool", expected
+        # "ndarray[Any, dtype[bool_]]") -- the IntervalMixin stub only types
+        # the Interval scalar case, not the IntervalArray/IntervalIndex case
+        return self._data.is_empty  # type: ignore[return-value]
+
+    def set_closed(self, closed: IntervalClosedType) -> Self:
+        """
+        Return an identical IntervalIndex closed on the specified side.
+
+        This method creates a new IntervalIndex with the same bounds but with
+        a different closure specification.
+
+        Parameters
+        ----------
+        closed : {'left', 'right', 'both', 'neither'}
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
+
+        Returns
+        -------
+        IntervalIndex
+            A new IntervalIndex with the specified side closures.
+
+        See Also
+        --------
+        IntervalIndex.closed : Returns inclusive side of the IntervalIndex.
+
+        Examples
+        --------
+        >>> index = pd.interval_range(0, 3)
+        >>> index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]],
+                      dtype='interval[int64, right]')
+        >>> index.set_closed("both")
+        IntervalIndex([[0, 1], [1, 2], [2, 3]],
+                      dtype='interval[int64, both]')
+        """
+        array = self._data.set_closed(closed)
+        return type(self)._simple_new(array, name=self.name)
+
+    def to_tuples(self, na_tuple: bool = True) -> Index:
+        """
+        Return an Index of tuples of the form (left, right).
+
+        This method extracts the bounds of each interval as a tuple,
+        useful for iteration or conversion to other data structures.
+
+        Parameters
+        ----------
+        na_tuple : bool, default True
+            If ``True``, return ``NA`` as a tuple ``(nan, nan)``. If ``False``,
+            just return ``NA`` as ``nan``.
+
+        Returns
+        -------
+        Index
+            An Index of tuples representing the intervals.
+
+        See Also
+        --------
+        arrays.IntervalArray.to_tuples : Analogous method for IntervalArray.
+
+        Examples
+        --------
+        >>> idx = pd.interval_range(start=0, end=2)
+        >>> idx
+        IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+        >>> idx.to_tuples()
+        Index([(0, 1), (1, 2)], dtype='object')
+        """
+        result = self._data.to_tuples(na_tuple=na_tuple)
+        return Index(result, name=self.name, dtype=result.dtype, copy=False)
+
+    def overlaps(self, other: Interval[Any]) -> npt.NDArray[np.bool_]:
+        """
+        Check elementwise if an Interval overlaps the values in the IntervalIndex.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap, and empty intervals contain no points at all, so they never
+        overlap.
+
+        Parameters
+        ----------
+        other : Interval
+            Interval to check against for an overlap.
+
+        Returns
+        -------
+        ndarray
+            Boolean array positionally indicating where an overlap occurs.
+
+        See Also
+        --------
+        Interval.overlaps : Check whether two Interval objects overlap.
+
+        Examples
+        --------
+        >>> data = [(0, 1), (1, 3), (2, 4)]
+        >>> intervals = pd.IntervalIndex.from_tuples(data)
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]], dtype='interval[int64, right]')
+
+        >>> intervals.overlaps(pd.Interval(0.5, 1.5))
+        array([ True,  True, False])
+
+        Intervals that share closed endpoints overlap:
+
+        >>> intervals.overlaps(pd.Interval(1, 3, closed="left"))
+        array([ True,  True,  True])
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> intervals.overlaps(pd.Interval(1, 2, closed="right"))
+        array([False,  True, False])
+        """
+        return self._data.overlaps(other)
+
+    def contains(self, other) -> npt.NDArray[np.bool_]:
+        """
+        Check elementwise if the Intervals contain the value.
+
+        Return a boolean mask whether the value is contained in the Intervals
+        of the IntervalIndex.
+
+        Parameters
+        ----------
+        other : scalar
+            The value to check whether it is contained in the Intervals.
+
+        Returns
+        -------
+        numpy.ndarray[bool]
+            A boolean mask whether the value is contained in the Intervals.
+
+        See Also
+        --------
+        IntervalIndex.__contains__ : Check whether an Interval is one of the
+            IntervalIndex's elements.
+        IntervalIndex.overlaps : Check if an Interval overlaps the values in
+            the IntervalIndex.
+
+        Examples
+        --------
+        >>> intervals = pd.IntervalIndex.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        IntervalIndex([(0, 1], (1, 3], (2, 4]], dtype='interval[int64, right]')
+
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
+        """
+        return self._data.contains(other)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -604,6 +926,7 @@ class IntervalIndex(ExtensionIndex):
 
         Two intervals overlap if they share a common point, including closed
         endpoints. Intervals that only have an open endpoint in common do not
+        overlap, and empty intervals contain no points at all, so they never
         overlap.
 
         Returns
@@ -640,6 +963,15 @@ class IntervalIndex(ExtensionIndex):
         >>> index = pd.interval_range(0, 3, closed="left")
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
+              dtype='interval[int64, left]')
+        >>> index.is_overlapping
+        False
+
+        Empty intervals never overlap, even when nested inside another interval:
+
+        >>> index = pd.IntervalIndex.from_tuples([(0, 3), (1, 1)], closed="left")
+        >>> index
+        IntervalIndex([[0, 3), [1, 1)],
               dtype='interval[int64, left]')
         >>> index.is_overlapping
         False
@@ -865,9 +1197,11 @@ class IntervalIndex(ExtensionIndex):
         elif not (is_object_dtype(target.dtype) or is_string_dtype(target.dtype)):
             # homogeneous scalar index
             # we should always have self._should_partial_index(target) here
-            if self.is_monotonic_increasing:
+            if self.is_monotonic_increasing and self.right.is_monotonic_increasing:
                 # GH#47614 - use searchsorted for O(n*log(m)) instead of
-                # IntervalTree which scales poorly for large target arrays
+                # IntervalTree which scales poorly for large target arrays.
+                # right is checked too: an empty interval can nest inside
+                # another without overlapping it (GH#26893)
                 indexer = self._get_indexer_monotonic(target)
             else:
                 target = self._maybe_convert_i8(target)
@@ -1022,7 +1356,7 @@ class IntervalIndex(ExtensionIndex):
                     locs = np.array(locs, ndmin=1)
                 else:
                     # otherwise we have ndarray[bool]
-                    locs = np.where(locs)[0]
+                    locs = np.where(locs)[0]  # type: ignore[arg-type]
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])
@@ -1058,14 +1392,6 @@ class IntervalIndex(ExtensionIndex):
                     raise ValueError(msg)
 
         return super()._convert_slice_indexer(key, kind)
-
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        # integer lookups in Series.__getitem__ are unambiguously
-        #  positional in this case
-        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
-        # ExtensionDtype]" has no attribute "subtype"
-        return self.dtype.subtype.kind in "mM"  # type: ignore[union-attr]
 
     def _maybe_cast_slice_bound(self, label, side: str):
         return getattr(self, side)._maybe_cast_slice_bound(label, side)

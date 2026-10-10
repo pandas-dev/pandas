@@ -7,6 +7,7 @@ from numpy cimport import_array
 
 import_array()
 
+from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing cimport (
     checknull,
     is_matching_na,
@@ -14,15 +15,25 @@ from pandas._libs.missing cimport (
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
+    is_float_object,
+    is_integer_object,
     is_real_number_object,
 )
 
 
 from pandas.core.dtypes.missing import array_equivalent
 
+from pandas.io.formats.printing import pprint_thing
+
 
 cdef bint isiterable(obj):
-    return hasattr(obj, "__iter__")
+    if not hasattr(obj, "__iter__"):
+        return False
+
+    # GH#45240 exclude zero-dimensional duck-arrays, effectively scalars, as
+    #  lib.c_is_list_like does. pint's and astropy's scalar Quantity are one of these:
+    #  they define __iter__ and __len__ that delegate to their scalar magnitude.
+    return not (hasattr(obj, "ndim") and obj.ndim == 0)
 
 
 cdef bint has_length(obj):
@@ -62,9 +73,11 @@ cpdef assert_almost_equal(a, b,
     a : object
     b : object
     rtol : float, default 1e-5
-        Relative tolerance.
+        Relative tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance.
+        Absolute tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None
@@ -113,6 +126,53 @@ cpdef assert_almost_equal(a, b,
         else:
             obj = "Iterable"
 
+    if a_is_ndarray and b_is_ndarray:
+        if a.shape != b.shape:
+            from pandas._testing import raise_assert_detail
+            raise_assert_detail(
+                obj, f"{obj} shapes are different", a.shape, b.shape)
+
+        if check_dtype and a.dtype != b.dtype:
+            from pandas._testing import assert_attr_equal
+            assert_attr_equal("dtype", a, b, obj=obj)
+
+        if array_equivalent(a, b, strict_nan=True):
+            if a.dtype.kind in "iu" and b.dtype.kind == "f":
+                int_arr = a
+            elif a.dtype.kind == "f" and b.dtype.kind in "iu":
+                int_arr = b
+            else:
+                return True
+
+            if not int_arr.size or (
+                int_arr.max() <= 2**53
+                and (int_arr.dtype.kind == "u" or int_arr.min() >= -(2**53))
+            ):
+                return True
+
+            # array_equivalent compared after a lossy cast to float64; redo
+            #  it at full integer precision. A float outside the integer
+            #  dtype's range has no exact cast, so leave that to the loop.
+            flt_arr = b if int_arr is a else a
+            info = np.iinfo(int_arr.dtype)
+            if ((flt_arr >= info.min) & (flt_arr < info.max + 1)).all():
+                if np.array_equal(int_arr, flt_arr.astype(int_arr.dtype)):
+                    return True
+
+        # flatten so the loop compares values, not rows; see GH#68366 and
+        #  test_assert_almost_equal_value_mismatch_2d_percentage
+        # A zerodim array is converted to a 1-D array by ravel,
+        #  check prevents RecursionError on loop; see GH#68927
+        if a.ndim != 0:
+            a = a.ravel()
+            b = b.ravel()
+        else:
+            a = item_from_zerodim(a)
+            b = item_from_zerodim(b)
+            # Check if still a numpy array
+            a_is_ndarray = is_array(a)
+            b_is_ndarray = is_array(b)
+
     if isiterable(a):
 
         if not isiterable(b):
@@ -127,18 +187,6 @@ cpdef assert_almost_equal(a, b,
 
         if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
-            if a.shape != b.shape:
-                from pandas._testing import raise_assert_detail
-                raise_assert_detail(
-                    obj, f"{obj} shapes are different", a.shape, b.shape)
-
-            if check_dtype and a.dtype != b.dtype:
-                from pandas._testing import assert_attr_equal
-                assert_attr_equal("dtype", a, b, obj=obj)
-
-            if array_equivalent(a, b, strict_nan=True):
-                return True
-
         else:
             na, nb = len(a), len(b)
 
@@ -147,7 +195,11 @@ cpdef assert_almost_equal(a, b,
 
             # if we have a small diff set, print it
             if abs(na - nb) < 10:
-                r = list(set(a) ^ set(b))
+                try:
+                    r = list(set(a) ^ set(b))
+                except TypeError:
+                    # GH#69014: Nested sequences can contain unhashable elements.
+                    r = None
             else:
                 r = None
 
@@ -155,13 +207,17 @@ cpdef assert_almost_equal(a, b,
 
         for i in range(len(a)):
             try:
-                assert_almost_equal(a[i], b[i], rtol=rtol, atol=atol)
+                assert_almost_equal(
+                    a[i], b[i], check_dtype=check_dtype, rtol=rtol, atol=atol
+                )
             except AssertionError:
                 is_unequal = True
                 diff += 1
                 if not first_diff:
                     first_diff = (
-                        f"At positional index {i}, first diff: {a[i]} != {b[i]}"
+                        f"At positional index {i}, first diff: "
+                        f"{pprint_thing(a[i], quote_strings=True)} != "
+                        f"{pprint_thing(b[i], quote_strings=True)}"
                     )
 
         if is_unequal:
@@ -191,8 +247,44 @@ cpdef assert_almost_equal(a, b,
     elif checknull(b):
         raise AssertionError(f"{a} != {b}")
 
+    # GH#66699 avoid casting a large integer to float64 before applying
+    #  tolerances when the float operand is itself an integer value.
+    if rtol >= 0 and atol >= 0 and (
+        (
+            is_integer_object(a)
+            and is_float_object(b)
+            and b.is_integer()
+        )
+        or (
+            is_float_object(a)
+            and a.is_integer()
+            and is_integer_object(b)
+        )
+    ):
+        ia = int(a)
+        ib = int(b)
+
+        if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
+            assert False, (f"expected {ib}.00000 but got {ia}.00000, "
+                           f"with rtol={rtol}, atol={atol}")
+        return True
+
     if a == b:
         # object comparison
+        return True
+
+    # GH#66400 float64 cannot hold integers above 2**53 exactly, so the
+    #  tolerance below would be applied to rounded values. Negative tolerances
+    #  are left to math.isclose, which rejects them.
+    if (is_integer_object(a) and is_integer_object(b)
+            and rtol >= 0 and atol >= 0):
+        ia = int(a)
+        ib = int(b)
+
+        if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
+            # whole numbers render the same as the ".5f" used below
+            assert False, (f"expected {ib}.00000 but got {ia}.00000, "
+                           f"with rtol={rtol}, atol={atol}")
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):
@@ -208,5 +300,17 @@ cpdef assert_almost_equal(a, b,
             assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")
         return True
+
+    if a_is_ndarray and b_is_ndarray:
+        # np.isclose does not work for all dtypes, e.g. StrDType
+        try:
+            isclose = np.isclose(a, b, rtol=rtol, atol=atol)
+        except TypeError:
+            pass
+        else:
+            if not isclose:
+                assert False, (f"expected {b:.5f} but got {a:.5f}, "
+                               f"with rtol={rtol}, atol={atol}")
+            return True
 
     raise AssertionError(f"{a} != {b}")

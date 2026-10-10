@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    NoReturn,
     Self,
     cast,
 )
@@ -209,7 +210,9 @@ class MultiIndex(Index):
     Parameters
     ----------
     levels : sequence of arrays
-        The unique labels for each level.
+        The unique labels for each level. Uniqueness is determined by equality,
+        so values that compare equal (e.g. ``1``, ``1.0`` and ``True``) cannot
+        appear in the same level.
     codes : sequence of arrays
         Integers for each level designating which label at each location.
     sortorder : optional int
@@ -254,6 +257,12 @@ class MultiIndex(Index):
     get_locs
     get_loc_level
     drop
+
+    Raises
+    ------
+    ValueError
+        If ``verify_integrity`` is True and the levels are not unique or are
+        not consistent with the codes.
 
     See Also
     --------
@@ -371,8 +380,8 @@ class MultiIndex(Index):
 
     def _verify_integrity(
         self,
-        codes: list | None = None,
-        levels: list | None = None,
+        codes: list[Any] | None = None,
+        levels: list[Any] | None = None,
         levels_to_verify: list[int] | range | None = None,
     ) -> FrozenList:
         """
@@ -382,7 +391,7 @@ class MultiIndex(Index):
             Codes to check for validity. Defaults to current codes.
         levels : optional list
             Levels to check for validity. Defaults to current levels.
-        levels_to_validate: optional list
+        levels_to_verify : optional list
             Specifies the levels to verify.
 
         Raises
@@ -426,8 +435,15 @@ class MultiIndex(Index):
             if len(level_codes) and level_codes.min() < -1:
                 raise ValueError(f"On level {i}, code value ({level_codes.min()}) < -1")
             if not level.is_unique:
+                # keep=False so both members of a collision are shown; that is
+                # what makes e.g. 1 and 1.0 in an object level legible as dupes
+                duplicates = level[level.duplicated(keep=False)]
+                extra = ""
+                if len(duplicates) > 10:
+                    extra = f", ... ({len(duplicates)} total)"
                 raise ValueError(
-                    f"Level values must be unique: {list(level)} on level {i}"
+                    "Level values must be unique. Duplicate values on "
+                    f"level {i}: {list(duplicates[:10])}{extra}"
                 )
         if self.sortorder is not None:
             if self.sortorder > _lexsort_depth(self.codes, self.nlevels):
@@ -622,7 +638,10 @@ class MultiIndex(Index):
         Parameters
         ----------
         iterables : list / sequence of iterables
-            Each iterable has unique labels for each level of the index.
+            Each iterable gives the labels for one level of the index. Labels
+            that compare equal (e.g. ``1``, ``1.0`` and ``True``) are collapsed
+            into a single label; the first occurrence determines the value
+            stored in the level.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level).
@@ -1636,11 +1655,13 @@ class MultiIndex(Index):
         self,
         *,
         include_names: bool,
-        sparsify: bool | None | lib.NoDefault,
-        formatter: Callable | None = None,
-    ) -> list:
+        sparsify: bool | lib.NoDefault | None,
+        formatter: Callable[..., Any] | None = None,
+    ) -> list[Any]:
         if len(self) == 0:
             return []
+
+        from pandas.io.formats.format import format_name
 
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes, strict=True):
@@ -1670,11 +1691,7 @@ class MultiIndex(Index):
             level = []
 
             if include_names:
-                level.append(
-                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
-                    if lev_name is not None
-                    else ""
-                )
+                level.append(format_name(lev_name))
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
@@ -1707,7 +1724,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        values : str or sequence
+        names : str or sequence
             name(s) to set
         level : int, level name, or sequence of int/level names (default None)
             If the index is a MultiIndex (hierarchical), level(s) to set (None
@@ -2016,7 +2033,7 @@ class MultiIndex(Index):
         MultiIndex([(2.0, 4.0)],
                    )
         >>> mi.dropna(how="all")
-        MultiIndex([(nan, 3.0),
+        MultiIndex([(NaN, 3.0),
                     (2.0, 4.0)],
                    )
         """
@@ -2120,7 +2137,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Index([1.0, nan, 2.0], dtype='float64')
+        Index([1.0, NaN, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -3366,14 +3383,6 @@ class MultiIndex(Index):
             # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should integer key(s) be treated as positional?
-        """
-        # GH#33355
-        return self.levels[0]._should_fallback_to_positional
-
     def _get_indexer_strict(
         self, key, axis_name: str
     ) -> tuple[Index, npt.NDArray[np.intp]]:
@@ -3529,7 +3538,13 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
+    def _partial_tup_index(
+        self, tup: tuple[Any, ...], side: Literal["left", "right"] = "left"
+    ):
+        if len(tup) > self.nlevels:
+            # GH#45762 no amount of sorting brings a key this deep into range,
+            #  so the lexsort complaint below would be blaming the wrong thing
+            _raise_key_length_error(len(tup), self.nlevels)
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
@@ -3677,9 +3692,7 @@ class MultiIndex(Index):
 
         keylen = len(key)
         if self.nlevels < keylen:
-            raise KeyError(
-                f"Key length ({keylen}) exceeds index depth ({self.nlevels})"
-            )
+            _raise_key_length_error(keylen, self.nlevels)
 
         if keylen == self.nlevels:
             # TODO: what if we have an IntervalIndex level?
@@ -3881,6 +3894,16 @@ class MultiIndex(Index):
                     return indexer, new_index
             except (TypeError, InvalidIndexError):
                 pass
+
+            # GH#45762 A trailing null slice is not a per-level key: the loop
+            #  below skips it, and .loc arrives with the column selector still
+            #  attached, as df.loc["a", :, :]. A bool indexer is not exempt
+            #  here -- unlike get_locs, this loop resolves one against its level
+            depth = len(key)
+            while depth > self.nlevels and com.is_null_slice(key[depth - 1]):
+                depth -= 1
+            if depth > self.nlevels:
+                _raise_key_length_error(len(key), self.nlevels)
 
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
@@ -4155,17 +4178,48 @@ class MultiIndex(Index):
         array([2], dtype=int64)
         """
 
+        # GH#45762 Checked first: an Ellipsis is never supported at all, so
+        #  neither the length nor the lexsort depth below is the real problem
+        if any(x is Ellipsis for x in seq):
+            raise NotImplementedError(
+                "MultiIndex does not support indexing with Ellipsis"
+            )
+
+        # GH#64807 A level key is traversed more than once below (and again by
+        #  _reorder_indexer), so an iterator has to be materialized up front:
+        #  the _get_level_indexer probe below drains it. Every other list-like
+        #  survives that probe, so it is left alone here -- a re-iterable one
+        #  that is also hashable (e.g. a range or frozenset) may be a level
+        #  label rather than a sequence of them, and only the probe can tell.
+        materialized = list(seq)
+        changed = False
+        for pos, key in enumerate(materialized):
+            if is_iterator(key):
+                materialized[pos] = list(key)
+                changed = True
+        if changed:
+            seq = tuple(materialized)
+
+        # GH#45762 Checked before the lexsort depth below, which would otherwise
+        #  take the blame. Trailing null slices and bool indexers consume no
+        #  level; .loc routes the column selector here too, as df.loc[:, key, :]
+        #  does. Materialized above: is_bool_indexer reads an iterator as a
+        #  level key.
+        depth = len(materialized)
+        if depth > self.nlevels:
+            for key in reversed(materialized[self.nlevels :]):
+                if not (com.is_null_slice(key) or com.is_bool_indexer(key)):
+                    break
+                depth -= 1
+        if depth > self.nlevels:
+            _raise_key_length_error(len(materialized), self.nlevels)
+
         # must be lexsorted to at least as many levels
         true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
         if true_slices and true_slices[-1] >= self._lexsort_depth:
             raise UnsortedIndexError(
                 "MultiIndex slicing requires the index to be lexsorted: slicing "
                 f"on levels {true_slices}, lexsort depth {self._lexsort_depth}"
-            )
-
-        if any(x is Ellipsis for x in seq):
-            raise NotImplementedError(
-                "MultiIndex does not support indexing with Ellipsis"
             )
 
         n = len(self)
@@ -4176,6 +4230,27 @@ class MultiIndex(Index):
                 new_indexer[indexer] = True
                 return new_indexer
             return indexer
+
+        def _resolve_each(
+            labels, level: int, indexer, err
+        ) -> npt.NDArray[np.bool_] | None:
+            # Or together the positions of each label, resolved one at a time.
+            resolved: npt.NDArray[np.bool_] | None = None
+            for label in labels:
+                if not is_hashable(label):
+                    # e.g. a nested list: not a label, and not a slice either
+                    raise err
+                # GH 42351: not-founds raise KeyError (enforced in 2.0)
+                item_indexer = self._get_level_indexer(
+                    label, level=level, indexer=indexer
+                )
+                if resolved is None:
+                    resolved = _to_bool_indexer(item_indexer)
+                elif isinstance(item_indexer, slice):
+                    resolved[item_indexer] = True
+                else:
+                    resolved |= item_indexer
+            return resolved
 
         # a bool indexer for the positions we want to take
         indexer: npt.NDArray[np.bool_] | None = None
@@ -4207,51 +4282,143 @@ class MultiIndex(Index):
                     # KeyError it can be ambiguous if this is a label or sequence
                     #  of labels
                     #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
-                    if any(not is_hashable(x) for x in k):
-                        # e.g. slice
-                        raise err
 
-                    if self.levels[i]._supports_partial_string_indexing:
+                    # GH#64807 The probe ruled out k being a single label, so it
+                    #  is a sequence of them. isna() and the code bookkeeping
+                    #  below need a real sequence, which e.g. a set, dict or
+                    #  range is not; a range goes to an array rather than a list
+                    #  to avoid boxing every element.
+                    #  A tuple goes to a list too: Index() would tupleize it,
+                    #  which mangles a key of tuple-valued labels. An
+                    #  ExtensionArray is left alone purely to avoid boxing every
+                    #  element; the answer is the same either way.
+                    if not isinstance(
+                        k, (ABCSeries, ExtensionArray, Index, np.ndarray, list)
+                    ):
+                        k = np.asarray(k) if isinstance(k, range) else list(k)
+
+                    # GH#64807 Neither of these can go down the vectorized path.
+                    #  An unhashable entry is not a label at all, but raising
+                    #  here would preempt an earlier label that is merely
+                    #  missing, so leave it to the resolution loop. A slice is
+                    #  hashable from Python 3.12 on, so from then on it arrives
+                    #  as a label, and only _get_level_indexer resolves one.
+                    has_slice = False
+                    has_unhashable = False
+                    if getattr(k, "dtype", object) == object:
+                        # a typed container holds neither, and this scan is
+                        #  Python-level: on a 1M-element key it costs more than
+                        #  the whole vectorized path
+                        for label in k:
+                            if not is_hashable(label):
+                                has_unhashable = True
+                            elif isinstance(label, slice):
+                                has_slice = True
+
+                    level_index = self.levels[i]
+                    if isinstance(level_index.dtype, CategoricalDtype):
+                        # a CategoricalIndex counts as unique however its
+                        #  categories behave, so ask them instead
+                        level_unique = level_index.categories._index_as_unique
+                    else:
+                        level_unique = level_index._index_as_unique
+                    try:
+                        target = ensure_index(k)
+                    except (NotImplementedError, ValueError):
+                        # GH#64807 an Index cannot hold the key at all (float16,
+                        #  or a timedelta64 with a month/year unit), so only the
+                        #  per-label path can resolve it
+                        unvectorizable = True
+                    else:
+                        # GH#64807 get_indexer reconciles a signed level and an
+                        #  unsigned key (or the reverse) through float64, which
+                        #  collides two labels above 2**53, so it can pick the
+                        #  wrong row. Flat .loc reaches the same labels through
+                        #  _get_indexer_strict and is unaffected.
+                        unvectorizable = {
+                            level_index.dtype.kind,
+                            target.dtype.kind,
+                        } == {"i", "u"}
+                    if (
+                        level_index._supports_partial_string_indexing
+                        or not level_unique
+                        or unvectorizable
+                        or has_slice
+                        or has_unhashable
+                    ):
                         # GH#64807 A level that supports partial indexing (e.g.
                         #  DatetimeIndex/PeriodIndex) can map a single label to a
                         #  *range* of positions (partial-string/partial-date
-                        #  slicing). The exact-match vectorized path below cannot
-                        #  express that, so resolve each label individually.
-                        for x in k:
-                            # GH 42351: not-founds raise KeyError (enforced in 2.0)
-                            item_indexer = self._get_level_indexer(
-                                x, level=i, indexer=indexer
-                            )
-                            if lvl_indexer is None:
-                                lvl_indexer = _to_bool_indexer(item_indexer)
-                            elif isinstance(item_indexer, slice):
-                                lvl_indexer[item_indexer] = True  # type: ignore[index]
-                            else:
-                                lvl_indexer |= item_indexer
-                    else:
+                        #  slicing), and a level that is not unique for indexing
+                        #  purposes (e.g. an overlapping IntervalIndex, GH#27456)
+                        #  can map one label to several level entries. The
+                        #  exact-match vectorized path below cannot express
+                        #  either, so resolve each label individually.
+                        lvl_indexer = _resolve_each(k, i, indexer, err)
+                    elif len(k):
                         # GH#55786 Vectorized path: use the level's hashtable to
-                        # map all labels to codes at once, then use algos.isin
-                        # instead of looping with per-element _get_level_indexer.
+                        # map all labels to codes at once, then work in code
+                        # space instead of looping with per-element
+                        # _get_level_indexer.
                         level_codes = self.codes[i]
-                        k_codes = self.levels[i].get_indexer(k)
+                        # get_indexer would redo the ensure_index above
+                        k_codes = level_index.get_indexer(target)
                         # NaN labels are stored as code -1 and are absent
                         # from levels, so get_indexer returns -1 for them.
                         # Separate true missing labels from NaN labels.
-                        k_isna = isna(k if not isinstance(k, tuple) else list(k))
+                        k_isna = np.asarray(
+                            isna(list(k) if isinstance(k, MultiIndex) else k)
+                        )
+                        if k_isna.shape != k_codes.shape:
+                            # GH#64807 k holds tuple-like labels, so isna() gave
+                            #  a result per tuple *element*. Left alone that
+                            #  either broadcasts against the codes silently or
+                            #  fails to; a tuple is never NA, so flatten it out.
+                            k_isna = np.zeros(len(k_codes), dtype=bool)
                         na_count = k_isna.sum()
                         missing_mask = k_codes == -1
-                        if na_count:
-                            if missing_mask.sum() > na_count:
-                                raise KeyError(k) from None
-                            # NaN is in k but must also be present in the data
-                            if not lib.has_sentinel(level_codes, -1):
-                                raise KeyError(k) from None
-                        elif missing_mask.any():
+                        # GH#64807 The non-NA labels the level does not have.
+                        #  Comparing the -1 count against na_count instead loses
+                        #  a missing label whenever the level carries an NA entry
+                        #  of its own, since get_indexer matches the NA label to
+                        #  it rather than returning -1.
+                        if (missing_mask & ~k_isna).any():
                             raise KeyError(k) from None
-                        k_codes = k_codes[~missing_mask]
-                        lvl_indexer = algos.isin(level_codes, k_codes)
+                        # NaN is in k but must also be present in the data
+                        if na_count and not lib.has_sentinel(level_codes, -1):
+                            raise KeyError(k) from None
+                        # GH#64807 Every missing non-NA label has raised by now,
+                        #  so the only -1 codes left stand for NA labels. Those
+                        #  are resolved by the (level_codes == -1) union below,
+                        #  never by a code: get_indexer may have matched one to
+                        #  an NA entry of the level, but the scalar path always
+                        #  resolves NA to -1, so drop them to agree with it.
+                        k_codes = k_codes[~k_isna]
+                        # GH#64807 A label can be present in the level but unused
+                        #  by any code, in which case it is still a missing key.
+                        # Codes are small non-negative ints, so tables indexed by
+                        #  code beat hashing -- but only while the level is no
+                        #  bigger than the codes. Slicing a MultiIndex leaves its
+                        #  levels untrimmed, so a short one can carry a huge level.
+                        if len(level_index) <= len(level_codes):
+                            # The extra trailing slot absorbs the -1 code for NaN,
+                            #  which negative-index wraparound lands on.
+                            used = np.zeros(len(level_index) + 1, dtype=bool)
+                            used[level_codes] = True
+                            if not used[k_codes].all():
+                                raise KeyError(k) from None
+                            wanted = np.zeros(len(level_index) + 1, dtype=bool)
+                            wanted[k_codes] = True
+                            vec_indexer = wanted[level_codes]
+                        else:
+                            if not algos.isin(k_codes, level_codes).all():
+                                raise KeyError(k) from None
+                            vec_indexer = algos.isin(level_codes, k_codes)
                         if na_count:
-                            lvl_indexer = lvl_indexer | (level_codes == -1)
+                            vec_indexer = vec_indexer | (level_codes == -1)
+                        lvl_indexer = vec_indexer
+                    # else: an empty key matches nothing; leaving lvl_indexer
+                    #  as None short-circuits to an empty indexer below
 
                 if lvl_indexer is None:
                     # no matches we are done
@@ -4288,7 +4455,7 @@ class MultiIndex(Index):
 
     def _reorder_indexer(
         self,
-        seq: tuple[Scalar | Iterable | AnyArrayLike, ...],
+        seq: tuple[Scalar | Iterable[Any] | AnyArrayLike, ...],
         indexer: npt.NDArray[np.intp],
     ) -> npt.NDArray[np.intp]:
         """
@@ -4886,6 +5053,11 @@ class MultiIndex(Index):
     __invert__ = make_invalid_op("__invert__")
 
 
+def _raise_key_length_error(key_length: int, nlevels: int) -> NoReturn:
+    """One spelling of the over-long-key message for every site that raises it."""
+    raise KeyError(f"Key length ({key_length}) exceeds index depth ({nlevels})")
+
+
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
     """Count depth (up to a maximum of `nlevels`) with which codes are lexsorted."""
     int64_codes = [ensure_int64(level_codes) for level_codes in codes]
@@ -4996,7 +5168,7 @@ def _require_listlike(level, arr, arrname: str):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
         if len(arr) > 0 and is_list_like(arr[0]):
-            raise TypeError(f"{arrname} must be list-like")
+            raise TypeError(f"{arrname} must be list-like, not a list of list-likes")
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):

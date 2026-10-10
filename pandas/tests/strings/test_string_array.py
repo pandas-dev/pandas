@@ -3,20 +3,16 @@ import pytest
 
 from pandas._libs import lib
 
-from pandas import (
-    NA,
-    DataFrame,
-    Series,
-    _testing as tm,
-)
+import pandas as pd
+import pandas._testing as tm
 
 
 def test_string_array(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
 
     data = ["a", "bb", np.nan, "ccc"]
-    a = Series(data, dtype=object)
-    b = Series(data, dtype=nullable_string_dtype)
+    a = pd.Series(data, dtype=object)
+    b = pd.Series(data, dtype=nullable_string_dtype)
 
     if method_name == "decode":
         with pytest.raises(TypeError, match="a bytes-like object is required"):
@@ -26,7 +22,7 @@ def test_string_array(nullable_string_dtype, any_string_method):
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)
 
-    if isinstance(expected, Series):
+    if isinstance(expected, pd.Series):
         if expected.dtype == "object" and lib.is_string_array(
             expected.dropna().values,
         ):
@@ -49,13 +45,13 @@ def test_string_array(nullable_string_dtype, any_string_method):
 
         if expected.dtype == object:
             # GH#18463
-            expected[expected.isna()] = NA
+            expected[expected.isna()] = pd.NA
 
-    elif isinstance(expected, DataFrame):
+    elif isinstance(expected, pd.DataFrame):
         columns = expected.select_dtypes(include="object").columns
         assert all(result[columns].dtypes == nullable_string_dtype)
         result[columns] = result[columns].astype(object)
-        expected[columns] = expected[columns].fillna(NA)  # GH#18463
+        expected[columns] = expected[columns].fillna(pd.NA)  # GH#18463
 
     tm.assert_equal(result, expected)
 
@@ -70,9 +66,9 @@ def test_string_array(nullable_string_dtype, any_string_method):
     ],
 )
 def test_string_array_numeric_integer_array(nullable_string_dtype, method, expected):
-    s = Series(["aba", None], dtype=nullable_string_dtype)
+    s = pd.Series(["aba", None], dtype=nullable_string_dtype)
     result = getattr(s.str, method)("a")
-    expected = Series(expected, dtype="Int64")
+    expected = pd.Series(expected, dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 
@@ -87,9 +83,9 @@ def test_string_array_numeric_integer_array(nullable_string_dtype, method, expec
     ],
 )
 def test_string_array_boolean_array(nullable_string_dtype, method, expected):
-    s = Series(["a", None, "1"], dtype=nullable_string_dtype)
+    s = pd.Series(["a", None, "1"], dtype=nullable_string_dtype)
     result = getattr(s.str, method)()
-    expected = Series(expected, dtype="boolean")
+    expected = pd.Series(expected, dtype="boolean")
     tm.assert_series_equal(result, expected)
 
 
@@ -97,13 +93,13 @@ def test_string_array_extract(nullable_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/30969
     # Only expand=False & multiple groups was failing
 
-    a = Series(["a1", "b2", "cc"], dtype=nullable_string_dtype)
-    b = Series(["a1", "b2", "cc"], dtype="object")
+    a = pd.Series(["a1", "b2", "cc"], dtype=nullable_string_dtype)
+    b = pd.Series(["a1", "b2", "cc"], dtype="object")
     pat = r"(\w)(\d)"
 
     result = a.str.extract(pat, expand=False)
     expected = b.str.extract(pat, expand=False)
-    expected = expected.fillna(NA)  # GH#18463
+    expected = expected.fillna(pd.NA)  # GH#18463
     assert all(result.dtypes == nullable_string_dtype)
 
     result = result.astype(object)
@@ -120,7 +116,7 @@ def test_string_array_extract(nullable_string_dtype):
 )
 def test_string_array_zfill(nullable_string_dtype, values, width, expected):
     # GH #61485
-    s = Series(values, dtype=nullable_string_dtype)
+    s = pd.Series(values, dtype=nullable_string_dtype)
     result = s.str.zfill(width)
-    expected = Series(expected, dtype=nullable_string_dtype)
+    expected = pd.Series(expected, dtype=nullable_string_dtype)
     tm.assert_series_equal(result, expected)

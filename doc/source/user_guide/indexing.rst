@@ -196,6 +196,38 @@ columns.
       df.iloc[:, [1, 0]] = df[['A', 'B']]
       df[['A','B']]
 
+.. _indexing.select:
+
+Selecting columns with ``select``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`DataFrame.select` returns a DataFrame with the requested columns in the
+given order, similar to passing a list of columns to ``[]``. As a method, it
+can be used within a chain of operations. Columns can be given as individual
+arguments or as a single list:
+
+.. ipython:: python
+
+   df.select('B', 'A')
+   df.select(['B', 'A'])
+
+In addition to existing columns, computed columns can be included via
+:func:`pandas.col` expressions or callables. A positional expression keeps the
+name of the underlying column, while a keyword argument names the resulting
+column. Later arguments can refer to columns computed earlier in the same call:
+
+.. ipython:: python
+
+   df.select('A', pd.col('B') * 2, C=pd.col('A') + pd.col('B'), D=pd.col('C') > 0)
+
+A computed column with the same name as an existing column replaces it for
+later arguments. It does not replace a column that was already selected, so
+the result can contain duplicate column labels:
+
+.. ipython:: python
+
+   df.select('A', A=pd.col('A') * 2, E=pd.col('A'))
+
 
 Attribute access
 ----------------
@@ -916,6 +948,49 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
       df.loc[s, 'B']
 
       df.iloc[s.values, 1]
+
+.. _indexing.boolean.filter:
+
+Filtering with ``DataFrame.filter``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 3.1.0
+
+:meth:`DataFrame.filter` and :meth:`Series.filter` also accept a boolean mask
+through the ``cond`` keyword, keeping the rows where the mask is True. A
+:class:`Series` mask is aligned on the index; any other array-like must have
+the same length as the index.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=list('abc'))
+   df.filter(cond=df['A'] > 1)
+
+``cond`` may also be a callable that returns a boolean mask, or an expression
+created with :func:`pandas.col`. These two forms may be passed positionally,
+which is convenient in a method chain where the intermediate object has no
+name:
+
+.. ipython:: python
+
+   df.filter(pd.col('A') > 1)
+   df.assign(C=pd.col('A') + pd.col('B')).filter(lambda df: df['C'] > 5)
+
+Pass ``axis=1`` to filter columns instead of rows:
+
+.. ipython:: python
+
+   df.filter(cond=df.columns.str.startswith('A'), axis=1)
+
+Missing values in the mask are treated as False by default, matching
+``df[mask]`` for a mask with nullable boolean dtype. Pass ``na=True`` to keep
+the corresponding rows instead, or ``na="raise"`` to raise an error:
+
+.. ipython:: python
+
+   mask = pd.array([True, None, False], dtype="boolean")
+   df.filter(cond=mask)
+   df.filter(cond=mask, na=True)
 
 .. _indexing.basics.indexing_isin:
 

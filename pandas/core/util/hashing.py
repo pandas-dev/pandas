@@ -46,13 +46,15 @@ _default_hash_key = "0123456789123456"
 
 
 def combine_hash_arrays(
-    arrays: Iterator[np.ndarray], num_items: int
+    arrays: Iterator[np.ndarray], num_items: int, length: int = 0
 ) -> npt.NDArray[np.uint64]:
     """
     Parameters
     ----------
     arrays : Iterator[np.ndarray]
     num_items : int
+    length : int, default 0
+        Length of the result if ``arrays`` is empty.
 
     Returns
     -------
@@ -63,7 +65,8 @@ def combine_hash_arrays(
     try:
         first = next(arrays)
     except StopIteration:
-        return np.array([], dtype=np.uint64)
+        # GH#24318 each row hashes as an empty tuple: seed plus finalizer
+        return np.full(length, 0x345678 + 97531, dtype=np.uint64)
 
     arrays = itertools.chain([first], arrays)
 
@@ -121,6 +124,14 @@ def hash_pandas_object(
     util.hash_array : Return a hash of the given array.
     util.hash_tuples : Hash a MultiIndex or listlike-of-tuples efficiently.
 
+    Notes
+    -----
+    The result hashes each row's values, not the object as a whole. Column
+    labels, index and column names, ``attrs``, and some dtype differences
+    (e.g. ``int32`` vs ``int64``) do not affect it. To fingerprint a whole
+    DataFrame, also hash the metadata your use case needs; see the fingerprint
+    example below.
+
     Examples
     --------
     >>> pd.util.hash_pandas_object(pd.Series([1, 2, 3]))
@@ -158,6 +169,24 @@ def hash_pandas_object(
     1     5694802365760992243
     2    18202460376300699891
     dtype: uint64
+
+    Renaming a column leaves the result unchanged. A whole-frame fingerprint
+    can combine the row hashes with hashes of the labels and dtypes:
+
+    >>> import hashlib
+    >>> def fingerprint(df):
+    ...     parts = [
+    ...         pd.util.hash_pandas_object(df),
+    ...         pd.util.hash_pandas_object(df.columns),
+    ...         pd.util.hash_pandas_object(df.dtypes.astype(str), index=False),
+    ...     ]
+    ...     data = b"".join(part.to_numpy().tobytes() for part in parts)
+    ...     return hashlib.sha256(data).hexdigest()
+    >>> df3 = df1.rename(columns={"a": "b"})
+    >>> pd.util.hash_pandas_object(df1).equals(pd.util.hash_pandas_object(df3))
+    True
+    >>> fingerprint(df1) == fingerprint(df3)
+    False
     """
     from pandas import Series
 
@@ -215,7 +244,7 @@ def hash_pandas_object(
             # keep `hashes` specifically a generator to keep mypy happy
             _hashes = itertools.chain(hashes, index_hash_generator)
             hashes = (x for x in _hashes)
-        h = combine_hash_arrays(hashes, num_items)
+        h = combine_hash_arrays(hashes, num_items, len(obj))
 
         ser = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
@@ -344,8 +373,10 @@ def _hash_ndarray(
     """
     dtype = vals.dtype
 
-    # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
-    if np.issubdtype(dtype, np.complex128):
+    # _hash_ndarray only takes 64-bit values, so handle complex dtypes by
+    # parts.  complex64 fits in 64 bits, but bit-hashing its two halves as a
+    # single value would bypass the float canonicalization below (GH#28363).
+    if dtype.type in (np.complex64, np.complex128):
         hash_real = _hash_ndarray(vals.real, encoding, hash_key, categorize)
         hash_imag = _hash_ndarray(vals.imag, encoding, hash_key, categorize)
         return hash_real + 23 * hash_imag
@@ -357,7 +388,15 @@ def _hash_ndarray(
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
     elif issubclass(dtype.type, np.number) and dtype.itemsize <= 8:
-        vals = vals.view(f"u{vals.dtype.itemsize}").astype("u8")
+        uint_dtype = f"u{dtype.itemsize}"
+        uints = vals.view(uint_dtype).astype("u8")
+        if issubclass(dtype.type, np.floating):
+            # GH#28363 a single float value can have more than one bit
+            # pattern: 0.0 vs -0.0, and NaN with any sign or payload.
+            # Canonicalize those so that equal values hash equal.
+            uints[np.isnan(vals)] = np.array(np.nan, dtype=dtype).view(uint_dtype)
+            uints[uints == np.array(-0.0, dtype=dtype).view(uint_dtype)] = 0
+        vals = uints
     else:
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization
@@ -381,10 +420,12 @@ def _hash_ndarray(
         try:
             vals = hash_object_array(vals, hash_key, encoding)
         except TypeError:
-            # we have mixed types
-            vals = hash_object_array(
-                vals.astype(str).astype(object), hash_key, encoding
-            )
+            # we have mixed types; leave bytes as-is since numpy's astype(str)
+            # can only decode them as ASCII, GH#27215
+            is_bytes = np.array([isinstance(val, bytes) for val in vals], dtype=bool)
+            strs = vals.copy()
+            strs[~is_bytes] = vals[~is_bytes].astype(str)
+            vals = hash_object_array(strs, hash_key, encoding)
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30

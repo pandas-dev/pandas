@@ -5,6 +5,7 @@ from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -254,7 +255,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         raise TypeError(f"'{type(self).__name__}' object is not iterable")
 
     def _wrap_result(
@@ -296,6 +297,13 @@ class StringMethods(NoNewAttributesMixin):
                 value_lengths = pa.compute.list_value_length(result._pa_array)
                 max_len = pa.compute.max(value_lengths).as_py()
                 min_len = pa.compute.min(value_lengths).as_py()
+                if max_len is None:
+                    # No non-null rows to take a width from. Match the
+                    # object-dtype path below, which expands an all-NA result
+                    # into a single all-NA column and an empty one into no
+                    # columns at all.
+                    max_len = min_len = 1 if len(result) else 0
+                value_type = result._pa_array.type.value_type
                 if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
                     result = ArrowExtensionArray(
@@ -318,10 +326,15 @@ class StringMethods(NoNewAttributesMixin):
                     .to_numpy()
                     .reshape(len(result), max_len)
                 )
-                result = {
-                    label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(name, result.T, strict=True)
-                }
+                columns = {}
+                for label, res in zip(name, result.T, strict=True):
+                    col = pa.array(res)
+                    if pa.types.is_null(col.type) and not pa.types.is_null(value_type):
+                        # an all-NA column would otherwise land on the null
+                        # type, which no longer supports .str
+                        col = col.cast(value_type)
+                    columns[label] = ArrowExtensionArray(col)
+                result = columns
             elif is_object_dtype(result):
 
                 def cons_row(x):
@@ -331,11 +344,23 @@ class StringMethods(NoNewAttributesMixin):
                         return [x]
 
                 result = [cons_row(x) for x in result]
-                if result and not self._is_string:
-                    # propagate nan values to match longest sequence (GH 18450)
+                if result:
+                    if not self._is_string:
+                        # propagate nan values to match longest sequence
+                        #  (GH 18450)
+                        max_len = max(len(x) for x in result)
+                        result = [
+                            x * max_len if len(x) == 0 or x[0] is np.nan else x
+                            for x in result
+                        ]
+
+                    # GH#65751 right-pad ragged rows to a common length so the
+                    #  DataFrame constructor below isn't relied on to NaN-pad
+                    #  mismatched-length sequences (now deprecated). Filling
+                    #  with None matches the constructor's previous behavior.
                     max_len = max(len(x) for x in result)
                     result = [
-                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        list(x) + [None] * (max_len - len(x)) if len(x) < max_len else x
                         for x in result
                     ]
 
@@ -611,7 +636,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.str.cat(pd.Series(["x", "y", "z"]))
-        Index([nan, nan, nan], dtype='object')
+        Index([NaN, NaN, NaN], dtype='object')
 
         Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
 
@@ -718,7 +743,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
-        pat: str | re.Pattern | None = None,
+        pat: str | re.Pattern[str] | None = None,
         *,
         n=-1,
         expand: bool = False,
@@ -914,7 +939,7 @@ class StringMethods(NoNewAttributesMixin):
             regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            dtype = self._data.dtype.categories.dtype if expand else object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1050,7 +1075,10 @@ class StringMethods(NoNewAttributesMixin):
         2                                 NaN         NaN
         """
         result = self._data.array._str_rsplit(pat, n=n)
-        dtype = object if self._data.dtype == object else None
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype if expand else object
+        else:
+            dtype = object if self._data.dtype == object else None
         return self._wrap_result(
             result, expand=expand, returns_string=expand, dtype=dtype
         )
@@ -1140,7 +1168,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_partition(sep, expand)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            dtype = self._data.dtype.categories.dtype if expand else object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1232,7 +1260,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         result = self._data.array._str_rpartition(sep, expand)
         if self._data.dtype == "category":
-            dtype = self._data.dtype.categories.dtype
+            dtype = self._data.dtype.categories.dtype if expand else object
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
@@ -1527,7 +1555,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool | lib.NoDefault = lib.no_default,
         flags: int | lib.NoDefault = lib.no_default,
         na=lib.no_default,
@@ -1577,27 +1605,15 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
-        if flags is not lib.no_default:
-            # pat.flags will have re.U regardless, so we need to add it here
-            # before checking for a match
-            flags = flags | re.U
-            if is_re(pat):
-                if pat.flags != flags:
-                    raise ValueError(
-                        "Cannot both specify 'flags' and pass a compiled regexp "
-                        "object with conflicting flags"
-                    )
-            else:
-                pat = re.compile(pat, flags=flags)
-            # set flags=0 to ensure that when we call
-            #  re.compile(pat, flags=flags) the constructor does not raise.
-            flags = 0
-        else:
-            flags = 0
+        # Note: `case` must be resolved before we compile `pat` below, since
+        #  compiling would make is_re(pat) True even for a user-passed string.
+        case_specified = case is not lib.no_default
 
-        if case is lib.no_default:
+        if not case_specified:
             if is_re(pat):
                 case = not bool(pat.flags & re.IGNORECASE)
+            elif flags is not lib.no_default:
+                case = not bool(flags & re.IGNORECASE)
             else:
                 # Case-sensitive default
                 case = True
@@ -1609,6 +1625,35 @@ class StringMethods(NoNewAttributesMixin):
                     "Cannot both specify 'case' and pass a compiled regexp "
                     "object with conflicting case-sensitivity"
                 )
+
+        if flags is not lib.no_default:
+            if case_specified and case and not is_re(pat) and flags & re.IGNORECASE:
+                raise ValueError(
+                    "Cannot both specify case=True and pass 'flags' containing "
+                    "re.IGNORECASE"
+                )
+            if not case:
+                # Bake `case` into the flags so that it survives compilation.
+                flags |= re.IGNORECASE
+            if is_re(pat):
+                # Round-trip the requested flags through re.compile so the
+                #  comparison accounts for the fixups it applies: the implicit
+                #  re.U, and any inline "(?a)"/"(?i)" in the pattern itself.
+                if re.compile(pat.pattern, flags).flags != pat.flags:
+                    raise ValueError(
+                        "Cannot both specify 'flags' and pass a compiled regexp "
+                        "object with conflicting flags"
+                    )
+            elif flags & ~(re.IGNORECASE | re.UNICODE):
+                # Only pre-compile when `flags` carries something `case` cannot.
+                #  Leaving `pat` a str otherwise keeps `flags=0` equivalent to
+                #  omitting `flags`, so patterns using RE2 syntax that `re`
+                #  rejects still reach the pyarrow kernels. GH#63108
+                pat = re.compile(pat, flags=flags)
+        # Any `flags` are now carried by `case` or baked into `pat`, so set
+        #  flags=0 to ensure that when we call re.compile(pat, flags=flags)
+        #  downstream the constructor does not raise.
+        flags = 0
 
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -1665,8 +1710,8 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern | dict,
-        repl: str | Callable | None = None,
+        pat: str | re.Pattern[str] | dict[str, str],
+        repl: str | Callable[..., Any] | None = None,
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
@@ -1835,10 +1880,13 @@ class StringMethods(NoNewAttributesMixin):
             case = True
 
         res_output = self._data
-        if not isinstance(pat, dict):
-            pat = {pat: repl}
+        pat_dict: dict[Any, Any]
+        if isinstance(pat, dict):
+            pat_dict = pat
+        else:
+            pat_dict = {pat: repl}
 
-        for key, value in pat.items():
+        for key, value in pat_dict.items():
             result = res_output.array._str_replace(
                 key, value, n=n, case=case, flags=flags, regex=regex
             )
@@ -2207,8 +2255,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Notes
         -----
-        Differs from :meth:`str.zfill` which has special handling
-        for '+'/'-' in the string.
+        Follows the same rules as :meth:`str.zfill`: a leading sign character
+        ('+'/'-') is kept at the front of the string and the '0' padding is
+        inserted after it.
 
         Examples
         --------
@@ -2222,10 +2271,10 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
 
         Note that ``10`` and ``NaN`` are not strings, therefore they are
-        converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
-        special character and the zero is added to the right of it
-        (:meth:`str.zfill` would have moved it to the left). ``1000``
-        remains unchanged as it is longer than `width`.
+        converted to ``NaN``. The minus sign in ``'-1'`` is kept at the front
+        of the string and the '0' padding is inserted after it, the same as
+        :meth:`str.zfill`. ``1000`` remains unchanged as it is longer than
+        `width`.
 
         >>> s.str.zfill(3)
         0     -01
@@ -4802,7 +4851,7 @@ def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     return result
 
 
-def cat_core(list_of_columns: list, sep: str):
+def cat_core(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -4823,7 +4872,7 @@ def cat_core(list_of_columns: list, sep: str):
         # no need to interleave sep if it is empty
         arr_of_cols = np.asarray(list_of_columns, dtype=object)
         return np.sum(arr_of_cols, axis=0)
-    list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
+    list_with_sep: list[Any] = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     arr_with_sep = np.asarray(list_with_sep, dtype=object)
     return np.sum(arr_with_sep, axis=0)
@@ -4840,14 +4889,14 @@ def _result_dtype(arr):
     return object
 
 
-def _get_single_group_name(regex: re.Pattern) -> Hashable:
+def _get_single_group_name(regex: re.Pattern[str]) -> Hashable:
     if regex.groupindex:
         return next(iter(regex.groupindex))
     else:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable] | range:
+def _get_group_names(regex: re.Pattern[str]) -> list[Hashable] | range:
     """
     Get named groups from compiled regex.
 

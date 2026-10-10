@@ -31,25 +31,29 @@ def _f3(new=0):
 def test_deprecate_kwarg(key, klass):
     x = 78
 
-    with tm.assert_produces_warning(klass):
+    msg = "the 'old' keyword is deprecated, use 'new' instead"
+    with tm.assert_produces_warning(klass, match=msg):
         assert _f1(**{key: x}) == x
 
 
 @pytest.mark.parametrize("key", list(_f2_mappings.keys()))
 def test_dict_deprecate_kwarg(key):
-    with tm.assert_produces_warning(FutureWarning):
+    msg = f"the old={key!r} keyword is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert _f2(old=key) == _f2_mappings[key]
 
 
 @pytest.mark.parametrize("key", ["bogus", 12345, -1.23])
 def test_missing_deprecate_kwarg(key):
-    with tm.assert_produces_warning(FutureWarning):
+    msg = f"the old={key!r} keyword is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert _f2(old=key) == key
 
 
 @pytest.mark.parametrize("x", [1, -1.4, 0])
 def test_callable_deprecate_kwarg(x):
-    with tm.assert_produces_warning(FutureWarning):
+    msg = f"the old={x!r} keyword is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert _f3(old=x) == _f3_mapping(x)
 
 
@@ -86,5 +90,6 @@ def test_deprecate_keyword(key):
         klass = None
         expected = (True, x)
 
-    with tm.assert_produces_warning(klass):
+    msg = "the 'old' keyword is deprecated and will be removed in a future version"
+    with tm.assert_produces_warning(klass, match=msg):
         assert _f4(**{key: x}) == expected

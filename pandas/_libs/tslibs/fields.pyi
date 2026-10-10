@@ -7,7 +7,7 @@ def build_field_sarray(
     reso: int,  # NPY_DATETIMEUNIT
 ) -> np.ndarray: ...
 def month_position_check(
-    fields: np.ndarray,  # structured ndarray with "Y", "M", "D" int32 fields
+    fields: np.ndarray,  # structured ndarray with int64 "Y", int32 "M"/"D" fields
     weekdays: npt.NDArray[np.integer],
 ) -> str | None: ...
 def get_date_name_field(
@@ -37,9 +37,6 @@ def get_timedelta_days(
     tdindex: npt.NDArray[np.int64],  # const int64_t[:]
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int64]: ...
-def isleapyear_arr(
-    years: np.ndarray,
-) -> npt.NDArray[np.bool_]: ...
 def build_isocalendar_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     reso: int,  # NPY_DATETIMEUNIT

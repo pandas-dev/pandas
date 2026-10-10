@@ -749,7 +749,10 @@ typedef const char *kh_cstr_t;
 #define kh_exist_set_int8(h, k) (kh_exist(h, k))
 #define kh_exist_set_uint8(h, k) (kh_exist(h, k))
 
-KHASH_MAP_INIT_STR(str, size_t)
+// kh_str_t is deliberately *not* instantiated here. pandas keys its string
+// tables on an explicit (pointer, length) pair so that values containing
+// embedded NUL bytes are not truncated; see KHASH_MAP_INIT_STRVIEW in
+// khash_python.h.
 KHASH_MAP_INIT_INT(int32, size_t)
 KHASH_MAP_INIT_UINT(uint32, size_t)
 KHASH_MAP_INIT_INT64(int64, size_t)

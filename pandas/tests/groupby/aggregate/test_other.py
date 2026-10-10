@@ -14,15 +14,6 @@ from pandas.errors import (
 )
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    PeriodIndex,
-    Series,
-    date_range,
-    period_range,
-)
 import pandas._testing as tm
 
 from pandas.io.formats.printing import pprint_thing
@@ -31,7 +22,7 @@ from pandas.io.formats.printing import pprint_thing
 def test_agg_partial_failure_raises():
     # GH#43741
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "data1": np.random.default_rng(2).standard_normal(5),
             "data2": np.random.default_rng(2).standard_normal(5),
@@ -54,7 +45,7 @@ def test_agg_partial_failure_raises():
 def test_agg_datetimes_mixed():
     data = [[1, "2012-01-01", 1.0], [2, "2012-01-02", 2.0], [3, None, 3.0]]
 
-    df1 = DataFrame(
+    df1 = pd.DataFrame(
         {
             "key": [x[0] for x in data],
             "date": [x[1] for x in data],
@@ -71,7 +62,7 @@ def test_agg_datetimes_mixed():
         for row in data
     ]
 
-    df2 = DataFrame(
+    df2 = pd.DataFrame(
         {
             "key": [x[0] for x in data],
             "date": [x[1] for x in data],
@@ -89,16 +80,16 @@ def test_agg_datetimes_mixed():
 
 
 def test_agg_period_index():
-    prng = period_range("2012-1-1", freq="M", periods=3)
-    df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)), index=prng)
+    prng = pd.period_range("2012-1-1", freq="M", periods=3)
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((3, 2)), index=prng)
     rs = df.groupby(level=0).sum()
-    assert isinstance(rs.index, PeriodIndex)
+    assert isinstance(rs.index, pd.PeriodIndex)
 
     # GH 3579
-    index = period_range(start="1999-01", periods=5, freq="M")
-    s1 = Series(np.random.default_rng(2).random(len(index)), index=index)
-    s2 = Series(np.random.default_rng(2).random(len(index)), index=index)
-    df = DataFrame.from_dict({"s1": s1, "s2": s2})
+    index = pd.period_range(start="1999-01", periods=5, freq="M")
+    s1 = pd.Series(np.random.default_rng(2).random(len(index)), index=index)
+    s2 = pd.Series(np.random.default_rng(2).random(len(index)), index=index)
+    df = pd.DataFrame.from_dict({"s1": s1, "s2": s2})
     grouped = df.groupby(df.index.month)
     list(grouped)
 
@@ -106,10 +97,10 @@ def test_agg_period_index():
 def test_agg_dict_parameter_cast_result_dtypes():
     # GH 12821
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "class": ["A", "A", "B", "B", "C", "C", "D", "D"],
-            "time": date_range("1/1/2011", periods=8, freq="h"),
+            "time": pd.date_range("1/1/2011", periods=8, freq="h"),
         }
     )
     df.loc[[0, 1, 2, 5], "time"] = None
@@ -133,11 +124,15 @@ def test_agg_dict_parameter_cast_result_dtypes():
     tm.assert_series_equal(grouped.time.agg("last"), exp["time"])
 
     # count
-    exp = Series([2, 2, 2, 2], index=Index(list("ABCD"), name="class"), name="time")
+    exp = pd.Series(
+        [2, 2, 2, 2], index=pd.Index(list("ABCD"), name="class"), name="time"
+    )
     tm.assert_series_equal(grouped.time.agg(len), exp)
     tm.assert_series_equal(grouped.time.size(), exp)
 
-    exp = Series([0, 1, 1, 2], index=Index(list("ABCD"), name="class"), name="time")
+    exp = pd.Series(
+        [0, 1, 1, 2], index=pd.Index(list("ABCD"), name="class"), name="time"
+    )
     tm.assert_series_equal(grouped.time.count(), exp)
 
 
@@ -146,7 +141,7 @@ def test_agg_cast_results_dtypes():
     # xref #11444
     u = [dt.datetime(2015, x + 1, 1) for x in range(12)]
     v = list("aaabbbbbbccd")
-    df = DataFrame({"X": v, "Y": u})
+    df = pd.DataFrame({"X": v, "Y": u})
 
     result = df.groupby("X")["Y"].agg(len)
     expected = df.groupby("X")["Y"].count()
@@ -155,15 +150,19 @@ def test_agg_cast_results_dtypes():
 
 def test_aggregate_float64_no_int64():
     # see gh-11199
-    df = DataFrame({"a": [1, 2, 3, 4, 5], "b": [1, 2, 2, 4, 5], "c": [1, 2, 3, 4, 5]})
+    df = pd.DataFrame(
+        {"a": [1, 2, 3, 4, 5], "b": [1, 2, 2, 4, 5], "c": [1, 2, 3, 4, 5]}
+    )
 
-    expected = DataFrame({"a": [1, 2.5, 4, 5]}, index=[1, 2, 4, 5])
+    expected = pd.DataFrame({"a": [1, 2.5, 4, 5]}, index=[1, 2, 4, 5])
     expected.index.name = "b"
 
     result = df.groupby("b")[["a"]].mean()
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame({"a": [1, 2.5, 4, 5], "c": [1, 2.5, 4, 5]}, index=[1, 2, 4, 5])
+    expected = pd.DataFrame(
+        {"a": [1, 2.5, 4, 5], "c": [1, 2.5, 4, 5]}, index=[1, 2, 4, 5]
+    )
     expected.index.name = "b"
 
     result = df.groupby("b")[["a", "c"]].mean()
@@ -174,7 +173,7 @@ def test_aggregate_api_consistency():
     # GH 9052
     # make sure that the aggregates via dict
     # are consistent
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -196,12 +195,12 @@ def test_aggregate_api_consistency():
 
     result = grouped.agg(["sum", "mean"])
     expected = pd.concat([c_sum, c_mean, d_sum, d_mean], axis=1)
-    expected.columns = MultiIndex.from_product([["C", "D"], ["sum", "mean"]])
+    expected.columns = pd.MultiIndex.from_product([["C", "D"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped[["D", "C"]].agg(["sum", "mean"])
     expected = pd.concat([d_sum, d_mean, c_sum, c_mean], axis=1)
-    expected.columns = MultiIndex.from_product([["D", "C"], ["sum", "mean"]])
+    expected.columns = pd.MultiIndex.from_product([["D", "C"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({"C": "mean", "D": "sum"})
@@ -210,7 +209,7 @@ def test_aggregate_api_consistency():
 
     result = grouped.agg({"C": ["mean", "sum"], "D": ["mean", "sum"]})
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
-    expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
+    expected.columns = pd.MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
     msg = r"Label\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
@@ -219,7 +218,7 @@ def test_aggregate_api_consistency():
 
 def test_agg_dict_renaming_deprecation():
     # 15931
-    df = DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
+    df = pd.DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
 
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
@@ -238,7 +237,7 @@ def test_agg_dict_renaming_deprecation():
 
 def test_agg_compat():
     # GH 12334
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -259,7 +258,7 @@ def test_agg_compat():
 
 def test_agg_nested_dicts():
     # API change for disallowing these types of nested dicts
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -287,7 +286,7 @@ def test_agg_nested_dicts():
 
 
 def test_agg_item_by_item_raise_typeerror():
-    df = DataFrame(np.random.default_rng(2).integers(10, size=(20, 10)))
+    df = pd.DataFrame(np.random.default_rng(2).integers(10, size=(20, 10)))
 
     def raiseException(df):
         pprint_thing("----------------------------------------")
@@ -299,8 +298,8 @@ def test_agg_item_by_item_raise_typeerror():
 
 
 def test_series_agg_multikey():
-    ts = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    ts = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
@@ -310,7 +309,7 @@ def test_series_agg_multikey():
 
 
 def test_series_agg_multi_pure_python():
-    data = DataFrame(
+    data = pd.DataFrame(
         {
             "A": [
                 "foo",
@@ -373,7 +372,7 @@ def test_agg_consistency():
     def P1(a):
         return np.percentile(a.dropna(), q=1)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "col1": [1, 2, 3, 4],
             "col2": [10, 25, 26, 31],
@@ -397,7 +396,7 @@ def test_agg_consistency():
 
 def test_agg_callables():
     # GH 7929
-    df = DataFrame({"foo": [1, 2], "bar": [3, 4]}).astype(np.int64)
+    df = pd.DataFrame({"foo": [1, 2], "bar": [3, 4]}).astype(np.int64)
 
     class fn_class:
         def __call__(self, x):
@@ -420,7 +419,7 @@ def test_agg_callables():
 
 def test_agg_over_numpy_arrays():
     # GH 3788
-    df = DataFrame(
+    df = pd.DataFrame(
         [
             [1, np.array([10, 20, 30])],
             [1, np.array([40, 50, 60])],
@@ -431,9 +430,11 @@ def test_agg_over_numpy_arrays():
     gb = df.groupby("category")
 
     expected_data = [[np.array([50, 70, 90])], [np.array([20, 30, 40])]]
-    expected_index = Index([1, 2], name="category")
+    expected_index = pd.Index([1, 2], name="category")
     expected_column = ["arraydata"]
-    expected = DataFrame(expected_data, index=expected_index, columns=expected_column)
+    expected = pd.DataFrame(
+        expected_data, index=expected_index, columns=expected_column
+    )
 
     alt = gb.sum(numeric_only=False)
     tm.assert_frame_equal(alt, expected)
@@ -449,32 +450,32 @@ def test_agg_over_numpy_arrays():
 def test_agg_tzaware_non_datetime_result(as_period):
     # discussed in GH#29589, fixed in GH#29641, operating on tzaware values
     #  with function that is not dtype-preserving
-    dti = date_range("2012-01-01", periods=4, tz="UTC")
+    dti = pd.date_range("2012-01-01", periods=4, tz="UTC")
     if as_period:
         dti = dti.tz_localize(None).to_period("D")
 
-    df = DataFrame({"a": [0, 0, 1, 1], "b": dti})
+    df = pd.DataFrame({"a": [0, 0, 1, 1], "b": dti})
     gb = df.groupby("a")
 
     # Case that _does_ preserve the dtype
     result = gb["b"].agg(lambda x: x.iloc[0])
-    expected = Series(dti[::2], name="b")
+    expected = pd.Series(dti[::2], name="b")
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
     # Cases that do _not_ preserve the dtype
     result = gb["b"].agg(lambda x: x.iloc[0].year)
-    expected = Series([2012, 2012], name="b")
+    expected = pd.Series([2012, 2012], name="b")
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
-    expected = Series(
+    expected = pd.Series(
         [pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b", dtype="m8[us]"
     )
     expected.index.name = "a"
     if as_period:
-        expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
+        expected = pd.Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
         expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
@@ -482,7 +483,9 @@ def test_agg_tzaware_non_datetime_result(as_period):
 def test_agg_timezone_round_trip():
     # GH 15426
     ts = pd.Timestamp("2016-01-01 12:00:00", tz="US/Pacific")
-    df = DataFrame({"a": 1, "b": [ts + dt.timedelta(minutes=nn) for nn in range(10)]})
+    df = pd.DataFrame(
+        {"a": 1, "b": [ts + dt.timedelta(minutes=nn) for nn in range(10)]}
+    )
 
     result1 = df.groupby("a")["b"].agg("min").iloc[0]
     result2 = df.groupby("a")["b"].agg(lambda x: np.min(x)).iloc[0]
@@ -495,7 +498,7 @@ def test_agg_timezone_round_trip():
     dates = [
         pd.Timestamp(f"2016-01-0{i:d} 12:00:00", tz="US/Pacific") for i in range(1, 5)
     ]
-    df = DataFrame({"A": ["a", "b"] * 2, "B": dates})
+    df = pd.DataFrame({"A": ["a", "b"] * 2, "B": dates})
     grouped = df.groupby("A")
 
     ts = df["B"].iloc[0]
@@ -516,13 +519,13 @@ def test_agg_timezone_round_trip():
 def test_sum_uint64_overflow():
     # see gh-14758
     # Convert to uint64 and don't overflow
-    df = DataFrame([[1, 2], [3, 4], [5, 6]], dtype=object)
+    df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], dtype=object)
     df = df + 9223372036854775807
 
-    index = Index(
+    index = pd.Index(
         [9223372036854775808, 9223372036854775810, 9223372036854775812], dtype=np.uint64
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {1: [9223372036854775809, 9223372036854775811, 9223372036854775813]},
         index=index,
         dtype=object,
@@ -548,12 +551,12 @@ def test_sum_uint64_overflow():
     ],
 )
 def test_agg_structs_dataframe(structure, cast_as):
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby(["A", "B"]).aggregate(structure)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"C": {(1, 1): cast_as([1, 1, 1]), (3, 4): cast_as([3, 4, 4])}}
     )
     expected.index.names = ["A", "B"]
@@ -571,23 +574,25 @@ def test_agg_structs_dataframe(structure, cast_as):
 )
 def test_agg_structs_series(structure, cast_as):
     # Issue #18079
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby("A")["C"].aggregate(structure)
-    expected = Series([cast_as([1, 1, 1]), cast_as([3, 4, 4])], index=[1, 3], name="C")
+    expected = pd.Series(
+        [cast_as([1, 1, 1]), cast_as([3, 4, 4])], index=[1, 3], name="C"
+    )
     expected.index.name = "A"
     tm.assert_series_equal(result, expected)
 
 
 def test_agg_category_nansum(observed):
     categories = ["a", "b", "c"]
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
     )
     result = df.groupby("A", observed=observed).B.agg(np.nansum)
-    expected = Series(
+    expected = pd.Series(
         [3, 3, 0],
         index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),
         name="B",
@@ -599,10 +604,12 @@ def test_agg_category_nansum(observed):
 
 def test_agg_list_like_func():
     # GH 18473
-    df = DataFrame({"A": [str(x) for x in range(3)], "B": [str(x) for x in range(3)]})
+    df = pd.DataFrame(
+        {"A": [str(x) for x in range(3)], "B": [str(x) for x in range(3)]}
+    )
     grouped = df.groupby("A", as_index=False, sort=False)
     result = grouped.agg({"B": lambda x: list(x)})
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"A": [str(x) for x in range(3)], "B": [[str(x)] for x in range(3)]}
     )
     tm.assert_frame_equal(result, expected)
@@ -610,7 +617,7 @@ def test_agg_list_like_func():
 
 def test_agg_lambda_with_timezone():
     # GH 23683
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "tag": [1, 1],
             "date": [
@@ -622,9 +629,9 @@ def test_agg_lambda_with_timezone():
     msg = "Converting a Series or array of length 1 into a scalar"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [pd.Timestamp("2018-01-01", tz="UTC")],
-        index=Index([1], name="tag"),
+        index=pd.Index([1], name="tag"),
         columns=["date"],
     )
     tm.assert_frame_equal(result, expected)
@@ -655,11 +662,11 @@ def test_groupby_agg_err_catching(err_cls):
     )
 
     data = make_data(5)
-    df = DataFrame(
+    df = pd.DataFrame(
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )
 
-    expected = Series(to_decimal([data[0], data[3]]))
+    expected = pd.Series(to_decimal([data[0], data[3]]))
 
     def weird_func(x):
         # weird function that raise something other than TypeError or IndexError

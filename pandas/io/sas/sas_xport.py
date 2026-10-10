@@ -227,6 +227,12 @@ def _parse_float_vec(vec):
         xport1 & 0x80000000
     )
 
+    # A zero fraction is zero; the conversion above assumes a normalized
+    # fraction (GH#50670)
+    zero = ((xport1 & 0x00FFFFFF) == 0) & (xport2 == 0)
+    ieee1[zero] = xport1[zero] & 0x80000000
+    ieee2[zero] = 0
+
     ieee = np.empty((len(ieee1),), dtype=">u4,>u4")
     ieee["f0"] = ieee1
     ieee["f1"] = ieee2
@@ -245,7 +251,7 @@ class XportReader(SASReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         index=None,
-        encoding: str | None | lib.NoDefault = _default_encoding,
+        encoding: str | lib.NoDefault | None = _default_encoding,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
     ) -> None:

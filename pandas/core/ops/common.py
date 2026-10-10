@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 
@@ -41,6 +42,20 @@ def has_castable_attr(obj) -> bool:
     return any(hasattr(obj, name) for name in attrs)
 
 
+def raise_if_2d(other) -> None:
+    """
+    Reject a multi-dimensional operand before any dtype-specific conversion,
+    matching BaseMaskedArray (GH#62682).
+    """
+    # ABCExtensionArray does not match NumpyExtensionArray, whose _typ is
+    #  "npy_extension" -- and that is the EA most likely to be 2-D (GH#62682)
+    if (
+        isinstance(other, (np.ndarray, ABCExtensionArray, ABCNumpyExtensionArray))
+        and other.ndim > 1
+    ):
+        raise NotImplementedError("can only perform ops with 1-d structures")
+
+
 def maybe_warn_listlike(other) -> None:
     """
     Warn when operating against a list-like that is neither a standard container
@@ -58,7 +73,7 @@ def maybe_warn_listlike(other) -> None:
         and not has_castable_attr(other)
     ):
         warnings.warn(
-            f"Operation with {type(other).__name__} are deprecated. "
+            f"Operation with {type(other).__name__} is deprecated. "
             "In a future version these will be treated as scalar-like. "
             "To retain the old behavior, explicitly wrap in a Series "
             "instead.",

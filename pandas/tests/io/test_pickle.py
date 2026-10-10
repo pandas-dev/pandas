@@ -37,19 +37,15 @@ from pandas.compat import (
     pickle_compat,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    period_range,
-)
 import pandas._testing as tm
 from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 from pandas.util.version import Version
 
 import pandas.io.common as icom
+from pandas.io.pickle import to_pickle_internal
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
@@ -60,7 +56,7 @@ from pandas.tseries.offsets import (
 # comparison functions
 # ---------------------
 def compare_element(result, expected, typ):
-    if isinstance(expected, Index):
+    if isinstance(expected, pd.Index):
         tm.assert_index_equal(result, expected, check_freq=False)
         return
 
@@ -207,7 +203,7 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
-def flatten(data: dict) -> list[tuple[str, Any]]:
+def flatten(data: dict[str, dict[str, Any]]) -> list[tuple[str, Any]]:
     """Flatten create_pickle_data"""
     return [
         (typ, example)
@@ -220,19 +216,21 @@ def flatten(data: dict) -> list[tuple[str, Any]]:
     "pickle_writer",
     [
         pytest.param(python_pickler, id="python"),
-        pytest.param(pd.to_pickle, id="pandas_proto_default"),
+        pytest.param(to_pickle_internal, id="pandas_proto_default"),
         pytest.param(
-            functools.partial(pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
+            functools.partial(to_pickle_internal, protocol=pickle.HIGHEST_PROTOCOL),
             id="pandas_proto_highest",
         ),
-        pytest.param(functools.partial(pd.to_pickle, protocol=4), id="pandas_proto_4"),
         pytest.param(
-            functools.partial(pd.to_pickle, protocol=5),
+            functools.partial(to_pickle_internal, protocol=4), id="pandas_proto_4"
+        ),
+        pytest.param(
+            functools.partial(to_pickle_internal, protocol=5),
             id="pandas_proto_5",
         ),
     ],
 )
-@pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
+@pytest.mark.parametrize("writer", [to_pickle_internal, python_pickler])
 @pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
 def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
     path = temp_file
@@ -256,11 +254,22 @@ def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
     compare_element(result, expected, typ)
 
 
+def test_to_pickle_deprecated(temp_file):
+    # GH#48402
+    ser = pd.Series([1, 2, 3])
+    msg = "pandas.to_pickle is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.to_pickle(ser, temp_file)
+
+    result = pd.read_pickle(temp_file)
+    tm.assert_series_equal(result, ser)
+
+
 def test_pickle_path_pathlib(temp_file):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
     )
     result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle, temp_file)
     tm.assert_frame_equal(df, result)
@@ -314,10 +323,10 @@ class TestCompression:
     def test_write_explicit(self, compression, get_random_path, temp_file):
         p1 = temp_file.parent / f"{temp_file.stem}.compressed"
         p2 = temp_file.parent / f"{temp_file.stem}.raw"
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
 
         # write to compressed file
@@ -335,10 +344,10 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path, temp_file):
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         path = temp_file
         with pytest.raises(ValueError, match="Unrecognized compression type"):
@@ -348,10 +357,10 @@ class TestCompression:
         p1 = temp_file.parent / f"{temp_file.stem}{compression_ext}"
         p2 = temp_file.parent / f"{temp_file.stem}.raw"
         compression = self._extension_to_compression.get(compression_ext.lower())
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
 
         # write to compressed file by inferred compression method
@@ -370,10 +379,10 @@ class TestCompression:
     def test_read_explicit(self, compression, get_random_path, temp_file):
         p1 = temp_file.parent / f"{temp_file.stem}.raw"
         p2 = temp_file.parent / f"{temp_file.stem}.compressed"
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
 
         # write to uncompressed file
@@ -390,10 +399,10 @@ class TestCompression:
         p1 = temp_file.parent / f"{temp_file.stem}.raw"
         p2 = temp_file.parent / f"{temp_file.stem}{compression_ext}"
         compression = self._extension_to_compression.get(compression_ext.lower())
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
 
         # write to uncompressed file
@@ -416,10 +425,10 @@ class TestProtocol:
     @pytest.mark.parametrize("protocol", [-1, 0, 1, 2])
     def test_read(self, protocol, get_random_path, temp_file):
         path = temp_file
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         df.to_pickle(path, protocol=protocol)
         df2 = pd.read_pickle(path)
@@ -428,10 +437,10 @@ class TestProtocol:
 
 def test_pickle_buffer_roundtrip(temp_file):
     path = temp_file
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
     )
     with open(path, "wb") as fh:
         df.to_pickle(fh)
@@ -444,10 +453,10 @@ def test_pickle_fsspec_roundtrip(temp_file):
     pytest.importorskip("fsspec")
     # Using temp_file for context, but fsspec uses memory URL
     mockurl = "memory://mockfile"
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
     )
     df.to_pickle(mockurl)
     result = pd.read_pickle(mockurl)
@@ -461,7 +470,7 @@ class MyTz(datetime.tzinfo):
 
 def test_read_pickle_with_subclass(temp_file):
     # GH 12163
-    expected = Series(dtype=object), MyTz()
+    expected = pd.Series(dtype=object), MyTz()
     result = tm.round_trip_pickle(expected, temp_file)
 
     tm.assert_series_equal(result[0], expected[0])
@@ -474,10 +483,10 @@ def test_pickle_binary_object_compression(compression, temp_file):
 
     GH 26237, GH 29054, and GH 29570
     """
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
     )
 
     # reference for compression
@@ -519,8 +528,8 @@ def test_pickle_dataframe_with_multilevel_index(
 
 def test_pickle_timeseries_periodindex(temp_file):
     # GH#2891
-    prng = period_range("1/1/2011", "1/1/2012", freq="M")
-    ts = Series(np.random.default_rng(2).standard_normal(len(prng)), prng)
+    prng = pd.period_range("1/1/2011", "1/1/2012", freq="M")
+    ts = pd.Series(np.random.default_rng(2).standard_normal(len(prng)), prng)
     new_ts = tm.round_trip_pickle(ts, temp_file)
     assert new_ts.index.freqstr == "M"
 
@@ -530,7 +539,7 @@ def test_pickle_timeseries_periodindex(temp_file):
 )
 def test_pickle_preserve_name(name, temp_file):
     unpickled = tm.round_trip_pickle(
-        Series(np.arange(10, dtype=np.float64), name=name), temp_file
+        pd.Series(np.arange(10, dtype=np.float64), name=name), temp_file
     )
     assert unpickled.name == name
 
@@ -547,7 +556,7 @@ def test_pickle_strings(string_series, temp_file):
 
 def test_pickle_preserves_block_ndim(temp_file):
     # GH#37631
-    ser = Series(list("abc")).astype("category").iloc[[0]]
+    ser = pd.Series(list("abc")).astype("category").iloc[[0]]
     res = tm.round_trip_pickle(ser, temp_file)
 
     assert res._mgr.blocks[0].ndim == 1
@@ -557,10 +566,50 @@ def test_pickle_preserves_block_ndim(temp_file):
     tm.assert_series_equal(res[[True]], ser)
 
 
+@pytest.mark.parametrize("indexer", [slice(None, 5), slice(None, None, 2)])
+def test_pickle_strided_block_out_of_band(indexer):
+    # GH#55781 numpy serializes only contiguous arrays out of band, so a
+    #  strided view such as df.iloc[:5] was copied into the pickle stream
+    df = pd.DataFrame(1.1 * np.arange(40).reshape((10, 4)))
+    subset = df.iloc[indexer]
+    assert not subset._mgr.blocks[0].values.flags.forc
+
+    buffers = []
+    data = pickle.dumps(subset, protocol=5, buffer_callback=buffers.append)
+
+    assert len(buffers) == 1
+    tm.assert_frame_equal(pickle.loads(data, buffers=buffers), subset)
+
+    # the same reduce tuple has to round-trip in band, which is what to_pickle does
+    tm.assert_frame_equal(pickle.loads(pickle.dumps(subset, protocol=5)), subset)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "object"])
+@pytest.mark.parametrize("protocol", [4, 5])
+def test_pickle_strided_block_no_copy_when_unused(dtype, protocol):
+    # GH#55781 making the block contiguous costs a copy, so it is worth it
+    #  only where numpy would serialize it out of band
+    df = pd.DataFrame(np.arange(40).reshape((10, 4)).astype(dtype))
+    block = df.iloc[:5]._mgr.blocks[0]
+    assert not block.values.flags.forc
+
+    copied = block.__reduce_ex__(protocol)[1][0] is not block.values
+    assert copied == (protocol == 5 and dtype == "float64")
+
+
+def test_pickle_f_contiguous_block_not_copied():
+    # GH#55781 numpy already serializes an F-contiguous block out of band, so
+    #  making it C-contiguous would flip its layout for nothing
+    block = pd.DataFrame(np.zeros((10, 4))).T._mgr.blocks[0]
+    assert block.values.flags.f_contiguous
+
+    assert block.__reduce_ex__(5)[1][0] is block.values
+
+
 @pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
 def test_pickle_big_dataframe_compression(protocol, compression, temp_file):
     # GH#39002
-    df = DataFrame(range(100000))
+    df = pd.DataFrame(range(10000))
     result = tm.round_trip_pathlib(
         partial(df.to_pickle, protocol=protocol, compression=compression),
         partial(pd.read_pickle, compression=compression),
@@ -581,11 +630,83 @@ def test_pickle_frame_v124_unpickle_130(datapath):
     with open(path, "rb") as fd:
         df = pickle.load(fd)
 
-    expected = DataFrame(index=[], columns=[])
+    expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
 
 
-def _legacy_timestamp_pickle(args: tuple) -> bytes:
+def _new_bare_series() -> pd.Series:
+    return pd.Series.__new__(pd.Series)
+
+
+class _LegacySeriesPickle:
+    # Emulate pandas<2.1, which listed the Series name in _metadata as
+    #  "name" rather than "_name".
+    def __init__(self, ser: pd.Series) -> None:
+        state = ser.__getstate__()
+        state["name"] = state.pop("_name")
+        state["_metadata"] = ["name"]
+        self._state = state
+
+    def __reduce__(self):
+        return (_new_bare_series, (), self._state)
+
+
+@pytest.mark.parametrize("name", ["hi", 777, (1, 2)])
+def test_unpickle_legacy_series_keeps_name_on_copy(name):
+    # GH#61819 the pickled _metadata shadowed the class attribute, so
+    #  __finalize__ intersected ["name"] with ["_name"] and dropped the name
+    expected = pd.Series([1, 2], name=name)
+
+    result = pickle.loads(pickle.dumps(_LegacySeriesPickle(expected)))
+
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result.copy(), expected)
+    # a pickle written by this version round-trips the name too
+    tm.assert_series_equal(pickle.loads(pickle.dumps(result)).copy(), expected)
+
+
+def test_unpickle_legacy_fixture_keeps_name_on_copy(datapath):
+    # GH#61819 pins the bug against a real pre-2.1 pickle, so it cannot drift
+    #  along with the emulation above
+    pytest.importorskip("pytz")  # the fixture file holds pytz-stamped objects
+    path = datapath(
+        Path(__file__).parent,
+        "data",
+        "legacy_pickle",
+        "2.0.3",
+        "2.0.3_AMD64_windows_3.11.12.pickle",
+    )
+    ser = pd.read_pickle(path)["sp_series"]["float"]
+
+    assert ser.name == "bseries"
+    assert ser.copy().name == "bseries"
+
+
+class _DynMetadataSeries(pd.Series):
+    # A subclass that extends _metadata per instance, so the pickled list is the
+    #  only record of the extra entry.
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        object.__setattr__(self, "_metadata", [*type(self)._metadata, "myattr"])
+
+    @property
+    def _constructor(self):
+        return _DynMetadataSeries
+
+
+def test_unpickle_keeps_instance_level_metadata():
+    # GH#61819 the merge must not discard entries the instance added to _metadata
+    ser = _DynMetadataSeries([1, 2])
+    ser.myattr = "keepme"
+
+    result = pickle.loads(pickle.dumps(ser))
+
+    assert result.myattr == "keepme"
+    assert result.copy().myattr == "keepme"
+    assert pickle.loads(pickle.dumps(result)).copy().myattr == "keepme"
+
+
+def _legacy_timestamp_pickle(args: tuple[Any, ...]) -> bytes:
     # Emulate pandas<=1.2, whose Timestamp.__reduce__ returned
     #  (Timestamp, (value, freq, tz)).
     inner = pickle.dumps(args, protocol=0)
@@ -639,3 +760,20 @@ def test_unpickle_timestamp_by_component():
     result = pickle_compat.loads(data)
 
     assert result == pd.Timestamp(2020, 1, 2)
+
+
+@pytest.mark.parametrize("freq", [None, "D", Day()])
+def test_read_pickle_legacy_timestamp_keeps_tz(freq):
+    # GH#31930 the legacy (value, freq, tz) args now raise ValueError out of
+    #  the constructor, so plain pickle.load no longer succeeds and read_pickle
+    #  only reaches the compat unpickler above if it catches that ValueError
+    tz = zoneinfo.ZoneInfo("US/Eastern")
+    expected = pd.Timestamp("2011-01-01", tz=tz)
+
+    data = _legacy_timestamp_pickle((expected.as_unit("ns")._value, freq, tz))
+    with pytest.raises(ValueError, match="Cannot pass both a value to convert"):
+        pickle.loads(data)
+
+    result = pd.read_pickle(io.BytesIO(data))
+    assert result == expected
+    assert result.tz == tz

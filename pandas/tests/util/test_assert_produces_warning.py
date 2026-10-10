@@ -46,10 +46,12 @@ def test_assert_produces_warning_honors_filter():
     # Raise by default.
     msg = r"Caused unexpected warning\(s\)"
     with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="f2"):
             f()
 
-    with tm.assert_produces_warning(RuntimeWarning, raise_on_extra_warnings=False):
+    with tm.assert_produces_warning(
+        RuntimeWarning, raise_on_extra_warnings=False, match="f2"
+    ):
         f()
 
 
@@ -135,13 +137,17 @@ def test_fail_to_catch_actual_warning(pair_different_warnings):
     expected_category, actual_category = pair_different_warnings
     match = "Did not see expected warning of class"
     with pytest.raises(AssertionError, match=match):
-        with tm.assert_produces_warning(expected_category):
+        # match=None: the expected class is never emitted, so the message
+        #  assertion is unreachable -- that is what this test is checking.
+        with tm.assert_produces_warning(expected_category, match=None):
             warnings.warn("warning message", actual_category)
 
 
 def test_ignore_extra_warning(pair_different_warnings):
     expected_category, extra_category = pair_different_warnings
-    with tm.assert_produces_warning(expected_category, raise_on_extra_warnings=False):
+    with tm.assert_produces_warning(
+        expected_category, raise_on_extra_warnings=False, match="Expected warning"
+    ):
         warnings.warn("Expected warning", expected_category)
         warnings.warn("Unexpected warning OK", extra_category)
 
@@ -150,7 +156,7 @@ def test_raise_on_extra_warning(pair_different_warnings):
     expected_category, extra_category = pair_different_warnings
     match = r"Caused unexpected warning\(s\)"
     with pytest.raises(AssertionError, match=match):
-        with tm.assert_produces_warning(expected_category):
+        with tm.assert_produces_warning(expected_category, match="Expected warning"):
             warnings.warn("Expected warning", expected_category)
             warnings.warn("Unexpected warning NOT OK", extra_category)
 
@@ -227,29 +233,35 @@ def test_right_category_wrong_match_raises(pair_different_warnings):
 
 @pytest.mark.parametrize("false_or_none", [False, None])
 class TestFalseOrNoneExpectedWarning:
+    # match=None throughout: false_or_none means no warning is expected, so
+    #  there is no message to assert.
     def test_raise_on_warning(self, false_or_none):
         msg = r"Caused unexpected warning\(s\)"
         with pytest.raises(AssertionError, match=msg):
-            with tm.assert_produces_warning(false_or_none):
+            with tm.assert_produces_warning(false_or_none, match=None):
                 f()
 
     def test_no_raise_without_warning(self, false_or_none):
-        with tm.assert_produces_warning(false_or_none):
+        with tm.assert_produces_warning(false_or_none, match=None):
             pass
 
     def test_no_raise_with_false_raise_on_extra(self, false_or_none):
-        with tm.assert_produces_warning(false_or_none, raise_on_extra_warnings=False):
+        with tm.assert_produces_warning(
+            false_or_none, raise_on_extra_warnings=False, match=None
+        ):
             f()
 
 
 def test_raises_during_exception():
     msg = "Did not see expected warning of class 'UserWarning'"
+    # match=None below: no UserWarning is emitted at all, so there is no
+    #  message to assert -- the point is that the exception propagates.
     with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=None):
             raise ValueError
 
     with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match=None):
             warnings.warn(
                 "FutureWarning", FutureWarning
             )  # pdlint: ignore[warning_class]

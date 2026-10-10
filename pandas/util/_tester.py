@@ -39,7 +39,6 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
     running: pytest...
     """
     pytest = import_optional_dependency("pytest")
-    import_optional_dependency("hypothesis")
     cmd = ["-m not slow and not network and not db"]
     if extra_args:
         if not isinstance(extra_args, list):

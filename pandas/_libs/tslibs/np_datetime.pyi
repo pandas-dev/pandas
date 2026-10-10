@@ -10,7 +10,7 @@ class OutOfBoundsTimedelta(ValueError): ...
 
 # only exposed for testing
 def py_get_unit_from_dtype(dtype: np.dtype) -> int: ...
-def py_td64_to_tdstruct(td64: int, unit: int) -> dict: ...
+def py_td64_to_tdstruct(td64: int, unit: int) -> dict[str, int]: ...
 def astype_overflowsafe(
     values: np.ndarray,
     dtype: np.dtype,
@@ -27,6 +27,7 @@ def compare_mismatched_resolutions(
 def add_overflowsafe(
     left: npt.NDArray[np.int64],
     right: npt.NDArray[np.int64],
+    sentinel_ok: bool = ...,
 ) -> npt.NDArray[np.int64]: ...
 def mul_overflowsafe(
     left: npt.NDArray[np.int64],

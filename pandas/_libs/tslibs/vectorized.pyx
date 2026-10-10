@@ -26,6 +26,7 @@ from .nattype cimport (
 from .np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    check_dts_bounds,
     import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
@@ -33,10 +34,17 @@ from .np_datetime cimport (
 
 import_pandas_datetime()
 
-from .period cimport get_period_ordinal
+from .period cimport (
+    get_period_bounds,
+    get_period_ordinal_unchecked,
+)
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport is_utc
-from .tzconversion cimport Localizer
+from .tzconversion cimport (
+    BS_UNDERFLOW,
+    Localizer,
+    raise_out_of_bounds,
+)
 
 
 @cython.boundscheck(False)
@@ -79,6 +87,10 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
             local_val = NPY_NAT
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
+            if local_val == NPY_NAT:
+                # GH#66550 the wall time is representable, but we are about to
+                #  store it where the sentinel reads back as NaT
+                raise_out_of_bounds(local_val, BS_UNDERFLOW, reso)
 
         # Analogous to: result[i] = local_val
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = local_val
@@ -356,6 +368,12 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
         # Analogous to: utc_val = stamps[i]
         utc_val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
 
+        if utc_val == NPY_NAT:
+            # GH#66550 shifting the sentinel would trip the bounds check in
+            #  utc_val_to_local_val.  Returning False rather than skipping keeps
+            #  an all-NaT array reporting False as it does today.
+            return False
+
         local_val = info.utc_val_to_local_val(utc_val, &pos)
 
         if local_val % ppd != 0:
@@ -389,6 +407,13 @@ def dt64arr_to_periodarr(
         ndarray result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, stamps)
 
+        NPY_DATETIMEUNIT period_unit = NPY_FR_ns
+        int min_year = 0, max_year = 0
+        # only the fine freqs can overflow; hoisted so the loop only compares
+        bint check_bounds = get_period_bounds(
+            freq, &period_unit, &min_year, &max_year
+        )
+
     for _ in range(n):
         # Analogous to: utc_val = stamps[i]
         utc_val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -398,7 +423,13 @@ def dt64arr_to_periodarr(
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
             pandas_datetime_to_datetimestruct(local_val, reso, &dts)
-            res_val = get_period_ordinal(&dts, freq)
+            if check_bounds and not min_year <= dts.year <= max_year:
+                check_dts_bounds(&dts, period_unit)
+            res_val = get_period_ordinal_unchecked(&dts, freq)
+            if res_val == NPY_NAT:
+                # GH#66550 at nanosecond freq the ordinal *is* the local i8
+                #  value, so a local time on the sentinel would be stored as NaT
+                raise_out_of_bounds(local_val, BS_UNDERFLOW, reso)
 
         # Analogous to: result[i] = res_val
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val

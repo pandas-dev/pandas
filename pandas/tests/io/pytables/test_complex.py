@@ -2,17 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
 import pandas._testing as tm
 
 from pandas.io.pytables import read_hdf
 
 
 def test_complex_fixed(temp_h5_path):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((4, 5)).astype(np.complex64),
         index=list("abcd"),
         columns=list("ABCDE"),
@@ -22,7 +18,7 @@ def test_complex_fixed(temp_h5_path):
     reread = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, reread)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((4, 5)).astype(np.complex128),
         index=list("abcd"),
         columns=list("ABCDE"),
@@ -33,7 +29,7 @@ def test_complex_fixed(temp_h5_path):
 
 
 def test_complex_table(temp_h5_path):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((4, 5)).astype(np.complex64),
         index=list("abcd"),
         columns=list("ABCDE"),
@@ -43,7 +39,7 @@ def test_complex_table(temp_h5_path):
     reread = read_hdf(temp_h5_path, key="df")
     tm.assert_frame_equal(df, reread)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((4, 5)).astype(np.complex128),
         index=list("abcd"),
         columns=list("ABCDE"),
@@ -61,7 +57,7 @@ def test_complex_mixed_fixed(temp_h5_path):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "d"],
@@ -76,9 +72,6 @@ def test_complex_mixed_fixed(temp_h5_path):
     tm.assert_frame_equal(df, reread)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
-)
 def test_complex_mixed_table_store_select(temp_hdfstore):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
@@ -86,7 +79,7 @@ def test_complex_mixed_table_store_select(temp_hdfstore):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "d"],
@@ -102,9 +95,6 @@ def test_complex_mixed_table_store_select(temp_hdfstore):
     tm.assert_frame_equal(df.loc[df.A > 2], result)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
-)
 def test_complex_mixed_table_store_to_path(temp_h5_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
@@ -112,7 +102,7 @@ def test_complex_mixed_table_store_to_path(temp_h5_path):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "d"],
@@ -130,8 +120,8 @@ def test_complex_mixed_table_store_to_path(temp_h5_path):
 
 def test_complex_across_dimensions_fixed(temp_h5_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
-    s = Series(complex128, index=list("abcd"))
-    df = DataFrame({"A": s, "B": s})
+    s = pd.Series(complex128, index=list("abcd"))
+    df = pd.DataFrame({"A": s, "B": s})
 
     objs = [s, df]
     comps = [tm.assert_series_equal, tm.assert_frame_equal]
@@ -143,8 +133,8 @@ def test_complex_across_dimensions_fixed(temp_h5_path):
 
 def test_complex_across_dimensions(temp_h5_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
-    s = Series(complex128, index=list("abcd"))
-    df = DataFrame({"A": s, "B": s})
+    s = pd.Series(complex128, index=list("abcd"))
+    df = pd.DataFrame({"A": s, "B": s})
 
     df.to_hdf(temp_h5_path, key="obj", format="table")
     reread = read_hdf(temp_h5_path, "obj")
@@ -155,7 +145,7 @@ def test_complex_indexing_error(temp_hdfstore):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": [1, 2, 3, 4], "B": ["a", "b", "c", "d"], "C": complex128},
         index=list("abcd"),
     )
@@ -174,7 +164,7 @@ def test_complex_indexing_error(temp_hdfstore):
 
 def test_complex_series_error(temp_h5_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
-    s = Series(complex128, index=list("abcd"))
+    s = pd.Series(complex128, index=list("abcd"))
 
     msg = (
         "Columns containing complex values can be stored "
@@ -193,7 +183,7 @@ def test_complex_series_error(temp_h5_path):
 
 
 def test_complex_append(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": np.random.default_rng(2).standard_normal(100).astype(np.complex128),
             "b": np.random.default_rng(2).standard_normal(100),

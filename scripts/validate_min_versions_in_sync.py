@@ -34,7 +34,7 @@ ENV_PATH = BASE_PATH / "environment.yml"
 EXCLUDE_DEPS = {"blosc", "tzdata", "pyqt", "pyqt5"}
 ADDITIONAL_PIXI_OPTIONAL_DEPENDENCIES = {
     ("feature", "pyarrow", "dependencies"): None,
-    ("feature", "test-base", "dependencies"): {"hypothesis", "pytest"},
+    ("feature", "test-base", "dependencies"): {"pytest"},
     ("feature", "test-clipboard", "dependencies"): {"qtpy"},
 }
 # pandas package is not available
@@ -75,17 +75,24 @@ def pin_min_versions_to_environment_yml() -> int:
     return ret
 
 
+def _strip_extra_specifiers(version: str) -> str:
+    # e.g. ">=2.11.0,!=2.14.1" -> only the minimum version is compared here
+    return version.split(",", maxsplit=1)[0]
+
+
 def get_toml_map_from(toml_dic: dict[str, Any]) -> dict[str, str]:
     toml_deps = {}
     toml_dependencies = set(toml_dic["project"]["optional-dependencies"]["all"])
     for dependency in toml_dependencies:
         toml_package, toml_version = dependency.strip().split(">=")
-        toml_deps[toml_package] = toml_version
+        toml_deps[toml_package] = _strip_extra_specifiers(toml_version)
     return toml_deps
 
 
 def get_operator_from(dependency: str) -> str | None:
-    if "<=" in dependency:
+    if "!=" in dependency:
+        operator = "!="
+    elif "<=" in dependency:
         operator = "<="
     elif ">=" in dependency:
         operator = ">="
@@ -133,6 +140,8 @@ def clean_version_list(
         yaml_version = yaml_versions[i].strip()
         operator = get_operator_from(yaml_version)
         assert operator is not None
+        if operator == "!=":
+            continue
         if "<=" in operator or ">=" in operator:
             yaml_version = yaml_version[2:]
         else:
@@ -294,7 +303,9 @@ def get_versions_from_toml() -> dict[str, str]:
 
     for dependency in dependencies:
         package, version = dependency.strip().split(">=")
-        optional_dependencies[install_map.get(package, package).casefold()] = version
+        optional_dependencies[install_map.get(package, package).casefold()] = (
+            _strip_extra_specifiers(version)
+        )
 
     for item in EXCLUDE_DEPS:
         optional_dependencies.pop(item, None)

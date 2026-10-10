@@ -9,10 +9,7 @@ import inspect
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+import pandas as pd
 from pandas.core.groupby.base import (
     groupby_other_methods,
     reduction_kernels,
@@ -152,10 +149,10 @@ def test_frame_consistency(groupby_func):
         pytest.skip(reason=msg)
 
     if groupby_func in ("cumcount", "ngroup"):
-        assert not hasattr(DataFrame, groupby_func)
+        assert not hasattr(pd.DataFrame, groupby_func)
         return
 
-    frame_method = getattr(DataFrame, groupby_func)
+    frame_method = getattr(pd.DataFrame, groupby_func)
     gb_method = getattr(DataFrameGroupBy, groupby_func)
     result = set(inspect.signature(gb_method).parameters)
     if groupby_func == "size":
@@ -189,8 +186,6 @@ def test_frame_consistency(groupby_func):
         exclude_expected = {"axis"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
-    elif groupby_func in ("rank",):
-        exclude_expected = {"numeric_only"}
     elif groupby_func in ("quantile",):
         exclude_expected = {"method", "axis"}
     elif groupby_func in ["corrwith"]:
@@ -214,10 +209,10 @@ def test_series_consistency(request, groupby_func):
         pytest.skip(msg)
 
     if groupby_func in ("cumcount", "corrwith", "ngroup"):
-        assert not hasattr(Series, groupby_func)
+        assert not hasattr(pd.Series, groupby_func)
         return
 
-    series_method = getattr(Series, groupby_func)
+    series_method = getattr(pd.Series, groupby_func)
     gb_method = getattr(SeriesGroupBy, groupby_func)
     result = set(inspect.signature(gb_method).parameters)
     if groupby_func == "size":
@@ -249,8 +244,6 @@ def test_series_consistency(request, groupby_func):
         exclude_result = {"numeric_only"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
-    elif groupby_func in ("rank",):
-        exclude_expected = {"numeric_only"}
     elif groupby_func in ("idxmin", "idxmax"):
         exclude_expected = {"args", "kwargs"}
     elif groupby_func in ("quantile",):

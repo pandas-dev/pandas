@@ -20,14 +20,17 @@ if TYPE_CHECKING:
     )
 
 
-def _side_expander(prop_fmt: str) -> Callable:
+def _side_expander(
+    prop_fmt: str,
+) -> Callable[[CSSResolver, str, str], Generator[tuple[str, str]]]:
     """
     Wrapper to expand shorthand property into top, right, bottom, left properties
 
     Parameters
     ----------
-    side : str
-        The border side to expand into properties
+    prop_fmt : str
+        Format string for the expanded property, with a placeholder for the
+        side, e.g. ``"margin-{:s}"``.
 
     Returns
     -------
@@ -63,7 +66,9 @@ def _side_expander(prop_fmt: str) -> Callable:
     return expand
 
 
-def _border_expander(side: str = "") -> Callable:
+def _border_expander(
+    side: str = "",
+) -> Callable[[CSSResolver, str, str], Generator[tuple[str, str]]]:
     """
     Wrapper to expand 'border' property into border color, style, and width properties
 
@@ -256,13 +261,13 @@ class CSSResolver:
 
         Parameters
         ----------
-        declarations_str : str | Iterable[tuple[str, str]]
+        declarations : str | Iterable[tuple[str, str]]
             A CSS string or set of CSS declaration tuples
             e.g. "font-weight: bold; background: blue" or
             {("font-weight", "bold"), ("background", "blue")}
         inherited : dict, optional
             Atomic properties indicating the inherited style context in which
-            declarations_str is to be resolved. ``inherited`` should already
+            declarations is to be resolved. ``inherited`` should already
             be resolved, i.e. valid output of this method.
 
         Returns
@@ -372,7 +377,10 @@ class CSSResolver:
         return props
 
     def size_to_pt(
-        self, in_val: str, em_pt: float | None = None, conversions: dict = UNIT_RATIOS
+        self,
+        in_val: str,
+        em_pt: float | None = None,
+        conversions: dict[str, tuple[str, float]] = UNIT_RATIOS,
     ) -> str:
         def _error() -> str:
             warnings.warn(
@@ -418,7 +426,9 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations: Iterable) -> Generator[tuple[str, str]]:
+    def atomize(
+        self, declarations: Iterable[tuple[str, str]]
+    ) -> Generator[tuple[str, str]]:
         for prop, value in declarations:
             prop = prop.lower()
             value = _lowercase_css_values(value)

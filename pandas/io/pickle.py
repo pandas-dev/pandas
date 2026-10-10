@@ -10,7 +10,9 @@ from typing import (
 import warnings
 
 from pandas.compat import pickle_compat
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.io.common import get_handle
 
@@ -39,6 +41,9 @@ def to_pickle(
 ) -> None:
     """
     Pickle (serialize) object to file.
+
+    .. deprecated:: 3.2.0
+        Use :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` instead.
 
     Parameters
     ----------
@@ -114,6 +119,29 @@ def to_pickle(
     3    3    8
     4    4    9
     """
+    warnings.warn(
+        "pandas.to_pickle is deprecated and will be removed in a future version. "
+        "Use the DataFrame.to_pickle or Series.to_pickle method instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    to_pickle_internal(
+        obj,
+        filepath_or_buffer,
+        compression=compression,
+        protocol=protocol,
+        storage_options=storage_options,
+    )
+
+
+def to_pickle_internal(
+    obj: Any,
+    filepath_or_buffer: FilePath | WriteBuffer[bytes],
+    compression: CompressionOptions = "infer",
+    protocol: int = pickle.HIGHEST_PROTOCOL,
+    storage_options: StorageOptions | None = None,
+) -> None:
+    # implementation of NDFrame.to_pickle; see to_pickle for parameters
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 
@@ -211,7 +239,7 @@ def read_pickle(
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
+    >>> original_df.to_pickle("./dummy.pkl")  # doctest: +SKIP
 
     >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
     >>> unpickled_df  # doctest: +SKIP
@@ -223,7 +251,15 @@ def read_pickle(
     4    4    9
     """
     # TypeError for Cython complaints about object.__new__ vs Tick.__new__
-    excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
+    # ValueError for legacy Timestamp pickles that mix a value with
+    #  by-component arguments (GH#31930)
+    excs_to_catch = (
+        AttributeError,
+        ImportError,
+        ModuleNotFoundError,
+        TypeError,
+        ValueError,
+    )
     with get_handle(
         filepath_or_buffer,
         "rb",

@@ -840,6 +840,16 @@ class Where:
         self.df.where(self.mask, other=0.0, inplace=inplace)
 
 
+class WhereMisalignedCond:
+    def setup(self):
+        N = 100_000
+        self.df = DataFrame(np.random.randn(N, 10))
+        self.mask = (self.df < 0).iloc[: N // 2]
+
+    def time_where_misaligned(self):
+        self.df.where(self.mask, other=0.0)
+
+
 class FindValidIndex:
     param_names = ["dtype"]
     params = [

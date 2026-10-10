@@ -8,12 +8,20 @@ from pandas._config import config as cf
 
 pc_date_dayfirst_doc = """
 : boolean
-    When True, prints and parses dates with the day first, eg 20/01/2005
+    When True, parses ambiguous dates with the day first, eg 20/01/2005.
+    This affects parsing only, not how dates are displayed, and applies to
+    the Period constructor and partial-string indexing on a DatetimeIndex.
+    Timestamp, to_datetime and read_csv take their own dayfirst keyword and
+    are unaffected.
 """
 
 pc_date_yearfirst_doc = """
 : boolean
-    When True, prints and parses dates with the year first, eg 2005/01/20
+    When True, parses ambiguous dates with the year first, eg 2005/01/20.
+    This affects parsing only, not how dates are displayed, and applies to
+    the Period constructor and partial-string indexing on a DatetimeIndex.
+    Timestamp, to_datetime and read_csv take their own yearfirst keyword and
+    are unaffected.
 """
 
 with cf.config_prefix("display"):

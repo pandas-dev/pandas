@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
 if TYPE_CHECKING:
     from pandas.io.excel._base import ExcelWriter
 
-    ExcelWriter_t = type[ExcelWriter]
+    ExcelWriter_t = type[ExcelWriter[Any]]
     usecols_func = TypeVar("usecols_func", bound=Callable[[Hashable], object])
 
 _writers: MutableMapping[str, ExcelWriter_t] = {}
@@ -185,7 +185,7 @@ def maybe_convert_usecols(usecols: None) -> None: ...
 
 def maybe_convert_usecols(
     usecols: str | list[int] | list[str] | usecols_func | None,
-) -> None | list[int] | list[str] | usecols_func:
+) -> list[int] | list[str] | usecols_func | None:
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
@@ -280,6 +280,7 @@ def pop_header_name(
         The data row to parse for the header name.
     index_col : int, list
         The index columns for our data. Assumed to be non-null.
+        If a list is passed, the maximum ``index_col`` value is used.
 
     Returns
     -------
@@ -302,7 +303,9 @@ def pop_header_name(
     return header_name, [*row[:i], "", *row[i + 1 :]]
 
 
-def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
+def combine_kwargs(
+    engine_kwargs: dict[str, Any] | None, kwargs: dict[str, Any]
+) -> dict[str, Any]:
     """
     Used to combine two sources of kwargs for the backend engine.
 

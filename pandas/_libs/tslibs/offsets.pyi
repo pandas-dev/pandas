@@ -29,8 +29,6 @@ _TimedeltaT = TypeVar("_TimedeltaT", bound=timedelta)
 _relativedelta_kwds: set[str]
 prefix_mapping: dict[str, type]
 
-class ApplyTypeError(TypeError): ...
-
 class BaseOffset:
     n: int
     normalize: bool
@@ -39,7 +37,7 @@ class BaseOffset:
     def __ne__(self, other: object, /) -> bool: ...
     def __hash__(self) -> int: ...
     @property
-    def kwds(self) -> dict: ...
+    def kwds(self) -> dict[str, Any]: ...
     @property
     def base(self) -> BaseOffset: ...
     @overload
@@ -91,8 +89,9 @@ class BaseOffset:
     def freqstr(self) -> str: ...
     @property
     def _period_unit(self) -> str: ...
-    def _apply(self, other: _DatetimeT) -> _DatetimeT: ...
-    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray: ...
+    def _add_datetime(self, other: _DatetimeT) -> _DatetimeT: ...
+    def _add_timedelta(self, other: timedelta | np.timedelta64 | BaseOffset) -> Any: ...
+    def _add_datetime_ndarray(self, dtarr: np.ndarray) -> np.ndarray: ...
     @property
     def _supports_daily_offset_mask(self) -> bool: ...
     def rollback(self, dt: datetime) -> datetime: ...
@@ -128,7 +127,7 @@ class Tick(SingleConstructorOffset):
 
 def delta_to_tick(delta: timedelta) -> Tick: ...
 
-class Day(BaseOffset): ...
+class Day(SingleConstructorOffset): ...
 class Hour(Tick): ...
 class Minute(Tick): ...
 class Second(Tick): ...
@@ -272,7 +271,7 @@ class _CustomBusinessMonth(BusinessMixin):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -283,7 +282,7 @@ class CustomBusinessDay(BusinessDay):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -294,7 +293,7 @@ class CustomBusinessHour(BusinessHour):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         start: str | time | Collection[str | time] = ...,
         end: str | time | Collection[str | time] = ...,
@@ -307,7 +306,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
@@ -318,7 +317,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
         n: int = ...,
         normalize: bool = ...,
         weekmask: str = ...,
-        holidays: list | None = ...,
+        holidays: list[Any] | None = ...,
         calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...

@@ -1,0 +1,45 @@
+# TODO (child classes implement these methods)
+pandas._libs.hashtable.HashTable.__contains__
+pandas._libs.hashtable.HashTable.__len__
+pandas._libs.hashtable.HashTable.factorize
+pandas._libs.hashtable.HashTable.get_item
+pandas._libs.hashtable.HashTable.get_labels
+pandas._libs.hashtable.HashTable.get_na
+pandas._libs.hashtable.HashTable.get_state
+pandas._libs.hashtable.HashTable.lookup
+pandas._libs.hashtable.HashTable.map_locations
+pandas._libs.hashtable.HashTable.set_item
+pandas._libs.hashtable.HashTable.set_na
+pandas._libs.hashtable.HashTable.sizeof
+pandas._libs.hashtable.HashTable.unique
+pandas._libs.hashtable.HashTable.hash_inner_join
+# init and new differences
+pandas._libs.hashtable.StringHashTable.__init__
+pandas._libs.hashtable.PyObjectHashTable.__init__
+pandas._libs.internals.BlockManager.__init__
+# stubtest might be too sensitive
+pandas._libs.lib.NoDefault
+# internal type alias (should probably be private)
+pandas._libs.lib.ndarray_obj_2d
+# runtime argument "owner" has a default value but stub argument does not
+pandas._libs.properties.AxisProperty.__get__
+pandas._libs.properties.cache_readonly.deleter
+pandas._libs.properties.cache_readonly.getter
+pandas._libs.properties.cache_readonly.setter
+# TODO (child classes implement these methods)
+pandas._libs.sparse.SparseIndex.__init__
+pandas._libs.sparse.SparseIndex.equals
+pandas._libs.sparse.SparseIndex.indices
+pandas._libs.sparse.SparseIndex.intersect
+pandas._libs.sparse.SparseIndex.lookup
+pandas._libs.sparse.SparseIndex.lookup_array
+pandas._libs.sparse.SparseIndex.make_union
+pandas._libs.sparse.SparseIndex.nbytes
+pandas._libs.sparse.SparseIndex.ngaps
+pandas._libs.sparse.SparseIndex.to_block_index
+pandas._libs.sparse.SparseIndex.to_int_index
+# TODO (decorator changes argument names)
+pandas._libs.tslibs.offsets.BusinessHour.rollback
+pandas._libs.tslibs.offsets.BusinessHour.rollforward
+# type alias
+pandas._libs.tslibs.timedeltas.UnitChoices

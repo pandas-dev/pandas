@@ -189,3 +189,24 @@ class TestIntervalTree:
 
         result = tree.root.pivot
         assert result == expected
+
+
+@pytest.mark.parametrize("closed", ["left", "right", "neither"])
+@pytest.mark.parametrize("order", [list(x) for x in permutations(range(3))])
+def test_is_overlapping_empty_interval(closed, order):
+    # GH#26893 an empty interval contains no points, so nesting one inside
+    #  another interval is not an overlap
+    left = np.array([0, 1, 5], dtype="int64")
+    right = np.array([3, 1, 6], dtype="int64")
+    tree = IntervalTree(left[order], right[order], closed=closed)
+    assert tree.is_overlapping is False
+
+
+@pytest.mark.parametrize("closed", ["left", "right", "neither"])
+def test_is_overlapping_empty_interval_hides_overlap(closed):
+    # GH#26893 dropping the empty interval must not hide the overlap between
+    #  the two intervals it sits between
+    left = np.array([0, 1, 2], dtype="int64")
+    right = np.array([3, 1, 4], dtype="int64")
+    tree = IntervalTree(left, right, closed=closed)
+    assert tree.is_overlapping is True

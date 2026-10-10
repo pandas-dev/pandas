@@ -1,38 +1,26 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.util.version import Version
 
 xarray = pytest.importorskip("xarray")
 
-if xarray is not None and Version(xarray.__version__) < Version("2025.1.0"):
-    pytestmark = pytest.mark.filterwarnings(
-        "ignore:Converting non-nanosecond precision:UserWarning"
-    )
 
-
-@pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
 class TestDataFrameToXArray:
     @pytest.fixture
     def df(self):
-        return DataFrame(
+        return pd.DataFrame(
             {
                 "a": list("abcd"),
                 "b": list(range(1, 5)),
                 "c": np.arange(3, 7).astype("u1"),
                 "d": np.arange(4.0, 8.0, dtype="float64"),
                 "e": [True, False, True, False],
-                "f": Categorical(list("abcd")),
-                "g": date_range("20130101", periods=4),
-                "h": date_range("20130101", periods=4, tz="US/Eastern"),
+                "f": pd.Categorical(list("abcd")),
+                "g": pd.date_range("20130101", periods=4),
+                "h": pd.date_range("20130101", periods=4, tz="US/Eastern"),
             }
         )
 
@@ -69,7 +57,7 @@ class TestDataFrameToXArray:
 
     def test_to_xarray_with_multiindex(self, df, using_infer_string):
         # MultiIndex
-        df.index = MultiIndex.from_product([["a"], range(4)], names=["one", "two"])
+        df.index = pd.MultiIndex.from_product([["a"], range(4)], names=["one", "two"])
         result = df.to_xarray()
         assert result.sizes["one"] == 1
         assert result.sizes["two"] == 4
@@ -83,22 +71,16 @@ class TestDataFrameToXArray:
         expected["f"] = expected["f"].astype(
             object if not using_infer_string else "str"
         )
-        if Version(xarray.__version__) < Version("2025.1.0"):
-            expected["g"] = expected["g"].astype("M8[ns]")
-            expected["h"] = expected["h"].astype("M8[ns, US/Eastern]")
         expected.columns.name = None
         tm.assert_frame_equal(result, expected)
 
 
 class TestSeriesToXArray:
-    @pytest.mark.filterwarnings(
-        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
-    )
     def test_to_xarray_index_types(self, index_flat, request):
         # MultiIndex is tested in test_to_xarray_with_multiindex
         index = index_flat
 
-        ser = Series(range(len(index)), index=index, dtype="int64")
+        ser = pd.Series(range(len(index)), index=index, dtype="int64")
         ser.index.name = "foo"
         result = ser.to_xarray()
         repr(result)
@@ -111,7 +93,7 @@ class TestSeriesToXArray:
         tm.assert_series_equal(result.to_series(), ser)
 
     def test_to_xarray_empty(self):
-        ser = Series([], dtype=object)
+        ser = pd.Series([], dtype=object)
         ser.index.name = "foo"
         result = ser.to_xarray()
         assert len(result) == 0
@@ -120,8 +102,8 @@ class TestSeriesToXArray:
         assert isinstance(result, xarray.DataArray)
 
     def test_to_xarray_with_multiindex(self):
-        mi = MultiIndex.from_product([["a", "b"], range(3)], names=["one", "two"])
-        ser = Series(range(6), dtype="int64", index=mi)
+        mi = pd.MultiIndex.from_product([["a", "b"], range(3)], names=["one", "two"])
+        ser = pd.Series(range(6), dtype="int64", index=mi)
         result = ser.to_xarray()
         assert len(result) == 2
         tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
