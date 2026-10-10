@@ -49,6 +49,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
+    validate_min_count,
 )
 
 from pandas.core.dtypes.astype import astype_array
@@ -2269,6 +2270,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_sum(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+        min_count = validate_min_count(min_count)
 
         if self.dtype.subtype.kind == "O" and not self._null_fill_value:
             # the fill_value * nsparse adjustment below assumes a commutative +,
@@ -2361,6 +2363,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_prod((), kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+        min_count = validate_min_count(min_count)
         return self._dense_reduce("prod", skipna=skipna, min_count=min_count)
 
     def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
