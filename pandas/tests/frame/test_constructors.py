@@ -64,7 +64,7 @@ MIXED_INT_DTYPES = [
 ]
 
 
-class DummySequence(abc.Sequence):
+class DummyContainer(abc.Sequence):
     # stand-in for third-party Sequence implementations such as numba.typed.List
     def __init__(self, lst) -> None:
         self._lst = lst
@@ -74,6 +74,12 @@ class DummySequence(abc.Sequence):
 
     def __len__(self) -> int:
         return len(self._lst)
+
+
+class DummyArrayContainer(DummyContainer):
+    # a Sequence that is also convertible via __array__
+    def __array__(self, dtype=None, copy=None):
+        return np.array(self._lst, dtype=dtype, copy=copy)
 
 
 class TestDataFrameConstructors:
@@ -1430,16 +1436,6 @@ class TestDataFrameConstructors:
         # GH 3783
         # collections.Sequence like
 
-        class DummyContainer(abc.Sequence):
-            def __init__(self, lst) -> None:
-                self._lst = lst
-
-            def __getitem__(self, n):
-                return self._lst.__getitem__(n)
-
-            def __len__(self) -> int:
-                return self._lst.__len__()
-
         lst_containers = [DummyContainer([1, "a"]), DummyContainer([2, "b"])]
         columns = ["num", "str"]
         result = pd.DataFrame(lst_containers, columns=columns)
@@ -1453,7 +1449,8 @@ class TestDataFrameConstructors:
             UserList,
             functools.partial(array.array, "i"),
             lambda lst: memoryview(np.array(lst)),
-            DummySequence,
+            DummyContainer,
+            DummyArrayContainer,
         ],
     )
     def test_constructor_1d_sequence(self, box):
@@ -1483,6 +1480,14 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
         if data:
             assert result.dtypes.iloc[0] == pd.Series(deque(data)).dtype
+
+    def test_constructor_1d_sequence_array_interface_copy(self):
+        # GH#27539 a Sequence implementing __array__ is copied by default
+        arr = np.array([1.0, 2.0, 3.0])
+        result = pd.DataFrame(DummyArrayContainer(arr))
+        arr[0] = 99.0
+        expected = pd.DataFrame([1.0, 2.0, 3.0])
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no("numba")
     def test_constructor_numba_typed_list(self):

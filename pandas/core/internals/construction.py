@@ -522,14 +522,15 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
             return v
 
         v = extract_array(v, extract_numpy=True)
-        if isinstance(v, (np.ndarray, ExtensionArray)):
-            pass
-        elif hasattr(v, "__array__"):
-            v = np.asarray(v)
-        else:
-            # GH#27539 any other list-like, not just list/tuple/range,
-            #  e.g. deque, array.array, matching sanitize_array
-            v = construct_1d_object_array_from_listlike(v)
+        if not isinstance(v, (np.ndarray, ExtensionArray)):
+            if hasattr(v, "__array__"):
+                # e.g. a Sequence implementing __array__; respect copy
+                #  like sanitize_array does
+                v = np.array(v, copy=True) if copy else np.asarray(v)
+            else:
+                # GH#27539 not just list/tuple/range but any list-like,
+                #  e.g. deque, array.array, numba.typed.List
+                v = construct_1d_object_array_from_listlike(v)
         if isinstance(v, np.ndarray) and v.dtype == object:
             v = lib.maybe_convert_objects(v)
         # We don't do maybe_infer_objects here bc we will end up doing
