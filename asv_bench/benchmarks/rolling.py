@@ -189,10 +189,12 @@ class VariableWindowMethods(Methods):
 class SkewKurtNumericStability:
     # data that triggered skew/kurt rescans before GH#68934
     params = [
-        ("rolling", "symmetric", "skew"),
-        ("rolling", "heavy_tailed", "kurt"),
-        ("rolling", "outlier", "kurt"),
-        ("expanding", "symmetric", "skew"),
+        [
+            ("rolling", "symmetric", "skew"),
+            ("rolling", "heavy_tailed", "kurt"),
+            ("rolling", "outlier", "kurt"),
+            ("expanding", "symmetric", "skew"),
+        ]
     ]
     param_names = ["case"]
 
