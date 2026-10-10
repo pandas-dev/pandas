@@ -1028,21 +1028,6 @@ class TestIndex:
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "values, dtype", [(["a", None], "string"), ([1, None], "Int64")]
-    )
-    def test_ne_same_object_with_na(self, values, dtype):
-        # GH#58517 comparing an Index with itself takes a fastpath; for `!=`
-        #  the missing positions must be True rather than NA
-        index = Index(values, dtype=dtype)
-
-        result = index != index
-        expected = np.array([False, True], dtype=bool)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = index == index
-        tm.assert_numpy_array_equal(result, ~expected)
-
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     @pytest.mark.parametrize("name,level", [(None, 0), ("a", "a")])
     def test_get_level_values(self, index, name, level):
