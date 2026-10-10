@@ -3231,9 +3231,11 @@ class TextFileReader(abc.Iterator[DataFrame]):
             if dtype is not None:
                 new_col_dict = {}
                 for k, v in col_dict.items():
+                    # GH#57512 don't undo a parse_dates conversion
                     d = (
                         dtype[k]
                         if pandas_dtype(dtype[k]) in (np.str_, np.object_)
+                        and v.dtype.kind != "M"
                         else None
                     )
                     new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
