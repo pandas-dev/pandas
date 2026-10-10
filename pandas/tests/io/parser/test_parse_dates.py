@@ -16,7 +16,10 @@ from io import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
+from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
@@ -825,9 +828,17 @@ def test_parse_dates_with_dtype_for_same_column(
 
 @pytest.mark.parametrize("dtype", [str, object, "string"])
 @pytest.mark.parametrize("parse_dates", [["b"], [1]])
-def test_parse_dates_with_scalar_string_dtype(all_parsers, dtype, parse_dates):
+def test_parse_dates_with_scalar_string_dtype(request, all_parsers, dtype, parse_dates):
     # GH#57512
     parser = all_parsers
+    if (
+        parser.engine == "pyarrow"
+        and dtype is str
+        and pa_version_under25p0
+        and not using_string_dtype()
+    ):
+        # the missing value becomes the string "None" before dates are parsed
+        request.applymarker(pytest.mark.xfail(reason="dtype applied first"))
     data = "a,b\nx,2019-12-31\ny,\n"
     result = parser.read_csv(StringIO(data), dtype=dtype, parse_dates=parse_dates)
     expected = pd.Series(
