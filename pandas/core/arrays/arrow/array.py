@@ -3922,116 +3922,96 @@ class ArrowExtensionArray(
     def _apply_re_fallback(self, func: Callable[..., Any], pa_type: pa.DataType):
         return pa.chunked_array(self._apply_elementwise(func), type=pa_type)
 
-    def _str_contains(
+    def _str_re_fallback(self, method: str, *args, **kwargs):
+        return getattr(self, f"_str_{method}_re")(*args, **kwargs)
+
+    def _str_contains_re(
         self,
         pat: str | re.Pattern[str],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
-        regex: bool = True,
+        case: bool,
+        flags: int,
+        na: Scalar | lib.NoDefault,
+        regex: bool,
     ):
         if regex:
-            pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+            compiled = self._compile_re_fallback(pat, case, flags)
+            func = lambda val: compiled.search(val) is not None
+        elif case:
+            func = lambda val: pat in val
+        else:
+            upper_pat = pat.upper()  # type: ignore[union-attr]
+            func = lambda val: upper_pat in val.upper()
+        result = self._apply_re_fallback(func, pa.bool_())
+        return self._convert_bool_result(result, na=na, method_name="contains")
 
-        if flags:
-            if regex:
-                compiled = self._compile_re_fallback(pat, case, flags)
-                func = lambda val: compiled.search(val) is not None
-            elif case:
-                func = lambda val: pat in val
-            else:
-                upper_pat = pat.upper()  # type: ignore[union-attr]
-                func = lambda val: upper_pat in val.upper()
-            result = self._apply_re_fallback(func, pa.bool_())
-            return self._convert_bool_result(result, na=na, method_name="contains")
-
-        return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
-
-    def _str_match(
+    def _str_match_re(
         self,
         pat: str | re.Pattern[str],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
+        case: bool,
+        flags: int,
+        na: Scalar | lib.NoDefault,
     ):
-        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
-
-        if flags:
+        if isinstance(pat, re.Pattern):
+            # as in ObjectStringArrayMixin._str_match, a pat that is already
+            #  case-insensitive is honored as written (GH#63108)
+            if not case:
+                flags |= re.IGNORECASE
+            if flags & ~re.IGNORECASE:
+                raise ValueError(
+                    "Cannot pass flags in addition to an already-compiled pat"
+                )
+            if flags & re.IGNORECASE and not pat.flags & re.IGNORECASE:
+                raise ValueError("Cannot pass flags that do not match pat.flags")
+            compiled = pat
+        else:
             compiled = self._compile_re_fallback(pat, case, flags)
-            func = lambda val: compiled.match(val) is not None
-            result = self._apply_re_fallback(func, pa.bool_())
-            return self._convert_bool_result(result, na=na, method_name="match")
+        func = lambda val: compiled.match(val) is not None
+        result = self._apply_re_fallback(func, pa.bool_())
+        return self._convert_bool_result(result, na=na, method_name="match")
 
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
-
-    def _str_fullmatch(
+    def _str_fullmatch_re(
         self,
         pat: str | re.Pattern[str],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
+        case: bool,
+        flags: int,
+        na: Scalar | lib.NoDefault,
     ):
-        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        compiled = self._compile_re_fallback(pat, case, flags)
+        func = lambda val: compiled.fullmatch(val) is not None
+        result = self._apply_re_fallback(func, pa.bool_())
+        return self._convert_bool_result(result, na=na, method_name="fullmatch")
 
-        if flags:
-            # anchoring the pattern and deferring to _str_match would not do:
-            #  under re.MULTILINE the added "^"/"$" match at line boundaries
-            compiled = self._compile_re_fallback(pat, case, flags)
-            func = lambda val: compiled.fullmatch(val) is not None
-            result = self._apply_re_fallback(func, pa.bool_())
-            return self._convert_bool_result(result, na=na, method_name="fullmatch")
+    def _str_count_re(self, pat: str | re.Pattern[str], flags: int) -> Self:
+        compiled = self._compile_re_fallback(pat, True, flags)
+        func = lambda val: len(compiled.findall(val))
+        # match the width pyarrow's kernel reports for this storage type
+        pa_type = (
+            pa.int64()
+            if pa.types.is_large_string(self._pa_array.type)
+            or pa.types.is_large_binary(self._pa_array.type)
+            else pa.int32()
+        )
+        return self._convert_int_result(self._apply_re_fallback(func, pa_type))
 
-        return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
-
-    def _str_count(self, pat: str | re.Pattern[str], flags: int = 0) -> Self:
-        pat, case, flags = self._unwrap_re_pattern(pat, True, flags)
-
-        if flags:
-            compiled = self._compile_re_fallback(pat, case, flags)
-            func = lambda val: len(compiled.findall(val))
-            # match the width pyarrow's kernel reports for this storage type
-            pa_type = (
-                pa.int64()
-                if pa.types.is_large_string(self._pa_array.type)
-                or pa.types.is_large_binary(self._pa_array.type)
-                else pa.int32()
-            )
-            return self._convert_int_result(self._apply_re_fallback(func, pa_type))
-
-        result = pc.count_substring_regex(self._pa_array, pat, ignore_case=not case)
-        return self._convert_int_result(result)
-
-    def _str_replace(
+    def _str_replace_re(
         self,
         pat: str | re.Pattern[str],
         repl: str | Callable[..., Any],
-        n: int = -1,
-        case: bool = True,
-        flags: int = 0,
-        regex: bool = True,
+        n: int,
+        case: bool,
+        flags: int,
+        regex: bool,
     ) -> Self:
-        if (
-            isinstance(pat, re.Pattern)
-            or callable(repl)
-            or not case
-            or flags
-            or (isinstance(repl, str) and r"\g<" in repl)
-        ):
-            # None of these are expressible with pc.replace_substring_regex; mirror
-            #  ObjectStringArrayMixin._str_replace instead, which leaves the flags
-            #  of an already-compiled `pat` alone. GH#66348
-            if not isinstance(pat, re.Pattern):
-                if not regex:
-                    pat = re.escape(pat)
-                pat = self._compile_re_fallback(pat, case, flags)
-            count = n if n >= 0 else 0
-            func = lambda val: pat.sub(repl=repl, string=val, count=count)
-            return self._from_pyarrow_array(
-                self._apply_re_fallback(func, self._pa_array.type)
-            )
-
-        return ArrowStringArrayMixin._str_replace(
-            self, pat, repl, n, case, flags, regex
+        # mirror ObjectStringArrayMixin._str_replace, which leaves the flags of an
+        #  already-compiled `pat` alone. GH#66348
+        if not isinstance(pat, re.Pattern):
+            if not regex:
+                pat = re.escape(pat)
+            pat = self._compile_re_fallback(pat, case, flags)
+        count = n if n >= 0 else 0
+        func = lambda val: pat.sub(repl=repl, string=val, count=count)
+        return self._from_pyarrow_array(
+            self._apply_re_fallback(func, self._pa_array.type)
         )
 
     def _str_repeat(self, repeats: int | Sequence[int]) -> Self:
@@ -4090,36 +4070,34 @@ class ArrowExtensionArray(
         self, pat: str | re.Pattern[str], flags: int = 0, expand: bool = True
     ):
         compiled = self._compile_re_fallback(pat, flags=flags)
-        groups = compiled.groupindex.keys()
-        if len(groups) == 0:
-            raise ValueError(f"{pat=} must contain a symbolic group name.")
+        # the column labels StringMethods.extract gives the groups
+        names = {index: name for name, index in compiled.groupindex.items()}
+        columns = [names.get(i + 1, i) for i in range(compiled.groups)]
 
-        if flags or isinstance(pat, re.Pattern):
-            # pc.extract_regex has no `ignore_case`, so unlike elsewhere not even
-            #  IGNORECASE can be honored by the kernel
+        re2 = self._to_re2(pat, flags=flags, named_groups=True)
+        # pyarrow reports a group that did not take part in the match as "", not
+        #  as missing
+        if re2 is None or re2.nullable_loop or re2.optional_groups:
             matches = self._apply_elementwise(compiled.search)
 
-            def extract_group(name: str):
+            def extract_group(i: int):
                 chunks = [
-                    [None if match is None else match.group(name) for match in chunk]
+                    [None if match is None else match.group(i + 1) for match in chunk]
                     for chunk in matches
                 ]
                 return self._from_pyarrow_array(
                     pa.chunked_array(chunks, type=self._pa_array.type)
                 )
 
-            if not expand:
-                return extract_group(next(iter(groups)))
-            return {col: extract_group(col) for col in groups}
-
-        result = pc.extract_regex(self._pa_array, pat)
-        if expand:
-            return {
-                col: self._from_pyarrow_array(pc.struct_field(result, [i]))
-                for col, i in zip(groups, range(result.type.num_fields), strict=True)
-            }
         else:
-            return type(self)(pc.struct_field(result, [0]))
+            result = pc.extract_regex(self._pa_array, re2.pattern)
+
+            def extract_group(i: int):
+                return self._from_pyarrow_array(pc.struct_field(result, [i]))
+
+        if not expand:
+            return extract_group(0)
+        return {col: extract_group(i) for i, col in enumerate(columns)}
 
     def _str_findall(self, pat: str, flags: int = 0) -> Self:
         regex = re.compile(pat, flags=flags)
@@ -4179,15 +4157,30 @@ class ArrowExtensionArray(
             n = None
         if pat is None:
             split_func = pc.utf8_split_whitespace
-        elif regex is True:
-            split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
-        elif regex is False:
-            split_func = functools.partial(pc.split_pattern, pattern=pat)
         # GH#58321: regex is None — infer: single-char literal, multi-char regex
-        elif len(pat) == 1:
+        elif regex is False or (regex is None and len(pat) == 1):
             split_func = functools.partial(pc.split_pattern, pattern=pat)
         else:
-            split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
+            re2 = self._to_re2(pat)
+            # pyarrow's kernel leaves the groups out of the result, cannot split on
+            #  empty matches, and restarts the search on the remainder of the
+            #  string, which loses the text before it
+            if (
+                re2 is None
+                or re2.num_groups
+                or re2.nullable
+                or re2.nullable_loop
+                or re2.start_assertions
+            ):
+                compiled = re.compile(pat)
+                maxsplit = n or 0
+                result = self._apply_elementwise(
+                    lambda val: compiled.split(val, maxsplit=maxsplit)
+                )
+                return self._from_pyarrow_array(
+                    pa.chunked_array(result, type=pa.list_(self._pa_array.type))
+                )
+            split_func = functools.partial(pc.split_pattern_regex, pattern=re2.pattern)
         return self._from_pyarrow_array(split_func(self._pa_array, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1) -> Self:

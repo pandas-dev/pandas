@@ -23,6 +23,12 @@ if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
+from pandas.core.arrays._re2 import (
+    RE2Pattern,
+    translate,
+    translate_template,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -49,95 +55,43 @@ class ArrowStringArrayMixin:
     def _apply_elementwise(self, func: Callable[..., Any]) -> list[list[Any]]:
         raise NotImplementedError
 
-    @staticmethod
-    def _has_unsupported_regex(pat: str | re.Pattern[str]) -> bool:
+    def _str_re_fallback(self, method: str, *args, **kwargs):
+        # Evaluate the ``_str_<method>`` regex method with Python's ``re`` for a
+        #  pattern or data on which pyarrow's RE2 kernels would differ
+        raise NotImplementedError
+
+    def _to_re2(
+        self,
+        pat: str | re.Pattern[str],
+        case: bool = True,
+        flags: int = 0,
+        named_groups: bool = False,
+    ) -> RE2Pattern | None:
         """
-        Determine if regex pattern contains features not supported by RE2 / pyarrow.
+        Translate `pat` for pyarrow's regex kernels.
 
-        This includes lookaround (lookahead or lookbehind) assertions and
-        backreferences.
+        Returns None if pyarrow cannot evaluate `pat` as ``re`` does on the
+        values of this array; the caller then falls back to ``re``.
 
-        Parameters
-        ----------
-        pat: str | re.Pattern
-            Regex pattern.
-
-        Returns
-        -------
-        bool
-            Whether `pat` contains a lookahead or lookbehind.
-        """
-        try:
-            # error: Module "re" has no attribute "_parser"
-            from re import _parser  # type: ignore[attr-defined]
-
-            regex_parser = _parser.parse
-        except Exception as err:
-            raise type(err)(
-                "Incompatible version for regex; you will need to upgrade pandas "
-                "or downgrade Python"
-            ) from err
-
-        def has_unsupported_code(tokens):
-            # For certain op codes we need to recurse.
-            for op_code, argument in tokens:
-                if (
-                    (
-                        op_code == _parser.SUBPATTERN
-                        and has_unsupported_code(argument[3])
-                    )
-                    or (
-                        op_code == _parser.BRANCH
-                        and any(has_unsupported_code(tokens) for tokens in argument[1])
-                    )
-                    or (
-                        op_code
-                        in [_parser.ASSERT_NOT, _parser.ASSERT, _parser.GROUPREF]
-                    )
-                ):
-                    return True
-            return False
-
-        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
-        try:
-            tokens = regex_parser(str_pat)
-        except re.error:
-            # Pattern not valid for Python's re (e.g. RE2 syntax like \x{...} or \p)
-            # Let the pyarrow backend handle it.
-            return False
-        return has_unsupported_code(tokens)
-
-    @staticmethod
-    def _is_re_pattern_with_flags(pat: str | re.Pattern[str]) -> bool:
-        # check if `pat` is a compiled regex pattern with flags that are not
-        # supported by pyarrow
-        return (
-            isinstance(pat, re.Pattern)
-            and (pat.flags & ~(re.IGNORECASE | re.UNICODE)) != 0
-        )
-
-    @staticmethod
-    def _unwrap_re_pattern(
-        pat: str | re.Pattern[str], case: bool, flags: int
-    ) -> tuple[str, bool, int]:
-        """
-        Reduce `pat` to the (pattern, case, flags) triple the pyarrow kernels take.
-
-        IGNORECASE is the only flag they support and they spell it as `case`, so
-        it is folded into `case`; whatever `flags` remain afterwards cannot be
-        honored by a kernel.
+        Raises
+        ------
+        re.error
+            If `pat` is not a valid Python pattern.
         """
         if isinstance(pat, re.Pattern):
-            # a compiled str pattern always carries re.UNICODE, which pyarrow
-            #  assumes for strings anyway
-            flags |= pat.flags & ~re.UNICODE
-            pattern = pat.pattern
+            if flags or not case:
+                # whether these combine with the flags of `pat` is decided (or
+                #  rejected) by the fallback
+                return None
+            pattern, flags = pat.pattern, pat.flags
         else:
             pattern = pat
-        if flags & re.IGNORECASE:
-            case = False
-            flags &= ~re.IGNORECASE
-        return pattern, case, flags
+            if not case:
+                flags |= re.IGNORECASE
+        re2 = translate(pattern, flags, named_groups)
+        if re2 is None or not re2.matches_python_on(self._pa_array):
+            return None
+        return re2
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
@@ -293,45 +247,54 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         regex: bool = True,
     ) -> Self:
-        if (
-            isinstance(pat, re.Pattern)
-            or callable(repl)
-            or not case
-            or flags
-            or (isinstance(repl, str) and r"\g<" in repl)
-        ):
-            raise NotImplementedError(
-                "replace is not supported with a re.Pattern, callable repl, "
-                "case=False, flags!=0, or when the replacement string contains "
-                "named group references (\\g<...>)"
-            )
-
-        if pat == "":
-            # pyarrow hangs for empty patterns
-            # (https://github.com/apache/arrow/issues/39149)
-            # use same func definition as ObjectStringArrayMixin._str_replace
-            if regex:
-                count = n if n >= 0 else 0
-                func = lambda val: re.sub(pat, repl, val, count=count)
-            else:
-                func = lambda val: val.replace(pat, repl, n)
-
-            result = self._apply_elementwise(func)
-            return self._from_pyarrow_array(
-                pa.chunked_array(result, type=self._pa_array.type)
-            )
-
-        func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
         pa_max_replacements = None if n < 0 else n
-        result = func(
-            self._pa_array,
-            pattern=pat,
-            replacement=repl,
-            max_replacements=pa_max_replacements,
-        )
-        return self._from_pyarrow_array(result)
+
+        if regex and isinstance(repl, str):
+            re2 = self._to_re2(pat, case, flags)
+            # pyarrow steps over empty matches differently from re, and with
+            #  max_replacements it re-evaluates assertions without the text
+            #  around the match
+            if (
+                re2 is not None
+                and not re2.nullable
+                and not re2.nullable_loop
+                and not (n >= 0 and re2.has_assertions)
+            ):
+                compiled = re.compile(pat, flags if case else flags | re.IGNORECASE)
+                rewrite = translate_template(compiled, repl)
+                if rewrite is not None:
+                    result = pc.replace_substring_regex(
+                        self._pa_array,
+                        pattern=re2.pattern,
+                        replacement=rewrite[0],
+                        max_replacements=pa_max_replacements,
+                    )
+                    return self._from_pyarrow_array(result)
+        elif (
+            not regex
+            and case
+            and not flags
+            and isinstance(pat, str)
+            and isinstance(repl, str)
+        ):
+            if pat == "":
+                # pyarrow hangs for empty patterns
+                # (https://github.com/apache/arrow/issues/39149)
+                func = lambda val: val.replace(pat, repl, n)
+                result = self._apply_elementwise(func)
+                return self._from_pyarrow_array(
+                    pa.chunked_array(result, type=self._pa_array.type)
+                )
+            result = pc.replace_substring(
+                self._pa_array,
+                pattern=pat,
+                replacement=repl,
+                max_replacements=pa_max_replacements,
+            )
+            return self._from_pyarrow_array(result)
+        return self._str_re_fallback("replace", pat, repl, n, case, flags, regex)
 
     def _str_capitalize(self) -> Self:
         return self._from_pyarrow_array(pc.utf8_capitalize(self._pa_array))
@@ -445,18 +408,14 @@ class ArrowStringArrayMixin:
         regex: bool = True,
     ):
         if regex:
-            # GH#66348 a compiled `pat` reaches us from ArrowExtensionArray, which
-            #  unlike ArrowStringArray does not unwrap it before dispatching here.
-            pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
-
-        if flags:
-            raise NotImplementedError(f"contains not implemented with {flags=}")
-
-        if regex:
-            pa_contains = pc.match_substring_regex
+            re2 = self._to_re2(pat, case, flags)
+            if re2 is None:
+                return self._str_re_fallback("contains", pat, case, flags, na, regex)
+            result = pc.match_substring_regex(self._pa_array, re2.pattern)
+        elif flags or isinstance(pat, re.Pattern):
+            return self._str_re_fallback("contains", pat, case, flags, na, regex)
         else:
-            pa_contains = pc.match_substring
-        result = pa_contains(self._pa_array, pat, ignore_case=not case)
+            result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
         return self._convert_bool_result(result, na=na, method_name="contains")
 
     def _str_match(
@@ -466,15 +425,11 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        # GH#63108 the accessor pre-compiles `pat` whenever the user passes `flags`
-        pattern, case, flags = self._unwrap_re_pattern(pat, case, flags)
-
-        if pattern.startswith("^"):
-            pattern = pattern[1:]
-        pattern = f"^({pattern})"
-        return ArrowStringArrayMixin._str_contains(
-            self, pattern, case, flags, na, regex=True
-        )
+        re2 = self._to_re2(pat, case, flags)
+        if re2 is None:
+            return self._str_re_fallback("match", pat, case, flags, na)
+        result = pc.match_substring_regex(self._pa_array, rf"\A(?:{re2.pattern})")
+        return self._convert_bool_result(result, na=na, method_name="match")
 
     def _str_fullmatch(
         self,
@@ -483,15 +438,21 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        re2 = self._to_re2(pat, case, flags)
+        if re2 is None:
+            return self._str_re_fallback("fullmatch", pat, case, flags, na)
+        result = pc.match_substring_regex(self._pa_array, rf"\A(?:{re2.pattern})\z")
+        return self._convert_bool_result(result, na=na, method_name="fullmatch")
 
-        if (not pat.endswith("$") or pat.endswith("\\$")) and not pat.startswith("^"):
-            pat = f"^({pat})$"
-        elif not pat.endswith("$") or pat.endswith("\\$"):
-            pat = f"^({pat[1:]})$"
-        elif not pat.startswith("^"):
-            pat = f"^({pat[0:-1]})$"
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+    def _str_count(self, pat: str | re.Pattern[str], flags: int = 0):
+        re2 = self._to_re2(pat, flags=flags)
+        # pyarrow restarts the search on the remainder of the string after each
+        #  match, which loses the text before it, and steps over empty matches
+        #  by bytes rather than characters
+        if re2 is None or re2.nullable or re2.nullable_loop or re2.start_assertions:
+            return self._str_re_fallback("count", pat, flags)
+        result = pc.count_substring_regex(self._pa_array, re2.pattern)
+        return self._convert_int_result(result)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         # min_count=0 so that an empty or all-null array reports True instead of

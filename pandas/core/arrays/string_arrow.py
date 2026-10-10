@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import operator
-import re
 from typing import (
     TYPE_CHECKING,
-    Any,
     Self,
 )
 
@@ -49,7 +47,6 @@ if HAS_PYARROW:
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Callable,
         Sequence,
     )
 
@@ -58,7 +55,6 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         NpDtype,
-        Scalar,
         npt,
     )
 
@@ -74,12 +70,6 @@ def _check_pyarrow_available() -> None:
             "backed ArrowExtensionArray."
         )
         raise ImportError(msg)
-
-
-# Matches a `\Z` that is an end-of-string assertion rather than an escaped
-# backslash followed by a literal "Z"; the captured group keeps any preceding
-# pairs of escaped backslashes intact.
-_unescaped_end_anchor = re.compile(r"(?<!\\)((?:\\\\)*)\\Z")
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -427,120 +417,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_zfill = ArrowStringArrayMixin._str_zfill
     _str_normalize = ArrowStringArrayMixin._str_normalize
 
-    @classmethod
-    def _preprocess_re_pattern(
-        cls, pat: str | re.Pattern[str], case: bool, flags: int
-    ) -> tuple[str, bool, int]:
-        pattern, case, flags = cls._unwrap_re_pattern(pat, case, flags)
+    _str_contains = ArrowStringArrayMixin._str_contains
+    _str_match = ArrowStringArrayMixin._str_match
+    _str_fullmatch = ArrowStringArrayMixin._str_fullmatch
+    _str_replace = ArrowStringArrayMixin._str_replace
+    _str_count = ArrowStringArrayMixin._str_count
 
-        # RE2 spells the end-of-string anchor `\z`; Python's `\Z` is the same
-        # assertion and may appear anywhere in the pattern, not just at the end.
-        pattern = _unescaped_end_anchor.sub(r"\1\\z", pattern)
-
-        return pattern, case, flags
-
-    def _str_contains(
-        self,
-        pat,
-        case: bool = True,
-        flags: int = 0,
-        na=lib.no_default,
-        regex: bool = True,
-    ):
-        if (
-            flags
-            or self._is_re_pattern_with_flags(pat)
-            or (regex and self._has_unsupported_regex(pat))
-            # a compiled pattern is not a valid literal; defer to the object path
-            or (not regex and isinstance(pat, re.Pattern))
-        ):
-            return super()._str_contains(pat, case, flags, na, regex)
-
-        # with regex=False `pat` is matched literally, so must not be rewritten
-        if regex:
-            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
-        return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
-
-    def _str_match(
-        self,
-        pat: str | re.Pattern[str],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
-    ):
-        if (
-            flags
-            or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
-        ):
-            return super()._str_match(pat, case, flags, na)
-
-        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
-
-    def _str_fullmatch(
-        self,
-        pat: str | re.Pattern[str],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar | lib.NoDefault = lib.no_default,
-    ):
-        if (
-            flags
-            or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
-        ):
-            return super()._str_fullmatch(pat, case, flags, na)
-
-        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
-        return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
-
-    def _str_replace(
-        self,
-        pat: str | re.Pattern[str],
-        repl: str | Callable[..., Any],
-        n: int = -1,
-        case: bool = True,
-        flags: int = 0,
-        regex: bool = True,
-    ):
-        if (
-            isinstance(pat, re.Pattern)
-            or callable(repl)
-            or not case
-            or flags
-            or (  # substitution contains a named group pattern
-                # https://docs.python.org/3/library/re.html
-                isinstance(repl, str) and r"\g<" in repl
-            )
-            or (regex and self._has_unsupported_regex(pat))
-        ):
-            return super()._str_replace(pat, repl, n, case, flags, regex)
-
-        if regex:
-            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
-
-        return ArrowStringArrayMixin._str_replace(
-            self, pat, repl, n, case, flags, regex
-        )
+    def _str_re_fallback(self, method: str, *args, **kwargs):
+        return getattr(ObjectStringArrayMixin, f"_str_{method}")(self, *args, **kwargs)
 
     def _str_repeat(self, repeats: int | Sequence[int]):
         if not isinstance(repeats, int):
             return super()._str_repeat(repeats)
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
-
-    def _str_count(self, pat: str | re.Pattern[str], flags: int = 0):
-        if (
-            flags
-            or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
-        ):
-            return super()._str_count(pat, flags)
-
-        pat, case, _ = self._preprocess_re_pattern(pat, True, 0)
-        result = pc.count_substring_regex(self._pa_array, pat, ignore_case=not case)
-        return self._convert_int_result(result)
 
     def _str_partition(self, sep: str, expand: bool):
         if expand:

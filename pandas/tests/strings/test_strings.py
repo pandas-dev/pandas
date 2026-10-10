@@ -11,7 +11,7 @@ from pandas.compat import pa_version_under21p0
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
+from pandas.core.arrays._re2 import translate
 from pandas.core.strings.accessor import StringMethods
 from pandas.tests.strings import is_object_or_nan_string_dtype
 
@@ -94,12 +94,8 @@ def test_count_end_of_string(any_string_dtype):
 
     # with dollar sign
     result = ser.str.count("bar$")
-    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
-        # pyarrow (RE2) only matches $ at the very end of the line
-        expected = pd.Series([0, 1, 0, 0], dtype=expected_dtype)
-    else:
-        # python matches $ before or after an ending newline
-        expected = pd.Series([0, 1, 0, 1], dtype=expected_dtype)
+    # $ matches before or after an ending newline
+    expected = pd.Series([0, 1, 0, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     # with \Z (ensure this is translated to \z for pyarrow)
@@ -992,9 +988,9 @@ def test_setitem_with_different_string_storage():
         (r"[(?=)]", False),
         (r"(?#(?=comment)", False),
         (r"(test # (?=comment))", True),
-        (r"(?=test)+", False),
-        (r"(?=test)*", False),
-        (r"(?=test)?", False),
+        (r"(?=test)+", True),
+        (r"(?=test)*", True),
+        (r"(?=test)?", True),
         (r"abc|(?=test)", True),
         (r"^(?=test)$", True),
         # backreferences
@@ -1003,6 +999,7 @@ def test_setitem_with_different_string_storage():
         (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
     ],
 )
-def test_has_regex_unsupported_code(pat, expected):
+def test_re2_translate_unsupported(pat, expected):
     # https://github.com/pandas-dev/pandas/issues/60833
-    assert ArrowStringArrayMixin._has_unsupported_regex(pat) == expected
+    pytest.importorskip("pyarrow")
+    assert (translate(pat) is None) == expected
