@@ -9,6 +9,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
+    NoReturn,
 )
 import warnings
 
@@ -826,6 +827,12 @@ def to_arrays(
     elif isinstance(data[0], ABCSeries):
         arr, columns = _list_of_series_to_arrays(data, columns)
     else:
+        # a str first row is still split, e.g. from_records(["ab", "cd"])
+        if not is_scalar(data[0]):
+            for row in data:
+                if isinstance(row, (str, bytes)):
+                    _raise_str_row_error(row)
+
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
@@ -861,7 +868,7 @@ def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
     # GH#65751 shorter sequences get padded with NaN out to the longest one,
     #  which is deprecated.  A null scalar counts as length 1, mirroring the
     #  handling in lib.to_object_array_tuples.
-    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    lengths = {_scalar_row_length(row) if is_scalar(row) else len(row) for row in data}
     if len(lengths) > 1:
         warnings.warn(
             "Constructing a DataFrame from a list of sequences with mismatched "
@@ -878,6 +885,21 @@ def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
         # list of lists
         content = lib.to_object_array(data)
     return content
+
+
+def _scalar_row_length(row) -> int:
+    if isna(row):
+        return 1
+    if isinstance(row, (str, bytes)):
+        _raise_str_row_error(row)
+    return len(row)
+
+
+def _raise_str_row_error(row) -> NoReturn:
+    raise TypeError(
+        "When the first row of data is list-like, all rows must be list-like; "
+        f"got a row of type {type(row).__name__}."
+    )
 
 
 def _list_of_series_to_arrays(
