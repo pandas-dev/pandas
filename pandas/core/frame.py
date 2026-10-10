@@ -15897,6 +15897,20 @@ class DataFrame(NDFrame, OpsMixin):
                     sort=sort,
                     validate=validate,
                 )
+            if on is not None and not any(resolved_suffixes):
+                overlap = self.columns.intersection(other.columns)
+                on_keys = on if isinstance(on, (list, tuple)) else [on]
+                on_overlap = [
+                    key for key in on_keys if is_hashable(key) and key in overlap
+                ]
+                if on_overlap:
+                    # GH#13799 'on' matches other's index, not its same-named column
+                    raise ValueError(
+                        f"columns overlap but no suffix specified: {overlap}. "
+                        f"Note that 'on' matches {on_overlap} against the index "
+                        "of 'other', not its columns. To join on columns, "
+                        "use DataFrame.merge."
+                    )
             return merge(
                 self,
                 other,
