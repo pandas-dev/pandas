@@ -2118,3 +2118,25 @@ def test_negative_min_count_deprecated_timedelta_index():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = tdi.sum(min_count=-1)
     assert result == tdi.sum(min_count=0)
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        "Int64",
+        pytest.param(
+            "float64[pyarrow]",
+            marks=pytest.mark.skipif(not HAS_PYARROW, reason="requires pyarrow"),
+        ),
+    ],
+)
+def test_negative_min_count_deprecated_index(how, dtype):
+    # GH#50022
+    idx = pd.Index([2, None, 3], dtype=dtype)
+    expected = getattr(idx, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(idx, how)(min_count=-1)
+    assert result == expected

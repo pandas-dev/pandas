@@ -64,6 +64,7 @@ from pandas.util._exceptions import (
     find_stack_level,
     rewrite_exception,
 )
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -8284,6 +8285,7 @@ class Index(IndexOpsMixin, PandasObject):
             (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
         )
         nv.validate_minmax_axis(axis)
+        min_count = validate_min_count(min_count)
         return self._reduce(nanops.nansum, "sum", skipna=skipna, min_count=min_count)
 
     def prod(
@@ -8336,6 +8338,7 @@ class Index(IndexOpsMixin, PandasObject):
             (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
         )
         nv.validate_minmax_axis(axis)
+        min_count = validate_min_count(min_count)
         return self._reduce(nanops.nanprod, "prod", skipna=skipna, min_count=min_count)
 
     def mean(
