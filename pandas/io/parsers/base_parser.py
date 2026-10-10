@@ -553,7 +553,9 @@ class ParserBase:
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
-                if not lib.is_datetime_array(result, skipna=True):
+                if not lib.is_datetime_array(
+                    result, skipna=True
+                ) and lib.is_string_array(values, skipna=True):
                     dtype = StringDtype()
                     cls = dtype.construct_array_type()
                     result = cls._from_sequence(values, dtype=dtype)
@@ -561,7 +563,21 @@ class ParserBase:
         if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
-                result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+                # GH#63830: pyarrow cannot convert columns with mixed types
+                #  (e.g. ints and strings in a single column from read_excel),
+                #  and its type inference depends on the order of the values;
+                #  keep object dtype for those regardless of order. This
+                #  matches the default behaviour without
+                #  dtype_backend="pyarrow", which leaves such columns as
+                #  object dtype.
+                if (
+                    result.dtype != np.object_
+                    or lib.is_string_array(result, skipna=True)
+                    # read_excel sends datetime objects, which pyarrow converts
+                    # fine; only genuinely mixed columns stay object (GH#63830)
+                    or lib.is_datetime_array(result, skipna=True)
+                ):
+                    result = ArrowExtensionArray(pa.array(result, from_pandas=True))
             elif isinstance(result, BaseMaskedArray):
                 if result._mask.all():
                     # We want an arrow null array here
