@@ -615,6 +615,27 @@ def test_concat_dense_sparse():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("fill_value", [pd.NaT, pd.Timestamp("2000-01-03")])
+def test_concat_sparse_datetimelike_missing_column(fill_value):
+    # GH#26288 the filler for the missing column must not promote the subtype
+    dti = pd.date_range("2000", periods=2, unit="s")
+    arr = SparseArray(dti, fill_value=fill_value)
+    df1 = pd.DataFrame({"A": arr, "B": [1, 2]})
+    df2 = pd.DataFrame({"B": [3, 4]})
+
+    result = pd.concat([df1, df2])
+
+    values = dti.append(pd.DatetimeIndex([pd.NaT, pd.NaT], dtype=dti.dtype))
+    expected = pd.DataFrame(
+        {
+            "A": SparseArray(values, fill_value=fill_value),
+            "B": [1, 2, 3, 4],
+        },
+        index=[0, 1, 0, 1],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("keys", [["e", "f", "f"], ["f", "e", "f"]])
 def test_duplicate_keys(keys):
     # GH 33654

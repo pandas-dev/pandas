@@ -207,6 +207,38 @@ class TestReductions:
         with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
+    @pytest.mark.parametrize(
+        "dtype", ["int64", "float64", "Int64", "category", "datetime64[ns]", "object"]
+    )
+    @pytest.mark.parametrize("op", ["argmin", "argmax"])
+    def test_argminmax_python_scalars(
+        self, index_or_series, dtype, op, using_python_scalars
+    ):
+        # GH#64266
+        obj = index_or_series([1, 3, 2], dtype=dtype)
+        result = getattr(obj, op)()
+        assert result == (0 if op == "argmin" else 1)
+        if using_python_scalars:
+            assert type(result) is int
+        else:
+            assert isinstance(result, np.integer)
+
+    @pytest.mark.parametrize(
+        "dtype, expected_type", [("int64", int), ("float64", float), ("Int64", int)]
+    )
+    @pytest.mark.parametrize("op", ["idxmin", "idxmax"])
+    def test_idxminmax_result_type(
+        self, dtype, expected_type, op, using_python_scalars
+    ):
+        # GH#64266
+        ser = pd.Series([1, 3, 2], index=pd.Index([10, 20, 30], dtype=dtype))
+        result = getattr(ser, op)()
+        assert result == (10 if op == "idxmin" else 20)
+        if using_python_scalars:
+            assert type(result) is expected_type
+        else:
+            assert isinstance(result, np.generic)
+
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
@@ -579,6 +611,24 @@ class TestIndexReductions:
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=True)
         assert ci.min() == "c"
         assert ci.max() == "b"
+
+    @pytest.mark.parametrize("op", ["min", "max"])
+    @pytest.mark.parametrize("monotonic", [True, False])
+    def test_min_max_multiindex_result_type(self, op, monotonic, using_python_scalars):
+        # GH#64266
+        tuples = [(1, 1.5), (2, 2.5), (3, 3.5)]
+        if not monotonic:
+            tuples = tuples[::-1]
+        mi = pd.MultiIndex.from_tuples(tuples)
+        result = getattr(mi, op)()
+        assert result == ((1, 1.5) if op == "min" else (3, 3.5))
+        if using_python_scalars or not monotonic:
+            # the non-monotonic path returns Python scalars regardless of the option
+            assert type(result[0]) is int
+            assert type(result[1]) is float
+        else:
+            assert isinstance(result[0], np.integer)
+            assert isinstance(result[1], np.floating)
 
 
 class TestSeriesReductions:
@@ -1042,7 +1092,7 @@ class TestSeriesReductions:
         df = pd.DataFrame(ser)
 
         # GH#34479
-        msg = "datetime64 type does not support operation '(any|all)'"
+        msg = "'(any|all)' with datetime64 dtypes is not supported"
         with pytest.raises(TypeError, match=msg):
             dta.all()
         with pytest.raises(TypeError, match=msg):
@@ -1876,3 +1926,14 @@ class TestSeriesMode:
         result = pd.Series(array, dtype=dtype).mode()
         expected = pd.Series(expected, dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op_name", ["var", "std", "sem"])
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+def test_ea_reduction_method_ddof(any_numeric_ea_and_arrow_dtype, op_name, ddof):
+    # GH#68391 the sem method rejected ddof instead of forwarding it
+    arr = pd.array([1, 2, None, 4], dtype=any_numeric_ea_and_arrow_dtype)
+    expected = getattr(pd.Series([1.0, 2.0, 4.0]), op_name)(ddof=ddof)
+
+    tm.assert_almost_equal(getattr(arr, op_name)(ddof=ddof), expected)
+    assert pd.isna(getattr(arr, op_name)(skipna=False, ddof=ddof))

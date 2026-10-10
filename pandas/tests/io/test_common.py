@@ -3,6 +3,7 @@ Tests for the pandas.io.common functionalities
 """
 
 import codecs
+import contextlib
 import errno
 from functools import partial
 from io import (
@@ -14,6 +15,8 @@ import mmap
 import os
 from pathlib import Path
 import pickle
+import re
+import sqlite3
 import tempfile
 
 import numpy as np
@@ -29,6 +32,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io import sql
 import pandas.io.common as icom
 
 
@@ -513,6 +517,64 @@ def test_is_fsspec_url_chained():
     assert not icom.is_fsspec_url("filecache::://pandas/test.csv")
 
 
+@pytest.mark.parametrize("host", ["", "localhost", "LOCALHOST"])
+@pytest.mark.parametrize("exists", [False, True])
+def test_to_csv_file_url(tmp_path, host, exists):
+    # GH#55828 writing to a file:// URL raised for a new file and was silently
+    # discarded for an existing one
+    path = tmp_path / "a b.csv"
+    if exists:
+        path.write_text("old", encoding="utf-8")
+    url = path.as_uri().replace("file://", f"file://{host}", 1)
+    df = pd.DataFrame({"a": [1, 2]})
+
+    df.to_csv(url)
+
+    tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
+
+
+@pytest.mark.skipif(is_platform_windows(), reason="'?' is not valid in a file name")
+def test_to_csv_file_url_query(tmp_path):
+    # GH#55828 write to the file that reading the URL opens; whether the query is
+    # part of the file name depends on the Python version
+    url = (tmp_path / "a.csv").as_uri() + "?v=1"
+    df = pd.DataFrame({"a": [1, 2]})
+
+    df.to_csv(url)
+
+    tm.assert_frame_equal(pd.read_csv(url, index_col=0), df)
+
+
+@pytest.mark.parametrize("url_prefix", ["file://127.0.0.1", "http://127.0.0.1:1"])
+def test_to_csv_unwritable_url_raises(tmp_path, monkeypatch, url_prefix):
+    # GH#55828 raise instead of reading the URL and discarding the write
+    def fail_urlopen(*args, **kwargs):
+        raise AssertionError("urlopen should not be called")
+
+    monkeypatch.setattr(icom, "urlopen", fail_urlopen)
+    path = tmp_path / "a.csv"
+    path.write_text("old", encoding="utf-8")
+    url = url_prefix + path.as_uri().removeprefix("file://")
+    df = pd.DataFrame({"a": [1, 2]})
+
+    with pytest.raises(ValueError, match="Cannot write to URL"):
+        df.to_csv(url)
+    assert path.read_text(encoding="utf-8") == "old"
+
+
+def test_excel_writer_append_file_url(tmp_path):
+    # GH#55828 ExcelWriter's mode="a" opens the file with "r+b"
+    pytest.importorskip("openpyxl")
+    path = tmp_path / "a.xlsx"
+    df = pd.DataFrame({"a": [1, 2]})
+    df.to_excel(path, sheet_name="s1")
+
+    with pd.ExcelWriter(path.as_uri(), mode="a", engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="s2")
+
+    assert pd.ExcelFile(path, engine="openpyxl").sheet_names == ["s1", "s2"]
+
+
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(format, temp_file):
     # GH39247
@@ -722,3 +784,51 @@ def test_pyarrow_read_csv_datetime_dtype():
     expect = pd.DataFrame({"date": expect_data})
 
     tm.assert_frame_equal(expect, result)
+
+
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
+@pytest.mark.skipif(
+    is_platform_windows(), reason="Windows reports a directory as a permission error"
+)
+@pytest.mark.parametrize(
+    "reader, module, fn_ext",
+    [
+        (pd.read_csv, "os", "csv"),
+        (pd.read_excel, "openpyxl", "xlsx"),
+        (pd.read_fwf, "os", "txt"),
+        (pd.read_html, "lxml", "html"),
+        (pd.read_json, "os", "json"),
+        (pd.read_pickle, "os", "pickle"),
+        (pd.read_stata, "os", "dta"),
+        (pd.read_xml, "lxml", "xml"),
+    ],
+)
+def test_read_directory_not_reported_as_missing(reader, module, fn_ext, tmp_path):
+    # GH#29125 readers must not report every I/O failure as a missing file
+    pytest.importorskip(module)
+
+    path = tmp_path / f"a_directory.{fn_ext}"
+    path.mkdir()
+
+    # the strerror text is locale-dependent, so only the path is matched
+    with pytest.raises(IsADirectoryError, match=re.escape(str(path))):
+        reader(path)
+
+
+# not in test_sql.py, whose single_cpu mark keeps it out of the CI jobs
+# that lack sqlalchemy
+@td.skip_if_installed("sqlalchemy")
+def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
+    class MockSqliteConnection:
+        def __init__(self, *args, **kwargs) -> None:
+            self.conn = sqlite3.Connection(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self.conn, name)
+
+        def close(self):
+            self.conn.close()
+
+    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
+            sql.read_sql("SELECT 1", conn)

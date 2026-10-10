@@ -285,7 +285,7 @@ class TestSeriesPlots:
         # GH#64317 on some linux builds this is flaky with a tiny difference.
         #  Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
-        tm.assert_almost_equal(result, expected, atol=1e-15)
+        tm.assert_almost_equal(result, expected, rtol=1e-12, atol=0)
 
     @pytest.mark.parametrize(
         "axis, kind, res_meth",
@@ -313,13 +313,22 @@ class TestSeriesPlots:
         # GH#64317 on some linux builds this is flaky with the first entry being
         #  off by -1.69e-21. Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
-        tm.assert_almost_equal(result, expected, atol=1e-15)
+        tm.assert_almost_equal(result, expected, rtol=1e-12, atol=0)
 
     def test_bar_ignore_index(self):
         df = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         _, ax = mpl.pyplot.subplots()
         ax = df.plot.bar(use_index=False, ax=ax)
         _check_text_labels(ax.get_xticklabels(), ["0", "1", "2", "3"])
+
+    def test_bar_timedelta_with_nat(self):
+        # GH#39320
+        ser = pd.Series(pd.to_timedelta([1, None, 3], unit="s"))
+        _, ax = mpl.pyplot.subplots()
+        ax = ser.plot.bar(ax=ax)
+        result = [patch.get_height() for patch in ax.patches]
+        expected = ser.fillna(pd.Timedelta(0)).astype(np.int64).tolist()
+        assert result == expected
 
     def test_bar_user_colors(self):
         s = pd.Series([1, 2, 3, 4])
@@ -1001,14 +1010,18 @@ class TestSeriesPlots:
         ax = plt.subplot()
         s.plot(kind="bar", ax=ax)
         bar_xticks = [
-            label for label in ax.get_xticklabels() if label.get_text() in years
+            (label.get_position()[0], label.get_text())
+            for label in ax.get_xticklabels()
+            if label.get_text() in years
         ]
         s.plot(kind="line", ax=ax, color="r")
         line_xticks = [
-            label for label in ax.get_xticklabels() if label.get_text() in years
+            (label.get_position()[0], label.get_text())
+            for label in ax.get_xticklabels()
+            if label.get_text() in years
         ]
         assert len(bar_xticks) == len(index)
         assert bar_xticks == line_xticks
         x_limits = ax.get_xlim()
-        assert x_limits[0] <= bar_xticks[0].get_position()[0]
-        assert x_limits[1] >= bar_xticks[-1].get_position()[0]
+        assert x_limits[0] <= bar_xticks[0][0]
+        assert x_limits[1] >= bar_xticks[-1][0]

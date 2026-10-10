@@ -11,6 +11,7 @@ import datetime
 from decimal import Decimal
 from functools import partial
 import os
+import sys
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -28,10 +29,7 @@ import zipfile
 from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
-from pandas.compat._optional import (
-    get_version,
-    import_optional_dependency,
-)
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     EmptyDataError,
     Pandas4Warning,
@@ -45,14 +43,12 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_bool,
     is_decimal,
-    is_file_like,
     is_float,
     is_integer,
     is_list_like,
 )
 
 from pandas.core.frame import DataFrame
-from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,
@@ -106,7 +102,9 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
+    converters: dict[str, Callable[..., Any]]
+    | dict[int, Callable[..., Any]]
+    | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -115,7 +113,7 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: list | dict | bool = ...,
+    parse_dates: list[Hashable] | bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -143,7 +141,9 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
+    converters: dict[str, Callable[..., Any]]
+    | dict[int, Callable[..., Any]]
+    | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -152,7 +152,7 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: list | dict | bool = ...,
+    parse_dates: list[Hashable] | bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -179,7 +179,9 @@ def read_excel(
     | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
-    converters: dict[str, Callable] | dict[int, Callable] | None = None,
+    converters: dict[str, Callable[..., Any]]
+    | dict[int, Callable[..., Any]]
+    | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
@@ -188,7 +190,7 @@ def read_excel(
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
-    parse_dates: list | dict | bool = False,
+    parse_dates: list[Hashable] | bool = False,
     date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
@@ -196,7 +198,7 @@ def read_excel(
     skipfooter: int = 0,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    engine_kwargs: dict | None = None,
+    engine_kwargs: dict[str, Any] | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
     """
     Read an Excel file into a ``DataFrame``.
@@ -210,7 +212,7 @@ def read_excel(
 
     Parameters
     ----------
-    io : str, ExcelFile, xlrd.Book, path object, or file-like object
+    io : str, ExcelFile, workbook object, path object, or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -224,6 +226,9 @@ def read_excel(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
+
+        A workbook object from a supported engine's library, such as an
+        ``openpyxl.Workbook``, is read with that engine.
 
     sheet_name : str, int, list, or None, default 0
         Strings are used for sheet names. Integers are used in zero-indexed
@@ -295,7 +300,6 @@ def read_excel(
         of dtype conversion.
         If you use ``None``, it will infer the dtype of each column based on the data.
     engine : {'openpyxl', 'calamine', 'odf', 'pyxlsb', 'xlrd'}, default None
-        If io is not a buffer or path, this must be set to identify io.
         Engine compatibility :
 
         - ``openpyxl`` supports newer Excel file formats.
@@ -307,7 +311,8 @@ def read_excel(
 
         When ``engine=None``, the following logic will be used to determine the engine:
 
-        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+        - If ``io`` is a workbook object, the engine that created it will be used.
+        - Otherwise if ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
           then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
@@ -565,7 +570,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         self,
         filepath_or_buffer,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -639,7 +644,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
     def _check_skiprows_func(
         self,
-        skiprows: Callable,
+        skiprows: Callable[[int], object],
         rows_to_use: int,
     ) -> int | None:
         """
@@ -703,12 +708,12 @@ class BaseExcelReader(Generic[_WorkbookT]):
             header = cast("int", header)
             header_rows = 1 + header
         else:
-            header = cast("Sequence", header)
+            header = cast("Sequence[int]", header)
             header_rows = 1 + header[-1]
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
         if is_list_like(header) and index_col is not None:
-            header = cast("Sequence", header)
+            header = cast("Sequence[int]", header)
             if len(header) > 1:
                 header_rows += 1
         if skiprows is None:
@@ -718,10 +723,10 @@ class BaseExcelReader(Generic[_WorkbookT]):
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
 
-            def f(skiprows: Sequence, x: int) -> bool:
+            def f(skiprows: Sequence[int], x: int) -> bool:
                 return x in skiprows
 
-            skiprows = cast("Sequence", skiprows)
+            skiprows = cast("Sequence[int]", skiprows)
             return self._check_skiprows_func(partial(f, skiprows), header_rows + nrows)
         if callable(skiprows):
             return self._check_skiprows_func(
@@ -746,7 +751,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         nrows: int | None = None,
         na_values=None,
         verbose: bool = False,
-        parse_dates: list | dict | bool = False,
+        parse_dates: list[Hashable] | bool = False,
         date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
@@ -834,8 +839,8 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
     def _parse_sheet(
         self,
-        data: list,
-        output: dict,
+        data: list[list[Any]],
+        output: dict[Any, DataFrame],
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
@@ -847,7 +852,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
         na_values=None,
-        parse_dates: list | dict | bool = False,
+        parse_dates: list[Hashable] | bool = False,
         date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
@@ -1211,14 +1216,14 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     def __new__(
         cls,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
         if_sheet_exists: ExcelWriterIfSheetExists | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> Self:
         # only switch class if generic(ExcelWriter)
         if cls is ExcelWriter:
@@ -1302,7 +1307,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     def __init__(
         self,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
@@ -1428,8 +1433,7 @@ class ExcelWriter(Generic[_WorkbookT]):
             # xref https://support.microsoft.com/en-au/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3
             if len(val) > 32767:
                 warnings.warn(
-                    f"Cell contents too long ({len(val)}), "
-                    "truncated to 32767 characters",
+                    "Cell contents too long, truncated to 32767 characters",
                     UserWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -1543,6 +1547,29 @@ def inspect_excel_format(
         return "zip"
 
 
+# GH#46352 - engine name -> (module, class) of the workbook objects it reads
+_WORKBOOK_CLASSES = {
+    "xlrd": ("xlrd", "Book"),
+    "openpyxl": ("openpyxl", "Workbook"),
+    "odf": ("odf.opendocument", "OpenDocument"),
+    "pyxlsb": ("pyxlsb", "Workbook"),
+    "calamine": ("python_calamine", "CalamineWorkbook"),
+}
+
+
+def _infer_engine_from_workbook(obj) -> str | None:
+    """
+    Return the engine whose library created the workbook ``obj``, if any.
+    """
+    for engine, (module_name, class_name) in _WORKBOOK_CLASSES.items():
+        # GH#56692 - avoid importing optional dependencies; such a workbook
+        # can only exist if the caller already imported its module.
+        module = sys.modules.get(module_name)
+        if module is not None and isinstance(obj, getattr(module, class_name)):
+            return engine
+    return None
+
+
 @set_module("pandas")
 class ExcelFile:
     """
@@ -1553,11 +1580,10 @@ class ExcelFile:
     Parameters
     ----------
     path_or_buffer : str, bytes, pathlib.Path,
-        A file-like object, xlrd workbook or openpyxl workbook.
+        A file-like object or a workbook object from a supported engine.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
-        If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``, ``calamine``
         Engine compatibility :
 
@@ -1573,7 +1599,9 @@ class ExcelFile:
         When ``engine=None``, the following logic will be
         used to determine the engine:
 
-        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+        - If ``path_or_buffer`` is a workbook object, the engine that created it
+            will be used.
+        - Otherwise if ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is an xls format,
             ``xlrd`` will be used.
@@ -1638,7 +1666,7 @@ class ExcelFile:
         path_or_buffer,
         engine: str | None = None,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -1650,60 +1678,42 @@ class ExcelFile:
         self._io = stringify_path(path_or_buffer)
 
         if engine is None:
-            # Only determine ext if it is needed
-            ext: str | None = None
+            # GH#68086 - must precede inspect_excel_format, which seeks.
+            engine = _infer_engine_from_workbook(path_or_buffer)
 
-            if not isinstance(
-                path_or_buffer, (str, os.PathLike, ExcelFile)
-            ) and not is_file_like(path_or_buffer):
-                # GH#56692 - avoid importing xlrd if possible
-                if import_optional_dependency("xlrd", errors="ignore") is None:
-                    xlrd_version = None
-                else:
-                    import xlrd
-
-                    xlrd_version = Version(get_version(xlrd))
-
-                if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-                    ext = "xls"
-                    engine = "xlrd"
-
+        if engine is None:
+            ext = inspect_excel_format(
+                content_or_path=path_or_buffer, storage_options=storage_options
+            )
             if ext is None:
-                ext = inspect_excel_format(
-                    content_or_path=path_or_buffer, storage_options=storage_options
+                raise ValueError(
+                    "Excel file format cannot be determined, you must specify "
+                    "an engine manually."
                 )
-                if ext is None:
-                    raise ValueError(
-                        "Excel file format cannot be determined, you must specify "
-                        "an engine manually."
-                    )
 
-            if engine is None:
-                engine = config["io"]["excel"][ext]["reader"]
-                if engine == "auto":
-                    engine = get_default_engine(ext, mode="reader")
-                    # GH#56542 - the calamine engine will become the default
-                    # for xlsx/xlsm. Warn while calamine is available so the
-                    # switch is actionable; an explicit engine or the
-                    # io.excel.xlsx.reader option silences this. xlsm files
-                    # are format-sniffed as xlsx, so ext is never "xlsm" here.
-                    if (
-                        ext == "xlsx"
-                        and engine == "openpyxl"
-                        and import_optional_dependency(
-                            "python_calamine", errors="ignore"
-                        )
-                        is not None
-                    ):
-                        warnings.warn(
-                            "The default engine for reading 'xlsx' files "
-                            "will change from 'openpyxl' to 'calamine' in a "
-                            "future version. Pass engine='openpyxl' (or set "
-                            "the 'io.excel.xlsx.reader' option) to keep the "
-                            "current engine and silence this warning.",
-                            Pandas4Warning,
-                            stacklevel=find_stack_level(),
-                        )
+            engine = config["io"]["excel"][ext]["reader"]
+            if engine == "auto":
+                engine = get_default_engine(ext, mode="reader")
+                # GH#56542 - the calamine engine will become the default
+                # for xlsx/xlsm. Warn while calamine is available so the
+                # switch is actionable; an explicit engine or the
+                # io.excel.xlsx.reader option silences this. xlsm files
+                # are format-sniffed as xlsx, so ext is never "xlsm" here.
+                if (
+                    ext == "xlsx"
+                    and engine == "openpyxl"
+                    and import_optional_dependency("python_calamine", errors="ignore")
+                    is not None
+                ):
+                    warnings.warn(
+                        "The default engine for reading 'xlsx' files "
+                        "will change from 'openpyxl' to 'calamine' in a "
+                        "future version. Pass engine='openpyxl' (or set "
+                        "the 'io.excel.xlsx.reader' option) to keep the "
+                        "current engine and silence this warning.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
         assert engine is not None
         self.engine = engine
@@ -1731,7 +1741,7 @@ class ExcelFile:
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
-        parse_dates: list | dict | bool = False,
+        parse_dates: list[Hashable] | bool = False,
         date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,

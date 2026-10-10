@@ -3,7 +3,6 @@
 from collections.abc import (
     Callable,
     Generator,
-    Hashable,
 )
 from decimal import Decimal
 from typing import (
@@ -66,11 +65,13 @@ def is_integer_float_array(values: np.ndarray, skipna: bool = ...): ...
 def is_bool_array(values: np.ndarray, skipna: bool = ...): ...
 def first_non_numeric(values: np.ndarray) -> tuple[object, bool]: ...
 def fast_multiget(
-    mapping: dict,
+    mapping: dict[Any, Any],
     keys: np.ndarray,  # object[:]
     default=...,
 ) -> ArrayLike: ...
-def fast_unique_multiple_list_gen(gen: Generator, sort: bool = ...) -> list: ...
+def fast_unique_multiple_list_gen(
+    gen: Generator[list[Any], Any, Any], sort: bool = ...
+) -> list[Any]: ...
 @overload
 def map_infer(
     arr: np.ndarray,
@@ -123,7 +124,7 @@ def maybe_convert_objects(
 @overload
 def maybe_convert_numeric(
     values: npt.NDArray[np.object_],
-    na_values: set,
+    na_values: set[Any],
     convert_empty: bool = ...,
     coerce_numeric: bool = ...,
     convert_to_masked_nullable: Literal[False] = ...,
@@ -131,7 +132,7 @@ def maybe_convert_numeric(
 @overload
 def maybe_convert_numeric(
     values: npt.NDArray[np.object_],
-    na_values: set,
+    na_values: set[Any],
     convert_empty: bool = ...,
     coerce_numeric: bool = ...,
     *,
@@ -149,7 +150,7 @@ def ensure_string_array(
 def convert_nans_to_NA(
     arr: npt.NDArray[np.object_],
 ) -> npt.NDArray[np.object_]: ...
-def fast_zip(ndarrays: list) -> npt.NDArray[np.object_]: ...
+def fast_zip(ndarrays: list[np.ndarray]) -> npt.NDArray[np.object_]: ...
 
 # TODO: can we be more specific about rows?
 def to_object_array_tuples(rows: object) -> ndarray_obj_2d: ...
@@ -159,7 +160,7 @@ def tuples_to_object_array(
 
 # TODO: can we be more specific about rows?
 def to_object_array(rows: object, min_width: int = ...) -> ndarray_obj_2d: ...
-def dicts_to_array(dicts: list, columns: list) -> ndarray_obj_2d: ...
+def dicts_to_array(dicts: list[Any], columns: list[Any]) -> ndarray_obj_2d: ...
 def maybe_booleans_to_slice(
     mask: npt.NDArray[np.uint8],
 ) -> slice | npt.NDArray[np.uint8]: ...
@@ -167,7 +168,7 @@ def maybe_indices_to_slice(
     indices: npt.NDArray[np.intp],
     max_len: int,
 ) -> slice | npt.NDArray[np.intp]: ...
-def is_all_arraylike(obj: list) -> bool: ...
+def is_all_arraylike(obj: list[Any]) -> bool: ...
 
 # -----------------------------------------------------------------
 # Functions which in reality take memoryviews
@@ -193,12 +194,6 @@ def map_infer_mask(
     na_value: Any = ...,
     dtype: np.dtype = ...,
 ) -> ArrayLike: ...
-def indices_fast(
-    index: npt.NDArray[np.intp],
-    labels: np.ndarray,  # const int64_t[:]
-    keys: list,
-    sorted_labels: list[npt.NDArray[np.int64]],
-) -> dict[Hashable, npt.NDArray[np.intp]]: ...
 def generate_slices(
     labels: np.ndarray,
     ngroups: int,  # const intp_t[:]
@@ -238,7 +233,7 @@ def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,
 ) -> npt.NDArray[np.intp]: ...
-def is_bool_list(obj: list) -> bool: ...
+def is_bool_list(obj: list[Any]) -> bool: ...
 def dtypes_all_equal(types: list[DtypeObj]) -> bool: ...
 def is_range_indexer(
     left: np.ndarray,

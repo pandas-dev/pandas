@@ -257,6 +257,10 @@ class NumpyExtensionArray(
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in NumpyExtensionArray, since pandas' ExtensionArrays are 1-d.
+
+        # this path never reaches ExtensionArray.__array_ufunc__
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         out = kwargs.get("out", ())
 
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
@@ -693,7 +697,8 @@ class NumpyExtensionArray(
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         # NEP 51: https://github.com/numpy/numpy/pull/22449
-        if self.dtype.kind in "SU":
+        if self.dtype.kind == "U":
+            # not "S": str(np.bytes_(b"foo")) is already "b'foo'"
             return "'{}'".format
         elif self.dtype == "object":
             return repr

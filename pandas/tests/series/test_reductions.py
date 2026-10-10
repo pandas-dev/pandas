@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -73,6 +74,22 @@ def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
     result = ser4.mode(dropna=False)
     expected = pd.Series([1, pd.NA], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([True, False, None], [False, True, None]),
+        ([True, True, None], [True]),
+        ([True, None, None], [None]),
+        ([None, None], [None]),
+    ],
+)
+def test_mode_boolean_dropna_false(values, expected):
+    # GH#70487
+    ser = pd.Series(values, dtype="boolean")
+    result = ser.mode(dropna=False)
+    tm.assert_series_equal(result, pd.Series(expected, dtype="boolean"))
 
 
 def test_mode_string(any_string_dtype):
@@ -278,14 +295,8 @@ def test_mean_dont_convert_j_to_complex(using_infer_string):
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
 
-    # .astype("string") forces str dtype regardless of the infer_string setting,
-    # but the storage (hence the message) still follows pyarrow availability: the
-    # python-backed array converts instead of raising the string-dtype error
-    msg = (
-        "Cannot perform reduction 'mean' with string dtype"
-        if HAS_PYARROW
-        else "Could not convert 'J' to numeric"
-    )
+    # .astype("string") forces str dtype regardless of the infer_string setting
+    msg = "Cannot perform reduction 'mean' with string dtype"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
@@ -305,3 +316,34 @@ def test_median_with_convertible_string_raises(using_infer_string):
 
     with pytest.raises(TypeError, match=msg):
         ser.to_frame().median()
+
+
+@pytest.mark.parametrize("func", ["skew", "kurt"])
+def test_complex_reduction_raises(func, complex_dtype):
+    # GH#43770 these would discard the imaginary part
+    ser = pd.Series([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
+    msg = f"reduction operation '{func}' not allowed for this dtype"
+    with pytest.raises(TypeError, match=msg):
+        getattr(ser, func)()
+
+    df = ser.to_frame()
+    with pytest.raises(TypeError, match=msg):
+        getattr(df, func)()
+
+
+@pytest.mark.parametrize("use_bottleneck", [True, False])
+def test_complex_median_deprecated(complex_dtype, use_bottleneck):
+    # GH#43770
+    ser = pd.Series([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
+    msg = "The median of complex data is deprecated"
+    with pd.option_context("compute.use_bottleneck", use_bottleneck):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.median()
+        assert result == 2 + 3j
+
+        df = ser.to_frame()
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.median()
+        tm.assert_series_equal(
+            result, pd.Series([2 + 3j], index=[0], dtype=complex_dtype)
+        )

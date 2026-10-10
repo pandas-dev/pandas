@@ -29,6 +29,7 @@ cnp.import_array()
 
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
+    get_default_reso,
     get_supported_reso,
     npy_unit_to_abbrev,
     periods_per_day,
@@ -37,6 +38,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -278,12 +280,12 @@ def format_array_from_datetime(
         elif basic_format_day:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
-            res = f"{dts.year}-{dts.month:02d}-{dts.day:02d}"
+            res = f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d}"
 
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
-            res = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+            res = (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                    f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
             if show_ns:
@@ -314,15 +316,8 @@ def format_array_from_datetime(
                 # GH#62111
                 res = ts.isoformat(sep=" ", timespec=timespec)
             else:
-
-                # invalid format string
-                # requires dates > 1900
-                try:
-                    # Note: dispatches to pydatetime
-                    res = ts.strftime(format)
-                except ValueError:
-                    # Use datetime.str, that returns ts.isoformat(sep=' ')
-                    res = str(ts)
+                # Note: dispatches to pydatetime
+                res = ts.strftime(format)
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
         #  like we do for the other functions because result is known C-contiguous
@@ -433,10 +428,15 @@ cpdef array_to_datetime(
         abbrev = npy_unit_to_abbrev(creso)
 
     if unit_for_numerics is None:
+        # if no unit specified specifically for numeric input, then either
+        # use the specified output unit or if inferring, default to ns
         unit_for_numerics = abbrev
-        int_reso = NPY_FR_ns
+        if infer_reso:
+            int_reso = NPY_FR_ns
+        else:
+            int_reso = creso
     else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(unit_for_numerics))
+        int_reso = abbrev_to_npy_unit(get_default_reso(unit_for_numerics))
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
@@ -470,6 +470,12 @@ cpdef array_to_datetime(
                 state.found_other = True
 
             elif cnp.is_datetime64_object(val):
+                if get_datetime64_unit_count(val) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.datetime64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
                 if infer_reso:
@@ -506,8 +512,10 @@ cpdef array_to_datetime(
                     if infer_reso:
                         creso = state.creso
 
+                    # Not <int64_t>: casting here would overflow outside
+                    #  cast_from_unit's guard, leaking OverflowError
                     iresult[i] = cast_from_unit(
-                        <int64_t>val, unit_for_numerics, out_reso=creso
+                        val, unit_for_numerics, out_reso=creso
                     )
 
                     state.found_other = True
@@ -704,6 +712,7 @@ def array_to_datetime_with_tz(
                     yearfirst=yearfirst,
                     nanos=0,
                     warned_quarter=&warned_quarter,
+                    out_unit=abbrev,
                 )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)
