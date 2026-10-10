@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas import (
@@ -391,7 +390,7 @@ class ParserBase:
                     and (
                         is_string_dtype(cast_type)
                         # GH#24542 avoid reading "20180101" as epoch ns
-                        or isinstance(pandas_dtype(cast_type), DatetimeTZDtype)
+                        or pandas_dtype(cast_type).kind == "M"
                     )
                 )
                 or index_converter

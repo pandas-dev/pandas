@@ -591,15 +591,34 @@ def test_datetimetz_dtype(all_parsers):
 
 
 @xfail_pyarrow  # reads "20180101" as int64, then as epoch nanoseconds
-def test_datetimetz_dtype_index_col(all_parsers):
+@pytest.mark.parametrize("dtype_name", ["datetimetz", "arrow_timestamp"])
+def test_datetime_dtype_index_col(all_parsers, dtype_name):
     # GH#24542
     parser = all_parsers
-    dtype = pd.DatetimeTZDtype("ns", "US/Eastern")
+    if dtype_name == "arrow_timestamp":
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.timestamp("ns", tz="UTC"))
+    else:
+        dtype = pd.DatetimeTZDtype("ns", "US/Eastern")
     data = "a,b\n20180101,1\n,2\n"
     result = parser.read_csv(StringIO(data), dtype={"a": dtype}, index_col="a")
     expected = pd.DataFrame(
         {"b": [1, 2]},
-        index=pd.DatetimeIndex(["2018-01-01", None], dtype=dtype, name="a"),
+        index=pd.Index(["2018-01-01", None], dtype=dtype, name="a"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_naive_datetime_dtype_index_col(python_parser_only):
+    # GH#24542 the c engine rejects a naive datetime64 dtype
+    parser = python_parser_only
+    data = "a,b\n20180101,1\n,2\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"a": "datetime64[ns]"}, index_col="a"
+    )
+    expected = pd.DataFrame(
+        {"b": [1, 2]},
+        index=pd.DatetimeIndex(["2018-01-01", None], dtype="M8[ns]", name="a"),
     )
     tm.assert_frame_equal(result, expected)
 
