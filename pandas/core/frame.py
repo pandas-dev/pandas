@@ -13651,7 +13651,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        pandas.api.typing.DataFrameGroupBy
+        :class:`pandas.api.typing.DataFrameGroupBy`
             Returns a groupby object that contains information about the groups.
 
         See Also
