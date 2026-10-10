@@ -1913,6 +1913,8 @@ how they treat the column's existing dtype:
 * ``df.loc[:, col] = value`` (and ``df.iloc[:, i] = value``) **sets the values
   in place** in the existing column. The original dtype is preserved, and the
   assignment will raise ``TypeError`` if ``value`` is not compatible with it.
+  An ``object`` column can hold anything, so it stays ``object`` and pandas
+  emits a ``UserWarning`` if ``value`` has a different dtype.
 
 This is most visible for :class:`~pandas.api.types.ExtensionDtype` columns
 such as ``category``, ``Int64``, ``boolean``, or ``string``, where the

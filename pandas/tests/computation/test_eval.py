@@ -2159,3 +2159,13 @@ def test_eval_top_level_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         pd.eval("b = df.a + 1", target=df, inplace=True)
     tm.assert_frame_equal(df, expected)
+
+
+def test_eval_inplace_object_column_no_loc_warning():
+    # GH#52593 only the inplace deprecation warns, not the .loc object-dtype one
+    df = pd.DataFrame({"A": ["1", "2"], "B": [3, 4]}).astype({"A": object})
+    msg = "The inplace keyword in DataFrame.eval is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.eval("A = B + 1", inplace=True)
+    expected = pd.DataFrame({"A": [4, 5], "B": [3, 4]}).astype({"A": object})
+    tm.assert_frame_equal(df, expected)

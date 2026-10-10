@@ -92,7 +92,11 @@ class TestiLocBaseIndependent:
         df = frame.copy()
         orig_vals = df.values
 
-        indexer_li(df)[key, 0] = cat
+        # GH#52593 warns only for slice keys, which span all rows here
+        warn = UserWarning if isinstance(key, slice) else None
+        msg = "Setting non-object values into entire object-dtype column"
+        with tm.assert_produces_warning(warn, match=msg):
+            indexer_li(df)[key, 0] = cat
 
         expected = pd.DataFrame({0: cat}).astype(object)
         assert np.shares_memory(df[0].values, orig_vals)
@@ -108,7 +112,8 @@ class TestiLocBaseIndependent:
         #  we retain the object dtype.
         frame = pd.DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
-        indexer_li(df)[key, 0] = cat
+        with tm.assert_produces_warning(warn, match=msg):
+            indexer_li(df)[key, 0] = cat
         expected = pd.DataFrame(
             {0: pd.Series(cat.astype(object), dtype=object), 1: range(3)}
         )
@@ -1721,7 +1726,9 @@ class TestiLocBaseIndependent:
             with pytest.raises(TypeError, match="Invalid value"):
                 df.iloc[:, [0]] = pd.DataFrame({"A": pd.to_datetime(["2021", "2022"])})
         else:
-            df.iloc[:, [0]] = pd.DataFrame({"A": pd.to_datetime(["2021", "2022"])})
+            msg = "Setting non-object values into entire object-dtype column"
+            with tm.assert_produces_warning(UserWarning, match=msg):
+                df.iloc[:, [0]] = pd.DataFrame({"A": pd.to_datetime(["2021", "2022"])})
             expected = pd.DataFrame(
                 {
                     "A": [
@@ -1825,7 +1832,9 @@ class TestILocSetItemDuplicateColumns:
 
         # with the enforcement of GH#45333 in 2.0, this sets values inplace,
         #  so we retain object dtype
-        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+        msg = "Setting non-object values into entire object-dtype column"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
 
         expected_df = pd.DataFrame(
             [[expected_value, "str", "str2"]],
@@ -2449,3 +2458,14 @@ def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
         {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
     )
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("single_block", [True, False])
+def test_iloc_setitem_object_column_slice_to_len_warns(single_block):
+    # GH#52593 slice(None, nrows) spans all rows like slice(None)
+    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
+    if not single_block:
+        df["B"] = df["B"].astype("int64")
+    msg = "Setting non-object values into entire object-dtype column"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        df.iloc[:2, 0] = np.array([1, 2])

@@ -474,7 +474,15 @@ def eval(
             # to use a non-numeric indexer
             try:
                 if inplace and isinstance(target, NDFrame):
-                    target.loc[:, assigner] = ret
+                    # inplace is deprecated (GH#63207), so don't also point
+                    #  users at a `.loc` call they didn't write, GH#52593
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            "Setting non-object values into entire object-dtype",
+                            UserWarning,
+                        )
+                        target.loc[:, assigner] = ret
                 else:
                     target[assigner] = ret  # pyright: ignore[reportIndexIssue]
             except (TypeError, IndexError) as err:
