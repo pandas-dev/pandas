@@ -1408,7 +1408,7 @@ class StylerRenderer:
         >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
         ... # doctest: +SKIP
                        A       B
-              2.0    nan     4.0
+              2.0    NaN     4.0
         0       1      2       3
 
         Using a callable ``formatter`` function.
@@ -1973,7 +1973,10 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     value : Any
         Matches input type, or string if input is float or complex or int with sep.
     """
-    if is_float(x) or is_complex(x):
+    if is_float(x) and np.isnan(x):
+        # match DataFrame repr, GH#12710
+        return "NaN"
+    elif is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
         return f"{x:,}" if thousands else str(x)
