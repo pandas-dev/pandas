@@ -145,8 +145,8 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
--
+- Bug in :meth:`DatetimeIndex.tz_localize`, :meth:`Series.dt.tz_localize`, and :meth:`Timestamp.tz_localize` returning a result off by the size of the DST transition when ``nonexistent`` shifted a wall time out of a gap, for ``"shift_forward"``, ``"shift_backward"`` and timedelta shifts alike (:issue:`66820`)
+- Bug in :meth:`DatetimeIndex.tz_localize`, :meth:`Series.dt.tz_localize`, and :meth:`Timestamp.tz_localize` with a timedelta ``nonexistent`` shift returning an incorrect timestamp instead of raising ``OutOfBoundsDatetime`` when the shifted wall time landed one below :attr:`Timestamp.min` (:issue:`66697`)
 
 Numeric
 ^^^^^^^

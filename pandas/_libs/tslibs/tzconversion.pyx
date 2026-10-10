@@ -292,18 +292,20 @@ timedelta-like}
     cdef:
         ndarray[uint8_t, cast=True] ambiguous_array
         Py_ssize_t i, n = vals.shape[0]
-        Py_ssize_t delta_idx_offset, delta_idx
+        Py_ssize_t delta_idx
         int64_t v, left, right, val, new_local, remaining_mins
-        int64_t first_delta, delta
+        int64_t delta
         int64_t shift_delta = 0
         ndarray[int64_t] result_a, result_b, dst_hours
         int64_t[::1] result
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
+        bint overflowed = False
         bint fill_nonexist = False
         str stamp
         Localizer info = Localizer(tz, creso=creso)
-        int64_t pph = periods_per_day(creso) // 24
+        int64_t ppd = periods_per_day(creso)
+        int64_t pph = ppd // 24
 
     # Vectorized version of DstTzInfo.localize
 
@@ -386,22 +388,6 @@ timedelta-like}
     if infer_dst:
         dst_hours = _get_dst_hours(vals, result_a, result_b, creso=creso)
 
-    # Pre-compute delta_idx_offset that will be used if we go down non-existent
-    #  paths.
-    # Shift the delta_idx by if the UTC offset of
-    # the target tz is greater than 0 and we're moving forward
-    # or vice versa
-    # TODO: delta_idx_offset and info.deltas are needed for zoneinfo timezones,
-    # but are not applicable for all timezones. Setting the former to 0 and
-    # length checking the latter avoids UB, but this could use a larger refactor
-    delta_idx_offset = 0
-    if len(info.deltas):
-        first_delta = info.deltas[0]
-        if (shift_forward or shift_delta > 0) and first_delta > 0:
-            delta_idx_offset = 1
-        elif (shift_backward or shift_delta < 0) and first_delta < 0:
-            delta_idx_offset = 1
-
     for i in range(n):
         val = vals[i]
         left = result_a[i]
@@ -449,7 +435,9 @@ timedelta-like}
                             "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
-                    if checked_add(val, shift_delta, &new_local):
+                    overflowed = checked_add(val, shift_delta, &new_local)
+                    if overflowed or new_local == NPY_NAT:
+                        # landing on the NaT sentinel is out of bounds too, GH#66697
                         raise_out_of_bounds(
                             val,
                             BS_OVERFLOW if shift_delta > 0 else BS_UNDERFLOW,
@@ -477,30 +465,9 @@ timedelta-like}
                         )
                     result[i] = _shift_to_utc(new_local, delta, creso)
                 else:
-                    delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
-                    if delta_idx == info.ntrans:
-                        # new_local is past the last cached transition, so the
-                        #  offsets below would index deltas (length ntrans) out
-                        #  of bounds. The bisect compared a *local* time against
-                        #  info.tdata, which holds *UTC* instants, so the last
-                        #  delta can put us back before its own transition;
-                        #  walk back to the last one that does not.
-                        delta_idx = info.ntrans - 1
-                        while (
-                            delta_idx > 0
-                            and _shift_to_utc(new_local, info.deltas[delta_idx], creso)
-                            < info.tdata[delta_idx]
-                        ):
-                            delta_idx -= 1
-                    # Logic similar to the precompute section. But check the current
-                    # delta in case we are moving between UTC+0 and non-zero timezone
-                    elif (
-                        (shift_forward or shift_delta > 0)
-                        and info.deltas[delta_idx - 1] >= 0
-                    ):
-                        delta_idx = delta_idx - 1
-                    else:
-                        delta_idx = delta_idx - delta_idx_offset
+                    delta_idx = _delta_idx_for_local(
+                        new_local, info, ppd, shift_forward or shift_delta > 0
+                    )
                     delta = info.deltas[delta_idx]
                     result[i] = _shift_to_utc(new_local, delta, creso)
                 if result[i] == NPY_NAT:
@@ -552,6 +519,71 @@ cdef Py_ssize_t bisect_right_i8(
             right = pivot
 
     return left
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef Py_ssize_t _delta_idx_for_local(
+    int64_t local_val, Localizer info, int64_t ppd, bint forward
+) noexcept:
+    """
+    Index into info.deltas of the UTC offset in effect at wall time local_val.
+
+    Of the transitions within a day of local_val, take the first whose offset
+    maps local_val into its own interval.  If local_val is nonexistent, take
+    the side of the gap that ``forward`` points to.
+    """
+    cdef:
+        Py_ssize_t idx, lo, hi, ntrans = info.ntrans
+        const int64_t* tdata = info.tdata
+        const int64_t[::1] deltas = info.deltas
+        int64_t utc_val, before, bracket
+
+    # start (lo) and end (hi) index into tdata for the +/- 1 day bracket
+    if checked_sub(local_val, ppd, &bracket):
+        lo = 0
+    else:
+        lo = bisect_right_i8(tdata, bracket, ntrans) - 1
+        lo = max(lo, 0)
+
+    if checked_add(local_val, ppd, &bracket):
+        hi = ntrans - 1
+    else:
+        hi = bisect_right_i8(tdata, bracket, ntrans) - 1
+
+    # deltas[idx] is in effect for the UTC instants [tdata[idx], tdata[idx + 1]),
+    #  with the last interval open-ended.  Reading local_val with deltas[idx]
+    #  gives the instant utc_val; that reading is self-consistent only if
+    #  utc_val falls inside that same interval.
+    for idx in range(lo, hi + 1):
+        if checked_sub(local_val, deltas[idx], &utc_val):
+            continue
+        if utc_val < tdata[idx]:
+            continue
+        # see test_dti_tz_localize_nonexistent_shift_into_last_interval
+        if idx + 1 < ntrans and utc_val >= tdata[idx + 1]:
+            continue
+        return idx
+
+    # Nothing matched, so local_val is itself nonexistent: only the shift out
+    #  of the original hour is validated, and a multi-hour gap can swallow the
+    #  shifted value too.  Find the transition whose gap contains local_val and
+    #  return the side of it the caller is shifting toward.
+    for idx in range(lo if lo > 0 else 1, hi + 1):
+        if deltas[idx] <= deltas[idx - 1]:
+            # transition idx opens a gap only if it moves the clock forward
+            continue
+        if checked_sub(local_val, deltas[idx - 1], &before):
+            continue
+        if checked_sub(local_val, deltas[idx], &utc_val):
+            continue
+        if before >= tdata[idx] and utc_val < tdata[idx]:
+            # deltas[idx - 1] reads local_val as after the transition,
+            #  deltas[idx] as before it, so local_val is in this gap;
+            #  deltas[idx - 1] gives the later instant
+            return idx - 1 if forward else idx
+
+    return lo
 
 
 cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
