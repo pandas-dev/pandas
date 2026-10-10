@@ -207,6 +207,24 @@ def test_series_groupby_value_counts_no_sort():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("normalize", [True, False])
+def test_series_groupby_value_counts_as_index_false(normalize):
+    # GH#36507
+    ser = pd.Series(["x", "y", "x", "x"], name="val")
+    key = pd.Series([1, 1, 2, 2], name="key")
+    result = ser.groupby(key, as_index=False).value_counts(normalize=normalize)
+    expected = pd.DataFrame(
+        {
+            "key": [1, 1, 2],
+            "val": ["x", "y", "x"],
+            "proportion" if normalize else "count": (
+                [0.5, 0.5, 1.0] if normalize else [1, 1, 2]
+            ),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.fixture
 def education_df():
     return pd.DataFrame(

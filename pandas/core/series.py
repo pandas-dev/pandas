@@ -2154,9 +2154,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels. Do not specify both ``by`` and ``level``.
         as_index : bool, default True
-            Return object with group labels as the index. This argument is
-            retained for compatibility with :meth:`DataFrame.groupby` and has
-            no effect on Series.
+            Return object with group labels as the index. If False, aggregations
+            return a DataFrame with the group labels as columns, similar to
+            calling ``reset_index`` on the result.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
@@ -2332,13 +2332,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         b    350.0
         NaN   20.0
         Name: Max Speed, dtype: float64
+
+        Use ``as_index=False`` to return the group labels as a column:
+
+        >>> ser.groupby(["a", "b", "a", np.nan], as_index=False).mean()
+          index  Max Speed
+        0     a      210.0
+        1     b      350.0
         """
         from pandas.core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
-        if not as_index:
-            raise TypeError("as_index=False only valid with DataFrame")
 
         return SeriesGroupBy(
             obj=self,
