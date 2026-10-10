@@ -275,6 +275,30 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_sum_unobserved_categories(self, dropna):
+        # GH#28372 sum fills unobserved categories with 0, so dropna keeps them
+        df = pd.DataFrame(
+            {
+                "letters": pd.Categorical(["a", "b"], categories=["a", "b", "c"]),
+                "nums": pd.Categorical([0, 1], categories=[0, 1, 2]),
+                "count": 1,
+            }
+        )
+        result = df.pivot_table(
+            index="letters",
+            columns="nums",
+            values="count",
+            aggfunc="sum",
+            observed=False,
+            dropna=dropna,
+        )
+        expected = pd.DataFrame(
+            [[1, 0, 0], [0, 1, 0], [0, 0, 0]],
+            index=pd.CategoricalIndex(["a", "b", "c"], name="letters"),
+            columns=pd.CategoricalIndex([0, 1, 2], name="nums"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_with_non_observable_dropna(self, dropna):
         # gh-21133
         df = pd.DataFrame(

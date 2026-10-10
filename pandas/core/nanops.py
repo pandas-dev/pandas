@@ -170,7 +170,13 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # to be 0
         # GH#41277 bottleneck has no float16 kernels; its numpy fallback
         #  squares in float16 and overflows in nanvar/nanstd
-        return name not in ["nansum", "nanprod", "nanmean"] and dtype != np.float16
+        if name in ["nansum", "nanprod", "nanmean"] or dtype == np.float16:
+            return False
+
+        # GH#70945 bottleneck accumulates float32 nanvar/nanstd in float32,
+        #  losing nearly all precision for large inputs
+        # crossref: https://github.com/pydata/bottleneck/issues/462
+        return not (name in ["nanvar", "nanstd"] and dtype == np.float32)
     return False
 
 
