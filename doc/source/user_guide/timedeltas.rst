@@ -296,12 +296,12 @@ lose precision:
    td_s / 2
    td_s * 1.99
 
-   ser_s = pd.Series(pd.to_timedelta([1, 2, 3], unit="s")).astype("timedelta64[s]")
+   ser_s = pd.Series([1, 2, 3], dtype="timedelta64[s]")
    ser_s / 2
 
 Convert to a finer resolution with :meth:`Timedelta.as_unit` or
 :meth:`Series.dt.as_unit` before the operation when the fractional part matters,
-or use floor division (``//``) when truncation is intended:
+or use floor division (``//``) to make the rounding explicit:
 
 .. ipython:: python
 
