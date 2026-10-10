@@ -1688,6 +1688,49 @@ class TestPandasContainer:
         )
         assert result == expected
 
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_timestamp_nanoseconds_preserved(self, tz):
+        # GH#53473 Timestamps serialized as objects (including tz-aware
+        # DataFrame columns) used to drop their sub-microsecond part
+        dti = pd.DatetimeIndex(["2023-01-01 00:00:00.333333333"]).tz_localize(tz)
+        suffix = "" if tz is None else "Z"
+        utc_hour = "05" if tz == "US/Eastern" else "00"
+        iso = f"2023-01-01T{utc_hour}:00:00.333333333{suffix}"
+        epoch = dti.as_unit("ns").asi8[0]
+
+        for df in [pd.DataFrame({"a": dti}), pd.DataFrame({"a": dti.astype(object)})]:
+            result = df.to_json(date_format="iso", date_unit="ns")
+            assert result == f'{{"a":{{"0":"{iso}"}}}}'
+            with tm.assert_produces_warning(Pandas4Warning, match="'epoch' date"):
+                result = df.to_json(date_format="epoch", date_unit="ns")
+            assert result == f'{{"a":{{"0":{epoch}}}}}'
+
+        df = pd.DataFrame({"a": [1]}, index=dti.astype(object))
+        result = df.to_json(date_format="iso", date_unit="ns")
+        assert result == f'{{"a":{{"{iso}":1}}}}'
+
+    @pytest.mark.parametrize(
+        "value, units",
+        [
+            (pd.Timestamp("1960-06-15 12:34:56.123456789", tz="UTC"), "s ms us ns"),
+            (datetime.datetime(1960, 6, 15, 12, 34, 56, 123456), "s ms us ns"),
+            # outside the nanosecond bounds
+            (datetime.datetime(3000, 1, 1), "s ms us"),
+        ],
+    )
+    def test_datetime_object_epoch_matches_datetime64(self, value, units):
+        # GH#53473 object datetimes round like datetime64 values (toward
+        # negative infinity) and are not scaled through nanoseconds
+        ser = pd.Series([value])
+        obj_ser = pd.Series([value], dtype=object)
+        msg = "'epoch' date"
+        for unit in units.split():
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                expected = ser.to_json(date_format="epoch", date_unit=unit)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                result = obj_ser.to_json(date_format="epoch", date_unit=unit)
+            assert result == expected
+
     def test_read_inline_jsonl(self):
         # GH9180
 
