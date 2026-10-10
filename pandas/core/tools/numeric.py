@@ -17,6 +17,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     NaT,
+    NaTType,
     Timedelta,
     Timestamp,
 )
@@ -234,11 +235,12 @@ def to_numeric(
         # np.timedelta64 subclasses np.integer, so this must precede is_number
         if isinstance(arg, (datetime, np.datetime64, timedelta, np.timedelta64)):
             # match the Series path, which infers datetime64/timedelta64; GH#43280
-            box = (
-                Timedelta if isinstance(arg, (timedelta, np.timedelta64)) else Timestamp
-            )
+            boxed: Timedelta | Timestamp | NaTType
             try:
-                boxed = box(arg)
+                if isinstance(arg, (timedelta, np.timedelta64)):
+                    boxed = Timedelta(arg)
+                else:
+                    boxed = Timestamp(arg)
             except ValueError:
                 # out of bounds or unsupported unit; errors= decides below
                 boxed = NaT
