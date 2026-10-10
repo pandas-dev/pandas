@@ -111,6 +111,7 @@ Other deprecations
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
 - Deprecated :meth:`Series.median` and :meth:`DataFrame.median` on ``complex`` data; in a future version these will raise ``TypeError``. Take the median of the real and imaginary parts separately instead (:issue:`43770`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 
