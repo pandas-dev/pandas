@@ -208,6 +208,7 @@ with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     )
 autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
+maximum_signature_line_length = 88
 
 # numpydoc
 numpydoc_show_class_members = False
