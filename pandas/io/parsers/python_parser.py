@@ -128,9 +128,11 @@ class PythonParser(ParserBase):
 
         self.data: Iterator[list[str]] | list[list[Scalar]] = []
         self.buf: list[list[Any]] = []
-        # Line number of each line pushed onto self.buf. Every site that shrinks
-        # self.buf drops entries from the front, so it stays a suffix of this list.
+        # Line number of each line pushed onto self.buf, and the line in the file
+        # it starts on (None if unknown). Every site that shrinks self.buf drops
+        # entries from the front, so it stays a suffix of these lists.
         self.buf_pos: list[int] = []
+        self._buf_starts: list[int | None] = []
         self.pos = 0
         self.line_pos = 0
         # Bad-line messages report the line in the file a record starts on
@@ -141,10 +143,6 @@ class PythonParser(ParserBase):
         # Set once a field holds a lone "\r", which the reader may have
         # counted as a line break; line numbers are then unknown.
         self._reader_lines_unreliable = False
-        # The last len(self.buf) entries are the lines the buffered rows start
-        # on, recorded as they were read; rows only ever leave the buffer from
-        # the front.
-        self._buf_starts: list[int | None] = []
         # The batch _get_lines last returned, before it dropped comment, blank
         # and footer rows, plus the start lines of its buffered rows and of its
         # first newly read row; see _row_line_numbers.
@@ -1430,11 +1428,7 @@ class PythonParser(ParserBase):
         lines = self.buf
         new_rows = None
         self._peek_lines_before = None
-        buf_starts: list[int | None] = self._buf_starts[
-            len(self._buf_starts) - len(self.buf) :
-        ]
-        if len(buf_starts) != len(self.buf):
-            buf_starts = [None] * len(self.buf)
+        buf_starts = self._buf_starts[len(self._buf_starts) - len(self.buf) :]
         first_new = None
         num_buffered = len(self.buf)
         first_new_pos = self.pos
@@ -1446,7 +1440,7 @@ class PythonParser(ParserBase):
             # we already have the lines in the buffer
             if len(self.buf) >= rows:
                 new_rows, self.buf = self.buf[:rows], self.buf[rows:]
-                buf_starts, self._buf_starts = buf_starts[:rows], buf_starts[rows:]
+                buf_starts = buf_starts[:rows]
 
             # need some lines
             else:
@@ -1517,7 +1511,6 @@ class PythonParser(ParserBase):
                 self.pos += len_new_rows
 
             self.buf = []
-            self._buf_starts = []
         else:
             lines = new_rows
         self._batch_raw = lines

@@ -490,6 +490,11 @@ def test_bad_line_number_comment_cuts_buffered_row(python_parser_only):
         ('a,b,c\n1,2,"p\nq"\n# c\n4,5,6,7\n', {"comment": "#"}, 5),
         ('a,b,c\n1,2,3\n1,2,"p #x\nq"\n4,5,6,7\n', {"comment": "#"}, 5),
         ('a,b,c\n1,2,"p\nq"\n4,5,6,7\n"f\no"\n', {"skipfooter": 1}, 4),
+        (
+            'a,b,c\n1,2,"p\nq"\n4,5,6,7\n"f\no"\nz\n',
+            {"skipfooter": 2, "skiprows": [4]},
+            4,
+        ),
         (',a,b\nidx,,\n1,2,"p\nq"\n4,5,6,7\n', {"index_col": 0}, 5),
         ('a,b,c\n1,2,"p\nq"\n\n3,4,5\n4,5,6,7\n', {"chunksize": 2}, 6),
     ],
