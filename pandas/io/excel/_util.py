@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
 if TYPE_CHECKING:
     from pandas.io.excel._base import ExcelWriter
 
-    ExcelWriter_t = type[ExcelWriter]
+    ExcelWriter_t = type[ExcelWriter[Any]]
     usecols_func = TypeVar("usecols_func", bound=Callable[[Hashable], object])
 
 _writers: MutableMapping[str, ExcelWriter_t] = {}
@@ -303,7 +303,9 @@ def pop_header_name(
     return header_name, [*row[:i], "", *row[i + 1 :]]
 
 
-def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
+def combine_kwargs(
+    engine_kwargs: dict[str, Any] | None, kwargs: dict[str, Any]
+) -> dict[str, Any]:
     """
     Used to combine two sources of kwargs for the backend engine.
 
