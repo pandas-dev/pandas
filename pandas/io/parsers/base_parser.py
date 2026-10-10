@@ -570,8 +570,12 @@ class ParserBase:
                 #  matches the default behaviour without
                 #  dtype_backend="pyarrow", which leaves such columns as
                 #  object dtype.
-                if result.dtype != np.object_ or lib.is_string_array(
-                    result, skipna=True
+                if (
+                    result.dtype != np.object_
+                    or lib.is_string_array(result, skipna=True)
+                    # read_excel sends datetime objects, which pyarrow converts
+                    # fine; only genuinely mixed columns stay object (GH#63830)
+                    or lib.is_datetime_array(result, skipna=True)
                 ):
                     result = ArrowExtensionArray(pa.array(result, from_pandas=True))
             elif isinstance(result, BaseMaskedArray):
