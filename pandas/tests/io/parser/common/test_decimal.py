@@ -82,7 +82,6 @@ def test_decimal_with_extension_float_dtype(all_parsers, dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_skip")
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "int64[pyarrow]"])
 def test_thousands_with_extension_dtype(all_parsers, dtype):
     # GH#52086 "1.000" was read as 1
@@ -90,6 +89,12 @@ def test_thousands_with_extension_dtype(all_parsers, dtype):
         pytest.importorskip("pyarrow")
     parser = all_parsers
     data = "a\n1.000\nNA\n2.500\n"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), thousands=".", dtype={"a": dtype})
+        return
 
     result = parser.read_csv(StringIO(data), thousands=".", dtype={"a": dtype})
     expected = pd.DataFrame({"a": pd.array([1000, None, 2500], dtype=dtype)})
