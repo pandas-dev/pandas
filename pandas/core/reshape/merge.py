@@ -1300,7 +1300,18 @@ class _MergeOperation:
 
             if name in result:
                 if left_indexer is not None or right_indexer is not None:
-                    if name in self.left:
+                    # result[name] can be a non-key column, e.g. when the key
+                    #  column was suffixed (GH#39192)
+                    in_left = name in self.left
+                    in_right = name in self.right
+                    if in_left and in_right:
+                        llabels, _ = _items_overlap_with_suffix(
+                            self.left.columns, self.right.columns, self.suffixes
+                        )
+                        in_left = name in llabels
+                        in_right = not in_left
+
+                    if in_left and _is_key_label(lname, name):
                         if left_has_missing is None:
                             left_has_missing = (
                                 False
@@ -1320,7 +1331,7 @@ class _MergeOperation:
                             if result[name].dtype != self.left[name].dtype:
                                 take_left = self.left[name]._values
 
-                    elif name in self.right:
+                    elif in_right and _is_key_label(rname, name):
                         if right_has_missing is None:
                             right_has_missing = (
                                 False
@@ -3304,6 +3315,14 @@ def _should_fill(lname, rname) -> bool:
     if not isinstance(lname, str) or not isinstance(rname, str):
         return True
     return lname == rname
+
+
+def _is_key_label(key, name: Hashable) -> bool:
+    # key is a label equal to name, not an array or None (an index key);
+    #  identity first so NA-like labels match
+    if key is None or isinstance(key, _known):
+        return False
+    return key is name or key == name
 
 
 def _any(x) -> bool:

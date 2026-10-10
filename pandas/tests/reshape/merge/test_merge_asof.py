@@ -3696,3 +3696,16 @@ def test_merge_asof_multiby_with_categorical():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_unnamed_index_key_does_not_fill_data_column():
+    # GH#39192 the left key is the unnamed index, not left's data column None
+    left = pd.DataFrame(
+        {None: pd.to_datetime(["1999-01-01", "1999-01-02"]).as_unit("s"), "g": [1, 1]},
+        index=pd.to_datetime(["2020-01-01", "2020-01-03"]),
+    )
+    right = pd.DataFrame(
+        {"rt": pd.to_datetime(["2020-01-01", "2020-01-02"]), "g": [1, 1]}
+    )
+    result = pd.merge_asof(left, right, left_index=True, right_on="rt", by="g")
+    tm.assert_series_equal(result[None], left[None])
