@@ -152,6 +152,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
+- Fixed bug in :meth:`Series.corr` with ``method="pearson"`` returning an inaccurate result for nearly-constant data, and ``0.0`` instead of ``NaN`` for some constant data (:issue:`59652`)
 
 Conversion
 ^^^^^^^^^^
