@@ -509,7 +509,10 @@ def group_shift_indexer(
     if periods == 0:
         with nogil:
             for i in range(N):
-                out[i] = i
+                if labels[i] == -1:
+                    out[i] = -1
+                else:
+                    out[i] = i
     else:
         # array of each previous indexer seen
         label_indexer = np.zeros((ngroups, periods), dtype=np.int64)
