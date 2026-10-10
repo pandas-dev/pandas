@@ -129,8 +129,8 @@ class bottleneck_switch:
                     if k not in kwds:
                         kwds[k] = v
 
-            # GH#18976 bottleneck's nanmin/nanmax raise on empty input; skip it
-            #  and let each nanops function return the NA for its own dtype.
+            # GH#70950 bottleneck would return different dtype on empty input
+            # than no-bottleneck, so skip if size == 0.
             if (
                 _USE_BOTTLENECK
                 and skipna
@@ -1516,6 +1516,19 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
+        if (
+            _USE_BOTTLENECK
+            and skipna
+            and mask is None
+            and values.ndim == 2
+            and axis is not None
+            and values.shape[axis] < 64
+            and dtype in (np.float64, np.float32, np.int64, np.int32)
+        ):
+            # GH#70950 bottleneck is faster when each reduced slice is short,
+            #  e.g. a DataFrame with few rows and many columns
+            return getattr(bn, f"nan{meth}")(values, axis=axis)
+
         if mask is None and dtype.kind in "fiub":
             if dtype.kind == "f" and skipna:
                 # fmin/fmax ignore NaN and return NaN only for an all-NaN
