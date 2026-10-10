@@ -512,6 +512,11 @@ def hist_frame(
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
     if by is not None:
+        if column is None:
+            # don't plot the grouping column(s), see GH#41188
+            exclusions = list(data.groupby(by).exclusions)
+            if exclusions:
+                column = data.drop(columns=exclusions).columns.unique()
         axes = _grouped_hist(
             data,
             column=column,
