@@ -399,6 +399,20 @@ class TestDataFrameToDict:
                     "b": [float, str, float],
                 },
             ),
+            (  # GH#27616
+                {
+                    "a": [np.complex128(1 + 2j), 3j],
+                    "b": [np.complex64(1j), "x"],
+                    "c": [np.bool_(True), "y"],
+                    "d": pd.Categorical([1 + 2j, 3j]),
+                },
+                {
+                    "a": [complex, complex],
+                    "b": [complex, str],
+                    "c": [bool, str],
+                    "d": [complex, complex],
+                },
+            ),
         ),
     )
     def test_to_dict_returns_native_types(self, orient, data, expected_types):
