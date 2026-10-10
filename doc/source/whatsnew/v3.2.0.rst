@@ -185,7 +185,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
-- Bug in :meth:`DataFrame.sort_index`, :meth:`Series.sort_index`, :meth:`MultiIndex.sort_values` and :meth:`MultiIndex.is_monotonic_increasing` ignoring the category order of a :class:`CategoricalIndex` level, e.g. one set with :meth:`MultiIndex.set_levels` (:issue:`47607`)
+- Bug in :meth:`DataFrame.sort_index`, :meth:`Series.sort_index`, :meth:`MultiIndex.sort_values` and :meth:`MultiIndex.is_monotonic_increasing` ignoring the category order of a :class:`CategoricalIndex` level (:issue:`47607`)
 -
 
 I/O
