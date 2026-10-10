@@ -585,7 +585,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
-            if not isinstance(data, abc.Sequence):
+            if not isinstance(data, (list, tuple, range)):
+                # GH#27539 includes other Sequences (deque, array.array,
+                #  numba.typed.List), which ndarray_to_mgr can't handle as-is
                 if hasattr(data, "__array__"):
                     # GH#44616 big perf improvement for e.g. pytorch tensor
                     data = np.asarray(data)
