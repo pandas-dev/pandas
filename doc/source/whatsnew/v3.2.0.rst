@@ -87,6 +87,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
+- The regular expression methods of the ``.str`` accessor (``contains``, ``match``, ``fullmatch``, ``count``, ``replace``, ``split`` and ``extract``) on pyarrow-backed string dtypes now follow the semantics of Python's :mod:`re` module, as for ``object`` dtype: ``\w``, ``\d``, ``\s`` and ``\b`` match Unicode characters, ``$`` matches before a trailing newline, case-insensitive matching folds as :mod:`re` does, and replacement templates and empty matches are handled as in :func:`re.sub`. Patterns using syntax that only pyarrow's RE2 engine accepts, such as ``\p{L}`` or ``\x{e9}``, now raise ``re.error`` (:issue:`63683`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:
