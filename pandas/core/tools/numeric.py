@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from datetime import (
+    datetime,
+    timedelta,
+)
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -12,6 +16,8 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.tslibs import (
+    NaT,
+    NaTType,
     Timedelta,
     Timestamp,
 )
@@ -114,11 +120,13 @@ def to_numeric(
     Returns
     -------
     scalar, Series, Index, numpy.ndarray, or ExtensionArray
-        Numeric scalars are returned unchanged. Other scalars are returned
-        as a NumPy scalar: ``np.int64`` if possible (``np.uint64`` for
-        positive values above the ``int64`` maximum), otherwise ``np.float64``,
-        before any ``downcast`` is applied. With ``dtype_backend="pyarrow"``,
-        a Python scalar is returned instead.
+        Numeric scalars are returned unchanged. Datetime-like scalars other
+        than ``NaT`` give the same ``int`` as a :class:`Series` holding them.
+        Other scalars are returned as a NumPy scalar:
+        ``np.int64`` if possible (``np.uint64`` for positive values above the
+        ``int64`` maximum), otherwise ``np.float64``, before any ``downcast``
+        is applied. With ``dtype_backend="pyarrow"``, a Python scalar is
+        returned instead.
         For 1-d: :class:`Series` if Series, :class:`Index` if Index,
         otherwise an array as specified by ``dtype_backend``.
 
@@ -224,12 +232,24 @@ def to_numeric(
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype="O")
     elif is_scalar(arg):
-        if is_decimal(arg):
+        # np.timedelta64 subclasses np.integer, so this must precede is_number
+        if isinstance(arg, (datetime, np.datetime64, timedelta, np.timedelta64)):
+            # match the Series path, which infers datetime64/timedelta64; GH#43280
+            boxed: Timedelta | Timestamp | NaTType
+            try:
+                if isinstance(arg, (timedelta, np.timedelta64)):
+                    boxed = Timedelta(arg)
+                else:
+                    boxed = Timestamp(arg)
+            except ValueError:
+                # out of bounds or unsupported unit; errors= decides below
+                boxed = NaT
+            if boxed is not NaT:
+                return boxed._value
+        elif is_decimal(arg):
             return float(arg)
-        if is_number(arg):
+        elif is_number(arg):
             return arg
-        if isinstance(arg, (Timedelta, Timestamp)):
-            return arg._value
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:

@@ -1,3 +1,8 @@
+from datetime import (
+    UTC,
+    datetime,
+    timedelta,
+)
 import decimal
 import re
 
@@ -410,13 +415,39 @@ def test_timedelta_pyarrow():
         pd.Timedelta(1, "D"),
         pd.Timestamp("2017-01-01T12"),
         pd.Timestamp("2017-01-01T12", tz="US/Pacific"),
+        datetime(2017, 1, 1, 12),
+        datetime(2017, 1, 1, 12, tzinfo=UTC),
+        np.datetime64("2017-01-01"),
+        np.datetime64("2017-01-01T12", "ns"),
+        timedelta(days=1),
+        np.timedelta64(5, "ms"),
     ],
 )
-def test_timedelta_timestamp_scalar(scalar):
-    # GH#59944
-    result = pd.to_numeric(scalar)
+@pytest.mark.parametrize("errors", ["raise", "coerce"])
+def test_timedelta_timestamp_scalar(scalar, errors):
+    # GH#59944, GH#43280
+    result = pd.to_numeric(scalar, errors=errors)
     expected = pd.to_numeric(pd.Series(scalar))[0]
+    assert isinstance(result, int)  # np.timedelta64(5, "ms") == 5 is True
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "scalar",
+    [
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        timedelta.max,
+        np.datetime64(10**12, "Y"),
+        np.timedelta64(5, "Y"),
+    ],
+)
+def test_unconvertible_datetimelike_scalar(scalar):
+    # GH#43280 NaT, out of bounds and unsupported units respect errors=
+    with pytest.raises(TypeError, match="Invalid object type"):
+        pd.to_numeric(scalar)
+    assert np.isnan(pd.to_numeric(scalar, errors="coerce"))
 
 
 def test_period(request, transform_assert_equal):
