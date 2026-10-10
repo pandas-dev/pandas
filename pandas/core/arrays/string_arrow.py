@@ -539,7 +539,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return super()._str_count(pat, flags)
 
         pat, case, _ = self._preprocess_re_pattern(pat, True, 0)
-        result = pc.count_substring_regex(self._pa_array, pat, ignore_case=not case)
+        result = pc.count_substring_regex(
+            self._pa_array, self._with_python_whitespace(pat), ignore_case=not case
+        )
         return self._convert_int_result(result)
 
     def _str_partition(self, sep: str, expand: bool):

@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -445,6 +446,114 @@ def test_contains_end_of_string_not_regex(any_string_dtype):
 
     result = ser.str.contains(r"bar\Z", regex=False)
     expected = pd.Series([False, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]", "large_string[pyarrow]"])
+@pytest.mark.parametrize("pat", [r"\s", r"\S"])
+def test_fullmatch_every_python_whitespace_char(dtype, pat):
+    # GH#70991 RE2's \s only matches [\t\n\f\r ], Python's every char for which
+    #  str.isspace() is True
+    pytest.importorskip("pyarrow")
+    whitespace = [
+        char for char in map(chr, range(sys.maxunicode + 1)) if char.isspace()
+    ]
+    ser = pd.Series([*whitespace, "a", "\u200b"], dtype=dtype)
+    result = ser.str.fullmatch(pat)
+    expected = ser.astype(object).str.fullmatch(pat)
+    assert result.tolist() == expected.tolist()
+
+
+@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]", "large_string[pyarrow]"])
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [
+        ("contains", {}),
+        ("match", {}),
+        ("fullmatch", {}),
+        ("count", {}),
+        ("replace", {"repl": "_", "regex": True}),
+        ("split", {"regex": True}),
+    ],
+)
+@pytest.mark.parametrize(
+    "pat",
+    [
+        r"\s",
+        r"\S",
+        r"a\s+b",
+        r"\S\s\S",
+        r"[\s,]",
+        r"[^\s]",
+        r"[\S]",
+        r"[\S\d]",
+        r"[^\S,]",
+        r"[\s\S]",
+        r"[^\s\S]",
+        r"[]\s]",
+        r"\\s",
+    ],
+)
+def test_regex_python_whitespace(dtype, method, kwargs, pat):
+    # GH#70991
+    pytest.importorskip("pyarrow")
+    data = [
+        "a\x0bb",
+        "a\x1cb",
+        "a b",
+        "a\x85b",
+        "a\xa0b",
+        "a\u2003b",
+        "a\u3000b",
+        "a,b",
+        "a1b",
+        "a]b",
+        r"a\sb",
+        "ab",
+        "\x0b",
+        "\u3000",
+        "x",
+        "",
+    ]
+    ser = pd.Series(data, dtype=dtype)
+    result = getattr(ser.str, method)(pat, **kwargs)
+    expected = getattr(ser.astype(object).str, method)(pat, **kwargs)
+    assert result.tolist() == expected.tolist()
+
+
+@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]", "large_string[pyarrow]"])
+def test_extract_python_whitespace(dtype):
+    # GH#70991
+    pytest.importorskip("pyarrow")
+    pat = r"(?P<sep>\s)(?P<rest>\S+)"
+    ser = pd.Series(["a\x0bb", "a\u3000b", "a b", "a\x85bc"], dtype=dtype)
+    result = ser.str.extract(pat)
+    expected = ser.astype(object).str.extract(pat).astype(dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_regex_python_whitespace_verbose():
+    # GH#70991 verbose patterns are evaluated by Python's re, not rewritten
+    pytest.importorskip("pyarrow")
+    data = ["a\x0bb", "a b", "ab"]
+    pat = r"a \s b  # whitespace between a and b"
+    result = pd.Series(data, dtype="string[pyarrow]").str.contains(
+        pat, flags=re.VERBOSE
+    )
+    expected = pd.Series([True, True, False], dtype="boolean")
+    tm.assert_series_equal(result, expected)
+
+
+def test_regex_python_whitespace_keeps_re2_syntax():
+    # GH#70991 rewriting \s must not change the meaning of RE2-only syntax
+    pytest.importorskip("pyarrow")
+    ser = pd.Series([r"\s", " ", "x", "\x0b", "1", "a"], dtype="string[pyarrow]")
+    result = ser.str.contains(r"\Q\s\E")
+    expected = pd.Series([True, False, False, False, False, False], dtype="boolean")
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.fullmatch(r"[a[:digit:]\s]")
+    expected = pd.Series([False, True, False, True, True, True], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
 
