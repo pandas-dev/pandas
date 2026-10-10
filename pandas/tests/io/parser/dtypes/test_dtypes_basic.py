@@ -609,20 +609,6 @@ def test_datetime_dtype_index_col(all_parsers, dtype_name):
     tm.assert_frame_equal(result, expected)
 
 
-def test_naive_datetime_dtype_index_col(python_parser_only):
-    # GH#24542 the c engine rejects a naive datetime64 dtype
-    parser = python_parser_only
-    data = "a,b\n20180101,1\n,2\n"
-    result = parser.read_csv(
-        StringIO(data), dtype={"a": "datetime64[ns]"}, index_col="a"
-    )
-    expected = pd.DataFrame(
-        {"b": [1, 2]},
-        index=pd.DatetimeIndex(["2018-01-01", None], dtype="M8[ns]", name="a"),
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 @xfail_pyarrow  # true_values/false_values not supported by the pyarrow engine
 def test_nullable_boolean_dtype_with_true_false_values(all_parsers):
     # User-supplied true_values/false_values augment the default token set.

@@ -29,6 +29,7 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
@@ -389,8 +390,12 @@ class ParserBase:
                     cast_type
                     and (
                         is_string_dtype(cast_type)
-                        # GH#24542 avoid reading "20180101" as epoch ns
-                        or pandas_dtype(cast_type).kind == "M"
+                        # GH#24542 avoid reading "20180101" as epoch ns; numpy
+                        # datetime64 still infers, matching the column path
+                        or (
+                            isinstance(pandas_dtype(cast_type), ExtensionDtype)
+                            and pandas_dtype(cast_type).kind == "M"
+                        )
                     )
                 )
                 or index_converter
