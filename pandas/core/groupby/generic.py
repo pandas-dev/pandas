@@ -1151,7 +1151,7 @@ class SeriesGroupBy(GroupBy[Series]):
             allow_fill=True,
             fill_value=lev._na_value,
         )
-        llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
+        llab = lambda lab, inc: lev.get_indexer(lab[inc])
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
