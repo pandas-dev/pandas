@@ -5290,6 +5290,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # if func is None, will switch to user-provided "named aggregation" kwargs
         if func is None:
             func = dict(kwargs.items())
+            kwargs = {}
 
         op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()

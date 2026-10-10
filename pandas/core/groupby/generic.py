@@ -2313,9 +2313,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._obj_with_exclusions.columns.is_unique
             and self._obj_with_exclusions.columns.name is None
         )
+        named_agg = func is None
         relabeling, func, columns, order = reconstruct_func(
             func, allow_skip_normalization, **kwargs
         )
+        if named_agg:
+            # kwargs held the spec; not keyed on relabeling, which
+            #  allow_skip_normalization can make False
+            kwargs = {}
         func = maybe_mangle_lambdas(func)
 
         if maybe_use_numba(engine):
