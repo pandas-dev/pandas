@@ -627,10 +627,15 @@ def test_safe_sort_multiindex():
     tm.assert_index_equal(result, expected)
 
 
-def test_safe_sort_tuples_mixed_with_str():
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([("b", 1), "ab", ("a", 2)], [("a", 2), "ab", ("b", 1)]),
+        ([(98, 1), b"ab", (97, 2)], [(97, 2), b"ab", (98, 1)]),
+    ],
+)
+def test_safe_sort_tuples_mixed_with_str(values, expected):
     # GH#50461 the DataFrame constructor rejects a str row after a tuple row, but
-    #  safe_sort still orders a str element as the tuple of its characters
-    values = np.array([("b", 1), "ab", ("a", 2)], dtype=object)
-    result = safe_sort(values)
-    expected = np.array([("a", 2), "ab", ("b", 1)], dtype=object)
-    tm.assert_numpy_array_equal(result, expected)
+    #  safe_sort still orders a str or bytes element as the tuple of its elements
+    result = safe_sort(np.array(values, dtype=object))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=object))
