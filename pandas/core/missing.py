@@ -412,7 +412,9 @@ def interpolate_2d_inplace(
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
 
-    indices = _index_to_interp_indices(index, method)
+    # spline's bbox is in index units, so the index must not be shifted
+    shift = kwargs.get("bbox") is None
+    indices = _index_to_interp_indices(index, method, shift=shift)
 
     def func(yvalues: np.ndarray) -> None:
         # process 1-d slices in the axis direction
@@ -456,7 +458,9 @@ def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
     return arr._to_timedeltaarray().asi8  # type: ignore[union-attr]
 
 
-def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
+def _index_to_interp_indices(
+    index: Index, method: str, shift: bool = True
+) -> np.ndarray:
     """
     Convert Index to ndarray of indices to pass to NumPy/SciPy.
     """
@@ -476,6 +480,20 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
         if method in ("values", "index"):
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
+
+        if shift and inds.dtype.kind in "iu" and len(inds):
+            # Integers beyond 2**53 (e.g. ns timestamps) lose precision as
+            #  float64, so shift them toward zero first, GH#34601. That makes
+            #  them exact only if max - min <= 2**53. Values that span zero are
+            #  left alone, as any shift moves some of them outward.
+            low, high = int(inds.min()), int(inds.max())
+            offset = 0
+            if low > 0 and high > 2**53:
+                offset = low
+            elif high < 0 and low < -(2**53):
+                offset = high
+            if offset:
+                inds = (inds - offset).astype(np.float64)
 
     return inds
 

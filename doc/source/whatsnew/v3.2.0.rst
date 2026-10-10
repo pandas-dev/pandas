@@ -175,6 +175,7 @@ Indexing
 
 Missing
 ^^^^^^^
+- Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with ``method="index"``, ``"values"``, ``"time"`` or a SciPy method giving incorrect results for a nanosecond-resolution :class:`DatetimeIndex` or :class:`TimedeltaIndex` spanning less than about 104 days, or an integer index with values beyond ``2**53`` spanning less than ``2**53`` (:issue:`34601`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with a large ``limit`` raising on 32-bit platforms and being very slow on long runs of missing values (:issue:`34936`)
 -
 
