@@ -914,6 +914,19 @@ class TestExcelWriter:
         expected = pd.DataFrame([[np.nan, "x", "y", "z"], [np.nan, 1, np.nan, 2]])
         tm.assert_frame_equal(result, expected)
 
+    def test_to_excel_multiindex_values_format_identically(
+        self, merge_cells, tmp_excel
+    ):
+        # GH#10796 distinct values that format identically must not be merged
+        mi = pd.MultiIndex.from_arrays(
+            [[0.1234567, 0.1234568], ["a", "a"]], names=["A", "B"]
+        )
+        df = pd.DataFrame({"C": [3, 4]}, index=mi)
+
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        result = pd.read_excel(tmp_excel, index_col=[0, 1])
+        tm.assert_frame_equal(result, df, check_exact=True)
+
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells

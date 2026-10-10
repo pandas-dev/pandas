@@ -785,15 +785,12 @@ class DataFrameFormatter:
             return self.formatters.get(i, None)
 
     def _get_formatted_column_labels(self, frame: DataFrame) -> list[list[str]]:
-        from pandas.core.indexes.multi import sparsify_labels
-
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
-            fmt_columns = columns._format_multi(sparsify=False, include_names=False)
-            if self.sparsify and len(fmt_columns):
-                fmt_columns = sparsify_labels(fmt_columns)
-
+            fmt_columns = columns._format_multi(
+                sparsify=self.sparsify, include_names=False
+            )
             str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
             fmt_columns = columns._format_flat(include_name=False)

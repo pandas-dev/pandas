@@ -154,6 +154,14 @@ def test_rowspan_w3():
     assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.to_html()
 
 
+def test_rowspan_values_format_identically():
+    # GH#10796 distinct values that format identically are not merged
+    df = pd.DataFrame({"C": [3, 4]}, index=[[1, "1"], ["a", "a"]])
+    result = Styler(df, uuid="_", cell_ids=False).to_html()
+    assert "rowspan" not in result
+    assert result.count('<th class="row_heading level0') == 2
+
+
 def test_styles(styler):
     styler.set_uuid("abc")
     styler.set_table_styles([{"selector": "td", "props": "color: red;"}])
