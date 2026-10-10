@@ -10294,19 +10294,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (
                 self.ndim == 1
                 and is_list_like(other)
-                and not isinstance(other, (np.ndarray, ExtensionArray))
+                # a dict or set has no element order
+                and not isinstance(other, (np.ndarray, ExtensionArray, set, frozenset))
                 and not is_dict_like(other)
-                and not isinstance(other, (set, frozenset))
-                and not (
-                    isinstance(other, tuple)
-                    and not is_numeric_dtype(self.dtype)
-                    and not is_bool_dtype(self.dtype)
+                # outside numeric and bool dtypes a tuple is one element, as
+                #  for object dtype (GH#37681)
+                and (
+                    not isinstance(other, tuple)
+                    or is_numeric_dtype(self.dtype)
+                    or is_bool_dtype(self.dtype)
                 )
             ):
-                # GH#63842 line up a list against the mask like an ndarray. A
-                #  dict or set has no element order, and outside numeric and
-                #  bool dtypes a tuple is one element, as for object dtype
-                #  (GH#37681).
+                # GH#63842 line up a list against the mask like an ndarray
                 other = common.asarray_tuplesafe(other)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
