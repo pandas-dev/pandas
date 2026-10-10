@@ -271,8 +271,8 @@ def test_groupby_shift_multiple_periods_unsorted_index():
         (1, [np.nan, np.nan, 1.0, 4.0]),
     ],
 )
-def test_shift_null_key(periods, expected_values):
-    # GH#???
+def test_shift_na_key(periods, expected_values):
+    # GH#70996
     df = pd.DataFrame({"key": [1, np.nan, 1, 1], "val": [1.0, 2.0, 4.0, 8.0]})
     result = df.groupby("key").shift(periods=periods)
     expected = pd.DataFrame({"val": expected_values})
@@ -287,16 +287,16 @@ def test_shift_null_key(periods, expected_values):
         (1, [np.nan, np.nan, 3.0, 4.0]),
     ],
 )
-def test_diff_null_key(periods, expected_values):
-    # GH#???
+def test_diff_na_key(periods, expected_values):
+    # GH#70996
     df = pd.DataFrame({"key": [1, np.nan, 1, 1], "val": [1.0, 2.0, 4.0, 8.0]})
     result = df.groupby("key").diff(periods=periods)
     expected = pd.DataFrame({"val": expected_values})
     tm.assert_frame_equal(result, expected)
 
 
-def test_shift_null_key_periods_zero_fill_value():
-    # GH#???
+def test_shift_na_key_periods_zero_fill_value():
+    # GH#70996
     df = pd.DataFrame({"key": [1, np.nan, 1], "val": [1.0, 2.0, 4.0]})
     result = df.groupby("key").shift(periods=0, fill_value=-1.0)
     expected = pd.DataFrame({"val": [1.0, -1.0, 4.0]})
