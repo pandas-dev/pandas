@@ -177,20 +177,22 @@ class TestIndexConstructorInference:
         expected = pd.Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_preserves_byteorder(self):
-        # GH#43042 non-native byteorder (and the values) must be preserved
+    def test_constructor_non_native_byteorder(self):
+        # GH#43042 values must survive; GH#53234 stored in native byteorder
         arr = np.array([0, 256, 2**40], dtype=">i8")
-        expected = [0, 256, 2**40]
+        expected = pd.Index([0, 256, 2**40], dtype="int64")
 
-        # inferred from a big-endian ndarray
-        result = pd.Index(arr)
-        assert result.dtype == np.dtype(">i8")
-        assert result.tolist() == expected
+        tm.assert_index_equal(pd.Index(arr), expected)
+        tm.assert_index_equal(pd.Index([0, 256, 2**40], dtype=">i8"), expected)
+        tm.assert_index_equal(pd.Index(arr.astype("f8")).astype(">i8"), expected)
 
-        # explicit big-endian dtype from a python list
-        result = pd.Index([0, 256, 2**40], dtype=">i8")
-        assert result.dtype == np.dtype(">i8")
-        assert result.tolist() == expected
+    def test_constructor_non_native_float16_raises(self):
+        # GH#53234 the float16 check must see the native dtype
+        msg = "float16 indexes are not supported"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.Index(np.array([1, 2], dtype=">f2"))
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.Index([1.0, 2.0]).astype(">f2")
 
 
 class TestDtypeEnforced:

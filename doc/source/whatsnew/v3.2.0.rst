@@ -86,6 +86,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- :class:`DataFrame`, :class:`Index`, :class:`Series` and :func:`array` now convert numeric data with non-native byte order (e.g. ``">f4"`` on a little-endian machine) to native byte order, including through :meth:`DataFrame.astype`, :meth:`Index.astype` and :meth:`Series.astype`. Previously the byte order was kept, and many operations, such as :meth:`Index.get_indexer`, :meth:`Series.unique` and groupby and window aggregations, raised ``ValueError: Big-endian buffer not supported on little-endian compiler`` (:issue:`53234`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
 
 .. ---------------------------------------------------------------------------

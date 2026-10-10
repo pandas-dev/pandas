@@ -135,6 +135,10 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
 
+    if isinstance(values, np.ndarray) and not values.dtype.isnative:
+        # GH#53234 the cython routines only accept native byteorder
+        values = values.astype(values.dtype.newbyteorder("="))
+
     if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values))
 

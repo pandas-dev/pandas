@@ -2438,6 +2438,10 @@ def _form_blocks(
     groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
     for i, arr in tuples:
         dtype = arr.dtype
+        if isinstance(dtype, np.dtype) and not dtype.isnative:
+            # GH#53234 the cython routines only accept native byteorder;
+            # _stack_arrays converts when copying into the native block
+            dtype = dtype.newbyteorder("=")
         # Extension dtypes each get their own block regardless, so use id()
         # to avoid a potentially expensive __hash__ (e.g. CategoricalDtype
         # hashes all categories).
@@ -2448,8 +2452,12 @@ def _form_blocks(
             groups[key] = [(i, arr)]
 
     nbs: list[Block] = []
-    for tup_block in groups.values():
-        dtype = tup_block[0][1].dtype
+    for group_key, tup_block in groups.items():
+        # for numpy dtypes the key is the native-byteorder dtype
+        if isinstance(group_key, np.dtype):
+            dtype = group_key
+        else:
+            dtype = tup_block[0][1].dtype
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
