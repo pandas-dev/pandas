@@ -211,6 +211,7 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :func:`plotting.autocorrelation_plot` raising ``AttributeError`` when passing ``figsize`` (:issue:`31650`)
 - Bug in :func:`plotting.table` ignoring ``rowLabels`` and ``colLabels`` or raising a ``TypeError`` when they were passed (:issue:`37811`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 
