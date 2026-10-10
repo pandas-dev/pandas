@@ -3101,3 +3101,27 @@ def test_stack_preserves_na(dtype, na_value, test_multiindex):
         )
     expected = pd.Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_in", ["index", "columns"])
+@pytest.mark.parametrize(
+    "labels",
+    [pd.Index([1.0, np.nan, 2.0]), pd.Index(["x", None, "y"], dtype=object)],
+)
+def test_stack_na_label_lookup(na_in, labels):
+    # GH#40366 NA labels must be coded -1 so lookups find them
+    if na_in == "index":
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=labels)
+        result = df.stack()
+        keys = [(label, "a") for label in labels]
+    else:
+        columns = pd.MultiIndex.from_arrays([["a"] * 3, labels])
+        df = pd.DataFrame([[1, 2, 3]], columns=columns)
+        result = df.stack(level=1)["a"]
+        keys = [(0, label) for label in labels]
+    assert [result.loc[key] for key in keys] == [1, 2, 3]
+    assert result.index.isin(keys[1:2]).sum() == 1
+
+    # like any MultiIndex, unstack puts the -1 coded label first
+    unstacked = result.unstack(level=0 if na_in == "index" else 1)
+    tm.assert_index_equal(unstacked.columns, labels.take([1, 0, 2]))
