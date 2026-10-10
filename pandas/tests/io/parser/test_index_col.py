@@ -425,9 +425,7 @@ def test_index_col_dtype_dict_positional_key(all_parsers):
     parser = all_parsers
     data = "a,b\n1,2\n3,4"
     result = parser.read_csv(StringIO(data), index_col=0, dtype={0: "float64"})
-    expected = pd.DataFrame(
-        {"b": [2, 4]}, index=pd.Index([1.0, 3.0], name="a")
-    )
+    expected = pd.DataFrame({"b": [2, 4]}, index=pd.Index([1.0, 3.0], name="a"))
     tm.assert_frame_equal(result, expected)
 
 
