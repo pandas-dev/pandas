@@ -33,6 +33,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
+    construct_1d_object_array_from_listlike,
     find_common_type,
 )
 from pandas.core.dtypes.common import (
@@ -1703,9 +1704,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Map categories using an input mapping or function.
 
         Maps the categories to new categories. If the mapping correspondence is
-        one-to-one the result is a :class:`~pandas.Categorical` which has the
-        same order property as the original, otherwise a :class:`~pandas.Index`
-        is returned. NaN values are unaffected.
+        one-to-one and the new values are hashable, the result is a
+        :class:`~pandas.Categorical` which has the same order property as the
+        original, otherwise a :class:`~pandas.Index` is returned. NaN values are
+        unaffected.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
         mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
@@ -1807,9 +1809,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # of uniqueness/na checks.
         if (
             not isinstance(new_categories, ABCMultiIndex)
-            and new_categories.is_unique
             and not new_categories.hasnans
             and na_val is np.nan
+            and _can_hold_categories(new_categories)
         ):
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
             return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
@@ -1821,7 +1823,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             new_categories = new_categories.to_flat_index()
 
         if has_nans:
-            new_categories = new_categories.insert(len(new_categories), na_val)
+            if is_hashable(na_val) and not is_list_like(na_val):
+                new_categories = new_categories.insert(len(new_categories), na_val)
+            else:
+                from pandas import Index
+
+                # Index.insert would unpack a list-like na_val
+                na_index = Index(construct_1d_object_array_from_listlike([na_val]))
+                new_categories = new_categories.append(na_index)
 
         return np.take(new_categories, self._codes)
 
@@ -3256,6 +3265,21 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
 
 # utility routines
+
+
+def _can_hold_categories(categories: Index) -> bool:
+    """
+    Whether the values are unique and hashable, so can back a CategoricalDtype.
+    """
+    try:
+        if "mixed" in categories.inferred_type:
+            # other inferred types hold only hashable scalars; Index.is_unique
+            # skips hashing for strictly monotonic values, GH#54359
+            return len(algorithms.unique(categories._values)) == len(categories)
+        return categories.is_unique
+    except TypeError:
+        # unhashable
+        return False
 
 
 def _get_codes_for_values(

@@ -129,6 +129,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :meth:`Categorical.map`, :meth:`CategoricalIndex.map` and :meth:`Series.map` raising ``TypeError`` or returning incorrect results when the mapper returned unhashable values such as lists or dicts; these now give an object-dtype result (:issue:`40892`, :issue:`54359`)
 - Bug in comparing a :class:`Categorical` with an iterator raising ``TypeError`` instead of treating it as a scalar, as with a tuple (:issue:`31646`)
 -
 
