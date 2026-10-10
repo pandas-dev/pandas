@@ -194,7 +194,10 @@ def test_parse_without_dateutil_nanoseconds():
 
 def test_parse_without_dateutil_invalid_day():
     # GH#65381
-    msg = "day is out of range for month: Feb 30 2020"
+    msg = (
+        "day (is out of range for month|30 must be in range 1..29 for month 2 "
+        "in year 2020): Feb 30 2020"
+    )
     with pytest.raises(parsing.DateParseError, match=msg):
         parse_datetime_string_with_reso("Feb 30 2020")
 
