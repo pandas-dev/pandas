@@ -510,17 +510,7 @@ class ParserBase:
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
-                try:
-                    na_count = parsers.sanitize_objects(values, na_values)
-                except TypeError:
-                    na_count = 0
-                    for i, val in enumerate(values):
-                        try:
-                            if val in na_values:
-                                values[i] = np.nan
-                                na_count += 1
-                        except TypeError:
-                            pass
+                na_count = parsers.sanitize_objects(values, na_values)
                 result = values
             else:
                 if non_default_dtype_backend:
@@ -544,17 +534,7 @@ class ParserBase:
         else:
             result = values
             if values.dtype == np.object_:
-                try:
-                    na_count = parsers.sanitize_objects(values, na_values)
-                except TypeError:
-                    na_count = 0
-                    for i, val in enumerate(values):
-                        try:
-                            if val in na_values:
-                                values[i] = np.nan
-                                na_count += 1
-                        except TypeError:
-                            pass
+                na_count = parsers.sanitize_objects(values, na_values)
 
         if (
             result.dtype == np.object_
