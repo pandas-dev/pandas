@@ -286,6 +286,7 @@ cdef extern from "pandas/parser/tokenizer.h":
 
         int preloaded
         int header_done
+        int count_quoted_newlines
 
     ctypedef struct coliter_t:
         const char *stream
@@ -539,7 +540,8 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  dtype_backend="numpy"):
+                  dtype_backend="numpy",
+                  bint count_quoted_newlines=False):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -607,6 +609,12 @@ cdef class TextReader:
             self.parser.commentchar = <char>ord(comment)
 
         self.parser.on_bad_lines = on_bad_lines
+        # Counting line breaks inside fields for bad-line messages costs a pass
+        # over the tokens, so for on_bad_lines="error" CParserWrapper asks for
+        # it only when re-reading after a bad line or when it cannot re-read
+        self.parser.count_quoted_newlines = (
+            count_quoted_newlines or on_bad_lines == BLHM_WARN
+        )
 
         self.skiprows = skiprows
         if skiprows is not None:
@@ -1015,6 +1023,24 @@ cdef class TextReader:
         columns = self._read_rows(rows, self.trim_after_read)
 
         return columns
+
+    def tokenize_to_end(self) -> None:
+        """
+        Tokenize the rest of the data without converting it, raising the first
+        tokenizing error.
+        """
+        cdef int status
+
+        self._check_not_closed()
+        while True:
+            with nogil:
+                status = tokenize_nrows(
+                    self.parser, self.buffer_lines, self.encoding_errors
+                )
+            self._check_tokenize_status(status)
+            if self.parser.lines == 0:
+                break
+            parser_consume_rows(self.parser, self.parser.lines)
 
     def read_low_memory(self, rows: int | None)-> list[dict[int, "ArrayLike"]]:
         """
