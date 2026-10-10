@@ -563,6 +563,15 @@ class TestSeriesInterpolateData:
         expected_bwd = pd.Series([1.0, 2.0, 3.0, 4.0])
         tm.assert_series_equal(result_bwd, expected_bwd)
 
+    def test_interp_large_limit(self):
+        # GH#34936 a limit-sized rolling window raised on 32-bit platforms
+        expected = pd.Series(np.arange(100_000, dtype=np.float64))
+        ser = expected.copy()
+        ser[1:60_000] = np.nan
+        expected[50_001:60_000] = np.nan
+        result = ser.interpolate(limit=50_000)
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_to_ends(self):
         # These test are for issue #10420 -- flow back to beginning.
         s = pd.Series([np.nan, np.nan, 5, 7, 9, np.nan])

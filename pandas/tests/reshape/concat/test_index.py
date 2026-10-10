@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
 import pytest
@@ -273,7 +274,7 @@ class TestMultiIndexConcat:
         ],
     )
     def test_concat_with_various_multiindex_dtypes(
-        self, mi1_list: list, mi2_list: list
+        self, mi1_list: list[Any], mi2_list: list[Any]
     ):
         # GitHub #23478
         mi1 = pd.MultiIndex.from_product(mi1_list)
@@ -319,6 +320,23 @@ class TestMultiIndexConcat:
             {"col": ["a", "b", "c"]}, index=pd.MultiIndex.from_product(iterables)
         )
         tm.assert_frame_equal(result_df, expected_df)
+
+    @pytest.mark.filterwarnings("ignore:.*sort order is undefined:RuntimeWarning")
+    def test_concat_multiindex_period_levels_mixed_freq(self):
+        # GH#59775
+        pi_y = pd.period_range("2000", periods=2, freq="Y")
+        pi_q = pd.period_range("2000", periods=2, freq="Q")
+        ser_y = pd.Series([1.0, 2.0], index=pd.MultiIndex.from_product([["v"], pi_y]))
+        ser_q = pd.Series([3.0, 4.0], index=pd.MultiIndex.from_product([["v"], pi_q]))
+
+        result = pd.concat([ser_y, ser_q, ser_y, ser_q])
+
+        periods = pd.Index([*pi_y, *pi_q, *pi_y, *pi_q], dtype=object)
+        expected = pd.Series(
+            [1.0, 2.0, 3.0, 4.0] * 2,
+            index=pd.MultiIndex.from_arrays([["v"] * 8, periods]),
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_concat_with_key_not_unique(self):
         # GitHub #46519
