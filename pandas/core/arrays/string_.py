@@ -104,10 +104,8 @@ class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
 
-    .. warning::
-
-       StringDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
+    The data is stored as Python ``str`` objects or in a PyArrow array,
+    depending on ``storage``. See :ref:`text` for details.
 
     Parameters
     ----------
@@ -621,10 +619,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
     Extension array for string data.
 
-    .. warning::
-
-       StringArray is considered experimental. The implementation and
-       parts of the API may change without warning.
+    This is the ``storage="python"`` implementation of :class:`StringDtype`,
+    holding Python ``str`` objects in a NumPy object-dtype array.
 
     Parameters
     ----------
