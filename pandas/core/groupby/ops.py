@@ -191,6 +191,12 @@ class WrappedCythonOp:
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
 
+        if dtype.kind == "c" and how not in ["sum", "mean"]:
+            # GH#43770 only sum and mean have complex kernels (var/std/sem are
+            #  split into parts in _call_cython_op); the rest would raise an
+            #  opaque error or silently discard the imaginary part
+            raise TypeError(f"dtype '{dtype_str}' does not support operation '{how}'")
+
         # see if there is a fused-type version of function
         # only valid for numeric
         if callable(ftype):
@@ -247,8 +253,7 @@ class WrappedCythonOp:
 
         if how in ["median", "std", "sem", "skew", "kurt"]:
             # median only has a float64 implementation
-            # We should only get here with is_numeric, as non-numeric cases
-            #  should raise in _get_cython_function
+            # non-numeric and complex cases are handled before we get here
             values = ensure_float64(values)
 
         elif values.dtype.kind in "iu":
@@ -396,6 +401,28 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
+
+        if dtype.kind == "c" and self.how in ["var", "std", "sem"]:
+            # GH#43770 var(z) = var(z.real) + var(z.imag), matching numpy.
+            #  A value is NA if either part is NaN, so both parts share counts.
+            nan_mask = np.isnan(values)
+            res_real, res_imag = (
+                self._call_cython_op(
+                    np.where(nan_mask, np.nan, part),
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    comp_ids=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    initial=initial,
+                    **kwargs,
+                )
+                for part in [values.real, values.imag]
+            )
+            if self.how == "var":
+                return res_real + res_imag
+            return np.hypot(res_real, res_imag)
+
         is_numeric = dtype.kind in "iufcb"
 
         is_datetimelike = dtype.kind in "mM"

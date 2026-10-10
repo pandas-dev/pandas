@@ -662,3 +662,21 @@ def test_rank_datetimelike_with_na_group_key(vals, na_option, expected_values):
     result = gb.rank(na_option=na_option)
     expected = pd.Series(expected_values, name="val")
     tm.assert_series_equal(result, expected)
+
+
+def test_rank_numeric_only():
+    # GH#44438
+    df = pd.DataFrame(
+        {
+            "key": [1, 1, 1, 2, 2],
+            "str": list("abcde"),
+            "cat": pd.Categorical(list("xyzxy")),
+            "num": [1.0, 3.0, 2.0, 5.0, 4.0],
+            "flag": [True, False, True, False, True],
+        }
+    )
+    gb = df.groupby("key")
+
+    result = gb.rank(ascending=False, numeric_only=True)
+    expected = gb[["num", "flag"]].rank(ascending=False)
+    tm.assert_frame_equal(result, expected)

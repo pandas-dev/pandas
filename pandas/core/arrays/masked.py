@@ -175,7 +175,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if isna(values).all():
-            return type(self)._from_sequence(values, dtype=self.dtype)
+            try:
+                return type(self)._from_sequence(values, dtype=self.dtype)
+            except TypeError:
+                # e.g. NaT goes through inference instead, GH#70233
+                pass
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
@@ -635,12 +639,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         dtype : dtype, default object
             The numpy dtype to convert to.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
-            the array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary. This is typically
-            only possible when no missing values are present and `dtype`
-            is the equivalent numpy dtype.
+            Whether to ensure that the returned value is not a view on
+            the array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view. A view is typically only possible
+            when no missing values are present and `dtype` is the
+            equivalent numpy dtype.
         na_value : scalar, optional
              Scalar missing value indicator to use in numpy array. Defaults
              to the native missing value indicator of this array (pd.NA).

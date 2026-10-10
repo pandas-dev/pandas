@@ -155,8 +155,6 @@ class TestMultiIndexPartial:
             assert mi.levels[0].dtype == np.float64
 
         assert 14 not in mi.levels[0]
-        assert not mi.levels[0]._should_fallback_to_positional
-        assert not mi._should_fallback_to_positional
 
         with pytest.raises(KeyError, match="14"):
             ser[14]

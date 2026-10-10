@@ -190,10 +190,11 @@ def _convert_arrays_to_dataframe(
     coerce_float: bool = True,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
-    if data and is_dict_like(data[0]):
+    if data and is_dict_like(data[0]) and not isinstance(data[0], (list, tuple)):
         # DBAPI cursors returning dict rows, e.g. pymysql's DictCursor. Use
         # values() rather than lookup by column name, since such cursors may
-        # rename duplicate columns (GH#53028)
+        # rename duplicate columns (GH#53028). Skip list-based rows like
+        # psycopg2's DictRow, whose values() drops duplicate columns.
         data = [tuple(row.values()) for row in data]
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
@@ -2117,6 +2118,7 @@ class SQLDatabase(PandasSQL):
 
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
         from sqlalchemy import (
+            Float,
             Numeric,
             Table,
         )
@@ -2124,7 +2126,8 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         tbl = Table(table_name, self.meta, autoload_with=self.con, schema=schema)
         for column in tbl.columns:
-            if isinstance(column.type, Numeric):
+            # Float is not a Numeric subclass in SQLAlchemy>=2.1
+            if isinstance(column.type, (Numeric, Float)):
                 column.type.asdecimal = False
         return tbl
 

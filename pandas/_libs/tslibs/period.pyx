@@ -3565,20 +3565,14 @@ class Period(_Period):
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None
-            try:
+            if "/" in value and re.match(r"\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value):
+                # Checked before general parsing, which can misread the second
+                #  date as a time, e.g. "2012" as 20:12, see GH#48000
+                dt, freq = _parse_weekly_str(value, freq)
+            else:
                 dt, reso = parse_datetime_string_with_reso(
                     value, freqstr, warn_quarter=False,
                 )
-            except ValueError as err:
-                match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
-                if match:
-                    # Case that cannot be parsed (correctly) by our datetime
-                    #  parsing logic
-                    dt, freq = _parse_weekly_str(value, freq)
-                else:
-                    raise err
-
-            else:
                 if reso == "nanosecond":
                     nanosecond = dt.nanosecond
                 if dt is NaT:
@@ -3675,6 +3669,10 @@ cdef _parse_weekly_str(value, BaseOffset freq):
     Period.__str__ with weekly freq.
     """
     # GH#50803
+    if len(value) != 21:
+        # The caller matched the format as a prefix, so this rejects trailing
+        #  text, e.g. a time, which Timestamp would accept, GH#48000
+        raise ValueError("Could not parse as weekly-freq Period")
     start, end = value.split("/")
     start = Timestamp(start)
     end = Timestamp(end)
