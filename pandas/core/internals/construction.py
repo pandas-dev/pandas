@@ -522,9 +522,13 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
             return v
 
         v = extract_array(v, extract_numpy=True)
-        if isinstance(v, abc.Sequence) and not isinstance(v, (str, bytes)):
-            # GH#27539 not just list/tuple/range but any Sequence, e.g. deque,
-            #  array.array, numba.typed.List. str/bytes are Sequences but scalar.
+        if isinstance(v, (np.ndarray, ExtensionArray)):
+            pass
+        elif hasattr(v, "__array__"):
+            v = np.asarray(v)
+        else:
+            # GH#27539 any other list-like, not just list/tuple/range,
+            #  e.g. deque, array.array, matching sanitize_array
             v = construct_1d_object_array_from_listlike(v)
         if isinstance(v, np.ndarray) and v.dtype == object:
             v = lib.maybe_convert_objects(v)

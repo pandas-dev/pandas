@@ -154,7 +154,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :class:`DataFrame` constructor raising ``AttributeError`` when given a one-dimensional :class:`collections.abc.Sequence` that is not a ``list``, ``tuple`` or ``range`` (e.g. :class:`collections.deque`, ``array.array``, ``numba.typed.List``) (:issue:`27539`)
 -
 
 Strings
