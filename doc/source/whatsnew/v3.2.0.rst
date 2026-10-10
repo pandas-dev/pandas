@@ -205,6 +205,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.ffill` and :meth:`DataFrame.bfill` with ``axis=1`` and ``inplace=True`` not modifying the :class:`DataFrame` and returning a new object instead of ``self`` (:issue:`71159`)
+- Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with ``method`` in ``"linear"``, ``"index"``, ``"values"`` or ``"time"`` ignoring ``fill_value="extrapolate"`` and repeating the first or last valid value instead of extrapolating linearly (:issue:`31949`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with a large ``limit`` raising on 32-bit platforms and being very slow on long runs of missing values (:issue:`34936`)
 -
 
