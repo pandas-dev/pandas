@@ -894,6 +894,18 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(expected, result)
 
+    @pytest.mark.parametrize("null", [pd.NA, None, np.nan])
+    def test_all_null_object_column_roundtrip(self, null):
+        # GH#51375
+        df = DataFrame({"x": [null, null], "y": [1.0, 2.0]})
+        df["x"] = df["x"].astype(object)
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        expected = DataFrame(
+            {"x": pd.Series([np.nan, np.nan], dtype=object), "y": [1.0, 2.0]}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_read_json_orient_table_old_schema_version(self):
         df_json = """
         {
