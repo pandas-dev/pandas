@@ -2167,6 +2167,44 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Reductions
     # ------------------------------------------------------------------------
 
+    @classmethod
+    def _reduce_axis1(
+        cls,
+        name: str,
+        arrays: Sequence[Self],
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ) -> np.ndarray:
+        if name != "sum":
+            raise NotImplementedError(
+                f"{cls.__name__} does not implement row-wise {name}"
+            )
+        # GH#28487: the row of a stored value is its index in the column, so
+        # neither the dense values nor the row codes of all nrows * ncols
+        # elements are needed.
+        dtype = arrays[0].dtype
+        nrows, ncols = len(arrays[0]), len(arrays)
+        sp_ids = np.concatenate([a.sp_index.indices for a in arrays]).astype(
+            np.intp, copy=False
+        )
+        n_gaps = ncols - np.bincount(sp_ids, minlength=nrows)
+        dense_fill = groupby_sum_dense_fill(dtype, bool(n_gaps.any()))
+        if dense_fill is None:
+            raise NotImplementedError(
+                f"{cls.__name__} does not implement row-wise sum for {dtype}"
+            )
+        return groupby_sum_stored(
+            np.concatenate([a.sp_values for a in arrays]),
+            sp_ids,
+            n_gaps,
+            *dense_fill,
+            min_count=kwargs.get("min_count", 0),
+            ngroups=nrows,
+            has_dropped_na=False,
+            skipna=skipna,
+        )
+
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):

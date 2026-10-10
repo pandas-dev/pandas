@@ -2493,6 +2493,46 @@ class ExtensionArray:
 
         return result
 
+    @classmethod
+    def _reduce_axis1(
+        cls,
+        name: str,
+        arrays: Sequence[Self],
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ) -> ArrayLike:
+        """
+        Row-wise reduction across the column arrays of a DataFrame.
+
+        This is used by ``DataFrame._reduce`` with ``axis=1`` when all columns
+        share this array's dtype, before falling back to concatenating the
+        columns and reducing them with ``_groupby_op``.
+
+        Parameters
+        ----------
+        name : str
+            Name of the reduction, e.g. 'sum'.
+        arrays : sequence of ExtensionArray
+            The columns, all of the same dtype and of the same length ``n``.
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments of the reduction, e.g. ``min_count``.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+            The reduction of each row, of length ``n``.
+
+        Raises
+        ------
+        NotImplementedError
+            If the reduction is not implemented for these arrays, in which
+            case the caller falls back to the generic path.
+        """
+        raise NotImplementedError(f"{cls.__name__} does not implement row-wise {name}")
+
     def count(self):
         """
         Count the number of non-NA values in the array.
