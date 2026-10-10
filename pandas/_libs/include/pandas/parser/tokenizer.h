@@ -179,6 +179,14 @@ typedef struct parser_t {
   // straight out of line_fields, which the boundary throws away.
   int64_t prev_line_fields;
 
+  // Line terminators inside fields, so bad-line messages can report the line in
+  // the file rather than the record number (file_lines).  Skipped rows count
+  // them as read; the stream is counted lazily up to newlines_counted_to, and
+  // only when count_quoted_newlines is set.
+  int count_quoted_newlines;
+  uint64_t quoted_newlines;
+  int64_t newlines_counted_to;
+
   // Message storage, kept last so every other field keeps its offset.
   // error_msg points into error_buf (or is NULL) and is never freed.  Warnings
   // get their own buffer so formatting one can never rewrite a pending error
