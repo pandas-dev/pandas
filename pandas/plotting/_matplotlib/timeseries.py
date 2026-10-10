@@ -307,7 +307,10 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
             return index[:1].is_normalized
         period = Period(index[0], freq_str)
         assert isinstance(period, Period)
-        return period.to_timestamp().tz_localize(index.tz) == index[0]
+        # GH#62936: compare wall-clock times. Localizing the period's timestamp
+        # back to index.tz raises when it is ambiguous or nonexistent (DST).
+        ts_naive = index[0].tz_localize(None) if index.tz is not None else index[0]
+        return period.to_timestamp() == ts_naive
     return True
 
 

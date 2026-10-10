@@ -2341,3 +2341,49 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     kwargs["ax"] = ax
     ret = f(*args, **kwargs)
     assert ret is not None  # TODO: do something more intelligent
+
+
+def test_ts_plot_tz_aware_starts_at_dst_fall_back():
+    # GH#62936 the first timestamp is the repeated 02:00 of the fall-back
+    #  day; localizing its tz-naive period back to the timezone raised
+    index = date_range(
+        "2025-10-26T01:00", periods=13, freq="5min", tz="UTC"
+    ).tz_convert("MET")
+    assert index[0] == pd.Timestamp("2025-10-26 02:00+01:00", tz="MET")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.tz_localize(None).to_period("5min").asi8
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ts_plot_tz_aware_across_dst_fall_back():
+    # GH#62936 starts at the first 02:00 of the fall-back day, which is
+    #  ambiguous once the timezone is dropped
+    index = date_range(
+        "2025-10-26T00:00", "2025-10-26T03:00", freq="5min", tz="UTC"
+    ).tz_convert("MET")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.tz_localize(None).to_period("5min").asi8
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ts_plot_tz_aware_period_start_nonexistent():
+    # GH#62936 Lord Howe Island springs forward 02:00 -> 02:30, so the hourly
+    #  period of the first timestamp (02:30) starts at a nonexistent 02:00
+    utc = date_range("2025-10-04T15:30", periods=5, freq="h", tz="UTC")
+    index = utc.tz_convert("Australia/Lord_Howe")
+    assert index[0] == pd.Timestamp("2025-10-05 02:30+11:00", tz="Australia/Lord_Howe")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.astype(object).to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
