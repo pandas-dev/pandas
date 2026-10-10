@@ -139,15 +139,14 @@ class PythonParser(ParserBase):
         # on, recorded as they were read; rows only ever leave the buffer from
         # the front.
         self._buf_starts: list[int | None] = []
-        # The records of the batch _get_lines last returned, before it dropped
-        # any: the lines the leading ones from the buffer start on, and the
-        # line the first one read after them did; see _row_line_numbers.
+        # The batch _get_lines last returned, before it dropped comment, blank
+        # and footer rows, plus the start lines of its buffered rows and of its
+        # first newly read row; see _row_line_numbers.
         self._batch_raw: list = []
         self._batch_buf_starts: list[int | None] = []
         self._batch_first_new: int | None = None
-        # The records _get_lines has read so far in the batch it is reading,
-        # and the lines before the record _next_line is reading; see
-        # _csv_error_line.
+        # For _csv_error_line: the rows _get_lines has read so far in this
+        # batch, and the reader's line count before the row _next_line is reading.
         self._batch_rows: list | None = None
         self._peek_lines_before: int | None = None
 
