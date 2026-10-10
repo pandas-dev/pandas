@@ -43,6 +43,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     construct_1d_object_array_from_listlike,
     convert_dtypes,
+    convert_to_default_dtype,
     find_result_type,
     np_can_hold_element,
 )
@@ -545,8 +546,17 @@ class Block(PandasObject, libinternals.Block):
         convert_integer: bool = True,
         convert_boolean: bool = True,
         convert_floating: bool = True,
-        dtype_backend: DtypeBackend = "numpy_nullable",
+        dtype_backend: DtypeBackend | Literal["default"] = "numpy_nullable",
     ) -> list[Block]:
+        if dtype_backend == "default":
+            res_values = convert_to_default_dtype(self.values)
+            if res_values is self.values:
+                return [self.copy(deep=False)]
+            res_values = ensure_block_shape(res_values, self.ndim)
+            res_values = maybe_coerce_values(res_values)
+            refs = self.refs if astype_is_view(self.dtype, res_values.dtype) else None
+            return [self.make_block(res_values, refs=refs)]
+
         if infer_objects and self.is_object:
             blks = self.convert()
         else:

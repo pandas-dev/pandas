@@ -1085,6 +1085,65 @@ def convert_dtypes(
     return inferred_dtype
 
 
+def convert_to_default_dtype(values: ArrayLike) -> ArrayLike:
+    """
+    Convert nullable or pyarrow-backed values to the equivalent default dtype.
+
+    Used by ``convert_dtypes(dtype_backend="default")``. Integer and boolean
+    values containing missing values become float64 and object respectively.
+    Values without a default-dtype equivalent are returned unchanged.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    from pandas.core.arrays.string_ import StringDtype
+
+    if not isinstance(values, ABCExtensionArray):
+        return values
+
+    dtype = values.dtype
+    if isinstance(dtype, ArrowDtype):
+        import pyarrow as pa
+
+        pa_type = dtype.pyarrow_dtype
+        if (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_string_view(pa_type)
+        ):
+            return _to_default_string(values)
+        if pa.types.is_timestamp(pa_type) and pa_type.tz is not None:
+            return values.astype(DatetimeTZDtype(unit=pa_type.unit, tz=pa_type.tz))
+        if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+            return values.astype(dtype.numpy_dtype)
+        if not (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_boolean(pa_type)
+        ):
+            return values
+    elif isinstance(dtype, StringDtype):
+        if dtype.na_value is np.nan:
+            return values
+        return _to_default_string(values)
+    elif not isinstance(dtype, BaseMaskedDtype):
+        return values
+
+    return values.to_numpy(na_value=np.nan)
+
+
+def _to_default_string(values: ExtensionArray) -> ArrayLike:
+    # the legacy default is object dtype, which should hold np.nan rather than pd.NA
+    if using_string_dtype():
+        return values.astype(pandas_dtype_func("str"))
+    return values.to_numpy(dtype=object, na_value=np.nan)
+
+
 def maybe_cast_to_datetime(
     value: np.ndarray | list[Any], dtype: np.dtype
 ) -> DatetimeArray | TimedeltaArray | np.ndarray:
