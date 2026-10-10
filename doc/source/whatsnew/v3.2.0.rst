@@ -152,7 +152,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :func:`to_numeric` with a ``datetime``, ``timedelta``, ``np.datetime64`` or ``np.timedelta64`` scalar not returning the same integer as a :class:`Series` holding the value (:issue:`43280`)
 -
 
 Strings
