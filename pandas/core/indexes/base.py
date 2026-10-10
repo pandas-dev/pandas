@@ -4525,7 +4525,11 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(self, ABCMultiIndex):
             new_index = Index(new_labels, name=self.name, copy=False)
         else:
-            new_index = type(self).from_tuples(new_labels, names=self.names)
+            try:
+                new_index = type(self).from_tuples(new_labels, names=self.names)
+            except ValueError:
+                # missing labels are tuples of a different length, GH#50293
+                new_index = Index(new_labels, copy=False)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -6713,9 +6717,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi and not other._is_multi:
             try:
                 # "Type[Index]" has no attribute "from_tuples"
-                other = type(self).from_tuples(other)  # type: ignore[attr-defined]
+                other_mi = type(self).from_tuples(other)  # type: ignore[attr-defined]
             except (TypeError, ValueError):
-                # let's instead try with a straight Index
+                other_mi = None
+            if other_mi is not None and other_mi.nlevels == self.nlevels:
+                other = other_mi
+            else:
+                # let's instead try with a straight Index, so tuples of a
+                #  different length can't match on a prefix, GH#50293
                 self = Index(self._values, copy=False)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):

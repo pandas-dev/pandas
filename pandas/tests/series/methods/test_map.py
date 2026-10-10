@@ -296,6 +296,15 @@ def test_map_dict_with_tuple_keys():
     tm.assert_series_equal(df["labels"], df["expected_labels"], check_names=False)
 
 
+@pytest.mark.parametrize("box", [dict, pd.Series])
+def test_map_tuples_of_different_lengths(box):
+    # GH#50293
+    ser = pd.Series([("a", "b"), ("b",), ("a", "b", "c")])
+    result = ser.map(box({("a", "b"): "x"}))
+    expected = pd.Series(["x", np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_counter():
     s = pd.Series(["a", "b", "c"], index=[1, 2, 3])
     counter = Counter()
