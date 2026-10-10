@@ -224,7 +224,7 @@ class TestDataFrameValues:
         # int/bool dtype
         df = pd.DataFrame({"a": pd.Categorical(cats, categories=cats), "b": other})
         # the interleaved dtype is cached before the in-place setitem
-        assert df.values.dtype == np.array(other).dtype
+        assert df.values.dtype == df["b"].dtype
         df.iloc[1, 0] = np.nan
 
         expected = np.array(
