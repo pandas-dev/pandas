@@ -129,6 +129,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :meth:`Series.clip` and :meth:`DataFrame.clip` with ordered categorical data and both ``lower`` and ``upper`` given, which ordered the bounds by their values instead of by category order and returned incorrect results (:issue:`49217`)
 - Bug in comparing a :class:`Categorical` with an iterator raising ``TypeError`` instead of treating it as a scalar, as with a tuple (:issue:`31646`)
 -
 

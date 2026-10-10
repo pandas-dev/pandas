@@ -72,6 +72,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
+    is_integer,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -80,6 +81,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -9098,7 +9100,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            lower, upper = min(lower, upper), max(lower, upper)
+            blocks = self._mgr.blocks
+            dtype = blocks[0].dtype if blocks else None
+            if (
+                isinstance(dtype, CategoricalDtype)
+                and dtype.ordered
+                and all(blk.dtype == dtype for blk in blocks[1:])
+            ):
+                # order the bounds by category position, not by value (GH#49217),
+                #  looking each one up the way the comparison will
+                categories = dtype.categories
+                if lower in categories and upper in categories:
+                    lower_pos = categories.get_loc(lower)
+                    upper_pos = categories.get_loc(upper)
+                    # a partial date string can match several categories
+                    if (
+                        is_integer(lower_pos)
+                        and is_integer(upper_pos)
+                        and lower_pos > upper_pos
+                    ):
+                        lower, upper = upper, lower
+            else:
+                lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
