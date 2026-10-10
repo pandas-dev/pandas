@@ -2836,8 +2836,6 @@ class ArrowExtensionArray(
                     f"does not support operation '{name}'"
                 )
 
-        if "min_count" in kwargs:
-            kwargs["min_count"] = validate_min_count(kwargs["min_count"])
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
         if name in ["any", "all", "sum", "prod"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
@@ -2969,6 +2967,7 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         return self._reduce(
             "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
@@ -3075,6 +3074,7 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
         return self._reduce(
             "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )

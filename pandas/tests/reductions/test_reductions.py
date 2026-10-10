@@ -1968,11 +1968,33 @@ def test_negative_min_count_deprecated(frame_or_series, how, dtype, min_count):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("how", ["sum", "prod"])
-def test_negative_min_count_deprecated_arrow_array(how):
+@pytest.mark.parametrize(
+    "how, dtype",
+    [
+        ("sum", "Int64"),
+        ("prod", "Int64"),
+        ("sum", "float64"),
+        ("prod", "float64"),
+        ("sum", "Sparse[float64]"),
+        ("prod", "Sparse[float64]"),
+        ("sum", "m8[ns]"),
+        ("sum", "string[python]"),
+        pytest.param(
+            "sum",
+            "int64[pyarrow]",
+            marks=pytest.mark.skipif(not HAS_PYARROW, reason="requires pyarrow"),
+        ),
+        pytest.param(
+            "prod",
+            "int64[pyarrow]",
+            marks=pytest.mark.skipif(not HAS_PYARROW, reason="requires pyarrow"),
+        ),
+    ],
+)
+def test_negative_min_count_deprecated_array(how, dtype):
     # GH#50022
-    pytest.importorskip("pyarrow")
-    arr = pd.array([2, None, 3], dtype="int64[pyarrow]")
+    data = ["a", None, "b"] if dtype == "string[python]" else [2, None, 3]
+    arr = pd.array(data, dtype=dtype)
     expected = getattr(arr, how)(min_count=0)
     msg = "Passing a negative value for 'min_count' is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
