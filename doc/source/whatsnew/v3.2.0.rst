@@ -174,6 +174,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` with a partial tuple key on a sorted :class:`MultiIndex` ignoring the later levels of the key when a key element equals a level value of a different type, e.g. :class:`numpy.datetime64` on a level of :class:`datetime.date` objects (:issue:`55969`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
 -
 

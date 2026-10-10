@@ -1058,6 +1058,22 @@ def test_loc_np_datetime64_key_on_object_dt64_level():
     tm.assert_frame_equal(result, expected)
 
 
+def test_loc_partial_key_datetime64_on_date_level():
+    # GH#55969 np.datetime64 equals datetime.date but hashes differently, so
+    #  whether the level lookup misses depends on the hash seed; with 10 dates
+    #  some miss is near-certain
+    dates = pd.date_range("2023-11-01", periods=10).date
+    mi = pd.MultiIndex.from_product([dates, ["A", "B"], ["X"]])
+    ser = pd.Series(np.arange(len(mi), dtype=np.int64), index=mi)
+    for i, day in enumerate(dates):
+        key = np.datetime64(day, "D")
+        result = ser.loc[(key, "B")]
+        expected = pd.Series([2 * i + 1], index=pd.Index(["X"]))
+        tm.assert_series_equal(result, expected)
+        with pytest.raises(KeyError, match="C"):
+            ser.loc[(key, "C")]
+
+
 def test_loc_multiindex_with_overlapping_interval_single_match():
     # GH#27456 - tuple .loc on MultiIndex with overlapping IntervalIndex
     # level returned Series instead of scalar when only one interval matched
