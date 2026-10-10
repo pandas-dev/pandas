@@ -87,7 +87,7 @@ cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, const uint8_t
 cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8_t[:] mask=None):
 {{endif}}
     cdef:
-        Py_ssize_t i = 0, na_counter = 0, na_add = 0
+        Py_ssize_t i = 0, na_counter = 0, na_add = 0, na_pos = -1
         Py_ssize_t n = len(values)
         kh_{{ttype}}_t *table
 
@@ -139,6 +139,10 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
 
         if not dropna or not isna_entry:
             if uses_mask and isna_entry:
+                if na_counter == 0:
+                    # placeholder key, marking where NA was first seen
+                    na_pos = table.size
+                    result_keys.append(val)
                 na_counter += 1
             else:
                 k = kh_get_{{ttype}}(table, val)
@@ -156,7 +160,10 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
     cdef:
         int64_t[::1] result_counts = np.empty(table.size + na_add, dtype=np.int64)
 
-    for i in range(table.size):
+    for i in range(table.size + na_add):
+        if i == na_pos:
+            result_counts[i] = na_counter
+            continue
         {{if dtype == 'object'}}
         k = kh_get_{{ttype}}(table, result_keys.data[i])
         {{else}}
@@ -164,13 +171,9 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         {{endif}}
         result_counts[i] = table.vals[k]
 
-    if na_counter > 0:
-        result_counts[table.size] = na_counter
-        result_keys.append(val)
-
     kh_destroy_{{ttype}}(table)
 
-    return result_keys.to_array(), result_counts.base, na_counter
+    return result_keys.to_array(), result_counts.base, na_pos
 
 
 @cython.wraparound(False)
@@ -644,9 +647,9 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
 
         int64_t[::1] counts
         int64_t count, _, max_count = -1
-        Py_ssize_t nkeys, k, na_counter, j = 0
+        Py_ssize_t nkeys, k, na_pos, na_j = -1, j = 0
 
-    keys, counts, na_counter = value_count(values, dropna, mask=mask)
+    keys, counts, na_pos = value_count(values, dropna, mask=mask)
     nkeys = len(keys)
 
     modes = np.empty(nkeys, dtype=values.dtype)
@@ -659,14 +662,18 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
             elif count > max_count:
                 max_count = count
                 j = 0
+                na_j = -1
             else:
                 continue
 
             modes[j] = keys[k]
+            if k == na_pos:
+                na_j = j
 
-    if na_counter > 0:
+    if na_pos != -1:
         res_mask = np.zeros(j+1, dtype=np.bool_)
-        res_mask[j] = (na_counter == max_count)
+        if na_j != -1:
+            res_mask[na_j] = True
     return modes[:j + 1], res_mask
 
 
