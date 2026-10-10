@@ -473,7 +473,10 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self.agg_or_apply_list_like(op_name="agg")
+        result = self.agg_or_apply_list_like(op_name="agg")
+        # per-column results are concatenated one block per column; consolidate so
+        #  a later insert (e.g. reset_index) does not warn about fragmentation, GH#61628
+        return result._consolidate() if isinstance(result, ABCDataFrame) else result
 
     def compute_list_like(
         self,
@@ -580,7 +583,9 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self.agg_or_apply_dict_like(op_name="agg")
+        result = self.agg_or_apply_dict_like(op_name="agg")
+        # see agg_list_like
+        return result._consolidate() if isinstance(result, ABCDataFrame) else result
 
     def compute_dict_like(
         self,
