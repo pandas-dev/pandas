@@ -541,11 +541,16 @@ class ArrowParserWrapper(ParserBase):
                 "The pyarrow engine does not allow 'usecols' to be a callable."
             )
 
-    def read(self) -> DataFrame:
+    def read(self, nrows: int | None = None, row_offset: int = 0) -> DataFrame:
         """
         Reads the contents of a CSV file into a DataFrame and
         processes it according to the kwargs passed in the
         constructor.
+
+        Parameters
+        ----------
+        nrows, row_offset
+            Ignored; the pyarrow engine always reads the whole file.
 
         Returns
         -------

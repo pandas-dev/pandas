@@ -22,6 +22,8 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
 
+from pandas.io.parsers.base_parser import wrap_object_columns
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
@@ -1054,3 +1056,13 @@ def test_unsafe_integer_dtype_raises_for_non_int64_source(all_parsers, data, dty
     parser = all_parsers
     with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
         parser.read_csv(StringIO(data), dtype={"x": dtype})
+
+
+def test_wrap_object_columns_only_wraps_object():
+    # wrapping every column would be correct but slow on wide frames
+    ints = np.array([1, 2])
+    strings = np.array(["x", "y"], dtype=object)
+    dtype = {"a": "int64", "b": object}
+    result = wrap_object_columns({"a": ints, "b": strings}, dtype, pd.RangeIndex(2))
+    assert result["a"] is ints
+    tm.assert_series_equal(result["b"], pd.Series(strings, dtype=object))

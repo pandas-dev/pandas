@@ -276,15 +276,15 @@ class PythonParser(ParserBase):
 
         return reader
 
-    def read(
-        self, rows: int | None = None
+    def _read_arrays(
+        self, nrows: int | None = None
     ) -> tuple[
         Index | None,
         Sequence[Hashable] | MultiIndex,
         Mapping[Hashable, ArrayLike | Series],
     ]:
         try:
-            content = self._get_lines(rows)
+            content = self._get_lines(nrows)
         except StopIteration:
             if self._first_chunk:
                 content = []
@@ -355,19 +355,6 @@ class PythonParser(ParserBase):
         return {
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
-
-    # legacy
-    def get_chunk(
-        self, size: int | None = None
-    ) -> tuple[
-        Index | None,
-        Sequence[Hashable] | MultiIndex,
-        Mapping[Hashable, ArrayLike | Series],
-    ]:
-        if size is None:
-            # error: "PythonParser" has no attribute "chunksize"
-            size = self.chunksize  # type: ignore[attr-defined]
-        return self.read(rows=size)
 
     def _convert_data(
         self,
