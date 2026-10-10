@@ -181,8 +181,120 @@ def test_group_apply_once_per_group(df, group_names):
     for func in [f_copy, f_nocopy, f_scalar, f_none, f_constant_df]:
         del names[:]
 
-        df.groupby("a").apply(func)
+        msg = "Pinning the group key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.groupby("a").apply(func)
         assert names == group_names
+
+
+def test_apply_series_name_is_group_key():
+    # GH#41090 - on a Series group, the deprecated pinned name must still be
+    #  the group key (not the column name), with a warning
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("a")["b"].apply(
+            lambda x: x.sum() if x.name == 1 else -x.sum()
+        )
+    expected = pd.Series([7, -5], index=pd.Index([1, 2], name="a"), name="b")
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_no_name_access_no_warning():
+    # GH#41090 - none of these read the pinned name, but each has pandas read
+    #  it internally to label something it discards (a binop result, an Index
+    #  built off the group) - the reads _maybe_warn_pinned_group_name exempts.
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    with tm.assert_produces_warning(None):
+        df.groupby("a").apply(lambda g: g["b"].sum())
+        df.groupby("a").apply(lambda g: g["b"] * 2)
+        df.groupby("a")["b"].apply(lambda x: x * 2)
+        df.groupby("a")["b"].apply(lambda x: x.is_monotonic_increasing)
+        df.groupby("a")["b"].transform(lambda x: x * 2)
+        df.groupby("a")["b"].transform(lambda x: x - x.mean())
+        df.groupby("a").transform(lambda x: x * 2)
+        df.groupby("a").filter(lambda g: len(g) > 1)
+
+
+def test_apply_setting_name_unpins_group_key():
+    # GH#41090 - a name explicitly set inside the UDF is not the pinned group
+    #  key, so reading it back should not warn
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+
+    def func(x):
+        x.name = "foo"
+        return x.name
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("a")["b"].apply(func)
+    expected = pd.Series(["foo", "foo"], index=pd.Index([1, 2], name="a"), name="b")
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_setting_name_does_not_write_name_column():
+    # GH#41090 - the pinned key is served by __getattr__ rather than from the
+    #  instance __dict__, so setting it must still set an attribute and not
+    #  fall through to assigning a column that happens to be called "name"
+    df = pd.DataFrame({"a": [1, 1, 2], "name": [3, 4, 5]})
+
+    def func(group):
+        group.name = "zzz"
+        assert group.name == "zzz"
+        return group["name"].tolist()
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("a", group_keys=False).apply(func)
+    expected = pd.Series([[3, 4], [5]], index=pd.Index([1, 2], name="a"))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: x.to_frame(),
+        lambda x: x.reset_index(),
+        lambda x: pd.DataFrame(x),
+        lambda x: (x * 2).to_frame(),
+        lambda x: x.head(2).to_frame(),
+    ],
+)
+def test_apply_result_labeled_by_pinned_key(func):
+    # GH#41090 - the column label comes from the pinned name without user code
+    #  reading it, and becomes "b" once the key is no longer pinned
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3.0, 4.0, 5.0]})
+    msg = "with a column labeled by the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("a")["b"].apply(func)
+    assert 1 in result.columns
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: x.rename("b").to_frame(),
+        lambda x: x.to_frame("v"),
+        lambda x: pd.DataFrame(np.ones((2, 2))),
+    ],
+)
+def test_apply_result_not_labeled_by_pinned_key(func):
+    # GH#41090 - these labels do not depend on the pinned name
+    ser = pd.Series([3.0, 4.0, 5.0], name="b")
+    with tm.assert_produces_warning(None):
+        ser.groupby([0, 0, 1]).apply(func)
+
+
+def test_apply_result_labeled_by_pinned_na_key():
+    # GH#41090 - comparing an NA key to the Series name must not raise
+    ser = pd.Series([3.0, 4.0, 5.0], name="b")
+    by = pd.array([None, 1, 1], dtype="Int64")
+    msg = "with a column labeled by the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.groupby(by, dropna=False, sort=False).apply(lambda x: x.to_frame())
+    expected = pd.DataFrame(
+        {pd.NA: [3.0, np.nan, np.nan], 1: [np.nan, 4.0, 5.0]},
+        index=pd.MultiIndex.from_arrays([by, [0, 1, 2]]),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_group_apply_once_per_group2(capsys):
@@ -1449,7 +1561,10 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f_1)[["B"]]
+    # GH#41090 - name pinning is deprecated
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
     e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
@@ -1459,7 +1574,8 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f_2)[["B"]]
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_2)[["B"]]
     e = expected.copy()
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
@@ -1470,7 +1586,8 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    result = df.groupby("A").apply(f_3)[["C"]]
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_3)[["C"]]
     e = df.groupby("A").first()[["C"]]
     e.loc["Pony"] = pd.NaT
     tm.assert_frame_equal(result, e)
@@ -1481,7 +1598,8 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0].loc["C"]
 
-    result = df.groupby("A").apply(f_4)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("A").apply(f_4)
     e = df.groupby("A").first()["C"].copy()
     e.loc["Pony"] = np.nan
     e.name = None
