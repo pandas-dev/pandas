@@ -701,7 +701,7 @@ class RangeIndex(Index):
         >>> idx is new_idx
         False
         """
-        name = self._validate_names(name=name, deep=deep)[0]
+        name = self._validate_copy_name(name, deep)
         new_index = self._rename(name=name)
         return new_index
 

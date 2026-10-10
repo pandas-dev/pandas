@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import abc
+from copy import deepcopy
 from datetime import (
     datetime,
     tzinfo,
@@ -1417,13 +1418,35 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
 
-        name = self._validate_names(name=name, deep=deep)[0]
+        name = self._validate_copy_name(name, deep)
         if deep:
             new_data = self._data.copy()
             new_index = type(self)._simple_new(new_data, name=name)
         else:
             new_index = self._rename(name=name)
         return new_index
+
+    @final
+    def _validate_copy_name(self, name: Hashable, deep: bool) -> Hashable:
+        """
+        Validate the ``name`` passed to ``copy``, defaulting to ``self.name``.
+        """
+        if name is None:
+            return deepcopy(self.name) if deep else self.name
+        if is_list_like(name) and not is_hashable(name):
+            labels = list(cast("Iterable[Hashable]", name))
+            if len(labels) == 1:
+                # GH#19171
+                warnings.warn(
+                    f"Passing a list-like 'name' to {type(self).__name__}.copy is "
+                    "deprecated and will raise in a future version. Pass the label "
+                    "itself instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                name = labels[0]
+        validate_all_hashable(name, error_name=f"{type(self).__name__}.name")
+        return name
 
     @final
     def __copy__(self) -> Self:
@@ -1879,42 +1902,6 @@ class Index(IndexOpsMixin, PandasObject):
             )
         maybe_extract_name(value, None, type(self))
         self._name = value
-
-    @final
-    def _validate_names(
-        self,
-        name: Hashable = None,
-        names: Sequence[Hashable] | None = None,
-        deep: bool = False,
-    ) -> list[Hashable]:
-        """
-        Handles the quirks of having a singular 'name' parameter for general
-        Index and plural 'names' parameter for MultiIndex.
-        """
-        from copy import deepcopy
-
-        if names is not None and name is not None:
-            raise TypeError("Can only provide one of `names` and `name`")
-        if names is None and name is None:
-            new_names = deepcopy(self.names) if deep else self.names
-        elif names is not None:
-            if not is_list_like(names):
-                raise TypeError("Must pass list-like as `names`.")
-            new_names = names
-        elif not is_list_like(name):
-            new_names = [name]
-        else:
-            new_names = name
-
-        if len(new_names) != len(self.names):  # pyright: ignore[reportArgumentType]
-            raise ValueError(
-                f"Length of new names must be {len(self.names)}, got {len(new_names)}"  # pyright: ignore[reportArgumentType]
-            )
-
-        # All items in 'new_names' need to be hashable
-        validate_all_hashable(*new_names, error_name=f"{type(self).__name__}.name")  # pyright: ignore[reportOptionalIterable, reportGeneralTypeIssues]
-
-        return new_names  # pyright: ignore[reportReturnType]
 
     def _get_default_index_names(
         self,
