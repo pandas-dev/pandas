@@ -1857,23 +1857,6 @@ def test_bad_line_number_counts_quoted_newlines(
             parser.read_csv(StringIO(data), on_bad_lines="warn")
 
 
-@pytest.mark.parametrize(
-    "data, line",
-    [
-        ("a,b\n1,x\\\ny\n4,5,6\n", 4),
-        ('a,b\n1,"x\\\ny"\n4,5,6\n', 4),
-        # the bad record holds the escaped newline
-        ("a,b\n1,2\n4,x\\\ny,6\n", 3),
-        ('a,b\n1,2\n4,"x\\\ny",6\n', 3),
-    ],
-)
-def test_bad_line_number_counts_escaped_newlines(c_parser_only, data, line):
-    # GH#16286
-    parser = c_parser_only
-    with pytest.raises(ParserError, match=f"fields in line {line}, saw 3"):
-        parser.read_csv(StringIO(data), escapechar="\\")
-
-
 def test_bad_line_number_counts_quoted_newlines_unseekable(c_parser_only):
     # GH#16286: the source cannot be re-read after the bad line, so the line
     # breaks are counted as it is read

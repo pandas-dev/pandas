@@ -319,6 +319,143 @@ footer
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
 
 
+@pytest.mark.parametrize(
+    "data, line",
+    [
+        ('a,b,c\n1,2,"p\nq"\n3,"x"y,5\n', 4),
+        # unclosed quote: the reader stops at the end of the file
+        ('a,b\n1,2\n3,"x\n4,5\n6,7\n', 3),
+        ('a,b\n"p\nq",2\n3,"x\n4,5\n6,7\n', 4),
+        # past the rows read ahead for the header and index
+        ('a,b,c\n1,2,3\n4,5,6\n7,8,9\n1,2,"p\nq"\n3,"x"y,5\n', 7),
+        ('a,b\n1,2\n3,4\n5,6\n"p\nq",8\n7,"x\n8,9\n', 7),
+    ],
+)
+def test_csv_error_line_number_counts_quoted_newlines(python_parser_only, data, line):
+    # GH#16286: csv.Error is reported at the line its record starts on
+    parser = python_parser_only
+    with tm.assert_produces_warning(
+        ParserWarning, match=f"Skipping line {line}:", check_stacklevel=False
+    ):
+        parser.read_csv(StringIO(data), on_bad_lines="warn")
+
+
+@pytest.mark.parametrize("chunksize", [1, 2, 3])
+def test_bad_line_number_counts_quoted_newlines_chunked(python_parser_only, chunksize):
+    # GH#16286: the multi-line row and the bad row can fall in different chunks
+    parser = python_parser_only
+    data = 'a,b,c\n1,2,"x\ny"\n3,4,5\n6,7,8,9\n'
+    with pytest.raises(ParserError, match="Expected 3 fields in line 5, saw 4"):
+        with parser.read_csv(StringIO(data), chunksize=chunksize) as reader:
+            list(reader)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, line",
+    [
+        # csv.Error while reading a row
+        ('junk\na,b,c\n1,2,"x\ny"\n3,"x"y,5\n', {"skiprows": 1}, 5),
+        ('a,b,c\n1,2,"x\ny"\n3,"x"y,5\n', {"sep": None}, 4),
+        # too many fields
+        ('junk\na,b,c\n1,2,"x\ny"\n4,5,6,7\n', {"skiprows": 1}, 5),
+        ('a,b,c\n1,2,"x\ny"\n4,5,6,7\n', {"sep": None}, 4),
+    ],
+)
+def test_bad_line_number_lines_read_before_reader(
+    python_parser_only, data, kwargs, line
+):
+    # GH#16286: leading skiprows and the sep=None sniff are read before the
+    # csv reader exists, so its line count does not include them
+    parser = python_parser_only
+    with tm.assert_produces_warning(
+        ParserWarning, match=f"Skipping line {line}:", check_stacklevel=False
+    ):
+        parser.read_csv(StringIO(data), on_bad_lines="warn", **kwargs)
+
+
+def test_bad_line_number_line_dropped_between_buffered_rows(python_parser_only):
+    # GH#16286: header=[0, 1] buffers rows ahead; a blank line dropped between
+    # them must not shift the line reported for the earlier one
+    parser = python_parser_only
+    data = 'a,b\nc,"d\ne"\n1,2,3\n\n4,5\n'
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line 4:", check_stacklevel=False
+    ):
+        parser.read_csv(StringIO(data), header=[0, 1], on_bad_lines="warn")
+
+
+def test_bad_line_number_comment_cuts_buffered_row(python_parser_only):
+    # GH#16286: the comment cuts the line break out of a row read ahead for
+    # the header and index, so its text no longer shows the lines it spanned
+    parser = python_parser_only
+    data = 'a,b\n1,2\n1,2,3,"#x\ny"\n5,6\n'
+    with pytest.raises(ParserError, match="Expected 2 fields in line 3, saw 3"):
+        parser.read_csv(StringIO(data), comment="#")
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, line",
+    [
+        # records dropped from the batch still take up lines
+        ('a,b,c\n1,2,3\n1,2,"p\nq"\n\n\n4,5,6,7\n', {}, 7),
+        ('a,b,c\n1,2,"p\nq"\n\n4,5,6,7\n', {}, 5),
+        ('a,b,c\n1,2,"p\nq"\n# c\n4,5,6,7\n', {"comment": "#"}, 5),
+        ('a,b,c\n1,2,3\n1,2,"p #x\nq"\n4,5,6,7\n', {"comment": "#"}, 5),
+        ('a,b,c\n1,2,"p\nq"\n4,5,6,7\n"f\no"\n', {"skipfooter": 1}, 4),
+        (',a,b\nidx,,\n1,2,"p\nq"\n4,5,6,7\n', {"index_col": 0}, 5),
+        ('a,b,c\n1,2,"p\nq"\n\n3,4,5\n4,5,6,7\n', {"chunksize": 2}, 6),
+    ],
+)
+def test_bad_line_number_records_dropped_from_batch(
+    python_parser_only, data, kwargs, line
+):
+    # GH#16286
+    parser = python_parser_only
+    with pytest.raises(ParserError, match=f"Expected 3 fields in line {line}, saw 4"):
+        result = parser.read_csv(StringIO(data), **kwargs)
+        if "chunksize" in kwargs:
+            list(result)
+
+
+def test_bad_line_number_warn_records_dropped_from_batch(python_parser_only):
+    # GH#16286
+    parser = python_parser_only
+    data = 'a,b,c\n1,2,"p\nq"\n\n4,5,6,7\n# c\n1,"x\ny",3\n\n1,2,3,4\n'
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line 5:", check_stacklevel=False
+    ) as record:
+        parser.read_csv(StringIO(data), comment="#", on_bad_lines="warn")
+    assert "Skipping line 10:" in str(record[-1].message)
+
+
+def test_bad_line_number_lone_carriage_return(python_parser_only, tmp_path):
+    # GH#16286: a file path is opened with newline="", so csv.reader counts the
+    # lone "\r" as a line break; the row number is reported instead
+    parser = python_parser_only
+    path = tmp_path / "data.csv"
+    path.write_bytes(b'a,b,c\n1,2,"x\ry"\n4,5,6,7\n')
+    with pytest.raises(ParserError, match="Expected 3 fields in line 3, saw 4"):
+        parser.read_csv(path)
+
+
+def test_bad_line_number_callable_edits_row(python_parser_only):
+    # GH#16286: a callable that edits its row in place must not change the
+    # line breaks counted for that row
+    parser = python_parser_only
+    data = 'a,b,c\n1,2,3\n"x\ny",1,9,8\n1,2,3,4,5\n'
+
+    def drop_first(line):
+        del line[0]
+        return line
+
+    with tm.assert_produces_warning(
+        ParserWarning,
+        match="in line 5, saw 4 from bad_lines callable",
+        check_stacklevel=False,
+    ):
+        parser.read_csv(StringIO(data), on_bad_lines=drop_first)
+
+
 def test_python_engine_file_no_next(python_parser_only):
     parser = python_parser_only
 
