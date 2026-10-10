@@ -637,6 +637,33 @@ def test_groupby_op_with_nullables(na_option):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "vals",
+    [
+        pd.DatetimeIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"]),
+        pd.DatetimeIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"], tz="UTC"),
+        pd.to_timedelta([2, None, 1, 3], unit="D"),
+        pd.PeriodIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"], freq="D"),
+    ],
+)
+@pytest.mark.parametrize(
+    "na_option,expected_values",
+    [
+        ("keep", [1.0, np.nan, np.nan, 2.0]),
+        ("top", [2.0, 1.0, np.nan, 3.0]),
+        ("bottom", [1.0, 3.0, np.nan, 2.0]),
+    ],
+)
+def test_rank_datetimelike_with_na_group_key(vals, na_option, expected_values):
+    # GH#69923
+    df = pd.DataFrame({"key": [0, 0, np.nan, 0], "val": vals})
+    gb = df.groupby("key")["val"]
+
+    result = gb.rank(na_option=na_option)
+    expected = pd.Series(expected_values, name="val")
+    tm.assert_series_equal(result, expected)
+
+
 def test_rank_numeric_only():
     # GH#44438
     df = pd.DataFrame(
