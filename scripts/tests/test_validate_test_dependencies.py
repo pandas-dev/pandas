@@ -4,6 +4,8 @@ from scripts.validate_test_dependencies import (
     ALLOWED_UNDECLARED,
     declared_packages,
     environments_running_tests,
+    target_specific_packages,
+    validate_declared_packages,
     validate_test_dependencies,
 )
 
@@ -21,6 +23,10 @@ PIXI = {
         "downstream": {"features": ["test-base", "downstream"]},
         "numpy-nightly": ["test-base", "nightly"],
         "docs": {"features": ["documentation"]},
+    },
+    "target": {
+        "linux-64": {"pypi-dependencies": {"linux-only": "*"}},
+        "win": {"dependencies": {"tzdata": ">=2023.3"}},
     },
 }
 
@@ -46,6 +52,47 @@ def test_declared_packages_accepts_a_bare_feature_list() -> None:
         "pytest",
         "numpy",
     }
+
+
+def test_target_specific_packages_maps_packages_to_targets() -> None:
+    assert target_specific_packages(PIXI) == {
+        "linux-only": {"linux-64"},
+        "tzdata": {"win"},
+    }
+
+
+def test_target_specific_dependency_reports_without_failing(capsys) -> None:
+    result = validate_declared_packages(
+        {"tzdata": {"pandas/tests/test_timezones.py"}},
+        declared=set(),
+        target_specific={"tzdata": {"win"}},
+    )
+
+    assert result == 0
+    expected = (
+        "Warning: 'tzdata' gates tests with importorskip/skip_if_no, and "
+        "'tzdata' is declared only for these pixi targets: win. "
+        "Affected test files:\n"
+        "    pandas/tests/test_timezones.py\n"
+    )
+    assert capsys.readouterr().out == expected
+
+
+def test_undeclared_dependency_reports_and_fails(capsys) -> None:
+    result = validate_declared_packages(
+        {"missing": {"pandas/tests/test_optional.py"}},
+        declared=set(),
+        target_specific={},
+    )
+
+    assert result == 1
+    expected = (
+        "'missing' gates tests with importorskip/skip_if_no, but 'missing' is "
+        "not installed in any environment that runs the test suite, so these "
+        "tests never run:\n"
+        "    pandas/tests/test_optional.py\n"
+    )
+    assert capsys.readouterr().out == expected
 
 
 def test_environments_running_tests_reads_the_workflow_matrix() -> None:
