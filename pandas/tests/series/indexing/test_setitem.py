@@ -715,6 +715,48 @@ class TestSetitemCasting:
         with pytest.raises(TypeError, match="Invalid value"):
             ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
 
+    def test_setitem_iloc_rhs_series_non_default_index_with_na(self):
+        # GH#62473
+        # Assigning a nullable Int64 Series with an NA as the RHS of an iloc
+        # setitem used to raise "boolean value of NA is ambiguous" when the
+        # RHS had a non-default index: the precision-loss check in
+        # ``_coerce_to_data_and_mask`` compared ``values[idx]`` (positional)
+        # against ``original[idx]``, which on a Series does a *label* lookup
+        # and could land on the NA element even when the value at that
+        # position is concrete.
+        ser = pd.Series(
+            [4, 6, 9, None, 10, 13, 15],
+            index=[6, 1, 5, 0, 3, 2, 4],
+            dtype="Int64",
+        )
+        indices = pd.Series([6, 1, 5, 0, 3, 2, 4], dtype="int64")
+        values = pd.Series(
+            [4, 6, 9, None, 10, 13, 15],
+            index=[4, 1, 2, 6, 0, 5, 3],
+            dtype="Int64",
+        )
+
+        result = ser.copy()
+        result.iloc[indices] = values
+
+        assert result.dtype == "Int64"
+        # The outcome is positional: the RHS index labels must not matter.
+        expected = ser.copy()
+        expected.iloc[indices] = pd.Series([4, 6, 9, None, 10, 13, 15], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+    def test_setitem_iloc_rhs_series_non_default_index(self):
+        # GH#62473
+        # Same label-vs-position root cause without a missing value: the
+        # precision-loss check looked the assigned value up in the original
+        # by label, which raised (or misfired) for a non-default index.
+        ser = pd.Series([1, 2], dtype="Int64")
+        result = ser.copy()
+        result.iloc[[0, 1]] = pd.Series([1.0, 2.0], index=["a", "b"])
+        expected = ser.copy()
+        expected.iloc[[0, 1]] = pd.Series([1.0, 2.0])
+        tm.assert_series_equal(result, expected)
+
 
 class SetitemCastingEquivalents:
     """
