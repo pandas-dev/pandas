@@ -810,6 +810,22 @@ class TestDataFrameReplace:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_replace_with_None_keeps_dtype_of_unmatched_columns(self, inplace):
+        # GH#30512 A and B share a block; only A has a match
+        df = pd.DataFrame({"A": [np.nan, 2.0], "B": [1.5, 3.0], "C": [1, 2]})
+        result = df.replace({np.nan: None}, inplace=inplace)
+        if inplace:
+            result = df
+        expected = pd.DataFrame(
+            {
+                "A": pd.Series([None, 2.0], dtype=object),
+                "B": [1.5, 3.0],
+                "C": [1, 2],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_all_NA(self):
         # GH#60688
         df = pd.DataFrame({"ticker": ["#1234#"], "name": [None]})
