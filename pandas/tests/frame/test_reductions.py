@@ -3011,6 +3011,26 @@ def test_numeric_ea_axis_1(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype", ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        ("any", [True, pd.NA, pd.NA, True, False]),
+        ("all", [pd.NA, False, pd.NA, True, False]),
+    ],
+)
+def test_any_all_axis_1_skipna_false_kleene(dtype, op, expected):
+    # GH#57171
+    df = pd.DataFrame(
+        {"a": [True, False, None, True, False], "b": [None, None, None, True, False]},
+        dtype=dtype,
+    )
+    result = getattr(df, op)(axis=1, skipna=False)
+    tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
+
+
 @pytest.mark.parametrize("how", ["idxmax", "idxmin"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
