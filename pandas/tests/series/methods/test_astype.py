@@ -781,13 +781,10 @@ def test_astype_object_to_datetimelike_no_unit(dtype):
 
 
 @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
-@pytest.mark.parametrize(
-    "dtype", [object, pd.StringDtype("python", na_value=np.nan)], ids=["object", "str"]
-)
-def test_astype_strings_mixed_iso_formats_to_dt64(dtype, box):
+def test_astype_strings_mixed_iso_formats_to_dt64(any_string_dtype, box):
     # GH#53127 each string is parsed on its own, not with a format guessed
     #  from the first one
-    obj = box(["2007-07-07 01:01:01.10", "2007-07-07 01:01:01"], dtype=dtype)
+    obj = box(["2007-07-07 01:01:01.10", "2007-07-07 01:01:01"], dtype=any_string_dtype)
 
     result = obj.astype("M8[ns]")
 
