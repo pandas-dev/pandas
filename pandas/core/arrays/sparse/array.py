@@ -555,6 +555,93 @@ def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
     return maybe_promote(dtype, fill_value)
 
 
+def groupby_sum_dense_fill(
+    dtype: SparseDtype, has_gaps: bool
+) -> tuple[np.dtype, Any] | None:
+    """
+    Dense dtype and fill value for ``groupby_sum_stored``, None if it does not apply.
+
+    It applies to numeric values with a fill value of 0 or NA, or without gaps.
+    The dense dtype is the one ``SparseArray._densify`` would give.
+    """
+    npdtype = dtype.subtype
+    fill_value = dtype.fill_value
+    if has_gaps:
+        if isna(fill_value):
+            npdtype, fill_value = maybe_promote(npdtype, fill_value)
+        elif npdtype.kind not in "iuf" or fill_value != 0:
+            return None
+    if npdtype.kind not in "iuf":
+        return None
+    return npdtype, fill_value
+
+
+def groupby_sum_stored(
+    sp_values: np.ndarray,
+    sp_ids: npt.NDArray[np.intp],
+    n_gaps: npt.NDArray[np.intp],
+    npdtype: np.dtype,
+    fill_value: Any,
+    *,
+    min_count: int,
+    ngroups: int,
+    has_dropped_na: bool,
+    **kwargs,
+) -> np.ndarray:
+    """
+    Groupwise sum of a sparse array without materializing all fill values.
+
+    Parameters
+    ----------
+    sp_values : np.ndarray
+        The stored values.
+    sp_ids : np.ndarray[np.intp]
+        The group of each stored value, -1 for none.
+    n_gaps : np.ndarray[np.intp]
+        The number of fill values in each group.
+    npdtype : np.dtype
+        Dense dtype, from ``groupby_sum_dense_fill``.
+    fill_value : Any
+        Fill value, 0 or NA, from ``groupby_sum_dense_fill``.
+    min_count, ngroups, has_dropped_na, **kwargs
+        As for ``SparseArray._groupby_op``.
+
+    Returns
+    -------
+    np.ndarray
+        The sum of each group, as for the densified values.
+
+    Notes
+    -----
+    A fill value of 0 changes the sum of a group only through ``min_count``, and
+    an NA fill value only through ``skipna``. So instead of all fill values, it is
+    enough to keep ``min(n_gaps, min_count)`` zeros, or one NA, for each group.
+    """
+    if isna(fill_value):
+        n_fill = np.minimum(n_gaps, 1)
+    else:
+        n_fill = np.minimum(n_gaps, max(min_count, 0))
+    values = np.concatenate(
+        [
+            sp_values.astype(npdtype, copy=False),
+            np.full(n_fill.sum(), fill_value, dtype=npdtype),
+        ]
+    )
+    ids = np.concatenate([sp_ids, np.repeat(np.arange(ngroups, dtype=np.intp), n_fill)])
+
+    from pandas.core.groupby.ops import WrappedCythonOp
+
+    op = WrappedCythonOp(how="sum", has_dropped_na=has_dropped_na)
+    return op._cython_op_ndim_compat(
+        values,
+        min_count=min_count,
+        ngroups=ngroups,
+        comp_ids=ids,
+        mask=None,
+        **kwargs,
+    )
+
+
 @set_module("pandas.arrays")
 class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
@@ -1955,6 +2042,26 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 skipna=kwargs.get("skipna", True),
             )
 
+        dense_fill = None
+        if how == "sum":
+            dense_fill = groupby_sum_dense_fill(self.dtype, self.sp_index.ngaps > 0)
+        if dense_fill is not None:
+            # GH#28487: sum the stored values only, without densifying
+            sp_ids = ids[self.sp_index.indices]
+            n_gaps = np.bincount(ids[ids >= 0], minlength=ngroups) - np.bincount(
+                sp_ids[sp_ids >= 0], minlength=ngroups
+            )
+            return groupby_sum_stored(
+                self.sp_values,
+                sp_ids,
+                n_gaps,
+                *dense_fill,
+                min_count=min_count,
+                ngroups=ngroups,
+                has_dropped_na=has_dropped_na,
+                **kwargs,
+            )
+
         npvalues = self._densify()
 
         if npvalues.dtype.kind in "mM":
@@ -2059,6 +2166,44 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
     # ------------------------------------------------------------------------
+
+    @classmethod
+    def _reduce_axis1(
+        cls,
+        name: str,
+        arrays: Sequence[Self],
+        *,
+        skipna: bool = True,
+        **kwargs,
+    ) -> np.ndarray:
+        if name != "sum":
+            raise NotImplementedError(
+                f"{cls.__name__} does not implement row-wise {name}"
+            )
+        # GH#28487: the row of a stored value is its index in the column, so
+        # neither the dense values nor the row codes of all nrows * ncols
+        # elements are needed.
+        dtype = arrays[0].dtype
+        nrows, ncols = len(arrays[0]), len(arrays)
+        sp_ids = np.concatenate([a.sp_index.indices for a in arrays]).astype(
+            np.intp, copy=False
+        )
+        n_gaps = ncols - np.bincount(sp_ids, minlength=nrows)
+        dense_fill = groupby_sum_dense_fill(dtype, bool(n_gaps.any()))
+        if dense_fill is None:
+            raise NotImplementedError(
+                f"{cls.__name__} does not implement row-wise sum for {dtype}"
+            )
+        return groupby_sum_stored(
+            np.concatenate([a.sp_values for a in arrays]),
+            sp_ids,
+            n_gaps,
+            *dense_fill,
+            min_count=kwargs.get("min_count", 0),
+            ngroups=nrows,
+            has_dropped_na=False,
+            skipna=skipna,
+        )
 
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs

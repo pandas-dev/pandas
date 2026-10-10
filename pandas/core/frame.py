@@ -17087,7 +17087,20 @@ class DataFrame(NDFrame, OpsMixin):
                     # already-known codes (GH#56903).
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
                     df = df.astype(dtype)
-                    arr = concat_compat(list(df._iter_column_arrays()))
+                    arrays = cast(
+                        "list[ExtensionArray]", list(df._iter_column_arrays())
+                    )
+                    try:
+                        # GH#28487: an EA may reduce its columns row-wise
+                        # without concatenating them, e.g. SparseArray sum
+                        res_values = type(arrays[0])._reduce_axis1(
+                            name, arrays, skipna=skipna, **kwds
+                        )
+                    except NotImplementedError:
+                        pass
+                    else:
+                        return Series(res_values, index=df.index)
+                    arr = concat_compat(arrays)
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
                     row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
