@@ -863,6 +863,20 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, temp_file, pa)
 
+    def test_categorical_string_dtype_categories(
+        self, pa, temp_file, string_dtype_no_object
+    ):
+        # GH#46863 append makes pyarrow-backed categories multi-chunk
+        cats = pd.Index(["x", "y", "z"], dtype=string_dtype_no_object).append(
+            pd.Index(["q"], dtype=string_dtype_no_object)
+        )
+        df = pd.DataFrame({"a": pd.Categorical.from_codes([0, -1, 2], categories=cats)})
+
+        # categories are read back with the default string dtype
+        expected = df.copy()
+        expected["a"] = expected["a"].cat.set_categories(cats.astype("str"))
+        check_round_trip(df, temp_file, pa, expected=expected)
+
     @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(
         self, df_compat, s3_bucket_public, s3so, pa, temp_file
