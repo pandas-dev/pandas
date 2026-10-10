@@ -243,7 +243,7 @@ def _check_replace_value_not_callable(value) -> None:
         # (the underlying ndarray)
         for _, v in value.items():
             _check_replace_value_not_callable(v)
-    elif is_list_like(value) and not isinstance(value, str):
+    elif is_list_like(value):
         for v in value:
             _check_replace_value_not_callable(v)
 
