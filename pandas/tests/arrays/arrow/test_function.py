@@ -548,7 +548,8 @@ def test_unique_by_run_ends_declines_without_comparison_kernel():
         )
     )
     encoded = pa.compute.run_end_encode(arr._pa_array.combine_chunks()).values
-    with pytest.raises(pa.ArrowNotImplementedError):
+    msg = "Function 'less' has no kernel matching input types"
+    with pytest.raises(pa.ArrowNotImplementedError, match=msg):
         pa.compute.less(encoded[:-1], encoded[1:])
 
     assert arr._unique_by_run_ends() is None
@@ -561,7 +562,8 @@ def test_unique_by_run_ends_declines_without_kernel():
     arr = ArrowExtensionArray(
         pa.chunked_array([pa.array(["a", "a", "b", "c"], type=dtype)])
     )
-    with pytest.raises(pa.ArrowNotImplementedError):
+    msg = "Function 'run_end_encode' has no kernel matching input types"
+    with pytest.raises(pa.ArrowNotImplementedError, match=msg):
         pa.compute.run_end_encode(arr._pa_array.combine_chunks())
 
     assert arr._unique_by_run_ends() is None

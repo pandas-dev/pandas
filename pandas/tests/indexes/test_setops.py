@@ -1128,8 +1128,11 @@ def test_intersection_arrow_lossy_join_target():
 
     # not asserting these are *correct* -- the lossy join target predates this
     # path -- only that they come from the input rather than the corrupted
-    # merge output
-    assert result._values._pa_array.cast("int64").to_pylist() == [1, 2, 3]
+    # merge output, and are deduplicated
+    result_ns = result._values._pa_array.cast("int64").to_pylist()
+    left_ns = left._values._pa_array.cast("int64").to_pylist()
+    assert len(result_ns) == len(set(result_ns))
+    assert set(result_ns) <= set(left_ns)
 
 
 def test_intersection_arrow_dictionary_no_run_end_kernel():

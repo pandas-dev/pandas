@@ -3515,11 +3515,11 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
             else:
                 res: ArrayLike
-                if isinstance(res_indexer, ArrowExtensionArray):
+                if isinstance(self._values, ArrowExtensionArray):
                     # the merge emits keys in order, so duplicates are adjacent.
                     # Take from self, not the merge output: the join target
                     # round-trips through NumPy, lossy for time64[ns]
-                    taken = cast("ArrowExtensionArray", self.take(indexer)._values)
+                    taken = self._values.take(indexer)
                     fast = taken._unique_by_run_ends()
                     res = taken.unique() if fast is None else fast
                 # TODO: algos.unique1d should preserve DTA/TDA
