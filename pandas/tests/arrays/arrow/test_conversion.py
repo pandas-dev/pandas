@@ -486,6 +486,23 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
     assert result.dtypes.iloc[0] == data_type
 
 
+def test_astype_dictionary_ordered():
+    # GH#58152
+    dtype = ArrowDtype(pa.dictionary(pa.int8(), pa.string(), ordered=True))
+    ser = pd.Series(["foo", "bar", "foo"]).astype(dtype)
+    assert ser.dtype == dtype
+    assert ser.tolist() == ["foo", "bar", "foo"]
+
+
+def test_constructor_dictionary_ordered():
+    # GH#58152 pyarrow<25 drops ordered=True in pa.array
+    # TODO(pyarrow>=25): remove, pyarrow then keeps the flag itself
+    dtype = ArrowDtype(pa.dictionary(pa.int8(), pa.string(), ordered=True))
+    ser = pd.Series(["foo", "bar", "foo"], dtype=dtype)
+    assert ser.dtype == dtype
+    assert ser.tolist() == ["foo", "bar", "foo"]
+
+
 def test_categorical_from_arrow_dictionary():
     # GH 60563
     df = pd.DataFrame(
