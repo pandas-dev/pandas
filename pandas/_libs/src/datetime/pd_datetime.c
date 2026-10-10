@@ -268,9 +268,8 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     if (!PyErr_Occurred()) {
       PyErr_SetString(PyExc_ValueError,
                       "Could not convert PyDateTime to numpy datetime");
-
-      return -1;
     }
+    return -1;
   }
 
   // convert directly in base so pre-epoch values floor like the

@@ -1722,12 +1722,13 @@ class TestPandasContainer:
         # GH#53473 object datetimes round like datetime64 values (toward
         # negative infinity) and are not scaled through nanoseconds
         ser = pd.Series([value])
+        obj_ser = pd.Series([value], dtype=object)
         msg = "'epoch' date"
         for unit in units.split():
             with tm.assert_produces_warning(Pandas4Warning, match=msg):
                 expected = ser.to_json(date_format="epoch", date_unit=unit)
             with tm.assert_produces_warning(Pandas4Warning, match=msg):
-                result = ser.astype(object).to_json(date_format="epoch", date_unit=unit)
+                result = obj_ser.to_json(date_format="epoch", date_unit=unit)
             assert result == expected
 
     def test_read_inline_jsonl(self):
