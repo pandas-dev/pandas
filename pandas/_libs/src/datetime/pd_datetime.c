@@ -195,6 +195,15 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   out->us = PyLong_AsLong(tmp);
   Py_DECREF(tmp);
 
+  // pd.Timestamp carries sub-microsecond precision, GH#53473
+  if (PyObject_HasAttrString(obj, "nanosecond")) {
+    tmp = PyObject_GetAttrString(obj, "nanosecond");
+    if (tmp == NULL)
+      return -1;
+    out->ps = PyLong_AsLong(tmp) * 1000;
+    Py_DECREF(tmp);
+  }
+
   if (PyObject_HasAttrString(obj, "tzinfo")) {
     return apply_tzinfo_offset(obj, out);
   }
@@ -264,16 +273,9 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     }
   }
 
-  int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
-  if (scaleNanosecToUnit(&npy_dt, base) == -1) {
-    PyErr_Format(PyExc_ValueError,
-                 "Call to scaleNanosecToUnit with value %" NPY_DATETIME_FMT
-                 " and base %d failed",
-                 npy_dt, base);
-
-    return -1;
-  }
-  return npy_dt;
+  // convert directly in base so pre-epoch values floor like the
+  // datetime64 path; scaling from ns would truncate toward zero
+  return npy_datetimestruct_to_datetime(base, &dts);
 }
 
 /* Initializes and exposes a customer datetime C-API from the pandas library
