@@ -7,7 +7,9 @@ further arguments when parsing.
 
 from decimal import Decimal
 from io import (
+    BufferedReader,
     BytesIO,
+    RawIOBase,
     StringIO,
     TextIOWrapper,
 )
@@ -1826,3 +1828,146 @@ def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatc
 
     assert result.columns.tolist() == ["a", "b", "c"]
     assert result.index.name is None
+
+
+@pytest.mark.parametrize(
+    "quoted, line",
+    [
+        # newlines in an earlier record shift the bad record's line
+        ('"x\n\n\n\n\n\n\n"', 10),
+        # long enough for the vectorized scan of quoted fields
+        ('"' + "ab\n" * 20 + '"', 23),
+        ("x", 3),
+    ],
+)
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_bad_line_number_counts_quoted_newlines(
+    c_parser_only, quoted, line, on_bad_lines
+):
+    # GH#16286: report the line in the file, not the record number
+    parser = c_parser_only
+    data = f'a,b,c\n1,2,{quoted}\n4,5,"y\nz",7\n'
+    if on_bad_lines == "error":
+        with pytest.raises(ParserError, match=f"fields in line {line}, saw 4"):
+            parser.read_csv(StringIO(data))
+    else:
+        with tm.assert_produces_warning(
+            ParserWarning, match=f"Skipping line {line}:", check_stacklevel=False
+        ):
+            parser.read_csv(StringIO(data), on_bad_lines="warn")
+
+
+@pytest.mark.parametrize(
+    "data, line",
+    [
+        ("a,b\n1,x\\\ny\n4,5,6\n", 4),
+        ('a,b\n1,"x\\\ny"\n4,5,6\n', 4),
+        # the bad record holds the escaped newline
+        ("a,b\n1,2\n4,x\\\ny,6\n", 3),
+        ('a,b\n1,2\n4,"x\\\ny",6\n', 3),
+    ],
+)
+def test_bad_line_number_counts_escaped_newlines(c_parser_only, data, line):
+    # GH#16286
+    parser = c_parser_only
+    with pytest.raises(ParserError, match=f"fields in line {line}, saw 3"):
+        parser.read_csv(StringIO(data), escapechar="\\")
+
+
+def test_bad_line_number_counts_quoted_newlines_unseekable(c_parser_only):
+    # GH#16286: the source cannot be re-read after the bad line, so the line
+    # breaks are counted as it is read
+    parser = c_parser_only
+
+    class Unseekable(RawIOBase):
+        def __init__(self, data: bytes) -> None:
+            self._data = BytesIO(data)
+
+        def readable(self) -> bool:
+            return True
+
+        def seekable(self) -> bool:
+            return False
+
+        def readinto(self, buffer) -> int:
+            return self._data.readinto(buffer)
+
+    source = BufferedReader(Unseekable(b'a,b,c\n1,2,"x\ny"\n4,5,6,7\n'))
+    with pytest.raises(ParserError, match="fields in line 4, saw 4"):
+        parser.read_csv(source)
+
+
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_bad_line_number_counts_quoted_newlines_chunked(c_parser_only, on_bad_lines):
+    # GH#16286: line breaks in rows already dropped from the buffer still count
+    parser = c_parser_only
+    data = 'a,b\n1,"x\ny"\n2,"x\ny"\n3,"x\ny"\n4,5,6\n7,8\n9,"x\ny",10\n'
+    if on_bad_lines == "error":
+        with pytest.raises(ParserError, match="fields in line 8, saw 3"):
+            list(parser.read_csv(StringIO(data), chunksize=1))
+    else:
+        with tm.assert_produces_warning(
+            ParserWarning, match="Skipping line 8:", check_stacklevel=False
+        ) as record:
+            list(parser.read_csv(StringIO(data), chunksize=1, on_bad_lines="warn"))
+        assert "Skipping line 10:" in str(record[-1].message)
+
+
+@pytest.mark.parametrize("terminator", ["\n", "\r\n"])
+def test_bad_line_number_after_skipped_multiline_row(c_parser_only, terminator):
+    # GH#16286
+    parser = c_parser_only
+    data = terminator.join(["a,b,c", "1,2,3", '1,2,"x', 'y"', "4,5,6,7", ""])
+    with pytest.raises(ParserError, match="fields in line 5, saw 4"):
+        parser.read_csv(StringIO(data), skiprows=[2])
+
+
+@pytest.mark.parametrize("last_kind", ["quoted", "escaped", "escaped_start"])
+@pytest.mark.parametrize("seed", range(2))
+@pytest.mark.parametrize("chunksize", [None, 1, 7])
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_bad_line_number_random_multiline_fields(
+    c_parser_only, last_kind, seed, chunksize, on_bad_lines
+):
+    # GH#16286: runs of plain, quoted and escaped rows, ending with a run of
+    # last_kind right before the bad row
+    parser = c_parser_only
+    rng = np.random.default_rng(seed)
+    kinds = ["plain", "quoted", "escaped", "escaped_start"]
+    blocks = [kinds[i] for i in rng.choice(4, size=10, p=[0.55, 0.15, 0.15, 0.15])]
+    rows = [kind for kind in [*blocks, last_kind] for _ in range(20)]
+    rows += ["bad"] + [kinds[i] for i in rng.choice(4, size=20)]
+
+    lines = ["a,b,c"]
+    line = 2
+    for kind in rows:
+        breaks = int(rng.integers(1, 4))
+        if kind == "bad":
+            lines.append("1,2,3,4")
+            expected = line
+            breaks = 0
+        elif kind == "plain":
+            lines.append("1,2,3")
+            breaks = 0
+        elif kind == "quoted":
+            lines.append('"' + "x\n" * breaks + 'y",2,3')
+        elif kind == "escaped":
+            lines.append("x" + "\\\n" * breaks + "y,2,3")
+        else:
+            lines.append("\\\n" * breaks + "y,2,3")
+        line += 1 + breaks
+    data = "\n".join(lines) + "\n"
+
+    kwargs = {"escapechar": "\\", "chunksize": chunksize}
+    if on_bad_lines == "error":
+        with pytest.raises(ParserError, match=f"fields in line {expected}, saw 4"):
+            result = parser.read_csv(StringIO(data), **kwargs)
+            if chunksize is not None:
+                list(result)
+    else:
+        with tm.assert_produces_warning(
+            ParserWarning, match=f"Skipping line {expected}:", check_stacklevel=False
+        ):
+            result = parser.read_csv(StringIO(data), on_bad_lines="warn", **kwargs)
+            if chunksize is not None:
+                list(result)

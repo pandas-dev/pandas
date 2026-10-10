@@ -1318,6 +1318,32 @@ def test_parallel_on_bad_lines_warn_line_numbers(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_parallel_bad_line_number_counts_quoted_newlines(
+    tmp_path, monkeypatch, on_bad_lines
+):
+    # GH#16286: every 10th record spans two lines, so the bad record starts on
+    # line 1 + 300 + 30 + 1
+    raw = (
+        b"a,b\n"
+        + b"".join(
+            (f'{i},"x\ny"\n' if i % 10 == 0 else f"{i},{i}\n").encode()
+            for i in range(300)
+        )
+        + b"1,2,3,4\n"
+        + b"".join(f"{i},{i}\n".encode() for i in range(300, 600))
+    )
+    path = tmp_path / "bad.csv"
+    path.write_bytes(raw)
+
+    if on_bad_lines == "error":
+        with pytest.raises(ParserError, match="fields in line 332, saw 4"):
+            _read_forced_parallel(path, monkeypatch)
+    else:
+        with tm.assert_produces_warning(ParserWarning, match="Skipping line 332:"):
+            _read_forced_parallel(path, monkeypatch, on_bad_lines="warn")
+
+
 def test_parallel_implicit_index_matches_serial(tmp_path, monkeypatch):
     # Data rows with one more field than the header get an implicit index;
     # the parallel path must hand back to serial rather than drop it via
