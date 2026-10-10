@@ -86,6 +86,23 @@ class TestTSPlot:
         ydata = ax.get_lines()[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.asarray(values))
 
+    def test_irregular_tz_aware_year_tick_labels(self, tz_aware_fixture):
+        # GH#15754 year ticks were labeled one year early with pytz zones
+        tz = tz_aware_fixture
+        index = DatetimeIndex(["2011-10-01 09:00", "2016-10-01 09:00"], tz="UTC")
+        index = index.tz_convert(tz)
+        values = [-0.26, -0.01]
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(2)
+        pd.Series(values, index=index).plot(ax=ax1)
+        pd.Series(values, index=index.tz_localize(None)).plot(ax=ax2)
+        ax1.get_figure().canvas.draw()
+
+        result = [label.get_text() for label in ax1.get_xticklabels()]
+        expected = [label.get_text() for label in ax2.get_xticklabels()]
+        assert "2016" in result
+        assert result == expected
+
     def test_fontsize_set_correctly(self):
         # For issue #8765
         df = pd.DataFrame(
@@ -1416,6 +1433,15 @@ class TestTSPlot:
                 PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
                 == "100ms"
             )
+
+    def test_plot_multiplied_nano_freq(self):
+        # GH#20575 128Hz data; dropping the multiplier made the date locator
+        # enumerate every nanosecond in view
+        idx = date_range(0, periods=2, freq="7812500ns")
+        ser = pd.Series([1.0, 2.0], index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        assert ax.freq == "7812500ns"
 
     def test_irreg_dtypes(self):
         # date
