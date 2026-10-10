@@ -423,6 +423,89 @@ jobs:
           pytest_marker_expression: "not slow and not db and not network and not single_cpu"
           pytest_target: "pandas"
 
+  Linux-LSan:
+    # Separate from Linux-Sanitizers: LSan needs a CPython built with ASan (and
+    # without pymalloc) to avoid drowning in false positives.
+    name: "Clang (ASAN/LSAN)"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    container:
+      # https://github.com/nascheme/cpython_sanity
+      # not updated by Dependabot; bump with:
+      #   docker pull <image>:<tag> && docker inspect --format='{{index .RepoDigests 0}}' <image>:<tag>
+      image: ghcr.io/nascheme/cpython-asan:3.14.7@sha256:5e7cfa58bbaff0a31efc199d7d39902b80f99ab526c9c74104cd909ff075fd0a
+      options: --shm-size=2g
+    env:
+      # ASan enables LSan by default on Linux; only check for leaks in the Test step
+      ASAN_OPTIONS: detect_leaks=0
+    concurrency:
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-lsan
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install dependencies
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          # system zoneinfo, including legacy names, for tests that set TZ
+          apt-get update -q && apt-get install -y -q --no-install-recommends tzdata tzdata-legacy
+          python -m pip install --no-cache-dir -U pip wheel "meson[ninja]" meson-python "versioneer[toml]" cython
+          python -m pip install --no-cache-dir numpy python-dateutil tzdata "pytest>=8.3.4" "pytest-xdist>=3.6.1" hypothesis
+          python -m pip list
+
+      - name: Build pandas
+        run: |
+          python -m pip install --verbose --no-build-isolation --no-deps -e . \
+            -Csetup-args="--werror" \
+            -Csetup-args="-Dbuildtype=debugoptimized" \
+            -Csetup-args="-Db_sanitize=address" \
+            -Csetup-args="-Db_lundef=false"
+
+      - name: Test
+        # xdist workers are killed before LSan's exit-time check, so lsan_check
+        # runs it at session end. Reports go to files and the next step fails
+        # the job if any exist; exitcode=0 keeps leaks in subprocesses spawned
+        # by tests from failing those tests' return-code checks.
+        run: |
+          mkdir -p /tmp/sanitizer-logs
+          export ASAN_OPTIONS="detect_leaks=1:exitcode=0:log_path=/tmp/sanitizer-logs/asan"
+          export LSAN_OPTIONS="print_suppressions=0:suppressions=$GITHUB_WORKSPACE/ci/suppressions/lsan.txt"
+          PYTHONPATH=ci python -m pytest -p lsan_check -r fE \
+            -m "not slow and not db and not network and not single_cpu" \
+            --numprocesses=auto --dist=worksteal --capture=no \
+            pandas
+
+      - name: Report sanitizer logs
+        if: always()
+        run: |
+          shopt -s nullglob
+          logs=(/tmp/sanitizer-logs/*)
+          if [ ${#logs[@]} -eq 0 ]; then
+            echo "No sanitizer reports"
+            exit 0
+          fi
+          grep -h "^SUMMARY:" "${logs[@]}" | sort | uniq -c | sort -rn || true
+          for f in "${logs[@]}"; do
+            echo "::group::$f"
+            cat "$f"
+            echo "::endgroup::"
+          done
+          exit 1
+
+      - name: Upload sanitizer logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sanitizer-logs
+          path: /tmp/sanitizer-logs/
+          if-no-files-found: ignore
+
   python-dev:
     # This job may or may not run depending on the state of the next
     # unreleased Python version. DO NOT DELETE IT.
