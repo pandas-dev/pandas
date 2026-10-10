@@ -6901,7 +6901,16 @@ class Index(IndexOpsMixin, PandasObject):
                 names = [self.name] * len(new_values[0])
             else:
                 names = None
-            return MultiIndex.from_tuples(new_values, names=names)
+            # ValueError: tuples of different lengths, return a flat Index
+            #  (GH#50293); names are set afterwards so a mismatch still raises
+            try:
+                result = MultiIndex.from_tuples(new_values)
+            except ValueError:
+                pass
+            else:
+                if names is not None:
+                    result.names = names
+                return result
 
         dtype = None
         if not new_values.size:

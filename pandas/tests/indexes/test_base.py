@@ -613,6 +613,18 @@ class TestIndex:
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
+    def test_map_with_tuples_of_different_lengths(self):
+        # GH#50293
+        index = Index([1, 2], name="n")
+        result = index.map(lambda x: (x,) * x)
+        expected = Index([(1,), (2, 2)], name="n", tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
+        mi = MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+        result = mi.map(lambda tup: (*tup, "z") if tup[0] == "a" else tup)
+        expected = Index([("a", "b", "z"), ("c", "d")], tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "index",
         [
