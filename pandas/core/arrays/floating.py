@@ -68,11 +68,11 @@ class FloatingArray(NumericArray):
     """
     Array of floating (optional missing) values.
 
-    .. warning::
+    .. note::
 
-       FloatingArray is currently experimental, and its API or internal
-       implementation may change without warning. Especially the behaviour
-       regarding NaN (distinct from NA missing values) is subject to change.
+       By default NaN is treated as missing (converted to NA). The
+       experimental ``future.distinguish_nan_and_na`` option keeps them
+       distinct, which is the planned future behaviour.
 
     We represent a FloatingArray with 2 numpy arrays:
 

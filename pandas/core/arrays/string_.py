@@ -103,11 +103,6 @@ class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
 
-    .. warning::
-
-       StringDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
-
     Parameters
     ----------
     storage : {"python", "pyarrow"}, optional
@@ -619,11 +614,6 @@ class BaseStringArray(ExtensionArray):
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
     Extension array for string data.
-
-    .. warning::
-
-       StringArray is considered experimental. The implementation and
-       parts of the API may change without warning.
 
     Parameters
     ----------

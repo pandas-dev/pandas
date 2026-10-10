@@ -92,11 +92,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
-    .. warning::
-
-       ArrowStringArray is considered experimental. The implementation and
-       parts of the API may change without warning.
-
     Parameters
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray

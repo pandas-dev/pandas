@@ -80,11 +80,6 @@ class IntegerArray(NumericArray):
 
     Uses :attr:`pandas.NA` as the missing value.
 
-    .. warning::
-
-       IntegerArray is currently experimental, and its API or internal
-       implementation may change without warning.
-
     We represent an IntegerArray with 2 numpy arrays:
 
     - data: contains a numpy integer array of the appropriate dtype
