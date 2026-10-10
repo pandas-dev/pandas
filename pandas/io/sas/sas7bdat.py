@@ -42,25 +42,24 @@ from pandas._libs.sas import (
     Parser,
     collect_page_subheaders,
 )
-from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
-    OutOfBoundsDatetime,
     Pandas4Warning,
 )
 from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Timestamp,
-)
+from pandas import DataFrame
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
 from pandas.io.common import get_handle
 import pandas.io.sas.sas_constants as const
+from pandas.io.sas.sas_dates import (
+    convert_datetimes,
+    convert_type_for_format,
+)
 from pandas.io.sas.sasreader import SASReader
 
 if TYPE_CHECKING:
@@ -69,10 +68,6 @@ if TYPE_CHECKING:
         FilePath,
         ReadBuffer,
     )
-
-
-_unix_origin = Timestamp("1970-01-01")
-_sas_origin = Timestamp("1960-01-01")
 
 
 @functools.cache
@@ -153,87 +148,6 @@ def _utf8_translation_table(
     table.flags.writeable = False
     lengths.flags.writeable = False
     return table, lengths, ascii_identity
-
-
-# SAS uses a modified Gregorian calendar where years divisible by 4000 are
-# not leap years (unlike proleptic Gregorian). These are the SAS day counts
-# for the first day affected by each 4000-year boundary.
-# See https://communities.sas.com/t5/SAS-Programming/Leap-Years-divisible-by-4000/td-p/663467
-_SAS_MARCH1_4000 = 745154  # SAS day count for March 1, 4000
-_SAS_MARCH1_8000 = 2206123  # SAS day count for March 1, 8000
-
-
-def _sas_to_gregorian_correction(values: np.ndarray, unit: str) -> np.ndarray:
-    """
-    Compute the additive correction (in `unit`) to convert SAS day/second counts
-    to proleptic Gregorian day/second counts.
-
-    SAS omits Feb 29 for years divisible by 4000 (unlike proleptic Gregorian);
-    this adds back the missing days. `unit` must be "d" (days) or "s" (seconds).
-    """
-    scale = 86400 if unit == "s" else 1
-    thresholds = np.array([_SAS_MARCH1_4000, _SAS_MARCH1_8000], dtype=np.int64) * scale
-    correction = np.zeros(len(values), dtype=np.float64)
-    valid = ~np.isnan(values)
-    for threshold in thresholds:
-        correction[valid] += (values[valid] >= threshold).astype(np.float64) * scale
-    return correction
-
-
-def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
-    """
-    Convert SAS day or second counts to a datetime64 Series.
-
-    Parameters
-    ----------
-    sas_datetimes : Series
-       Dates or datetimes in SAS
-    unit : {'d', 's'}
-       "d" if the floats represent dates, "s" for datetimes
-
-    Returns
-    -------
-    Series
-       datetime64[s] for unit="d", datetime64[ms] for unit="s".
-    """
-    td = (_sas_origin - _unix_origin).as_unit("s")
-    # SAS's own date range tops out near 6e6 days, so a count this size is not
-    # a date the file could legitimately hold -- it is corrupt bytes, or a
-    # numeric column carrying a date format. Casting it does not overflow, it
-    # saturates: a negative one lands on the NaT sentinel and is read as
-    # missing, and a positive one does raise below, but naming the date the
-    # saturated cast landed on rather than anything the file holds.
-    # A day count is scaled by 86400 below, so its own limit is that much lower.
-    limit = 2.0**63 / 86400 if unit == "d" else 2.0**63
-    too_large = np.abs(sas_datetimes._values) >= limit
-    if too_large.any():
-        value = sas_datetimes._values[too_large][0]
-        what = "date" if unit == "d" else "datetime"
-        raise OutOfBoundsDatetime(
-            f"Out of bounds SAS {what} value: {value}; no SAS {what} can be this "
-            f"large, so the file is corrupt or the column is not a {what}"
-        )
-    if unit == "s":
-        corrected = sas_datetimes._values + _sas_to_gregorian_correction(
-            sas_datetimes._values, unit="s"
-        )
-        millis = cast_from_unit_vectorized(corrected, unit="s", out_unit="ms")
-        dt64ms = millis.view("M8[ms]") + td
-        return pd.Series(dt64ms, index=sas_datetimes.index, copy=False)
-    else:
-        corrected = sas_datetimes._values + _sas_to_gregorian_correction(
-            sas_datetimes._values, unit="d"
-        )
-        # A date-formatted column is a float64 day count that SAS does not force
-        # whole, so scale the fraction in rather than truncating it with an M8[D]
-        # cast. Round to seconds here instead of scaling from "D" inside
-        # cast_from_unit_vectorized, whose rounding precision is a power of ten:
-        # 1e-4 of a day, coarser than the seconds this returns.
-        secs = cast_from_unit_vectorized(
-            np.round(corrected * 86400.0), unit="s", out_unit="s"
-        )
-        dt64s = secs.view("M8[s]") + td
-        return pd.Series(dt64s, index=sas_datetimes.index, copy=False)
 
 
 class _Column:
@@ -624,14 +538,15 @@ class SAS7BDATReader(SASReader):
 
         self._column_convert_types: list[str | None] = []
         for j in range(self.column_count):
-            if self._column_types[j] == b"d" and self.convert_dates:
-                fmt = self.column_formats[j]
-                if fmt in const.sas_date_formats:
-                    self._column_convert_types.append("d")
-                elif fmt in const.sas_datetime_formats:
-                    self._column_convert_types.append("s")
-                else:
-                    self._column_convert_types.append(None)
+            fmt = self.column_formats[j]
+            # With convert_header_text=False the format is still bytes, which
+            # never names a date format
+            if (
+                self._column_types[j] == b"d"
+                and self.convert_dates
+                and isinstance(fmt, str)
+            ):
+                self._column_convert_types.append(convert_type_for_format(fmt))
             else:
                 self._column_convert_types.append(None)
 
@@ -1196,7 +1111,11 @@ class SAS7BDATReader(SASReader):
                 rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
                 convert_type = self._column_convert_types[j]
                 if convert_type is not None:
-                    rslt[name] = _convert_datetimes(rslt[name], convert_type)
+                    rslt[name] = pd.Series(
+                        convert_datetimes(rslt[name]._values, convert_type),
+                        index=ix,
+                        copy=False,
+                    )
                 jb += 1
             elif self._column_types[j] == b"s":
                 if self._str_mode != const.string_mode_object:
