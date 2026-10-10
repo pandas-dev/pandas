@@ -11,7 +11,6 @@ from pandas.compat import pa_version_under21p0
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.strings.accessor import StringMethods
 from pandas.tests.strings import is_object_or_nan_string_dtype
 
@@ -992,9 +991,10 @@ def test_setitem_with_different_string_storage():
         (r"[(?=)]", False),
         (r"(?#(?=comment)", False),
         (r"(test # (?=comment))", True),
-        (r"(?=test)+", False),
-        (r"(?=test)*", False),
-        (r"(?=test)?", False),
+        (r"(?=test)+", True),
+        (r"(?=test)*", True),
+        (r"(?=test)?", True),
+        (r"(?:a(?=b))+", True),
         (r"abc|(?=test)", True),
         (r"^(?=test)$", True),
         # backreferences
@@ -1003,9 +1003,11 @@ def test_setitem_with_different_string_storage():
         (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
     ],
 )
-def test_has_regex_unsupported_code(pat, expected):
+def test_needs_python_regex_unsupported_code(pat, expected):
     # https://github.com/pandas-dev/pandas/issues/60833
-    assert ArrowStringArrayMixin._has_unsupported_regex(pat) == expected
+    pytest.importorskip("pyarrow")
+    arr = pd.array(["abc"], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
 
 
 @pytest.mark.parametrize(
@@ -1030,9 +1032,14 @@ def test_has_regex_unsupported_code(pat, expected):
         (r"", False),
     ],
 )
-def test_has_unicode_sensitive_regex(pat, expected):
+def test_needs_python_regex_unicode_classes(pat, expected):
     # GH#70770
-    assert ArrowStringArrayMixin._has_unicode_sensitive_regex(pat) == expected
+    pytest.importorskip("pyarrow")
+    arr = pd.array(["é"], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
+    # all-ASCII data keeps the pyarrow path
+    ascii_arr = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
+    assert not ascii_arr._needs_python_regex(pat)
 
 
 @pytest.mark.parametrize(

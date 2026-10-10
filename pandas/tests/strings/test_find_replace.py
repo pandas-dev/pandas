@@ -1018,6 +1018,7 @@ def test_replace_regex_single_character(regex, any_string_dtype):
         (r"(?<=a)b", ["aa", "ax", "ba", "bb"]),
         (r"a(?!b)", ["xx", "ab", "bx", "bb"]),
         (r"(?<!b)a", ["xx", "xb", "ba", "bb"]),
+        (r"(?:a(?=b))+", ["aa", "xb", "ba", "bb"]),
         ("ab", ["aa", "x", "ba", "bb"]),
     ],
 )
