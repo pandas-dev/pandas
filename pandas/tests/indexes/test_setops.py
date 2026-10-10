@@ -1047,6 +1047,125 @@ def test_union_disjoint_monotonic_sorted():
     tm.assert_index_equal(result_false, expected_false)
 
 
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int64[pyarrow]",
+        "uint32[pyarrow]",
+        "int32[pyarrow]",
+        "float64[pyarrow]",
+        "float32[pyarrow]",
+    ],
+)
+def test_intersection_arrow_duplicates(dtype):
+    # GH#66498
+    left = pd.Index([1, 1, 2, 2, 3, 3, 4], dtype=dtype)
+    right = pd.Index([2, 2, 3, 4, 4, 5], dtype=dtype)
+
+    result = left.intersection(right)
+    expected = pd.Index([2, 3, 4], dtype=dtype)
+    tm.assert_index_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+def test_intersection_arrow_signed_zero(dtype):
+    # GH#66498 both survive; check signbit since assert_index_equal can't
+    left = pd.Index([-0.0, 0.0, 1.0], dtype=dtype)
+    right = pd.Index([-0.0, 0.0, 2.0], dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert len(result) == 2
+    assert np.signbit(np.asarray(result.astype("float64"))).tolist() == [True, False]
+
+
+@td.skip_if_no("pyarrow")
+def test_intersection_arrow_chunked_run_across_seam():
+    # GH#66498
+    left = pd.Index([1, 2, 2], dtype="int64[pyarrow]").append(
+        pd.Index([2, 3], dtype="int64[pyarrow]")
+    )
+    assert left._values._pa_array.num_chunks == 2
+
+    result = left.intersection(pd.Index([2, 3], dtype="int64[pyarrow]"))
+
+    expected = pd.Index([2, 3], dtype="int64[pyarrow]")
+    tm.assert_index_equal(result, expected)
+
+
+def test_monotonic_index_has_monotonic_join_target(index):
+    # GH#66498 the Arrow intersection dedup relies on this
+    if not index._can_use_libjoin:
+        pytest.skip("_get_join_target is only used under _can_use_libjoin")
+
+    target = index._get_join_target()
+    if target.dtype == object:
+        try:
+            monotonic = all(target[i] <= target[i + 1] for i in range(len(target) - 1))
+        except TypeError:
+            pytest.skip("non-comparable object dtype")
+    else:
+        monotonic = bool(np.all(target[:-1] <= target[1:]))
+
+    assert monotonic
+
+
+@td.skip_if_no("pyarrow")
+def test_intersection_arrow_lossy_join_target():
+    # GH#66498 the join target truncates time64[ns] to microseconds
+    left = pd.Index([1, 1, 2, 3], dtype="time64[ns][pyarrow]")
+    right = pd.Index([2, 3, 4], dtype="time64[ns][pyarrow]")
+
+    result = left.intersection(right)
+
+    # not checking correctness, only that values come from the input
+    result_ns = result._values._pa_array.cast("int64").to_pylist()
+    left_ns = left._values._pa_array.cast("int64").to_pylist()
+    assert len(result_ns) == len(set(result_ns))
+    assert set(result_ns) <= set(left_ns)
+
+
+def test_intersection_arrow_dictionary_no_run_end_kernel():
+    # GH#66498 dictionary has no run-end kernel
+    pa = pytest.importorskip("pyarrow")
+
+    dtype = pd.ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    left = pd.Index(["a", "a", "b", "c"], dtype=dtype)
+    right = pd.Index(["b", "c", "d"], dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert result.tolist() == ["b", "c"]
+    assert result.dtype == left.dtype
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+@pytest.mark.parametrize(
+    "left_values, expected_len",
+    [
+        ([0.0, -0.0, 0.0], 2),
+        ([-0.0, 0.0, -0.0, 0.0], 2),
+        ([0.0, -0.0, 0.0, -0.0, 1.0], 3),
+    ],
+)
+def test_intersection_arrow_interleaved_signed_zero(dtype, left_values, expected_len):
+    # GH#66498 interleaved -0.0 and 0.0 are sorted but not adjacent
+    left = pd.Index(left_values, dtype=dtype)
+    assert left.is_monotonic_increasing
+    right = pd.Index([0.0, -0.0, 1.0], dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert len(result) == expected_len
+    # no repeats, with -0.0 and 0.0 distinct
+    signs = np.signbit(np.asarray(result.astype("float64"))).tolist()
+    pairs = list(zip(result.tolist(), signs, strict=True))
+    assert len(set(pairs)) == len(pairs)
+
+
 @pytest.mark.parametrize(
     "index",
     [

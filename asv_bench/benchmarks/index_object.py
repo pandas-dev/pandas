@@ -16,7 +16,15 @@ from pandas import (
 class SetOperations:
     params = (
         ["monotonic", "non_monotonic"],
-        ["datetime", "date_string", "int", "strings", "ea_int"],
+        [
+            "datetime",
+            "date_string",
+            "int",
+            "strings",
+            "ea_int",
+            "arrow_int",
+            "arrow_string",
+        ],
         ["intersection", "union", "symmetric_difference"],
     )
     param_names = ["index_structure", "dtype", "method"]
@@ -29,6 +37,11 @@ class SetOperations:
         int_left = Index(np.arange(N))
         ea_int_left = Index(np.arange(N), dtype="Int64")
         str_left = Index([f"i-{i}" for i in range(N)], dtype=object)
+        arrow_int_left = Index(np.arange(N), dtype="int64[pyarrow]")
+        # zero-padded so the strings sort, as libjoin needs a monotonic index
+        arrow_str_left = Index(
+            [f"i-{i:07d}" for i in range(N)], dtype="string[pyarrow]"
+        )
 
         data = {
             "datetime": dates_left,
@@ -36,6 +49,8 @@ class SetOperations:
             "int": int_left,
             "strings": str_left,
             "ea_int": ea_int_left,
+            "arrow_int": arrow_int_left,
+            "arrow_string": arrow_str_left,
         }
 
         if index_structure == "non_monotonic":
@@ -48,6 +63,68 @@ class SetOperations:
 
     def time_operation(self, index_structure, dtype, method):
         getattr(self.left, method)(self.right)
+
+
+class IntersectionDedup:
+    # Dedup cost of Arrow intersections across cardinalities; signed zeros
+    # disable the sorted fastpath.
+    params = (
+        [
+            "int64",
+            "float64",
+            "Int64",
+            "int64[pyarrow]",
+            "float64[pyarrow]",
+            "string[pyarrow]",
+            "object",
+        ],
+        [
+            "unique",
+            "duplicated",
+            "low_cardinality",
+            "partial_overlap",
+            "signed_zero",
+            "chunked",
+        ],
+    )
+    param_names = ["dtype", "scenario"]
+
+    def setup(self, dtype, scenario):
+        if scenario == "signed_zero" and dtype not in ("float64", "float64[pyarrow]"):
+            raise NotImplementedError
+        if scenario == "chunked" and not dtype.endswith("[pyarrow]"):
+            raise NotImplementedError
+
+        N = 10**5
+        values = {
+            "unique": np.arange(N),
+            "duplicated": np.repeat(np.arange(N // 2), 2),
+            "low_cardinality": np.repeat(np.arange(100), N // 100),
+            "partial_overlap": np.arange(N + N // 2),
+            "chunked": np.arange(N),
+            "signed_zero": np.concatenate(
+                [np.repeat([-0.0, 0.0], N // 2), np.arange(1, N)]
+            ),
+        }[scenario]
+
+        if dtype in ("string[pyarrow]", "object"):
+            # zero-padded so the strings sort, as libjoin needs a monotonic index
+            values = [f"i-{i:07d}" for i in values]
+        index = Index(values, dtype=dtype)
+
+        if scenario == "chunked":
+            # mostly measures take() across chunks, not the dedup
+            parts = [Index(p, dtype=dtype) for p in np.array_split(values, 100)]
+            self.left, self.right = parts[0].append(parts[1:]), index[:-1]
+        elif scenario == "partial_overlap":
+            # half the keys match
+            self.left, self.right = index[:N], index[N // 2 :]
+        else:
+            # nearly every key matches
+            self.left, self.right = index, index[:-1]
+
+    def time_intersection(self, dtype, scenario):
+        self.left.intersection(self.right)
 
 
 class SetDisjoint:
