@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under18p0,
     pa_version_under21p0,
     pa_version_under25p0,
 )
@@ -452,12 +453,19 @@ def _copy_pyarrow_buffers(
     Return an equal array that owns its buffers (GH#67990).
 
     ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
-    so dictionary types are rebuilt from copies of both halves.
+    so dictionary types are rebuilt from copies of both halves. It likewise
+    reuses the data buffers of view types, so those round-trip through a cast
+    first, and nested types holding either are copied again with ``copy_to``
+    (both pyarrow >= 18 only).
     """
     if isinstance(pa_array, pa.ChunkedArray):
         return pa.chunked_array(
             [_copy_pyarrow_buffers(chunk) for chunk in pa_array.chunks],
             type=pa_array.type,
+        )
+    if isinstance(pa_array, pa.ExtensionArray):
+        return pa.ExtensionArray.from_storage(
+            pa_array.type, _copy_pyarrow_buffers(pa_array.storage)
         )
     if pa.types.is_dictionary(pa_array.type):
         return pa.DictionaryArray.from_arrays(
@@ -465,7 +473,33 @@ def _copy_pyarrow_buffers(
             _copy_pyarrow_buffers(pa_array.dictionary),
             ordered=pa_array.type.ordered,
         )
+    if not pa_version_under18p0:
+        if pa.types.is_string_view(pa_array.type):
+            pa_array = pa_array.cast(pa.large_string()).cast(pa_array.type)
+        elif pa.types.is_binary_view(pa_array.type):
+            pa_array = pa_array.cast(pa.large_binary()).cast(pa_array.type)
+        elif _has_dictionary_or_view_child(pa_array.type):
+            return pa.concat_arrays([pa_array]).copy_to(pa.default_cpu_memory_manager())
     return pa.concat_arrays([pa_array])
+
+
+def _has_dictionary_or_view_child(pa_type: pa.DataType) -> bool:
+    """
+    Whether any child type (or its extension storage), at any depth, is a dictionary
+    or view type.
+    """
+    for i in range(pa_type.num_fields):
+        child = pa_type.field(i).type
+        if isinstance(child, pa.BaseExtensionType):
+            child = child.storage_type
+        if (
+            pa.types.is_dictionary(child)
+            or pa.types.is_string_view(child)
+            or pa.types.is_binary_view(child)
+            or _has_dictionary_or_view_child(child)
+        ):
+            return True
+    return False
 
 
 @set_module("pandas.arrays")
@@ -1814,15 +1848,22 @@ class ArrowExtensionArray(
 
     def copy(self) -> Self:
         """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
+        Return a copy of the array.
 
         Returns
         -------
         type(self)
         """
-        return self._from_pyarrow_array(self._pa_array)
+        return self._from_pyarrow_array(_copy_pyarrow_buffers(self._pa_array))
+
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
+        # __setitem__ replaces _pa_array rather than writing into its buffers,
+        #  so the base class's copy is unnecessary
+        result = self._from_pyarrow_array(self._pa_array)
+        if is_list_like(value):
+            value = value[~mask]
+        result[~mask] = value
+        return result
 
     @overload
     def view(self, dtype: None = ...) -> Self: ...
