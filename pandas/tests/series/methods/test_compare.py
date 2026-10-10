@@ -156,3 +156,14 @@ def test_compare_no_upcast_from_dropped_rows(val, val2):
     result = ser1.compare(ser2)
     expected = pd.DataFrame({"self": [val], "other": [val2]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_compare_identical_keeps_dtype():
+    # GH#39899
+    ser = pd.Series([1, 2])
+    result = ser.compare(ser.copy())
+    expected = pd.DataFrame(
+        {"self": np.array([], dtype=np.int64), "other": np.array([], dtype=np.int64)},
+        index=pd.Index([], dtype=np.int64),
+    )
+    tm.assert_frame_equal(result, expected)
