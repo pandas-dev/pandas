@@ -18,6 +18,7 @@ from typing import (
     NoReturn,
     Self,
     cast,
+    overload,
 )
 import warnings
 
@@ -5021,9 +5022,95 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    # error: Incompatible types in assignment (expression has type overloaded function,
-    # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
-    rename = Index.set_names  # type: ignore[assignment]
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: Literal[False] = ...,
+    ) -> Self: ...
+
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: Literal[True],
+    ) -> None: ...
+
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: bool = ...,
+    ) -> Self | None: ...
+
+    def rename(
+        self,
+        name: Hashable
+        | Sequence[Hashable]
+        | dict[Hashable, Hashable]
+        | lib.NoDefault = lib.no_default,
+        *,
+        names: Hashable
+        | Sequence[Hashable]
+        | dict[Hashable, Hashable]
+        | lib.NoDefault = lib.no_default,
+        level: Hashable | Sequence[Hashable] | None = None,
+        inplace: bool = False,
+    ) -> Self | None:
+        """
+        Alter MultiIndex level names.
+
+        Equivalent to :meth:`MultiIndex.set_names`.
+
+        Parameters
+        ----------
+        name : Hashable, sequence of Hashable, or dict-like
+            Name(s) to set. A dict-like maps old level names to new ones.
+        names : Hashable, sequence of Hashable, or dict-like
+            Alias for ``name``; pass only one of the two.
+        level : int, Hashable or a sequence of the previous, optional
+            If ``name`` is not dict-like, level(s) to set (None for all levels).
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new MultiIndex.
+
+        Returns
+        -------
+        MultiIndex or None
+            The same type as the caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        MultiIndex.set_names : Set level names partially and by level.
+        Index.rename : Alter Index name.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+        >>> mi.rename(["a", "b"])
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['a', 'b'])
+        >>> mi.rename("a", level=0)
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['a', 'y'])
+        """
+        if names is not lib.no_default:
+            if name is not lib.no_default:
+                raise TypeError("Pass only one of 'name' and 'names'.")
+            name = names
+        elif name is lib.no_default:
+            raise TypeError("rename() missing required argument: 'name'")
+        return self.set_names(name, level=level, inplace=inplace)
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled
