@@ -50,53 +50,54 @@ static void pandas_datetime_destructor(PyObject *op) {
  */
 static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
   PyObject *offset = extract_utc_offset(obj);
+  if (offset == NULL) {
+    return -1;
+  }
   /* Apply the time zone offset if datetime obj is tz-aware */
-  if (offset != NULL) {
-    if (offset == Py_None) {
-      Py_DECREF(offset);
-      return 0;
-    }
-    /*
-     * The timedelta should have a function "total_seconds"
-     * which contains the value we want.
-     */
-    PyObject *tmp = PyObject_CallMethod(offset, "total_seconds", NULL);
+  if (offset == Py_None) {
     Py_DECREF(offset);
-    if (tmp == NULL) {
-      return -1;
-    }
-    PyObject *tmp_int = PyNumber_Long(tmp);
-    if (tmp_int == NULL) {
-      Py_DECREF(tmp);
-      return -1;
-    }
-    int seconds_offset = PyLong_AsLong(tmp_int);
-    if (seconds_offset == -1 && PyErr_Occurred()) {
-      Py_DECREF(tmp_int);
-      Py_DECREF(tmp);
-      return -1;
-    }
+    return 0;
+  }
+  /*
+   * The timedelta should have a function "total_seconds"
+   * which contains the value we want.
+   */
+  PyObject *tmp = PyObject_CallMethod(offset, "total_seconds", NULL);
+  Py_DECREF(offset);
+  if (tmp == NULL) {
+    return -1;
+  }
+  PyObject *tmp_int = PyNumber_Long(tmp);
+  if (tmp_int == NULL) {
+    Py_DECREF(tmp);
+    return -1;
+  }
+  int seconds_offset = PyLong_AsLong(tmp_int);
+  if (seconds_offset == -1 && PyErr_Occurred()) {
     Py_DECREF(tmp_int);
     Py_DECREF(tmp);
-
-    /*
-     * Subtract the offset to get UTC. Offsets are not always a whole number
-     * of minutes -- any zone in its local-mean-time era has seconds (e.g.
-     * Asia/Tokyo is +09:18:59 before 1888) -- so fold the sub-minute part
-     * into the seconds field and let the rest go through as minutes.
-     */
-    int minutes_to_add = -(seconds_offset / 60);
-    int sec = out->sec - seconds_offset % 60;
-    if (sec < 0) {
-      sec += 60;
-      minutes_to_add -= 1;
-    } else if (sec >= 60) {
-      sec -= 60;
-      minutes_to_add += 1;
-    }
-    out->sec = sec;
-    add_minutes_to_datetimestruct(out, minutes_to_add);
+    return -1;
   }
+  Py_DECREF(tmp_int);
+  Py_DECREF(tmp);
+
+  /*
+   * Subtract the offset to get UTC. Offsets are not always a whole number
+   * of minutes -- any zone in its local-mean-time era has seconds (e.g.
+   * Asia/Tokyo is +09:18:59 before 1888) -- so fold the sub-minute part
+   * into the seconds field and let the rest go through as minutes.
+   */
+  int minutes_to_add = -(seconds_offset / 60);
+  int sec = out->sec - seconds_offset % 60;
+  if (sec < 0) {
+    sec += 60;
+    minutes_to_add -= 1;
+  } else if (sec >= 60) {
+    sec -= 60;
+    minutes_to_add += 1;
+  }
+  out->sec = sec;
+  add_minutes_to_datetimestruct(out, minutes_to_add);
 
   return 0;
 }
@@ -222,6 +223,10 @@ static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
 
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
   char *result = PyObject_Malloc(*len);
+  if (result == NULL) {
+    PyErr_NoMemory();
+    return NULL;
+  }
   // Check to see if PyDateTime has a timezone.
   // Don't convert to UTC if it doesn't.
   int is_tz_aware = 0;
@@ -259,9 +264,8 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     if (!PyErr_Occurred()) {
       PyErr_SetString(PyExc_ValueError,
                       "Could not convert PyDateTime to numpy datetime");
-
-      return -1;
     }
+    return -1;
   }
 
   int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
