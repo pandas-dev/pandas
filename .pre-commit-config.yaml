@@ -244,6 +244,14 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
+    -   id: rst-list-indentation
+        name: Validate that lists in documentation are not indented
+        entry: python scripts/validate_rst_list_indentation.py
+        language: python
+        types: [rst]
+        files: ^doc/source/
+        exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
+        additional_dependencies: [docutils]
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python
