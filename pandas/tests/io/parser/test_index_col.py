@@ -402,6 +402,33 @@ def test_scalar_numeric_dtype_for_index_col(all_parsers, dtype, request):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "string"])
+def test_index_col_dtype_dict_missing_index_col(all_parsers, dtype):
+    # GH#68041 dict dtype that omits index_col
+    parser = all_parsers
+    data = "a,b\n1,2\n3,4"
+    result = parser.read_csv(
+        StringIO(data),
+        index_col="a",
+        dtype={"b": dtype},
+        dtype_backend="pyarrow",
+    )
+    expected = pd.DataFrame(
+        {"b": pd.array([2, 4], dtype=dtype)},
+        index=pd.Index([1, 3], name="a", dtype="int64[pyarrow]"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_index_col_dtype_dict_positional_key(all_parsers):
+    # GH#68041 dtype keyed by the index column position
+    parser = all_parsers
+    data = "a,b\n1,2\n3,4"
+    result = parser.read_csv(StringIO(data), index_col=0, dtype={0: "float64"})
+    expected = pd.DataFrame({"b": [2, 4]}, index=pd.Index([1.0, 3.0], name="a"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multiindex_columns_not_leading_index_col(all_parsers):
     # GH#38549
     parser = all_parsers

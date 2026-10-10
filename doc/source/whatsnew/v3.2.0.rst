@@ -188,6 +188,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``IndexError`` when a dict ``dtype`` omitted ``index_col`` and ``dtype_backend="pyarrow"`` was passed (:issue:`68041`)
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
 - Bug in :func:`read_excel` raising ``ValueError`` when ``header`` is a list and ``index_col`` consumes all columns (:issue:`66372`)
 - Bug in :func:`read_orc` raising whenever ``filesystem`` was passed (:issue:`58746`)
