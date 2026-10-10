@@ -66,13 +66,12 @@ filepath_or_buffer : various
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. ``sep=None`` detects the separator from the first valid row
-  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
-  is supported only by the Python parsing engine, which will be used
-  automatically. In addition, separators longer than 1 character
-  and different from ``'\s+'`` will be interpreted as regular expressions and
-  will force the use of the Python parsing engine. Note that regex
+  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`;
+  the pyarrow engine does not support it. In addition, separators longer than
+  1 character and different from ``'\s+'`` will be interpreted as regular
+  expressions and will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
+delimiter : str, optional
   Alternative argument name for sep.
 
 Column and index locations and names
@@ -178,9 +177,8 @@ engine : {``'c'``, ``'python'``, ``'pyarrow'``}
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels. The function is applied to the raw text read from the
-  file, before any missing-value detection: an empty field is passed as an empty
-  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
-  column that has a converter.
+  file, so an empty field is passed as an empty string ``''``; ``na_values`` and
+  ``keep_default_na`` are then applied to the value the function returns.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -273,6 +271,9 @@ cache_dates : boolean, default True
   If True, use a cache of unique, converted dates to apply the datetime
   conversion. May produce significant speed-up when parsing duplicate
   date strings, especially ones with timezone offsets.
+
+  .. deprecated:: 3.2.0
+     The ``cache_dates`` argument will be removed in a future version.
 
 Iteration
 +++++++++
@@ -1431,15 +1432,13 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None``. Passing
-``engine='python'`` as well avoids the ``ParserWarning`` raised by the
-fallback.
+class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv("tmp2.csv", sep=":", index=False)
-   pd.read_csv("tmp2.csv", sep=None, engine="python")
+   pd.read_csv("tmp2.csv", sep=None)
 
 .. ipython:: python
    :suppress:
@@ -1513,7 +1512,7 @@ three engines:
    "Relative speed","fast","slowest","fastest on large workloads"
    "Multithreaded",":ref:`for large files <io.csv.parallel>`","no","yes"
    "Regex or multi-character ``sep``","no","yes","no"
-   "``sep=None`` (auto-detect the separator)","no","yes","no"
+   "``sep=None`` (auto-detect the separator)","yes","yes","no"
    "``skipfooter``","no","yes","no"
    "``low_memory``","yes","no","no"
    "``lineterminator``","yes","no","no"
@@ -1549,15 +1548,14 @@ considerably. This happens automatically when all of the following hold:
 * more than one thread is in use -- see ``mode.max_threads`` below, which
   defaults to ``1`` when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
-  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
-  ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
-  non-UTF-8 encodings
+  ``iterator``, ``chunksize``, ``nrows``, ``parse_dates``,
+  list/callable ``skiprows``, multi-row headers, or non-UTF-8 encodings
 
 Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
 The number of threads is controlled with the ``mode.max_threads`` option, which
-defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+defaults to the number of CPU cores, capped at ``6`` and limited to the CPUs
 available to the process -- CPU affinity, and the cgroup CPU quota when the
 process runs in its own cgroup namespace, as it does under Docker and
 Kubernetes. Set the option to ``1`` to disable parallel reading, e.g. when
@@ -4298,8 +4296,9 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 .. note::
 
    Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
-   ``append`` is a no-op: the store is not modified and a ``UserWarning`` is
-   emitted. Use ``format='fixed'`` to store an empty object.
+   ``append`` is a no-op: nothing is written for that key and a ``UserWarning``
+   is emitted, though ``to_hdf(..., mode='w')`` still truncates the file. Use
+   ``format='fixed'`` to store an empty object.
 
 .. _io.hdf5-keys:
 
@@ -4379,9 +4378,9 @@ at appending longer strings will raise a ``ValueError``.
 Passing ``min_itemsize={`values`: size}`` as a parameter to append
 will set a larger minimum for the string columns. Storing ``floats,
 strings, ints, bools, datetime64`` are currently supported. For string
-columns, passing ``nan_rep = 'nan'`` to append will change the default
-nan representation on disk (which converts to/from ``np.nan``), this
-defaults to ``nan``.
+columns, passing ``nan_rep`` to append will change the representation used
+on disk for missing values (which converts to/from ``np.nan``); see
+:ref:`nan_rep <io.hdf5-nan-rep>` below.
 
 .. ipython:: python
 
@@ -5180,21 +5179,30 @@ Passing a ``min_itemsize`` dict will cause all passed columns to be created as *
    store.append("dfs2", dfs, min_itemsize={"A": 30})
    store.get_storer("dfs2").table
 
+.. _io.hdf5-nan-rep:
+
 **nan_rep**
 
-String columns will serialize a ``np.nan`` (a missing value) with the ``nan_rep`` string representation. This defaults to the string value ``nan``.
-You could inadvertently turn an actual ``nan`` value into a missing value.
+String columns serialize a missing value as a sentinel string. By default that
+sentinel is chosen so it collides with no value in the column, so a literal
+``"nan"`` and an actual missing value both round-trip.
 
 .. ipython:: python
 
-   dfss = pd.DataFrame({"A": ["foo", "bar", "nan"]})
+   dfss = pd.DataFrame({"A": ["foo", "bar", "nan", np.nan]})
    dfss
 
    store.append("dfss", dfss)
    store.select("dfss")
 
-   # here you need to specify a different nan rep
-   store.append("dfss2", dfss, nan_rep="_nan_")
+Pass ``nan_rep`` to pin the on-disk representation instead, for example so that
+another reader of the file recognizes it. A value equal to the ``nan_rep`` you
+passed is then read back as a missing value, so pick one your data cannot
+contain.
+
+.. ipython:: python
+
+   store.append("dfss2", dfss, nan_rep="nan")
    store.select("dfss2")
 
 
@@ -6006,9 +6014,9 @@ Example of a callable using PostgreSQL `COPY clause
 
           columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
-              table_name = '{}.{}'.format(table.schema, table.name)
+              table_name = '"{}"."{}"'.format(table.schema, table.name)
           else:
-              table_name = table.name
+              table_name = '"{}"'.format(table.name)
 
           sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
               table_name, columns)

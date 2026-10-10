@@ -43,6 +43,16 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=timedelta(0),
     ),
+    "month": inspect.Parameter(
+        "month",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "startingMonth": inspect.Parameter(
+        "startingMonth",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -58,6 +68,41 @@ _OFFSET_SIGNATURES = {
         "holidays",
         "calendar",
         "offset",
+    ),
+    pd.tseries.offsets.BYearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.BYearBegin: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.YearBegin: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.HalfYearEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.HalfYearBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BHalfYearEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BHalfYearBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
     ),
 }
 

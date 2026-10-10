@@ -1267,6 +1267,20 @@ class TestReaders:
         expected = pd.DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_read_excel_multiindex_header_index_col_consumes_all_columns(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#66372
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        pd.DataFrame({"A": ["A1", "A2"]}).to_excel(tmp_excel, index=False, header=False)
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0, engine=engine)
+        expected = pd.DataFrame(
+            index=pd.Index([], dtype=object), columns=pd.Index([], dtype=object)
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_excel_old_index_format(self, read_ext):
         # see gh-4679
         filename = "test_index_name_pre17" + read_ext
@@ -1676,6 +1690,13 @@ class TestExcelFileRead:
         expected = pd.DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
+    def test_excel_bool_kwarg_not_bool(self, read_ext):
+        # GH#68341 a non-bool was taken for its truthiness
+        msg = 'For argument "na_filter" expected type bool'
+        with pd.ExcelFile("test1" + read_ext) as excel:
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel(excel, sheet_name="Sheet1", na_filter="False")
+
     def test_excel_table_sheet_by_index(self, request, engine, read_ext, df_ref):
         xfail_datetimes_with_pyxlsb(engine, request)
 
@@ -1883,3 +1904,33 @@ def test_pyxlsb_engine_deprecated(datapath):
         Pandas4Warning, match="pyxlsb engine is deprecated"
     ):
         pd.read_excel(path, engine="pyxlsb")
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The (xlrd|pyxlsb) engine is deprecated:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize(
+    "engine, module_name, read_ext, load",
+    [
+        ("xlrd", "xlrd", ".xls", lambda mod, path: mod.open_workbook(path)),
+        ("openpyxl", "openpyxl", ".xlsx", lambda mod, path: mod.load_workbook(path)),
+        ("odf", "odf.opendocument", ".ods", lambda mod, path: mod.load(path)),
+        ("pyxlsb", "pyxlsb", ".xlsb", lambda mod, path: mod.open_workbook(path)),
+        (
+            "calamine",
+            "python_calamine",
+            ".xlsx",
+            lambda mod, path: mod.CalamineWorkbook.from_path(path),
+        ),
+    ],
+)
+def test_read_workbook_infers_engine(datapath, engine, module_name, read_ext, load):
+    # GH#46352
+    module = pytest.importorskip(module_name)
+    path = datapath("io", "data", "excel", f"test1{read_ext}")
+    expected = pd.read_excel(path, engine=engine, index_col=0)
+
+    with pd.ExcelFile(load(module, path)) as xl:
+        assert xl.engine == engine
+    result = pd.read_excel(load(module, path), index_col=0)
+    tm.assert_frame_equal(result, expected)

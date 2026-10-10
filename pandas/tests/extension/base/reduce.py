@@ -1,4 +1,7 @@
-from typing import final
+from typing import (
+    Any,
+    final,
+)
 
 import pytest
 
@@ -82,7 +85,13 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
-            msg = "|".join(["[Cc]annot perform", "does not support operation"])
+            msg = "|".join(
+                [
+                    "[Cc]annot perform",
+                    "does not support operation",
+                    "is not supported",
+                ]
+            )
 
             with pytest.raises(TypeError, match=msg):
                 getattr(ser, op_name)(skipna=skipna)
@@ -108,6 +117,7 @@ class BaseReduceTests:
                     "setting an array element with a sequence",
                     "Cannot convert .* to numeric",
                     "Could not convert .* to numeric",
+                    "not allowed for this dtype",
                 ]
             )
 
@@ -138,12 +148,17 @@ class BaseReduceTests:
         op_name = all_reductions
         ser = pd.Series(data)
 
-        kwargs = {}
-        if op_name in ["any", "all"] and isinstance(ser.array, pd.arrays.SparseArray):
-            # SparseArray.any/all do not accept a skipna argument
-            pass
-        elif op_name != "count":
+        kwargs: dict[str, Any] = {}
+        if op_name != "count":
             kwargs["skipna"] = skipna
+
+        # Non-default values, so a method that drops a kwarg mismatches _reduce.
+        # min_count must exceed the non-NA count or it matches the default.
+        variants = [kwargs]
+        if op_name in ["sum", "prod"]:
+            variants.append({**kwargs, "min_count": len(ser) + 1})
+        elif op_name in ["std", "var", "sem"]:
+            variants.append({**kwargs, "ddof": 0})
 
         if not self._supports_reduction(ser, op_name):
             # TODO: the message being checked here isn't actually checking anything
@@ -151,6 +166,7 @@ class BaseReduceTests:
                 [
                     f"object has no attribute '{op_name}'",
                     "does not support operation",
+                    "is not supported",
                     f"{op_name} is not implemented for",
                     f"Cannot perform reduction '{op_name}'",
                     "[Cc]ould not convert",
@@ -160,6 +176,7 @@ class BaseReduceTests:
                     "can't multiply sequence by non-int of type",
                     r"complex\(\) first argument must be a string or a number",
                     r"complex\(\) argument must be a string or a number",
+                    "not allowed for this dtype",
                 ]
             )
             with pytest.raises((TypeError, AttributeError), match=msg):
@@ -167,6 +184,7 @@ class BaseReduceTests:
             return
 
         res_op = getattr(ser.array, op_name)
-        expected = ser.array._reduce(op_name, **kwargs)
-        result = res_op(**kwargs)
-        tm.assert_almost_equal(result, expected)
+        for call_kwargs in variants:
+            expected = ser.array._reduce(op_name, **call_kwargs)
+            result = res_op(**call_kwargs)
+            tm.assert_almost_equal(result, expected)

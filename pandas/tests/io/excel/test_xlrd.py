@@ -1,4 +1,5 @@
 import io
+import sys
 
 import numpy as np
 import pytest
@@ -82,3 +83,29 @@ def test_xlrd_engine_deprecated(datapath):
     path = datapath("io", "data", "excel", "test1.xls")
     with tm.assert_produces_warning(Pandas4Warning, match="xlrd engine is deprecated"):
         pd.read_excel(path, engine="xlrd")
+
+
+def test_read_xlrd_book_no_engine(datapath):
+    # GH#68086 - a Book has "read" but no "seek", so it passes is_file_like
+    # and used to reach inspect_excel_format instead of the xlrd branch
+    sheet_name = "Sheet1"
+    pth = datapath("io", "data", "excel", "test1.xls")
+    expected = pd.read_excel(pth, sheet_name=sheet_name, engine="xlrd", index_col=0)
+
+    with xlrd.open_workbook(pth) as book:
+        with ExcelFile(book) as xl:
+            assert xl.engine == "xlrd"
+            result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
+    with xlrd.open_workbook(pth) as book:
+        from_book = pd.read_excel(book, sheet_name=sheet_name, index_col=0)
+
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(from_book, expected)
+
+
+def test_read_excel_does_not_import_xlrd(datapath, monkeypatch):
+    # GH#56692 - the xlrd.Book check must not import xlrd
+    monkeypatch.delitem(sys.modules, "xlrd", raising=False)
+    with pd.option_context("io.excel.xlsx.reader", "openpyxl"):
+        pd.read_excel(datapath("io", "data", "excel", "test1.xlsx"))
+    assert "xlrd" not in sys.modules

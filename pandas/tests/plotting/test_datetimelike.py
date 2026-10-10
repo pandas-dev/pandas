@@ -86,6 +86,23 @@ class TestTSPlot:
         ydata = ax.get_lines()[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.asarray(values))
 
+    def test_irregular_tz_aware_year_tick_labels(self, tz_aware_fixture):
+        # GH#15754 year ticks were labeled one year early with pytz zones
+        tz = tz_aware_fixture
+        index = DatetimeIndex(["2011-10-01 09:00", "2016-10-01 09:00"], tz="UTC")
+        index = index.tz_convert(tz)
+        values = [-0.26, -0.01]
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(2)
+        pd.Series(values, index=index).plot(ax=ax1)
+        pd.Series(values, index=index.tz_localize(None)).plot(ax=ax2)
+        ax1.get_figure().canvas.draw()
+
+        result = [label.get_text() for label in ax1.get_xticklabels()]
+        expected = [label.get_text() for label in ax2.get_xticklabels()]
+        assert "2016" in result
+        assert result == expected
+
     def test_fontsize_set_correctly(self):
         # For issue #8765
         df = pd.DataFrame(
@@ -1417,6 +1434,15 @@ class TestTSPlot:
                 == "100ms"
             )
 
+    def test_plot_multiplied_nano_freq(self):
+        # GH#20575 128Hz data; dropping the multiplier made the date locator
+        # enumerate every nanosecond in view
+        idx = date_range(0, periods=2, freq="7812500ns")
+        ser = pd.Series([1.0, 2.0], index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        assert ax.freq == "7812500ns"
+
     def test_irreg_dtypes(self):
         # date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
@@ -2002,20 +2028,261 @@ class TestTSPlot:
         with temp_file.open(mode="wb") as path:
             pickle.dump(fig, path)
 
-    @pytest.mark.parametrize("kind", ["bar", "barh"])
-    def test_bar_plot_datetime_index_inferred_freq(self, kind):
+    @pytest.mark.parametrize("freq", ["D", "B"])
+    def test_bar_plot_with_datetime_index_uses_date_formatter(self, freq):
+        # GH#1918 - bar plots use the dynamic date formatter like line plots
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=date_range("2020-01-01", periods=10, freq=freq),
+            columns=["A", "B"],
+        )
+        with tm.assert_produces_warning(None):
+            ax = df.plot(kind="bar")
+        assert isinstance(
+            ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+        )
+        # the formatted labels correspond to the actual dates, not ordinals
+        # misinterpreted relative to the axis origin
+        ax.get_figure().canvas.draw()
+        labels = [t.get_text() for t in ax.get_xticklabels() if t.get_text()]
+        assert labels
+        assert any("2020" in label for label in labels)
+        assert not any("1970" in label for label in labels)
+
+    @pytest.mark.parametrize(
+        "freq", ["D", "W", "ME", "QE", "YE", "h", "2D", "3h", "5D", "2W", "10min"]
+    )
+    def test_bar_plot_date_axis_ticks_land_on_bars(self, freq):
+        # GH#1918 - every drawn tick must label a timestamp that has a bar
+        s = pd.Series(
+            np.arange(10.0), index=date_range("2020-01-06", periods=10, freq=freq)
+        )
+
+        ax = s.plot(kind="bar")
+
+        ax.get_figure().canvas.draw()
+        lo, hi = ax.get_xlim()
+        bars = {round(p.get_x() + p.get_width() / 2) for p in ax.patches}
+        drawn = [int(t) for t in ax.get_xticks() if lo <= t <= hi]
+        assert drawn
+        assert set(drawn) <= bars
+        # the minor ticks carry labels of their own, so they have to land on
+        # bars as well
+        minor = [int(t) for t in ax.get_xticks(minor=True) if lo <= t <= hi]
+        assert set(minor) <= bars
+
+    @pytest.mark.parametrize("freq", ["2B", "3B", "2ME", "2QE", "2YE"])
+    def test_bar_plot_unanchorable_freq_keeps_fixed_ticks(self, freq):
+        # GH#1918 - two frequencies the tick grid cannot be aligned to.
+        # Period[B] is deprecated, so the period alias for business days drops
+        # the multiplier and '3B' resolves to BusinessDay(1), stepping one
+        # business day at a time past bars that are three apart; and the
+        # monthly, quarterly and annual finders walk every period regardless of
+        # the multiplier, putting their minor ticks between the bars
+        s = pd.Series(
+            np.arange(10.0), index=date_range("2020-01-06", periods=10, freq=freq)
+        )
+
+        ax = s.plot(kind="bar")
+
+        assert not isinstance(
+            ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+        )
+
+    def test_bar_plot_date_axis_converter_is_usable(self):
+        # GH#1918 - format_dateaxis installs a PeriodConverter that reads the
+        # freq off the axis, so date-valued axis operations must keep working
+        s = pd.Series(
+            np.arange(5.0), index=date_range("2020-01-01", periods=5, freq="D")
+        )
+        ax = s.plot(kind="bar")
+
+        ax.set_xlim("2020-01-01", "2020-01-05")
+        ax.axvline(s.index[2])
+        assert ax.get_xlim() == (
+            Period("2020-01-01", freq="D").ordinal,
+            Period("2020-01-05", freq="D").ordinal,
+        )
+
+    @pytest.mark.parametrize("xlim", [None, ("2020-01-01", "2020-01-02")])
+    def test_bar_plot_date_axis_rot_applies_to_minor_ticks(self, xlim):
+        # GH#1918 - the minor ticks carry most of the date labels; with a
+        # narrow xlim they are only created once _post_plot_logic widens the view
+        s = pd.Series(
+            np.arange(10.0), index=date_range("2020-01-01", periods=10, freq="D")
+        )
+
+        ax = s.plot(kind="bar", rot=45, fontsize=16, xlim=xlim)
+
+        ax.get_figure().canvas.draw()
+        labels = ax.get_xticklabels() + ax.get_xticklabels(minor=True)
+        drawn = [t for t in labels if t.get_text()]
+        assert drawn
+        assert {t.get_rotation() for t in drawn} == {45.0}
+        assert {t.get_fontsize() for t in drawn} == {16.0}
+
+    @pytest.mark.parametrize("freq", ["D", "3h"])
+    def test_bar_plot_date_axis_subplots_sharex(self, freq):
+        # GH#1918 - as for line plots, only the bottom subplot gets date labels
+        idx = date_range("2020-01-01", periods=10, freq=freq)
+        df = pd.DataFrame({"a": np.arange(10.0), "b": np.arange(10.0)}, index=idx)
+
+        axes = df.plot(kind="bar", subplots=True)
+
+        axes[0].get_figure().canvas.draw()
+
+        def drawn(ax):
+            labels = ax.get_xticklabels() + ax.get_xticklabels(minor=True)
+            return [t.get_text() for t in labels if t.get_visible() and t.get_text()]
+
+        assert drawn(axes[0]) == []
+        assert drawn(axes[1])
+
+    def test_bar_plot_datetime_xticks(self):
+        # GH#1918 - the converter has to be registered before the user's ticks
+        # are applied, both so they land on the right ordinals and so it does
+        # not replace matplotlib's date converter, which warns
+        idx = date_range("2020-01-01", periods=10, freq="D")
+        df = pd.DataFrame({"A": np.arange(10.0)}, index=idx)
+
+        with tm.assert_produces_warning(None):
+            ax = df.plot(kind="bar", xticks=[idx[0], idx[5]])
+            ax.get_figure().canvas.draw()
+
+        assert list(ax.get_xticks()) == [
+            Period("2020-01-01", freq="D").ordinal,
+            Period("2020-01-06", freq="D").ordinal,
+        ]
+
+    def test_bar_plot_does_not_clobber_existing_axis_freq(self):
+        # GH#1918 - the axes was already decorated by a line plot; overwriting
+        # the axis freq would resolve later date-valued calls at a scale that
+        # does not match the line already drawn there
+        _, ax = plt.subplots()
+        pd.Series(
+            np.arange(100.0), index=date_range("2020-01-01", periods=100, freq="D")
+        ).plot(ax=ax)
+        before = ax.xaxis.convert_units(pd.Timestamp("2020-01-06"))
+
+        pd.Series(
+            np.arange(10.0), index=date_range("2020-01-05", periods=10, freq="W")
+        ).plot(kind="bar", ax=ax)
+
+        assert ax.xaxis.convert_units(pd.Timestamp("2020-01-06")) == before
+
+    def test_bar_plot_empty_xticks(self):
+        # GH#1918 - an empty xticks list still goes through the converter
+        s = pd.Series(
+            np.arange(5.0), index=date_range("2020-01-01", periods=5, freq="D")
+        )
+        ax = s.plot(kind="bar", xticks=[])
+        assert list(ax.get_xticks()) == []
+
+    @pytest.mark.parametrize("freq, dynamic", [("ns", False), ("us", True)])
+    def test_bar_plot_ordinals_beyond_float64_precision(self, freq, dynamic):
+        # GH#1918 - matplotlib holds axis coordinates as float64, so ordinals
+        # past 2**53 (nanoseconds) cannot carry the half-unit bar padding: the
+        # limits collapse and the dynamic locator would walk ~1e17 periods.
+        # Those fall back to fixed ticks instead.
+        s = pd.Series(
+            np.arange(10.0), index=date_range("2020-01-01", periods=10, freq=freq)
+        )
+
+        if dynamic:
+            ax = s.plot(kind="bar")
+        else:
+            # the ordinals also collapse the fixed-tick path's axis limits;
+            # matplotlib warns about that on main too, so it is not new here
+            msg = "Attempting to set identical low and high xlims"
+            with tm.assert_produces_warning(
+                UserWarning, match=msg, check_stacklevel=False
+            ):
+                ax = s.plot(kind="bar")
+
+        assert (
+            isinstance(
+                ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+            )
+            is dynamic
+        )
+        # must not blow up while locating ticks
+        ax.get_figure().canvas.draw()
+
+    @pytest.mark.parametrize(
+        "bar_freq, line_freq", [("W", "D"), ("ME", "D"), ("D", "h")]
+    )
+    def test_bar_plot_then_line_plot_at_other_freq(self, bar_freq, line_freq):
+        # GH#1918 - a bar plot must not register the axes as a resamplable
+        # time-series axes: maybe_resample() would then try to resample it for
+        # the line, and _replot_ax()'s ax.clear() would erase the bars.  Only
+        # that survival is asserted here; bars and lines at different freqs sit
+        # on different ordinal scales, which is a separate pre-existing issue
+        _, ax = plt.subplots()
+        pd.Series(
+            np.arange(20.0), index=date_range("2020-01-05", periods=20, freq=bar_freq)
+        ).plot(kind="bar", ax=ax)
+        assert len(ax.patches) == 20
+
+        pd.Series(
+            np.arange(100.0),
+            index=date_range("2020-01-05", periods=100, freq=line_freq),
+        ).plot(ax=ax)
+
+        assert len(ax.patches) == 20
+        assert len(ax.get_lines()) == 1
+
+    def test_barh_plot_datetime_index_not_date_formatted(self):
+        # GH#1918 - for barh the x-axis is the value axis; the date formatter
+        # must not be applied to it
+        df = pd.DataFrame(
+            {"A": [1.5, 2.5, 3.5]}, index=date_range("2020-01-01", periods=3)
+        )
+        ax = df.plot(kind="barh")
+        ax.get_figure().canvas.draw()
+        assert not isinstance(
+            ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+        )
+        y_labels = [t.get_text() for t in ax.get_yticklabels()]
+        assert y_labels == [
+            "2020-01-01 00:00:00",
+            "2020-01-02 00:00:00",
+            "2020-01-03 00:00:00",
+        ]
+
+    @pytest.mark.parametrize(
+        "dates, freq",
+        [
+            (["2020-01-01", "2020-01-02", "2020-01-03"], "D"),
+            (["2020-01-01", "2020-02-01", "2020-03-01"], "M"),
+        ],
+    )
+    def test_bar_plot_datetime_index_inferred_freq(self, dates, freq):
         # GH#66771 - the index freq attribute is unset but inferable, so the
         # bar plot must resolve the freq instead of raising AttributeError
+        idx = DatetimeIndex(dates)
+        assert idx.freq is None
+        df = pd.DataFrame({"A": [1, 2, 3]}, index=idx)
+
+        ax = df.plot(kind="bar")
+
+        assert isinstance(
+            ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+        )
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        assert centers == [Period(ts, freq=freq).ordinal for ts in idx]
+
+    def test_barh_plot_datetime_index_inferred_freq(self):
+        # GH#66771 - barh shares the freq-resolution path with bar but keeps
+        # the string tick labels, since for barh the index is on the y-axis
         idx = DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
         assert idx.freq is None
         df = pd.DataFrame({"A": [1, 2, 3]}, index=idx)
 
-        ax = df.plot(kind=kind)
+        ax = df.plot(kind="barh")
 
         ax.get_figure().canvas.draw()
-        axis = ax.get_yaxis() if kind == "barh" else ax.get_xaxis()
-        labels = [t.get_text() for t in axis.get_ticklabels()]
-        assert labels == [
+        y_labels = [t.get_text() for t in ax.get_yticklabels()]
+        assert y_labels == [
             "2020-01-01 00:00:00",
             "2020-01-02 00:00:00",
             "2020-01-03 00:00:00",

@@ -24,7 +24,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.errors import MergeError
+from pandas.errors import (
+    MergeError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -81,7 +84,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexes.api import default_index
+from pandas.core.indexes.api import (
+    default_index,
+    ensure_index_from_sequences,
+)
 from pandas.core.indexes.base import maybe_sequence_to_range
 from pandas.core.sorting import (
     get_group_index,
@@ -241,7 +247,7 @@ def merge(
             pandas 3.0, this method always returns a new object using a lazy
             copy mechanism that defers copies until necessary
             (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
             for more details.
 
     indicator : bool or str, default False
@@ -1260,7 +1266,12 @@ class _MergeOperation:
                 names_to_restore.append(name)
 
         if names_to_restore:
-            result.set_index(names_to_restore, inplace=True)
+            index = ensure_index_from_sequences(
+                [result[col] for col in names_to_restore], names_to_restore
+            )
+            for col in names_to_restore:
+                del result[col]
+            result.index = index
 
     @final
     def _maybe_add_join_keys(
@@ -1395,7 +1406,10 @@ class _MergeOperation:
                             for level_name in result.index.names
                         ]
 
-                        result.set_index(idx_list, inplace=True)
+                        index = ensure_index_from_sequences(
+                            idx_list, names=[idx.name for idx in idx_list]
+                        )
+                        result.index = index
                     else:
                         result.index = Index(key_col, name=name)
                 else:
@@ -2317,8 +2331,8 @@ class _CrossMergeOperation(_MergeOperation):
         self.right_index = False
         self.indicator = indicator
         self.anti_join = False
-        self.left_on: list = []
-        self.right_on: list = []
+        self.left_on = []
+        self.right_on = []
         self.left_join_keys: list[ArrayLike] = []
         self.right_join_keys: list[ArrayLike] = []
         self.join_names: list[Hashable] = []
@@ -2604,20 +2618,20 @@ class _AsOfMerge(_OrderedMerge):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
-                    raise MergeError("tolerance must be positive")
+                    raise MergeError("tolerance must be non-negative")
 
             elif is_integer_dtype(lt.dtype):
                 if not is_integer(self.tolerance):
                     raise MergeError(msg)
                 if self.tolerance < 0:
-                    raise MergeError("tolerance must be positive")
+                    raise MergeError("tolerance must be non-negative")
 
             elif is_float_dtype(lt.dtype):
                 if not is_number(self.tolerance):
                     raise MergeError(msg)
                 # error: Unsupported operand types for > ("int" and "Number")
                 if self.tolerance < 0:  # type: ignore[operator]
-                    raise MergeError("tolerance must be positive")
+                    raise MergeError("tolerance must be non-negative")
 
             else:
                 raise MergeError("key must be integer, timestamp or float")
@@ -2959,13 +2973,15 @@ def _factorize_keys(
                 .dictionary_encode()
             )
 
+            # copy: on 32-bit, intp is int32 and to_numpy is a read-only view
+            # that putmask below would fail on, GH#57523
             llab, rlab, count = (
                 _safe_fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
-                .astype(np.intp, copy=False),
+                .astype(np.intp),
                 _safe_fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
-                .astype(np.intp, copy=False),
+                .astype(np.intp),
                 len(dc.dictionary),
             )
 
@@ -3373,6 +3389,15 @@ def _items_overlap_with_suffix(
         raise MergeError(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
             "not allowed.",
+        )
+    # GH#13659 left and right labels collide after suffixing, e.g. equal suffixes
+    cross_dups = llabels.intersection(rlabels)
+    if len(cross_dups):
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(cross_dups)} "
+            "is deprecated and will raise a MergeError in a future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

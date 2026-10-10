@@ -903,6 +903,17 @@ class TestExcelWriter:
         df1 = pd.read_excel(tmp_excel, index_col=[0, 1])
         tm.assert_frame_equal(df, df1)
 
+    def test_to_excel_multiindex_nan_column_label(self, merge_cells, tmp_excel):
+        # GH#62340 NaN column label was written as the last value of the level
+        columns = pd.MultiIndex.from_arrays([["x", "y", "z"], [1, np.nan, 2]])
+        df = pd.DataFrame([[1, 2, 3]], columns=columns)
+
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        # header=None since read_excel would forward-fill the empty header cell
+        result = pd.read_excel(tmp_excel, header=None, nrows=2)
+        expected = pd.DataFrame([[np.nan, "x", "y", "z"], [np.nan, 1, np.nan, 2]])
+        tm.assert_frame_equal(result, expected)
+
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
@@ -1516,7 +1527,7 @@ class TestExcelWriter:
     def test_to_excel_raising_warning_when_cell_character_exceed_limit(self):
         # GH#56954
         df = pd.DataFrame({"A": ["a" * 32768]})
-        msg = r"Cell contents too long \(32768\), truncated to 32767 characters"
+        msg = r"Cell contents too long, truncated to 32767 characters"
         with tm.assert_produces_warning(
             UserWarning, match=msg, raise_on_extra_warnings=False
         ):

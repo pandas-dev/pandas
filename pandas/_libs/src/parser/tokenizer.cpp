@@ -262,9 +262,9 @@ int parser_init(parser_t *self) {
                 "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
   self->word_ends = (int64_t *)malloc(sz * sizeof(int64_t));
-  self->max_words_cap = sz;
   self->words_cap = sz;
   self->words_len = 0;
+  self->max_words_needed = 0;
 
   // line pointers and metadata
   self->line_start = (int64_t *)malloc(sz * sizeof(int64_t));
@@ -330,21 +330,16 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     WORD VECTORS
   */
 
-  /**
-   * If we are reading in chunks, we need to be aware of the maximum number
-   * of words we have seen in previous chunks (self->max_words_cap), so
-   * that way, we can properly allocate when reading subsequent ones.
-   *
-   * Otherwise, we risk a buffer overflow if we mistakenly under-allocate
-   * just because a recent chunk did not have as many words.
-   */
-  const uint64_t length = self->words_len + nbytes < self->max_words_cap
-                              ? self->max_words_cap - nbytes - 1
-                              : self->words_len;
-
+  // Reserve the most words any call has needed, so after parser_trim_buffers
+  // a chunked read regrows word_ends to its peak, not once per input buffer.
+  // Record requests, not the rounded-up capacity: that compounds across
+  // reads, see test_read_chunksize_skipped_lines_many_reads.
+  if (self->words_len + nbytes > self->max_words_needed) {
+    self->max_words_needed = self->words_len + nbytes;
+  }
   self->word_ends =
-      (int64_t *)grow_buffer((void *)self->word_ends, length, &self->words_cap,
-                             nbytes, sizeof(int64_t), &status);
+      (int64_t *)grow_buffer((void *)self->word_ends, self->max_words_needed,
+                             &self->words_cap, 0, sizeof(int64_t), &status);
 
   if (status != 0) {
     return PARSER_OUT_OF_MEMORY;
@@ -703,7 +698,8 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 static int skip_this_line(parser_t *self, int64_t rownum) {
   if (self->skipfunc != NULL) {
     PyGILState_STATE state = PyGILState_Ensure();
-    PyObject *result = PyObject_CallFunction(self->skipfunc, "i", rownum);
+    PyObject *result =
+        PyObject_CallFunction(self->skipfunc, "L", (long long)rownum);
 
     // Error occurred. It will be processed
     // and caught at the Cython level.
@@ -1887,19 +1883,6 @@ int parser_trim_buffers(parser_t *self) {
     Free memory
    */
 
-  /**
-   * Before we free up space and trim, we should
-   * save how many words we saw when parsing, if
-   * it exceeds the maximum number we saw before.
-   *
-   * This is important for when we read in chunks,
-   * so that we can inform subsequent chunk parsing
-   * as to how many words we could possibly see.
-   */
-  if (self->words_cap > self->max_words_cap) {
-    self->max_words_cap = self->words_cap;
-  }
-
   /* trim word_ends */
   size_t new_cap = _next_pow2(self->words_len) + 1;
   if (new_cap < self->words_cap) {
@@ -2238,6 +2221,16 @@ fallback:
     if (maybe_int != NULL)
       *maybe_int = 0;
     p++;
+
+    // With no significant integer digits the fractional leading zeros are not
+    // significant either, see test_precise_xstrtod_fractional_leading_zeros.
+    if (num_digits == 0) {
+      while (*p == '0') {
+        saw_digit = true;
+        p++;
+        num_decimals++;
+      }
+    }
 
     while (num_digits < max_digits && isdigit_ascii(*p)) {
       mantissa = mantissa * 10 + (*p - '0');

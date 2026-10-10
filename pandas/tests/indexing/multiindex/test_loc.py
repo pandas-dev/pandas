@@ -991,18 +991,19 @@ def test_mi_add_cell_missing_row_non_unique():
     tm.assert_frame_equal(result, expected)
 
 
-def test_loc_get_scalar_casting_to_float():
+def test_loc_get_scalar_casting_to_float(using_python_scalars):
     # GH#41369
     df = pd.DataFrame(
         {"a": 1.0, "b": 2},
         index=pd.MultiIndex.from_arrays([[3], [4]], names=["c", "d"]),
     )
+    expected_type = int if using_python_scalars else np.int64
     result = df.loc[(3, 4), "b"]
     assert result == 2
-    assert isinstance(result, np.int64)
+    assert type(result) is expected_type
     result = df.loc[[(3, 4)], "b"].iloc[0]
     assert result == 2
-    assert isinstance(result, np.int64)
+    assert type(result) is expected_type
 
 
 def test_loc_empty_single_selector_with_names():
@@ -1116,3 +1117,23 @@ def test_loc_multiindex_interval_level_inf_break():
     # list of tuples, one of which falls in the [59, inf) interval
     result = mapper.loc[[(False, 45), (False, 99)], :]
     tm.assert_frame_equal(result, mapper.iloc[[1, 2]])
+
+
+@pytest.mark.parametrize("pad", [2, 3])
+def test_loc_scalar_level_key_trailing_null_slices(pad):
+    # GH#45762 - the key-length guard must discount the trailing null slices
+    #  .loc leaves on the key, or df.loc["a", :, :] stops dropping level 0.
+    #  pad starts at 2: a 2-tuple is split into row and column selectors by .loc,
+    #  so only a deeper key reaches the guard
+    mi = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    df = pd.DataFrame({"x": range(6), "y": range(6)}, index=mi)
+    expected = pd.DataFrame({"x": range(3), "y": range(3)}, index=pd.Index([1, 2, 3]))
+
+    result = df.loc[("a",) + (slice(None),) * pad]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.xs(("a",) + (slice(None),) * pad)
+    tm.assert_frame_equal(result, expected)
+
+    result = df["x"].loc[("a",) + (slice(None),) * pad]
+    tm.assert_series_equal(result, expected["x"])
