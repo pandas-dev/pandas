@@ -123,6 +123,70 @@ class TestToIterable:
         assert result in rdtype
 
     @pytest.mark.parametrize(
+        "dtype, value, python_type, numpy_type",
+        [
+            ("Int64", 1, int, np.int64),
+            ("UInt8", 1, int, np.uint8),
+            ("Float64", 1.5, float, np.float64),
+            ("Float32", 1.5, float, np.float32),
+            ("boolean", True, bool, np.bool_),
+            ("Sparse[int64]", 1, int, np.int64),
+            ("Sparse[float64]", 1.5, float, np.float64),
+            ("Sparse[bool]", True, bool, np.bool_),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method",
+        [
+            lambda x: list(x),
+            lambda x: [x.item()],
+            lambda x: [value for _, value in x.items()],
+            lambda x: [row[0] for row in x.to_frame().itertuples(index=False)],
+        ],
+        ids=["iter", "item", "items", "itertuples"],
+    )
+    def test_iterable_ea(
+        self, method, dtype, value, python_type, numpy_type, using_python_scalars
+    ):
+        # GH#64266
+        ser = pd.Series([value], dtype=dtype)
+        result = method(ser)[0]
+        assert result == value
+        expected_type = python_type if using_python_scalars else numpy_type
+        assert type(result) is expected_type
+
+    @pytest.mark.parametrize(
+        "dtype, value, python_type, numpy_type",
+        [
+            ("Int64", 1, int, np.int64),
+            ("Float64", 1.5, float, np.float64),
+            ("boolean", True, bool, np.bool_),
+            ("Sparse[int64]", 1, int, np.int64),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method",
+        [
+            lambda x: list(x),
+            lambda x: [x.item()],
+            lambda x: list(x.to_series(index=x).to_dict()),
+            lambda x: [key for key, _ in pd.DataFrame(columns=x).items()],
+            lambda x: [key for key, _ in pd.DataFrame(index=x).iterrows()],
+            lambda x: [key for key, _ in pd.Series(0, index=x).groupby(level=0)],
+        ],
+        ids=["iter", "item", "to_dict", "frame_items", "iterrows", "groupby"],
+    )
+    def test_iterable_ea_index(
+        self, method, dtype, value, python_type, numpy_type, using_python_scalars
+    ):
+        # GH#64266
+        idx = pd.Index([value], dtype=dtype)
+        result = method(idx)[0]
+        assert result == value
+        expected_type = python_type if using_python_scalars else numpy_type
+        assert type(result) is expected_type
+
+    @pytest.mark.parametrize(
         "method",
         [
             lambda x: x.tolist(),

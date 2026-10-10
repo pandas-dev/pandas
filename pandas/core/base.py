@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_python_scalars
+
 from pandas._libs import lib
 from pandas._typing import (
     AxisInt,
@@ -44,7 +46,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -1010,11 +1015,16 @@ class IndexOpsMixin(OpsMixin):
         3
         """
         # We are explicitly making element iterators.
-        if not isinstance(self._values, np.ndarray):
+        values = self._values
+        if not isinstance(values, np.ndarray):
             # Check type instead of dtype to catch DTA/TDA
-            return iter(self._values)
+            if using_python_scalars() and values.dtype.kind != "O":
+                if isinstance(values.dtype, BaseMaskedDtype):
+                    return iter(values.tolist())
+                return map(maybe_unbox_numpy_scalar, values)
+            return iter(values)
         else:
-            return map(self._values.item, range(self._values.size))
+            return map(values.item, range(values.size))
 
     @cache_readonly
     def hasnans(self) -> bool:
