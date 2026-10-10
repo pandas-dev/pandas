@@ -410,11 +410,6 @@ class NAType(C_NAType):
     floating, boolean and ``"string"`` dtypes (the default ``str`` dtype
     uses NaN instead).
 
-    .. note::
-
-       The behaviour of NA in some edge cases may still change in future
-       releases.
-
     See Also
     --------
     numpy.nan : Floating point representation of Not a Number (NaN) for numerical data.
