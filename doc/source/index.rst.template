@@ -113,7 +113,9 @@ programming language.
     :titlesonly:
 
     {{ single_doc[:-4] }}
-{% elif single_doc and ((single_doc.count('.') <= 1) or ('tseries' in single_doc)) -%}
+{# Accessor methods start with a class (e.g. Series.str.upper); dotted names starting
+   with a module (e.g. tseries.offsets..., core.groupby...) are regular objects. #}
+{% elif single_doc and ((single_doc.count('.') <= 1) or single_doc[0].islower()) -%}
 .. autosummary::
     :toctree: reference/api/
 
