@@ -283,6 +283,19 @@ class TestCategoricalConcat:
         result = pd.concat([df, df], keys=cidx).index.levels[0]
         tm.assert_index_equal(result, cidx)
 
+    def test_concat_axis1_interval_index_with_categorical_of_intervals(self):
+        # GH#25019
+        ii = pd.interval_range(0, 1, 2)
+        df_ii = pd.DataFrame({"a": [1, 2]}, index=ii)
+        df_cat = pd.DataFrame({"b": [3, 4]}, index=pd.CategoricalIndex(ii))
+
+        result = pd.concat([df_ii, df_cat], axis=1)
+        expected = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=ii)
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.concat([df_cat, df_ii], axis=1)
+        tm.assert_frame_equal(result, expected[["b", "a"]])
+
 
 # ---------------------------------------------------------------------
 # pd.concat with union_categories=True (GH#14177)
