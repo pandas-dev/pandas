@@ -152,7 +152,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-- Bug in :class:`DataFrame` constructor where constructing from a list of :class:`Series` with a uniform extension dtype (e.g. nullable, pyarrow, :class:`CategoricalDtype`) lost the dtype (:issue:`56231`)
+- Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` sharing an extension dtype lost that dtype (:issue:`56231`)
 -
 
 Strings

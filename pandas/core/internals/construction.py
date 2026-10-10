@@ -918,9 +918,13 @@ def _list_of_series_to_arrays(
         # GH#56231 preserve a uniform EA dtype, which np.vstack would lose.
         #  With a dtype, keep the constructor's casting (EA.astype can be lossy)
         flat = type(first)._concat_same_type(aligned_values)
-        ncols = len(columns)
-        row_starts = np.arange(len(aligned_values)) * ncols
-        arrays: list[ArrayLike] = [flat.take(row_starts + i) for i in range(ncols)]
+        nrows, ncols = len(aligned_values), len(columns)
+        # one take rather than one per column, which is slow for wide input
+        indexer = np.arange(nrows * ncols).reshape(nrows, ncols).T.ravel()
+        taken = flat.take(indexer)
+        arrays: list[ArrayLike] = [
+            taken[i * nrows : (i + 1) * nrows] for i in range(ncols)
+        ]
         return arrays, columns
 
     content = np.vstack(aligned_values)

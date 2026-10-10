@@ -1576,6 +1576,7 @@ class TestDataFrameConstructors:
             (["a", "b"], "category"),
             (["2020-01-01", "2020-01-02"], "datetime64[ns, UTC]"),
             (["2020-01-01", "2020-01-02"], "period[D]"),
+            ([1.0, 0.0], "Sparse[float64]"),
             pytest.param([1, 2], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
         ],
     )
