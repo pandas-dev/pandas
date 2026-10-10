@@ -5,6 +5,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import algorithms
@@ -613,6 +615,61 @@ def test_mixed_str_null(nulls_fixture):
     result = safe_sort(values)
     expected = np.array(["a", "b", "b", nulls_fixture], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([2, np.nan, 1], [1, 2, np.nan]),
+        ([2.0, np.nan, 1.0], [1.0, 2.0, np.nan]),
+        (
+            [pd.Timestamp("2021-01-01"), pd.NaT, pd.Timestamp("2020-01-01")],
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2021-01-01"), pd.NaT],
+        ),
+    ],
+)
+def test_object_with_nan_sorts_nulls_last(values, expected):
+    # GH#70216 argsort silently misorders NaN/NaT in object arrays
+    values = np.array(values, dtype=object)
+    expected = np.array(expected, dtype=object)
+
+    result = safe_sort(values)
+    tm.assert_numpy_array_equal(result, expected)
+
+    codes = np.array([0, 1, 2, -1], dtype=np.intp)
+    result, result_codes = safe_sort(values, codes)
+    tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result_codes, np.array([1, 2, 0, -1], dtype=np.intp))
+
+
+@pytest.mark.parametrize(
+    "keys, expected_keys, expected_sums",
+    [
+        ([("a", 2), ("a", None), np.nan], [("a", 2), ("a", None), np.nan], [1, 2, 3]),
+        ([("b", 2), (1, "a"), np.nan], [(1, "a"), ("b", 2), np.nan], [2, 1, 3]),
+        (
+            [("a", 3.0), ("a", np.nan), np.nan, ("a", 1.0), ("a", 2.0)],
+            [("a", 1.0), ("a", 2.0), ("a", 3.0), ("a", np.nan), np.nan],
+            [4, 5, 1, 2, 3],
+        ),
+    ],
+)
+def test_tuples_with_nan_falls_back_to_sort_tuples(keys, expected_keys, expected_sums):
+    # GH#70216 argsort raises on incomparable tuple elements, misorders NaN ones
+    keys = pd.Series(keys, dtype=object)
+    expected_keys = pd.Index(expected_keys, dtype=object, tupleize_cols=False)
+
+    # _sort_tuples pads the NaN key to tuple length, deprecated in GH#65751
+    msg = "mismatched lengths"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = safe_sort(keys.to_numpy())
+    tm.assert_numpy_array_equal(result, expected_keys.to_numpy())
+
+    values = pd.Series(range(1, len(keys) + 1))
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = values.groupby(keys, dropna=False).sum()
+    expected = pd.Series(expected_sums, index=expected_keys)
+    tm.assert_series_equal(result, expected)
 
 
 def test_safe_sort_multiindex():

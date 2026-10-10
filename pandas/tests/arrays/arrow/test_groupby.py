@@ -264,9 +264,8 @@ class TestGroupbyAggPyArrowNative:
         if not dropna:
             assert result.iloc[2] == Decimal("7.0")  # 2 + 5 (NA group)
 
-    # with dropna=False the NA key sorts between the 1 and 2 groups
     @pytest.mark.parametrize(
-        "dropna, expected", [(True, ["a", "d"]), (False, ["a", "c", "d"])]
+        "dropna, expected", [(True, ["a", "d"]), (False, ["a", "d", "c"])]
     )
     @pytest.mark.parametrize(
         "dtype",
