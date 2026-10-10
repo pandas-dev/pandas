@@ -3053,6 +3053,30 @@ def test_idxmax_idxmin_axis_1_ea_all_na_row_raises(how, skipna, dtype):
         getattr(df, how)(axis=1, skipna=skipna)
 
 
+@pytest.mark.parametrize(
+    "how, expected_labels", [("idxmax", ["b", "c", "b"]), ("idxmin", ["c", "b", "c"])]
+)
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "str",
+        pd.CategoricalDtype(["a", "b", "c"]),
+        "string[pyarrow]",
+        "large_string[pyarrow]",
+    ],
+)
+def test_idxmax_idxmin_axis_1_preserves_columns_dtype(how, expected_labels, dtype):
+    # GH#56272
+    if "pyarrow" in str(dtype):
+        pytest.importorskip("pyarrow")
+    columns = pd.Index(["a", "b", "c"]).astype(dtype)
+    df = pd.DataFrame([[1, 4, 0], [5, 2, 9], [2, 8, 1]], columns=columns)
+
+    result = getattr(df, how)(axis=1)
+    expected = pd.Series(expected_labels, dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("dtype", ["boolean", "bool[pyarrow]"])
 def test_logical_reductions_axis_1_ea_matches_numpy(dtype, skipna):
