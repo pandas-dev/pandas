@@ -155,7 +155,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` sharing an extension dtype lost that dtype (:issue:`56231`)
 -
 
 Strings
