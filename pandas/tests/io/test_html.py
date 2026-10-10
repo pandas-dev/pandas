@@ -485,6 +485,25 @@ class TestReadHtml:
         assert isinstance(df.index, pd.MultiIndex)
         assert isinstance(df.columns, pd.MultiIndex)
 
+    def test_multiindex_header_not_increasing(self, flavor_read_html):
+        # GH#47011
+        data = """<table>
+            <thead>
+                <tr><th>a</th><th>b</th></tr>
+                <tr><th>c</th><th>d</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>2</td></tr>
+                <tr><td>3</td><td>4</td></tr>
+            </tbody>
+        </table>"""
+        result = flavor_read_html(StringIO(data), header=[1, 0])[0]
+        expected = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays([["c", "d"], ["a", "b"]]),
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.slow
     def test_regex_idempotency(self, banklist_data, flavor_read_html):
         url = banklist_data

@@ -1490,7 +1490,7 @@ def read_csv(
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
           be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in the outer level.
+          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -2099,7 +2099,7 @@ def read_table(
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
           be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in the outer level.
+          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
