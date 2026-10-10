@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import numpy as np
+import pytest
 
 from pandas.errors import Pandas4Warning
 
@@ -452,16 +453,28 @@ def test_union_categories_empty_categorical():
     tm.assert_series_equal(result, expected)
 
 
-def test_union_categories_all_nan_categorical():
+@pytest.mark.parametrize("values", [["a", "b"], [1, 2]])
+def test_union_categories_all_nan_categorical(values):
     # an all-NaN Categorical has no categories, so it contributes nothing but
-    # the NaN itself
-    ser = pd.Series(pd.Categorical(["a", "b"]))
+    # the NaN itself; in particular its float64 categories dtype must not
+    # upcast int64 categories, GH#23242
+    ser = pd.Series(pd.Categorical(values))
     result = pd.concat(
         [ser, pd.Series(pd.Categorical([np.nan]))],
         ignore_index=True,
         union_categories=True,
     )
-    expected = pd.Series(pd.Categorical(["a", "b", np.nan], categories=["a", "b"]))
+    expected = pd.Series(pd.Categorical([*values, np.nan], categories=values))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_all_empty_differing_category_dtypes():
+    # GH#23242 float64 vs object empty categories
+    ser1 = pd.Series([np.nan, np.nan]).astype("category")
+    ser2 = pd.Series([np.nan, np.nan]).astype(CategoricalDtype([]))
+    result = pd.concat([ser1, ser2], ignore_index=True, union_categories=True)
+    dtype = CategoricalDtype(pd.Index([], dtype=object))
+    expected = pd.Series([np.nan] * 4, dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
