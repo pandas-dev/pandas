@@ -9977,19 +9977,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mask = ~((self == other) | (self.isna() & other.isna()))  # type: ignore[operator]
         mask.fillna(True, inplace=True)
 
-        if not keep_equal:
-            self = self.where(mask)
-            other = other.where(mask)
-
+        # drop rows/columns before masking so that values in dropped
+        # positions do not force an upcast, see GH#39899
         if not keep_shape:
             if isinstance(self, ABCDataFrame):
                 cmask = mask.any()
                 rmask = mask.any(axis=1)
                 self = self.loc[rmask, cmask]
                 other = other.loc[rmask, cmask]
+                mask = mask.loc[rmask, cmask]
             else:
                 self = self[mask]
                 other = other[mask]
+                mask = mask[mask]
+
+        if not keep_equal:
+            self = self.where(mask)
+            other = other.where(mask)
+
         if not isinstance(result_names, tuple):
             raise TypeError(
                 f"Passing 'result_names' as a {type(result_names)} is not "

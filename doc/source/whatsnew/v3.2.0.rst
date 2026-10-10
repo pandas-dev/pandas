@@ -155,7 +155,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting columns that cannot hold missing values, such as integer and boolean, when the only equal values were in rows dropped from the result; this lost precision for large integers (:issue:`39899`)
 -
 
 Strings
