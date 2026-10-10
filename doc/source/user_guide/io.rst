@@ -90,7 +90,8 @@ header : int or list of ints, default ``'infer'``
   The header can be a list of ints that specify row locations
   for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
   that are not specified will be skipped (e.g. 2 in this example is
-  skipped). Note that this parameter ignores commented lines and empty
+  skipped). The levels follow the order of the list, so ``[1,0]`` puts
+  row 1 in the outer level. Note that this parameter ignores commented lines and empty
   lines if ``skip_blank_lines=True``, so header=0 denotes the first
   line of data rather than the first line of the file.
 names : array-like, default ``None``

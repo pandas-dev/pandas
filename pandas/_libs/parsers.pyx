@@ -705,7 +705,7 @@ cdef class TextReader:
                     # need to artificially skip the final line
                     # which is still a header line
                     header = list(header)
-                    header.append(header[-1] + 1)
+                    header.append(max(header) + 1)
                     self.parser.header_end = header[-1]
                     self.has_mi_columns = 1
                 else:
@@ -872,13 +872,15 @@ cdef class TextReader:
 
         if self.parser.header_start >= 0:
 
-            # Header is in the file
+            # Header is in the file. Tokenize in file order, so the rows exempt
+            # from the field-count check do not depend on header order (GH#47011)
+            for hr in sorted(prelim_header):
+                if self.parser.lines < hr + 1:
+                    self._tokenize_rows(hr + 2)
+
             for level, hr in enumerate(prelim_header):
 
                 this_header = []
-
-                if self.parser.lines < hr + 1:
-                    self._tokenize_rows(hr + 2)
 
                 if self.parser.lines == 0:
                     field_count = 0
