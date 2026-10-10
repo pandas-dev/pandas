@@ -128,7 +128,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in comparing a :class:`Categorical` with an iterator raising ``TypeError`` instead of treating it as a scalar, as with a tuple (:issue:`31646`)
-- Bug in comparing unordered :class:`Categorical` objects whose categories mix types (e.g. ``[1, "a"]``) and are equal up to order raising ``TypeError``; :meth:`Categorical.equals` also returned ``False`` for them and :func:`merge` on them returned an ``object`` key instead of ``category`` (:issue:`51543`)
+- Bug in comparing unordered :class:`Categorical` objects with mixed-type categories in a different order raising ``TypeError``; :meth:`Categorical.equals` and :func:`merge` were also affected (:issue:`51543`)
 -
 
 Datetimelike
