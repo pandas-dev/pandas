@@ -4079,6 +4079,11 @@ class MultiIndex(Index):
                 # it was a string sliced)
                 start = getattr(start, "start", start)
                 stop = getattr(stop, "stop", stop)
+                if level == 0 and self._lexsort_depth > 0 and step is None:
+                    # GH#52714 sorted, so can return slice object -> view
+                    i = algos.searchsorted(level_codes, start, side="left")
+                    j = algos.searchsorted(level_codes, stop, side="left")
+                    return slice(i, j, step)
                 return convert_indexer(start, stop, step)
 
             elif level > 0 or self._lexsort_depth == 0 or step is not None:
@@ -4176,6 +4181,16 @@ class MultiIndex(Index):
 
         >>> mi.get_locs([[True, False, True], slice("e", "f")])  # doctest: +SKIP
         array([2], dtype=int64)
+        """
+        locs = self._get_locs(seq)
+        if isinstance(locs, slice):
+            return np.arange(*locs.indices(len(self)), dtype=np.intp)
+        return locs
+
+    def _get_locs(self, seq) -> slice | npt.NDArray[np.intp]:
+        """
+        Like get_locs, but return a slice when the selected rows are contiguous
+        and that is known without building a mask, so .loc can return a view.
         """
 
         # GH#45762 Checked first: an Ellipsis is never supported at all, so
@@ -4434,6 +4449,13 @@ class MultiIndex(Index):
             else:
                 # a slice or a single label
                 lvl_indexer = self._get_level_indexer(k, level=i, indexer=indexer)
+                if (
+                    indexer is None
+                    and isinstance(lvl_indexer, slice)
+                    and all(com.is_null_slice(x) for x in seq[i + 1 :])
+                ):
+                    # GH#52714 no later level narrows this, so skip the mask
+                    return lvl_indexer
 
             # update indexer
             lvl_indexer = _to_bool_indexer(lvl_indexer)

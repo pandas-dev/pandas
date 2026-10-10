@@ -1931,7 +1931,7 @@ class _LocIndexer(_LocationIndexer):
 
             # nested tuple slicing
             if is_nested_tuple(key, labels):
-                locs = labels.get_locs(key)
+                locs = labels._get_locs(key)
                 indexer: list[slice | npt.NDArray[np.intp]] = [slice(None)] * self.ndim
                 indexer[axis] = locs
                 result = self.obj.iloc[tuple(indexer)]
