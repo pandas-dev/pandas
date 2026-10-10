@@ -412,7 +412,8 @@ class ArrowParserWrapper(ParserBase):
                 # parse_dates for index columns: the other engines parse these
                 # while building the index, but the pyarrow path sets the index
                 # after reading, so do the conversion here.
-                if self._index_col_should_parse_dates(col_name, position):
+                parse_as_dates = self._index_col_should_parse_dates(col_name, position)
+                if parse_as_dates:
                     frame[col_name] = date_converter(
                         frame[col_name],
                         col=col_name,
@@ -433,7 +434,7 @@ class ArrowParserWrapper(ParserBase):
                         if not (
                             frame[key].dtype.kind == "M"
                             and pandas_dtype(new_dtype).kind != "M"
-                            and self._index_col_should_parse_dates(col_name, position)
+                            and parse_as_dates
                         ):
                             frame[key] = frame[key].astype(new_dtype)
                         del self.dtype[key]
