@@ -243,15 +243,38 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
                 f"got {type(values).__name__}."
             )
 
-        inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "mixed-integer"]:
-            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
-            if isinstance(values, tuple):
-                values = list(values)
+        arr: np.ndarray | None = None
+        if not (len(values) and isinstance(values[0], (str, bytes, tuple))):
+            # np.asarray would give a str/bytes, 2D or object array here
+            try:
+                arr = np.asarray(values)
+            except ValueError:
+                # ragged nested sequences
+                pass
+        if arr is None or arr.ndim != 1 or _asarray_is_lossy(arr, values):
             values = construct_1d_object_array_from_listlike(values)
         else:
-            values = np.asarray(values)
+            values = arr
     return values
+
+
+def _asarray_is_lossy(arr: np.ndarray, values) -> bool:
+    """
+    Whether ``arr = np.asarray(values)`` may have changed some element.
+    """
+    kind = arr.dtype.kind
+    if kind in "US":
+        # stringified non-strings (GH#22160) or stripped trailing NULs
+        return True
+    if kind in "fc":
+        # ints cast to float64 are inexact above 2**53
+        inexact = np.flatnonzero(np.abs(arr) >= _FLOAT64_INT_EXACT_MAX)
+        return any(lib.is_integer(values[i]) for i in inexact)
+    if kind in "mM":
+        # e.g. ints cast to timedelta64, timedelta64 cast to datetime64
+        scalar_type = np.datetime64 if kind == "M" else np.timedelta64
+        return not all(isinstance(val, scalar_type) for val in values)
+    return False
 
 
 _hashtables = {
@@ -636,12 +659,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                     values_arr = cast("np.ndarray", values)
                     needs_object = _may_lose_precision_as_float64(values_arr)
                 else:
-                    # float/complex values_dtype means _ensure_arraylike may
-                    # already have rounded large ints in a mixed int/float
-                    # list, so exactness cannot be checked from the array;
-                    # recover it from orig_values via the object cast. Smaller
-                    # ints/bools cast to float64 exactly.
-                    needs_object = values_dtype.kind in "fc"
+                    # comps is not a 64-bit int and _ensure_arraylike kept any
+                    # ints float64 cannot hold as objects, so the cast is exact
+                    needs_object = False
             if needs_object:
                 values = construct_1d_object_array_from_listlike(orig_values)
 
