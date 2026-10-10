@@ -3185,6 +3185,51 @@ def test_datetime_time(conn, request, sqlite_buildin):
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_datetime_time_fractional_seconds_roundtrip(conn, request):
+    # GH#48435 MySQL rounded fractional seconds away
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    ts = pd.Timestamp("2022-09-07 17:42:52.771654")
+    df = pd.DataFrame(
+        {
+            "naive": pd.Series([ts], dtype="M8[us]"),
+            "aware": pd.Series([ts.tz_localize("UTC")], dtype="M8[us, UTC]"),
+            "time": [ts.time()],
+        }
+    )
+    assert df.to_sql(name="test_fractional", con=conn, index=False) == 1
+    result = sql.read_sql_table("test_fractional", conn)
+
+    expected = df.copy()
+    if "postgresql" not in conn_name:
+        # timestamps with timezones come back naive outside postgresql
+        expected["aware"] = expected["aware"].dt.tz_localize(None)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("mariadb", [False, True])
+def test_mysql_datetime_types_keep_fractional_seconds(mariadb, sqlite_engine):
+    # GH#48435
+    from sqlalchemy.dialects import mysql
+    from sqlalchemy.dialects.mysql.mariadb import MariaDBDialect
+    from sqlalchemy.schema import CreateTable
+
+    dialect = MariaDBDialect() if mariadb else mysql.dialect()
+    ts = pd.Timestamp("2022-09-07 17:42:52.771654")
+    df = pd.DataFrame(
+        {"naive": [ts], "aware": [ts.tz_localize("UTC")], "time": [ts.time()]},
+        index=pd.DatetimeIndex([ts], tz="UTC", name="idx"),
+    )
+    with sql.SQLDatabase(sqlite_engine) as pandas_sql:
+        table = sql.SQLTable("test", pandas_sql, frame=df, index=True)
+        create_sql = str(CreateTable(table.table).compile(dialect=dialect))
+    assert "naive DATETIME(6)" in create_sql
+    assert "aware TIMESTAMP(6)" in create_sql
+    assert "time TIME(6)" in create_sql
+    assert "idx TIMESTAMP(6)" in create_sql
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_mixed_dtype_insert(conn, request):
     # see GH6509
     conn = request.getfixturevalue(conn)
