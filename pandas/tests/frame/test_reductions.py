@@ -1615,6 +1615,63 @@ class TestDataFrameAnalytics:
         df = pd.DataFrame({"a": pd.array([False, None], dtype="boolean")})
         assert df.any(skipna=False, axis=None) is pd.NA
 
+    @pytest.mark.parametrize("dtype", ["bool[pyarrow]", "int64[pyarrow]"])
+    @pytest.mark.parametrize(
+        "data, op, expected_value",
+        [
+            ([False, None], "any", pd.NA),
+            ([True, None], "all", pd.NA),
+            ([None, None], "any", pd.NA),
+            ([None, None], "all", pd.NA),
+            ([True, None], "any", True),
+        ],
+    )
+    def test_any_all_skipna_false_pyarrow(self, dtype, data, op, expected_value):
+        # GH#70685
+        pytest.importorskip("pyarrow")
+        if dtype != "bool[pyarrow]":
+            data = [(0 if v is False else 1 if v is True else None) for v in data]
+        df = pd.DataFrame({"a": pd.array(data, dtype=dtype)})
+
+        result = getattr(df, op)(skipna=False)
+        expected = pd.Series([expected_value], index=["a"], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, op)(skipna=False, axis=None)
+        if expected_value is pd.NA:
+            assert result is pd.NA
+        else:
+            assert result == expected_value
+
+    @pytest.mark.parametrize("dtype", ["bool[pyarrow]", "int64[pyarrow]"])
+    def test_any_all_pyarrow_without_missing_keeps_dtype(self, dtype):
+        # GH#70685 matches nullable dtypes, which return "boolean" regardless of NA
+        pytest.importorskip("pyarrow")
+        data = [True, False] if dtype == "bool[pyarrow]" else [1, 0]
+        df = pd.DataFrame({"a": pd.array(data, dtype=dtype)})
+
+        expected = pd.Series([True], index=["a"], dtype="bool[pyarrow]")
+        tm.assert_series_equal(df.any(skipna=False), expected)
+        tm.assert_series_equal(df.any(), expected)
+
+    def test_any_all_skipna_false_mixed_pyarrow_and_nullable(self):
+        # GH#70685
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "a": pd.array([False, None], dtype="bool[pyarrow]"),
+                "b": pd.array([False, None], dtype="boolean"),
+            }
+        )
+
+        result = df.any(skipna=False)
+        expected = pd.Series([pd.NA, pd.NA], index=["a", "b"], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = df.all(skipna=False)
+        expected = pd.Series([False, False], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
     # ---------------------------------------------------------------------
     # Unsorted
 
