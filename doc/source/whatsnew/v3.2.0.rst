@@ -253,6 +253,8 @@ Other
 - Bug in :func:`util.hash_array` and :func:`util.hash_pandas_object` raising ``UnicodeDecodeError`` on mixed-type object values containing non-ASCII ``bytes``; ``bytes`` in mixed-type values now hash the same as in non-mixed ones (:issue:`27215`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where ``==`` and ``!=`` against a string gave different results than the same comparison outside of ``query``, e.g. returning no rows for a ``datetime64``, ``timedelta64``, or :class:`PeriodDtype` column, or raising ``NotImplementedError`` with ``parser="python"`` (:issue:`54199`)
 
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
+
 .. ***DO NOT USE THIS SECTION***
 
 -
