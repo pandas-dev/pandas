@@ -664,6 +664,55 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             ser.interpolate(method="pad")
 
+    @pytest.mark.parametrize("method", ["index", "values", "time", "krogh"])
+    @pytest.mark.parametrize(
+        "start",
+        [
+            pd.Timestamp("2000-01-01").as_unit("ns"),
+            pd.Timestamp("1950-01-01", tz="US/Eastern").as_unit("ns"),
+            pd.Timedelta(10**18),
+        ],
+    )
+    def test_interp_ns_index_precision(self, method, start):
+        # GH#34601
+        if method == "krogh":
+            pytest.importorskip("scipy")
+        index = start + pd.to_timedelta([0, 1, 3], unit="us")
+        ser = pd.Series([0, np.nan, 1], index=index)
+        result = ser.interpolate(method=method)
+        expected = pd.Series([0, 1 / 3, 1], index=index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            np.array([2**60, 2**60 + 1, 2**60 + 3], dtype=np.int64),
+            np.array([-(2**60) - 3, -(2**60) - 2, -(2**60)], dtype=np.int64),
+            np.array([2**63, 2**63 + 1, 2**63 + 3], dtype=np.uint64),
+            # spans zero, so shifting would make the small values inexact
+            np.array([-(2**60), 2**60, 0, 1, 3], dtype=np.int64),
+        ],
+    )
+    def test_interp_large_integer_index_precision(self, values):
+        # GH#34601
+        ser = pd.Series([0] * (len(values) - 2) + [np.nan, 1], index=values)
+        result = ser.interpolate(method="index")
+        expected = pd.Series([0] * (len(values) - 2) + [1 / 3, 1], index=values)
+        tm.assert_series_equal(result, expected)
+
+    def test_interp_spline_bbox_large_index(self):
+        # GH#34601 bbox is in index units, so the index is not shifted
+        pytest.importorskip("scipy")
+        # multiples of 2**8 above 2**60 are exact as float64
+        index = 2**60 + np.array([0, 1, 3, 4, 7, 9]) * 2**8
+        bbox = [index[0], index[-1]]
+        ser = pd.Series([0, np.nan, 1, 4, np.nan, 2], index=index)
+        result = ser.interpolate(method="spline", order=2, bbox=bbox)
+        expected = pd.Series(ser.to_numpy(), index=index.astype(np.float64))
+        expected = expected.interpolate(method="spline", order=2, bbox=bbox)
+        expected.index = index
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_no_nans(self):
         # GH 7173
         s = pd.Series([1.0, 2.0, 3.0])
