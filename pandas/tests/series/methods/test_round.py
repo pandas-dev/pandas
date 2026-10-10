@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -87,6 +89,22 @@ class TestSeriesRound:
         result = ser.round(decimals)
         expected = pd.Series(expected_data, dtype="object")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+    def test_round_dtype_object_decimal_with_na(self, na_value):
+        # GH#55114
+        ser = pd.Series([Decimal("1.234"), na_value, True, np.True_], dtype=object)
+        result = ser.round(np.int64(2))
+        expected = pd.Series([Decimal("1.23"), na_value, True, np.True_], dtype=object)
+        tm.assert_series_equal(result, expected)
+        # assert_series_equal treats True == 1
+        assert result.iloc[2] is True
+
+    def test_round_dtype_object_non_integer_decimals(self):
+        # GH#55114
+        ser = pd.Series([Decimal("1.234")], dtype=object)
+        with pytest.raises(TypeError, match="cannot be interpreted as an integer"):
+            ser.round(1.5)
 
     @pytest.mark.parametrize(
         "dtype",

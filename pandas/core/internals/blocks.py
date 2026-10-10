@@ -91,7 +91,10 @@ from pandas.core.array_algos.replace import (
     replace_regex,
     should_use_regex,
 )
-from pandas.core.array_algos.transforms import shift
+from pandas.core.array_algos.transforms import (
+    round_object,
+    shift,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -1639,9 +1642,10 @@ class Block(PandasObject, libinternals.Block):
     def round(self, decimals: int) -> Self:
         """
         Rounds the values.
-        If the block is not of an integer or float dtype, nothing happens.
-        This is consistent with DataFrame.round behavior.
-        (Note: Series.round would raise)
+
+        Object columns are rounded elementwise, and left unchanged if any
+        element cannot be rounded. Other non-numeric blocks are returned
+        unchanged.
 
         Parameters
         ----------
@@ -1649,6 +1653,20 @@ class Block(PandasObject, libinternals.Block):
             Number of decimal places to round to.
             Caller is responsible for validating this
         """
+        if self.dtype == _dtype_obj:
+            # GH#55114; only reached with 2D values, Series.round handles 1D
+            values = None
+            for i, col in enumerate(self.values):
+                try:
+                    new_col = round_object(col, decimals)
+                except (TypeError, ArithmeticError):
+                    continue
+                if values is None:
+                    values = self.values.copy()
+                values[i] = new_col
+            if values is None:
+                return self.copy(deep=False)
+            return self.make_block_same_class(values)
         if not self.is_numeric or self.is_bool:
             if isinstance(self.values, (DatetimeArray, TimedeltaArray, PeriodArray)):
                 # GH#57781

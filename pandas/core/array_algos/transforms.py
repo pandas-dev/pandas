@@ -4,9 +4,12 @@ transforms.py is for shape-preserving functions.
 
 from __future__ import annotations
 
+import operator
 from typing import TYPE_CHECKING
 
 import numpy as np
+
+from pandas._libs import lib
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
@@ -46,3 +49,20 @@ def shift(values: np.ndarray, periods: int, fill_value: Scalar) -> np.ndarray:
         new_values = new_values.T
 
     return new_values
+
+
+def round_object(values: np.ndarray, decimals: int) -> np.ndarray:
+    """
+    Round each non-missing element of a 1D object array with the builtin round.
+
+    Raises if an element cannot be rounded.
+    """
+    # Decimal.__round__ rejects np.integer
+    decimals = operator.index(decimals)
+    # leave bools alone like Block.round does; round(True, 1) would give 1
+    return lib.map_infer(
+        values,
+        lambda x: x if lib.is_bool(x) else round(x, decimals),
+        convert=False,
+        ignore_na=True,
+    )

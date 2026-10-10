@@ -94,6 +94,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_sequence,
     is_string_dtype,
@@ -16212,7 +16213,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Each column can be rounded to a different number of decimal places by
         passing a dict or Series mapping column names to the desired precision.
-        Non-numeric columns are left unchanged.
+        Object columns are rounded elementwise if every value can be rounded;
+        other non-numeric columns are left unchanged.
 
         Parameters
         ----------
@@ -16309,6 +16311,12 @@ class DataFrame(NDFrame, OpsMixin):
         def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
+            elif is_object_dtype(ser.dtype):
+                try:
+                    return ser.round(decimals)
+                except (TypeError, ArithmeticError):
+                    # GH#55114 leave columns that cannot be rounded unchanged
+                    return ser
             elif isinstance(ser._values, (DatetimeArray, TimedeltaArray, PeriodArray)):
                 # GH#57781
                 # TODO: also the ArrowDtype analogues?
