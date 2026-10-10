@@ -4006,25 +4006,8 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
-# The pair of classes `_YearEnd` and `YearEnd` exist because of
-# https://github.com/cython/cython/issues/3873
 
-cdef class _YearEnd(YearOffset):
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
-
-
-class YearEnd(_YearEnd):
+cdef class YearEnd(YearOffset):
     """
     DateOffset increments between calendar year end dates.
 
@@ -4072,8 +4055,18 @@ class YearEnd(_YearEnd):
     None
     """
 
-    def __new__(cls, n=1, normalize=False, month=None):
-        return _YearEnd.__new__(cls, n, normalize, month)
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 cdef class YearBegin(YearOffset):
