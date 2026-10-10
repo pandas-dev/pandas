@@ -108,6 +108,15 @@ class TestSelection:
         with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
             df.groupby("A")["C", "D"].mean()
 
+    def test_getitem_multiindex_partial_tuple_key(self):
+        # GH#13914
+        mi = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("k", "")])
+        df = pd.DataFrame([[1, 4, 1], [2, 5, 1], [3, 6, 2]], columns=mi)
+        with tm.assert_produces_warning(None):
+            result = df.groupby(("k", ""))[("A",)].sum()
+        expected = df.groupby(("k", "")).sum()[("A",)]
+        tm.assert_frame_equal(result, expected)
+
     def test_getitem_single_column(self):
         df = pd.DataFrame(
             {
