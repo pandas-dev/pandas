@@ -228,6 +228,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
+- Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
 
 Sparse
 ^^^^^^
