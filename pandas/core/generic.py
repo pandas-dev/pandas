@@ -73,7 +73,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
-    is_integer,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -82,7 +81,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -9113,28 +9111,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            blocks = self._mgr.blocks
-            dtype = blocks[0].dtype if blocks else None
-            if (
-                isinstance(dtype, CategoricalDtype)
-                and dtype.ordered
-                and all(blk.dtype == dtype for blk in blocks[1:])
-            ):
-                # order the bounds by category position, not by value (GH#49217),
-                #  looking each one up the way the comparison will
-                categories = dtype.categories
-                if lower in categories and upper in categories:
-                    lower_pos = categories.get_loc(lower)
-                    upper_pos = categories.get_loc(upper)
-                    # a partial date string can match several categories
-                    if (
-                        is_integer(lower_pos)
-                        and is_integer(upper_pos)
-                        and lower_pos > upper_pos
-                    ):
-                        lower, upper = upper, lower
-            else:
+            # numbers compare the same way numeric data does
+            numeric = (
+                is_number(lower)
+                and is_number(upper)
+                and all(blk.is_numeric for blk in self._mgr.blocks)
+            )
+            if numeric:
                 lower, upper = min(lower, upper), max(lower, upper)
+            else:
+                # compare the bounds the way the data does, which can differ
+                #  from their own order, e.g. ordered categoricals (GH#49217)
+                probe = self.iloc[:1]
+                try:
+                    probe = probe.where(np.zeros(probe.shape, dtype=bool), upper)
+                    in_order = (probe >= lower).to_numpy().all()
+                except (TypeError, ValueError):
+                    in_order = not upper < lower
+                if not in_order:
+                    lower, upper = upper, lower
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):

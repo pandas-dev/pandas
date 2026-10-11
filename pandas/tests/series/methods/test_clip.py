@@ -193,3 +193,15 @@ class TestSeriesClip:
         ser = pd.Series(categories, dtype=dtype)
         result = ser.clip(lower, upper)
         tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
+
+    @pytest.mark.parametrize(
+        "lower, upper", [("Jan 10 2020", "Feb 1 2020"), ("Feb 1 2020", "Jan 10 2020")]
+    )
+    def test_clip_datetime_string_bounds(self, lower, upper):
+        # GH#49217 the bounds are ordered as dates, not as strings
+        ser = pd.Series(pd.date_range("2020-01-01", periods=3, freq="20D"))
+        result = ser.clip(lower, upper)
+        expected = pd.Series(
+            pd.to_datetime(["2020-01-10", "2020-01-21", "2020-02-01"]), dtype=ser.dtype
+        )
+        tm.assert_series_equal(result, expected)
