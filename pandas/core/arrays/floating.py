@@ -70,7 +70,9 @@ class FloatingArray(NumericArray):
 
     .. note::
 
-       By default, NaN is treated as missing (converted to NA).
+       By default, NaN is treated as missing (converted to NA). Set
+       ``pd.options.future.distinguish_nan_and_na = True`` to keep NaN
+       distinct from NA.
 
     We represent a FloatingArray with 2 numpy arrays:
 
