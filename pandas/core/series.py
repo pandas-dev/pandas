@@ -5125,9 +5125,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1    3
         2    3
         dtype: int64
-
-        When a vectorized operation exists, it is much faster; for
-        example, use ``s + 1`` rather than ``s.map(lambda x: x + 1)``.
         """
         if func is None:
             if "arg" in kwargs:
