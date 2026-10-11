@@ -75,6 +75,22 @@ def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([True, False, None], [False, True, None]),
+        ([True, True, None], [True]),
+        ([True, None, None], [None]),
+        ([None, None], [None]),
+    ],
+)
+def test_mode_boolean_dropna_false(values, expected):
+    # GH#70487
+    ser = pd.Series(values, dtype="boolean")
+    result = ser.mode(dropna=False)
+    tm.assert_series_equal(result, pd.Series(expected, dtype="boolean"))
+
+
 def test_mode_string(any_string_dtype):
     # GH#56183
     ser = pd.Series(["a", "b"], dtype=any_string_dtype)

@@ -976,12 +976,14 @@ def test_nanvar_family_keeps_dtype(disable_bottleneck, func, ddof, dtype):
     # GH#68487 count and its degrees of freedom went to a bare float once
     #  ddof >= count, which widened the 1-D result but not the 2-D one
     values = np.array([1, 2, 3], dtype=dtype)
+    # GH#41277 float16 upcasts to float64, like nansum/nanmean
+    expected_dtype = np.float64 if dtype == "float16" else values.dtype
 
     result = getattr(nanops, func)(values, ddof=ddof)
-    assert result.dtype == values.dtype
+    assert result.dtype == expected_dtype
 
     result = getattr(nanops, func)(values.reshape(1, 3), axis=1, ddof=ddof)
-    assert result.dtype == values.dtype
+    assert result.dtype == expected_dtype
 
 
 @pytest.mark.parametrize("shape", [(1, 1), (1, 3), (3, 1), (3, 3)])
@@ -1594,6 +1596,46 @@ def test_nanmean_float16_overflow(disable_bottleneck):
 
     result = ser.sum()
     assert result == 120000.0
+
+
+@pytest.mark.parametrize("use_bottleneck", [True, False])
+@pytest.mark.parametrize("method", ["var", "std", "sem"])
+@pytest.mark.parametrize(
+    "values",
+    [
+        # the variance overflows float16 even though the data does not
+        [11111, 22222, 3333],
+        # the count overflows float16
+        np.arange(70_000) % 7,
+    ],
+)
+def test_nanvar_family_float16_overflow(use_bottleneck, method, values):
+    # GH#41277
+    ser = pd.Series(values, dtype=np.float16)
+    expected = getattr(ser.astype(np.float64), method)()
+    with pd.option_context("compute.use_bottleneck", use_bottleneck):
+        result = getattr(ser, method)()
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize("with_nan", [True, False])
+@pytest.mark.parametrize(
+    "values",
+    [
+        # the count is inexact in float16
+        np.ones(2049),
+        # the count overflows float16
+        np.arange(70_000) % 7,
+    ],
+)
+def test_nanmean_float16_count(with_nan, values):
+    # GH#43929 the count must be upcast along with the sum
+    expected = values.mean()
+    if with_nan:
+        values = np.append(values, np.nan)
+    ser = pd.Series(values, dtype=np.float16)
+    assert ser.mean() == expected
+    assert ser.to_frame().T.mean(axis=1).iloc[0] == expected
 
 
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])

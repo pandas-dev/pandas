@@ -148,7 +148,7 @@ class WrappedCythonOp:
         self.how = how
         self.has_dropped_na = has_dropped_na
 
-    _CYTHON_FUNCTIONS: dict[str, dict] = {
+    _CYTHON_FUNCTIONS: dict[str, dict[str, Any]] = {
         "aggregate": {
             "any": functools.partial(libgroupby.group_any_all, val_test="any"),
             "all": functools.partial(libgroupby.group_any_all, val_test="all"),
@@ -644,14 +644,14 @@ class BaseGrouper:
         yield from zip(keys, splitter, strict=True)
 
     @final
-    def _get_splitter(self, data: NDFrame) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame) -> DataSplitter[Any]:
         """
         Returns
         -------
         Generator yielding subsetted objects
         """
         if isinstance(data, Series):
-            klass: type[DataSplitter] = SeriesSplitter
+            klass: type[DataSplitter[Any]] = SeriesSplitter
         else:
             # i.e. DataFrame
             klass = FrameSplitter
@@ -745,7 +745,7 @@ class BaseGrouper:
         """
         ids = self.ids
         ngroups = self.ngroups
-        out: np.ndarray | list
+        out: np.ndarray | list[Any]
         if ngroups:
             if self.has_dropped_na:
                 out = np.bincount(ids + 1, minlength=ngroups + 1)[1:]
@@ -1146,7 +1146,7 @@ class BaseGrouper:
         return result
 
     @final
-    def agg_series(self, obj: Series, func: Callable) -> ArrayLike:
+    def agg_series(self, obj: Series, func: Callable[..., Any]) -> ArrayLike:
         """
         Parameters
         ----------
@@ -1162,7 +1162,7 @@ class BaseGrouper:
 
     @final
     def _aggregate_series_pure_python(
-        self, obj: Series, func: Callable
+        self, obj: Series, func: Callable[..., Any]
     ) -> npt.NDArray[np.object_]:
         result = np.empty(self.ngroups, dtype="O")
         initialized = False
@@ -1184,8 +1184,8 @@ class BaseGrouper:
 
     @final
     def apply_groupwise(
-        self, f: Callable, data: DataFrame | Series
-    ) -> tuple[list, bool]:
+        self, f: Callable[..., Any], data: DataFrame | Series
+    ) -> tuple[list[Any], bool]:
         mutated = False
         splitter = self._get_splitter(data)
         group_keys = self.result_index
@@ -1416,7 +1416,7 @@ class DataSplitter(Generic[NDFrameT]):
         self._slabels = sorted_ids
         self._sort_idx = sort_idx
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[NDFrame]:
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
             # we merely return signal the end
@@ -1446,7 +1446,7 @@ class DataSplitter(Generic[NDFrameT]):
         raise AbstractMethodError(self)
 
 
-class SeriesSplitter(DataSplitter):
+class SeriesSplitter(DataSplitter[Series]):
     _sorted_cls = Series
 
     def _chop(self, sdata: Series, slice_obj: slice, needs_finalize: bool) -> Series:
@@ -1460,7 +1460,7 @@ class SeriesSplitter(DataSplitter):
         return ser
 
 
-class FrameSplitter(DataSplitter):
+class FrameSplitter(DataSplitter[DataFrame]):
     _sorted_cls = DataFrame
 
     def _chop(

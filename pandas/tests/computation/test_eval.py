@@ -1865,6 +1865,16 @@ def test_equals_various(other):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "expr, expected",
+    [("'a' == 'a'", True), ("'a' != 'a'", False), ("'a' == 'b'", False)],
+)
+def test_compare_string_literals(expr, expected, engine, parser):
+    # GH#54199
+    result = pd.eval(expr, engine=engine, parser=parser)
+    assert result == expected
+
+
 def test_inf(engine, parser):
     s = "inf + 1"
     expected = np.inf

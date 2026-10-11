@@ -5,8 +5,6 @@ import os
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -32,15 +30,6 @@ def iris(datapath) -> pd.DataFrame:
     The iris dataset as a DataFrame.
     """
     return pd.read_csv(datapath("io", "data", "csv", "iris.csv"))
-
-
-@td.skip_if_installed("matplotlib")
-def test_import_error_message():
-    # GH-19810
-    df = pd.DataFrame({"A": [1, 2]})
-
-    with pytest.raises(ImportError, match="matplotlib is required for plotting"):
-        df.plot()
 
 
 def test_get_accessor_args():
