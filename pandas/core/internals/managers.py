@@ -582,9 +582,9 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
-                    # Block.delete in _iset_split_block requires sorted unique
-                    # locs; inverse maps the requested column order onto the
-                    # new block (GH#65446)
+                    # np.unique dedupes locs so the placement built inside
+                    # _iset_split_block doesn't repeat a column; inverse maps
+                    # the requested column order onto the new block (GH#65446)
                     blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
@@ -1474,7 +1474,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if self._blklocs is None:
             self._rebuild_blknos_and_blklocs()
 
-        nbs_tup = tuple(blk.delete(blk_locs))
+        # Block.delete requires sorted unique locs; blk_locs keeps the caller's
+        # order below, where it pairs with value.
+        nbs_tup = tuple(blk.delete(np.unique(blk_locs)))
         if value is not None:
             locs = blk.mgr_locs.as_array[blk_locs]
             first_nb = new_block_2d(value, BlockPlacement(locs), refs=refs)
@@ -1490,12 +1492,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             *nbs_tup,
         )
         self.blocks = blocks_tup
+        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb.mgr_locs))
 
         if not nbs_tup and value is not None:
-            # No need to update anything if split did not happen
+            # No need to update _blknos if split did not happen
             return
-
-        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
         for i, nb in enumerate(nbs_tup):
             self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
