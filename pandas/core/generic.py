@@ -9117,19 +9117,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 and is_number(upper)
                 and all(blk.is_numeric for blk in self._mgr.blocks)
             )
-            if numeric:
-                lower, upper = min(lower, upper), max(lower, upper)
-            else:
+            in_order: np.ndarray | None = None
+            if not numeric:
                 # compare the bounds the way the data does, which can differ
                 #  from their own order, e.g. ordered categoricals (GH#49217)
                 probe = self.iloc[:1]
                 try:
                     probe = probe.where(np.zeros(probe.shape, dtype=bool), upper)
-                    in_order = (probe >= lower).to_numpy().all()
+                    in_order = (probe >= lower).to_numpy()
                 except (TypeError, ValueError):
-                    in_order = not upper < lower
-                if not in_order:
-                    lower, upper = upper, lower
+                    pass
+            if in_order is None or (in_order.any() and not in_order.all()):
+                # by value, unless the data's columns all agree on an order
+                lower, upper = min(lower, upper), max(lower, upper)
+            elif not in_order.all():
+                lower, upper = upper, lower
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
