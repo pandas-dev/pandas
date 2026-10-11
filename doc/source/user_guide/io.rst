@@ -1524,6 +1524,7 @@ three engines:
    "``converters``","yes","yes","no"
    "``quoting``, ``dialect``","yes","yes","no"
    "``na_filter``","yes","yes","no"
+   "Rows narrower or wider than the first row (ragged rows)","yes","yes","no"
 
 Where possible, pandas uses the C parser (specified as ``engine='c'``), but
 it may fall back to Python if C-unsupported options are specified: passing an
@@ -1531,6 +1532,19 @@ option only the python engine supports produces a ``ParserWarning`` unless
 the python engine is selected explicitly with ``engine='python'``. Selecting
 the C engine explicitly instead raises a ``ValueError``, as does passing an
 option unsupported by the pyarrow engine together with ``engine='pyarrow'``.
+
+The pyarrow engine takes the number of columns from the first row that it
+reads -- the header row when ``header`` is an integer -- and not from
+``names``. The C and python engines pad a row that has fewer fields than the
+expected width with missing values and offer wider rows to ``on_bad_lines``,
+but pyarrow treats every row whose number of fields differs from that first
+row as a bad line, so rows cannot be padded. Reading a file with ragged rows
+-- for example a file whose first row is a short preamble while the data rows
+are wider -- therefore raises a ``ParserError`` when ``on_bad_lines='error'``,
+and a ``ParserError`` about the number of columns after skipping every
+mismatching row when ``on_bad_lines='skip'`` or ``on_bad_lines='warn'``. Use
+``engine='c'`` or ``engine='python'`` for such files (`GH#71034
+<https://github.com/pandas-dev/pandas/issues/71034>`__).
 
 .. _io.csv.parallel:
 

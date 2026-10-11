@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import re
 import warnings
 
 from pandas._config import using_string_dtype
@@ -45,6 +46,26 @@ if TYPE_CHECKING:
     from pandas._typing import ReadBuffer
 
     from pandas import DataFrame
+
+
+def _names_mismatch_message(read_columns: int, n_names: int) -> str:
+    """
+    Explain a mismatch between the number of names passed and the number of
+    columns pyarrow read.
+
+    GH#71034 pyarrow takes the number of columns from the first row it reads,
+    not from ``names``, and pads nothing: a row with a different number of
+    fields is a bad line handled by ``on_bad_lines``. This differs from the
+    other engines, which take the width from ``names`` and pad the shorter
+    rows, so point the user at those engines.
+    """
+    return (
+        f"The 'pyarrow' engine read {read_columns} columns from the first row "
+        f"of the file but {n_names} names were passed. The number of columns "
+        "is taken from the first row, not from 'names', and rows with a "
+        "different number of fields are handled by 'on_bad_lines'. Use "
+        "engine='c' or engine='python' to read files with ragged rows."
+    )
 
 
 def _pyarrow_parse_type(dtype) -> pa.DataType | None:
@@ -382,6 +403,13 @@ class ArrowParserWrapper(ParserBase):
                     "Number of passed names did not match number of "
                     "header fields in the file"
                 )
+            if len(self.names) > num_cols:
+                # GH#71034 pyarrow measured the width on the first row it read,
+                # so a wider row was skipped by 'on_bad_lines' rather than
+                # padded as the other engines do; explain the limitation
+                # instead of the confusing "Length mismatch" error that
+                # assigning the names afterwards would produce.
+                raise ParserError(_names_mismatch_message(num_cols, len(self.names)))
             if len(self.names) < num_cols:
                 # GH#65862 Leading columns not covered by names form the index,
                 # as with other engines. Pad the names to the expected length;
@@ -541,6 +569,24 @@ class ArrowParserWrapper(ParserBase):
                 "The pyarrow engine does not allow 'usecols' to be a callable."
             )
 
+    def _explain_column_count_error(self, message: str) -> str:
+        """
+        Follow up on pyarrow's column count error when 'names' was passed.
+
+        GH#71034 the count pyarrow reports comes from the first row of the
+        file, not from 'names', so a user passing more names than that row has
+        fields sees an error about a row pyarrow refuses to pad.
+        """
+        # with usecols the count pyarrow measured is the width of the raw row,
+        #  not the number of columns kept, so it is not comparable to 'names'
+        if self.names is None or self.kwds.get("include_columns") is not None:
+            return message
+        match = re.search(r"Expected (\d+) columns", message)
+        if match is None or int(match.group(1)) == len(self.names):
+            return message
+        read_columns = int(match.group(1))
+        return f"{message}. {_names_mismatch_message(read_columns, len(self.names))}"
+
     def read(self) -> DataFrame:
         """
         Reads the contents of a CSV file into a DataFrame and
@@ -570,7 +616,7 @@ class ArrowParserWrapper(ParserBase):
             # pyarrow engine matches the "c" and "python" engines.
             if "Empty CSV file" in str(err):
                 raise EmptyDataError("No columns to parse from file") from err
-            raise ParserError(err) from err
+            raise ParserError(self._explain_column_count_error(str(err))) from err
         except TypeError as err:
             # pyarrow can only read from a binary buffer; a text-mode file
             # handle raises a bare "a bytes-like object is required" TypeError.
