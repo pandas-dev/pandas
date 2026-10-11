@@ -2937,16 +2937,9 @@ class TestStackUnstackMultiLevel:
             dtype=np.float64,
         )
         result = df_nan.stack(future_stack=future_stack)
-        if future_stack:
-            index = pd.MultiIndex(
-                levels=[[0, 1], [np.nan, "b"]],
-                codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                names=["Num", "Lower"],
-            )
-        else:
-            index = pd.MultiIndex.from_tuples(
-                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
-            )
+        index = pd.MultiIndex.from_tuples(
+            [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+        )
         expected = pd.DataFrame(
             [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
             columns=pd.Index(["A", "B"], name="Upper"),
