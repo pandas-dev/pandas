@@ -47,6 +47,8 @@ from dateutil.tz import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -93,6 +95,7 @@ PANDAS_MARKERS = [
     "db: tests requiring a database (mysql or postgres)",
     "clipboard: mark a pd.read_clipboard test",
     "arm_slow: mark a test as slow for arm64 architecture",
+    "high_memory: mark a test as requiring >5GB of memory",
 ]
 
 
@@ -103,6 +106,11 @@ def pytest_addoption(parser) -> None:
         dest="strict_data_files",
         default=True,
         help="Don't fail if a test is skipped for missing data file.",
+    )
+    parser.addoption(
+        "--run-high-memory",
+        action="store_true",
+        help="Run tests marked high_memory (>5GB of memory).",
     )
 
 
@@ -152,6 +160,12 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
 
 
 def pytest_collection_modifyitems(items, config) -> None:
+    if not config.getoption("--run-high-memory"):
+        skip_high_memory = pytest.mark.skip(reason="need --run-high-memory to run")
+        for item in items:
+            if "high_memory" in item.keywords:
+                item.add_marker(skip_high_memory)
+
     is_doctest = config.getoption("--doctest-modules") or config.getoption(
         "--doctest-cython", default=False
     )
@@ -502,12 +516,12 @@ box_with_array2 = box_with_array
 
 
 @pytest.fixture
-def dict_subclass() -> type[dict]:
+def dict_subclass() -> type[dict[Any, Any]]:
     """
     Fixture for a dictionary subclass.
     """
 
-    class TestSubDict(dict):
+    class TestSubDict(dict[Any, Any]):
         def __init__(self, *args, **kwargs) -> None:
             dict.__init__(self, *args, **kwargs)
 
@@ -515,19 +529,19 @@ def dict_subclass() -> type[dict]:
 
 
 @pytest.fixture
-def non_dict_mapping_subclass() -> type[abc.Mapping]:
+def non_dict_mapping_subclass() -> type[abc.Mapping[Any, Any]]:
     """
     Fixture for a non-mapping dictionary subclass.
     """
 
-    class TestNonDictMapping(abc.Mapping):
+    class TestNonDictMapping(abc.Mapping[Any, Any]):
         def __init__(self, underlying_dict) -> None:
             self._data = underlying_dict
 
         def __getitem__(self, key):
             return self._data.__getitem__(key)
 
-        def __iter__(self) -> Iterator:
+        def __iter__(self) -> Iterator[Any]:
             return self._data.__iter__()
 
         def __len__(self) -> int:
@@ -2083,7 +2097,7 @@ def using_infer_string() -> bool:
     """
     Fixture to check if infer string option is enabled.
     """
-    return pd.options.future.infer_string is True
+    return using_string_dtype()
 
 
 @pytest.fixture

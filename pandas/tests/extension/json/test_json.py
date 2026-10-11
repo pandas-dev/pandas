@@ -78,6 +78,9 @@ def data_for_grouping():
     )
 
 
+@pytest.mark.filterwarnings(
+    "ignore:JSONArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(
         reason="comparison method not implemented for JSONArray (GH-37867)"

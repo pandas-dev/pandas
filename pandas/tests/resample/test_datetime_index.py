@@ -1710,6 +1710,23 @@ def test_downsample_across_dst_weekly_2(unit):
     tm.assert_series_equal(result, expected)
 
 
+def test_downsample_weekly_ambiguous_midnight(unit):
+    # GH#51211 Azores falls back at midnight, so the 2022-10-30 bin label is ambiguous
+    tz = "Atlantic/Azores"
+    idx = date_range("2022-10-28", "2022-11-10", tz=tz, freq="15min").as_unit(unit)
+    result = pd.Series(1, index=idx).resample("W").sum()
+    # local midnights; the first is the earlier (DST) occurrence
+    dti = DatetimeIndex(
+        ["2022-10-30 00:00", "2022-11-06 01:00", "2022-11-13 01:00"], tz="UTC"
+    ).tz_convert(tz)
+    expected = pd.Series(
+        # 2022-10-30 is 25 hours long
+        [2 * 96 + 100, 7 * 96, 3 * 96 + 1],
+        index=DatetimeIndex(dti, freq="W").as_unit(unit),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_downsample_dst_at_midnight(unit):
     # GH 25758
     start = datetime(2018, 11, 3, 12)
@@ -2208,6 +2225,23 @@ def test_resample_unit_second_large_years():
     ser = pd.Series(1, index=index)
     result = ser.resample("2000YS").sum()
     expected = pd.Series(2, index=index[::2])
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_unit_second_large_dates():
+    # https://github.com/pandas-dev/pandas/pull/65845
+    index = date_range(start="1970-01-01", periods=10, freq="D").as_unit("s")
+    # create values that would be out of bounds for micro (year > 294_241)
+    index = index + np.timedelta64(10**13, "s")
+
+    ser = pd.Series(1, index=index)
+    result = ser.resample("D").sum()
+    expected = pd.Series(
+        1,
+        index=date_range(
+            pd.Timestamp(np.datetime64(10**13, "s")).normalize(), periods=10
+        ),
+    )
     tm.assert_series_equal(result, expected)
 
 

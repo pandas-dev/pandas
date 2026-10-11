@@ -179,6 +179,7 @@ class TestCatAccessor:
         _special_func_names = [f[0] for f in special_func_defs]
 
         _ignore_names = ["components", "tz_localize", "tz_convert"]
+        _deprecated = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
 
         func_names = [
             fname
@@ -188,6 +189,7 @@ class TestCatAccessor:
                 or fname in attr_names
                 or fname in _special_func_names
                 or fname in _ignore_names
+                or fname in _deprecated
             )
         ]
 
@@ -219,8 +221,6 @@ class TestCatAccessor:
 
             tm.assert_equal(res, exp)
 
-        # GH#46768 - exclude deprecated aliases
-        _deprecated = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
         for attr in attr_names:
             if attr in _deprecated:
                 continue

@@ -766,7 +766,7 @@ class TestMerge:
         dtype = f"m8[{unit}]"
         if unit in ["D", "h", "m"]:
             # We cannot astype, instead do nearest supported unit, i.e. "s"
-            msg = "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            msg = "Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'"
             with pytest.raises(ValueError, match=msg):
                 ser.astype(dtype)
 
@@ -2480,7 +2480,10 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
 def test_merge_duplicate_suffix(how, expected):
     left_df = pd.DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
     right_df = pd.DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
-    result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
+    # GH#13659
+    msg = "Passing 'suffixes' which cause duplicate columns"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
     expected = pd.DataFrame(expected)
     expected.columns = ["A", "B_x", "B_x"]
 
@@ -2923,6 +2926,18 @@ def test_merge_different_index_names():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_on_index_different_index_names(join_type):
+    # GH#16249
+    left = pd.DataFrame({"a": [1]}, index=pd.DatetimeIndex(["2016-02-01"], name="lhs"))
+    right = pd.DataFrame(
+        {"b": [1.5, 2.5]},
+        index=pd.DatetimeIndex(["2016-02-01", "2016-02-02"], name="rhs"),
+    )
+    result = merge(left, right, how=join_type, left_index=True, right_index=True)
+    expected_name = "rhs" if join_type == "right" else "lhs"
+    assert result.index.name == expected_name
+
+
 def test_merge_ea(any_numeric_ea_dtype, join_type):
     # GH#44240
     left = pd.DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
@@ -3210,6 +3225,22 @@ def test_merge_ea_int_and_float_numpy():
 
     result = df2.merge(df1)
     tm.assert_frame_equal(result, expected.astype("float64"))
+
+
+@pytest.mark.parametrize("float_dtype", ["Float64", "float64[pyarrow]"])
+def test_merge_numpy_int_and_float_ea_key_dtype(float_dtype):
+    # the key column must not be cast to object
+    if "pyarrow" in float_dtype:
+        pytest.importorskip("pyarrow")
+    left = pd.DataFrame({"k": pd.Series([1, 2, 3], dtype="int64")})
+    right = pd.DataFrame({"k": pd.Series([1.0, 2.0, 4.0], dtype=float_dtype)})
+
+    result = left.merge(right, on="k")
+    tm.assert_series_equal(result["k"], pd.Series([1, 2], dtype="int64", name="k"))
+
+    result = left.merge(right, on="k", how="outer")
+    expected = pd.Series([1.0, 2.0, 3.0, 4.0], dtype=float_dtype, name="k")
+    tm.assert_series_equal(result["k"], expected)
 
 
 def test_merge_arrow_string_index(any_string_dtype):

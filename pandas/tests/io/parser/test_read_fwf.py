@@ -424,6 +424,17 @@ MyColumn
         read_fwf(StringIO(data), header=header)
 
 
+def test_multi_index_header_not_increasing():
+    # GH#47011
+    data = "a  b\nc  d\ne  f\n1  2\n3  4\n"
+    result = read_fwf(StringIO(data), header=[2, 0])
+    expected = pd.DataFrame(
+        [[1, 2], [3, 4]],
+        columns=pd.MultiIndex.from_arrays([["e", "f"], ["a", "b"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_full_file():
     # File with all values.
     test = """index                             A    B    C
@@ -1014,3 +1025,13 @@ A         B            C            D
         result = read_fwf(f).columns
 
     tm.assert_index_equal(result, expected)
+
+
+def test_skipfooter_counts_skiprows_lines():
+    # GH#36827 a skiprows line inside the footer still counts towards skipfooter
+    data = "A  B\n1  2\n3  4\n5  6\n7  8\nfooter"
+    colspecs = [(0, 1), (3, 4)]
+    result = read_fwf(StringIO(data), colspecs=colspecs, skiprows=[4], skipfooter=2)
+
+    expected = pd.DataFrame({"A": [1, 3, 5], "B": [2, 4, 6]})
+    tm.assert_frame_equal(result, expected)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from typing import (
     TYPE_CHECKING,
+    Any,
     Concatenate,
     Literal,
     Self,
@@ -31,6 +32,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -90,7 +92,6 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
-        Any,
         AnyArrayLike,
         Axis,
         FreqIndexT,
@@ -116,7 +117,7 @@ if TYPE_CHECKING:
 
 
 @set_module("pandas.api.typing")
-class Resampler(BaseGroupBy, PandasObject):
+class Resampler(BaseGroupBy[Any], PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -578,7 +579,7 @@ class Resampler(BaseGroupBy, PandasObject):
     @final
     def _get_resampler_for_grouping(
         self,
-        groupby: GroupBy,
+        groupby: GroupBy[Any],
         key,
     ):
         """
@@ -1161,6 +1162,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    7
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1219,6 +1221,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01   12
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1276,6 +1279,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1333,6 +1337,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1387,6 +1392,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1443,6 +1449,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1998,21 +2005,21 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("quantile", q=q, **kwargs)
 
 
-class _GroupByMixin(PandasObject, SelectionMixin):
+class _GroupByMixin(PandasObject, SelectionMixin[Any]):
     """
     Provide the groupby facilities.
     """
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
-    _groupby: GroupBy
+    _groupby: GroupBy[Any]
     _timegrouper: TimeGrouper
 
     def __init__(
         self,
         *,
         parent: Resampler,
-        groupby: GroupBy,
+        groupby: GroupBy[Any],
         key=None,
         selection: IndexLabel | None = None,
     ) -> None:
@@ -2115,8 +2122,8 @@ class DatetimeIndexResampler(Resampler):
     ax: DatetimeIndex
 
     @property
-    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupby]:
-        return DatetimeIndexResamplerGroupby
+    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupBy]:
+        return DatetimeIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
@@ -2222,7 +2229,7 @@ class DatetimeIndexResampler(Resampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible
 # with definition in base class "DatetimeIndexResampler"
-class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
+class DatetimeIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, DatetimeIndexResampler
 ):
     """
@@ -2241,7 +2248,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return PeriodIndexResamplerGroupby
+        return PeriodIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_period_bins(self.ax)
@@ -2322,7 +2329,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "PeriodIndexResampler"
-class PeriodIndexResamplerGroupby(  # type: ignore[misc]
+class PeriodIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, PeriodIndexResampler
 ):
     """
@@ -2341,7 +2348,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return TimedeltaIndexResamplerGroupby
+        return TimedeltaIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_time_delta_bins(self.ax)
@@ -2359,7 +2366,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "DatetimeIndexResampler"
-class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
+class TimedeltaIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, TimedeltaIndexResampler
 ):
     """
@@ -2383,7 +2390,7 @@ get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
-    groupby: GroupBy,
+    groupby: GroupBy[Any],
     rule,
     how=None,
     fill_method=None,
@@ -2861,7 +2868,6 @@ class TimeGrouper(Grouper):
                 start,
                 end,
                 self.freq,
-                closed=self.closed,
                 origin=self.origin,
                 offset=self.offset,
             )
@@ -3017,7 +3023,6 @@ def _get_period_range_edges(
     first: Period,
     last: Period,
     freq: BaseOffset,
-    closed: Literal["right", "left"] = "left",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
@@ -3033,8 +3038,6 @@ def _get_period_range_edges(
         The ending Period of the range to be adjusted.
     freq : pd.DateOffset
         The freq to which the Periods will be adjusted.
-    closed : {'right', 'left'}, default "left"
-        Which side of bin interval is closed.
     origin : {'epoch', 'start', 'start_day'}, Timestamp, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
         match the timezone of the index.
@@ -3060,8 +3063,9 @@ def _get_period_range_edges(
     adjust_first = not freq.is_on_offset(first_ts)
     adjust_last = freq.is_on_offset(last_ts)
 
+    # bins hold whole periods, so the resample's closed does not apply, see GH#44363
     first_ts, last_ts = _get_timestamp_range_edges(
-        first_ts, last_ts, freq, unit="ns", closed=closed, origin=origin, offset=offset
+        first_ts, last_ts, freq, unit="ns", closed="left", origin=origin, offset=offset
     )
 
     first = (first_ts + int(adjust_first) * freq).to_period(freq)
@@ -3164,12 +3168,8 @@ def _adjust_dates_anchored(
             lresult_int = last._value + (freq_value - loffset)
         else:
             lresult_int = last._value + freq_value
-    fresult = Timestamp(fresult_int, unit=unit)
-    lresult = Timestamp(lresult_int, unit=unit)
-    if first_tzinfo is not None:
-        fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
-    if last_tzinfo is not None:
-        lresult = lresult.tz_localize("UTC").tz_convert(last_tzinfo)
+    fresult = Timestamp._from_value_and_reso(fresult_int, first._creso, first_tzinfo)
+    lresult = Timestamp._from_value_and_reso(lresult_int, last._creso, last_tzinfo)
     return fresult, lresult
 
 

@@ -628,7 +628,7 @@ The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` ob
     def test_something(temp_file):
         pd.DataFrame([1]).to_csv(str(temp_file))
 
-Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#the-default-base-temporary-directory>`_
+Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#temporary-directory-location-and-retention>`_
 for the file retention policy.
 
 Testing involving network connectivity
@@ -788,6 +788,13 @@ speed by skipping some tests using the ``-m`` mark flag:
   no database is running, so ``-m "not db"`` is only needed to avoid the cost
   of checking for one
 - single_cpu: tests that should run on a single cpu only
+
+Tests marked ``high_memory`` need >5GB of memory, so they are skipped unless you
+ask for them:
+
+.. code-block:: bash
+
+    pytest pandas/tests/io/test_parquet.py --run-high-memory
 
 You might want to enable the following option if it's relevant for you:
 

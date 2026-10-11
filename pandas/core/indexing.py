@@ -118,13 +118,20 @@ if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
     from pandas.core.base import IndexOpsMixin
 
-    _IndexSliceTuple: TypeAlias = tuple[IndexOpsMixin | Scalar | Sequence | slice, ...]
+    _IndexSliceTuple: TypeAlias = tuple[
+        IndexOpsMixin | Scalar | Sequence[Any] | slice, ...
+    ]
 
     _IndexSliceUnion: TypeAlias = (
-        Scalar | Sequence | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
+        Scalar | Sequence[Any] | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
     )
 
     _IndexSliceUnionT = TypeVar("_IndexSliceUnionT", bound=_IndexSliceUnion)
+
+    _NDFrameIndexerBase: TypeAlias = NDFrameIndexerBase[Any]
+else:
+    # the cdef class is not subscriptable at runtime
+    _NDFrameIndexerBase = NDFrameIndexerBase
 
 
 # "null slice"
@@ -305,7 +312,7 @@ class IndexingMixin:
         With scalar integers.
 
         >>> df.iloc[0, 1]
-        np.int64(2)
+        2
 
         With lists of integers.
 
@@ -433,7 +440,7 @@ class IndexingMixin:
         Single label for row and column
 
         >>> df.loc["cobra", "shield"]
-        np.int64(2)
+        2
 
         Slice with labels for row and single label for column. As mentioned
         above, note that both the start and stop of the slice are included.
@@ -651,7 +658,7 @@ class IndexingMixin:
         Single tuple for the index with a single label for the column
 
         >>> df.loc[("cobra", "mark i"), "shield"]
-        np.int64(2)
+        2
 
         Slice from index tuple to single label
 
@@ -748,18 +755,18 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.at[4, "B"]
-        np.int64(2)
+        2
 
         Set value at specified row/column pair
 
         >>> df.at[4, "B"] = 10
         >>> df.at[4, "B"]
-        np.int64(10)
+        10
 
         Get value within a Series
 
         >>> df.loc[5].at["B"]
-        np.int64(4)
+        4
         """
         return _AtIndexer("at", self)
 
@@ -797,23 +804,23 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.iat[1, 2]
-        np.int64(1)
+        1
 
         Set value at specified row/column pair
 
         >>> df.iat[1, 2] = 10
         >>> df.iat[1, 2]
-        np.int64(10)
+        10
 
         Get value within a series
 
         >>> df.loc[0].iat[1]
-        np.int64(2)
+        2
         """
         return _iAtIndexer("iat", self)
 
 
-class _LocationIndexer(NDFrameIndexerBase):
+class _LocationIndexer(_NDFrameIndexerBase):
     _valid_types: str
     axis: AxisInt | None = None
 
@@ -1092,7 +1099,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         raise AbstractMethodError(self)
 
     @final
-    def _expand_ellipsis(self, tup: tuple) -> tuple:
+    def _expand_ellipsis(self, tup: tuple[Any, ...]) -> tuple[Any, ...]:
         """
         If a tuple key includes an Ellipsis, replace it with an appropriate
         number of null slices.
@@ -1113,7 +1120,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return tup
 
     @final
-    def _validate_tuple_indexer(self, key: tuple) -> tuple:
+    def _validate_tuple_indexer(self, key: tuple[Any, ...]) -> tuple[Any, ...]:
         """
         Check the key for valid keys across my indexer.
         """
@@ -1129,7 +1136,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return key
 
     @final
-    def _is_nested_tuple_indexer(self, tup: tuple) -> bool:
+    def _is_nested_tuple_indexer(self, tup: tuple[Any, ...]) -> bool:
         """
         Returns
         -------
@@ -1140,14 +1147,14 @@ class _LocationIndexer(NDFrameIndexerBase):
         return False
 
     @final
-    def _convert_tuple(self, key: tuple) -> tuple:
+    def _convert_tuple(self, key: tuple[Any, ...]) -> tuple[Any, ...]:
         # Note: we assume _tupleize_axis_indexer has been called, if necessary.
         self._validate_key_length(key)
         keyidx = [self._convert_to_indexer(k, axis=i) for i, k in enumerate(key)]
         return tuple(keyidx)
 
     @final
-    def _validate_key_length(self, key: tuple) -> tuple:
+    def _validate_key_length(self, key: tuple[Any, ...]) -> tuple[Any, ...]:
         if len(key) > self.ndim:
             if key[0] is Ellipsis:
                 # e.g. Series.iloc[..., 3] reduces to just Series.iloc[3]
@@ -1159,7 +1166,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return key
 
     @final
-    def _getitem_tuple_same_dim(self, tup: tuple):
+    def _getitem_tuple_same_dim(self, tup: tuple[Any, ...]):
         """
         Index with indexers that should return an object of the same dimension
         as self.obj.
@@ -1187,7 +1194,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return retval
 
     @final
-    def _getitem_lowerdim(self, tup: tuple):
+    def _getitem_lowerdim(self, tup: tuple[Any, ...]):
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
@@ -1254,7 +1261,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         raise IndexingError("not applicable")
 
     @final
-    def _getitem_nested_tuple(self, tup: tuple):
+    def _getitem_nested_tuple(self, tup: tuple[Any, ...]):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
@@ -1341,10 +1348,10 @@ class _LocationIndexer(NDFrameIndexerBase):
             maybe_callable = self._raise_callable_usage(key, maybe_callable)
             return self._getitem_axis(maybe_callable, axis=axis)
 
-    def _is_scalar_access(self, key: tuple):
+    def _is_scalar_access(self, key: tuple[Any, ...]):
         raise NotImplementedError
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: tuple[Any, ...]):
         raise AbstractMethodError(self)
 
     def _getitem_axis(self, key, axis: AxisInt):
@@ -1453,7 +1460,7 @@ class _LocIndexer(_LocationIndexer):
     Single label for row and column
 
     >>> df.loc["cobra", "shield"]
-    np.int64(2)
+    2
 
     Slice with labels for row and single label for column. As mentioned
     above, note that both the start and stop of the slice are included.
@@ -1653,7 +1660,7 @@ class _LocIndexer(_LocationIndexer):
     Single tuple for the index with a single label for the column
 
     >>> df.loc[("cobra", "mark i"), "shield"]
-    np.int64(2)
+    2
 
     Slice from index tuple to single label
 
@@ -1751,7 +1758,7 @@ class _LocIndexer(_LocationIndexer):
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
 
-    def _is_scalar_access(self, key: tuple) -> bool:
+    def _is_scalar_access(self, key: tuple[Any, ...]) -> bool:
         """
         Returns
         -------
@@ -1785,7 +1792,7 @@ class _LocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # MultiIndex Handling
 
-    def _multi_take_opportunity(self, tup: tuple) -> bool:
+    def _multi_take_opportunity(self, tup: tuple[Any, ...]) -> bool:
         """
         Check whether there is the possibility to use ``_multi_take``.
 
@@ -1809,7 +1816,7 @@ class _LocIndexer(_LocationIndexer):
         # just too complicated
         return not any(com.is_bool_indexer(x) for x in tup)
 
-    def _multi_take(self, tup: tuple):
+    def _multi_take(self, tup: tuple[Any, ...]):
         """
         Create the indexers for the passed tuple of keys, and
         executes the take operation. This allows the take operation to be
@@ -1865,7 +1872,7 @@ class _LocIndexer(_LocationIndexer):
             {axis: [keyarr, indexer]}, allow_dups=True
         )
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: tuple[Any, ...]):
         with suppress(IndexingError):
             tup = self._expand_ellipsis(tup)
             return self._getitem_lowerdim(tup)
@@ -1883,7 +1890,7 @@ class _LocIndexer(_LocationIndexer):
         # GH#5567 this will fail if the label is not present in the axis.
         return self.obj.xs(label, axis=axis)
 
-    def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
+    def _handle_lowerdim_multi_index_axis0(self, tup: tuple[Any, ...]):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
         try:
@@ -2206,7 +2213,7 @@ class _iLocIndexer(_LocationIndexer):
     With scalar integers.
 
     >>> df.iloc[0, 1]
-    np.int64(2)
+    2
 
     With lists of integers.
 
@@ -2329,7 +2336,7 @@ class _iLocIndexer(_LocationIndexer):
 
         return True
 
-    def _is_scalar_access(self, key: tuple) -> bool:
+    def _is_scalar_access(self, key: tuple[Any, ...]) -> bool:
         """
         Returns
         -------
@@ -2366,7 +2373,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: tuple[Any, ...]):
         tup = self._validate_tuple_indexer(tup)
         with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
@@ -3106,10 +3113,10 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
             ilocs = range(len(self.obj.columns))[column_indexer]
-        elif (
-            isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
-        ):
-            ilocs = np.arange(len(column_indexer))[column_indexer]
+        elif com.is_bool_indexer(column_indexer):
+            ilocs = np.arange(len(column_indexer))[
+                np.asarray(column_indexer, dtype=bool)
+            ]
         else:
             ilocs = column_indexer
         return ilocs
@@ -3280,7 +3287,7 @@ class _iLocIndexer(_LocationIndexer):
         raise ValueError("Incompatible indexer with DataFrame")
 
 
-class _ScalarAccessIndexer(NDFrameIndexerBase):
+class _ScalarAccessIndexer(_NDFrameIndexerBase):
     """
     Access scalars quickly.
     """
@@ -3370,18 +3377,18 @@ class _AtIndexer(_ScalarAccessIndexer):
     Get value at specified row/column pair
 
     >>> df.at[4, "B"]
-    np.int64(2)
+    2
 
     Set value at specified row/column pair
 
     >>> df.at[4, "B"] = 10
     >>> df.at[4, "B"]
-    np.int64(10)
+    10
 
     Get value within a Series
 
     >>> df.loc[5].at["B"]
-    np.int64(4)
+    4
     """
 
     _takeable = False
@@ -3504,18 +3511,18 @@ class _iAtIndexer(_ScalarAccessIndexer):
     Get value at specified row/column pair
 
     >>> df.iat[1, 2]
-    np.int64(1)
+    1
 
     Set value at specified row/column pair
 
     >>> df.iat[1, 2] = 10
     >>> df.iat[1, 2]
-    np.int64(10)
+    10
 
     Get value within a series
 
     >>> df.loc[0].iat[1]
-    np.int64(2)
+    2
     """
 
     _takeable = True
@@ -3561,18 +3568,19 @@ def _positional_row(row):
 
 def _is_2d_value_for_columns(value, ncols: int) -> bool:
     """
-    Whether ``value`` is a 2-D value spanning ``ncols`` selected columns.
+    Whether ``value`` should be treated as a 2-D value for ``ncols`` columns.
 
-    A list of tuples whose tuples are not ``ncols`` long is per-cell values --
-    e.g. tuples being stored into a single object-dtype column -- rather than a
-    2-D block with one entry per selected column. GH#37629
+    A list of tuples aimed at a single column is per-cell values unless the
+    tuples are length-1 (GH#37629). With more columns it takes the 2-D path
+    whatever the tuple width, which rejects a mismatched one. GH#65264
     """
     if not _is_2d_value(value):
         return False
     return not (
         isinstance(value, list)
+        and ncols == 1
         and isinstance(value[0], tuple)
-        and len(value[0]) != ncols
+        and len(value[0]) != 1
     )
 
 
@@ -3619,7 +3627,7 @@ def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     return tuple(_tup)
 
 
-def _tupleize_axis_indexer(ndim: int, axis: AxisInt, key) -> tuple:
+def _tupleize_axis_indexer(ndim: int, axis: AxisInt, key) -> tuple[Any, ...]:
     """
     If we have an axis, adapt the given key to be axis-independent.
     """
@@ -3696,7 +3704,9 @@ def convert_missing_indexer(indexer):
     return indexer, False
 
 
-def convert_from_missing_indexer_tuple(indexer: tuple, axes: list[Index]) -> tuple:
+def convert_from_missing_indexer_tuple(
+    indexer: tuple[Any, ...], axes: list[Index]
+) -> tuple[Any, ...]:
     """
     Create a filtered indexer that doesn't have any missing indexers.
     """

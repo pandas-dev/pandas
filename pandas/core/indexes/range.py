@@ -25,6 +25,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.internals import BlockValuesRefs
 from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
@@ -35,6 +36,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -257,7 +259,13 @@ class RangeIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
-        result._references = None
+        # result._references populated lazily
+        return result
+
+    @cache_readonly
+    def _references(self) -> BlockValuesRefs:  # type: ignore[override]
+        result = BlockValuesRefs()
+        result.add_index_reference(self)
         return result
 
     @classmethod
@@ -295,7 +303,7 @@ class RangeIndex(Index):
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
-    def __reduce__(self) -> tuple:
+    def __reduce__(self) -> tuple[Any, ...]:
         d = {"name": self._name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
@@ -588,13 +596,6 @@ class RangeIndex(Index):
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
 
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should an integer key be treated as positional?
-        """
-        return False
-
     # --------------------------------------------------------------------
 
     def tolist(self) -> list[int]:
@@ -654,6 +655,7 @@ class RangeIndex(Index):
     def _view(self) -> Self:
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
+        self._references.add_index_reference(result)
         return result
 
     def _wrap_reindex_result(
@@ -839,7 +841,7 @@ class RangeIndex(Index):
         return_indexer: Literal[False] = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self: ...
 
     @overload
@@ -849,7 +851,7 @@ class RangeIndex(Index):
         return_indexer: Literal[True],
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> tuple[Self, np.ndarray]: ...
 
     @overload
@@ -859,7 +861,7 @@ class RangeIndex(Index):
         return_indexer: bool = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
@@ -868,7 +870,7 @@ class RangeIndex(Index):
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
-        key: Callable | None = None,
+        key: Callable[..., Any] | None = None,
     ) -> Self | tuple[Self, np.ndarray]:
         if key is not None:
             return super().sort_values(
@@ -1139,6 +1141,9 @@ class RangeIndex(Index):
         left = self.difference(other)
         right = other.difference(self)
         result = left.union(right)
+
+        if isinstance(result, RangeIndex) and result.step < 0:
+            result = result[::-1]
 
         if result_name is not None:
             result = result.rename(result_name)
@@ -1449,13 +1454,13 @@ class RangeIndex(Index):
         else:
             return super().round(decimals=decimals)
 
-    def _cmp_method(self, other: object, op: Callable) -> Any:
+    def _cmp_method(self, other: object, op: Callable[..., Any]) -> Any:
         if isinstance(other, RangeIndex) and self._range == other._range:
             # Both are immutable so if ._range attr. are equal, shortcut is possible
             return super()._cmp_method(self, op)
         return super()._cmp_method(other, op)
 
-    def _arith_method(self, other: object, op: Callable) -> Index:
+    def _arith_method(self, other: object, op: Callable[..., Any]) -> Index:
         """
         Parameters
         ----------
@@ -1487,7 +1492,7 @@ class RangeIndex(Index):
         ]:
             return super()._arith_method(other, op)
 
-        step: Callable | None = None
+        step: Callable[..., Any] | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
@@ -1691,5 +1696,5 @@ class RangeIndex(Index):
             result = len(self) - result
         result = np.maximum(np.minimum(result, len(self)), 0)
         if was_scalar:
-            return np.intp(result.item())
+            return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)

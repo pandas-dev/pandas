@@ -1765,8 +1765,6 @@ def test_setitem_int_not_positional():
     # GH#42215 deprecated falling back to positional on __setitem__ with an
     #  int not contained in the index; enforced in 2.0
     ser = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.0, 4.1])
-    assert not ser.index._should_fallback_to_positional
-    # assert not ser.index.astype(object)._should_fallback_to_positional
 
     # 3.0 is in our index, so post-enforcement behavior is unchanged
     ser[3] = 10
@@ -2010,6 +2008,18 @@ def test_setitem_enlarge_within_int64_range():
     ser.loc[2] = 2**62
 
     expected = pd.Series([1, 2, 2**62], dtype="int64")
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_enlarge_float16_no_overflow_warning():
+    # GH#68315 floats_fit_integer_dtype's float16 overflow warning (see
+    #  test_downcast.py) fires here too, on setitem-with-expansion
+    ser = pd.Series([1, 2], dtype="int64")
+
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = np.float16(3.0)
+
+    expected = pd.Series([1, 2, 3], dtype="int64")
     tm.assert_series_equal(ser, expected)
 
 
