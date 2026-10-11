@@ -653,7 +653,7 @@ def read_json(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine: JSONEngine = "ujson",
-) -> DataFrame | Series | JsonReader:
+) -> DataFrame | Series | JsonReader[Any]:
     """
     Convert a JSON string to pandas object.
 
@@ -1018,7 +1018,7 @@ def read_json(
 
 
 @set_module("pandas.api.typing")
-class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
+class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
     """
     JsonReader provides an interface for reading in a JSON file.
 
@@ -1487,7 +1487,7 @@ class Parser:
         self.dtype_backend = dtype_backend
 
     @final
-    def check_keys_split(self, decoded: dict) -> None:
+    def check_keys_split(self, decoded: dict[str, Any]) -> None:
         """
         Checks that dict has only the appropriate keys for orient='split'.
         """

@@ -184,7 +184,8 @@ def test_dialect_supplies_non_bool(all_parsers):
         ({"sep": ","}, None),  # sep is default --> sep_override=True
         ({"sep": "."}, ParserWarning),  # sep isn't default --> sep_override=False
         ({"delimiter": ":"}, None),  # No conflict
-        ({"delimiter": None}, None),  # Default arguments --> sep_override=True
+        ({}, None),  # Default arguments --> sep_override=True
+        ({"delimiter": None}, None),  # Matches the parser default --> no conflict
         ({"delimiter": ","}, ParserWarning),  # Conflict
         ({"delimiter": "."}, ParserWarning),  # Conflict
     ],
@@ -192,7 +193,8 @@ def test_dialect_supplies_non_bool(all_parsers):
         "sep-override-true",
         "sep-override-false",
         "delimiter-no-conflict",
-        "delimiter-default-arg",
+        "no-sep-or-delimiter",
+        "delimiter-none",
         "delimiter-conflict",
         "delimiter-conflict2",
     ],

@@ -206,6 +206,16 @@ class TestCategoricalOps:
         result = cat != (0, 1)
         tm.assert_numpy_array_equal(result, ~expected)
 
+    def test_comparison_with_iterator(self):
+        # GH#31646 an iterator is hashable, so it is scalar-like, like a tuple
+        cat = pd.Categorical(["a", "b"])
+
+        result = cat == iter(["a", "b"])
+        tm.assert_numpy_array_equal(result, np.array([False, False]))
+
+        result = cat != iter(["a", "b"])
+        tm.assert_numpy_array_equal(result, np.array([True, True]))
+
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
         self, compare_operators_no_eq_ne
     ):

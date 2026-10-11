@@ -129,8 +129,6 @@ class WrappedCythonOp:
 
     Parameters
     ----------
-    kind: str
-        Whether the operation is an aggregate or transform.
     how: str
         Operation name, e.g. "mean".
     has_dropped_na: bool
@@ -143,12 +141,14 @@ class WrappedCythonOp:
         ["any", "all", "rank", "count", "size", "idxmin", "idxmax"]
     )
 
-    def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
-        self.kind = kind
+    def __init__(self, how: str, has_dropped_na: bool) -> None:
+        self.kind = (
+            "aggregate" if how in self._CYTHON_FUNCTIONS["aggregate"] else "transform"
+        )
         self.how = how
         self.has_dropped_na = has_dropped_na
 
-    _CYTHON_FUNCTIONS: dict[str, dict] = {
+    _CYTHON_FUNCTIONS: dict[str, dict[str, Any]] = {
         "aggregate": {
             "any": functools.partial(libgroupby.group_any_all, val_test="any"),
             "all": functools.partial(libgroupby.group_any_all, val_test="all"),
@@ -180,12 +180,6 @@ class WrappedCythonOp:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    @classmethod
-    def get_kind_from_how(cls, how: str) -> str:
-        if how in cls._CYTHON_FUNCTIONS["aggregate"]:
-            return "aggregate"
-        return "transform"
-
     # Note: we make this a classmethod and pass kind+how so that caching
     #  works at the class level and not the instance level
     @classmethod
@@ -195,6 +189,12 @@ class WrappedCythonOp:
     ):
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
+
+        if dtype.kind == "c" and how not in ["sum", "mean"]:
+            # GH#43770 only sum and mean have complex kernels (var/std/sem are
+            #  split into parts in _call_cython_op); the rest would raise an
+            #  opaque error or silently discard the imaginary part
+            raise TypeError(f"dtype '{dtype_str}' does not support operation '{how}'")
 
         # see if there is a fused-type version of function
         # only valid for numeric
@@ -249,8 +249,7 @@ class WrappedCythonOp:
 
         if how in ["median", "std", "sem", "skew", "kurt"]:
             # median only has a float64 implementation
-            # We should only get here with is_numeric, as non-numeric cases
-            #  should raise in _get_cython_function
+            # non-numeric and complex cases are handled before we get here
             values = ensure_float64(values)
 
         elif values.dtype.kind in "iu":
@@ -393,6 +392,28 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
+
+        if dtype.kind == "c" and self.how in ["var", "std", "sem"]:
+            # GH#43770 var(z) = var(z.real) + var(z.imag), matching numpy.
+            #  A value is NA if either part is NaN, so both parts share counts.
+            nan_mask = np.isnan(values)
+            res_real, res_imag = (
+                self._call_cython_op(
+                    np.where(nan_mask, np.nan, part),
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    comp_ids=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    initial=initial,
+                    **kwargs,
+                )
+                for part in [values.real, values.imag]
+            )
+            if self.how == "var":
+                return res_real + res_imag
+            return np.hypot(res_real, res_imag)
+
         is_numeric = dtype.kind in "iufcb"
 
         is_datetimelike = dtype.kind in "mM"
@@ -650,14 +671,14 @@ class BaseGrouper:
         yield from zip(keys, splitter, strict=True)
 
     @final
-    def _get_splitter(self, data: NDFrame) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame) -> DataSplitter[Any]:
         """
         Returns
         -------
         Generator yielding subsetted objects
         """
         if isinstance(data, Series):
-            klass: type[DataSplitter] = SeriesSplitter
+            klass: type[DataSplitter[Any]] = SeriesSplitter
         else:
             # i.e. DataFrame
             klass = FrameSplitter
@@ -751,7 +772,7 @@ class BaseGrouper:
         """
         ids = self.ids
         ngroups = self.ngroups
-        out: np.ndarray | list
+        out: np.ndarray | list[Any]
         if ngroups:
             if self.has_dropped_na:
                 out = np.bincount(ids + 1, minlength=ngroups + 1)[1:]
@@ -892,9 +913,11 @@ class BaseGrouper:
                 names=list(unob_index.names) + list(ob_index.names),
             ).reorder_levels(index)
 
-            # The sum here will get -1 values wrong when dropna=True;
-            # we will fix at the end.
+            # A dropped NA key is -1 in ob_ids/unob_ids and needs to come through
+            # as -1 in `ids`; the sum can be non-negative, so test the operands.
             ids = len(unob_index) * ob_ids + unob_ids
+            if self.dropna:
+                ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
 
             if any(sorts):
                 # Sort result_index and recode ids using the new order
@@ -910,8 +933,12 @@ class BaseGrouper:
                     sorter = result_index.argsort()
                 result_index = result_index.take(sorter)
                 _, index = np.unique(sorter, return_index=True)
-                ids = ensure_platform_int(ids)
-                ids = index.take(ids)
+                # ids is -1 for the dropped NA keys; the sentinel at the end
+                # of recode maps those back to -1 instead of to a position.
+                recode = np.empty(len(index) + 1, dtype=np.intp)
+                recode[:-1] = index
+                recode[-1] = -1
+                ids = recode.take(ids)
             else:
                 # Recode ids and reorder result_index with observed groups up front,
                 # unobserved at the end
@@ -921,9 +948,6 @@ class BaseGrouper:
                     [uniques, np.delete(np.arange(len(result_index)), uniques)]
                 )
                 result_index = result_index.take(taker)
-
-            if self.dropna:
-                ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
 
         return result_index, ids
 
@@ -1009,7 +1033,6 @@ class BaseGrouper:
     @final
     def _cython_operation(
         self,
-        kind: str,
         values,
         how: str,
         axis: AxisInt,
@@ -1019,11 +1042,8 @@ class BaseGrouper:
         """
         Returns the values of a cython operation.
         """
-        assert kind in ["transform", "aggregate"]
-
         if (
-            kind == "aggregate"
-            and how in _REDUCEAT_UFUNCS
+            how in _REDUCEAT_UFUNCS
             and isinstance(values, np.ndarray)
             and values.dtype.kind in "iufb"
             and self.is_monotonic
@@ -1032,7 +1052,7 @@ class BaseGrouper:
             if result is not None:
                 return result
 
-        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
+        cy_op = WrappedCythonOp(how=how, has_dropped_na=self.has_dropped_na)
 
         return cy_op.cython_operation(
             values=values,
@@ -1153,16 +1173,12 @@ class BaseGrouper:
         return result
 
     @final
-    def agg_series(
-        self, obj: Series, func: Callable, preserve_dtype: bool = False
-    ) -> ArrayLike:
+    def agg_series(self, obj: Series, func: Callable[..., Any]) -> ArrayLike:
         """
         Parameters
         ----------
         obj : Series
         func : function taking a Series and returning a scalar-like
-        preserve_dtype : bool
-            Whether the aggregation is known to be dtype-preserving.
 
         Returns
         -------
@@ -1173,7 +1189,7 @@ class BaseGrouper:
 
     @final
     def _aggregate_series_pure_python(
-        self, obj: Series, func: Callable
+        self, obj: Series, func: Callable[..., Any]
     ) -> npt.NDArray[np.object_]:
         result = np.empty(self.ngroups, dtype="O")
         initialized = False
@@ -1195,8 +1211,8 @@ class BaseGrouper:
 
     @final
     def apply_groupwise(
-        self, f: Callable, data: DataFrame | Series
-    ) -> tuple[list, bool]:
+        self, f: Callable[..., Any], data: DataFrame | Series
+    ) -> tuple[list[Any], bool]:
         mutated = False
         splitter = self._get_splitter(data)
         group_keys = self.result_index
@@ -1427,7 +1443,7 @@ class DataSplitter(Generic[NDFrameT]):
         self._slabels = sorted_ids
         self._sort_idx = sort_idx
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[NDFrame]:
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
             # we merely return signal the end
@@ -1457,7 +1473,7 @@ class DataSplitter(Generic[NDFrameT]):
         raise AbstractMethodError(self)
 
 
-class SeriesSplitter(DataSplitter):
+class SeriesSplitter(DataSplitter[Series]):
     _sorted_cls = Series
 
     def _chop(self, sdata: Series, slice_obj: slice, needs_finalize: bool) -> Series:
@@ -1471,7 +1487,7 @@ class SeriesSplitter(DataSplitter):
         return ser
 
 
-class FrameSplitter(DataSplitter):
+class FrameSplitter(DataSplitter[DataFrame]):
     _sorted_cls = DataFrame
 
     def _chop(

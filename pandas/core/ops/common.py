@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 
@@ -39,6 +40,20 @@ if TYPE_CHECKING:
 def has_castable_attr(obj) -> bool:
     attrs = ["__array__", "__dlpack__", "__arrow_c_array__", "__arrow_c_stream__"]
     return any(hasattr(obj, name) for name in attrs)
+
+
+def raise_if_2d(other) -> None:
+    """
+    Reject a multi-dimensional operand before any dtype-specific conversion,
+    matching BaseMaskedArray (GH#62682).
+    """
+    # ABCExtensionArray does not match NumpyExtensionArray, whose _typ is
+    #  "npy_extension" -- and that is the EA most likely to be 2-D (GH#62682)
+    if (
+        isinstance(other, (np.ndarray, ABCExtensionArray, ABCNumpyExtensionArray))
+        and other.ndim > 1
+    ):
+        raise NotImplementedError("can only perform ops with 1-d structures")
 
 
 def maybe_warn_listlike(other) -> None:

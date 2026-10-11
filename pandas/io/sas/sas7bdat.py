@@ -19,6 +19,9 @@ from __future__ import annotations
 import codecs
 from datetime import datetime
 import functools
+import io
+import os
+import stat
 import sys
 from typing import TYPE_CHECKING
 import warnings
@@ -297,6 +300,9 @@ class SAS7BDATReader(SASReader):
 
     _int_length: int
     _cached_page: bytes | None
+    _string_chunk: np.ndarray
+    _str_offsets: np.ndarray
+    _str_valid: np.ndarray
     encoding: str | None
 
     def __init__(
@@ -328,6 +334,12 @@ class SAS7BDATReader(SASReader):
         self.column_names: list[str | bytes] = []
         self.column_formats: list[str | bytes] = []
         self.columns: list[_Column] = []
+        # (text subheader index, offset, length) into column_names_raw, resolved
+        # once all of the column text has been read
+        self._column_name_refs: list[tuple[int, int, int]] = []
+        self._column_format_refs: list[
+            tuple[tuple[int, int, int], tuple[int, int, int]]
+        ] = []
 
         # (offset, length) of each data subheader on the current page, filled
         # in by collect_page_subheaders. Sized in _get_properties, once the
@@ -342,7 +354,9 @@ class SAS7BDATReader(SASReader):
 
         self._current_row_in_file_index = 0
         self._current_row_on_page_index = 0
-        self._current_row_in_file_index = 0
+        # Deleted rows skipped so far; row_count and _current_row_in_file_index
+        # count them too.
+        self._deleted_row_count = 0
 
         self.handles = get_handle(
             path_or_buf, "rb", is_text=False, compression=compression
@@ -350,29 +364,17 @@ class SAS7BDATReader(SASReader):
 
         self._path_or_buf = self.handles.handle
 
-        # Same order as const.SASIndex
-        self._subheader_processors = [
-            self._process_rowsize_subheader,
-            self._process_columnsize_subheader,
-            self._process_subheader_counts,
-            self._process_columntext_subheader,
-            self._process_columnname_subheader,
-            self._process_columnattributes_subheader,
-            self._process_format_subheader,
-            self._process_columnlist_subheader,
-            None,  # Data
-        ]
-
         try:
             self._get_properties()
             self._parse_metadata()
             self._validate_column_data_ranges()
+            self._max_rows = self._max_rows_in_file()
         except Exception:
             self.close()
             raise
         self._metadata_at_open = self._metadata_signature()
 
-    def _metadata_signature(self) -> tuple:
+    def _metadata_signature(self) -> tuple[int, int, int, int, bytes, int, int]:
         """
         Everything the parser and ``_chunk_to_dataframe`` read out of the file's
         metadata, in one comparable value.
@@ -390,7 +392,7 @@ class SAS7BDATReader(SASReader):
             self.column_count,
             self.compression,
             len(self._column_data_offsets),
-            len(self.column_names),
+            len(self._column_name_refs),
         )
 
     def _validate_column_data_ranges(self) -> None:
@@ -421,6 +423,40 @@ class SAS7BDATReader(SASReader):
                     f"Column {index} spans bytes {offset}-{offset + length} of a "
                     f"{self.row_length}-byte row; the file is corrupt"
                 )
+
+    def _max_rows_in_file(self) -> int | None:
+        # Every row takes at least row_length bytes, or a subheader pointer when
+        # the rows are compressed, so the file size bounds how many it holds.
+        size = self._input_size()
+        if size is None:
+            return None
+        min_row_bytes = self.row_length
+        if self.compression:
+            min_row_bytes = min(min_row_bytes, self._subheader_pointer_length)
+        return size // max(min_row_bytes, 1)
+
+    def _input_size(self) -> int | None:
+        """
+        Return the size in bytes of a plain file or BytesIO being read, else None.
+
+        A decompressing handle's fileno is the compressed file's, so its size
+        would undercount.
+        """
+        handle = self._path_or_buf
+        if isinstance(handle, io.BytesIO):
+            with handle.getbuffer() as buf:
+                return buf.nbytes
+        # a tar member is a BufferedReader too, over a raw stream with no fileno
+        raw = (
+            handle.raw
+            if isinstance(handle, io.BufferedRandom | io.BufferedReader)
+            else handle
+        )
+        if isinstance(raw, io.FileIO):
+            st = os.fstat(raw.fileno())
+            if stat.S_ISREG(st.st_mode):
+                return st.st_size
+        return None
 
     def column_data_lengths(self) -> np.ndarray:
         """Return a numpy int64 array of the column data lengths"""
@@ -454,10 +490,12 @@ class SAS7BDATReader(SASReader):
             self._int_length = 8
             self._page_bit_offset = const.page_bit_offset_x64
             self._subheader_pointer_length = const.subheader_pointer_length_x64
+            self._page_deleted_pointer_offset = const.page_deleted_pointer_offset_x64
         else:
             self.U64 = False
             self._page_bit_offset = const.page_bit_offset_x86
             self._subheader_pointer_length = const.subheader_pointer_length_x86
+            self._page_deleted_pointer_offset = const.page_deleted_pointer_offset_x86
             self._int_length = 4
         buf = self._read_bytes(const.align_2_offset, const.align_2_length)
         if buf == const.align_1_checker_value:
@@ -582,6 +620,7 @@ class SAS7BDATReader(SASReader):
             if len(self._cached_page) != self._page_length:
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
+        self._resolve_column_text()
 
         self._column_convert_types: list[str | None] = []
         for j in range(self.column_count):
@@ -775,10 +814,7 @@ class SAS7BDATReader(SASReader):
                 col_name_offset, const.column_name_offset_length
             )
             col_len = self._read_uint(col_name_length, const.column_name_length_length)
-
-            name_raw = self.column_names_raw[idx]
-            cname = name_raw[col_offset : col_offset + col_len]
-            self.column_names.append(self._convert_header_text(cname))
+            self._column_name_refs.append((idx, col_offset, col_len))
 
     def _process_columnattributes_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
@@ -823,11 +859,9 @@ class SAS7BDATReader(SASReader):
         col_label_offset = offset + const.column_label_offset_offset + 3 * int_len
         col_label_len = offset + const.column_label_length_offset + 3 * int_len
 
-        x = self._read_uint(
+        format_idx = self._read_uint(
             text_subheader_format, const.column_format_text_subheader_index_length
         )
-        format_idx = min(x, len(self.column_names_raw) - 1)
-
         format_start = self._read_uint(
             col_format_offset, const.column_format_offset_length
         )
@@ -836,34 +870,142 @@ class SAS7BDATReader(SASReader):
         label_idx = self._read_uint(
             text_subheader_label, const.column_label_text_subheader_index_length
         )
-        label_idx = min(label_idx, len(self.column_names_raw) - 1)
-
         label_start = self._read_uint(
             col_label_offset, const.column_label_offset_length
         )
         label_len = self._read_uint(col_label_len, const.column_label_length_length)
 
-        label_names = self.column_names_raw[label_idx]
-        column_label = self._convert_header_text(
-            label_names[label_start : label_start + label_len]
-        )
-        format_names = self.column_names_raw[format_idx]
-        column_format = self._convert_header_text(
-            format_names[format_start : format_start + format_len]
-        )
-        current_column_number = len(self.columns)
-
-        col = _Column(
-            current_column_number,
-            self.column_names[current_column_number],
-            column_label,
-            column_format,
-            self._column_types[current_column_number],
-            self._column_data_lengths[current_column_number],
+        self._column_format_refs.append(
+            (
+                (format_idx, format_start, format_len),
+                (label_idx, label_start, label_len),
+            )
         )
 
-        self.column_formats.append(column_format)
-        self.columns.append(col)
+    def _resolve_column_text(self) -> None:
+        # Refs index the column text subheaders in file order, and an amd page
+        #  after the data can hold some of that text. GH#60809
+        n_text = len(self.column_names_raw)
+        if any(idx >= n_text for idx, _, _ in self._column_name_refs) or any(
+            idx >= n_text and length > 0
+            for refs in self._column_format_refs
+            for idx, _, length in refs
+        ):
+            self._read_amd_column_text()
+            n_text = len(self.column_names_raw)
+
+        for idx, start, length in self._column_name_refs:
+            if idx >= n_text:
+                raise ValueError(
+                    f"Column name refers to text subheader {idx}, which the file "
+                    "does not contain; the file is corrupt"
+                )
+            name_raw = self.column_names_raw[idx]
+            self.column_names.append(
+                self._convert_header_text(name_raw[start : start + length])
+            )
+
+        for format_ref, label_ref in self._column_format_refs:
+            format_idx, format_start, format_len = format_ref
+            label_idx, label_start, label_len = label_ref
+            label_names = self.column_names_raw[min(label_idx, n_text - 1)]
+            column_label = self._convert_header_text(
+                label_names[label_start : label_start + label_len]
+            )
+            format_names = self.column_names_raw[min(format_idx, n_text - 1)]
+            column_format = self._convert_header_text(
+                format_names[format_start : format_start + format_len]
+            )
+            current_column_number = len(self.columns)
+
+            col = _Column(
+                current_column_number,
+                self.column_names[current_column_number],
+                column_label,
+                column_format,
+                self._column_types[current_column_number],
+                self._column_data_lengths[current_column_number],
+            )
+
+            self.column_formats.append(column_format)
+            self.columns.append(col)
+
+    def _read_amd_column_text(self) -> None:
+        # Scan the pages after the metadata for amd pages and collect only their
+        #  column text, as ReadStat does. Unusable pages and subheaders are skipped,
+        #  leaving the ref unresolved. GH#60809
+        if not self._path_or_buf.seekable():
+            # e.g. zstd, which cannot seek back to the data after the scan
+            self._path_or_buf = io.BytesIO(self._path_or_buf.read())
+        cached_page = self._cached_page
+        file_pos = self._path_or_buf.tell()
+        bit_offset = self._page_bit_offset
+        int_len = self._int_length
+        page_length = self._page_length
+        pointer_length = self._subheader_pointer_length
+        head_len = bit_offset + const.subheader_pointers_offset
+        page_start = file_pos
+        while True:
+            self._path_or_buf.seek(page_start)
+            self._cached_page = self._path_or_buf.read(head_len)
+            if len(self._cached_page) < head_len:
+                break
+            page_type = (
+                self._read_uint(
+                    bit_offset + const.page_type_offset, const.page_type_length
+                )
+                & const.page_type_mask2
+            )
+            if page_type == const.page_amd_type:
+                self._cached_page += self._path_or_buf.read(page_length - head_len)
+                if len(self._cached_page) < page_length:
+                    break
+                subheader_count = self._read_uint(
+                    bit_offset + const.subheader_count_offset,
+                    const.subheader_count_length,
+                )
+                if head_len + subheader_count * pointer_length > page_length:
+                    subheader_count = 0
+                for i in range(subheader_count):
+                    pointer = head_len + i * pointer_length
+                    offset = self._read_uint(pointer, int_len)
+                    length = self._read_uint(pointer + int_len, int_len)
+                    compression = self._read_uint(pointer + 2 * int_len, 1)
+                    if (
+                        length < int_len + const.text_block_size_length
+                        or offset + length > page_length
+                        or compression == const.truncated_subheader_id
+                    ):
+                        continue
+                    signature = self._read_bytes(offset, int_len)
+                    if (
+                        const.subheader_signature_to_index.get(signature)
+                        != const.SASIndex.column_text_index
+                    ):
+                        continue
+                    text_block_size = self._read_uint(
+                        offset + int_len, const.text_block_size_length
+                    )
+                    if offset + int_len + text_block_size <= page_length:
+                        self._process_columntext_subheader(offset, length)
+            page_start += page_length
+        self._cached_page = cached_page
+        self._path_or_buf.seek(file_pos)
+
+    # Same order as const.SASIndex. Plain functions, not bound methods: those
+    # would make the reader a reference cycle, so its file would stay open until
+    # a cyclic collection rather than when the reader is dropped.
+    _subheader_processors = [
+        _process_rowsize_subheader,
+        _process_columnsize_subheader,
+        _process_subheader_counts,
+        _process_columntext_subheader,
+        _process_columnname_subheader,
+        _process_columnattributes_subheader,
+        _process_format_subheader,
+        _process_columnlist_subheader,
+        None,  # Data
+    ]
 
     def read(self, nrows: int | None = None) -> DataFrame:
         if (nrows is None) and (self.chunksize is not None):
@@ -879,6 +1021,18 @@ class SAS7BDATReader(SASReader):
             return DataFrame()
 
         nrows = min(nrows, self.row_count - self._current_row_in_file_index)
+        # The buffers below are sized before any row is read, so a corrupt
+        #  row_count could exhaust memory. Checked per read rather than at open
+        #  so that the chunks a truncated file does hold stay readable.
+        if (
+            self._max_rows is not None
+            and self._current_row_in_file_index + nrows > self._max_rows
+        ):
+            self.close()
+            raise ValueError(
+                f"The file claims {self.row_count} rows but can hold at most "
+                f"{self._max_rows}; the file is corrupt"
+            )
 
         nd = self._column_types.count(b"d")
         ns = self._column_types.count(b"s")
@@ -909,6 +1063,16 @@ class SAS7BDATReader(SASReader):
             # Release the growable parse buffers before building the DataFrame,
             # so that their spare capacity is not held alongside the copies above.
             del p
+
+            n = self._current_row_in_chunk_index
+            if n < nrows and self._current_row_in_file_index >= self.row_count:
+                # row_count includes deleted rows, so the buffers have room for
+                # rows the parser skipped. A file that runs out of pages early
+                # stops short of row_count, is not trimmed, and still raises.
+                self._byte_chunk = self._byte_chunk[:, : 8 * n]
+                self._string_chunk = self._string_chunk[:, :n]
+                self._str_offsets = self._str_offsets[:, : n + 1]
+                self._str_valid = self._str_valid[:, :n]
 
             rslt = self._chunk_to_dataframe()
         except Exception:
@@ -1018,7 +1182,7 @@ class SAS7BDATReader(SASReader):
 
     def _chunk_to_dataframe(self) -> DataFrame:
         n = self._current_row_in_chunk_index
-        m = self._current_row_in_file_index
+        m = self._current_row_in_file_index - self._deleted_row_count
         ix = range(m - n, m)
         rslt = {}
 

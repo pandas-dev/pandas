@@ -120,6 +120,7 @@ class BaseReduceTests:
                     "setting an array element with a sequence",
                     "Cannot convert .* to numeric",
                     "Could not convert .* to numeric",
+                    "not allowed for this dtype",
                 ]
             )
 
@@ -178,6 +179,7 @@ class BaseReduceTests:
                     "can't multiply sequence by non-int of type",
                     r"complex\(\) first argument must be a string or a number",
                     r"complex\(\) argument must be a string or a number",
+                    "not allowed for this dtype",
                 ]
             )
             with pytest.raises((TypeError, AttributeError), match=msg):

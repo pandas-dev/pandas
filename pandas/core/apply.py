@@ -23,7 +23,10 @@ from pandas.util._decorators import (
     set_module,
 )
 
-from pandas.core.dtypes.cast import is_nested_object
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    is_nested_object,
+)
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
@@ -57,6 +60,7 @@ if TYPE_CHECKING:
         Generator,
         Hashable,
         Iterable,
+        Mapping,
         MutableMapping,
         Sequence,
     )
@@ -68,6 +72,7 @@ if TYPE_CHECKING:
         AggObjType,
         Axis,
         AxisInt,
+        DtypeObj,
         NDFrameT,
         npt,
     )
@@ -83,6 +88,7 @@ if TYPE_CHECKING:
         ExtensionArray,
     )
     from pandas.core.groupby import GroupBy
+    from pandas.core.groupby.groupby import BaseGroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -117,6 +123,18 @@ _frame_reduction_names = frozenset(
 )
 
 
+def _stack_as_object(dtypes: list[DtypeObj]) -> bool:
+    """
+    Whether results of these dtypes must be stacked as object to keep their
+    values: bools mixed with other dtypes can be cast to numbers, and signed
+    with unsigned integers to a float, which rounds values above 2**53.
+    """
+    kinds = {dtype.kind for dtype in dtypes}
+    if "b" in kinds and len(kinds) > 1:
+        return True
+    return {"i", "u"} <= kinds and find_common_type(dtypes).kind == "f"
+
+
 @set_module("pandas.api.executors")
 class BaseExecutionEngine(abc.ABC):
     """
@@ -136,9 +154,9 @@ class BaseExecutionEngine(abc.ABC):
     def map(
         data: Series | DataFrame | np.ndarray,
         func: AggFuncType,
-        args: tuple,
+        args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        decorator: Callable | None,
+        decorator: Callable[..., Any] | None,
         skip_na: bool,
     ):
         """
@@ -179,9 +197,9 @@ class BaseExecutionEngine(abc.ABC):
     def apply(
         data: Series | DataFrame | np.ndarray,
         func: AggFuncType,
-        args: tuple,
+        args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        decorator: Callable,
+        decorator: Callable[..., Any],
         axis: Axis,
     ):
         """
@@ -526,7 +544,19 @@ class Apply(metaclass=abc.ABCMeta):
     def wrap_results_list_like(
         self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
+        from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
+
         obj = self.obj
+
+        if not results:
+            # GH#39609
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, BaseGroupBy) and obj._selected_obj.ndim == 1:
+                return obj._selected_obj._constructor_expanddim(
+                    index=_groupby_result_index(obj), columns=Index([])
+                )
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
@@ -651,11 +681,27 @@ class Apply(metaclass=abc.ABCMeta):
         self,
         selected_obj: Series | DataFrame,
         result_index: list[Hashable],
-        result_data: list,
+        result_data: list[Any],
     ):
         from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
 
         obj = self.obj
+
+        if not result_data:
+            # GH#39609
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, ABCDataFrame):
+                return obj._constructor(index=Index([]), columns=obj.columns[:0])
+            elif isinstance(obj, BaseGroupBy):
+                index = _groupby_result_index(obj)
+                if selected_obj.ndim == 2:
+                    frame = cast("DataFrame", selected_obj)
+                    return frame._constructor(index=index, columns=frame.columns[:0])
+                return selected_obj._constructor_expanddim(
+                    index=index, columns=Index([])
+                )
 
         # Avoid making two isinstance calls in all and any below
         is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
@@ -965,7 +1011,7 @@ class FrameApply(NDFrameApply):
     @abc.abstractmethod
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         pass
 
     @abc.abstractmethod
@@ -1119,7 +1165,7 @@ class FrameApply(NDFrameApply):
         elif self.kwargs.get("bool_only"):
             obj = obj._get_bool_data()
 
-        if obj.columns.empty:
+        if obj.columns.empty or len(func_names) == 0:
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
@@ -1128,7 +1174,7 @@ class FrameApply(NDFrameApply):
         for dtype in groups:
             cols = groups[dtype]
             sub = obj[cols]
-            group_pieces: list[DataFrame] = []
+            rows: list[Series] = []
             for func_name in func_names:
                 try:
                     row = getattr(sub, func_name)(*self.args, **self.kwargs)
@@ -1143,9 +1189,17 @@ class FrameApply(NDFrameApply):
                     # by the columns; anything else would silently misalign
                     # in the concat below.
                     return None
-                # to_frame().T avoids the slow DataFrame(list-of-Series) path
-                group_pieces.append(row.to_frame(func_name).T)
-            pieces.append(concat(group_pieces))
+                rows.append(row)
+
+            # to_frame().T avoids the slow DataFrame(list-of-Series) path
+            frames = [
+                row.to_frame(name).T for name, row in zip(func_names, rows, strict=True)
+            ]
+            if _stack_as_object([row.dtype for row in rows]):
+                # GH#65031 see test_agg_list_like_unsigned_and_signed_is_object
+                # and test_agg_list_like_bool_with_numeric_is_object
+                frames = [frame.astype(object) for frame in frames]
+            pieces.append(concat(frames))
 
         result = concat(pieces, axis=1)
         result = result.reindex(columns=obj.columns)
@@ -1358,7 +1412,7 @@ class FrameRowApply(FrameApply):
     @functools.cache
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
 
@@ -1384,7 +1438,7 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1514,7 +1568,7 @@ class FrameColumnApply(FrameApply):
 
     @staticmethod
     def _make_ea_row_builder(
-        col_arrays: list, dtype: ExtensionDtype, cls: type[ExtensionArray]
+        col_arrays: Sequence[Any], dtype: ExtensionDtype, cls: type[ExtensionArray]
     ) -> Callable[[int], ExtensionArray]:
         """Build a callable that constructs an EA row for a given row index.
 
@@ -1561,7 +1615,7 @@ class FrameColumnApply(FrameApply):
     @functools.cache
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
         from pandas.core._numba.extensions import maybe_cast_str
@@ -1588,7 +1642,7 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1735,7 +1789,7 @@ class SeriesApply(NDFrameApply):
 
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         obj = self.obj
 
         if isinstance(func, np.ufunc):
@@ -1764,7 +1818,7 @@ class SeriesApply(NDFrameApply):
 
 
 class GroupByApply(Apply):
-    obj: GroupBy | Resampler | BaseWindow
+    obj: GroupBy[Any] | Resampler | BaseWindow
 
     def __init__(
         self,
@@ -1885,8 +1939,20 @@ class ResamplerWindowApply(GroupByApply):
         raise NotImplementedError
 
 
+def _groupby_result_index(obj: BaseGroupBy[Any]) -> Index:
+    """
+    Index of a groupby aggregation result, used when there is nothing to aggregate.
+    """
+    from pandas.core.resample import Resampler
+
+    if isinstance(obj, Resampler):
+        # a groupby-resample has no single grouper to take the index from
+        return obj.size().index
+    return obj._grouper.result_index
+
+
 def reconstruct_func(
-    func: AggFuncType | None, **kwargs
+    func: AggFuncType | None, allow_skip_normalization: bool = False, /, **kwargs
 ) -> tuple[bool, AggFuncType, tuple[str, ...] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
@@ -1902,10 +1968,22 @@ def reconstruct_func(
     names, and the reconstructed order of columns.
     If relabeling is False, the columns and order will be None.
 
+    Named aggregation is the one exception: when ``allow_skip_normalization`` is
+    True, every output name equals its source column name, and every aggfunc
+    reduces to a scalar, relabeling is reported as False (and columns/order as
+    None) even though named aggregation was used, because the caller can consume
+    the un-normalized func directly.
+
     Parameters
     ----------
     func: agg function (e.g. 'min' or Callable) or list of agg functions
         (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
+    allow_skip_normalization: bool, default False
+        Whether the caller can handle the un-normalized ``{column: aggfunc}`` form
+        that named aggregation reduces to when every output name equals its source
+        column name and every aggfunc is a scalar reduction. Callers that rely on
+        ``columns``/``order`` being returned whenever named aggregation was used
+        must leave this False.
     **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
         normalize_keyword_aggregation function for relabelling
 
@@ -1924,6 +2002,9 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
+    # deferred: pandas.core.groupby.generic imports from this module at import
+    #  time, so a top-level import here would be circular
+    from pandas.core.groupby.base import reduction_kernels
     from pandas.core.groupby.generic import NamedAgg
 
     relabeling = func is None and (
@@ -1946,7 +2027,7 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
-        normalization_needed = False
+        normalization_needed = not allow_skip_normalization
         # error: Incompatible types in assignment (expression has type
         # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
@@ -1964,7 +2045,17 @@ def reconstruct_func(
             else:
                 column, aggfunc = val
 
-            if column != key:
+            # The un-normalized {column: aggfunc} form only matches the normalized
+            #  one when the aggfunc reduces each group to a single scalar. A
+            #  list-like aggfunc, or a string naming a non-reduction groupby method
+            #  (e.g. "describe"/"ohlc", which give a frame per group), would widen
+            #  the result past the one output column per keyword named aggregation
+            #  promises.
+            if (
+                column != key
+                or is_list_like(aggfunc)
+                or (isinstance(aggfunc, str) and aggfunc not in reduction_kernels)
+            ):
                 normalization_needed = True
             converted_kwargs[key] = column, aggfunc
 
@@ -2014,7 +2105,7 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
 
 def normalize_keyword_aggregation(
-    kwargs: dict,
+    kwargs: Mapping[str, Any],
 ) -> tuple[
     MutableMapping[Hashable, list[AggFuncTypeBase]],
     tuple[str, ...],
@@ -2094,7 +2185,7 @@ def _make_unique_kwarg_list(
 
 def relabel_result(
     result: DataFrame | Series,
-    func: dict[str, list[Callable | str]],
+    func: dict[str, list[Callable[..., Any] | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
 ) -> dict[Hashable, Series]:
@@ -2283,7 +2374,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def validate_func_kwargs(
-    kwargs: dict,
+    kwargs: Mapping[str, Any],
 ) -> tuple[list[str], list[str | Callable[..., Any]]]:
     """
     Validates types of user-provided "named aggregation" kwargs.

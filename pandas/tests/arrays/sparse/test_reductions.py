@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._libs.sparse import IntIndex
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -624,12 +622,8 @@ def test_frame_std_datetime64_widens_to_timedelta64():
     tm.assert_series_equal(result, expected)
 
 
-# skew/kurt cast to float64 inside nanops, on the dense path too
-@pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
-)
 @pytest.mark.parametrize("fill_value", [np.nan, 1 + 1j])
-@pytest.mark.parametrize("name", ["var", "std", "sem", "skew", "kurt"])
+@pytest.mark.parametrize("name", ["var", "std", "sem"])
 def test_frame_complex_reduction_narrows_to_real(name, fill_value):
     # GH#68194 these map complex to real, which np.result_type widens straight back
     values = np.array([1 + 2j, 3 - 1j, 5 + 0j])
@@ -656,6 +650,9 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
     tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize(
     "name, kwargs",
     [("median", {"skipna": False}), ("sem", {"ddof": 5}), ("std", {"ddof": 5})],
@@ -687,7 +684,7 @@ def test_describe():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
+    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "subtype,fill_value,dense_dtype",
@@ -713,6 +710,12 @@ def test_reductions_with_na_fill_value_match_dense(
     arr = SparseArray([1.0, np.nan, 5.0, np.nan]).astype(
         pd.SparseDtype(subtype, fill_value)
     )
+    if subtype == "complex128" and name in ["skew", "kurt"]:
+        # GH#43770
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            getattr(pd.Series(arr), name)(skipna=skipna)
+        return
+
     dense = pd.Series(
         [np.nan if pd.isna(value) else value for value in arr], dtype=dense_dtype
     )
@@ -835,7 +838,7 @@ def test_any_all_skipna_false_na_fill_value(name, subtype):
     # GH#68559 an NA fill value on a numeric subtype; the gaps densify to that
     #  subtype's own NA, NaN or NaT, both truthy
     sp_values = np.array([1], dtype=subtype)
-    arr = SparseArray(sp_values, sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
+    arr = SparseArray.from_indices(sp_values, indices=[0], length=3, fill_value=pd.NA)
     assert arr.sp_index.ngaps
 
     assert getattr(arr, name)(skipna=False)
@@ -845,7 +848,9 @@ def test_any_all_skipna_false_na_fill_value(name, subtype):
 def test_any_all_skipna_false_bool_subtype_na_fill_value(name):
     # GH#68559 a bool subtype densifies to object holding pd.NA rather than to a
     #  numpy NA, so unlike the numeric subtypes it goes on raising like dense
-    arr = SparseArray(np.array([True]), sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
+    arr = SparseArray.from_indices(
+        np.array([True]), indices=[0], length=3, fill_value=pd.NA
+    )
     assert arr.sp_index.ngaps
 
     with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):

@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    NoReturn,
     Self,
     cast,
 )
@@ -379,8 +380,8 @@ class MultiIndex(Index):
 
     def _verify_integrity(
         self,
-        codes: list | None = None,
-        levels: list | None = None,
+        codes: list[Any] | None = None,
+        levels: list[Any] | None = None,
         levels_to_verify: list[int] | range | None = None,
     ) -> FrozenList:
         """
@@ -1655,10 +1656,12 @@ class MultiIndex(Index):
         *,
         include_names: bool,
         sparsify: bool | lib.NoDefault | None,
-        formatter: Callable | None = None,
-    ) -> list:
+        formatter: Callable[..., Any] | None = None,
+    ) -> list[Any]:
         if len(self) == 0:
             return []
+
+        from pandas.io.formats.format import format_name
 
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes, strict=True):
@@ -1688,11 +1691,7 @@ class MultiIndex(Index):
             level = []
 
             if include_names:
-                level.append(
-                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
-                    if lev_name is not None
-                    else ""
-                )
+                level.append(format_name(lev_name))
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
@@ -2034,7 +2033,7 @@ class MultiIndex(Index):
         MultiIndex([(2.0, 4.0)],
                    )
         >>> mi.dropna(how="all")
-        MultiIndex([(nan, 3.0),
+        MultiIndex([(NaN, 3.0),
                     (2.0, 4.0)],
                    )
         """
@@ -2138,7 +2137,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Index([1.0, nan, 2.0], dtype='float64')
+        Index([1.0, NaN, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -3384,14 +3383,6 @@ class MultiIndex(Index):
             # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should integer key(s) be treated as positional?
-        """
-        # GH#33355
-        return self.levels[0]._should_fallback_to_positional
-
     def _get_indexer_strict(
         self, key, axis_name: str
     ) -> tuple[Index, npt.NDArray[np.intp]]:
@@ -3547,7 +3538,13 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
+    def _partial_tup_index(
+        self, tup: tuple[Any, ...], side: Literal["left", "right"] = "left"
+    ):
+        if len(tup) > self.nlevels:
+            # GH#45762 no amount of sorting brings a key this deep into range,
+            #  so the lexsort complaint below would be blaming the wrong thing
+            _raise_key_length_error(len(tup), self.nlevels)
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
@@ -3695,9 +3692,7 @@ class MultiIndex(Index):
 
         keylen = len(key)
         if self.nlevels < keylen:
-            raise KeyError(
-                f"Key length ({keylen}) exceeds index depth ({self.nlevels})"
-            )
+            _raise_key_length_error(keylen, self.nlevels)
 
         if keylen == self.nlevels:
             # TODO: what if we have an IntervalIndex level?
@@ -3899,6 +3894,16 @@ class MultiIndex(Index):
                     return indexer, new_index
             except (TypeError, InvalidIndexError):
                 pass
+
+            # GH#45762 A trailing null slice is not a per-level key: the loop
+            #  below skips it, and .loc arrives with the column selector still
+            #  attached, as df.loc["a", :, :]. A bool indexer is not exempt
+            #  here -- unlike get_locs, this loop resolves one against its level
+            depth = len(key)
+            while depth > self.nlevels and com.is_null_slice(key[depth - 1]):
+                depth -= 1
+            if depth > self.nlevels:
+                _raise_key_length_error(len(key), self.nlevels)
 
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
@@ -4173,14 +4178,8 @@ class MultiIndex(Index):
         array([2], dtype=int64)
         """
 
-        # must be lexsorted to at least as many levels
-        true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
-        if true_slices and true_slices[-1] >= self._lexsort_depth:
-            raise UnsortedIndexError(
-                "MultiIndex slicing requires the index to be lexsorted: slicing "
-                f"on levels {true_slices}, lexsort depth {self._lexsort_depth}"
-            )
-
+        # GH#45762 Checked first: an Ellipsis is never supported at all, so
+        #  neither the length nor the lexsort depth below is the real problem
         if any(x is Ellipsis for x in seq):
             raise NotImplementedError(
                 "MultiIndex does not support indexing with Ellipsis"
@@ -4200,6 +4199,28 @@ class MultiIndex(Index):
                 changed = True
         if changed:
             seq = tuple(materialized)
+
+        # GH#45762 Checked before the lexsort depth below, which would otherwise
+        #  take the blame. Trailing null slices and bool indexers consume no
+        #  level; .loc routes the column selector here too, as df.loc[:, key, :]
+        #  does. Materialized above: is_bool_indexer reads an iterator as a
+        #  level key.
+        depth = len(materialized)
+        if depth > self.nlevels:
+            for key in reversed(materialized[self.nlevels :]):
+                if not (com.is_null_slice(key) or com.is_bool_indexer(key)):
+                    break
+                depth -= 1
+        if depth > self.nlevels:
+            _raise_key_length_error(len(materialized), self.nlevels)
+
+        # must be lexsorted to at least as many levels
+        true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
+        if true_slices and true_slices[-1] >= self._lexsort_depth:
+            raise UnsortedIndexError(
+                "MultiIndex slicing requires the index to be lexsorted: slicing "
+                f"on levels {true_slices}, lexsort depth {self._lexsort_depth}"
+            )
 
         n = len(self)
 
@@ -4434,7 +4455,7 @@ class MultiIndex(Index):
 
     def _reorder_indexer(
         self,
-        seq: tuple[Scalar | Iterable | AnyArrayLike, ...],
+        seq: tuple[Scalar | Iterable[Any] | AnyArrayLike, ...],
         indexer: npt.NDArray[np.intp],
     ) -> npt.NDArray[np.intp]:
         """
@@ -5032,6 +5053,11 @@ class MultiIndex(Index):
     __invert__ = make_invalid_op("__invert__")
 
 
+def _raise_key_length_error(key_length: int, nlevels: int) -> NoReturn:
+    """One spelling of the over-long-key message for every site that raises it."""
+    raise KeyError(f"Key length ({key_length}) exceeds index depth ({nlevels})")
+
+
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
     """Count depth (up to a maximum of `nlevels`) with which codes are lexsorted."""
     int64_codes = [ensure_int64(level_codes) for level_codes in codes]
@@ -5127,6 +5153,15 @@ def _coerce_indexer_frozen(array_like, categories, copy: bool = False) -> np.nda
     np.ndarray
         Non-writeable.
     """
+    values = np.asarray(array_like)
+    if values.dtype.kind == "O":
+        values = values.astype(np.float64)
+    if (
+        values.dtype.kind == "f"
+        and not (np.isfinite(values) & (values == np.trunc(values))).all()
+    ):
+        # casting would silently map NaN/0.5 to a valid code, GH#26210
+        raise ValueError("MultiIndex codes must be integers, -1 for missing values")
     array_like = coerce_indexer_dtype(array_like, categories)
     if copy:
         array_like = array_like.copy()
@@ -5142,7 +5177,7 @@ def _require_listlike(level, arr, arrname: str):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
         if len(arr) > 0 and is_list_like(arr[0]):
-            raise TypeError(f"{arrname} must be list-like")
+            raise TypeError(f"{arrname} must be list-like, not a list of list-likes")
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):

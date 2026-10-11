@@ -1570,6 +1570,9 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+For a calendar step that is not anchored, such as yearly from an arbitrary
+date, pass a :class:`DateOffset` like ``freq=pd.DateOffset(years=1)``.
+
 Anchored offset semantics
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1812,7 +1815,8 @@ financial applications.
 on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
-The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
+The ``resample()`` method can be used directly from
+:class:`~pandas.api.typing.DataFrameGroupBy` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 Basics

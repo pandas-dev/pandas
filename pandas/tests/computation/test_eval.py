@@ -1865,6 +1865,16 @@ def test_equals_various(other):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "expr, expected",
+    [("'a' == 'a'", True), ("'a' != 'a'", False), ("'a' == 'b'", False)],
+)
+def test_compare_string_literals(expr, expected, engine, parser):
+    # GH#54199
+    result = pd.eval(expr, engine=engine, parser=parser)
+    assert result == expected
+
+
 def test_inf(engine, parser):
     s = "inf + 1"
     expected = np.inf
@@ -1956,6 +1966,16 @@ def test_eval_float_div_numexpr():
     result = pd.eval("1 / 2", engine="numexpr")
     expected = 0.5
     assert result == expected
+
+
+@skip_if_no_numexpr
+def test_eval_int64_result_dtype_type():
+    # GH#17945 numexpr returns longlong for int64, which select_dtypes dropped
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]}, dtype="int64")
+    df["c"] = df.eval("a - b", engine="numexpr")
+    assert df["c"].dtype.type is np.int64
+    result = df.select_dtypes("int64")
+    tm.assert_frame_equal(result, df)
 
 
 def test_call_with_binop_argument():

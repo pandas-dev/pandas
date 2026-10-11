@@ -365,7 +365,7 @@ class SubclassedSeries(Series):
     _metadata = ["testattr", "name"]
 
     @property
-    def _constructor(self) -> Callable:  # type: ignore[override]
+    def _constructor(self) -> Callable[..., Any]:  # type: ignore[override]
         # For testing, those properties return a generic callable, and not
         # the actual class. In this case that is equivalent, but it is to
         # ensure we don't rely on the property returning a class
@@ -374,7 +374,7 @@ class SubclassedSeries(Series):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     @property
-    def _constructor_expanddim(self) -> Callable:
+    def _constructor_expanddim(self) -> Callable[..., Any]:
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
 
@@ -382,12 +382,12 @@ class SubclassedDataFrame(DataFrame):
     _metadata = ["testattr"]
 
     @property
-    def _constructor(self) -> Callable:  # type: ignore[override]
+    def _constructor(self) -> Callable[..., Any]:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
     # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self) -> Callable:  # type: ignore[override]
+    def _constructor_sliced(self) -> Callable[..., Any]:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -413,7 +413,7 @@ def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
 
 def external_error_raised(
     expected_exception: type[Exception],
-) -> AbstractContextManager:
+) -> AbstractContextManager[Any]:
     """
     Helper function to mark pytest.raises that have an external error message.
 
@@ -432,7 +432,7 @@ def external_error_raised(
     return pytest.raises(expected_exception, match=None)
 
 
-def get_op_from_name(op_name: str) -> Callable:
+def get_op_from_name(op_name: str) -> Callable[..., Any]:
     """
     The operator function for a given op name.
 
@@ -568,9 +568,9 @@ def shares_memory(left: Any, right: Any) -> bool:
 
 
 def run_multithreaded(
-    closure: Callable,
+    closure: Callable[..., Any],
     max_workers: int,
-    arguments: Iterable | None = None,
+    arguments: Iterable[Any] | None = None,
     pass_barrier: bool = False,
 ) -> None:
     with ThreadPoolExecutor(max_workers=max_workers) as tpe:

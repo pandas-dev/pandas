@@ -546,3 +546,26 @@ def test_to_dict_list_pd_scalars(val):
     result = df.to_dict(orient="list")
     expected = {"a": [val]}
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "orient, expected",
+    [
+        ("split", {"index": ["A", "B"], "columns": [], "data": [[], []]}),
+        (
+            "tight",
+            {
+                "index": ["A", "B"],
+                "columns": [],
+                "data": [[], []],
+                "index_names": [None],
+                "column_names": [None],
+            },
+        ),
+        ("records", [{}, {}]),
+    ],
+)
+def test_to_dict_no_columns(orient, expected):
+    # GH#25408
+    df = pd.DataFrame(index=["A", "B"])
+    assert df.to_dict(orient=orient) == expected

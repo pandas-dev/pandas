@@ -336,7 +336,7 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
 
 def select_describe_func(
     data: Series,
-) -> Callable:
+) -> Callable[..., Series]:
     """Select proper function for describing series based on data type.
 
     Parameters
