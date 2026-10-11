@@ -1542,6 +1542,9 @@ class ArrowExtensionArray(
         >>> pd.array([0, 0, pd.NA], dtype="boolean[pyarrow]").any(skipna=False)
         <NA>
         """
+        nv.validate_any((), kwargs)
+        # GH 68959 "out" is not supported by pyarrow and if None is a no-op anyways
+        kwargs.pop("out", None)
         return self._reduce(
             "any", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
         )
@@ -1634,6 +1637,9 @@ class ArrowExtensionArray(
         >>> pd.array([1, 0, pd.NA], dtype="boolean[pyarrow]").all(skipna=False)
         False
         """
+        nv.validate_all((), kwargs)
+        # GH 68959 "out" is not supported by pyarrow and if None is a no-op anyways
+        kwargs.pop("out", None)
         return self._reduce(
             "all", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
         )
@@ -2832,6 +2838,8 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_sum((), kwargs)
+        # GH 68959 "out" is not supported by pyarrow and if None is a no-op anyways
+        kwargs.pop("out", None)
         return self._reduce(
             "sum",
             skipna=skipna,
@@ -2850,6 +2858,8 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_min((), kwargs)
+        # GH 68959 "out" is not supported by pyarrow and if None is a no-op anyways
+        kwargs.pop("out", None)
         return self._reduce(
             "min", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
         )
@@ -2863,6 +2873,8 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_max((), kwargs)
+        # GH 68959 "out" is not supported by pyarrow and if None is a no-op anyways
+        kwargs.pop("out", None)
         return self._reduce(
             "max", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
         )
@@ -2876,6 +2888,10 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_mean((), kwargs)
+        # GH 68959 "dtype" and "out" are not supported by pyarrow and if None are a
+        #  no-op anyways
+        kwargs.pop("dtype", None)
+        kwargs.pop("out", None)
         return self._reduce(
             "mean", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
         )
@@ -2943,6 +2959,10 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="var")
+        # GH 68959 "dtype" and "out" are not supported by pyarrow and if None are a
+        #  no-op anyways
+        kwargs.pop("dtype", None)
+        kwargs.pop("out", None)
         return self._reduce(
             "var", skipna=skipna, keepdims=keepdims, ddof=ddof, axis=axis, **kwargs
         )
@@ -2957,6 +2977,10 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="std")
+        # GH 68959 "dtype" and "out" are not supported by pyarrow and if None are a
+        #  no-op anyways
+        kwargs.pop("out", None)
+        kwargs.pop("dtype", None)
         return self._reduce(
             "std", skipna=skipna, keepdims=keepdims, ddof=ddof, axis=axis, **kwargs
         )
@@ -2971,6 +2995,8 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+        # GH 68959 "out" is not supported by pyarrow and if None is a no-op anyways
+        kwargs.pop("out", None)
         return self._reduce(
             "prod",
             skipna=skipna,
