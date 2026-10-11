@@ -248,7 +248,8 @@ def read_excel(
     header : int, list of int, default 0
         Row (0-indexed) to use for the column labels of the parsed
         DataFrame. If a list of integers is passed those row positions will
-        be combined into a ``MultiIndex``. Use None if there is no header.
+        be combined into a ``MultiIndex``, with levels in the order given.
+        Use None if there is no header.
     names : array-like, default None
         List of column names to use. If file contains no header row,
         then you should explicitly pass header=None.
@@ -709,7 +710,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
             header_rows = 1 + header
         else:
             header = cast("Sequence[int]", header)
-            header_rows = 1 + header[-1]
+            header_rows = 1 + max(header)
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
         if is_list_like(header) and index_col is not None:
@@ -879,12 +880,15 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             header_names = []
             control_row = [True] * len(data[0])
+            offset = 0
+            if is_integer(skiprows):
+                assert isinstance(skiprows, int)
+                offset = skiprows
 
-            for row in header:
-                if is_integer(skiprows):
-                    assert isinstance(skiprows, int)
-                    row += skiprows
-
+            # fill parent rows before their children, whatever order the
+            # header rows were passed in (GH#47011)
+            for row in sorted(header):
+                row += offset
                 if row > len(data) - 1:
                     raise ValueError(
                         f"header index {row} exceeds maximum index "
@@ -893,8 +897,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
                 data[row], control_row = fill_mi_header(data[row], control_row)
 
-                if index_col is not None:
-                    header_name, _ = pop_header_name(data[row], index_col)
+            if index_col is not None:
+                for row in header:
+                    header_name, _ = pop_header_name(data[row + offset], index_col)
                     header_names.append(header_name)
 
         # If there is a MultiIndex header and an index then there is also
@@ -1769,7 +1774,8 @@ class ExcelFile:
         header : int, list of int, default 0
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
-            be combined into a ``MultiIndex``. Use None if there is no header.
+            be combined into a ``MultiIndex``, with levels in the order given.
+            Use None if there is no header.
         names : array-like, default None
             List of column names to use. If file contains no header row,
             then you should explicitly pass header=None.
