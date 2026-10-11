@@ -972,7 +972,7 @@ def test_short_single_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Length mismatch: Expected axis has 2 elements
+@xfail_pyarrow  # ParserError: pyarrow takes the width from the first row, GH#71034
 def test_short_multi_line(all_parsers):
     # GH 47566
     parser = all_parsers
