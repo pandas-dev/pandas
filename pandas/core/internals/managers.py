@@ -35,6 +35,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    common_dtype_categorical_compat,
     find_common_type,
     infer_dtype_from_scalar,
     np_can_hold_element,
@@ -1944,6 +1945,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # type "Optional[dtype[Any]]")
             # GH#62263 use cached interleaved_dtype
             dtype = self._get_interleaved_dtype()  # type: ignore[assignment]
+            # not cached since it depends on the values, GH#38240
+            dtype = common_dtype_categorical_compat(  # type: ignore[assignment]
+                [blk.values for blk in self.blocks],
+                dtype,  # type: ignore[arg-type]
+            )
 
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
