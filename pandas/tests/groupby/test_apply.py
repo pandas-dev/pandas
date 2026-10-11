@@ -1414,6 +1414,14 @@ def test_include_groups():
         gb.apply(lambda x: x.sum(), include_groups=True)
 
 
+def test_apply_error_not_chained():
+    # GH#50980
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        df.groupby("a").apply(lambda x: x["b"] < "taco")
+    assert err.value.__context__ is None
+
+
 @pytest.mark.parametrize("func, value", [(max, 2), (min, 1), (sum, 3)])
 def test_builtins_apply(func, value):
     # GH#8155, GH#53974
