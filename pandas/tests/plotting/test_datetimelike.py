@@ -2317,28 +2317,13 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     assert ret is not None  # TODO: do something more intelligent
 
 
-def test_ts_plot_tz_aware_starts_at_dst_fall_back():
-    # GH#62936 the first timestamp is the repeated 02:00 of the fall-back
-    #  day; localizing its tz-naive period back to the timezone raised
-    index = date_range(
-        "2025-10-26T01:00", periods=13, freq="5min", tz="UTC"
-    ).tz_convert("MET")
-    assert index[0] == pd.Timestamp("2025-10-26 02:00+01:00", tz="MET")
-    ser = pd.Series(np.arange(len(index)), index=index)
-
-    ax = ser.plot()
-
-    result = ax.get_lines()[0].get_xdata()
-    expected = index.tz_localize(None).to_period("5min").asi8
-    tm.assert_numpy_array_equal(result, expected)
-
-
-def test_ts_plot_tz_aware_across_dst_fall_back():
-    # GH#62936 starts at the first 02:00 of the fall-back day, which is
-    #  ambiguous once the timezone is dropped
-    index = date_range(
-        "2025-10-26T00:00", "2025-10-26T03:00", freq="5min", tz="UTC"
-    ).tz_convert("MET")
+@pytest.mark.parametrize("start", ["2025-10-26T00:00", "2025-10-26T01:00"])
+def test_ts_plot_tz_aware_dst_fall_back(start):
+    # GH#62936 the index starts at the first or the repeated 02:00 of the
+    #  fall-back day; localizing its tz-naive period back to the timezone raised
+    index = date_range(start, "2025-10-26T03:00", freq="5min", tz="UTC").tz_convert(
+        "MET"
+    )
     ser = pd.Series(np.arange(len(index)), index=index)
 
     ax = ser.plot()
