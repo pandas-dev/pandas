@@ -327,6 +327,15 @@ class TestAstype:
         with pytest.raises(TypeError, match=f"Expected an instance of {cls.__name__}"):
             df.astype({"A": cls, "B": cls})
 
+    def test_astype_dict_equal_dtypes_kept_apart(self):
+        # GH#63433 equal but not identical dtypes each apply to their own column
+        df = pd.DataFrame({"x": ["a", "b"], "y": ["a", "b"]})
+        result = df.astype(
+            {"x": pd.CategoricalDtype(["a", "b"]), "y": pd.CategoricalDtype(["b", "a"])}
+        )
+        assert result["x"].cat.categories.tolist() == ["a", "b"]
+        assert result["y"].cat.categories.tolist() == ["b", "a"]
+
     def test_astype_extension_dtypes(self, any_int_ea_dtype):
         # GH#22578
         dtype = any_int_ea_dtype

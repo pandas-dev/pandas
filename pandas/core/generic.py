@@ -6753,17 +6753,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # GH#63433: cast only the listed columns, grouped by target dtype, and
             #  assemble the result from those plus the untouched columns.
-            locs_by_dtype: dict[Any, list[int]] = {}
+            # Keyed by identity: dtypes can compare equal without being identical,
+            #  e.g. CategoricalDtype with the same categories in another order.
+            locs_by_dtype: dict[int, tuple[Any, list[int]]] = {}
             mask = dtype_ser.notna()
             for loc, column_dtype in zip(
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
             ):
-                locs_by_dtype.setdefault(column_dtype, []).append(int(loc))
+                _, group = locs_by_dtype.setdefault(
+                    id(column_dtype), (column_dtype, [])
+                )
+                group.append(int(loc))
             if not locs_by_dtype:
                 return self.copy(deep=False)
 
             pieces = []
-            for column_dtype, locs in locs_by_dtype.items():
+            for column_dtype, locs in locs_by_dtype.values():
                 # A dtype class goes column by column: Series.astype rejects it,
                 #  while casting several columns at once would instantiate it.
                 is_class = inspect.isclass(column_dtype) and issubclass(
