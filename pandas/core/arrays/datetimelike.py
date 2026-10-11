@@ -1566,7 +1566,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def mean(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,

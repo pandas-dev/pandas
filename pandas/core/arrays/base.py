@@ -2519,7 +2519,7 @@ class ExtensionArray:
     def all(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2532,7 +2532,7 @@ class ExtensionArray:
     def any(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2569,7 +2569,7 @@ class ExtensionArray:
     def kurt(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2582,7 +2582,7 @@ class ExtensionArray:
     def max(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2595,7 +2595,7 @@ class ExtensionArray:
     def mean(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2608,7 +2608,7 @@ class ExtensionArray:
     def median(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2621,7 +2621,7 @@ class ExtensionArray:
     def min(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2634,7 +2634,7 @@ class ExtensionArray:
     def prod(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
@@ -2648,7 +2648,7 @@ class ExtensionArray:
     def sem(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -2662,7 +2662,7 @@ class ExtensionArray:
     def skew(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2675,7 +2675,7 @@ class ExtensionArray:
     def std(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -2689,7 +2689,7 @@ class ExtensionArray:
     def sum(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
@@ -2703,7 +2703,7 @@ class ExtensionArray:
     def var(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -3457,7 +3457,7 @@ class ExtensionArrayNaResult(ExtensionArray):
     def any(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3487,7 +3487,7 @@ class ExtensionArrayNaResult(ExtensionArray):
     def all(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,

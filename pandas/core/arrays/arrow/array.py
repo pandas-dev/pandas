@@ -1646,7 +1646,7 @@ class ArrowExtensionArray(
     def any(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -1741,7 +1741,7 @@ class ArrowExtensionArray(
     def all(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3022,7 +3022,7 @@ class ArrowExtensionArray(
     def sum(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
@@ -3044,7 +3044,7 @@ class ArrowExtensionArray(
     def min(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3059,7 +3059,7 @@ class ArrowExtensionArray(
     def max(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3074,7 +3074,7 @@ class ArrowExtensionArray(
     def mean(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3091,7 +3091,7 @@ class ArrowExtensionArray(
     def sem(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -3105,7 +3105,7 @@ class ArrowExtensionArray(
     def skew(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3118,7 +3118,7 @@ class ArrowExtensionArray(
     def kurt(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3131,7 +3131,7 @@ class ArrowExtensionArray(
     def median(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -3144,7 +3144,7 @@ class ArrowExtensionArray(
     def var(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -3162,7 +3162,7 @@ class ArrowExtensionArray(
     def std(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -3180,7 +3180,7 @@ class ArrowExtensionArray(
     def prod(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,

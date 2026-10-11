@@ -1794,7 +1794,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def sum(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
@@ -1817,7 +1817,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def prod(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
@@ -1840,7 +1840,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def mean(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -1857,7 +1857,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def median(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -1871,7 +1871,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def kurt(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -1885,7 +1885,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def sem(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -1900,7 +1900,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def skew(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -1914,7 +1914,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def var(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -1933,7 +1933,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def std(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         ddof: int = 1,
@@ -1952,7 +1952,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def min(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -1969,7 +1969,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def max(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2009,7 +2009,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def any(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2121,7 +2121,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def all(
         self,
         *,
-        axis: AxisInt | None = 0,
+        axis: AxisInt | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
