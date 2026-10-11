@@ -7738,8 +7738,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if isinstance(other, Index) and self.is_(other):
-            # fastpath
+        if (
+            isinstance(other, Index)
+            and self.is_(other)
+            and not isinstance(self._values, ExtensionArray)
+        ):
+            # fastpath; only for numpy-backed values, as an ExtensionArray
+            # may use different NA semantics (e.g. nullable dtypes return
+            # a boolean array with NA at missing positions) GH#71022
             if op in {operator.eq, operator.le, operator.ge}:
                 arr = np.ones(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
