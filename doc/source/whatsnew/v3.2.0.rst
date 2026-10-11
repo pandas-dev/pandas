@@ -160,6 +160,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
+- Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
 -
 
 Strings
@@ -177,9 +178,9 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` for a ``True`` or ``False`` label present in an object-dtype :class:`Index` or the first level of a :class:`MultiIndex` (:issue:`50165`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
--
 
 Missing
 ^^^^^^^
@@ -189,6 +190,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
+- Bug in :meth:`MultiIndex.append`, :func:`concat`, :meth:`DataFrame.join` and :func:`merge` emitting a spurious ``RuntimeWarning`` when :class:`MultiIndex` level values could not be sorted (:issue:`61477`)
 -
 
 I/O
@@ -203,6 +205,7 @@ I/O
 - Bug in :func:`read_sas` with ``format="xport"`` reading zeros as ``5.397605e-79`` (:issue:`50670`)
 - Bug in :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle` and similar writers where writing to a ``file://`` URL raised for a new file and silently left an existing file unchanged; writing to other URLs such as ``http://`` now raises instead of silently discarding the data (:issue:`55828`)
 - Bug in :meth:`DataFrame.to_excel` where a ``NaN`` label in :class:`MultiIndex` columns was written as the last value of that level instead of an empty cell (:issue:`62340`)
+- Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` dropping the nanoseconds of tz-aware datetime columns and :class:`Timestamp` objects, and with ``date_format="epoch"`` mis-rounding pre-1970 ``datetime`` objects or raising ``OverflowError`` for ones outside the nanosecond bounds at a coarser ``date_unit`` (:issue:`53473`)
 - Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
 - Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and :meth:`DataFrame.to_html` ignoring ``na_rep`` for ``None``, ``pd.NA``, and ``NaT`` values in object-dtype columns and an explicit ``na_rep="NaN"`` for any missing value, and in :meth:`DataFrame.to_xml` raising for ``na_rep`` with nullable, pyarrow-backed, or categorical columns containing missing values (:issue:`54872`)
 - Bug in the repr of a :class:`Series` or :class:`DataFrame` with ``longdouble`` (e.g. ``float128``) dtype showing values outside the ``float64`` range as ``0`` or ``inf`` (:issue:`17809`)
