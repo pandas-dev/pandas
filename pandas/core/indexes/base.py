@@ -7738,7 +7738,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if isinstance(other, Index) and self.is_(other):
+        if (
+            isinstance(other, Index)
+            and self.is_(other)
+            and not isinstance(self._values, ExtensionArray)
+        ):
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
                 arr = np.ones(len(self), dtype=bool)

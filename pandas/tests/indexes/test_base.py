@@ -1831,6 +1831,20 @@ def test_nan_comparison_same_object(op):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "op",
+    [operator.eq, operator.ne, operator.le, operator.ge, operator.lt, operator.gt],
+)
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean", "string"])
+def test_na_comparison_same_object_nullable_dtypes(op, dtype):
+    # GH#71022
+    values = [True, pd.NA] if dtype == "boolean" else [1, pd.NA]
+    idx = Index(values, dtype=dtype)
+    expected = op(idx, idx.copy())
+    result = op(idx, idx)
+    tm.assert_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333
