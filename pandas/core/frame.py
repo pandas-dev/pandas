@@ -17211,6 +17211,14 @@ class DataFrame(NDFrame, OpsMixin):
                 middle = func(vals, axis=0, skipna=skipna)
             if result is None:
                 result = middle.copy()
+            elif (
+                isinstance(result, np.ndarray)
+                and isinstance(middle, np.ndarray)
+                and result.dtype == middle.dtype
+                and result.dtype.kind in "biuf"
+            ):
+                # Complex multiplication can round differently with an aliased output.
+                ufunc(result, middle, out=result)
             else:
                 result = ufunc(result, middle)
 
