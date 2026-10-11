@@ -130,7 +130,35 @@ if TYPE_CHECKING:
 
 from pandas.compat.numpy import function as nv
 
-
+def _int_searchsorted(
+        data: np.ndarray, values, side: str, sorter
+    ) -> npt.NDArray[np.intp] | np.intp:
+        """searchsorted that avoids the uint64, int64, float64 promotion."""
+        values = np.asarray(values)
+        if (
+            data.dtype.kind in "iu"
+            and values.dtype.kind in "iu"
+            and data.dtype != values.dtype
+            # float check with numpy as only greater than 2**53 turn to floats
+            and np.result_type(data.dtype, values.dtype).kind == "f"
+        ):
+            scalar = values.ndim == 0
+            values = np.atleast_1d(values)
+            if data.dtype.kind == "u":  # unsigned data, signed values
+                neg = values < 0
+                # replace all neg values to avoid uint failure as not needed
+                safe = np.where(neg, 0, values).astype(data.dtype)
+                res = data.searchsorted(safe, side=side, sorter=sorter)
+                res[neg] = 0
+            else:  # signed data, uint64 values
+                info = np.iinfo(data.dtype)
+                big = values > info.max
+                # replace all large values to stop rounding issue
+                safe = np.where(big, info.max, values).astype(data.dtype)
+                res = data.searchsorted(safe, side=side, sorter=sorter)
+                res[big] = len(data)
+            return res[0] if scalar else res
+        return data.searchsorted(values, side=side, sorter=sorter)
 class BaseMaskedArray(OpsMixin, ExtensionArray):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
@@ -1450,16 +1478,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if isinstance(value, BaseMaskedArray):
             na_mask = value._mask
             if na_mask.any():
-                dum_min = self._data.min()
-                clean_vals = np.where(na_mask, dum_min, value._data)
-                res = self._data.searchsorted(clean_vals, side=side, sorter=sorter)
+                # 0 for negs as overrided either way
+                clean_vals = np.where(na_mask, 0, value._data)
+                res = _int_searchsorted(self._data, clean_vals, side, sorter)
                 res[na_mask] = len(self)
                 return res
             value = value._data
         elif value is libmissing.NA:  # type: ignore[comparison-overlap]
             return np.array([len(self)])
         # Base class searchsorted would cast to object, which is *much* slower.
-        return self._data.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
+        return _int_searchsorted(self._data, value, side, sorter)
 
     def factorize(
         self,
