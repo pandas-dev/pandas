@@ -54,10 +54,10 @@ class FrameMixedDtypesOps:
         self.df_func(axis=axis)
 
 
-class FrameAxis1BlockFusion:
+class FrameAxis1MultiBlock:
     params = [
         ["sum", "prod", "min", "max"],
-        [2048, 32_768, 100_000],
+        [10, 100_000, 1_000_000],
         [2, 8],
         ["float64", "mixed_float", "int64"],
     ]
@@ -71,7 +71,6 @@ class FrameAxis1BlockFusion:
                 dtype = "float32" if i % 2 == 0 else "float64"
             else:
                 dtype = dtype_mix
-
             if dtype == "int64":
                 values = ((np.arange(nrows) + i) % 3).astype(dtype)
             else:
@@ -86,20 +85,28 @@ class FrameAxis1BlockFusion:
         self.frame_op(axis=1)
 
 
-class FrameAxis1BlockFusionPeakMemory:
+class FrameAxis1Wide:
+    params = [["sum", "prod", "min", "max"], [True, False]]
+    param_names = ["op", "copy"]
+
+    def setup(self, op, copy):
+        rng = np.random.default_rng(2)
+        frame = pd.DataFrame(rng.uniform(size=(10, 5000)), copy=copy)
+        frame["extra"] = np.arange(10)
+        self.frame_op = getattr(frame, op)
+
+    def time_axis1(self, op, copy):
+        self.frame_op(axis=1)
+
+
+class FrameAxis1MultiBlockPeakMemory:
     params = [["sum", "min"]]
     param_names = ["op"]
 
     def setup(self, op):
-        rng = np.random.default_rng(2)
-        frame = pd.DataFrame(index=range(1_000_000))
-        for i in range(8):
-            values = rng.uniform(0.9, 1.1, len(frame))
-            values[i::1000] = np.nan
-            frame[f"column-{i}"] = values
-
-        assert len(frame._mgr.blocks) == 8
-        self.frame_op = getattr(frame, op)
+        bench = FrameAxis1MultiBlock()
+        bench.setup(op, 1_000_000, 8, "float64")
+        self.frame_op = bench.frame_op
 
     def peakmem_axis1(self, op):
         self.frame_op(axis=1)
