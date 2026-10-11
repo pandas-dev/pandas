@@ -711,6 +711,21 @@ class ExtensionArray:
         Returns
         -------
         numpy.ndarray
+            The values of the array converted to ``dtype``, with missing values
+            replaced by ``na_value``.
+
+        See Also
+        --------
+        Series.to_numpy : A NumPy ndarray representing the values in this Series.
+        Index.to_numpy : A NumPy ndarray representing the values in this Index.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, pd.NA], dtype="Int64")
+        >>> arr.to_numpy()
+        array([ 1.,  2., nan])
+        >>> arr.to_numpy(dtype="object", na_value=None)
+        array([1, 2, None], dtype=object)
         """
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
@@ -780,6 +795,20 @@ class ExtensionArray:
     def size(self) -> int:
         """
         The number of elements in the array.
+
+        Since ExtensionArrays are 1-dimensional, this is the same as
+        ``len(self)``. It is included for compatibility with NumPy.
+
+        See Also
+        --------
+        ExtensionArray.shape : Return a tuple of the array dimensions.
+        ExtensionArray.ndim : Number of dimensions of the array, always 1.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.size
+        np.int64(3)
         """
         # error: Incompatible return value type (got "signedinteger[_64Bit]",
         # expected "int")  [return-value]
@@ -1128,10 +1157,13 @@ class ExtensionArray:
         Parameters
         ----------
         skipna : bool, default True
+            Exclude NA values when locating the minimum. If ``False`` and the
+            array contains NA values, a ``ValueError`` is raised.
 
         Returns
         -------
         int
+            Position of the first occurrence of the minimum value.
 
         See Also
         --------
@@ -1162,10 +1194,13 @@ class ExtensionArray:
         Parameters
         ----------
         skipna : bool, default True
+            Exclude NA values when locating the maximum. If ``False`` and the
+            array contains NA values, a ``ValueError`` is raised.
 
         Returns
         -------
         int
+            Position of the first occurrence of the maximum value.
 
         See Also
         --------
@@ -2257,9 +2292,20 @@ class ExtensionArray:
         Because ExtensionArrays are always 1D, this is a no-op.  It is included
         for compatibility with np.ndarray.
 
+        Parameters
+        ----------
+        *axes : int
+            Ignored. Accepted for compatibility with
+            :meth:`numpy.ndarray.transpose`.
+
         Returns
         -------
         ExtensionArray
+            The array itself, since a 1-dimensional array is its own transpose.
+
+        See Also
+        --------
+        ExtensionArray.T : Return the transpose, which is by definition self.
 
         Examples
         --------
@@ -2272,6 +2318,23 @@ class ExtensionArray:
 
     @property
     def T(self) -> Self:
+        """
+        Return the transpose, which is by definition self.
+
+        Because ExtensionArrays are always 1D, this is a no-op.  It is included
+        for compatibility with np.ndarray.
+
+        See Also
+        --------
+        ExtensionArray.transpose : Return a transposed view on this array.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).T
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
+        """
         return self.transpose()
 
     def ravel(self, order: Literal["C", "F", "A", "K"] | None = "C") -> Self:
@@ -2646,6 +2709,40 @@ class ExtensionArray:
         return list(self)
 
     def delete(self, loc: ScalarIndexer | slice | list[int] | np.ndarray) -> Self:
+        """
+        Return a new array with the elements at the given positions removed.
+
+        The original array is not modified. The default implementation selects
+        the remaining positions with :meth:`ExtensionArray.take`.
+
+        Parameters
+        ----------
+        loc : int, slice, list of int or ndarray
+            Positions of the elements to remove, in any form accepted by
+            :func:`numpy.delete`.
+
+        Returns
+        -------
+        ExtensionArray
+            A new array of the same dtype without the elements at ``loc``.
+
+        See Also
+        --------
+        ExtensionArray.insert : Insert an item at the given position.
+        ExtensionArray.take : Take elements from an array.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 4])
+        >>> arr.delete([0, 2])
+        <IntegerArray>
+        [2, 4]
+        Length: 2, dtype: Int64
+        >>> arr.delete(slice(1, 3))
+        <IntegerArray>
+        [1, 4]
+        Length: 2, dtype: Int64
+        """
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
@@ -2909,6 +3006,9 @@ class ExtensionArray:
         """
         Round each value in the array to the given number of decimals.
 
+        Only numeric dtypes can be rounded. Missing values are left as missing
+        and the result has the same dtype as the array.
+
         Parameters
         ----------
         decimals : int, default 0
@@ -2986,6 +3086,10 @@ class ExtensionArray:
         """
         Map values using an input mapping or function.
 
+        The mapper is applied to each element of the array in turn. Subclasses
+        may override this method with an implementation that avoids the
+        elementwise loop or preserves their dtype.
+
         Parameters
         ----------
         mapper : function, dict, or Series
@@ -3001,6 +3105,19 @@ class ExtensionArray:
             The output of the mapping function applied to the array.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
+
+        See Also
+        --------
+        Series.map : Map values of a Series according to an input mapping or function.
+        Index.map : Map values using an input mapping or function.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, pd.NA], dtype="Int64")
+        >>> arr.map(lambda x: x * 10, na_action="ignore")
+        <IntegerArray>
+        [10, 20, <NA>]
+        Length: 3, dtype: Int64
         """
         result = map_array(self, mapper, na_action=na_action)
         if isinstance(result, np.ndarray):
