@@ -49,7 +49,10 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
 )
 from pandas.util._decorators import set_module
-from pandas.util._validators import validate_endpoints
+from pandas.util._validators import (
+    validate_endpoints,
+    validate_min_count,
+)
 
 from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
@@ -407,6 +410,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         nv.validate_sum(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
         )
+        min_count = validate_min_count(min_count)
 
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
@@ -1260,8 +1264,8 @@ def sequence_to_td64ns(
     int_mask = None
     if isinstance(data, IntegerArray):
         # GH#66988 use the underlying int/uint ndarray + mask directly instead
-        #  of going through to_numpy() to convert to int64 (could overflow)
-        #  or float64 (could loose precision large large int64/uint64 data)
+        #  of going through to_numpy() to convert to int64, which could overflow
+        #  for large uint64 data
         int_mask = data._mask if data._hasna else None
         data = data._data
         if int_mask is not None:

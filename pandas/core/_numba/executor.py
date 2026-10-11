@@ -49,11 +49,11 @@ def generate_apply_looper(
 
         if axis == 1:
             buff[0] = res0
-            for i in numba.prange(1, values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
+            for i in numba.prange(1, values.shape[0]):
                 buff[i] = nb_compat_func(values[i], *args)
         else:
             buff[:, 0] = res0
-            for j in numba.prange(1, values.shape[1]):  # type: ignore[no-untyped-call,attr-defined]
+            for j in numba.prange(1, values.shape[1]):
                 buff[:, j] = nb_compat_func(values[:, j], *args)
         return buff
 
@@ -85,7 +85,7 @@ def make_looper(
         ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], ngroups), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
+            for i in numba.prange(values.shape[0]):
                 output, na_pos = func(
                     values[i], result_dtype, labels, ngroups, min_periods, *args
                 )
@@ -106,7 +106,7 @@ def make_looper(
         ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], len(start)), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
+            for i in numba.prange(values.shape[0]):
                 output, na_pos = func(
                     values[i], result_dtype, start, end, min_periods, *args
                 )

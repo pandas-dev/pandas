@@ -321,6 +321,15 @@ class TestSeriesPlots:
         ax = df.plot.bar(use_index=False, ax=ax)
         _check_text_labels(ax.get_xticklabels(), ["0", "1", "2", "3"])
 
+    def test_bar_timedelta_with_nat(self):
+        # GH#39320
+        ser = pd.Series(pd.to_timedelta([1, None, 3], unit="s"))
+        _, ax = mpl.pyplot.subplots()
+        ax = ser.plot.bar(ax=ax)
+        result = [patch.get_height() for patch in ax.patches]
+        expected = ser.fillna(pd.Timedelta(0)).astype(np.int64).tolist()
+        assert result == expected
+
     def test_bar_user_colors(self):
         s = pd.Series([1, 2, 3, 4])
         ax = s.plot.bar(color=["red", "blue", "blue", "red"])
