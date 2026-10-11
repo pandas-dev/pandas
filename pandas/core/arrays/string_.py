@@ -34,6 +34,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -1107,6 +1108,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         result = masked_reductions.sum(
             values=self._ndarray,
             mask=self.isna(),

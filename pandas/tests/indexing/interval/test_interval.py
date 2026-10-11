@@ -241,3 +241,14 @@ def test_categorical_interval_index_getitem_scalar():
     # Points on boundaries: 1 is in (0, 1] (right-closed)
     assert ser[1] == "a"
     assert ser[2] == "b"
+
+
+@pytest.mark.parametrize("box", [pd.IntervalIndex, pd.CategoricalIndex])
+def test_reindex_points_on_interval_index_keeps_target_labels(box):
+    # GH#17132 the result is labeled by the target, not by the matched intervals
+    index = box(pd.IntervalIndex.from_breaks([0, 10, 20, 30]))
+    ser = pd.Series([1, 2, 3], index=index)
+
+    result = ser.reindex([5.0, 15.0, 99.0])
+    expected = pd.Series([1.0, 2.0, np.nan], index=[5.0, 15.0, 99.0])
+    tm.assert_series_equal(result, expected)

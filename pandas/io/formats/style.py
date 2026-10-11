@@ -2707,9 +2707,9 @@ class Styler(StylerRenderer):
 
         else:
             # handle the MultiIndex case
-            range_idx = list(range(obj.nlevels))
-            levels_: list[int] = refactor_levels(levels, obj) if levels else range_idx
-            levels_ = sorted(levels_)
+            if isinstance(levels, list) and not levels:
+                levels = None  # an empty list sticks all levels, like None
+            levels_ = sorted(refactor_levels(levels, obj))
 
             if axis == 1:
                 styles = []
@@ -4295,11 +4295,13 @@ def _background_gradient(
     )
     # extend lower / upper bounds, compresses color range
     norm = _matplotlib.colors.Normalize(smin - (rng * low), smax + (rng * high))
+    # Normalize maps NaN to 0 when vmin == vmax; keep NaN so it gets the "bad" color
+    normed = np.where(np.isnan(gmap), np.nan, norm(gmap))
 
     if cmap is None:
-        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](norm(gmap))
+        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](normed)
     else:
-        rgbas = _matplotlib.colormaps.get_cmap(cmap)(norm(gmap))
+        rgbas = _matplotlib.colormaps.get_cmap(cmap)(normed)
 
     def relative_luminance(rgba) -> float:
         """

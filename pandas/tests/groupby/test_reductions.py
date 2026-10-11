@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -432,6 +433,22 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     expected = df.iloc[ilocs].set_index("a")
     if sort:
         expected = expected.sort_index()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["sum", "prod", "min", "max", "first", "last"])
+def test_negative_min_count_deprecated(how):
+    # GH#50022
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [2.0, np.nan, np.nan]})
+    gb = df.groupby("a")
+    expected = getattr(gb, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(gb, how)(min_count=-1)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = gb.agg(how, min_count=-1)
     tm.assert_frame_equal(result, expected)
 
 

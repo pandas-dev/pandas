@@ -128,6 +128,38 @@ def test_groupby_resample_on_api_with_getitem():
     tm.assert_series_equal(result, exp)
 
 
+def test_groupby_resample_on_non_monotonic_across_groups():
+    # GH#27343 group "b" has dates earlier than group "a"
+    df = pd.DataFrame(
+        {
+            "ref": list("aaabb"),
+            "time": pd.to_datetime(
+                ["2014-12-31", "2015-12-31", "2016-12-31", "2012-12-31", "2014-12-31"]
+            ),
+            "value": 1,
+        }
+    )
+    result = df.groupby("ref").resample("YE", on="time")["value"].sum()
+    exp_mi = pd.MultiIndex.from_arrays(
+        [
+            list("aaabbb"),
+            pd.to_datetime(
+                [
+                    "2014-12-31",
+                    "2015-12-31",
+                    "2016-12-31",
+                    "2012-12-31",
+                    "2013-12-31",
+                    "2014-12-31",
+                ]
+            ),
+        ],
+        names=["ref", "time"],
+    )
+    expected = pd.Series([1, 1, 1, 1, 0, 1], index=exp_mi, name="value")
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_with_origin():
     # GH 31809
 

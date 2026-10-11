@@ -67,6 +67,9 @@ class CSSDict(TypedDict):
 CSSStyles: TypeAlias = list[CSSDict]
 Subset = slice | Sequence[Any] | Index
 
+# Chromium ignores selectors past the 8192nd in a single rule, GH#40913
+_MAX_SELECTORS_PER_RULE = 8192
+
 
 class StylerRenderer:
     """
@@ -420,8 +423,12 @@ class StylerRenderer:
         }  # add the cell_ids styles map to the render dictionary in right format
         for k, attr in ctx_maps.items():
             map = [
-                {"props": list(props), "selectors": selectors}
+                {
+                    "props": list(props),
+                    "selectors": selectors[start : start + _MAX_SELECTORS_PER_RULE],
+                }
                 for props, selectors in getattr(self, attr).items()
+                for start in range(0, len(selectors), _MAX_SELECTORS_PER_RULE)
             ]
             d.update({k: map})
 
@@ -1625,8 +1632,9 @@ class StylerRenderer:
             )
 
         if level is None:
-            level = [i for i in range(obj.nlevels) if not hidden_lvls[i]]
-        levels_ = refactor_levels(level, obj)
+            levels_ = [i for i in range(obj.nlevels) if not hidden_lvls[i]]
+        else:
+            levels_ = refactor_levels(level, obj)
 
         def alias_(x, value):
             if isinstance(value, str):
@@ -2154,33 +2162,24 @@ def refactor_levels(
     obj: Index,
 ) -> list[int]:
     """
-    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
+    Convert a user-supplied ``level`` arg to a list of level numbers.
 
     Parameters
     ----------
-    level : int, str, list
-        Original ``level`` arg supplied to above methods.
-    obj:
-        Either ``self.index`` or ``self.columns``
+    level : int, str, list or None
+        Level name or number, or a list of such. None means all levels.
+    obj : Index
+        Either ``self.index`` or ``self.columns``.
 
     Returns
     -------
-    list : refactored arg with a list of levels to hide
+    list[int]
     """
     if level is None:
-        levels_: list[int] = list(range(obj.nlevels))
-    elif isinstance(level, int):
-        levels_ = [level]
-    elif isinstance(level, str):
-        levels_ = [obj._get_level_number(level)]
-    elif isinstance(level, list):
-        levels_ = [
-            obj._get_level_number(lev) if not isinstance(lev, int) else lev
-            for lev in level
-        ]
-    else:
-        raise ValueError("`level` must be of type `int`, `str` or list of such")
-    return levels_
+        return list(range(obj.nlevels))
+    if not isinstance(level, list):
+        level = [level]
+    return [obj._get_level_number(lev) for lev in level]
 
 
 class Tooltips:
