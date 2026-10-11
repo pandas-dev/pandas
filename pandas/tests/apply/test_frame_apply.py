@@ -1942,7 +1942,8 @@ def test_agg_dict_forwards_kwargs():
 
 
 def test_apply_dict_reducer_with_args():
-    # GH#23889 forwarding args must not turn the reduction into an elementwise map
+    # TODO(GH#23889): dict-like apply still drops args/kwargs, which is a bug;
+    #  forwarding them must keep reducing here, not map np.sum elementwise
     df = pd.DataFrame({"x": [1.0, 2.0]})
     result = df.apply({"x": np.sum}, args=(0,))
     expected = pd.Series([3.0], index=["x"])

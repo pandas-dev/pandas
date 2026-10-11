@@ -935,8 +935,8 @@ class NDFrameApply(Apply):
         obj = self.obj
 
         if op_name == "apply":
-            # not forwarding args/kwargs: given them, apply_compat maps elementwise
-            #  instead of reducing
+            # TODO(GH#23889): dropping args/kwargs here is a bug, but forwarding
+            #  them makes apply_compat map reducers elementwise instead of reducing
             by_row = "_compat" if self.by_row else False
             kwargs = {"by_row": by_row}
         else:
