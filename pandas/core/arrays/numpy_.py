@@ -15,6 +15,7 @@ from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import LossySetitemError
 from pandas.util._decorators import set_module
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -496,6 +497,7 @@ class NumpyExtensionArray(
         **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
@@ -510,6 +512,7 @@ class NumpyExtensionArray(
         **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
