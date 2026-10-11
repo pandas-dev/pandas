@@ -2159,6 +2159,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             no effect on Series.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
+            Raises if the group keys cannot be sorted; use ``sort=False`` for
+            such keys.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
             the groups will appear in the same order as they did in the original
@@ -3377,10 +3379,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         DataFrame.corr : Compute pairwise correlation of columns.
         DataFrame.corrwith : Compute pairwise correlation between rows or
             columns of two DataFrame objects.
+        plotting.autocorrelation_plot : Autocorrelation plot for time series.
 
         Notes
         -----
         If the Pearson correlation is not well defined return 'NaN'.
+
+        Values can differ from :func:`pandas.plotting.autocorrelation_plot`,
+        which uses the mean and variance of the whole Series rather than of the
+        overlapping portions.
 
         Examples
         --------

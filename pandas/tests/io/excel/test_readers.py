@@ -1216,6 +1216,29 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
     @pytest.mark.parametrize(
+        "sheet_name,index_col,skiprows",
+        [
+            ("mi_column", 0, None),
+            ("both", [0, 1], None),
+            ("both_name", [0, 1], None),
+            ("both_name_skiprows", [0, 1], 2),
+        ],
+    )
+    def test_read_excel_multiindex_header_not_increasing(
+        self, read_ext, sheet_name, index_col, skiprows
+    ):
+        # GH#47011
+        kwargs = {
+            "sheet_name": sheet_name,
+            "index_col": index_col,
+            "skiprows": skiprows,
+        }
+        mi_file = "testmultiindex" + read_ext
+        result = pd.read_excel(mi_file, header=[1, 0], **kwargs)
+        expected = pd.read_excel(mi_file, header=[0, 1], **kwargs).swaplevel(axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "sheet_name,idx_lvl2",
         [
             ("both_name_blank_after_mi_name", [np.nan, "b", "a", "b"]),
@@ -1473,6 +1496,7 @@ class TestReaders:
         "filename,sheet_name,header,index_col,skiprows",
         [
             ("testmultiindex", "mi_column", [0, 1], 0, None),
+            ("testmultiindex", "mi_column", [1, 0], 0, None),
             ("testmultiindex", "mi_index", None, [0, 1], None),
             ("testmultiindex", "both", [0, 1], [0, 1], None),
             ("testmultiindex", "mi_column_name", [0, 1], 0, None),

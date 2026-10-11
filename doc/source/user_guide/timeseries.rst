@@ -88,7 +88,8 @@ Date offsets            ``DateOffset``     ``None``              ``None``       
 
 The default resolution for date times and time deltas is microsecond ("us"), though second ("s"),
 millisecond ("ms"), and nanosecond ("ns") are also supported. The resolution can be changed using
-:meth:`~Series.dt.as_unit`.
+:meth:`~Series.dt.as_unit`. Arithmetic keeps the resolution of its operands, see
+:ref:`Timedelta arithmetic <timedeltas.unit_preserving_arithmetic>`.
 
 For time series data, it's conventional to represent the time component in the index of a :class:`Series` or :class:`DataFrame`
 so manipulations can be performed with respect to the time element.

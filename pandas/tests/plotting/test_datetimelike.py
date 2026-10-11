@@ -2005,8 +2005,60 @@ class TestTSPlot:
 
         labels = [x.get_text() for x in ax.get_xticklabels() if x.get_text().strip()]
         assert labels
-        # every label shown corresponds to an actual index entry
-        assert set(labels) <= {str(td) for td in rng}
+        formatter = ax.xaxis.get_major_formatter()
+        assert isinstance(formatter, conv.TimeSeries_TimedeltaFormatter)
+
+    def test_timedelta_index_use_index_false(self):
+        # GH#19965 positional x keeps matplotlib's formatter
+        idx = pd.TimedeltaIndex(["0.38s", "1.34s", "2.34s"])
+        ser = pd.Series([1.0, 2.0, 3.0], index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax, use_index=False)
+
+        formatter = ax.xaxis.get_major_formatter()
+        assert not isinstance(formatter, conv.TimeSeries_TimedeltaFormatter)
+
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    @pytest.mark.parametrize(
+        "idx, kwargs, expected",
+        [
+            (
+                pd.TimedeltaIndex(["0.38s", "1.34s", "NaT", "2.34s"]),
+                {},
+                [380.0, 1340.0, np.nan, 2340.0],
+            ),
+            (
+                timedelta_range("0s", periods=4, freq="s"),
+                {"x_compat": True},
+                [0.0, 1000.0, 2000.0, 3000.0],
+            ),
+        ],
+    )
+    def test_timedelta_index_spacing(self, kind, idx, kwargs, expected):
+        # GH#19965 plotted at the index values rather than positionally, with
+        # every tick labeled
+        ser = pd.Series([1.0, 2.0, 3.0, 4.0], index=idx.as_unit("ms"))
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(kind=kind, ax=ax, **kwargs)
+        mpl.pyplot.draw()
+
+        result = np.asarray(ax.get_lines()[0].get_xdata(), dtype=np.float64)
+        tm.assert_numpy_array_equal(result, np.array(expected))
+        formatter = ax.xaxis.get_major_formatter()
+        assert isinstance(formatter, conv.TimeSeries_TimedeltaFormatter)
+        assert formatter.unit == "ms"
+        labels = [x.get_text() for x in ax.get_xticklabels()]
+        assert labels
+        assert all(labels)
+
+    def test_bar_timedelta_index_positional(self):
+        # GH#19965 bars stay one slot per row, not at the index values
+        ser = pd.Series([1, 2, 3], index=timedelta_range("0s", periods=3, freq="s"))
+        _, ax = mpl.pyplot.subplots()
+        ser.plot.bar(ax=ax)
+
+        result = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        assert result == [0.0, 1.0, 2.0]
 
     def test_timedelta_plot(self):
         # test issue #8711
