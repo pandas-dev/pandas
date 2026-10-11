@@ -543,7 +543,8 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             # a masked array
-            data = sanitize_masked_array(data)
+            if not isinstance(dtype, BaseMaskedDtype):
+                data = sanitize_masked_array(data)
             mgr = ndarray_to_mgr(
                 data,
                 index,
