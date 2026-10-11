@@ -35,7 +35,7 @@ def test_groupby_nonobject_dtype(multiindex_dataframe_random_data):
     tm.assert_frame_equal(result, expected, check_index_type=False)
 
 
-def test_groupby_nonobject_dtype_mixed():
+def test_groupby_nonobject_dtype_mixed(using_python_scalars):
     # GH 3911, mixed frame non-conversion
     df = pd.DataFrame(
         {
@@ -53,6 +53,9 @@ def test_groupby_nonobject_dtype_mixed():
     applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
     expected = df.drop(columns="A").dtypes
+    if using_python_scalars:
+        # the mixed-dtype rows hold Python floats, which infer as float64
+        expected["D"] = np.dtype("float64")
     tm.assert_series_equal(result, expected)
 
 

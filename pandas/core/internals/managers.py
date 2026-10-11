@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_python_scalars
 from pandas._config.config import _global_config as config
 
 from pandas._libs import (
@@ -37,6 +38,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_unbox_numpy_scalar,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -1207,6 +1209,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             result = np.empty(n, dtype=dtype)
             result = ensure_wrapped_if_datetimelike(result)
 
+        # GH#13468 for an extension dtype, result is only a buffer for _from_sequence
+        unbox = using_python_scalars() and not isinstance(dtype, ExtensionDtype)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
@@ -1228,6 +1233,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     else:
                         new_dtype = np.float64
                     result = result.astype(new_dtype)
+                if unbox and result.dtype == object:
+                    item = maybe_unbox_numpy_scalar(item, object_with_dtype=blk)
                 result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
