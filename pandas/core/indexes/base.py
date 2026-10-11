@@ -2189,6 +2189,18 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.set_names : Able to set new names partially and by level.
 
+        Notes
+        -----
+        For a :class:`MultiIndex`, ``rename`` is an alias for
+        :meth:`MultiIndex.set_names`, so ``level`` can be passed to rename
+        individual levels.
+
+        >>> idx = pd.MultiIndex.from_product([["a", "b"], ["c"]], names=["x", "y"])
+        >>> idx.rename("z", level=0)
+        MultiIndex([('a', 'c'),
+                    ('b', 'c')],
+                   names=['z', 'y'])
+
         Examples
         --------
         >>> idx = pd.Index(["A", "C", "A", "B"], name="score")
