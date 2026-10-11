@@ -124,7 +124,7 @@ consider the following ``DataFrame``:
    df
 
 On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`.
-This method returns a ``pandas.api.typing.DataFrameGroupBy`` instance.
+This method returns a :class:`pandas.api.typing.DataFrameGroupBy` instance.
 We could naturally group by either the ``A`` or ``B`` columns, or both:
 
 .. ipython:: python

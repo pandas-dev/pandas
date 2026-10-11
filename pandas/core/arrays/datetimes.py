@@ -2660,7 +2660,7 @@ def _sequence_to_dt64(
         #  also complex or categorical or other extension
         data = cast("np.ndarray", data)
         copy = False
-        if lib.infer_dtype(data, skipna=False) == "integer":
+        if lib.is_integer_array(data, skipna=False):
             # Much more performant than going through array_to_datetime
             data = data.astype(np.int64)
         elif tz is not None and ambiguous == "raise":

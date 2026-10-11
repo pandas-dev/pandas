@@ -1815,7 +1815,8 @@ financial applications.
 on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
-The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
+The ``resample()`` method can be used directly from
+:class:`~pandas.api.typing.DataFrameGroupBy` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 Basics

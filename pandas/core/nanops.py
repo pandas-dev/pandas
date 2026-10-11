@@ -23,6 +23,8 @@ from pandas._libs import (
 import pandas._libs.algos as libalgos
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -173,7 +175,13 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # to be 0
         # GH#41277 bottleneck has no float16 kernels; its numpy fallback
         #  squares in float16 and overflows in nanvar/nanstd
-        return name not in ["nansum", "nanprod", "nanmean"] and dtype != np.float16
+        if name in ["nansum", "nanprod", "nanmean"] or dtype == np.float16:
+            return False
+
+        # GH#70945 bottleneck accumulates float32 nanvar/nanstd in float32,
+        #  losing nearly all precision for large inputs
+        # crossref: https://github.com/pydata/bottleneck/issues/462
+        return not (name in ["nanvar", "nanstd"] and dtype == np.float32)
     return False
 
 
@@ -1018,7 +1026,26 @@ def nanmean(
     return the_mean
 
 
+def _warn_complex_median(func: F) -> F:
+    # GH#43770 complex has no ordering, so no median; replace with
+    #  @disallow("c8", "c16") when the deprecation is enforced
+    @functools.wraps(func)
+    def wrapper(values: np.ndarray, **kwargs):
+        if values.dtype.kind == "c":
+            warnings.warn(
+                "The median of complex data is deprecated and will raise a "
+                "TypeError in a future version. Take the median of the real "
+                "and imaginary parts separately instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return func(values, **kwargs)
+
+    return cast("F", wrapper)
+
+
 @_ensure_numeric_input
+@_warn_complex_median
 @bottleneck_switch()
 def nanmedian(
     values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
@@ -1645,7 +1672,7 @@ def nanargmin(
 
 
 @_ensure_numeric_input
-@disallow("M8", "m8")
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nanskew(
     values: np.ndarray,
@@ -1704,7 +1731,7 @@ def nanskew(
 
 
 @_ensure_numeric_input
-@disallow("M8", "m8")
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nankurt(
     values: np.ndarray,
