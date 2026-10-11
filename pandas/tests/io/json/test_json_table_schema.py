@@ -697,6 +697,18 @@ class TestTableOrient:
         result = [x["name"] for x in build_table_schema(df)["fields"]]
         assert result == ["level_0", "level_1", 0, 1, 2, 3]
 
+    def test_mi_non_string_level_names(self):
+        # GH#19129
+        mi = pd.MultiIndex.from_tuples([(1, 2), (3, 4)], names=[0, "y"])
+        df = pd.DataFrame({"a": [1, 2]}, index=mi)
+        result = build_table_schema(df, version=False)
+        assert [x["name"] for x in result["fields"]] == [0, "y", "a"]
+        assert result["primaryKey"] == [0, "y"]
+
+        for obj in [df, df["a"]]:
+            result = json.loads(obj.to_json(orient="table"))
+            assert result["schema"]["primaryKey"] == [0, "y"]
+
 
 class TestTableOrientReader:
     @pytest.mark.parametrize(

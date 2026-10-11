@@ -36,3 +36,11 @@ class TestSeriesToDict:
         d = pd.Series(input).to_dict()
         assert isinstance(d["a"], int)
         assert isinstance(d["b"], int)
+
+    @pytest.mark.parametrize("dtype", [object, "Sparse[complex128]"])
+    def test_to_dict_complex_native(self, dtype):
+        # GH#27616
+        ser = pd.Series([np.complex128(1 + 2j)], dtype=dtype)
+        result = ser.to_dict()
+        assert result == {0: 1 + 2j}
+        assert type(result[0]) is complex

@@ -2754,8 +2754,13 @@ class MultiIndex(Index):
             names = []
             for i in range(self.nlevels):
                 level_values = self.levels[i]
-                for mi in other:
-                    level_values = level_values.union(mi.levels[i])
+                with warnings.catch_warnings():
+                    # levels need not be sortable, GH#61477
+                    warnings.filterwarnings(
+                        "ignore", ".*sort order is undefined", RuntimeWarning
+                    )
+                    for mi in other:
+                        level_values = level_values.union(mi.levels[i])
                 level_codes = [
                     recode_for_categories(
                         mi.codes[i], mi.levels[i], level_values, copy=False

@@ -9819,7 +9819,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether or not the elements should be ranked in ascending order.
         pct : bool, default False
             Whether or not to display the returned rankings in percentile
-            form.
+            form, i.e. divided by the number of ranked values (the number of
+            distinct values for ``method="dense"``). With ``method="max"`` and
+            no missing values this matches SQL ``CUME_DIST``, not
+            ``PERCENT_RANK``.
 
         Returns
         -------
