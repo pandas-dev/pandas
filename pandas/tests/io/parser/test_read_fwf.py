@@ -866,6 +866,14 @@ def test_comment_line_outside_inferred_colspecs():
     tm.assert_frame_equal(result, expected)
 
 
+def test_comment_line_outside_colspecs_not_blank_line():
+    # GH#53922 a fully commented line is dropped, not read as a blank line
+    data = "# a comment\n   1.5   2.5\n\n   3.5   4.5\n"
+    result = read_fwf(StringIO(data), comment="#", header=None, skip_blank_lines=False)
+    expected = pd.DataFrame([[1.5, 2.5], [np.nan, np.nan], [3.5, 4.5]])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_inline_comment_outside_colspecs():
     # GH#53922 a comment starting between columns ends the line
     data = "  1  2  3\n  4# 5  6\n"
