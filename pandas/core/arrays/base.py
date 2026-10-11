@@ -134,13 +134,18 @@ class ExtensionArray:
     nbytes
     ndim
     shape
+    size
+    T
 
     Methods
     -------
+    argmax
+    argmin
     argsort
     astype
     copy
     count
+    delete
     dropna
     duplicated
     factorize
@@ -151,13 +156,17 @@ class ExtensionArray:
     isin
     isna
     item
+    map
     ravel
     repeat
+    round
     searchsorted
     shift
     sort
     take
+    to_numpy
     tolist
+    transpose
     unique
     view
     _accumulate
