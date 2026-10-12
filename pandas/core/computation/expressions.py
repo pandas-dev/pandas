@@ -19,7 +19,11 @@ from pandas._config.config import _global_config as config
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core import roperator
-from pandas.core.computation.check import NUMEXPR_INSTALLED
+from pandas.core.computation.check import (
+    NUMEXPR_BLOCKED_VERSION,
+    NUMEXPR_INSTALLED,
+    warn_numexpr_blocked,
+)
 
 if NUMEXPR_INSTALLED:
     import numexpr as ne
@@ -52,8 +56,15 @@ def set_use_numexpr(v: bool = True) -> None:
     # choose what we are going to do
     global _evaluate, _where
 
-    _evaluate = _evaluate_numexpr if USE_NUMEXPR else _evaluate_standard
-    _where = _where_numexpr if USE_NUMEXPR else _where_standard
+    if USE_NUMEXPR:
+        _evaluate = _evaluate_numexpr
+        _where = _where_numexpr
+    elif v and NUMEXPR_BLOCKED_VERSION is not None:
+        _evaluate = _evaluate_blocked
+        _where = _where_blocked
+    else:
+        _evaluate = _evaluate_standard
+        _where = _where_standard
 
 
 def set_numexpr_threads(n=None) -> None:
@@ -72,6 +83,15 @@ def _evaluate_standard(op, op_str, left_op, right_op):
     if _TEST_MODE:
         _store_test_result(False)
     return op(left_op, right_op)
+
+
+def _evaluate_blocked(op, op_str, left_op, right_op):
+    """
+    Standard evaluation, warning that an unusable numexpr was skipped.
+    """
+    if _can_use_numexpr(op, op_str, left_op, right_op, "evaluate"):
+        warn_numexpr_blocked()
+    return _evaluate_standard(op, op_str, left_op, right_op)
 
 
 def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
@@ -93,6 +113,21 @@ def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
     return False
 
 
+def normalize_numexpr_result(result):
+    """
+    View a numexpr result with numpy's canonical dtype for its itemsize/kind.
+
+    numexpr may return e.g. ``longlong`` where numpy's int64 is ``long``; the
+    two compare equal but have different ``dtype.type``, see GH#17945.
+    """
+    if isinstance(result, np.ndarray):
+        canonical = np.dtype(result.dtype.str)
+        # only view when needed, so the result otherwise keeps owning its data
+        if canonical.type is not result.dtype.type:
+            result = result.view(canonical)
+    return result
+
+
 def _evaluate_numexpr(op, op_str, left_op, right_op):
     result = None
 
@@ -111,6 +146,7 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
                 local_dict={"left_value": left_value, "right_value": right_value},
                 casting="safe",
             )
+            result = normalize_numexpr_result(result)
         except TypeError:
             # numexpr raises eg for array ** array with integers
             # (https://github.com/pydata/numexpr/issues/379)
@@ -175,6 +211,12 @@ def _where_standard(cond, left_op, right_op):
     return np.where(cond, left_op, right_op)
 
 
+def _where_blocked(cond, left_op, right_op):
+    if _can_use_numexpr(None, "where", left_op, right_op, "where"):
+        warn_numexpr_blocked()
+    return _where_standard(cond, left_op, right_op)
+
+
 def _where_numexpr(cond, left_op, right_op):
     # Caller is responsible for extracting ndarray if necessary
     result = None
@@ -185,6 +227,7 @@ def _where_numexpr(cond, left_op, right_op):
             local_dict={"cond_value": cond, "a_value": left_op, "b_value": right_op},
             casting="safe",
         )
+        result = normalize_numexpr_result(result)
 
     if result is None:
         result = _where_standard(cond, left_op, right_op)

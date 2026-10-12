@@ -1,5 +1,6 @@
 """test parquet compat"""
 
+import base64
 import datetime
 from decimal import Decimal
 from io import BytesIO
@@ -12,6 +13,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import WASM
 from pandas.compat.pyarrow import (
     pa_version_under17p0,
     pa_version_under18p0,
@@ -732,9 +734,6 @@ class TestBasic(Base):
             "string",
         ],
     )
-    @pytest.mark.filterwarnings(
-        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
-    )
     def test_read_empty_array(self, pa, dtype, temp_file):
         # GH #41241
         df = pd.DataFrame(
@@ -780,9 +779,6 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
-    @pytest.mark.filterwarnings(
-        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
-    )
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
 
@@ -794,9 +790,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, temp_file, pa)
 
-    @pytest.mark.filterwarnings(
-        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
-    )
     def test_basic_subset_columns(self, pa, df_full, temp_file):
         # GH18628
 
@@ -869,6 +862,20 @@ class TestParquetPyArrow(Base):
         )
 
         check_round_trip(df, temp_file, pa)
+
+    def test_categorical_string_dtype_categories(
+        self, pa, temp_file, string_dtype_no_object
+    ):
+        # GH#46863 append makes pyarrow-backed categories multi-chunk
+        cats = pd.Index(["x", "y", "z"], dtype=string_dtype_no_object).append(
+            pd.Index(["q"], dtype=string_dtype_no_object)
+        )
+        df = pd.DataFrame({"a": pd.Categorical.from_codes([0, -1, 2], categories=cats)})
+
+        # categories are read back with the default string dtype
+        expected = df.copy()
+        expected["a"] = expected["a"].cat.set_categories(cats.astype("str"))
+        check_round_trip(df, temp_file, pa, expected=expected)
 
     @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(
@@ -1056,9 +1063,6 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, temp_file, pa, write_kwargs={"version": ver})
 
-    @pytest.mark.filterwarnings(
-        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
-    )
     def test_timezone_aware_index(self, pa, timezone_aware_date_list, temp_file):
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
@@ -1072,6 +1076,16 @@ class TestParquetPyArrow(Base):
         result = read_parquet(temp_file, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    def test_nested_list_compliant(self, pa, temp_file):
+        # GH#43689 nested lists use the Parquet-spec "element" field name
+        pq = pytest.importorskip("pyarrow.parquet")
+        df = pd.DataFrame({"a": [[[1, 2, 3]], [[4, 5, 6]]]})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = pq.ParquetFile(temp_file).schema.column(0).path
+        assert result == "a.list.element.list.element"
+
+    # from the direct pyarrow.Table.from_pandas call, see GH#68426
     @pytest.mark.filterwarnings(
         "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
     )
@@ -1200,18 +1214,17 @@ class TestParquetPyArrow(Base):
         expected = pd.DataFrame(data={"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
-    # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)
-    # @pytest.mark.slow
-    # def test_string_column_above_2GB(self, tmp_path, pa):
-    #     # https://github.com/pandas-dev/pandas/issues/55606
-    #     # above 2GB of string data
-    #     v1 = b"x" * 100000000
-    #     v2 = b"x" * 147483646
-    #     df = pd.DataFrame({"strings": [v1] * 20 + [v2] + ["x"] * 20}, dtype="string")
-    #     df.to_parquet(tmp_path / "test.parquet")
-    #     result = read_parquet(tmp_path / "test.parquet")
-    #     assert result["strings"].dtype == "string"
-    # FIXME: don't leave commented-out
+    @pytest.mark.high_memory
+    def test_string_column_above_2GB(self, temp_file, pa):
+        # GH#55606 above 2GB of string data
+        val1 = b"x" * 100000000
+        val2 = b"x" * 147483646
+        df = pd.DataFrame(
+            {"strings": [val1] * 20 + [val2] + ["x"] * 20}, dtype="string"
+        )
+        df.to_parquet(temp_file)
+        result = read_parquet(temp_file)
+        assert result["strings"].dtype == "string"
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
@@ -1255,10 +1268,10 @@ class TestParquetPyArrow(Base):
     def test_to_parquet_local_path_does_not_call_get_handle(
         self, pa, temp_file, monkeypatch
     ):
-        # GH#65810 local paths are handed to pyarrow directly; get_handle used
-        # to open them only to unwrap the name back to a string, opening the
-        # path a second time and truncating output to 0 bytes on filesystems
-        # that finalize contents on close
+        # GH#65810 a local path must not go through get_handle: it opened the
+        # path only to unwrap the name back to a string, so the path was opened
+        # a second time and output was truncated to 0 bytes on filesystems that
+        # finalize contents on close
         def fail(*args, **kwargs):
             pytest.fail("get_handle should not be called for a local path")
 
@@ -1270,8 +1283,9 @@ class TestParquetPyArrow(Base):
     def test_to_parquet_local_path_opens_destination_once(
         self, pa, temp_file, monkeypatch
     ):
-        # GH#65810 pandas must not open the destination itself; pyarrow opens it
-        # via C++ (bypassing builtins.open), so no Python-level open is expected
+        # GH#65810 the destination is opened once and in C++ -- pandas opens it
+        # as a pa.OSFile for pyarrow to write into (GH#69022), so nothing opens
+        # the path through builtins.open
         opens = []
         real_open = open
         target = os.fspath(temp_file)
@@ -1320,6 +1334,97 @@ class TestParquetPyArrow(Base):
         with pytest.raises(ValueError, match="reached get_handle"):
             read_parquet(url, engine=pa)
         assert calls == [(url, "rb")]
+
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
+    @td.skip_if_windows  # os.chmod does not work in windows
+    def test_to_parquet_unwritable_path_keeps_existing_file(self, pa, tmp_path):
+        # GH#69022 pyarrow.parquet.write_table deletes a path-like target when
+        # the write raises, so handing it the path let a failure to open the
+        # destination destroy the file that was already there
+        path = tmp_path / "out.parquet"
+        pd.DataFrame({"a": [1, 2, 3]}).to_parquet(path, engine=pa)
+        expected = path.read_bytes()
+        path.chmod(0o444)
+
+        try:
+            with open(path, "r+b"):
+                pytest.skip("Running as sudo.")
+        except PermissionError:
+            pass
+
+        with pytest.raises(PermissionError, match="Failed to open local file"):
+            pd.DataFrame({"a": [4, 5, 6]}).to_parquet(path, engine=pa)
+
+        assert path.exists()
+        assert path.read_bytes() == expected
+
+    def test_to_parquet_invalid_kwarg_keeps_existing_file(self, pa, tmp_path):
+        # GH#45815 pyarrow opens the destination before rejecting the kwarg
+        path = tmp_path / "out.parquet"
+        pd.DataFrame({"a": [1, 2, 3]}).to_parquet(path, engine=pa)
+        expected = path.read_bytes()
+
+        with pytest.raises(TypeError, match="partitions_cols"):
+            pd.DataFrame({"a": [4, 5, 6]}).to_parquet(
+                path, engine=pa, partitions_cols=["a"]
+            )
+        assert path.read_bytes() == expected
+
+    def test_to_parquet_invalid_kwarg_directory_path(self, pa, tmp_path):
+        # GH#45815 the misspelled kwarg is reported, not IsADirectoryError
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        with pytest.raises(TypeError, match="partitions_cols"):
+            df.to_parquet(tmp_path, engine=pa, partitions_cols=["a"])
+
+    def test_to_parquet_metadata_collector(self, pa, temp_file):
+        # GH#45815 the kwarg validation must not add to metadata_collector
+        collector = []
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa, metadata_collector=collector)
+        assert len(collector) == 1
+        assert collector[0].num_rows == 3
+
+    def test_to_parquet_encryption_properties(self, pa, temp_file):
+        # GH#45815 the kwarg validation must not use up encryption_properties,
+        # which pyarrow<20 rejects on a second write
+        pe = pytest.importorskip("pyarrow.parquet.encryption")
+
+        class InMemoryKmsClient(pe.KmsClient):
+            # toy client: wrapped key is base64(master key + data key)
+            def __init__(self, config):
+                pe.KmsClient.__init__(self)
+                self.master_keys = config.custom_kms_conf
+
+            def wrap_key(self, key_bytes, master_key_identifier):
+                master_key = self.master_keys[master_key_identifier].encode()
+                return base64.b64encode(master_key + key_bytes)
+
+            def unwrap_key(self, wrapped_key, master_key_identifier):
+                master_key = self.master_keys[master_key_identifier]
+                return base64.b64decode(wrapped_key)[len(master_key) :]
+
+        kms_config = pe.KmsConnectionConfig(
+            custom_kms_conf={"footer": "0123456789012345", "col": "1234567890123450"}
+        )
+        factory = pe.CryptoFactory(InMemoryKmsClient)
+        encryption_config = pe.EncryptionConfiguration(
+            footer_key="footer", column_keys={"col": ["a"]}, double_wrapping=False
+        )
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(
+            temp_file,
+            engine=pa,
+            encryption_properties=factory.file_encryption_properties(
+                kms_config, encryption_config
+            ),
+        )
+
+        result = read_parquet(
+            temp_file,
+            engine=pa,
+            decryption_properties=factory.file_decryption_properties(kms_config),
+        )
+        tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")

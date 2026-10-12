@@ -311,7 +311,8 @@ def length_of_indexer(indexer, target=None) -> int:
 
         if indexer.dtype == bool:
             # GH#25774
-            return indexer.sum()
+            # np.asarray because Index has no .sum; GH#68021
+            return int(np.asarray(indexer).sum())
         return len(indexer)
     elif isinstance(indexer, range):
         try:
@@ -395,7 +396,7 @@ def check_key_length(columns: Index, key, value: DataFrame) -> None:
         raise ValueError("Columns must be same length as key")
 
 
-def unpack_tuple_and_ellipses(item: tuple):
+def unpack_tuple_and_ellipses(item: tuple[Any, ...]):
     """
     Possibly unpack arr[..., n] to arr[n]
     """

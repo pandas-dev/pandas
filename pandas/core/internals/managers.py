@@ -35,6 +35,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    common_dtype_categorical_compat,
     find_common_type,
     infer_dtype_from_scalar,
     np_can_hold_element,
@@ -343,9 +344,13 @@ class BaseBlockManager(PandasObject):
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         cache = self._dtypes_cache
         if cache is None:
-            dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
+            blocks = self.blocks
+            dtypes = np.array([blk.dtype for blk in blocks], dtype=object)
             cache = dtypes.take(self.blknos)
-            self._dtypes_cache = cache
+            # An invalidating write that landed while we computed has already
+            # cleared the cache, so storing now would leave the stale array for good.
+            if blocks is self.blocks:
+                self._dtypes_cache = cache
         return cache.copy()
 
     @property
@@ -578,9 +583,9 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
-                    # Block.delete in _iset_split_block requires sorted unique
-                    # locs; inverse maps the requested column order onto the
-                    # new block (GH#65446)
+                    # np.unique dedupes locs so the placement built inside
+                    # _iset_split_block doesn't repeat a column; inverse maps
+                    # the requested column order onto the new block (GH#65446)
                     blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
@@ -673,11 +678,13 @@ class BaseBlockManager(PandasObject):
 
         return False
 
-    def _get_data_subset(self, predicate: Callable) -> Self:
+    def _get_data_subset(self, predicate: Callable[[ArrayLike], bool]) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks)
 
-    def _get_data_subset_indices(self, predicate: Callable) -> np.ndarray:
+    def _get_data_subset_indices(
+        self, predicate: Callable[[ArrayLike], bool]
+    ) -> np.ndarray:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         return indexer
@@ -1435,8 +1442,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blknos[unfit_idxr] = len(self.blocks)
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
-            # Invalidate cache before mutating blocks so that a concurrent
-            # reader never sees stale cache + new blocks.
+            # Invalidate the caches before swapping blocks; see get_dtypes
+            # for the window this ordering leaves open.
             self._interleaved_dtype = None
             self._dtypes_cache = None
             self._known_consolidated = False
@@ -1468,7 +1475,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if self._blklocs is None:
             self._rebuild_blknos_and_blklocs()
 
-        nbs_tup = tuple(blk.delete(blk_locs))
+        # Block.delete requires sorted unique locs; blk_locs keeps the caller's
+        # order below, where it pairs with value.
+        nbs_tup = tuple(blk.delete(np.unique(blk_locs)))
         if value is not None:
             locs = blk.mgr_locs.as_array[blk_locs]
             first_nb = new_block_2d(value, BlockPlacement(locs), refs=refs)
@@ -1484,12 +1493,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             *nbs_tup,
         )
         self.blocks = blocks_tup
+        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb.mgr_locs))
 
         if not nbs_tup and value is not None:
-            # No need to update anything if split did not happen
+            # No need to update _blknos if split did not happen
             return
-
-        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
         for i, nb in enumerate(nbs_tup):
             self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
@@ -1522,8 +1530,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
-        # Invalidate cache before mutating blocks so that a concurrent
-        # reader never sees stale cache + new blocks.
+        # Invalidate the caches before swapping blocks; see get_dtypes
+        # for the window this ordering leaves open.
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self.blocks = new_blocks
@@ -1595,8 +1603,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
-        # Invalidate cache before mutating blocks so that a concurrent
-        # reader never sees stale cache + new blocks.
+        # Invalidate the caches before swapping blocks; see get_dtypes
+        # for the window this ordering leaves open.
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self._known_consolidated = False
@@ -1669,7 +1677,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
-    def grouped_reduce(self, func: Callable) -> Self:
+    def grouped_reduce(self, func: Callable[..., Any]) -> Self:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
 
@@ -1703,7 +1711,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # TODO shallow copy columns?
         return type(self).from_blocks(result_blocks, [self.axes[0].view(), index])
 
-    def reduce(self, func: Callable) -> Self:
+    def reduce(self, func: Callable[..., Any]) -> Self:
         """
         Apply reduction function blockwise, returning a single-row BlockManager.
 
@@ -1908,7 +1916,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         elif arr.dtype.kind == "f" and passed_nan:
             pass
         else:
-            arr[isna(arr)] = na_value
+            # GH#56233 avoid raising in the case of an all false mask
+            mask = isna(arr)
+            if mask.any():
+                arr[mask] = na_value
 
         return arr.transpose()
 
@@ -1932,6 +1943,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     [blk.dtype for blk in self.blocks]
                 )
                 self._interleaved_dtype = dtype
+            # not cached since it depends on the values, GH#38240
+            dtype = common_dtype_categorical_compat(  # type: ignore[assignment]
+                [blk.values for blk in self.blocks],
+                dtype,  # type: ignore[arg-type]
+            )
 
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
@@ -2363,7 +2379,7 @@ def create_block_manager_from_column_arrays(
     arrays: list[ArrayLike],
     axes: list[Index],
     consolidate: bool,
-    refs: list,
+    refs: list[BlockValuesRefs | None],
 ) -> BlockManager:
     # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
@@ -2415,7 +2431,9 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
+def _form_blocks(
+    arrays: list[ArrayLike], consolidate: bool, refs: list[BlockValuesRefs | None]
+) -> list[Block]:
     tuples = enumerate(arrays)
 
     if not consolidate:

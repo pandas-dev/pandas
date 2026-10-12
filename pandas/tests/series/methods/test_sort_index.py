@@ -237,6 +237,16 @@ class TestSeriesSortIndexKey:
         result = s.sort_index(level=["A", "C"], key=lambda x: x)  # nothing happens
         tm.assert_series_equal(backwards, result)
 
+    def test_sort_index_multiindex_key_level_name(self):
+        # GH#62361
+        mi = pd.MultiIndex.from_product([["a"], ["top10", "top2"]], names=["A", "B"])
+        s = pd.Series([1, 2], index=mi)
+
+        result = s.sort_index(level="B", key=lambda x: x.str.len().to_numpy())
+
+        expected = s.iloc[[1, 0]]
+        tm.assert_series_equal(result, expected)
+
     def test_sort_index_key(self):
         series = pd.Series(np.arange(6, dtype="int64"), index=list("aaBBca"))
 

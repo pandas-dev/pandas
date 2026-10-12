@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -54,6 +56,7 @@ class TestRename:
                 tm.assert_numpy_array_equal(result.index.values, ser.index.values)
             assert ser.name is None
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.rename")
     def test_rename_set_name_inplace(self, using_infer_string):
         ser = pd.Series(range(3), index=list("abc"))
         for name in ["foo", 123, 123.0, datetime(2001, 11, 11), ("foo",)]:
@@ -75,6 +78,7 @@ class TestRename:
         with pytest.raises(ValueError, match="No axis named 5"):
             ser.rename({}, axis=5)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.rename")
     def test_rename_inplace(self, datetime_series):
         renamer = lambda x: x.strftime("%Y%m%d")
         expected = renamer(datetime_series.index[0])
@@ -91,6 +95,7 @@ class TestRename:
         ser = pd.Series([1, 2, 3]).rename(ix)
         assert ser.name is ix
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.rename")
     def test_rename_with_custom_indexer_inplace(self):
         # GH 27814
         class MyIndexer:
@@ -184,3 +189,28 @@ class TestRename:
         ser[0] = "foobar"
         assert ser_orig[0] == shallow_copy[0]
         assert ser_orig[1] == shallow_copy[9]
+
+
+def test_rename_inplace_depr():
+    msg = "The inplace keyword in Series.rename is deprecated"
+
+    ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    ser_orig = ser.copy()
+    expected = pd.Series([1, 2, 3], index=["x", "b", "c"])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.rename({"a": "x"})
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.rename({"a": "x"}, inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.rename({"a": "x"}, inplace=True)
+    tm.assert_series_equal(ser, expected)

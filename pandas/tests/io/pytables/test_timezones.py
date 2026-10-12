@@ -2,6 +2,7 @@ from datetime import (
     date,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
@@ -131,6 +132,35 @@ def test_append_with_timezones_as_index(temp_hdfstore, gettz):
     temp_hdfstore.append("df", df)
     result = temp_hdfstore.select("df")
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+@pytest.mark.parametrize(
+    "stored_tz, appended_tz", [("US/Pacific", None), (None, "US/Pacific")]
+)
+def test_append_tz_naive_aware_mismatch_raises(
+    temp_hdfstore, as_index, stored_tz, appended_tz
+):
+    # GH#68583 - the append used to be accepted, and the rows already on disk
+    # read back as different instants: one stored tz governs the whole column.
+    def frame(start, tz):
+        dti = pd.date_range(start, periods=2, tz=tz)._with_freq(None)
+        if as_index:
+            return pd.DataFrame({"v": [1.0, 2.0]}, index=dti)
+        return pd.DataFrame({"v": dti})
+
+    stored = frame("2000-01-01", stored_tz)
+    temp_hdfstore.append("df", stored)
+
+    name = "index" if as_index else "values_block_0"
+    if appended_tz is None:
+        msg = f"cannot append tz-naive data to tz-aware col [{name}]"
+    else:
+        msg = f"cannot append tz-aware data to tz-naive col [{name}]"
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        temp_hdfstore.append("df", frame("2000-01-03", appended_tz))
+
+    tm.assert_frame_equal(temp_hdfstore["df"], stored)
 
 
 def test_roundtrip_tz_aware_index(temp_hdfstore, unit):

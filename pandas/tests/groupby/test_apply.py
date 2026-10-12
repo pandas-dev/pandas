@@ -722,7 +722,7 @@ def test_apply_groupby_datetimeindex():
     result = df.groupby("Name").sum()
 
     expected = pd.DataFrame({"Name": ["A", "B", "C"], "Value": [10, 50, 90]})
-    expected.set_index("Name", inplace=True)
+    expected = expected.set_index("Name")
 
     tm.assert_frame_equal(result, expected)
 
@@ -1412,6 +1412,14 @@ def test_include_groups():
     gb = df.groupby("a")
     with pytest.raises(ValueError, match="include_groups=True is no longer allowed"):
         gb.apply(lambda x: x.sum(), include_groups=True)
+
+
+def test_apply_error_not_chained():
+    # GH#50980
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        df.groupby("a").apply(lambda x: x["b"] < "taco")
+    assert err.value.__context__ is None
 
 
 @pytest.mark.parametrize("func, value", [(max, 2), (min, 1), (sum, 3)])

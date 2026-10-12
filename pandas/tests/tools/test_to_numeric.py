@@ -77,6 +77,9 @@ def test_empty(input_kwargs, result_kwargs):
     "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
 )
 @pytest.mark.parametrize("last_val", ["7", 7])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_series(last_val, infer_string):
     with pd.option_context("future.infer_string", infer_string):
         ser = pd.Series(["1", "-3.14", last_val])
@@ -373,7 +376,6 @@ def test_str(data, exp, transform_assert_equal):
     assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
 def test_datetime_like(tz_naive_fixture, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
     idx = pd.date_range("20130101", periods=3, tz=tz_naive_fixture)
@@ -392,7 +394,16 @@ def test_timedelta(transform_assert_equal):
     assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
+def test_timedelta_pyarrow():
+    # GH#69448
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series([pd.Timedelta(1), None], dtype=pd.ArrowDtype(pa.duration("ns")))
+
+    result = pd.to_numeric(ser)
+    expected = pd.Series([1, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "scalar",
     [
@@ -414,7 +425,7 @@ def test_period(request, transform_assert_equal):
     idx = pd.period_range("2011-01", periods=3, freq="M", name="")
     inp = transform(idx)
 
-    if not isinstance(inp, pd.Index):
+    if isinstance(inp, np.ndarray):
         request.applymarker(
             pytest.mark.xfail(reason="Missing PeriodDtype support in to_numeric")
         )
@@ -975,3 +986,20 @@ def test_complex_keeps_preceding_values(data, expected):
     # GH#35051 entries seen before the first complex were left uninitialized
     result = pd.to_numeric(pd.Series(data, dtype=object))
     tm.assert_series_equal(result, pd.Series(expected, dtype=np.complex128))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "+0.0000000000000000000000005",
+        "+0.0001234567890123456789",
+    ],
+)
+def test_leading_plus_fractional_leading_zeros(value):
+    # GH#68311 a leading "+" routes the token to the same fallback converter
+    # read_csv uses for thousands=, which charged the fractional leading zeros
+    # against its 17 significant-digit budget
+    result = pd.to_numeric(pd.Series([value]))
+    # check_exact: the default atol=1e-8 compares the pre-fix 0.0 equal to the
+    # 5e-25 it should be, so without this the test passes either way
+    tm.assert_series_equal(result, pd.Series([float(value)]), check_exact=True)

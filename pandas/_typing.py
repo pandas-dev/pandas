@@ -91,7 +91,7 @@ P = ParamSpec("P")
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 HashableT2 = TypeVar("HashableT2", bound=Hashable)
-MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
+MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping[Any, Any])
 
 # array-like
 
@@ -129,7 +129,7 @@ class SequenceNotStr(Protocol[_T_co]):
     def __reversed__(self) -> Iterator[_T_co]: ...
 
 
-ListLike: TypeAlias = AnyArrayLike | SequenceNotStr | range
+ListLike: TypeAlias = AnyArrayLike | SequenceNotStr[object] | range
 
 # scalars
 
@@ -153,7 +153,12 @@ _IndexIterScalar: TypeAlias = Union[
     "Timedelta",
 ]
 Scalar: TypeAlias = Union[
-    _IndexIterScalar, "Interval", complex, np.integer, np.floating, np.complexfloating
+    _IndexIterScalar,
+    "Interval[Any]",
+    complex,
+    np.integer,
+    np.floating,
+    np.complexfloating,
 ]
 
 IntStrT = TypeVar("IntStrT", bound=int | str)
@@ -191,7 +196,7 @@ Level: TypeAlias = Hashable
 Shape: TypeAlias = tuple[int, ...]
 Suffixes: TypeAlias = Sequence[str | None]
 Ordered: TypeAlias = bool | None
-JSONSerializable: TypeAlias = PythonScalar | list | dict | None
+JSONSerializable: TypeAlias = PythonScalar | list[Any] | dict[Any, Any] | None
 Frequency: TypeAlias = Union[str, "BaseOffset"]
 Axes: TypeAlias = ListLike
 
@@ -238,7 +243,7 @@ ValueKeyFunc: TypeAlias = Callable[["Series"], Union["Series", AnyArrayLike]] | 
 IndexKeyFunc: TypeAlias = Callable[["Index"], Union["Index", AnyArrayLike]] | None
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
-AggFuncTypeBase: TypeAlias = Callable | str
+AggFuncTypeBase: TypeAlias = Callable[..., Any] | str
 AggFuncTypeDict: TypeAlias = MutableMapping[
     Hashable, AggFuncTypeBase | list[AggFuncTypeBase]
 ]
@@ -246,7 +251,7 @@ AggFuncType: TypeAlias = AggFuncTypeBase | list[AggFuncTypeBase] | AggFuncTypeDi
 AggObjType: TypeAlias = Union[
     "Series",
     "DataFrame",
-    "GroupBy",
+    "GroupBy[Any]",
     "SeriesGroupBy",
     "DataFrameGroupBy",
     "BaseWindow",
@@ -261,11 +266,6 @@ AnyStr_contra = TypeVar("AnyStr_contra", str, bytes, contravariant=True)
 
 
 class BaseBuffer(Protocol):
-    @property
-    def mode(self) -> str:
-        # for _get_filepath_or_buffer
-        ...
-
     def seek(self, offset: int, whence: int = ..., /) -> int:
         # with one argument: gzip.GzipFile, bz2.BZ2File
         # with two arguments: zip.ZipFile, read_sas
@@ -349,10 +349,12 @@ ParquetCompressionOptions: TypeAlias = (
 
 # types in DataFrameFormatter
 FormattersType: TypeAlias = (
-    list[Callable] | tuple[Callable, ...] | Mapping[str | int, Callable]
+    list[Callable[..., Any]]
+    | tuple[Callable[..., Any], ...]
+    | Mapping[str | int, Callable[..., Any]]
 )
 ColspaceType: TypeAlias = Mapping[Hashable, str | int]
-FloatFormatType: TypeAlias = Union[str, Callable, "EngFormatter"]
+FloatFormatType: TypeAlias = Union[str, Callable[..., Any], "EngFormatter"]
 ColspaceArgType: TypeAlias = (
     str | int | Sequence[str | int] | Mapping[Hashable, str | int]
 )

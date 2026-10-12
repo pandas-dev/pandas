@@ -83,6 +83,7 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Mapping,
         Sequence,
     )
 
@@ -376,7 +377,7 @@ def _check_values_indices_shape_match(
 
 
 def dict_to_mgr(
-    data: dict,
+    data: dict[Hashable, Any],
     index,
     columns,
     *,
@@ -464,7 +465,7 @@ def dict_to_mgr(
 
 
 def nested_data_to_arrays(
-    data: Sequence,
+    data: Sequence[Any],
     columns: Index | None,
     index: Index | None,
     dtype: DtypeObj | None,
@@ -853,7 +854,7 @@ def to_arrays(
     return content, columns
 
 
-def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
+def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
 
@@ -880,7 +881,7 @@ def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
 
 
 def _list_of_series_to_arrays(
-    data: list,
+    data: list[Any],
     columns: Index | None,
 ) -> tuple[np.ndarray, Index]:
     # returned np.ndarray has ndim == 2
@@ -911,7 +912,7 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: list[dict],
+    data: list[Mapping[Hashable, Any]],
     columns: Index | None,
 ) -> tuple[np.ndarray, Index]:
     """

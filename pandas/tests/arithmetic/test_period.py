@@ -1601,3 +1601,16 @@ def test_pi_sub_pi_length_zero():
     tm.assert_series_equal(
         pd.Series(pi) - pd.Series(pi), pd.Series(expected, dtype=object)
     )
+
+
+@pytest.mark.parametrize("op", [operator.add, operator.sub])
+def test_pi_addsub_bool_array_raises(op):
+    # GH#68452 dt64/td64 reject bool operands as integer-like, but integers are legal
+    #  for Period, so bool keeps the object-path raise instead
+    pi = pd.period_range("2016-01-01", periods=3, freq="D")
+    msg = r"unsupported operand type\(s\) for [+-]: 'Period' and 'bool'"
+
+    with pytest.raises(TypeError, match=msg):
+        op(pi, np.array([True, False, True]))
+    with pytest.raises(TypeError, match=msg):
+        op(pi, pd.array([True, False, True], dtype="boolean"))

@@ -282,6 +282,12 @@ class TestStringArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_retains_ea_dtype(data)
 
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # Plotting str is supported by matplotlib, but not pandas at the moment
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(plot_data)
+
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)

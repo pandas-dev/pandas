@@ -1829,9 +1829,13 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
       return;
     }
     PyArray_Descr *dtype = PyArray_DescrFromScalar(obj);
+    if (dtype == NULL) {
+      goto INVALID;
+    }
     if (!PyTypeNum_ISDATETIME(dtype->type_num)) {
       PyErr_Format(PyExc_ValueError, "Could not get resolution of datetime");
-      return;
+      Py_DECREF(dtype);
+      goto INVALID;
     }
 
     PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
@@ -1851,6 +1855,7 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
       pc->longValue = PyDateTimeToEpoch(obj, base);
       tc->type = JT_LONG;
     }
+    Py_DECREF(dtype);
     return;
   } else if (PyDelta_Check(obj)) {
     // pd.Timedelta object or pd.NaT should evaluate true here

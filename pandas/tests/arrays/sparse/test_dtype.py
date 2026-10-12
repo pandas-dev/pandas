@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -66,12 +67,74 @@ def test_nans_equal():
     assert b == a
 
 
+@pytest.mark.parametrize("fill", [pd.NaT, np.nan, np.float64("nan"), pd.NA])
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_na_fill_value_normalized(fill, kind, unit):
+    # GH#68449, GH#68558 any NA fill value is stored as the subtype's own NaT,
+    #  so it is interchangeable with the numpy spelling and with the default
+    values = np.array([1], dtype="i8").astype(f"{kind}[{unit}]")
+    values[0] = "NaT"
+
+    dtype = pd.SparseDtype(values.dtype, fill)
+    assert dtype.fill_value.dtype == values.dtype
+    assert dtype == pd.SparseDtype(values.dtype, values[0])
+    assert dtype == pd.SparseDtype(values.dtype)
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_na_fill_value_unit_normalized(kind, unit):
+    # GH#68558 a NaT of the wrong unit is normalized too, multiplier units
+    #  included; == is unit-blind for an NA fill, so check the fill value
+    dtype = np.dtype(f"{kind}[{unit}]")
+    assert pd.SparseDtype(dtype, dtype.type("NaT", "10s")).fill_value.dtype == dtype
+
+
+@pytest.mark.parametrize("subtype", ["M8[ns]", "m8[s]", "float64"])
+def test_na_fill_value_hashes_equal(subtype):
+    # GH#68449 a numpy NaT hashes by identity, so two equal dtypes would
+    #  otherwise land in different dict buckets; float64 guards the shared
+    #  NA branch against regressing the other subtypes
+    a = pd.SparseDtype(subtype)
+    b = pd.SparseDtype(subtype)
+    assert a == b
+    assert hash(a) == hash(b)
+    assert {a: 1}.get(b) == 1
+
+
 def test_nans_not_equal():
     # GH 54770
     a = pd.SparseDtype(float, 0)
     b = pd.SparseDtype(float, pd.NA)
     assert a != b
     assert b != a
+
+
+@pytest.mark.parametrize(
+    "subtype, fill_value",
+    [
+        ("float64", 0.0),
+        ("float64", 1.5),
+        ("datetime64[ns]", np.datetime64("2016-01-01", "ns")),
+        ("timedelta64[ns]", np.timedelta64(1, "ns")),
+    ],
+)
+def test_na_fill_value_not_equal_to_value_fill(subtype, fill_value):
+    # GH#68582 an NA fill value must not compare equal to a real fill value of
+    #  the same Python type
+    a = pd.SparseDtype(subtype)
+    b = pd.SparseDtype(subtype, fill_value)
+    assert a != b
+    assert b != a
+
+
+def test_na_fill_value_astype_not_ignored():
+    # GH#68582 astype short-circuits on dtype equality
+    arr = pd.arrays.SparseArray([1.0, np.nan, 2.0])
+    result = arr.astype(pd.SparseDtype("float64", 0.0))
+    expected = pd.arrays.SparseArray(np.array([1.0, np.nan, 2.0]), fill_value=0.0)
+    tm.assert_sp_array_equal(result, expected)
 
 
 tups = [
@@ -223,3 +286,35 @@ def test_sparse_dtype_subtype_must_be_numpy_dtype():
     msg = "SparseDtype subtype must be a numpy dtype"
     with pytest.raises(TypeError, match=msg):
         pd.SparseDtype("category", fill_value="c")
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize("unit", ["10s", "Y", "D", "ps"])
+def test_subtype_unsupported_resolution_raises(kind, unit):
+    # GH#68522 hold the subtype to what the dense constructors accept
+    dtype = f"{kind}8[{unit}]"
+    msg = f"dtype={np.dtype(dtype)} is not supported. Supported resolutions are"
+
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        pd.SparseDtype(dtype)
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        pd.SparseDtype.construct_from_string(f"Sparse[{dtype}]")
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_unsupported_subtype_string_loses_its_message(kind):
+    # registry.find cannot tell "not a Sparse string" from "invalid subtype", so
+    #  the resolution message does not survive the route a user actually takes.
+    #  Delete this test once registry.find stops swallowing the TypeError.
+    with pytest.raises(TypeError, match="not understood"):
+        pd.Series([1, 2], dtype=f"Sparse[{kind}8[D]]")
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_subtype_unitless_raises(kind):
+    # GH#68522
+    name = "datetime64" if kind == "M" else "timedelta64"
+    msg = f"The '{name}' dtype has no unit. Please pass in '{name}[ns]' instead."
+
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        pd.SparseDtype(name)

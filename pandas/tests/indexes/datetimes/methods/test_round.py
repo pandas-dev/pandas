@@ -99,6 +99,42 @@ class TestDatetimeIndexRound:
         with tm.assert_produces_warning(False):
             dti.round("1010ns")
 
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize(
+        "unit, freq, freq_unit",
+        [
+            ("s", "700ms", "ms"),
+            ("s", "2500ms", "ms"),
+            ("ms", "3us", "us"),
+            ("us", "300ns", "ns"),
+        ],
+    )
+    def test_round_freq_not_multiple_of_resolution(self, method, unit, freq, freq_unit):
+        # GH#67978 freq is neither a multiple nor a divisor of one unit of the
+        #  index resolution, so the result would not be representable.  The
+        #  value is deliberately off the freq grid so the second half below is
+        #  not a no-op for any of the parametrizations.
+        dti = pd.DatetimeIndex(["2020-01-01 00:00:06.500000001"])
+
+        msg = rf"freq=.* is incompatible with unit={unit}"
+        with pytest.raises(ValueError, match=msg):
+            getattr(dti.as_unit(unit), method)(freq)
+
+        finer = dti.as_unit(freq_unit)
+        result = getattr(finer, method)(freq)
+        assert not result.equals(finer)
+        tm.assert_index_equal(
+            result, getattr(finer.as_unit("ns"), method)(freq).as_unit(freq_unit)
+        )
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize("unit, freq", [("s", "250ms"), ("us", "250ns")])
+    def test_round_freq_divides_resolution(self, method, unit, freq):
+        # GH#67978 freq divides one unit of the index resolution evenly, so
+        #  every representable value is already a multiple of freq
+        dti = pd.DatetimeIndex(["2020-01-01 00:00:06"]).as_unit(unit)
+        tm.assert_index_equal(getattr(dti, method)(freq), dti)
+
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
         tz = tz_naive_fixture

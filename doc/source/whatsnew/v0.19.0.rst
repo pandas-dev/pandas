@@ -47,84 +47,120 @@ support asof style joining of time-series (:issue:`1870`, :issue:`13695`, :issue
 The :func:`merge_asof` performs an asof merge, which is similar to a left-join
 except that we match on nearest key rather than equal keys.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
-   right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
+   >>> left = pd.DataFrame({'a': [1, 5, 10],
+   ...                      'left_val': ['a', 'b', 'c']})
+   >>> right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
+   ...                      'right_val': [1, 2, 3, 6, 7]})
 
-   left
-   right
+   >>> left
+       a left_val
+   0   1        a
+   1   5        b
+   2  10        c
+   >>> right
+      a  right_val
+   0  1          1
+   1  2          2
+   2  3          3
+   3  6          6
+   4  7          7
 
 We typically want to match exactly when possible, and use the most
 recent value otherwise.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.merge_asof(left, right, on="a")
+   >>> pd.merge_asof(left, right, on='a')
+       a left_val  right_val
+   0   1        a          1
+   1   5        b          3
+   2  10        c          7
 
 We can also match rows ONLY with prior data, and not an exact match.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.merge_asof(left, right, on="a", allow_exact_matches=False)
+   >>> pd.merge_asof(left, right, on='a', allow_exact_matches=False)
+       a left_val  right_val
+   0   1        a        NaN
+   1   5        b        3.0
+   2  10        c        7.0
 
 
 In a typical time-series example, we have ``trades`` and ``quotes`` and we want to ``asof-join`` them.
 This also illustrates using the ``by`` parameter to group data before merging.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   trades = pd.DataFrame(
-       {
-           "time": pd.to_datetime(
-               [
-                   "20160525 13:30:00.023",
-                   "20160525 13:30:00.038",
-                   "20160525 13:30:00.048",
-                   "20160525 13:30:00.048",
-                   "20160525 13:30:00.048",
-               ]
-           ),
-           "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
-           "price": [51.95, 51.95, 720.77, 720.92, 98.00],
-           "quantity": [75, 155, 100, 100, 100],
-       },
-       columns=["time", "ticker", "price", "quantity"],
-   )
+   >>> trades = pd.DataFrame({
+   ...     'time': pd.to_datetime(['20160525 13:30:00.023',
+   ...                             '20160525 13:30:00.038',
+   ...                             '20160525 13:30:00.048',
+   ...                             '20160525 13:30:00.048',
+   ...                             '20160525 13:30:00.048']),
+   ...     'ticker': ['MSFT', 'MSFT',
+   ...                'GOOG', 'GOOG', 'AAPL'],
+   ...     'price': [51.95, 51.95,
+   ...               720.77, 720.92, 98.00],
+   ...     'quantity': [75, 155,
+   ...                  100, 100, 100]},
+   ...     columns=['time', 'ticker', 'price', 'quantity'])
 
-   quotes = pd.DataFrame(
-       {
-           "time": pd.to_datetime(
-               [
-                   "20160525 13:30:00.023",
-                   "20160525 13:30:00.023",
-                   "20160525 13:30:00.030",
-                   "20160525 13:30:00.041",
-                   "20160525 13:30:00.048",
-                   "20160525 13:30:00.049",
-                   "20160525 13:30:00.072",
-                   "20160525 13:30:00.075",
-               ]
-           ),
-           "ticker": ["GOOG", "MSFT", "MSFT", "MSFT", "GOOG", "AAPL", "GOOG", "MSFT"],
-           "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
-           "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03],
-       },
-       columns=["time", "ticker", "bid", "ask"],
-   )
+   >>> quotes = pd.DataFrame({
+   ...     'time': pd.to_datetime(['20160525 13:30:00.023',
+   ...                             '20160525 13:30:00.023',
+   ...                             '20160525 13:30:00.030',
+   ...                             '20160525 13:30:00.041',
+   ...                             '20160525 13:30:00.048',
+   ...                             '20160525 13:30:00.049',
+   ...                             '20160525 13:30:00.072',
+   ...                             '20160525 13:30:00.075']),
+   ...     'ticker': ['GOOG', 'MSFT', 'MSFT',
+   ...                'MSFT', 'GOOG', 'AAPL', 'GOOG',
+   ...                'MSFT'],
+   ...     'bid': [720.50, 51.95, 51.97, 51.99,
+   ...             720.50, 97.99, 720.50, 52.01],
+   ...     'ask': [720.93, 51.96, 51.98, 52.00,
+   ...             720.93, 98.01, 720.88, 52.03]},
+   ...     columns=['time', 'ticker', 'bid', 'ask'])
 
-.. ipython:: python
+.. code-block:: pycon
 
-   trades
-   quotes
+   >>> trades
+                        time ticker   price  quantity
+   0 2016-05-25 13:30:00.023   MSFT   51.95        75
+   1 2016-05-25 13:30:00.038   MSFT   51.95       155
+   2 2016-05-25 13:30:00.048   GOOG  720.77       100
+   3 2016-05-25 13:30:00.048   GOOG  720.92       100
+   4 2016-05-25 13:30:00.048   AAPL   98.00       100
+   >>> quotes
+                        time ticker     bid     ask
+   0 2016-05-25 13:30:00.023   GOOG  720.50  720.93
+   1 2016-05-25 13:30:00.023   MSFT   51.95   51.96
+   2 2016-05-25 13:30:00.030   MSFT   51.97   51.98
+   3 2016-05-25 13:30:00.041   MSFT   51.99   52.00
+   4 2016-05-25 13:30:00.048   GOOG  720.50  720.93
+   5 2016-05-25 13:30:00.049   AAPL   97.99   98.01
+   6 2016-05-25 13:30:00.072   GOOG  720.50  720.88
+   7 2016-05-25 13:30:00.075   MSFT   52.01   52.03
 
 An asof merge joins on the ``on``, typically a datetimelike field, which is ordered, and
 in this case we are using a grouper in the ``by`` field. This is like a left-outer join, except
 that forward filling happens automatically taking the most recent non-NaN value.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.merge_asof(trades, quotes, on="time", by="ticker")
+   >>> pd.merge_asof(trades, quotes,
+   ...               on='time',
+   ...               by='ticker')
+                        time ticker   price  quantity     bid     ask
+   0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
+   1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
+   2 2016-05-25 13:30:00.048   GOOG  720.77       100  720.50  720.93
+   3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
+   4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
 This returns a merged DataFrame with the entries in the same order as the original left
 passed DataFrame (``trades`` in this case), with the fields of the ``quotes`` merged.
@@ -137,81 +173,124 @@ Method ``.rolling()`` is now time-series aware
 ``.rolling()`` objects are now time-series aware and can accept a time-series offset (or convertible) for the ``window`` argument (:issue:`13327`, :issue:`12995`).
 See the full documentation :ref:`here <window.generic>`.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dft = pd.DataFrame(
-       {"B": [0, 1, 2, np.nan, 4]},
-       index=pd.date_range("20130101 09:00:00", periods=5, freq="s"),
-   )
-   dft
+   >>> dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+   ...                    index=pd.date_range('20130101 09:00:00', periods=5, freq='s'))
+   >>> dft
+                          B
+   2013-01-01 09:00:00  0.0
+   2013-01-01 09:00:01  1.0
+   2013-01-01 09:00:02  2.0
+   2013-01-01 09:00:03  NaN
+   2013-01-01 09:00:04  4.0
 
 This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dft.rolling(2).sum()
-   dft.rolling(2, min_periods=1).sum()
+   >>> dft.rolling(2).sum()
+                          B
+   2013-01-01 09:00:00  NaN
+   2013-01-01 09:00:01  1.0
+   2013-01-01 09:00:02  3.0
+   2013-01-01 09:00:03  NaN
+   2013-01-01 09:00:04  NaN
+   >>> dft.rolling(2, min_periods=1).sum()
+                          B
+   2013-01-01 09:00:00  0.0
+   2013-01-01 09:00:01  1.0
+   2013-01-01 09:00:02  3.0
+   2013-01-01 09:00:03  2.0
+   2013-01-01 09:00:04  4.0
 
 Specifying an offset allows a more intuitive specification of the rolling frequency.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dft.rolling("2s").sum()
+   >>> dft.rolling('2s').sum()
+                          B
+   2013-01-01 09:00:00  0.0
+   2013-01-01 09:00:01  1.0
+   2013-01-01 09:00:02  3.0
+   2013-01-01 09:00:03  2.0
+   2013-01-01 09:00:04  4.0
 
 Using a non-regular, but still monotonic index, rolling with an integer window does not impart any special calculation.
 
-.. ipython:: python
+.. code-block:: pycon
 
+   >>> dft = DataFrame({'B': [0, 1, 2, np.nan, 4]},
+   ...                 index = pd.Index([pd.Timestamp('20130101 09:00:00'),
+   ...                                   pd.Timestamp('20130101 09:00:02'),
+   ...                                   pd.Timestamp('20130101 09:00:03'),
+   ...                                   pd.Timestamp('20130101 09:00:05'),
+   ...                                   pd.Timestamp('20130101 09:00:06')],
+   ...                                  name='foo'))
 
-   dft = pd.DataFrame(
-       {"B": [0, 1, 2, np.nan, 4]},
-       index=pd.Index(
-           [
-               pd.Timestamp("20130101 09:00:00"),
-               pd.Timestamp("20130101 09:00:02"),
-               pd.Timestamp("20130101 09:00:03"),
-               pd.Timestamp("20130101 09:00:05"),
-               pd.Timestamp("20130101 09:00:06"),
-           ],
-           name="foo",
-       ),
-   )
-
-   dft
-   dft.rolling(2).sum()
+   >>> dft
+                          B
+   foo
+   2013-01-01 09:00:00  0.0
+   2013-01-01 09:00:02  1.0
+   2013-01-01 09:00:03  2.0
+   2013-01-01 09:00:05  NaN
+   2013-01-01 09:00:06  4.0
+   >>> dft.rolling(2).sum()
+                          B
+   foo
+   2013-01-01 09:00:00  NaN
+   2013-01-01 09:00:02  1.0
+   2013-01-01 09:00:03  3.0
+   2013-01-01 09:00:05  NaN
+   2013-01-01 09:00:06  NaN
 
 Using the time-specification generates variable windows for this sparse data.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dft.rolling("2s").sum()
+   >>> dft.rolling('2s').sum()
+                          B
+   foo
+   2013-01-01 09:00:00  0.0
+   2013-01-01 09:00:02  1.0
+   2013-01-01 09:00:03  3.0
+   2013-01-01 09:00:05  NaN
+   2013-01-01 09:00:06  4.0
 
 Furthermore, we now allow an optional ``on`` parameter to specify a column (rather than the
 default of the index) in a DataFrame.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dft = dft.reset_index()
-   dft
-   dft.rolling("2s", on="foo").sum()
+   >>> dft = dft.reset_index()
+   >>> dft
+                     foo    B
+   0 2013-01-01 09:00:00  0.0
+   1 2013-01-01 09:00:02  1.0
+   2 2013-01-01 09:00:03  2.0
+   3 2013-01-01 09:00:05  NaN
+   4 2013-01-01 09:00:06  4.0
+   >>> dft.rolling('2s', on='foo').sum()
+                     foo    B
+   0 2013-01-01 09:00:00  0.0
+   1 2013-01-01 09:00:02  1.0
+   2 2013-01-01 09:00:03  3.0
+   3 2013-01-01 09:00:05  NaN
+   4 2013-01-01 09:00:06  4.0
 
 .. _whatsnew_0190.enhancements.read_csv_dupe_col_names_support:
 
 Method ``read_csv`` has improved support for duplicate column names
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. ipython:: python
-   :suppress:
-
-   from io import StringIO
-
 :ref:`Duplicate column names <io.dupe_names>` are now supported in :func:`read_csv` whether
 they are in the file or passed in as the ``names`` parameter (:issue:`7160`, :issue:`9424`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   data = "0,1,2\n3,4,5"
-   names = ["a", "b", "a"]
+   >>> data = '0,1,2\n3,4,5'
+   >>> names = ['a', 'b', 'a']
 
 **Previous behavior**:
 
@@ -228,10 +307,12 @@ contained the values ``[0, 3]``.
 
 **New behavior**:
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: pycon
 
-   pd.read_csv(StringIO(data), names=names)
+   >>> pd.read_csv(StringIO(data), names=names)
+      a  b  a.1
+   0  0  1    2
+   1  3  4    5
 
 
 .. _whatsnew_0190.enhancements.read_csv_categorical:
@@ -244,24 +325,35 @@ specified as a dtype (:issue:`10153`).  Depending on the structure of the data,
 this can result in a faster parse time and lower memory usage compared to
 converting to ``Categorical`` after parsing.  See the io :ref:`docs here <io.categorical>`.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   data = """
-   col1,col2,col3
-   a,b,1
-   a,b,2
-   c,d,3
-   """
+   >>> data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
 
-   pd.read_csv(StringIO(data))
-   pd.read_csv(StringIO(data)).dtypes
-   pd.read_csv(StringIO(data), dtype="category").dtypes
+   >>> pd.read_csv(StringIO(data))
+     col1 col2  col3
+   0    a    b     1
+   1    a    b     2
+   2    c    d     3
+   >>> pd.read_csv(StringIO(data)).dtypes
+   col1    object
+   col2    object
+   col3     int64
+   dtype: object
+   >>> pd.read_csv(StringIO(data), dtype='category').dtypes
+   col1    category
+   col2    category
+   col3    category
+   dtype: object
 
 Individual columns can be parsed as a ``Categorical`` using a dict specification
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.read_csv(StringIO(data), dtype={"col1": "category"}).dtypes
+   >>> pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
+   col1    category
+   col2      object
+   col3       int64
+   dtype: object
 
 .. note::
 
@@ -270,14 +362,27 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
    :func:`to_numeric` function, or as appropriate, another converter
    such as :func:`to_datetime`.
 
-   .. ipython:: python
+   .. code-block:: pycon
 
-      df = pd.read_csv(StringIO(data), dtype="category")
-      df.dtypes
-      df["col3"]
-      new_categories = pd.to_numeric(df["col3"].cat.categories)
-      df["col3"] = df["col3"].cat.rename_categories(new_categories)
-      df["col3"]
+      >>> df = pd.read_csv(StringIO(data), dtype='category')
+      >>> df.dtypes
+      col1    category
+      col2    category
+      col3    category
+      dtype: object
+      >>> df['col3']
+      0    1
+      1    2
+      2    3
+      Name: col3, dtype: category
+      Categories (3, object): [1, 2, 3]
+      >>> df['col3'].cat.categories = pd.to_numeric(df['col3'].cat.categories)
+      >>> df['col3']
+      0    1
+      1    2
+      2    3
+      Name: col3, dtype: category
+      Categories (3, int64): [1, 2, 3]
 
 .. _whatsnew_0190.enhancements.union_categoricals:
 
@@ -286,20 +391,21 @@ Categorical concatenation
 
 - A function :func:`pandas.api.types.union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`13763`, :issue:`13846`, :issue:`14173`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     from pandas.api.types import union_categoricals
-
-     a = pd.Categorical(["b", "c"])
-     b = pd.Categorical(["a", "b"])
-     union_categoricals([a, b])
+     >>> from pandas.types.concat import union_categoricals
+     >>> a = pd.Categorical(["b", "c"])
+     >>> b = pd.Categorical(["a", "b"])
+     >>> union_categoricals([a, b])
+     [b, c, a, b]
+     Categories (3, object): [b, c, a]
 
 - ``concat`` and ``append`` now can concat ``category`` dtypes with different ``categories`` as ``object`` dtype (:issue:`13524`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     s1 = pd.Series(["a", "b"], dtype="category")
-     s2 = pd.Series(["b", "c"], dtype="category")
+     >>> s1 = pd.Series(['a', 'b'], dtype='category')
+     >>> s2 = pd.Series(['b', 'c'], dtype='category')
 
 **Previous behavior**:
 
@@ -310,9 +416,14 @@ Categorical concatenation
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.concat([s1, s2])
+   >>> pd.concat([s1, s2])
+   0    a
+   1    b
+   0    b
+   1    c
+   dtype: object
 
 .. _whatsnew_0190.enhancements.semi_month_offsets:
 
@@ -323,9 +434,9 @@ pandas has gained new frequency offsets, ``SemiMonthEnd`` ('SM') and ``SemiMonth
 These provide date offsets anchored (by default) to the 15th and end of month, and 15th and 1st of month respectively.
 (:issue:`1543`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   from pandas.tseries.offsets import SemiMonthEnd, SemiMonthBegin
+   >>> from pandas.tseries.offsets import SemiMonthEnd, SemiMonthBegin
 
 **SemiMonthEnd**:
 
@@ -339,11 +450,13 @@ These provide date offsets anchored (by default) to the 15th and end of month, a
 
 **SemiMonthBegin**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Timestamp("2016-01-01") + SemiMonthBegin()
+   >>> Timestamp('2016-01-01') + SemiMonthBegin()
+   Timestamp('2016-01-15 00:00:00')
 
-   pd.date_range("2015-01-01", freq="SMS", periods=4)
+   >>> pd.date_range('2015-01-01', freq='SMS', periods=4)
+   DatetimeIndex(['2015-01-01', '2015-01-15', '2015-02-01', '2015-02-15'], dtype='datetime64[ns]', freq='SMS-15')
 
 Using the anchoring suffix, you can also specify the day of month to use instead of the 15th.
 
@@ -364,35 +477,49 @@ The following methods and options are added to ``Index``, to be more consistent 
 
 ``Index`` now supports the ``.where()`` function for same shape indexing (:issue:`13170`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx = pd.Index(["a", "b", "c"])
-   idx.where([True, False, True])
+   >>> idx = pd.Index(['a', 'b', 'c'])
+   >>> idx.where([True, False, True])
+   Index(['a', nan, 'c'], dtype='object')
 
 
 ``Index`` now supports ``.dropna()`` to exclude missing values (:issue:`6194`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx = pd.Index([1, 2, np.nan, 4])
-   idx.dropna()
+   >>> idx = pd.Index([1, 2, np.nan, 4])
+   >>> idx.dropna()
+   Float64Index([1.0, 2.0, 4.0], dtype='float64')
 
 For ``MultiIndex``, values are dropped if any level is missing by default. Specifying
 ``how='all'`` only drops values where all levels are missing.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   midx = pd.MultiIndex.from_arrays([[1, 2, np.nan, 4], [1, 2, np.nan, np.nan]])
-   midx
-   midx.dropna()
-   midx.dropna(how="all")
+   >>> midx = pd.MultiIndex.from_arrays([[1, 2, np.nan, 4],
+   ...                                     [1, 2, np.nan, np.nan]])
+   >>> midx
+   MultiIndex(levels=[[1, 2, 4], [1, 2]],
+              labels=[[0, 1, -1, 2], [0, 1, -1, -1]])
+   >>> midx.dropna()
+   MultiIndex(levels=[[1, 2, 4], [1, 2]],
+              labels=[[0, 1], [0, 1]])
+   >>> midx.dropna(how='all')
+   MultiIndex(levels=[[1, 2, 4], [1, 2]],
+              labels=[[0, 1, 2], [0, 1, -1]])
 
 ``Index`` now supports ``.str.extractall()`` which returns a ``DataFrame``, see the :ref:`docs here <text.extractall>` (:issue:`10008`, :issue:`13156`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx = pd.Index(["a1a2", "b1", "c1"])
-   idx.str.extractall(r"[ab](?P<digit>\d)")
+   >>> idx = pd.Index(["a1a2", "b1", "c1"])
+   >>> idx.str.extractall("[ab](?P<digit>\d)")
+           digit
+     match
+   0 0         1
+     1         2
+   1 0         1
 
 ``Index.astype()`` now accepts an optional boolean argument ``copy``, which allows optional copying if the requirements on dtype are satisfied (:issue:`13209`)
 
@@ -434,9 +561,13 @@ The ``pd.get_dummies`` function now returns dummy-encoded columns as small integ
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.get_dummies(["a", "b", "a", "c"]).dtypes
+   >>> pd.get_dummies(['a', 'b', 'a', 'c']).dtypes
+   a    uint8
+   b    uint8
+   c    uint8
+   dtype: object
 
 
 .. _whatsnew_0190.enhancements.to_numeric_downcast:
@@ -446,11 +577,13 @@ Downcast values to smallest possible dtype in ``to_numeric``
 
 ``pd.to_numeric()`` now accepts a ``downcast`` parameter, which will downcast the data if possible to smallest specified numerical dtype (:issue:`13352`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = ["1", 2, 3]
-   pd.to_numeric(s, downcast="unsigned")
-   pd.to_numeric(s, downcast="integer")
+   >>> s = ['1', 2, 3]
+   >>> pd.to_numeric(s, downcast='unsigned')
+   array([1, 2, 3], dtype=uint8)
+   >>> pd.to_numeric(s, downcast='integer')
+   array([1, 2, 3], dtype=int8)
 
 .. _whatsnew_0190.dev_api:
 
@@ -464,13 +597,51 @@ will be published in future versions of pandas (:issue:`13147`, :issue:`13634`)
 
 The following are now part of this API:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   import pprint
-   from pandas.api import types
-
-   funcs = [f for f in dir(types) if not f.startswith("_")]
-   pprint.pprint(funcs)
+   >>> import pprint
+   >>> from pandas.api import types
+   >>> funcs = [ f for f in dir(types) if not f.startswith('_') ]
+   >>> pprint.pprint(funcs)
+   ['is_any_int_dtype',
+    'is_bool',
+    'is_bool_dtype',
+    'is_categorical',
+    'is_categorical_dtype',
+    'is_complex',
+    'is_complex_dtype',
+    'is_datetime64_any_dtype',
+    'is_datetime64_dtype',
+    'is_datetime64_ns_dtype',
+    'is_datetime64tz_dtype',
+    'is_datetimetz',
+    'is_dict_like',
+    'is_dtype_equal',
+    'is_extension_type',
+    'is_float',
+    'is_float_dtype',
+    'is_floating_dtype',
+    'is_hashable',
+    'is_int64_dtype',
+    'is_integer',
+    'is_integer_dtype',
+    'is_iterator',
+    'is_list_like',
+    'is_named_tuple',
+    'is_number',
+    'is_numeric_dtype',
+    'is_object_dtype',
+    'is_period',
+    'is_period_dtype',
+    'is_re',
+    'is_re_compilable',
+    'is_scalar',
+    'is_sequence',
+    'is_sparse',
+    'is_string_dtype',
+    'is_timedelta64_dtype',
+    'is_timedelta64_ns_dtype',
+    'pandas_dtype']
 
 .. note::
 
@@ -484,24 +655,42 @@ Other enhancements
 
 - ``Timestamp`` can now accept positional and keyword parameters similar to :class:`python:datetime.datetime` (:issue:`10758`, :issue:`11630`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     pd.Timestamp(2012, 1, 1)
+     >>> pd.Timestamp(2012, 1, 1)
+     Timestamp('2012-01-01 00:00:00')
 
-     pd.Timestamp(year=2012, month=1, day=1, hour=8, minute=30)
+     >>> pd.Timestamp(year=2012, month=1, day=1, hour=8, minute=30)
+     Timestamp('2012-01-01 08:30:00')
 
 - The ``.resample()`` function now accepts a ``on=`` or ``level=`` parameter for resampling on a datetimelike column or ``MultiIndex`` level (:issue:`13500`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     df = pd.DataFrame(
-         {"date": pd.date_range("2015-01-01", freq="W", periods=5), "a": np.arange(5)},
-         index=pd.MultiIndex.from_arrays(
-             [[1, 2, 3, 4, 5], pd.date_range("2015-01-01", freq="W", periods=5)],
-             names=["v", "d"],
-         ),
-     )
-     df
+     >>> df = pd.DataFrame({'date': pd.date_range('2015-01-01', freq='W', periods=5),
+     ...                    'a': np.arange(5)},
+     ...                   index=pd.MultiIndex.from_arrays([
+     ...                            [1,2,3,4,5],
+     ...                            pd.date_range('2015-01-01', freq='W', periods=5)],
+     ...                        names=['v','d']))
+     >>> df
+                   a       date
+     v d
+     1 2015-01-04  0 2015-01-04
+     2 2015-01-11  1 2015-01-11
+     3 2015-01-18  2 2015-01-18
+     4 2015-01-25  3 2015-01-25
+     5 2015-02-01  4 2015-02-01
+     >>> df.resample('M', on='date').sum()
+                 a
+     date
+     2015-01-31  6
+     2015-02-28  4
+     >>> df.resample('M', level='d').sum()
+                 a
+     d
+     2015-01-31  6
+     2015-02-28  4
 
   .. code-block:: ipython
 
@@ -545,11 +734,18 @@ Other enhancements
 - ``DataFrame`` has gained support to re-order the columns based on the values
   in a row using ``df.sort_values(by='...', axis=1)`` (:issue:`10806`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     df = pd.DataFrame({"A": [2, 7], "B": [3, 5], "C": [4, 8]}, index=["row1", "row2"])
-     df
-     df.sort_values(by="row2", axis=1)
+     >>> df = pd.DataFrame({'A': [2, 7], 'B': [3, 5], 'C': [4, 8]},
+     ...                   index=['row1', 'row2'])
+     >>> df
+           A  B  C
+     row1  2  3  4
+     row2  7  5  8
+     >>> df.sort_values(by='row2', axis=1)
+           B  A  C
+     row1  3  2  4
+     row2  5  7  8
 
 - Added documentation to :ref:`I/O<io.dtypes>` regarding the perils of reading in columns with mixed dtypes and how to handle it (:issue:`13746`)
 - :meth:`~DataFrame.to_html` now has a ``border`` argument to control the value in the opening ``<table>`` tag. The default is the value of the ``html.border`` option, which defaults to 1. This also affects the notebook HTML repr, but since Jupyter's CSS includes a border-width attribute, the visual effect is the same. (:issue:`11563`).
@@ -579,9 +775,9 @@ API changes
 ``Series.tolist()`` will now return Python types in the output, mimicking NumPy ``.tolist()`` behavior (:issue:`10904`)
 
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([1, 2, 3])
+   >>> s = pd.Series([1,2,3])
 
 **Previous behavior**:
 
@@ -593,9 +789,10 @@ API changes
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   type(s.tolist()[0])
+   >>> type(s.tolist()[0])
+   <class 'int'>
 
 .. _whatsnew_0190.api.series_ops:
 
@@ -620,15 +817,25 @@ Arithmetic operators
 
 Arithmetic operators align both ``index`` (no changes).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s1 = pd.Series([1, 2, 3], index=list("ABC"))
-   s2 = pd.Series([2, 2, 2], index=list("ABD"))
-   s1 + s2
+   >>> s1 = pd.Series([1, 2, 3], index=list('ABC'))
+   >>> s2 = pd.Series([2, 2, 2], index=list('ABD'))
+   >>> s1 + s2
+   A    3.0
+   B    4.0
+   C    NaN
+   D    NaN
+   dtype: float64
 
-   df1 = pd.DataFrame([1, 2, 3], index=list("ABC"))
-   df2 = pd.DataFrame([2, 2, 2], index=list("ABD"))
-   df1 + df2
+   >>> df1 = pd.DataFrame([1, 2, 3], index=list('ABC'))
+   >>> df2 = pd.DataFrame([2, 2, 2], index=list('ABD'))
+   >>> df1 + df2
+        0
+   A  3.0
+   B  4.0
+   C  NaN
+   D  NaN
 
 Comparison operators
 """"""""""""""""""""
@@ -660,15 +867,21 @@ Comparison operators raise ``ValueError`` when ``.index`` are different.
 
    To achieve the same result as previous versions (compare values based on locations ignoring ``.index``), compare both ``.values``.
 
-   .. ipython:: python
+   .. code-block:: pycon
 
-      s1.values == s2.values
+      >>> s1.values == s2.values
+      array([False,  True, False], dtype=bool)
 
    If you want to compare ``Series`` aligning its ``.index``, see flexible comparison methods section below:
 
-   .. ipython:: python
+   .. code-block:: pycon
 
-      s1.eq(s2)
+      >>> s1.eq(s2)
+      A    False
+      B     True
+      C    False
+      D    False
+      dtype: bool
 
 **Current behavior** (``DataFrame``, no change):
 
@@ -698,11 +911,16 @@ Logical operators align both ``.index`` of left and right hand side.
 
 **New behavior** (``Series``):
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s1 = pd.Series([True, False, True], index=list("ABC"))
-   s2 = pd.Series([True, True, True], index=list("ABD"))
-   s1 & s2
+   >>> s1 = pd.Series([True, False, True], index=list('ABC'))
+   >>> s2 = pd.Series([True, True, True], index=list('ABD'))
+   >>> s1 & s2
+   A     True
+   B    False
+   C    False
+   D    False
+   dtype: bool
 
 .. note::
    ``Series`` logical operators fill a ``NaN`` result with ``False``.
@@ -710,17 +928,26 @@ Logical operators align both ``.index`` of left and right hand side.
 .. note::
    To achieve the same result as previous versions (compare values based on only left hand side index), you can use ``reindex_like``:
 
-   .. ipython:: python
+   .. code-block:: pycon
 
-      s1 & s2.reindex_like(s1)
+      >>> s1 & s2.reindex_like(s1)
+      A     True
+      B    False
+      C    False
+      dtype: bool
 
 **Current behavior** (``DataFrame``, no change):
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df1 = pd.DataFrame([True, False, True], index=list("ABC"))
-   df2 = pd.DataFrame([True, True, True], index=list("ABD"))
-   df1 & df2
+   >>> df1 = pd.DataFrame([True, False, True], index=list('ABC'))
+   >>> df2 = pd.DataFrame([True, True, True], index=list('ABD'))
+   >>> df1 & df2
+          0
+   A   True
+   B  False
+   C    NaN
+   D    NaN
 
 Flexible comparison methods
 """""""""""""""""""""""""""
@@ -728,12 +955,22 @@ Flexible comparison methods
 ``Series`` flexible comparison methods like ``eq``, ``ne``, ``le``, ``lt``, ``ge`` and ``gt`` now align both ``index``. Use these operators if you want to compare two ``Series``
 which has the different ``index``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s1 = pd.Series([1, 2, 3], index=["a", "b", "c"])
-   s2 = pd.Series([2, 2, 2], index=["b", "c", "d"])
-   s1.eq(s2)
-   s1.ge(s2)
+   >>> s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   >>> s2 = pd.Series([2, 2, 2], index=['b', 'c', 'd'])
+   >>> s1.eq(s2)
+   a    False
+   b     True
+   c    False
+   d    False
+   dtype: bool
+   >>> s1.ge(s2)
+   a    False
+   b     True
+   c     True
+   d    False
+   dtype: bool
 
 Previously, this worked the same as comparison operators (see above).
 
@@ -745,10 +982,9 @@ Previously, this worked the same as comparison operators (see above).
 A ``Series`` will now correctly promote its dtype for assignment with incompat values to the current dtype (:issue:`13234`)
 
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   s = pd.Series()
+   >>> s = pd.Series()
 
 **Previous behavior**:
 
@@ -761,13 +997,16 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 
 **New behavior**:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   s["a"] = pd.Timestamp("2016-01-01")
-   s["b"] = 3.0
-   s
-   s.dtype
+   >>> s["a"] = pd.Timestamp("2016-01-01")
+   >>> s["b"] = 3.0
+   >>> s
+   a    2016-01-01 00:00:00
+   b                      3
+   dtype: object
+   >>> s.dtype
+   dtype('O')
 
 .. _whatsnew_0190.api.to_datetime_coerce:
 
@@ -787,9 +1026,10 @@ Previously if ``.to_datetime()`` encountered mixed integers/floats and strings, 
 
 This will now convert integers/floats with the default unit of ``ns``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.to_datetime([1, "foo"], errors="coerce")
+   >>> pd.to_datetime([1, 'foo'], errors='coerce')
+   DatetimeIndex(['1970-01-01 00:00:00.000000001', 'NaT'], dtype='datetime64[ns]', freq=None)
 
 Bug fixes related to ``.to_datetime()``:
 
@@ -806,12 +1046,17 @@ Merging changes
 
 Merging will now preserve the dtype of the join keys (:issue:`8596`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df1 = pd.DataFrame({"key": [1], "v1": [10]})
-   df1
-   df2 = pd.DataFrame({"key": [1, 2], "v1": [20, 30]})
-   df2
+   >>> df1 = pd.DataFrame({'key': [1], 'v1': [10]})
+   >>> df1
+      key  v1
+   0    1  10
+   >>> df2 = pd.DataFrame({'key': [1, 2], 'v1': [20, 30]})
+   >>> df2
+      key  v1
+   0    1  20
+   1    2  30
 
 **Previous behavior**:
 
@@ -834,18 +1079,32 @@ Merging will now preserve the dtype of the join keys (:issue:`8596`)
 
 We are able to preserve the join keys
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.merge(df1, df2, how="outer")
-   pd.merge(df1, df2, how="outer").dtypes
+   >>> pd.merge(df1, df2, how='outer')
+      key  v1
+   0    1  10
+   1    1  20
+   2    2  30
+   >>> pd.merge(df1, df2, how='outer').dtypes
+   key    int64
+   v1     int64
+   dtype: object
 
 Of course if you have missing values that are introduced, then the
 resulting dtype will be upcast, which is unchanged from previous.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.merge(df1, df2, how="outer", on="key")
-   pd.merge(df1, df2, how="outer", on="key").dtypes
+   >>> pd.merge(df1, df2, how='outer', on='key')
+      key  v1_x  v1_y
+   0    1  10.0    20
+   1    2   NaN    30
+   >>> pd.merge(df1, df2, how='outer', on='key').dtypes
+   key       int64
+   v1_x    float64
+   v1_y      int64
+   dtype: object
 
 .. _whatsnew_0190.api.describe:
 
@@ -854,10 +1113,10 @@ Method ``.describe()`` changes
 
 Percentile identifiers in the index of a ``.describe()`` output will now be rounded to the least precision that keeps them distinct (:issue:`13104`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([0, 1, 2, 3, 4])
-   df = pd.DataFrame([0, 1, 2, 3, 4])
+   >>> s = pd.Series([0, 1, 2, 3, 4])
+   >>> df = pd.DataFrame([0, 1, 2, 3, 4])
 
 **Previous behavior**:
 
@@ -888,10 +1147,36 @@ The percentiles were rounded to at most one decimal place, which could raise ``V
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
-   df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   >>> s.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+   count     5.000000
+   mean      2.000000
+   std       1.581139
+   min       0.000000
+   0.01%     0.000400
+   0.05%     0.002000
+   0.1%      0.004000
+   50%       2.000000
+   99.9%     3.996000
+   99.95%    3.998000
+   99.99%    3.999600
+   max       4.000000
+   dtype: float64
+   >>> df.describe(percentiles=[0.0001, 0.0005, 0.001, 0.999, 0.9995, 0.9999])
+                  0
+   count   5.000000
+   mean    2.000000
+   std     1.581139
+   min     0.000000
+   0.01%   0.000400
+   0.05%   0.002000
+   0.1%    0.004000
+   50%     2.000000
+   99.9%   3.996000
+   99.95%  3.998000
+   99.99%  3.999600
+   max     4.000000
 
 Furthermore:
 
@@ -927,15 +1212,19 @@ As a consequence of this change, ``PeriodIndex`` no longer has an integer dtype:
 
 **New behavior**:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   pi = pd.PeriodIndex(["2016-08-01"], freq="D")
-   pi
-   pd.api.types.is_integer_dtype(pi)
-   pd.api.types.is_period_dtype(pi)
-   pi.dtype
-   type(pi.dtype)
+   >>> pi = pd.PeriodIndex(['2016-08-01'], freq='D')
+   >>> pi
+   PeriodIndex(['2016-08-01'], dtype='period[D]', freq='D')
+   >>> pd.api.types.is_integer_dtype(pi)
+   False
+   >>> pd.api.types.is_period_dtype(pi)
+   True
+   >>> pi.dtype
+   period[D]
+   >>> type(pi.dtype)
+   <class 'pandas.types.dtypes.PeriodDtype'>
 
 .. _whatsnew_0190.api.periodnat:
 
@@ -955,10 +1244,12 @@ Previously, ``Period`` has its own ``Period('NaT')`` representation different fr
 
 These result in ``pd.NaT`` without providing ``freq`` option.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Period("NaT")
-   pd.Period(None)
+   >>> pd.Period('NaT')
+   NaT
+   >>> pd.Period(None)
+   NaT
 
 
 To be compatible with ``Period`` addition and subtraction, ``pd.NaT`` now supports addition and subtraction with ``int``. Previously it raised ``ValueError``.
@@ -973,10 +1264,12 @@ To be compatible with ``Period`` addition and subtraction, ``pd.NaT`` now suppor
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.NaT + 1
-   pd.NaT - 1
+   >>> pd.NaT + 1
+   NaT
+   >>> pd.NaT - 1
+   NaT
 
 ``PeriodIndex.values`` now returns array of ``Period`` object
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -994,11 +1287,11 @@ of integers (:issue:`13988`).
 
 **New behavior**:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   pi = pd.PeriodIndex(["2011-01", "2011-02"], freq="M")
-   pi.values
+   >>> pi = pd.PeriodIndex(['2011-01', '2011-02'], freq='M')
+   >>> pi.values
+   array([Period('2011-01', 'M'), Period('2011-02', 'M')], dtype=object)
 
 
 .. _whatsnew_0190.api.setops:
@@ -1025,17 +1318,19 @@ Previous behavior:
 
 **New behavior**: the same operation will now perform element-wise addition:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Index(["a", "b"]) + pd.Index(["a", "c"])
+   >>> pd.Index(['a', 'b']) + pd.Index(['a', 'c'])
+   Index(['aa', 'bc'], dtype='object')
 
 Note that numeric Index objects already performed element-wise operations.
 For example, the behavior of adding two integer Indexes is unchanged.
 The base ``Index`` is now made consistent with this behavior.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Index([1, 2, 3]) + pd.Index([2, 3, 4])
+   >>> pd.Index([1, 2, 3]) + pd.Index([2, 3, 4])
+   Int64Index([3, 5, 7], dtype='int64')
 
 Further, because of this change, it is now possible to subtract two
 DatetimeIndex objects resulting in a TimedeltaIndex:
@@ -1051,12 +1346,10 @@ DatetimeIndex objects resulting in a TimedeltaIndex:
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    (
-        pd.DatetimeIndex(["2016-01-01", "2016-01-02"])
-        - pd.DatetimeIndex(["2016-01-02", "2016-01-03"])
-    )
+   >>> pd.DatetimeIndex(['2016-01-01', '2016-01-02']) - pd.DatetimeIndex(['2016-01-02', '2016-01-03'])
+   TimedeltaIndex(['-1 days', '-1 days'], dtype='timedelta64[ns]', freq=None)
 
 
 .. _whatsnew_0190.api.difference:
@@ -1066,10 +1359,10 @@ DatetimeIndex objects resulting in a TimedeltaIndex:
 
 ``Index.difference`` and ``Index.symmetric_difference`` will now, more consistently, treat ``NaN`` values as any other values. (:issue:`13514`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx1 = pd.Index([1, 2, 3, np.nan])
-   idx2 = pd.Index([0, 1, np.nan])
+   >>> idx1 = pd.Index([1, 2, 3, np.nan])
+   >>> idx2 = pd.Index([0, 1, np.nan])
 
 **Previous behavior**:
 
@@ -1083,10 +1376,12 @@ DatetimeIndex objects resulting in a TimedeltaIndex:
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx1.difference(idx2)
-   idx1.symmetric_difference(idx2)
+   >>> idx1.difference(idx2)
+   Float64Index([2.0, 3.0], dtype='float64')
+   >>> idx1.symmetric_difference(idx2)
+   Float64Index([0.0, 2.0, 3.0], dtype='float64')
 
 .. _whatsnew_0190.api.unique_index:
 
@@ -1114,12 +1409,14 @@ Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex`
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Index([1, 2, 3]).unique()
-   pd.DatetimeIndex(
-       ["2011-01-01", "2011-01-02", "2011-01-03"], tz="Asia/Tokyo"
-   ).unique()
+   >>> pd.Index([1, 2, 3]).unique()
+   Int64Index([1, 2, 3], dtype='int64')
+   >>> pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], tz='Asia/Tokyo').unique()
+   DatetimeIndex(['2011-01-01 00:00:00+09:00', '2011-01-02 00:00:00+09:00',
+                  '2011-01-03 00:00:00+09:00'],
+                 dtype='datetime64[ns, Asia/Tokyo]', freq=None)
 
 .. _whatsnew_0190.api.multiindex:
 
@@ -1129,12 +1426,14 @@ Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex`
 ``MultiIndex.from_arrays`` and ``MultiIndex.from_product`` will now preserve categorical dtype
 in ``MultiIndex`` levels (:issue:`13743`, :issue:`13854`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   cat = pd.Categorical(["a", "b"], categories=list("bac"))
-   lvl1 = ["foo", "bar"]
-   midx = pd.MultiIndex.from_arrays([cat, lvl1])
-   midx
+   >>> cat = pd.Categorical(['a', 'b'], categories=list("bac"))
+   >>> lvl1 = ['foo', 'bar']
+   >>> midx = pd.MultiIndex.from_arrays([cat, lvl1])
+   >>> midx
+   MultiIndex(levels=[['b', 'a', 'c'], ['bar', 'foo']],
+              labels=[[1, 0], [1, 0]])
 
 **Previous behavior**:
 
@@ -1148,19 +1447,21 @@ in ``MultiIndex`` levels (:issue:`13743`, :issue:`13854`).
 
 **New behavior**: the single level is now a ``CategoricalIndex``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   midx.levels[0]
-   midx.get_level_values(0)
+   >>> midx.levels[0]
+   CategoricalIndex(['b', 'a', 'c'], categories=['b', 'a', 'c'], ordered=False, dtype='category')
+   >>> midx.get_level_values(0)
+   CategoricalIndex(['a', 'b'], categories=['b', 'a', 'c'], ordered=False, dtype='category')
 
 An analogous change has been made to ``MultiIndex.from_product``.
 As a consequence, ``groupby`` and ``set_index`` also preserve categorical dtypes in indexes
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"A": [0, 1], "B": [10, 11], "C": cat})
-   df_grouped = df.groupby(by=["A", "C"], observed=False).first()
-   df_set_idx = df.set_index(["A", "C"])
+   >>> df = pd.DataFrame({'A': [0, 1], 'B': [10, 11], 'C': cat})
+   >>> df_grouped = df.groupby(by=['A', 'C']).first()
+   >>> df_set_idx = df.set_index(['A', 'C'])
 
 **Previous behavior**:
 
@@ -1186,13 +1487,23 @@ As a consequence, ``groupby`` and ``set_index`` also preserve categorical dtypes
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df_grouped.index.levels[1]
-   df_grouped.reset_index().dtypes
+   >>> df_grouped.index.levels[1]
+   CategoricalIndex(['b', 'a', 'c'], categories=['b', 'a', 'c'], ordered=False, name='C', dtype='category')
+   >>> df_grouped.reset_index().dtypes
+   A       int64
+   C    category
+   B     float64
+   dtype: object
 
-   df_set_idx.index.levels[1]
-   df_set_idx.reset_index().dtypes
+   >>> df_set_idx.index.levels[1]
+   CategoricalIndex(['b', 'a', 'c'], categories=['b', 'a', 'c'], ordered=False, name='C', dtype='category')
+   >>> df_set_idx.reset_index().dtypes
+   A       int64
+   C    category
+   B       int64
+   dtype: object
 
 .. _whatsnew_0190.api.autogenerated_chunksize_index:
 
@@ -1206,9 +1517,9 @@ from ``n`` for the second, and so on, so that, when concatenated, they are ident
 the result of calling :func:`read_csv` without the ``chunksize=`` argument
 (:issue:`12185`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   data = "A,B\n0,1\n2,3\n4,5\n6,7"
+   >>> data = 'A,B\n0,1\n2,3\n4,5\n6,7'
 
 **Previous behavior**:
 
@@ -1224,9 +1535,14 @@ the result of calling :func:`read_csv` without the ``chunksize=`` argument
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.concat(pd.read_csv(StringIO(data), chunksize=2))
+   >>> pd.concat(pd.read_csv(StringIO(data), chunksize=2))
+      A  B
+   0  0  1
+   1  2  3
+   2  4  5
+   3  6  7
 
 .. _whatsnew_0190.sparse:
 
@@ -1269,10 +1585,18 @@ Previously, sparse data were ``float64`` dtype by default, even if all inputs we
 
 As of v0.19.0, sparse data keeps the input dtype, and uses more appropriate ``fill_value`` defaults (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.arrays.SparseArray([1, 2, 0, 0], dtype=np.int64)
-   pd.arrays.SparseArray([True, False, False, False])
+   >>> pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
+   [1, 2, 0, 0]
+   Fill: 0
+   IntIndex
+   Indices: array([0, 1], dtype=int32)
+   >>> pd.SparseArray([True, False, False, False])
+   [True, False, False, False]
+   Fill: False
+   IntIndex
+   Indices: array([0], dtype=int32)
 
 See the :ref:`docs <sparse.dtype>` for more details.
 

@@ -77,6 +77,28 @@ class TestOverlaps:
         result = interval_container.overlaps(interval)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("empty_closed", ["left", "right", "neither"])
+    def test_overlaps_empty(self, constructor, start_shift, closed, empty_closed):
+        # GH#26893 empty intervals never overlap, in either argument
+        start, shift = start_shift
+        tuples = [
+            (start, start + 3 * shift),
+            (start + shift, start + shift),
+            (start + 4 * shift, start + 5 * shift),
+        ]
+        interval_container = constructor.from_tuples(tuples, closed)
+
+        empty = pd.Interval(start + shift, start + shift, empty_closed)
+        expected = np.array([False, False, False])
+        result = interval_container.overlaps(empty)
+        tm.assert_numpy_array_equal(result, expected)
+
+        if closed != "both":
+            # the empty element of the container does not overlap either
+            interval = pd.Interval(start, start + 3 * shift, closed)
+            result = interval_container.overlaps(interval)
+            assert not result[1]
+
     @pytest.mark.parametrize(
         "other",
         [10, True, "foo", pd.Timedelta("1 day"), pd.Timestamp("2018-01-01")],

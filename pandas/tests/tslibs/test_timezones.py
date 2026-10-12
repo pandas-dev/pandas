@@ -4,6 +4,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import struct
 import subprocess
 import sys
 import textwrap
@@ -459,3 +460,77 @@ def test_normalize_pytz_timezone():
     ]:
         result = _normalize_pytz_timezone(tz)
         assert result == expected
+
+
+def _write_big_bang_tzif(path):
+    """
+    Write a TZif file opening with the -2**59 "big bang" transition, as zic
+    did between 2013 and 2018f.
+    """
+    # (utoff, isdst, abbrev index)
+    ttinfos = [(-17762, 0, 0), (-18000, 0, 4), (-14400, 1, 8)]
+    abbrs = b"LMT\x00EST\x00EDT\x00"
+    # LMT until 1883, then EST with the 1918 and 1919 DST transitions
+    transitions = [
+        (-(1 << 59), 0),
+        (-2717650800, 1),
+        (-1633280400, 2),
+        (-1615140000, 1),
+        (-1601830800, 2),
+        (-1583690400, 1),
+    ]
+
+    def block(timecnt):
+        return (
+            b"TZif2"
+            + b"\x00" * 15
+            + struct.pack(">6i", 0, 0, 0, timecnt, len(ttinfos), len(abbrs))
+        )
+
+    def types():
+        return b"".join(struct.pack(">iBB", *info) for info in ttinfos) + abbrs
+
+    # v1 block, kept empty; the v2 block below carries the 64-bit transitions
+    data = block(0) + types()
+    data += block(len(transitions))
+    data += b"".join(struct.pack(">q", ts) for ts, _ in transitions)
+    data += bytes(typ for _, typ in transitions)
+    data += types()
+    data += b"\nEST5\n"
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+
+
+def test_zoneinfo_big_bang_transition(tmp_path):
+    # GH#67066 - the "big bang" transition wrapped into the middle of the cached
+    # transition array, so 1883-1918 dates came out as LMT instead of EST.
+    _write_big_bang_tzif(tmp_path / "Test" / "BigBang")
+    zoneinfo.reset_tzpath([str(tmp_path)])
+    try:
+        tz = zoneinfo.ZoneInfo("Test/BigBang")
+        data = ["1850-01-01", "1900-01-01", "1918-07-01", "1920-01-01"]
+        utc_times = pd.to_datetime(data, utc=True)
+        local = utc_times.tz_convert(tz)
+
+        expected = [
+            datetime.fromisoformat(date).replace(tzinfo=UTC).astimezone(tz)
+            for date in data
+        ]
+        tm.assert_numpy_array_equal(local.to_pydatetime(), np.array(expected))
+
+        trans = timezones.dst_cache["zoneinfo/Test/BigBang"][0]
+        assert (np.diff(trans) > 0).all()
+    finally:
+        timezones.dst_cache.pop("zoneinfo/Test/BigBang", None)
+        zoneinfo.reset_tzpath()
+
+
+def test_zoneinfo_posix_rule_transitions_cached():
+    # GH#67826 - the POSIX-rule transitions must survive validation on 32-bit,
+    # where the platform time_t overflows past 2038. A no-op on 64-bit.
+    tz = zoneinfo.ZoneInfo("US/Eastern")
+    pd.Timestamp("2020-01-01", tz=tz)
+
+    trans = timezones.dst_cache["zoneinfo/US/Eastern"][0]
+    assert trans[-1] > pd.Timestamp("2038-01-01").value

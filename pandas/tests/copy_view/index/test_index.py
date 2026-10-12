@@ -155,6 +155,33 @@ def test_index_where_noop():
     tm.assert_index_equal(idx, expected)
 
 
+def test_index_replace_noop():
+    # GH#65265 CoW references should be tracked through Index.replace
+    idx = pd.Index([1, 2, 3])
+    result = idx.replace(4, 100)
+    assert np.shares_memory(get_array(idx), get_array(result))
+    assert result._references.has_reference()
+
+    expected = idx.copy(deep=True)
+    result = pd.Series(result)
+    result.iloc[0] = 100
+    tm.assert_index_equal(idx, expected)
+
+
+def test_index_replace_noop_from_series():
+    # GH#65265 the result keeps tracking the Series the Index was built from,
+    #  even once the intermediate Index is gone
+    ser = pd.Series([1, 2, 3])
+    idx = pd.Index(ser)
+    result = idx.replace(4, 100)
+    idx = None  # overwrite to clear reference
+    assert np.shares_memory(get_array(ser), get_array(result))
+
+    expected = result.copy(deep=True)
+    ser.iloc[0] = 100
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [
@@ -219,6 +246,23 @@ def test_index_array_inplace_op_raises(data, dtype):
         ser.iloc[0] = idx[1]
     with pytest.raises(ValueError, match=msg):
         ser.mask(ser == idx[0], idx[1], inplace=True)
+
+    tm.assert_index_equal(idx, expected)
+
+
+def test_sparse_index_astype_readonly():
+    # GH#38547 a fully dense SparseArray densifies to sp_values itself, so
+    #  astype must not hand back a writeable alias of an immutable Index
+    idx = pd.Index(
+        pd.arrays.SparseArray(np.array([1, 2, 3], dtype="int64"), fill_value=0)
+    )
+    expected = idx.copy(deep=True)
+
+    # copy=False keeps the result aliasing sp_values, which is the case under test
+    result = idx.array.astype(np.dtype("int64"), copy=False)
+    assert result.flags.writeable is False
+    with pytest.raises(ValueError, match="read-only"):
+        result[0] = 99
 
     tm.assert_index_equal(idx, expected)
 

@@ -200,6 +200,19 @@ def test_read_chunksize_jagged_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # chunksize not supported
+def test_read_chunksize_skipped_lines_many_reads(all_parsers):
+    # GH#70406 alternating counts of buffered skipped lines used to grow the
+    # C parser's word buffer at every read until it ran out of memory
+    parser = all_parsers
+    data = "a,b\n" + "1,2\n1,2,3\n1,2\n1,2,3\n1,2,3\n1,2,3\n" * 40
+
+    with parser.read_csv(StringIO(data), chunksize=1, on_bad_lines="skip") as reader:
+        result = pd.concat(reader)
+    expected = pd.DataFrame({"a": [1] * 80, "b": [2] * 80})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_chunk_begins_with_newline_whitespace(all_parsers):
     # see gh-10022
     parser = all_parsers
@@ -211,7 +224,9 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
 
 
 @pytest.mark.slow
-def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
+def test_chunks_have_consistent_numerical_type(
+    all_parsers, monkeypatch, using_python_scalars
+):
     # mainly an issue with the C parser
     heuristic = 2**3
     parser = all_parsers
@@ -223,7 +238,8 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         result = parser.read_csv(StringIO(data))
 
-    assert type(result.a[0]) is np.float64
+    expected_type = float if using_python_scalars else np.float64
+    assert type(result.a[0]) is expected_type
     assert result.a.dtype == float
 
 

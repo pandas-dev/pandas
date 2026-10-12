@@ -198,6 +198,61 @@ class TestIndex:
 
         assert result.name == "test"
 
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            pd.date_range("2020-01-01", periods=3),
+            pd.date_range("2020-01-01", periods=3, tz="US/Pacific"),
+            pd.timedelta_range("1 day", periods=3),
+            pd.period_range("2020-01-01", periods=3, freq="D"),
+            pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+        ],
+    )
+    def test_index_replace_widening_to_object(self, idx):
+        # GH#65099 replacement that widens to object used to raise AssertionError
+        result = idx.replace(idx[1], "foo")
+
+        expected = Index([idx[0], "foo", idx[2]], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx, value, expected",
+        [
+            (
+                pd.date_range("2020-01-01", periods=3, unit="s"),
+                pd.Timestamp("2020-01-02 00:00:00.000001"),
+                pd.DatetimeIndex(
+                    ["2020-01-01", "2020-01-02 00:00:00.000001", "2020-01-03"],
+                    dtype="datetime64[us]",
+                ),
+            ),
+            (
+                pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+                pd.Interval(0.5, 1.5),
+                pd.IntervalIndex.from_tuples([(0.0, 1.0), (0.5, 1.5), (2.0, 3.0)]),
+            ),
+        ],
+    )
+    def test_index_replace_changing_dtype_keeps_subclass(self, idx, value, expected):
+        # guard against over-correcting GH#65099: these already worked before the fix
+        result = idx.replace(idx[1], value)
+
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx, expected",
+        [
+            (pd.RangeIndex(5), Index([0, 1, 2, 3, 4], dtype="int64")),
+            (Index(["a", "b"], dtype=object), Index(["a", "b"], dtype=object)),
+        ],
+    )
+    def test_index_replace_no_op_dtype(self, idx, expected):
+        # GH#65099 a no-op replace demotes RangeIndex and preserves object rather than
+        # re-inferring it, both matching Series.replace
+        result = idx.replace(999, -1)
+
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_index_replace_regex(self):
         idx = Index(["foo", "bar", "baz"])
         result = idx.replace("^ba", "x", regex=True)
@@ -1905,3 +1960,37 @@ def test_slice_locs_quarterly_string_bound_utc_offset_check(wrap):
     with tm.assert_produces_warning(None):
         with pytest.raises(ValueError, match="Both dates must"):
             idx.slice_locs(wrap("2000Q1"), "2000-06-01 00:00:00+06:00")
+
+
+@pytest.mark.parametrize(
+    "left, right, expected, exp_lidx, exp_ridx",
+    [
+        (
+            Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            Index(["x", "x", 1], dtype=object),
+            Index(["x", "x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            np.array([0, 0, 1], dtype=np.intp),
+            np.array([0, 1, -1], dtype=np.intp),
+        ),
+        (
+            Index([3, 1, 2], dtype=np.int64),
+            Index(["a", 1], dtype=object),
+            Index([3, 1, 2], dtype=np.int64),
+            None,
+            np.array([-1, 1, -1], dtype=np.intp),
+        ),
+    ],
+)
+def test_join_mismatched_dtypes_keeps_dtype_of_kept_side(
+    left, right, expected, exp_lidx, exp_ridx
+):
+    # GH#63371
+    result, lidx, ridx = left.join(right, how="left", return_indexers=True)
+    tm.assert_index_equal(result, expected)
+    tm.assert_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+    result, ridx, lidx = right.join(left, how="right", return_indexers=True)
+    tm.assert_index_equal(result, expected)
+    tm.assert_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
