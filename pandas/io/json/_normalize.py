@@ -402,9 +402,7 @@ def json_normalize(
         Data type for the columns of the result, either for all columns or,
         as a dict, for the columns named by its keys (after any prefix is
         applied). Keys that do not match a column are ignored; the default
-        of a ``defaultdict`` applies to the columns it does not list. Values are
-        converted from the parsed JSON objects, so integers with
-        missing values are not first converted to ``float64``.
+        of a ``defaultdict`` applies to the columns it does not list.
 
         .. versionadded:: 3.2.0
 
