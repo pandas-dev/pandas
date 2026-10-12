@@ -3,7 +3,7 @@ name: pandas-review
 description: Self-review your own pandas PR (or your local branch before opening one) the way a pandas maintainer would. Prints findings and a verdict in the terminal; never posts to GitHub or edits files.
 disable-model-invocation: true
 argument-hint: "[PR number]"
-allowed-tools: Bash(gh pr view *), Bash(gh pr diff *), Bash(gh api *), Bash(git diff *), Bash(git merge-base *), Bash(git rev-parse *), Bash(git remote *), Bash(git show *), Bash(git log *), Bash(git status *), Bash(pytest *), Bash(python -m pytest *), Read, Grep, Glob
+allowed-tools: Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr list *), Bash(gh api -X GET *), Bash(git diff *), Bash(git merge-base *), Bash(git rev-parse *), Bash(git branch --show-current), Bash(git remote -v), Bash(git show *), Bash(git log *), Bash(git status *), Bash(pytest *), Bash(python -m pytest *), Read, Grep, Glob
 ---
 
 Review a pandas pull request the way a pandas maintainer would, and report to its author.
@@ -26,13 +26,14 @@ what to change afterwards.
   the number isn't a pandas PR.
 - **Local mode**: review the current branch including uncommitted changes. Find the remote
   whose URL contains `pandas-dev/pandas` (`git remote -v`), then diff with
-  `git diff $(git merge-base HEAD <remote>/main)`. If the branch already has a PR
-  (`gh pr view --repo pandas-dev/pandas --json number` from the branch), also read its
-  thread as in step 2.
+  `git diff $(git merge-base HEAD <remote>/main)`. That diff omits untracked files, so also
+  Read every `??` file in `git status --porcelain`. If the branch already has a PR
+  (`gh pr list --repo pandas-dev/pandas --head "$(git branch --show-current)" --json number`),
+  also read its thread as in step 2.
 
 The code under review is the working tree in local mode, or in PR mode when
 `git rev-parse HEAD` equals `headRefOid`. Otherwise read files at the head with
-`gh api "repos/pandas-dev/pandas/contents/<path>?ref=<headRefOid>" -H "Accept: application/vnd.github.raw"`.
+`gh api -X GET "repos/pandas-dev/pandas/contents/<path>?ref=<headRefOid>" -H "Accept: application/vnd.github.raw"`.
 
 If `git log --oneline HEAD..<remote>/main` is non-empty, say how many commits behind `main`
 the branch is (as of the last fetch). CI tests the PR merged into `main`, so a recent change
@@ -43,13 +44,13 @@ on `main` can break it there even when it passes locally.
 Fetch all three comment surfaces; each holds things the others don't:
 
 ```
-gh api --paginate repos/pandas-dev/pandas/pulls/<n>/reviews    # review verdicts
-gh api --paginate repos/pandas-dev/pandas/pulls/<n>/comments   # inline comments
-gh api --paginate repos/pandas-dev/pandas/issues/<n>/comments  # conversation
+gh api -X GET --paginate repos/pandas-dev/pandas/pulls/<n>/reviews    # review verdicts
+gh api -X GET --paginate repos/pandas-dev/pandas/pulls/<n>/comments   # inline comments
+gh api -X GET --paginate repos/pandas-dev/pandas/issues/<n>/comments  # conversation
 ```
 
 Also read the linked issue's comments and its reactions
-(`gh api repos/pandas-dev/pandas/issues/<issue>/reactions`).
+(`gh api -X GET repos/pandas-dev/pandas/issues/<issue>/reactions`).
 
 - **Never truncate.** No `head`/`tail`, always `--paginate`. A dropped comment is invisible.
   If output is too long, write it to a file and read that.
