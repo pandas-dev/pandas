@@ -4483,16 +4483,18 @@ class DataFrame(NDFrame, OpsMixin):
 
     def isetitem(self, loc, value) -> None:
         """
-        Set the given value in the column with position `loc`.
+        Set the given value in the column(s) with position `loc`.
 
         This is a positional analogue to ``__setitem__``.
 
         Parameters
         ----------
-        loc : int or sequence of ints
-            Index position for the column.
+        loc : int, slice, or array-like of ints or bools
+            Index position(s) for the column(s).
         value : scalar or arraylike
-            Value(s) for the column.
+            Value(s) for the column(s). When ``loc`` selects several positions, a
+            scalar fills each of them and an arraylike must have one column per
+            position.
 
         See Also
         --------
@@ -4531,6 +4533,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             for i, idx in enumerate(loc):
                 arraylike, refs = self._sanitize_column(value.iloc[:, i])
+                self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
+            return
+
+        if is_scalar(value) and (is_list_like(loc) or isinstance(loc, slice)):
+            # GH#71098 a scalar fills every selected column, as df[cols] = 5
+            #  does; sanitize per position so the columns don't share one array
+            for idx in np.arange(len(self.columns))[loc]:
+                arraylike, refs = self._sanitize_column(value)
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 

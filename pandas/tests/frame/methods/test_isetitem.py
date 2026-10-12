@@ -62,3 +62,32 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
         # values read back fine even when corrupt; this is what fails on revert
         df.describe()
+
+    @pytest.mark.parametrize(
+        "loc, expected",
+        [
+            ([0, 2], {"a": [5, 5, 5], "b": [4, 5, 6], "c": [5, 5, 5]}),
+            (slice(0, 3, 2), {"a": [5, 5, 5], "b": [4, 5, 6], "c": [5, 5, 5]}),
+            (
+                np.array([True, False, True]),
+                {"a": [5, 5, 5], "b": [4, 5, 6], "c": [5, 5, 5]},
+            ),
+            (slice(None), {"a": [5, 5, 5], "b": [5, 5, 5], "c": [5, 5, 5]}),
+        ],
+    )
+    def test_isetitem_scalar_fills_every_selected_position(self, loc, expected):
+        # GH#71098 a scalar used to be stored as one column for several positions
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+
+        df.isetitem(loc, 5)
+
+        tm.assert_frame_equal(df, pd.DataFrame(expected))
+
+    def test_isetitem_scalar_does_not_share_one_array(self):
+        # GH#71098 a later write to one filled column must not leak into another
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df.isetitem([0, 1], 5)
+
+        df.iloc[0, 0] = 99
+
+        tm.assert_frame_equal(df, pd.DataFrame({"a": [99, 5, 5], "b": [5, 5, 5]}))
