@@ -337,6 +337,31 @@ class SharedTests:
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
 
+    @pytest.mark.parametrize("pa_type", ["string", "large_string"])
+    def test_castable_arrow_strings(self, arr1d, pa_type):
+        # GH#62051
+        pa = pytest.importorskip("pyarrow")
+        values = arr1d[1:3]
+        strs = pd.array(
+            [str(x) for x in values], dtype=pd.ArrowDtype(getattr(pa, pa_type)())
+        )
+
+        result = arr1d.searchsorted(strs)
+        tm.assert_numpy_array_equal(result, np.array([1, 2], dtype=np.intp))
+
+        result = values == strs
+        tm.assert_numpy_array_equal(result, np.array([True, True]))
+
+        result = arr1d.copy()
+        result[:3] = pd.array([None, *strs], dtype=strs.dtype)
+        expected = arr1d.copy()
+        expected[0] = NaT
+        tm.assert_extension_array_equal(result, expected)
+
+        result = strs.astype(pd.CategoricalDtype(values))
+        expected = pd.Categorical(values, categories=values)
+        tm.assert_categorical_equal(result, expected)
+
     def test_getitem_near_implementation_bounds(self):
         # We only check tz-naive for DTA bc the bounds are slightly different
         #  for other tzs

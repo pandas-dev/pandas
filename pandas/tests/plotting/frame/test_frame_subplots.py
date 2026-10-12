@@ -463,7 +463,7 @@ class TestDataFramePlotsSubplots:
         # GH#64317 on some linux builds these are flaky with a tiny difference.
         #  Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
-        tm.assert_almost_equal(result, expected, atol=1e-15)
+        tm.assert_almost_equal(result, expected, rtol=1e-12, atol=0)
 
     def test_bar_log_subplots(self):
         # matplotlib 3.11 no longer pads log-axis ticks a decade past the
@@ -482,9 +482,9 @@ class TestDataFramePlotsSubplots:
         #  Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
         result1 = ax[0].yaxis.get_ticklocs()
-        tm.assert_almost_equal(result1, expected, atol=1e-15)
+        tm.assert_almost_equal(result1, expected, rtol=1e-12, atol=0)
         result2 = ax[1].yaxis.get_ticklocs()
-        tm.assert_almost_equal(result2, expected, atol=1e-15)
+        tm.assert_almost_equal(result2, expected, rtol=1e-12, atol=0)
 
     def test_boxplot_subplots_return_type_default(self, hist_df):
         df = hist_df

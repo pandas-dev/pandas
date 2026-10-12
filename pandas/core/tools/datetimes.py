@@ -54,6 +54,7 @@ from pandas._typing import (
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -474,6 +475,16 @@ def _convert_listlike_datetimes(
             npvalues = np.full(len(arg), np.datetime64("NaT", "ns"))
             return DatetimeIndex(npvalues, name=name)
         raise
+    except OutOfBoundsDatetime:
+        if errors == "raise":
+            raise
+        # GH#68926 coerce just the out-of-range entries; NaN maps to NaT
+        oob = float_outside_int64(np.asarray(arg))
+        if not oob.any():
+            # defensive
+            raise
+        arg = np.where(oob, np.nan, arg)
+        arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
 
     arg = ensure_object(arg)
 

@@ -19,6 +19,12 @@ import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
 from pandas.core.indexes.base import get_values_for_csv
 
+skip_if_bare_cr_unquoted = pytest.mark.skipif(
+    sys.version_info < (3, 11, 9) or (3, 12) <= sys.version_info < (3, 12, 3),
+    reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9 and 3.12.3, "
+    "see python/cpython#67044",
+)
+
 
 class TestToCSV:
     def test_to_csv_with_single_column(self, temp_file):
@@ -551,6 +557,14 @@ $1$,$2$
         result = pd.read_csv(temp_file)
         tm.assert_frame_equal(result, df)
 
+    @skip_if_bare_cr_unquoted
+    def test_to_csv_roundtrip_with_carriage_return_in_field(self, temp_file):
+        # GH#27737 a lone trailing "\r" must not be read back as a line terminator
+        df = pd.DataFrame({"a": ["a1\r", "a2"], "b": ["b1", "b2"]})
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
+
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
@@ -585,11 +599,7 @@ $1$,$2$
         with open(temp_file, "rb") as f:
             assert f.read() == expected_crlf
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 11, 9),
-        reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9, "
-        "see python/cpython#67044",
-    )
+    @skip_if_bare_cr_unquoted
     def test_to_csv_string_with_cr(self, temp_file):
         # GH#10018 - a bare "\r" must be quoted even though it is not the
         #  lineterminator, or read_csv splits the field across rows

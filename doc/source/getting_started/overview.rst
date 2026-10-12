@@ -88,7 +88,7 @@ Data structures
     :widths: 15, 20, 50
 
     1, "Series", "1D labeled homogeneously-typed array"
-    2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed column"
+    2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed columns"
 
 Why more than one data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

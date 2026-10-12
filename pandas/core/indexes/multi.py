@@ -2033,7 +2033,7 @@ class MultiIndex(Index):
         MultiIndex([(2.0, 4.0)],
                    )
         >>> mi.dropna(how="all")
-        MultiIndex([(nan, 3.0),
+        MultiIndex([(NaN, 3.0),
                     (2.0, 4.0)],
                    )
         """
@@ -2137,7 +2137,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Index([1.0, nan, 2.0], dtype='float64')
+        Index([1.0, NaN, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -2754,8 +2754,13 @@ class MultiIndex(Index):
             names = []
             for i in range(self.nlevels):
                 level_values = self.levels[i]
-                for mi in other:
-                    level_values = level_values.union(mi.levels[i])
+                with warnings.catch_warnings():
+                    # levels need not be sortable, GH#61477
+                    warnings.filterwarnings(
+                        "ignore", ".*sort order is undefined", RuntimeWarning
+                    )
+                    for mi in other:
+                        level_values = level_values.union(mi.levels[i])
                 level_codes = [
                     recode_for_categories(
                         mi.codes[i], mi.levels[i], level_values, copy=False
@@ -3382,14 +3387,6 @@ class MultiIndex(Index):
             #  subclasses require scalar.
             # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
-
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should integer key(s) be treated as positional?
-        """
-        # GH#33355
-        return self.levels[0]._should_fallback_to_positional
 
     def _get_indexer_strict(
         self, key, axis_name: str
@@ -5161,6 +5158,15 @@ def _coerce_indexer_frozen(array_like, categories, copy: bool = False) -> np.nda
     np.ndarray
         Non-writeable.
     """
+    values = np.asarray(array_like)
+    if values.dtype.kind == "O":
+        values = values.astype(np.float64)
+    if (
+        values.dtype.kind == "f"
+        and not (np.isfinite(values) & (values == np.trunc(values))).all()
+    ):
+        # casting would silently map NaN/0.5 to a valid code, GH#26210
+        raise ValueError("MultiIndex codes must be integers, -1 for missing values")
     array_like = coerce_indexer_dtype(array_like, categories)
     if copy:
         array_like = array_like.copy()

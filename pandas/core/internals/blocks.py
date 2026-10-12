@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -790,17 +791,28 @@ class Block(PandasObject, libinternals.Block):
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        if is_re(to_replace) and _regex_target_dtype(self.dtype) not in [
-            object,
-            "string",
-        ]:
-            # only object or string dtype can hold strings, and a regex object
-            # will only match strings
+        target_dtype = _regex_target_dtype(self.dtype)
+        # a regex only matches strings; is_string_dtype counts numpy bytes,
+        #  which never match
+        regex_can_match = is_string_dtype(target_dtype) and target_dtype.kind != "S"
+        if is_re(to_replace) and not regex_can_match:
             return [self.copy(deep=False)]
 
-        if not (
-            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
-        ):
+        if isinstance(self.dtype, ArrowDtype) and is_string_dtype(self.dtype):
+            # can_hold_element returns True for every ArrowDtype (GH#70458).
+            #  Refuse bytes, which pyarrow would decode, so they upcast as with
+            #  StringDtype; a regex value raises on write (pyarrow's own error)
+            can_hold_value = (
+                isinstance(value, str)
+                or is_re(value)
+                or (is_scalar(value) and isna(value))
+            )
+        else:
+            can_hold_value = self._can_hold_element(value) or (
+                self.dtype == "string" and is_re(value)
+            )
+
+        if not can_hold_value:
             # GH#57733 - astype to object may return a block sharing memory
             # with self (e.g. StringArray backed by object ndarray). Since
             # replace_regex mutates values in-place, we must ensure the
@@ -1784,19 +1796,13 @@ class EABackedBlock(Block):
             #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
             #  whose __setitem__ does not check the flag.
             raise ValueError("Cannot modify read-only array")
+        target = values
         if values.ndim == 2:
-            # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
-            #  instead of transposing values, since EA.T may not be a view.
-            if not isinstance(indexer, tuple):
-                indexer = (indexer, slice(None))
-            if len(indexer) == 2:
-                indexer = indexer[::-1]
-            if isinstance(value, np.ndarray) and value.ndim == 2:
-                value = value.T
+            target, indexer, value = self._setitem_target(indexer, value)
         check_setitem_lengths(indexer, value, values)
 
         try:
-            values[indexer] = value
+            target[indexer] = value
         except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
@@ -1804,6 +1810,13 @@ class EABackedBlock(Block):
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
+                if values.ndim == 2 and _unbroadcastable_shape(target, indexer, value):
+                    # GH#68521 not for a 1D block: that would change the
+                    #  exception type of Series setitem; see
+                    #  test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message
+                    # target is values.T, already in frame order, so the
+                    #  error's own message reports the shape mismatch correctly
+                    raise
                 nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
@@ -1812,6 +1825,20 @@ class EABackedBlock(Block):
 
         else:
             return self
+
+    def _setitem_target(self, indexer, value):
+        """
+        Get the array, indexer and value for setitem on a 2-D block.
+        """
+        # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
+        #  instead of transposing values, since EA.T may not be a view.
+        if not isinstance(indexer, tuple):
+            indexer = (indexer, slice(None))
+        if len(indexer) == 2:
+            indexer = indexer[::-1]
+        if isinstance(value, np.ndarray) and value.ndim == 2:
+            value = value.T
+        return self.values, indexer, value
 
     @final
     def where(self, other, cond) -> list[Block]:
@@ -2114,7 +2141,7 @@ class ExtensionBlock(EABackedBlock):
 
     def _maybe_squeeze_arg(self, arg):
         """
-        If necessary, squeeze a (N, 1) ndarray to (N,)
+        If necessary, squeeze a (N, 1) ndarray to (N,), or (N, 0) to (0,)
         """
         # e.g. if we are passed a 2D mask for putmask
         if (
@@ -2122,10 +2149,14 @@ class ExtensionBlock(EABackedBlock):
             and arg.ndim == self.values.ndim + 1
         ):
             # TODO(EA2D): unnecessary with 2D EAs
-            assert arg.shape[1] == 1
-            # error: No overload variant of "__getitem__" of "ExtensionArray"
-            # matches argument type "Tuple[slice, int]"
-            arg = arg[:, 0]  # type: ignore[call-overload]
+            if arg.shape[1] == 0:
+                # GH#70232 setitem with a column key selecting no columns
+                arg = arg.ravel()
+            else:
+                assert arg.shape[1] == 1
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[slice, int]"
+                arg = arg[:, 0]  # type: ignore[call-overload]
         elif isinstance(arg, ABCDataFrame):
             # 2022-01-06 only reached for setitem
             # TODO: should we avoid getting here with DataFrame?
@@ -2150,14 +2181,18 @@ class ExtensionBlock(EABackedBlock):
             if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
                 # GH#44703 went through indexing.maybe_convert_ix
                 first, second = indexer
-                if not (
+                if second.size == 0:
+                    # e.g. all-False column mask: nothing to set
+                    indexer = []
+                elif not (
                     second.size == 1 and (second == 0).all() and first.shape[1] == 1
                 ):
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
                         "github.com/pandas-dev/pandas/"
                     )
-                indexer = first[:, 0]
+                else:
+                    indexer = first[:, 0]
 
             elif lib.is_integer(indexer[1]) and indexer[1] == 0:
                 # reached via setitem_single_block passing the whole indexer
@@ -2171,6 +2206,9 @@ class ExtensionBlock(EABackedBlock):
                     indexer = indexer[0]
                 else:
                     indexer = []
+
+            elif is_list_like(indexer[1]) and len(indexer[1]) == 0:
+                indexer = []
 
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
@@ -2318,6 +2356,14 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
+    def _setitem_target(self, indexer, value):
+        # GH#68521 .T is a view here, so write through it with the key
+        #  in frame order and let numpy do the broadcasting
+        if not isinstance(indexer, tuple):
+            # a 0-d ndarray key breaks EA.__setitem__; a tuple avoids it
+            indexer = (indexer,)
+        return self.values.T, indexer, value
+
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     """Block for datetime64[ns], timedelta64[ns]."""
@@ -2325,6 +2371,29 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
+
+
+def _unbroadcastable_shape(values: ArrayLike, indexer, value) -> bool:
+    """
+    Whether ``value`` cannot be broadcast into ``values[indexer]``.
+
+    Returns False both when the value does fit and when that cannot be
+    determined, so a caller can only use a True result to conclude a failed
+    setitem is a shape problem rather than a dtype one.
+    """
+    try:
+        target_shape = np.shape(values[indexer])
+        value_shape = np.shape(value)
+    except (IndexError, TypeError, ValueError):
+        return False
+    # assignment also drops leading length-1 axes of the value, which
+    #  broadcasting on its own does not, e.g. ``arr[0] = np.array([x])``
+    while len(value_shape) > len(target_shape) and value_shape[0] == 1:
+        value_shape = value_shape[1:]
+    try:
+        return np.broadcast_shapes(target_shape, value_shape) != target_shape
+    except ValueError:
+        return True
 
 
 # -----------------------------------------------------------------
