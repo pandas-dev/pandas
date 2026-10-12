@@ -4897,13 +4897,18 @@ class DataFrame(NDFrame, OpsMixin):
         if (
             key in self.columns
             and value.ndim == 1
-            and not isinstance(value.dtype, ExtensionDtype)
+            and not is_1d_only_ea_dtype(value.dtype)
         ):
             # broadcast across multiple columns if necessary
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1)).T
+                    # GH#71078 reshape/repeat rather than np.tile, which would
+                    #  degrade a 2-D-capable EA (tz-aware datetime64, period)
+                    #  to object. repeat(axis=) is not in the _supports_2d
+                    #  contract, only NDArrayBacked honours it; see GH#69153
+                    ncols = len(existing_piece.columns)
+                    value = value.reshape(1, -1).repeat(ncols, axis=0).T
                     refs = None
 
         self._set_item_mgr(key, value, refs)
