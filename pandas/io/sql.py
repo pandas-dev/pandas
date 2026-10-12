@@ -283,6 +283,7 @@ def read_sql_table(  # pyright: ignore[reportOverlappingOverload]
     columns: list[str] | None = ...,
     chunksize: None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    dtype: DtypeArg | None = ...,
 ) -> DataFrame: ...
 
 
@@ -297,6 +298,7 @@ def read_sql_table(
     columns: list[str] | None = ...,
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    dtype: DtypeArg | None = ...,
 ) -> Iterator[DataFrame]: ...
 
 
@@ -311,6 +313,7 @@ def read_sql_table(
     columns: list[str] | None = None,
     chunksize: int | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    dtype: DtypeArg | None = None,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL database table into a DataFrame.
@@ -361,6 +364,11 @@ def read_sql_table(
           :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
+    dtype : Type name or dict of columns
+        Data type for data or columns. E.g. np.float64 or
+        {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
+
+        .. versionadded:: 3.2.0
 
     Returns
     -------
@@ -399,6 +407,7 @@ def read_sql_table(
             columns=columns,
             chunksize=chunksize,
             dtype_backend=dtype_backend,
+            dtype=dtype,
         )
 
     if table is not None:
@@ -663,9 +672,11 @@ def read_sql(
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
         {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
-        The argument is ignored if a table is passed instead of a query.
 
         .. versionadded:: 2.0.0
+
+        .. versionchanged:: 3.2.0
+           No longer ignored when a table name is passed.
 
     Returns
     -------
@@ -778,6 +789,7 @@ def read_sql(
                 columns=columns,
                 chunksize=chunksize,
                 dtype_backend=dtype_backend,
+                dtype=dtype,
             )
         else:
             return pandas_sql.read_query(
@@ -1190,6 +1202,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype: DtypeArg | None = None,
     ) -> Generator[DataFrame]:
         """Return generator through chunked result set."""
         has_read_data = False
@@ -1198,9 +1211,10 @@ class SQLTable(PandasObject):
                 data = result.fetchmany(chunksize)
                 if not data:
                     if not has_read_data:
-                        yield DataFrame.from_records(
+                        empty = DataFrame.from_records(
                             [], columns=columns, coerce_float=coerce_float
                         )
+                        yield empty.astype(dtype) if dtype else empty
                     break
 
                 has_read_data = True
@@ -1211,6 +1225,8 @@ class SQLTable(PandasObject):
                 self._harmonize_columns(
                     parse_dates=parse_dates, dtype_backend=dtype_backend
                 )
+                if dtype:
+                    self.frame = self.frame.astype(dtype)
 
                 if self.index is not None:
                     self.frame = self.frame.set_index(self.index)
@@ -1225,6 +1241,7 @@ class SQLTable(PandasObject):
         columns=None,
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype: DtypeArg | None = None,
     ) -> DataFrame | Iterator[DataFrame]:
         from sqlalchemy import select
 
@@ -1248,6 +1265,7 @@ class SQLTable(PandasObject):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype_backend=dtype_backend,
+                dtype=dtype,
             )
         else:
             data = result.fetchall()
@@ -1258,6 +1276,8 @@ class SQLTable(PandasObject):
             self._harmonize_columns(
                 parse_dates=parse_dates, dtype_backend=dtype_backend
             )
+            if dtype:
+                self.frame = self.frame.astype(dtype)
 
             if self.index is not None:
                 self.frame = self.frame.set_index(self.index)
@@ -1528,6 +1548,7 @@ class PandasSQL(PandasObject, ABC):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype: DtypeArg | None = None,
     ) -> DataFrame | Iterator[DataFrame]:
         raise NotImplementedError(
             "read_sql_table not supported for a DBAPI connection. Use "
@@ -1747,6 +1768,7 @@ class SQLDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype: DtypeArg | None = None,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame.
@@ -1790,6 +1812,9 @@ class SQLDatabase(PandasSQL):
               :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
+        dtype : Type name or dict of columns
+            Data type for data or columns. E.g. np.float64 or
+            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
 
         Returns
         -------
@@ -1812,6 +1837,7 @@ class SQLDatabase(PandasSQL):
             columns=columns,
             chunksize=chunksize,
             dtype_backend=dtype_backend,
+            dtype=dtype,
         )
 
     @staticmethod
@@ -2229,6 +2255,7 @@ class ADBCDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype: DtypeArg | None = None,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame.
@@ -2267,6 +2294,9 @@ class ADBCDatabase(PandasSQL):
               :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
+        dtype : Type name or dict of columns
+            Data type for data or columns. E.g. np.float64 or
+            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
 
         Returns
         -------
@@ -2309,6 +2339,7 @@ class ADBCDatabase(PandasSQL):
             df,
             index_col=index_col,
             parse_dates=parse_dates,
+            dtype=dtype,
         )
 
     def read_query(

@@ -3949,6 +3949,29 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
+@pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
+@pytest.mark.parametrize("chunksize", [None, 2])
+@pytest.mark.parametrize("values", [[1, 2, None, 4], []])
+def test_read_sql_table_dtype(conn, request, func, chunksize, values):
+    # GH#13049 the NULL only in the second chunk must not change the dtype
+    if "adbc" in conn and chunksize is not None:
+        request.applymarker(
+            pytest.mark.xfail(
+                raises=NotImplementedError,
+                reason="chunksize argument NotImplemented with ADBC",
+            )
+        )
+    conn = request.getfixturevalue(conn)
+    expected = pd.DataFrame({"a": pd.Series(values, dtype="Int64")})
+    expected.to_sql(name="test", con=conn, index=False, if_exists="replace")
+
+    result = getattr(pd, func)("test", conn, dtype={"a": "Int64"}, chunksize=chunksize)
+    if chunksize is not None:
+        result = pd.concat(result, ignore_index=True)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_bigint_warning(sqlite_engine):
     conn = sqlite_engine
     # test no warning for BIGINT (to support int64) is raised (GH7433)
