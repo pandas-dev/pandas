@@ -65,6 +65,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -160,7 +161,7 @@ class GroupByPlot(PandasObject):
     Class implementing the .plot attribute for groupby objects.
     """
 
-    def __init__(self, groupby: GroupBy) -> None:
+    def __init__(self, groupby: GroupBy[Any]) -> None:
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
@@ -1085,7 +1086,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _wrap_applied_output(
         self,
         data,
-        values: list,
+        values: list[Any],
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
@@ -1123,7 +1124,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     def _numba_agg_general(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
         **aggregator_kwargs,
@@ -1422,7 +1423,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _python_apply_general(
         self,
-        f: Callable,
+        f: Callable[..., Any],
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
@@ -1461,7 +1462,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+    def _python_apply_plot(self, f: Callable[..., Any]) -> NDFrameT:
         """
         Apply a plotting function f group-wise.
 
@@ -1481,7 +1482,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._wrap_applied_output(data, values, not_indexed_same=True)
 
     def _agg_py_fallback(
-        self, how: str, values: ArrayLike, ndim: int, alt: Callable
+        self, how: str, values: ArrayLike, ndim: int, alt: Callable[..., Any]
     ) -> ArrayLike:
         """
         Fallback to pure-python aggregation if _cython_operation raises
@@ -1531,7 +1532,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _cython_agg_general(
         self,
         how: str,
-        alt: Callable | None = None,
+        alt: Callable[..., Any] | None = None,
         numeric_only: bool = False,
         min_count: int = -1,
         **kwargs,
@@ -1738,7 +1739,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Callable:
+    def _obj_1d_constructor(self) -> Callable[..., Any]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -2839,6 +2840,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   10   7
         2   11  17
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_sum
 
@@ -2938,6 +2940,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   16   10
         2   30   72
         """
+        min_count = validate_min_count(min_count)
 
         def prod_compat(obj: NDFrameT):
             # GH#18588: see min_compat below
@@ -2955,7 +2958,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def min(
         self,
         numeric_only: bool = False,
-        min_count: int = -1,
+        min_count: int = 0,
         skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -2976,7 +2979,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 numeric_only no longer accepts ``None``.
 
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
 
@@ -3048,6 +3051,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   2  2
         2   5  8
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_min_max
 
@@ -3079,7 +3083,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def max(
         self,
         numeric_only: bool = False,
-        min_count: int = -1,
+        min_count: int = 0,
         skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -3100,7 +3104,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 numeric_only no longer accepts ``None``.
 
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
 
@@ -3172,6 +3176,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   8  5
         2   6  9
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_min_max
 
@@ -3199,7 +3204,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def first(
-        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
     ) -> NDFrameT:
         """
         Compute the first entry of each column within each group.
@@ -3212,7 +3217,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
@@ -3260,6 +3265,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  1
         3  6.0  3
         """
+        min_count = validate_min_count(min_count)
 
         def first_compat(obj: NDFrameT):
             def first(x: Series):
@@ -3286,7 +3292,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def last(
-        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
     ) -> NDFrameT:
         """
         Compute the last entry of each column within each group.
@@ -3300,7 +3306,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default False
             Include only float, int, boolean columns. If None, will attempt to use
             everything, then use only numeric data.
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
@@ -3330,6 +3336,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  2
         3  6.0  3
         """
+        min_count = validate_min_count(min_count)
 
         def last_compat(obj: NDFrameT):
             def last(x: Series):
@@ -4344,7 +4351,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     def _nth(
         self,
-        n: PositionalIndexer | tuple,
+        n: PositionalIndexer | tuple[int | slice, ...],
         dropna: Literal["any", "all"] | None = None,
     ) -> NDFrameT:
         if not dropna:
@@ -4491,7 +4498,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             # ndarray path
-            if is_object_dtype(values.dtype):
+            if is_object_dtype(values.dtype) or values.dtype.kind == "c":
+                # GH#43770 complex has no ordering, so no quantile
                 raise TypeError(
                     f"dtype '{values.dtype}' does not support operation 'quantile'"
                 )
@@ -4694,6 +4702,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ascending: bool = True,
         na_option: RankNaOption = "keep",
         pct: bool = False,
+        numeric_only: bool = False,
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
@@ -4717,6 +4726,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * bottom: smallest rank if descending.
         pct : bool, default False
             Compute percentage rank of data within each group.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -4766,6 +4779,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
+            # GH#44438 match Series.rank
+            raise TypeError(
+                f"Cannot use numeric_only=True with {type(self).__name__}.rank "
+                "and non-numeric dtypes."
+            )
 
         kwargs = {
             "ties_method": method,
@@ -4776,7 +4795,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return self._cython_transform(
             "rank",
-            numeric_only=False,
+            numeric_only=numeric_only,
             **kwargs,
         )
 
@@ -5224,7 +5243,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    5.0  8.0
         """
         if is_list_like(periods):
-            periods = cast("Sequence", periods)
+            periods = cast("Sequence[int]", periods)
             if len(periods) == 0:
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
@@ -5809,7 +5828,7 @@ def get_groupby(
     by: _KeysArgType | None = None,
     grouper: ops.BaseGrouper | None = None,
     group_keys: bool = True,
-) -> GroupBy:
+) -> GroupBy[Any]:
     """
     Class for grouping and aggregating relational data.
 

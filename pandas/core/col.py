@@ -324,7 +324,7 @@ class Expression:
             "__getitem__", item, f"{self!r}[{item!r}]", needs_parentheses=True
         )
 
-    def _call_with_func(self, func: Callable, **kwargs: Any) -> Expression:
+    def _call_with_func(self, func: Callable[..., Any], **kwargs: Any) -> Expression:
         def wrapped(df: DataFrame) -> Any:
             parsed_kwargs = _parse_kwargs(df, **kwargs)
             return func(**parsed_kwargs)

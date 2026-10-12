@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
 )
 
@@ -309,7 +310,7 @@ def lexsort_indexer(
     keys: Sequence[ArrayLike | Index | Series],
     orders: bool | Sequence[bool] | None = None,
     na_position: str = "last",
-    key: Callable | None = None,
+    key: Callable[..., Any] | None = None,
     codes_given: bool = False,
 ) -> npt.NDArray[np.intp]:
     """
@@ -405,7 +406,7 @@ def nargsort(
     kind: SortKind = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
-    key: Callable | None = None,
+    key: Callable[..., Any] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.intp]:
     """
@@ -520,7 +521,7 @@ def nargminmax(
 
 
 def _nanargminmax(
-    values: np.ndarray, mask: npt.NDArray[np.bool_], func: Callable
+    values: np.ndarray, mask: npt.NDArray[np.bool_], func: Callable[..., Any]
 ) -> int:
     """
     See nanargminmax.__doc__.
@@ -539,7 +540,7 @@ def _nanargminmax(
 
 def _ensure_key_mapped_multiindex(
     index: MultiIndex,
-    key: Callable,
+    key: Callable[..., Any],
     level: Level | list[Level] | None = None,
 ) -> MultiIndex:
     """
@@ -574,7 +575,9 @@ def _ensure_key_mapped_multiindex(
         else:
             level_iter = cast("list[Level]", level)
 
-        sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
+        sort_levels: range | set[int] = {
+            index._get_level_number(lev) for lev in level_iter
+        }
     else:
         sort_levels = range(index.nlevels)
 
@@ -594,7 +597,7 @@ def _ensure_key_mapped_multiindex(
 
 def ensure_key_mapped(
     values: ArrayLike | Index | Series,
-    key: Callable | None,
+    key: Callable[..., Any] | None,
     levels: Level | list[Level] | None = None,
 ) -> ArrayLike | Index | Series:
     """

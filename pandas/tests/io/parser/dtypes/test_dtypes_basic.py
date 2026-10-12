@@ -4,6 +4,7 @@ for all of the parsers defined in parsers.py
 """
 
 from collections import defaultdict
+from decimal import Decimal
 from io import StringIO
 
 import numpy as np
@@ -513,6 +514,24 @@ def test_explicit_arrow_int_dtype_precision_with_na(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # pyarrow engine reads the column as float64 first, losing digits
+def test_explicit_arrow_decimal_dtype(all_parsers):
+    # GH#69838
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+    dtype = pd.ArrowDtype(pa.decimal128(30, 20))
+    data = "a\n1.23456789012345678901\n\n -2.5 \n"
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype}, skip_blank_lines=False)
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                [Decimal("1.23456789012345678901"), None, Decimal("-2.5")], dtype=dtype
+            )
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", ["float", "double[pyarrow]"])
 def test_empty_field_invalid_for_float_dtype(all_parsers, dtype):
     # GH#66834 empty field with keep_default_na=False is not a valid float,
@@ -549,6 +568,43 @@ def test_explicit_arrow_temporal_dtype(all_parsers):
             ),
             "b": [1, 2, 3],
         }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_datetimetz_dtype(all_parsers):
+    # GH#24542 offsets span a DST change, which parse_dates leaves as strings
+    parser = all_parsers
+    dtype = pd.DatetimeTZDtype("ns", "US/Eastern")
+    data = "a,b\n2018-01-01 00:00:00-05:00,1\n,2\n2018-07-01 00:00:00-04:00,3\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                ["2018-01-01 00:00:00-05:00", None, "2018-07-01 00:00:00-04:00"],
+                dtype=dtype,
+            ),
+            "b": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # reads "20180101" as int64, then as epoch nanoseconds
+@pytest.mark.parametrize("dtype_name", ["datetimetz", "arrow_timestamp"])
+def test_datetime_dtype_index_col(all_parsers, dtype_name):
+    # GH#24542
+    parser = all_parsers
+    if dtype_name == "arrow_timestamp":
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.timestamp("ns", tz="UTC"))
+    else:
+        dtype = pd.DatetimeTZDtype("ns", "US/Eastern")
+    data = "a,b\n20180101,1\n,2\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype}, index_col="a")
+    expected = pd.DataFrame(
+        {"b": [1, 2]},
+        index=pd.Index(["2018-01-01", None], dtype=dtype, name="a"),
     )
     tm.assert_frame_equal(result, expected)
 

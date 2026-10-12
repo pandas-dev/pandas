@@ -299,7 +299,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         return lib.map_infer(values, self._box_func, convert=False)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim > 1:
             return (self[n] for n in range(len(self)))
         else:
@@ -1829,7 +1829,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
         raise AbstractMethodError(self)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim > 1:
             for i in range(len(self)):
                 yield self[i]
