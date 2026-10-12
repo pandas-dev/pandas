@@ -115,6 +115,9 @@ backticks. The following are considered inline code:
     <https://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-syntax>`_
     for details.
 
+When referring to missing values in general, use "NA". Use ``NaN``, ``NaT`` or
+``pd.NA`` only when referring to that specific value.
+
 **Good:**
 
 .. code-block:: python
@@ -236,6 +239,9 @@ Every paragraph in the extended summary ends with a dot.
 The extended summary should provide details on why the function is useful and
 their use cases, if it is not too generic.
 
+If a section of the user guide covers the function, link to it from the
+extended summary.
+
 .. code-block:: python
 
     def unstack():
@@ -249,6 +255,8 @@ their use cases, if it is not too generic.
 
         The index level will be automatically removed from the index when added
         as columns.
+
+        See the :ref:`user guide <reshaping.stacking>` for more.
         """
         pass
 
@@ -396,6 +404,12 @@ DataFrame:
 * pandas.Categorical
 * pandas.arrays.SparseArray
 
+For row or column labels, use label rather than ``str``, since labels need not
+be strings:
+
+* label
+* label or list of labels
+
 If the exact type is not relevant, but must be compatible with a NumPy
 array, array-like can be specified. If Any type that can be iterated is
 accepted, iterable can be used:
@@ -416,6 +430,18 @@ the list.
 For axis, the convention is to use something like:
 
 * axis : {0 or 'index', 1 or 'columns', None}, default None
+
+Do not use Sphinx cross-reference roles in types; link the object from the
+description instead:
+
+.. code-block:: python
+
+    """
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The :class:`~matplotlib.axes.Axes` the plot was drawn on.
+    """
 
 .. _docstring.returns:
 
@@ -523,19 +549,20 @@ examples:
 * ``fillna`` and ``dropna``, as both methods are used to handle missing values
 * ``read_csv`` and ``to_csv``, as they are complementary
 * ``merge`` and ``join``, as one is a generalization of the other
-* ``astype`` and ``pandas.to_datetime``, as users may be reading the
+* ``astype`` and ``to_datetime``, as users may be reading the
   documentation of ``astype`` to know how to cast as a date, and the way to do
-  it is with ``pandas.to_datetime``
+  it is with ``to_datetime``
 * ``where`` is related to ``numpy.where``, as its functionality is based on it
 
 When deciding what is related, you should mainly use your common sense and
 think about what can be useful for the users reading the documentation,
 especially the less experienced ones.
 
-When relating to other libraries (mainly ``numpy``), use the name of the module
-first (not an alias like ``np``). If the function is in a module which is not
-the main one, like ``scipy.sparse``, list the full module (e.g.
-``scipy.sparse.coo_matrix``).
+In See Also, refer to pandas objects without the ``pandas.`` prefix (e.g.
+``DataFrame.tail``, ``to_datetime``). When relating to other libraries (mainly
+``numpy``), use the name of the module first (not an alias like ``np``). If the
+function is in a module which is not the main one, like ``scipy.sparse``, list
+the full module (e.g. ``scipy.sparse.coo_matrix``).
 
 This section has a header, "See Also" (note the capital
 S and A), followed by the line with hyphens and preceded by a blank line.

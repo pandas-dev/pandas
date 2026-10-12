@@ -1028,7 +1028,7 @@ class StataParser:
 
 
 @set_module("pandas.api.typing")
-class StataReader(StataParser, abc.Iterator):
+class StataReader(StataParser, abc.Iterator[DataFrame]):
     """
     Class for reading Stata dta files.
 
@@ -2348,8 +2348,10 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         raise NotImplementedError(f"Format {fmt} not implemented")
 
 
-def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
-    new_dict = {}
+def _maybe_convert_to_int_keys(
+    convert_dates: dict[Hashable, str], varlist: list[Hashable]
+) -> dict[Hashable, str]:
+    new_dict: dict[Hashable, str] = {}
     for key, value in convert_dates.items():
         if not value.startswith("%"):  # make sure proper fmts
             convert_dates[key] = "%" + value
