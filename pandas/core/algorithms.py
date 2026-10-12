@@ -1668,7 +1668,7 @@ def searchsorted(
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
-    if isinstance(arr, np.ndarray) and arr.dtype.kind in "iu": 
+    if isinstance(arr, np.ndarray) and arr.dtype.kind in "iu":
         return int_searchsorted(arr, value, side, sorter)
     # Argument 1 to "searchsorted" of "ndarray" has incompatible type
     # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
