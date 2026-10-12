@@ -197,6 +197,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :func:`read_csv` with ``engine="python"`` and ``index_col`` reading a date like ``"20180101"`` as nanoseconds since the epoch when ``dtype`` is a pyarrow timestamp dtype (:issue:`24542`)
+- :func:`read_csv` with ``comment`` and the ``c`` engine now skips a line that contains only whitespace before the comment character, matching the ``python`` engine; previously the whitespace was read as the first field and the row was kept with its remaining fields as ``NaN`` (:issue:`55916`)
 - Bug in :func:`read_csv`, :func:`read_excel`, :func:`read_fwf` and :func:`read_html` returning wrong column labels and treating header rows as data when ``header`` was a list not in increasing order, such as ``header=[1, 0]`` (:issue:`47011`)
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
 - Bug in :func:`read_excel` raising ``ValueError`` when ``header`` is a list and ``index_col`` consumes all columns (:issue:`66372`)
