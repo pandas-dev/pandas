@@ -2486,19 +2486,17 @@ class ADBCDatabase(PandasSQL):
                 mode = "append"
                 self.delete_rows(name, schema)
 
-        with self.con.cursor() as cur:
+        # on failure, rolls back the uncommitted DROP/DELETE too, GH#32933
+        with self.run_transaction() as cur:
             try:
                 total_inserted = cur.adbc_ingest(
                     table_name=name, data=tbl, mode=mode, db_schema_name=schema
                 )
             except Error as exc:
-                # undo the uncommitted DROP/DELETE, GH#32933
-                self.con.rollback()
                 raise DatabaseError(
                     f"Failed to insert records on table={name} with {mode=}"
                 ) from exc
 
-        self.con.commit()
         return total_inserted
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
