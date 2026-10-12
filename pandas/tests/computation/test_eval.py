@@ -1505,7 +1505,7 @@ class TestOperations:
             ("abs(a) not in [1, 2]", [False, False, False, True]),
             ("-a in [1, 2]", [False, True, False, False]),
             ("abs(a) + 0 in [1, 2]", [True, True, True, False]),
-            ("abs(a) == [1, 1, 2, 2]", [True, True, True, False]),
+            ("abs(a) == [2, 1, 1, 3]", [False, True, False, True]),
             ("-a > [0, 0, 0, 0]", [False, True, False, True]),
         ],
     )
