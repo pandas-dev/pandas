@@ -112,10 +112,11 @@ class Term:
         local_name = str(self.local_name)
         is_local = self.is_local
         if (
-            not str(self.name).startswith(LOCAL_TAG)
-            and local_name in self.env.scope
-            and isinstance(self.env.scope[local_name], type)
+            is_local
+            and not str(self.name).startswith(LOCAL_TAG)
+            and local_name in self.env.resolvers
         ):
+            # a column, index level or other resolver shadows a DEFAULT_GLOBALS name
             is_local = False
 
         res = self.env.resolve(local_name, is_local=is_local)

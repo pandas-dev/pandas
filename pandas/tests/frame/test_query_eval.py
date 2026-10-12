@@ -231,11 +231,12 @@ class TestDataFrameEval:
 
         tm.assert_frame_equal(result, df.iloc[[1]])
 
-    @pytest.mark.parametrize("name", ["Timestamp", "datetime", "list", "tuple"])
+    @pytest.mark.parametrize(
+        "name", ["Timestamp", "datetime", "list", "tuple", "inf", "Inf"]
+    )
     def test_query_index_name_shadowing_default_global(self, name, engine, parser):
-        # GH#34958, GH#35595 an index level wins over the type-valued
-        #  DEFAULT_GLOBALS; test_eval.py::test_eval_no_support_column_name
-        #  covers the column side
+        # GH#34958, GH#35595 an index level wins over a DEFAULT_GLOBALS name;
+        #  test_eval.py::test_eval_no_support_column_name covers the column side
         df = pd.DataFrame({"b": [3, 4]}, index=pd.Index([1, 20], name=name))
 
         result = df.query(f"{name} < 10", engine=engine, parser=parser)
