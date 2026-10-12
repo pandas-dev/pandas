@@ -167,6 +167,14 @@ _OFFSET_SIGNATURES = {
         "n",
         "normalize",
     ),
+    pd.tseries.offsets.BusinessMonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.BusinessMonthBegin: (
+        "n",
+        "normalize",
+    ),
 }
 
 
