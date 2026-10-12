@@ -2277,6 +2277,9 @@ def test_not_is_logical_negation(values, expected, engine):
     result = df.eval("not x", engine=engine)
     tm.assert_series_equal(result, pd.Series(expected), check_names=False)
 
+
+def test_not_scalar(engine):
+    # GH#11367
     result = pd.eval("not (1 > 2)", engine=engine)
     assert result is np.True_
 
