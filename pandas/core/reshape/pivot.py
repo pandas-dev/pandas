@@ -399,10 +399,11 @@ def __internal_pivot_table(
     if margins:
         if dropna:
             data = data[data.notna().all(axis=1)]
+        margins_values = [] if aggfunc == "size" else values
         table = _add_margins(
             table,
             data,
-            values,
+            margins_values,
             rows=index,
             cols=columns,
             aggfunc=aggfunc,
@@ -446,14 +447,6 @@ def _add_margins(
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(msg)
-
-    if values and (
-        table.ndim == 1 or (rows and cols and table.columns.nlevels == len(cols))
-    ):
-        # GH#27799 "size" counts rows instead of aggregating each column, so
-        #  the table it produced carries no values level; from here on it has
-        #  to be treated like a pivot called without ``values``.
-        values = []
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, kwargs, margins_name)
 
