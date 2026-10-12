@@ -216,6 +216,7 @@ I/O
 - Bug in :func:`read_csv` where using ``engine="python"`` with custom ``converters`` returning unhashable types (such as lists or dicts) raised ``TypeError`` (:issue:`56848`)
 - Bug in :func:`read_json` with ``typ="series"`` returning ``datetime64`` dtype for all-null data instead of ``float64``, matching ``DataFrame`` columns (:issue:`35464`)
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
+- Bug in :meth:`Series.to_json` with ``orient="table"`` writing a falsy :class:`Series` name such as ``0``, ``False`` or ``""`` as ``"values"`` (:issue:`19129`)
 
 Period
 ^^^^^^
