@@ -131,6 +131,14 @@ _OFFSET_SIGNATURES = {
         "end",
         "offset",
     ),
+    pd.tseries.offsets.MonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.MonthBegin: (
+        "n",
+        "normalize",
+    ),
     pd.tseries.offsets.Day: (
         "n",
         "normalize",
