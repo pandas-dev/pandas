@@ -131,6 +131,14 @@ _OFFSET_SIGNATURES = {
         "end",
         "offset",
     ),
+    pd.tseries.offsets.MonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.MonthBegin: (
+        "n",
+        "normalize",
+    ),
     pd.tseries.offsets.Day: (
         "n",
         "normalize",
@@ -156,6 +164,14 @@ _OFFSET_SIGNATURES = {
         "normalize",
     ),
     pd.tseries.offsets.Nano: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.BusinessMonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.BusinessMonthBegin: (
         "n",
         "normalize",
     ),

@@ -796,6 +796,33 @@ class TestPandasContainer:
         result = pd.read_json(data, typ="series", dtype=dtype)
         tm.assert_series_equal(result, expected)
 
+    def test_series_all_null_not_datetime(self):
+        # GH#35464
+        result = pd.read_json(StringIO('{"a": null}'), typ="series")
+        expected = pd.Series([np.nan], index=["a"])
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_series_all_null_not_datetime_pyarrow(self):
+        # GH#35464
+        result = pd.read_json(
+            StringIO('{"a": null}'), typ="series", dtype_backend="pyarrow"
+        )
+        expected = pd.Series([None], index=["a"], dtype="null[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+    def test_series_all_nan_roundtrip(self, orient):
+        # GH#35464
+        ser = pd.Series([np.nan, np.nan], name="a")
+        data = StringIO(ser.to_json(orient=orient))
+        result = pd.read_json(data, typ="series", orient=orient)
+        expected = ser
+        if orient in ("values", "records"):
+            expected = expected.reset_index(drop=True)
+        if orient != "split":
+            expected = expected.rename(None)
+        tm.assert_series_equal(result, expected)
+
     def test_frame_from_json_precise_float(self):
         df = pd.DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
         result = pd.read_json(StringIO(df.to_json()), precise_float=True)
@@ -1687,6 +1714,49 @@ class TestPandasContainer:
             '"data":["2021-06-01T00:00:00.000","2021-06-02T00:00:00.000"]}'
         )
         assert result == expected
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_timestamp_nanoseconds_preserved(self, tz):
+        # GH#53473 Timestamps serialized as objects (including tz-aware
+        # DataFrame columns) used to drop their sub-microsecond part
+        dti = pd.DatetimeIndex(["2023-01-01 00:00:00.333333333"]).tz_localize(tz)
+        suffix = "" if tz is None else "Z"
+        utc_hour = "05" if tz == "US/Eastern" else "00"
+        iso = f"2023-01-01T{utc_hour}:00:00.333333333{suffix}"
+        epoch = dti.as_unit("ns").asi8[0]
+
+        for df in [pd.DataFrame({"a": dti}), pd.DataFrame({"a": dti.astype(object)})]:
+            result = df.to_json(date_format="iso", date_unit="ns")
+            assert result == f'{{"a":{{"0":"{iso}"}}}}'
+            with tm.assert_produces_warning(Pandas4Warning, match="'epoch' date"):
+                result = df.to_json(date_format="epoch", date_unit="ns")
+            assert result == f'{{"a":{{"0":{epoch}}}}}'
+
+        df = pd.DataFrame({"a": [1]}, index=dti.astype(object))
+        result = df.to_json(date_format="iso", date_unit="ns")
+        assert result == f'{{"a":{{"{iso}":1}}}}'
+
+    @pytest.mark.parametrize(
+        "value, units",
+        [
+            (pd.Timestamp("1960-06-15 12:34:56.123456789", tz="UTC"), "s ms us ns"),
+            (datetime.datetime(1960, 6, 15, 12, 34, 56, 123456), "s ms us ns"),
+            # outside the nanosecond bounds
+            (datetime.datetime(3000, 1, 1), "s ms us"),
+        ],
+    )
+    def test_datetime_object_epoch_matches_datetime64(self, value, units):
+        # GH#53473 object datetimes round like datetime64 values (toward
+        # negative infinity) and are not scaled through nanoseconds
+        ser = pd.Series([value])
+        obj_ser = pd.Series([value], dtype=object)
+        msg = "'epoch' date"
+        for unit in units.split():
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                expected = ser.to_json(date_format="epoch", date_unit=unit)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                result = obj_ser.to_json(date_format="epoch", date_unit=unit)
+            assert result == expected
 
     def test_read_inline_jsonl(self):
         # GH9180

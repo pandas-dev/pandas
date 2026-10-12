@@ -2690,6 +2690,17 @@ def test_column_with_percentage(conn, request):
     tm.assert_frame_equal(res, df)
 
 
+@pytest.mark.parametrize("conn", all_connectable)
+def test_column_with_brackets(conn, request):
+    # GH#40183 fixed by SQLAlchemy 1.4 escaping bind names for psycopg2
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame({"(abc]": [1, 2], "(abc)": [3, 4], "[abc)": [5, 6]})
+    assert df.to_sql(name="test_column_brackets", con=conn, index=False) == 2
+
+    res = sql.read_sql_query("SELECT * FROM test_column_brackets", conn)
+    tm.assert_frame_equal(res, df)
+
+
 def test_sql_open_close(temp_file, test_frame3):
     # Test if the IO in the database still work if the connection closed
     # between the writing and reading (as in many real situations).
@@ -3460,6 +3471,20 @@ def test_notna_dtype(conn, request):
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_date_dtype_drops_time(conn, request):
+    # GH#39703
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy import Date
+
+    df = pd.DataFrame({"a": pd.to_datetime(["2021-02-10 13:45:07.123456", None])})
+    tbl = "date_dtype_test"
+    assert df.to_sql(name=tbl, con=conn, dtype={"a": Date()}, index=False) == 2
+    result = sql.read_sql_table(tbl, conn)
+    assert result["a"].tolist() == [pd.Timestamp("2021-02-10"), pd.NaT]
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_double_precision(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
@@ -4149,6 +4174,36 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     )
     res = sql.read_sql_table("test_schema_other", conn, schema="other")
     tm.assert_frame_equal(pd.concat([df, df], ignore_index=True), res)
+
+
+@pytest.mark.db
+def test_psycopg2_to_sql_search_path(postgresql_psycopg2_engine):
+    # GH#45392 table exists only in a later schema on the search_path
+    df = pd.DataFrame({"a": [1, 2]})
+    with postgresql_psycopg2_engine.connect() as con:
+        with con.begin():
+            for schema in ["first", "second"]:
+                con.exec_driver_sql(f"DROP SCHEMA IF EXISTS {schema} CASCADE;")
+                con.exec_driver_sql(f"CREATE SCHEMA {schema};")
+            con.exec_driver_sql("SET search_path TO first, second;")
+            df.to_sql(name="test", con=con, schema="second", index=False)
+
+            with pytest.raises(ValueError, match="already exists"):
+                df.to_sql(name="test", con=con, index=False)
+
+            df.to_sql(name="test", con=con, index=False, if_exists="append")
+            res = sql.read_sql_table("test", con, schema="second")
+            tm.assert_frame_equal(res, pd.concat([df, df], ignore_index=True))
+
+            df.to_sql(name="test", con=con, index=False, if_exists="delete_rows")
+            res = sql.read_sql_table("test", con, schema="second")
+            tm.assert_frame_equal(res, df)
+
+            # like DROP TABLE test; CREATE TABLE test, so the table moves to "first"
+            df.to_sql(name="test", con=con, index=False, if_exists="replace")
+            assert not sql.has_table("test", con, schema="second")
+            res = sql.read_sql_table("test", con, schema="first")
+            tm.assert_frame_equal(res, df)
 
 
 @pytest.mark.db
