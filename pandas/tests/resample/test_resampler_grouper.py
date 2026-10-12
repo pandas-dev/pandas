@@ -423,6 +423,36 @@ def test_apply_to_one_column_of_df():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "func",
+    [lambda x: x["col"] < "a", lambda x: x.col < "a"],
+    ids=["getitem", "getattr"],
+)
+def test_apply_error_not_chained(func):
+    # GH#50980 an error raised by the apply retry should not be chained onto the
+    #  KeyError/AttributeError that triggered the retry
+    df = pd.DataFrame(
+        {"col": range(3)}, index=date_range("2012-01-01", periods=3, freq="h")
+    )
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        df.resample("h").apply(func)
+    assert err.value.__context__ is None
+
+
+def test_apply_error_not_chained_non_reducing():
+    # GH#50980 same as above, for the retry after a non-reducing function raises
+    #  "Must produce aggregated value"
+    def func(x):
+        if x.iloc[0] >= 3:
+            return x < "a"
+        return x.cumsum()
+
+    ser = pd.Series([1, 2, 3, 4], index=date_range("2012-01-01", periods=4, freq="h"))
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        ser.resample("2h").apply(func)
+    assert err.value.__context__ is None
+
+
 def test_resample_groupby_agg():
     # GH: 33548
     df = pd.DataFrame(
