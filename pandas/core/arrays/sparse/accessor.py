@@ -24,6 +24,8 @@ if TYPE_CHECKING:
         spmatrix,
     )
 
+    from pandas._typing import IndexLabel
+
     from pandas import (
         DataFrame,
         Series,
@@ -155,7 +157,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
     def to_coo(
         self, row_levels=(0,), column_levels=(1,), sort_labels: bool = False
-    ) -> tuple[coo_matrix, list, list]:
+    ) -> tuple[coo_matrix, list[IndexLabel], list[IndexLabel]]:
         """
         Create a scipy.sparse.coo_matrix from a Series with MultiIndex.
 

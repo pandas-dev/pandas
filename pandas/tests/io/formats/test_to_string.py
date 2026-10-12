@@ -13,6 +13,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -26,7 +27,7 @@ class TestDataFrameToStringFormatters:
     def test_keyword_deprecation(self):
         # GH 57280
         msg = (
-            "Starting with pandas version 4.0 all arguments of to_string "
+            "Starting with pandas version 4.0 all arguments of Series.to_string "
             "except for the argument 'buf' will be keyword-only."
         )
         s = pd.Series(["a", "b"])
@@ -44,9 +45,9 @@ class TestDataFrameToStringFormatters:
         result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
         expected = dedent(
             """\
-                  a     b
-            0  0.12  1.00
-            1  1.12  2.00"""
+                 a    b
+            0 0.12 1.00
+            1 1.12 2.00"""
         )
         assert result == expected
 
@@ -81,11 +82,12 @@ class TestDataFrameToStringFormatters:
         ]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=list(zip(*formatters, strict=True))[1])
+        # GH#26002 no extra leading space for the object column
         assert result == (
-            "  int  float    object\n"
-            "0 0x1 [ 1.0]  -(1, 2)-\n"
-            "1 0x2 [ 2.0]    -True-\n"
-            "2 0x3 [ 3.0]   -False-"
+            "  int  float   object\n"
+            "0 0x1 [ 1.0] -(1, 2)-\n"
+            "1 0x2 [ 2.0]   -True-\n"
+            "2 0x3 [ 3.0]  -False-"
         )
         assert result == result2
 
@@ -541,6 +543,15 @@ class TestDataFrameToString:
         expected = "     A\n0  6,0\n1  3,1\n2  2,2"
         assert df.to_string(decimal=",") == expected
 
+    def test_to_string_column_names_formatted_like_index_names(self):
+        # GH#14286
+        df = pd.DataFrame({"a": [1]}, index=pd.Index(["x"], name=("s", "t")))
+        assert df.T.to_string() == "(s, t)  x\na       1"
+
+        df = pd.DataFrame({"a": [1]})
+        df.columns.name = "c\nd"
+        assert df.to_string() == "c\\nd  a\n0     1"
+
     def test_to_string_left_justify_cols(self):
         df = pd.DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")
@@ -788,6 +799,40 @@ class TestDataFrameToString:
         result = df.to_string(na_rep="MISSING")
         assert "NaT" not in result
         assert result.count("MISSING") == 3
+
+    @pytest.mark.parametrize(
+        "values, dtype",
+        [
+            ([1, None], "Int64"),
+            ([1.5, None], "Float64"),
+            ([True, None], "boolean"),
+            (["a", None], "string"),
+            pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+            ([1, None], object),
+            ([1, pd.NA], object),
+            ([1, pd.NaT], object),
+        ],
+    )
+    def test_to_string_na_rep_none_and_na(self, values, dtype, frame_or_series):
+        # GH#54872
+        obj = frame_or_series(pd.array(values, dtype=dtype))
+        result = obj.to_string(na_rep="foo")
+        assert "<NA>" not in result
+        assert "None" not in result
+        assert result.count("foo") == 1
+
+    def test_to_string_na_rep_explicit_nan(self, frame_or_series):
+        # GH#54872 an explicit "NaN" applies to every missing value, while the
+        #  default shows each one as itself
+        obj = frame_or_series(pd.array([None, pd.NA, pd.NaT, np.nan], dtype=object))
+        assert obj.to_string(na_rep="NaN").count("NaN") == 4
+        result = obj.to_string()
+        for missing in ["None", "<NA>", "NaT", "NaN"]:
+            assert result.count(missing) == 1
+
+        obj = frame_or_series(pd.to_datetime(["2020-01-01", None]))
+        assert "NaT" in obj.to_string()
+        assert "NaN" in obj.to_string(na_rep="NaN")
 
     def test_to_string_string_dtype(self):
         # GH#50099

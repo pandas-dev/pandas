@@ -180,6 +180,22 @@ a 0002_sum.mrc 685.0 1268.0 -51.5
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data, skipfooter",
+    [
+        ("a,b,c\n1,2,3\n\nend\n", 2),
+        ("a,b,c\n1,2,3\nend\n\n", 2),
+        ("a,b,c\n1,2,3\n\n\n\nend1\n\nend2", 3),
+    ],
+)
+def test_skipfooter_counts_blank_lines(python_parser_only, data, skipfooter):
+    # GH#10164 blank lines count towards skipfooter wherever they fall
+    parser = python_parser_only
+    result = parser.read_csv(StringIO(data), skipfooter=skipfooter)
+    expected = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_skipfooter_counts_skiprows_lines(python_parser_only):
     # GH#36827 a skiprows line inside the footer still counts towards skipfooter
     data = "A,B\n1,2\n3,4\n5,6\n7,8\nfooter"
@@ -663,7 +679,7 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
 def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     python_parser_only, index_col
 ):
-    # GH#61837
+    # GH#61837, GH#61838
     parser = python_parser_only
     data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
 
@@ -672,7 +688,7 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
 
     result = parser.read_csv_check_warnings(
         ParserWarning,
-        "from bad_lines callable",
+        "Expected 3 fields in line 3, saw 6 from bad_lines callable",
         StringIO(data),
         on_bad_lines=fixer,
         index_col=index_col,

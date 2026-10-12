@@ -138,6 +138,18 @@ def test_pipe(test_frame, _test_series):
     tm.assert_frame_equal(result, expected)
 
 
+def test_pipe_args_kwargs(_test_series):
+    # GH#58517 positional and keyword arguments are passed through to func
+    r = _test_series.resample("h")
+
+    def f(x, a, b=0):
+        return x.max() * a + b
+
+    result = r.pipe(f, 2, b=1)
+    expected = r.max() * 2 + 1
+    tm.assert_series_equal(result, expected)
+
+
 def test_getitem(test_frame):
     r = test_frame.resample("h")
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns)
@@ -321,6 +333,51 @@ def test_apply_without_aggregation2(_test_series):
     grouped = _test_series.to_frame(name="foo").resample("20min", group_keys=False)
     result = grouped["foo"].apply(lambda x: x)
     tm.assert_series_equal(result, _test_series.rename("foo"))
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func(func):
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=date_range("2000", periods=3))
+    result = df.resample("D").agg(func)
+    if func == []:
+        columns = pd.MultiIndex.from_product([df.columns, []])
+    else:
+        columns = df.columns[:0]
+    expected = pd.DataFrame(index=df.index, columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func_series(func):
+    # GH#39609
+    ser = pd.Series([1, 2, 3], index=date_range("2000", periods=3), name="a")
+    result = ser.resample("D").agg(func)
+    expected = pd.DataFrame(index=ser.index, columns=pd.Index([]))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func_groupby(func):
+    # GH#39609
+    index = pd.DatetimeIndex(["2000-01-01", "2000-01-03", "2000-01-03"])
+    df = pd.DataFrame({"a": [1, 2, 3], "g": [1, 1, 2]}, index=index)
+    expected_index = pd.MultiIndex.from_arrays(
+        [[1, 1, 1, 2], date_range("2000-01-01", periods=3).append(index[-1:])],
+        names=["g", None],
+    )
+
+    result = df.groupby("g").resample("D").agg(func)
+    if func == []:
+        columns = pd.MultiIndex.from_product([df.columns, []])
+    else:
+        columns = df.columns[:0]
+    expected = pd.DataFrame(index=expected_index, columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("g")["a"].resample("D").agg(func)
+    expected = pd.DataFrame(index=expected_index, columns=pd.Index([]))
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_consistency():
@@ -549,6 +606,19 @@ def test_agg_no_column(cases, agg):
     msg = r"Label\(s\) \['result1', 'result2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         cases[["A", "B"]].agg(**agg)
+
+
+def test_agg_relabel_with_name_match_named_columns():
+    # GH#68000 the result's columns are unnamed whether or not the output name
+    #  matches the column name
+    dti = date_range("2020-01-01", periods=4, freq="D")
+    df = pd.DataFrame({"A": [1, 2, 3, 4]}, index=dti)
+    df.columns.name = "metric"
+
+    result = df.resample("2D").agg(A=("A", "sum"))
+    expected = df.resample("2D").agg(x=("A", "sum"))
+    expected.columns = ["A"]
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

@@ -948,6 +948,7 @@ class DatabaseError(OSError):
     >>> from sqlite3 import connect
     >>> conn = connect(":memory:")
     >>> pd.read_sql("select * test", conn)  # doctest: +SKIP
+    >>> conn.close()
     """
 
 

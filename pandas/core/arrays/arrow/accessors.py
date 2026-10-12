@@ -23,6 +23,7 @@ if HAS_PYARROW:
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from typing import Any
 
     from pandas import (
         DataFrame,
@@ -209,7 +210,7 @@ class ListAccessor(ArrowAccessor):
         else:
             raise ValueError(f"key must be an int or slice, got {type(key).__name__}")
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         raise TypeError(f"'{type(self).__name__}' object is not iterable")
 
     def flatten(self) -> Series:
@@ -464,13 +465,12 @@ class StructAccessor(ArrowAccessor):
                 # For nested input like [2, 1, 2]
                 # iteratively get the struct and field name. The last
                 # one is used for the name of the index.
-                level_name_or_index = list(reversed(level_name_or_index))
+                remaining = cast(
+                    "list[int | str | bytes]", list(reversed(level_name_or_index))
+                )
                 selected = data
-                while level_name_or_index:
-                    # we need the cast, otherwise mypy complains about
-                    # getting ints, bytes, or str here, which isn't possible.
-                    level_name_or_index = cast("list", level_name_or_index)
-                    name_or_index = level_name_or_index.pop()
+                while remaining:
+                    name_or_index = remaining.pop()
                     name = get_name(name_or_index, selected)
                     selected = selected.type.field(selected.type.get_field_index(name))
                     name = selected.name
