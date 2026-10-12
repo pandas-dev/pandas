@@ -2022,3 +2022,31 @@ def test_query_not_scalar_keeps_bool_mask(expr, expected_rows, engine):
     df = pd.DataFrame({"a": [1, 2, 3]})
     result = df.query(expr, engine=engine)
     tm.assert_frame_equal(result, df.iloc[expected_rows])
+
+
+@pytest.mark.parametrize(
+    "op, func",
+    [
+        ("<", operator.lt),
+        ("<=", operator.le),
+        (">", operator.gt),
+        (">=", operator.ge),
+        ("==", operator.eq),
+        ("!=", operator.ne),
+    ],
+)
+def test_query_tz_aware_compared_to_naive_string(op, func, engine, parser):
+    # GH#26236 the string is localized to the column's tz, like the mask
+    dti = pd.date_range("2000-01-01", periods=3, tz="US/Eastern", name="idx")
+    df = pd.DataFrame({"dt": dti}, index=dti)
+    expected = df[func(df["dt"], "2000-01-02")]
+
+    result = df.query(f'dt {op} "2000-01-02"', engine=engine, parser=parser)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.query(f'idx {op} "2000-01-02"', engine=engine, parser=parser)
+    tm.assert_frame_equal(result, expected)
+
+    expected = df[func("2000-01-02", df["dt"])]
+    result = df.query(f'"2000-01-02" {op} dt', engine=engine, parser=parser)
+    tm.assert_frame_equal(result, expected)
