@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
 from datetime import (
@@ -10,6 +11,7 @@ from datetime import (
 )
 from decimal import Decimal
 from io import StringIO
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -1165,6 +1167,14 @@ def test_read_iris_query_chunksize(conn, request):
     )
     assert iris_frame.shape == (0, 5)
     assert "SepalWidth" in iris_frame.columns
+
+
+def test_read_sql_query_chunksize_consumed_in_other_thread(sqlite_str_iris):
+    # GH#19457
+    chunks = read_sql_query("SELECT * FROM iris", sqlite_str_iris, chunksize=7)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        iris_frame = executor.submit(pd.concat, chunks).result()
+    check_iris_frame(iris_frame)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
@@ -2681,6 +2691,17 @@ def test_column_with_percentage(conn, request):
     tm.assert_frame_equal(res, df)
 
 
+@pytest.mark.parametrize("conn", all_connectable)
+def test_column_with_brackets(conn, request):
+    # GH#40183 fixed by SQLAlchemy 1.4 escaping bind names for psycopg2
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame({"(abc]": [1, 2], "(abc)": [3, 4], "[abc)": [5, 6]})
+    assert df.to_sql(name="test_column_brackets", con=conn, index=False) == 2
+
+    res = sql.read_sql_query("SELECT * FROM test_column_brackets", conn)
+    tm.assert_frame_equal(res, df)
+
+
 def test_sql_open_close(temp_file, test_frame3):
     # Test if the IO in the database still work if the connection closed
     # between the writing and reading (as in many real situations).
@@ -3018,6 +3039,7 @@ def test_datetime_with_timezone_roundtrip(conn, request):
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_out_of_bounds_datetime(conn, request):
     # GH 26761
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
     assert data.to_sql(name="test_datetime_obb", con=conn, index=False) == 1
@@ -3025,6 +3047,14 @@ def test_out_of_bounds_datetime(conn, request):
     expected = pd.DataFrame(
         np.array([datetime(9999, 1, 1)], dtype="M8[us]"), columns=["date"]
     )
+    tm.assert_frame_equal(result, expected)
+
+    # GH#9261 read_sql_query should match read_sql_table
+    result = sql.read_sql_query("SELECT * FROM test_datetime_obb", conn)
+    if "sqlite" in conn_name:
+        # sqlite has no native datetime type
+        assert isinstance(result.loc[0, "date"], str)
+        result["date"] = pd.to_datetime(result["date"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -3439,6 +3469,20 @@ def test_notna_dtype(conn, request):
     assert isinstance(col_dict["Date"].type, DateTime)
     assert isinstance(col_dict["Int"].type, Integer)
     assert isinstance(col_dict["Float"].type, Float)
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_date_dtype_drops_time(conn, request):
+    # GH#39703
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy import Date
+
+    df = pd.DataFrame({"a": pd.to_datetime(["2021-02-10 13:45:07.123456", None])})
+    tbl = "date_dtype_test"
+    assert df.to_sql(name=tbl, con=conn, dtype={"a": Date()}, index=False) == 2
+    result = sql.read_sql_table(tbl, conn)
+    assert result["a"].tolist() == [pd.Timestamp("2021-02-10"), pd.NaT]
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -3922,6 +3966,31 @@ def test_valueerror_exception(sqlite_engine):
         df.to_sql(name="", con=conn, if_exists="replace", index=False)
 
 
+def test_to_sql_method_compile_error_propagates(sqlite_engine):
+    # GH#50062 - non-StatementError raised from a custom method should propagate
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    conn = sqlite_engine
+    pd.DataFrame({"a": [1.0]}).to_sql(name="test_compile_error", con=conn, index=False)
+
+    def insert_reflected(table, conn, keys, data_iter):
+        # reflect the existing table, which lacks column "b"
+        sql_table = sqlalchemy.Table(
+            table.name, sqlalchemy.MetaData(), autoload_with=conn
+        )
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
+        conn.execute(sqlalchemy.insert(sql_table).values(data))
+
+    df = pd.DataFrame({"a": [2.0], "b": [3]})
+    with pytest.raises(sqlalchemy.exc.CompileError, match="Unconsumed column names: b"):
+        df.to_sql(
+            name="test_compile_error",
+            con=conn,
+            if_exists="append",
+            index=False,
+            method=insert_reflected,
+        )
+
+
 @pytest.mark.parametrize("params", [(1,), [1], {"x": 1}])
 def test_dbapi_params_passed_through_unchanged(params):
     # GH#11683 - pandas shouldn't coerce the user's params
@@ -4033,6 +4102,35 @@ def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     assert result == pd.Timestamp("2020-12-31 12:00:00.000000")
 
 
+@pytest.mark.parametrize(
+    "dtype_backend",
+    [
+        lib.no_default,
+        pytest.param(
+            "numpy_nullable",
+            marks=pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
+        ),
+        pytest.param(
+            "pyarrow",
+            marks=[
+                td.skip_if_no("pyarrow"),
+                pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
+            ],
+        ),
+    ],
+)
+def test_read_sql_query_driver_objects_not_stringified(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend
+):
+    # GH#46085 dicts returned by the driver are passed through, not stringified
+    monkeypatch.setitem(sqlite3.converters, "JSONDICT", json.loads)
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a JSONDICT)")
+    conn.execute("INSERT INTO test VALUES (?)", ('{"hello": ["4", "5"], "hi": 6}',))
+    result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
+    assert result["a"].tolist() == [{"hello": ["4", "5"], "hi": 6}]
+
+
 @pytest.mark.db
 def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     conn = postgresql_psycopg2_engine
@@ -4106,6 +4204,36 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     )
     res = sql.read_sql_table("test_schema_other", conn, schema="other")
     tm.assert_frame_equal(pd.concat([df, df], ignore_index=True), res)
+
+
+@pytest.mark.db
+def test_psycopg2_to_sql_search_path(postgresql_psycopg2_engine):
+    # GH#45392 table exists only in a later schema on the search_path
+    df = pd.DataFrame({"a": [1, 2]})
+    with postgresql_psycopg2_engine.connect() as con:
+        with con.begin():
+            for schema in ["first", "second"]:
+                con.exec_driver_sql(f"DROP SCHEMA IF EXISTS {schema} CASCADE;")
+                con.exec_driver_sql(f"CREATE SCHEMA {schema};")
+            con.exec_driver_sql("SET search_path TO first, second;")
+            df.to_sql(name="test", con=con, schema="second", index=False)
+
+            with pytest.raises(ValueError, match="already exists"):
+                df.to_sql(name="test", con=con, index=False)
+
+            df.to_sql(name="test", con=con, index=False, if_exists="append")
+            res = sql.read_sql_table("test", con, schema="second")
+            tm.assert_frame_equal(res, pd.concat([df, df], ignore_index=True))
+
+            df.to_sql(name="test", con=con, index=False, if_exists="delete_rows")
+            res = sql.read_sql_table("test", con, schema="second")
+            tm.assert_frame_equal(res, df)
+
+            # like DROP TABLE test; CREATE TABLE test, so the table moves to "first"
+            df.to_sql(name="test", con=con, index=False, if_exists="replace")
+            assert not sql.has_table("test", con, schema="second")
+            res = sql.read_sql_table("test", con, schema="first")
+            tm.assert_frame_equal(res, df)
 
 
 @pytest.mark.db

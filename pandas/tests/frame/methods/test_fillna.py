@@ -265,6 +265,22 @@ class TestFillNA:
         df = pd.DataFrame({"a": pd.Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
 
+    def test_fillna_categorical_no_missing_values(self):
+        # GH#24079 a categorical column with nothing to fill does not raise
+        #  when the fill value is not one of its categories
+        df = pd.DataFrame(
+            {"cats": pd.Categorical(["a", "b", "a"]), "vals": [2.0, np.nan, 1.0]}
+        )
+        expected = pd.DataFrame(
+            {"cats": pd.Categorical(["a", "b", "a"]), "vals": [2.0, -9999.0, 1.0]}
+        )
+
+        result = df.fillna(-9999)
+        tm.assert_frame_equal(result, expected)
+
+        df.fillna(-9999, inplace=True)
+        tm.assert_frame_equal(df, expected)
+
     def test_fillna_with_categorical_series(self):
         # https://github.com/pandas-dev/pandas/issues/56329
         df = pd.DataFrame(
