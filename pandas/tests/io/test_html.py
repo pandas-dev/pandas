@@ -1260,11 +1260,21 @@ class TestReadHtml:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "dtype",
-        [{"id": str, "n": "Int64"}, {0: str, 2: "Int64"}],
+        "dtype, expected",
+        [
+            (
+                {"id": str, "val": str, "n": "Int64"},
+                {"val": ["1,000", "2.5"], "n": pd.array([1, None], dtype="Int64")},
+            ),
+            (
+                {0: str, 1: str, 2: "Int64"},
+                {"val": ["1,000", "2.5"], "n": pd.array([1, None], dtype="Int64")},
+            ),
+            (str, {"val": ["1,000", "2.5"], "n": pd.array(["1", np.nan], dtype=str)}),
+        ],
     )
-    def test_dtype(self, flavor_read_html, dtype):
-        # GH#39804
+    def test_dtype(self, flavor_read_html, dtype, expected):
+        # GH#39804 a str dtype skips thousands parsing
         html = """<table>
             <thead><tr><th>id</th><th>val</th><th>n</th></tr></thead>
             <tbody>
@@ -1275,30 +1285,10 @@ class TestReadHtml:
         result = flavor_read_html(StringIO(html), dtype=dtype)[0]
         expected = pd.DataFrame(
             {
-                "id": pd.Series(["007", "010"], dtype=str),
-                "val": [1000.0, 2.5],
-                "n": pd.array([1, None], dtype="Int64"),
+                "id": pd.array(["007", "010"], dtype=str),
+                "val": pd.array(expected["val"], dtype=str),
+                "n": expected["n"],
             }
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_dtype_scalar(self, flavor_read_html):
-        # GH#39804 a scalar dtype applies to every column, skipping thousands parsing
-        html = """<table>
-            <thead><tr><th>id</th><th>val</th><th>n</th></tr></thead>
-            <tbody>
-              <tr><td>007</td><td>1,000</td><td>1</td></tr>
-              <tr><td>010</td><td>2.5</td><td></td></tr>
-            </tbody>
-          </table>"""
-        result = flavor_read_html(StringIO(html), dtype=str)[0]
-        expected = pd.DataFrame(
-            {
-                "id": ["007", "010"],
-                "val": ["1,000", "2.5"],
-                "n": ["1", np.nan],
-            },
-            dtype=str,
         )
         tm.assert_frame_equal(result, expected)
 
