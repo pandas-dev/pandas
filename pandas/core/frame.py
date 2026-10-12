@@ -20349,11 +20349,7 @@ class _DuplicateColumnRecorder(dict[Any, Any]):
     this only takes note and ``query`` decides once it can see the result.
 
     Lookups always raise ``KeyError`` so that the column resolvers behind this
-    one still supply the value. The names live in an attribute rather than in
-    the dict itself because the scope machinery rewrites an ``@local``
-    reference by writing it into the first resolver that *contains* that name
-    (``Scope.swapkey``), so anything stored here would capture locals sharing a
-    name with a duplicated column.
+    one still supply the value.
     """
 
     def __init__(self, names: set[Hashable]) -> None:
