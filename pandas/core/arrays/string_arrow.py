@@ -331,7 +331,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         if isinstance(value, pa.Scalar):
-            # GH#71071 super() casts rather than checks, and pyarrow casts a
+            # GH#71075 super() casts rather than checks, and pyarrow casts a
             #  number or a bool to its string form
             if not (
                 pa.types.is_string(value.type)
