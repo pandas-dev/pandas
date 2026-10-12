@@ -1279,6 +1279,49 @@ def test_transform_fastpath_raises():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "keys, expected_values",
+    [([0, 0, 0], [3, 3, 3]), ([0, 0, 1], [1, 1, 0])],
+)
+def test_transform_udf_reduction_keeps_column_dtypes(keys, expected_values):
+    # GH#42617 per-column scalar results are not coerced to a common dtype
+    df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
+    result = df.groupby(keys).transform(lambda x: x.max() - x.min())
+    expected = pd.DataFrame(
+        {"a": expected_values, "b": np.array(expected_values, dtype=np.float64)}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_scalar_extension_dtype_column():
+    # GH#42617 a fast path chosen on the first group would cast later groups
+    df = pd.DataFrame(
+        {"a": [1, 2, 4, 8, 16, 32], "b": pd.array([1, 2, None, 8, 16, 32], "Int64")}
+    )
+    result = df.groupby([0, 0, 1, 1, 1, 2]).transform(lambda x: x.iloc[0])
+    # object for "b" matches SeriesGroupBy.transform
+    expected = pd.DataFrame(
+        {
+            "a": [1, 1, 4, 4, 4, 32],
+            "b": np.array([1, 1, pd.NA, pd.NA, pd.NA, 32], dtype=object),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_scalar_same_dtypes_uses_fast_path():
+    # GH#42617 frames whose results share one dtype keep the fast path
+    df = pd.DataFrame({"a": [1.0, 2.0, 4.0], "b": [2.0, 3.0, 5.0]})
+    ndims = []
+
+    def func(x):
+        ndims.append(x.ndim)
+        return x.max() - x.min()
+
+    df.groupby([0, 0, 1]).transform(func)
+    assert ndims[-1] == 2
+
+
 def test_transform_lambda_indexing():
     # GH 7883
     df = pd.DataFrame(

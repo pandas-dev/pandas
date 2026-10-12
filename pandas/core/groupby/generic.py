@@ -32,6 +32,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -2918,14 +2919,37 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
             fast_path = lambda group: getattr(group, func)(*args, **kwargs)
-            slow_path = lambda group: group.apply(
-                lambda x: getattr(x, func)(*args, **kwargs), axis=0
-            )
+            col_func = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             fast_path = lambda group: func(group, *args, **kwargs)
-            slow_path = lambda group: group.apply(
-                lambda x: func(x, *args, **kwargs), axis=0
-            )
+            col_func = lambda x: func(x, *args, **kwargs)
+
+        def slow_path(group: DataFrame):
+            col_results = []
+
+            def record(column: Series):
+                col_results.append(col_func(column))
+                return col_results[-1]
+
+            res = group.apply(record, axis=0)
+            if (
+                isinstance(res, Series)
+                and len(col_results) == len(res)
+                and all(is_scalar(val) for val in col_results)
+                and any(
+                    infer_dtype_from_scalar(val)[0] != res.dtype for val in col_results
+                )
+            ):
+                # apply cast the scalars to a common dtype, GH#42617
+                res = group._constructor(
+                    {
+                        pos: Series(val, index=group.index)
+                        for pos, val in enumerate(col_results)
+                    }
+                )
+                res.columns = group.columns
+            return res
+
         return fast_path, slow_path
 
     def _choose_path(
