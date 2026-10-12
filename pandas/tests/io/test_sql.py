@@ -4152,6 +4152,36 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
 
 
 @pytest.mark.db
+def test_psycopg2_to_sql_search_path(postgresql_psycopg2_engine):
+    # GH#45392 table exists only in a later schema on the search_path
+    df = pd.DataFrame({"a": [1, 2]})
+    with postgresql_psycopg2_engine.connect() as con:
+        with con.begin():
+            for schema in ["first", "second"]:
+                con.exec_driver_sql(f"DROP SCHEMA IF EXISTS {schema} CASCADE;")
+                con.exec_driver_sql(f"CREATE SCHEMA {schema};")
+            con.exec_driver_sql("SET search_path TO first, second;")
+            df.to_sql(name="test", con=con, schema="second", index=False)
+
+            with pytest.raises(ValueError, match="already exists"):
+                df.to_sql(name="test", con=con, index=False)
+
+            df.to_sql(name="test", con=con, index=False, if_exists="append")
+            res = sql.read_sql_table("test", con, schema="second")
+            tm.assert_frame_equal(res, pd.concat([df, df], ignore_index=True))
+
+            df.to_sql(name="test", con=con, index=False, if_exists="delete_rows")
+            res = sql.read_sql_table("test", con, schema="second")
+            tm.assert_frame_equal(res, df)
+
+            # like DROP TABLE test; CREATE TABLE test, so the table moves to "first"
+            df.to_sql(name="test", con=con, index=False, if_exists="replace")
+            assert not sql.has_table("test", con, schema="second")
+            res = sql.read_sql_table("test", con, schema="first")
+            tm.assert_frame_equal(res, df)
+
+
+@pytest.mark.db
 def test_self_join_date_columns(postgresql_psycopg2_engine):
     # GH 44421
     conn = postgresql_psycopg2_engine
