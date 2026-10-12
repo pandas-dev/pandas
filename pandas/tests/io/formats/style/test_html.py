@@ -1037,3 +1037,18 @@ def test_format_index_names(styler_multi, escape_axis_0, escape_axis_1):
     result = styler_multi.to_html(table_uuid="test")
     for expected_str in expected_index + expected_columns:
         assert f"{expected_str}</th>" in result
+
+
+@pytest.mark.parametrize("method", ["map", "map_index_0", "map_index_1"])
+def test_cellstyle_rules_split_at_8192_selectors(method):
+    # GH#40913 Chromium only applies the first 8192 selectors of a rule
+    df = pd.DataFrame(np.zeros((8193, 1)))
+    if method == "map_index_1":
+        df = df.T
+    if method == "map":
+        styler = df.style.map(lambda x: "color: red;")
+    else:
+        styler = df.style.map_index(lambda x: "color: red;", axis=int(method[-1]))
+    style = styler.to_html(table_uuid="test").split("</style>")[0]
+    rules = [rule.count("#T_test_") for rule in style.split("{")[:-1]]
+    assert rules == [8192, 1]

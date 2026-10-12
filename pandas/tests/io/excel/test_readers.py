@@ -1216,6 +1216,29 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
     @pytest.mark.parametrize(
+        "sheet_name,index_col,skiprows",
+        [
+            ("mi_column", 0, None),
+            ("both", [0, 1], None),
+            ("both_name", [0, 1], None),
+            ("both_name_skiprows", [0, 1], 2),
+        ],
+    )
+    def test_read_excel_multiindex_header_not_increasing(
+        self, read_ext, sheet_name, index_col, skiprows
+    ):
+        # GH#47011
+        kwargs = {
+            "sheet_name": sheet_name,
+            "index_col": index_col,
+            "skiprows": skiprows,
+        }
+        mi_file = "testmultiindex" + read_ext
+        result = pd.read_excel(mi_file, header=[1, 0], **kwargs)
+        expected = pd.read_excel(mi_file, header=[0, 1], **kwargs).swaplevel(axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "sheet_name,idx_lvl2",
         [
             ("both_name_blank_after_mi_name", [np.nan, "b", "a", "b"]),
@@ -1265,6 +1288,20 @@ class TestReaders:
 
         exp_columns = pd.MultiIndex.from_product([("A", "B"), ("key", "val")])
         expected = pd.DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_excel_multiindex_header_index_col_consumes_all_columns(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#66372
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        pd.DataFrame({"A": ["A1", "A2"]}).to_excel(tmp_excel, index=False, header=False)
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0, engine=engine)
+        expected = pd.DataFrame(
+            index=pd.Index([], dtype=object), columns=pd.Index([], dtype=object)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_excel_old_index_format(self, read_ext):
@@ -1459,6 +1496,7 @@ class TestReaders:
         "filename,sheet_name,header,index_col,skiprows",
         [
             ("testmultiindex", "mi_column", [0, 1], 0, None),
+            ("testmultiindex", "mi_column", [1, 0], 0, None),
             ("testmultiindex", "mi_index", None, [0, 1], None),
             ("testmultiindex", "both", [0, 1], [0, 1], None),
             ("testmultiindex", "mi_column_name", [0, 1], 0, None),

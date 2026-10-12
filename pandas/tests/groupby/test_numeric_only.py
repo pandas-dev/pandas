@@ -236,6 +236,7 @@ class TestNumericOnly:
         ("pct_change", False),
         ("prod", True),
         ("quantile", True),
+        ("rank", True),
         ("sem", True),
         ("skew", True),
         ("kurt", True),
@@ -303,6 +304,8 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
+        elif kernel == "rank":
+            msg = "'<' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
             if kernel == "corrwith":
                 warn = Pandas4Warning
@@ -401,6 +404,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "min",
         "prod",
         "quantile",
+        "rank",
         "sem",
         "skew",
         "kurt",
