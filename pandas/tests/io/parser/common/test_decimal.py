@@ -67,3 +67,35 @@ def test_euro_decimal_format(all_parsers):
         columns=["Id", "Number1", "Number2", "Text1", "Text2", "Number3"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Float64", "Float32", "float64[pyarrow]"])
+def test_decimal_with_extension_float_dtype(all_parsers, dtype):
+    # GH#52086
+    if dtype == "float64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = 'a\n"1,5"\nNA\n2,25\n'
+
+    result = parser.read_csv(StringIO(data), sep=";", decimal=",", dtype={"a": dtype})
+    expected = pd.DataFrame({"a": pd.array([1.5, None, 2.25], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "int64[pyarrow]"])
+def test_thousands_with_extension_dtype(all_parsers, dtype):
+    # GH#52086 "1.000" was read as 1
+    if dtype == "int64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a\n1.000\nNA\n2.500\n"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), thousands=".", dtype={"a": dtype})
+        return
+
+    result = parser.read_csv(StringIO(data), thousands=".", dtype={"a": dtype})
+    expected = pd.DataFrame({"a": pd.array([1000, None, 2500], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
