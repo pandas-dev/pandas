@@ -3940,6 +3940,31 @@ def test_valueerror_exception(sqlite_engine):
         df.to_sql(name="", con=conn, if_exists="replace", index=False)
 
 
+def test_to_sql_method_compile_error_propagates(sqlite_engine):
+    # GH#50062 - non-StatementError raised from a custom method should propagate
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    conn = sqlite_engine
+    pd.DataFrame({"a": [1.0]}).to_sql(name="test_compile_error", con=conn, index=False)
+
+    def insert_reflected(table, conn, keys, data_iter):
+        # reflect the existing table, which lacks column "b"
+        sql_table = sqlalchemy.Table(
+            table.name, sqlalchemy.MetaData(), autoload_with=conn
+        )
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
+        conn.execute(sqlalchemy.insert(sql_table).values(data))
+
+    df = pd.DataFrame({"a": [2.0], "b": [3]})
+    with pytest.raises(sqlalchemy.exc.CompileError, match="Unconsumed column names: b"):
+        df.to_sql(
+            name="test_compile_error",
+            con=conn,
+            if_exists="append",
+            index=False,
+            method=insert_reflected,
+        )
+
+
 @pytest.mark.parametrize("params", [(1,), [1], {"x": 1}])
 def test_dbapi_params_passed_through_unchanged(params):
     # GH#11683 - pandas shouldn't coerce the user's params

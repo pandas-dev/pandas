@@ -60,6 +60,7 @@ from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
     validate_inclusive,
+    validate_min_count,
 )
 
 from pandas.core.dtypes.astype import astype_is_view
@@ -9818,7 +9819,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether or not the elements should be ranked in ascending order.
         pct : bool, default False
             Whether or not to display the returned rankings in percentile
-            form.
+            form, i.e. divided by the number of ranked values (the number of
+            distinct values for ``method="dense"``). With ``method="max"`` and
+            no missing values this matches SQL ``CUME_DIST``, not
+            ``PERCENT_RANK``.
 
         Returns
         -------
@@ -12068,6 +12072,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+        min_count = validate_min_count(min_count)
 
         return self._reduce(
             func,
