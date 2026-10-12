@@ -2384,6 +2384,28 @@ def test_api_unicode_column_name(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("method", [None, "multi"])
+def test_api_to_sql_column_name_special_characters(conn, method, request):
+    # GH#8762 psycopg2 raised KeyError on parentheses in a column name
+    if method == "multi" and "adbc" in conn:
+        pytest.skip("'method' not implemented for ADBC drivers, see test_to_sql")
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=["CT Volume (cc)", "a%b", "a:b", "a.b"],
+    )
+    df.to_sql(
+        name="test_special_chars",
+        con=conn,
+        index=False,
+        if_exists="replace",
+        method=method,
+    )
+    result = sql.read_sql_query("SELECT * FROM test_special_chars", conn)
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
 def test_api_escaped_table_name(conn, request):
     # GH 13206
     conn_name = conn
