@@ -2009,6 +2009,17 @@ def test_query_column_shadows_inf(engine, parser, column):
         tm.assert_frame_equal(result, df)
 
 
+def test_query_float_inf_label_does_not_shadow_inf(engine, parser):
+    # GH#47859 only a str label named "inf" shadows np.inf
+    df = pd.DataFrame({"x": [1.0, 5.0], np.inf: [0.0, 0.0]})
+    result = df.query("x < inf", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df)
+
+    df = df.set_index(np.inf)
+    result = df.query("x < inf", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df)
+
+
 @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
 def test_set_inplace():
     # https://github.com/pandas-dev/pandas/issues/47449
