@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -66,7 +67,7 @@ def is_mask(key: object) -> bool:
 
 def filter_mask(
     obj: NDFrameT,
-    mask: list | AnyArrayLike,
+    mask: list[Any] | AnyArrayLike,
     axis: AxisInt,
     na: Literal["raise"] | bool,
 ) -> NDFrameT:

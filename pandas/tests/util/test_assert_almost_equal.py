@@ -518,7 +518,11 @@ def test_assert_almost_equal_value_mismatch():
 
 @pytest.mark.parametrize(
     "a,b,klass1,klass2",
-    [(np.array([1]), 1, "ndarray", "int"), (1, np.array([1]), "int", "ndarray")],
+    [
+        (np.array([1]), 1, "ndarray", "int"),
+        (1, np.array([1]), "int", "ndarray"),
+        (np.array(1), 1, "ndarray", "int"),
+    ],
 )
 def test_assert_almost_equal_class_mismatch(a, b, klass1, klass2):
     msg = f"""numpy array are different
@@ -766,7 +770,7 @@ def test_assert_almost_equal_array_nested(a, b):
 def test_assert_almost_equal_zero_dim_duck_array():
     # GH#45240 a scalar that defines __iter__/__len__ delegating to a scalar
     #  payload (as pint's Quantity does) is compared as a scalar
-    class Quantity:
+    class PintQuantity:
         # mimics pint's Quantity: __iter__/__len__ delegate to the magnitude,
         #  and ndim reports 0 when that magnitude is a scalar
         ndim = 0
@@ -783,8 +787,155 @@ def test_assert_almost_equal_zero_dim_duck_array():
         def __eq__(self, other):
             return self.magnitude == other.magnitude
 
-    left = np.array([Quantity(1), Quantity(2)], dtype=object)
-    right = np.array([Quantity(1), Quantity(3)], dtype=object)
+    left = np.array([PintQuantity(1), PintQuantity(2)], dtype=object)
+    right = np.array([PintQuantity(1), PintQuantity(3)], dtype=object)
 
     _assert_almost_equal_both(left, left.copy())
     _assert_not_almost_equal_both(left, right)
+
+
+class ZeroDimSubclass(np.ndarray):
+    # GH#68927 mimics astropy's Quantity: indexing returns a 0-dim instance of the
+    #  subclass rather than a numpy scalar
+    def __new__(cls, values):
+        return np.asarray(values).view(cls)
+
+    def __getitem__(self, key):
+        out = super().__getitem__(key)
+        if not isinstance(out, np.ndarray):
+            # Wrap scalars in a 0-dim array of the same subclass
+            out = type(self)(out)
+        return out
+
+
+SHAPE = "shapes are different"
+DTYPE = 'Attribute "dtype" are different'
+CLASS = "classes are different"
+NE = ""  # any AssertionError
+
+dt_ns = "datetime64[ns]"
+td_ns = "timedelta64[ns]"
+
+
+def _check(a, b, expected, **kwargs):
+    for left, right in [(a, b), (b, a)]:
+        if expected is None:
+            tm.assert_almost_equal(left, right, **kwargs)
+        elif expected == NE:
+            with pytest.raises(AssertionError):
+                tm.assert_almost_equal(left, right, **kwargs)
+        else:
+            with pytest.raises(AssertionError, match=expected):
+                tm.assert_almost_equal(left, right, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "a, b, kwargs, expected",
+    [
+        # plain 0-dim ndarrays
+        pytest.param(np.array(5), np.array(5), {}, None, id="int-eq"),
+        pytest.param(np.array(5), np.array(6), {}, NE, id="int-ne"),
+        pytest.param(np.array(5), np.array(5.0), {}, DTYPE, id="dtype-mismatch"),
+        pytest.param(
+            np.array(5),
+            np.array(5.0),
+            {"check_dtype": False},
+            None,
+            id="dtype-unchecked",
+        ),
+        pytest.param(np.array(5.0), np.array(5.1), {"atol": 0.2}, None, id="atol-pass"),
+        pytest.param(np.array(5.0), np.array(5.1), {"atol": 0.01}, NE, id="atol-fail"),
+        pytest.param(
+            np.array(100.0), np.array(101.0), {"rtol": 0.02}, None, id="rtol-pass"
+        ),
+        pytest.param(np.array(np.nan), np.array(np.nan), {}, None, id="nan-nan"),
+        pytest.param(np.array(np.nan), np.array(1.0), {}, NE, id="nan-num"),
+        pytest.param(np.array(True), np.array(False), {}, NE, id="bool-ne"),
+        pytest.param(np.array("abc"), np.array("abc"), {}, None, id="str-eq"),
+        pytest.param(np.array("abc"), np.array("abd"), {}, NE, id="str-ne"),
+        pytest.param(
+            np.array(1, dtype=object), np.array(2, dtype=object), {}, NE, id="object-ne"
+        ),
+        pytest.param(
+            np.array("2020-01-01", dtype=dt_ns),
+            np.array("2020-01-01", dtype=dt_ns),
+            {},
+            None,
+            id="dt64-eq",
+        ),
+        pytest.param(
+            np.array("2020-01-01T00:00", dtype=dt_ns),
+            np.array("2020-01-01T01:00", dtype=dt_ns),
+            {},
+            NE,
+            id="dt64-ne",
+        ),
+        pytest.param(
+            np.array(1, dtype=td_ns), np.array(1, dtype=td_ns), {}, None, id="td64-eq"
+        ),
+        pytest.param(
+            np.array(10**15, dtype=td_ns),
+            np.array(10**15 + 1, dtype=td_ns),
+            {},
+            NE,
+            id="td64-ne",
+        ),
+        # 0-dim vs other shapes and scalars
+        pytest.param(np.array(5), np.array([5]), {}, SHAPE, id="vs-1d"),
+        pytest.param(np.array(5), np.array([5, 5]), {}, SHAPE, id="vs-size2"),
+        pytest.param(np.array(5), 5, {}, CLASS, id="vs-scalar"),
+        # ndarray subclass whose elements are 0-dim instances of itself
+        pytest.param(ZeroDimSubclass(5), ZeroDimSubclass(5), {}, None, id="sub-0d-eq"),
+        pytest.param(ZeroDimSubclass(5), ZeroDimSubclass(6), {}, NE, id="sub-0d-ne"),
+        pytest.param(
+            ZeroDimSubclass(5.0),
+            ZeroDimSubclass(5.1),
+            {"atol": 0.2},
+            None,
+            id="sub-atol-pass",
+        ),
+        pytest.param(
+            ZeroDimSubclass(5.0),
+            ZeroDimSubclass(5.1),
+            {"atol": 0.01},
+            NE,
+            id="sub-atol-fail",
+        ),
+        pytest.param(
+            ZeroDimSubclass(100.0),
+            ZeroDimSubclass(101.0),
+            {"rtol": 0.02},
+            None,
+            id="sub-rtol-pass",
+        ),
+        pytest.param(
+            ZeroDimSubclass([1, 2]), ZeroDimSubclass([1, 2]), {}, None, id="sub-1d-eq"
+        ),
+        pytest.param(
+            ZeroDimSubclass([1, 2]), ZeroDimSubclass([1, 3]), {}, NE, id="sub-1d-ne"
+        ),
+        pytest.param(
+            ZeroDimSubclass(5), ZeroDimSubclass([5]), {}, SHAPE, id="sub-vs-1d"
+        ),
+        pytest.param(
+            ZeroDimSubclass("abc"), ZeroDimSubclass("abd"), {}, NE, id="sub-str-ne"
+        ),
+        pytest.param(
+            ZeroDimSubclass(np.array("2020-01-01T00:00", dtype=dt_ns)),
+            ZeroDimSubclass(np.array("2020-01-01T01:00", dtype=dt_ns)),
+            {},
+            NE,
+            id="sub-dt64-ne",
+        ),
+        pytest.param(
+            ZeroDimSubclass(np.array([1, "a"], dtype=object)),
+            ZeroDimSubclass(np.array([1, "b"], dtype=object)),
+            {},
+            NE,
+            id="sub-object-ne",
+        ),
+    ],
+)
+def test_assert_almost_equal_zero_dim(a, b, kwargs, expected):
+    # GH#68927
+    _check(a, b, expected, **kwargs)

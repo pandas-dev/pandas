@@ -72,7 +72,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
-def flatten(line: Iterable) -> Generator[Any]:
+def flatten(line: Iterable[Any]) -> Generator[Any]:
     """
     Flatten an arbitrarily nested sequence.
 
@@ -231,7 +231,8 @@ def count_not_none(*args: object) -> int:
 
 @overload
 def asarray_tuplesafe(
-    values: ArrayLike | list | tuple | zip, dtype: NpDtype | None = ...
+    values: ArrayLike | list[Any] | tuple[Any, ...] | zip[Any],
+    dtype: NpDtype | None = ...,
 ) -> np.ndarray:
     # ExtensionArray can only be returned when values is an Index, all other iterables
     # will return np.ndarray. Unfortunately "all other" cannot be encoded in a type
@@ -240,10 +241,12 @@ def asarray_tuplesafe(
 
 
 @overload
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike: ...
+def asarray_tuplesafe(
+    values: Iterable[Any], dtype: NpDtype | None = ...
+) -> ArrayLike: ...
 
 
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
+def asarray_tuplesafe(values: Iterable[Any], dtype: NpDtype | None = None) -> ArrayLike:
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
@@ -275,7 +278,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
 
 
 def index_labels_to_array(
-    labels: np.ndarray | Iterable, dtype: NpDtype | None = None
+    labels: np.ndarray | Iterable[Any], dtype: NpDtype | None = None
 ) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
@@ -303,7 +306,7 @@ def index_labels_to_array(
     return rlabels
 
 
-def maybe_make_list(obj: Any) -> list | tuple | None:
+def maybe_make_list(obj: Any) -> list[Any] | tuple[Any, ...] | None:
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
     return obj
@@ -315,7 +318,7 @@ def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    obj = cast("Collection", obj)
+    obj = cast("Collection[T] | T", obj)
     return obj
 
 
@@ -343,7 +346,7 @@ def is_empty_slice(obj: object) -> bool:
     )
 
 
-def is_true_slices(line: abc.Iterable) -> abc.Generator[bool, None, None]:
+def is_true_slices(line: abc.Iterable[Any]) -> abc.Generator[bool, None, None]:
     """
     Find non-trivial slices in "line": yields a bool.
     """
@@ -400,7 +403,9 @@ def apply_if_callable(maybe_callable: Any, obj: Any, **kwargs: Any) -> Any:
     return maybe_callable
 
 
-def standardize_mapping(into: type | abc.Mapping) -> type | partial:
+def standardize_mapping(
+    into: type | abc.Mapping[Any, Any],
+) -> type | partial[Any]:
     """
     Helper function to standardize a supplied mapping.
 
@@ -541,7 +546,7 @@ def pipe(
         return func(obj, *args, **kwargs)
 
 
-def get_rename_function(mapper: Any) -> Callable:
+def get_rename_function(mapper: Any) -> Callable[..., Any]:
     """
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
@@ -557,8 +562,8 @@ def get_rename_function(mapper: Any) -> Callable:
 
 
 def convert_to_list_like(
-    values: Hashable | Iterable | AnyArrayLike,
-) -> list | AnyArrayLike:
+    values: Hashable | Iterable[Any] | AnyArrayLike,
+) -> list[Any] | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
     inputs are returned unmodified whereas others are converted to list.
@@ -646,7 +651,7 @@ _cython_table = {
 }
 
 
-def get_cython_func(arg: Callable) -> str | None:
+def get_cython_func(arg: Callable[..., Any]) -> str | None:
     """
     if we define an internal function for this argument, return it
     """

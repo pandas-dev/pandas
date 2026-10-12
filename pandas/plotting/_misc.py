@@ -48,8 +48,6 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
         Data for table contents.
     **kwargs
         Keyword arguments to be passed to matplotlib.table.table.
-        If `rowLabels` or `colLabels` is not specified, data index or column
-        names will be used.
 
     Returns
     -------
@@ -77,9 +75,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             ... )
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.table(
-        ax=ax, data=data, rowLabels=None, colLabels=None, **kwargs
-    )
+    return plot_backend.table(ax=ax, data=data, **kwargs)
 
 
 @set_module("pandas.plotting")
@@ -522,7 +518,7 @@ def parallel_coordinates(
     ax: Axes | None = None,
     color: list[str] | tuple[str, ...] | None = None,
     use_columns: bool = False,
-    xticks: list | tuple | None = None,
+    xticks: list[float] | tuple[float, ...] | None = None,
     colormap: Colormap | str | None = None,
     axvlines: bool = True,
     axvlines_kwds: Mapping[str, Any] | None = None,
@@ -680,7 +676,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
 
 @set_module("pandas.plotting")
 def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
-    """
+    r"""
     Autocorrelation plot for time series.
 
     This method generates an autocorrelation plot for a given time series,
@@ -711,6 +707,20 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     Series.autocorr : Compute the lag-N autocorrelation for a Series.
     plotting.lag_plot : Lag plot for time series.
 
+    Notes
+    -----
+    The autocorrelation at lag ``h`` is computed using the mean and variance
+    of the whole series:
+
+    .. math::
+
+        r_h = \frac{\sum_{t=1}^{n-h} (x_t - \bar{x})(x_{t+h} - \bar{x})}
+                   {\sum_{t=1}^{n} (x_t - \bar{x})^2}
+
+    This differs from :meth:`~pandas.Series.autocorr`, which computes the Pearson
+    correlation between the overlapping portions of the series and its
+    lagged copy, so the two can give different values for the same lag.
+
     Examples
     --------
     The horizontal lines in the plot correspond to 95% and 99% confidence bands.
@@ -729,7 +739,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
 
 
-class _Options(dict):
+class _Options(dict[str, Any]):
     """
     Stores pandas plotting options.
 

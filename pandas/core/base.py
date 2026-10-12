@@ -619,9 +619,8 @@ class IndexOpsMixin(OpsMixin):
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is not a view on
-            another array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            another array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
@@ -789,7 +788,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> idx = pd.Index([np.nan, np.nan])
         >>> idx
-        Index([nan, nan], dtype='float64')
+        Index([NaN, NaN], dtype='float64')
         >>> idx.empty
         False
         """
@@ -945,7 +944,7 @@ class IndexOpsMixin(OpsMixin):
             )
         return maybe_unbox_numpy_scalar(result)
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
@@ -984,7 +983,7 @@ class IndexOpsMixin(OpsMixin):
 
     to_list = tolist
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Return an iterator of the values.
 
