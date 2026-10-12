@@ -407,9 +407,7 @@ class ObjectStringArrayMixin:
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
-    def _str_get_dummies(
-        self, sep: str = "|", dtype: NpDtype | None = None, *, regex: bool = True
-    ):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         from pandas import Series
 
         if dtype is None:
@@ -421,8 +419,7 @@ class ObjectStringArrayMixin:
             arr = sep + arr.astype(str) + sep
 
         tags: set[str] = set()
-        split_regex = None if regex else False
-        for ts in Series(arr, copy=False).str.split(sep, regex=split_regex):
+        for ts in Series(arr, copy=False).str.split(sep, regex=False):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 

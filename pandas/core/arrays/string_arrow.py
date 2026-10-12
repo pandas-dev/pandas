@@ -551,13 +551,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         # expand=False wants tuples, which the object path produces directly
         return ObjectStringArrayMixin._str_partition(self, sep, expand)
 
-    def _str_get_dummies(
-        self, sep: str = "|", dtype: NpDtype | None = None, *, regex: bool = True
-    ):
+    def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
             dtype = np.int64
         dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(
-            sep, dtype, regex=regex
+            sep, dtype
         )
         if len(labels) == 0:
             return np.empty(shape=(0, 0), dtype=dtype), labels
