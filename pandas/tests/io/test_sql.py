@@ -10,6 +10,7 @@ from datetime import (
 )
 from decimal import Decimal
 from io import StringIO
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -4019,6 +4020,35 @@ def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     df.to_sql("test", conn, if_exists="replace", index=False)
     result = pd.read_sql("select * from test", conn).iloc[0, 0]
     assert result == pd.Timestamp("2020-12-31 12:00:00.000000")
+
+
+@pytest.mark.parametrize(
+    "dtype_backend",
+    [
+        lib.no_default,
+        pytest.param(
+            "numpy_nullable",
+            marks=pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
+        ),
+        pytest.param(
+            "pyarrow",
+            marks=[
+                td.skip_if_no("pyarrow"),
+                pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
+            ],
+        ),
+    ],
+)
+def test_read_sql_query_driver_objects_not_stringified(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend
+):
+    # GH#46085 dicts returned by the driver are passed through, not stringified
+    monkeypatch.setitem(sqlite3.converters, "JSONDICT", json.loads)
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a JSONDICT)")
+    conn.execute("INSERT INTO test VALUES (?)", ('{"hello": ["4", "5"], "hi": 6}',))
+    result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
+    assert result["a"].tolist() == [{"hello": ["4", "5"], "hi": 6}]
 
 
 @pytest.mark.db
