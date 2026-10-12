@@ -114,7 +114,11 @@ class Term:
         if (
             not str(self.name).startswith(LOCAL_TAG)
             and local_name in self.env.scope
-            and isinstance(self.env.scope[local_name], type)
+            and (
+                isinstance(self.env.scope[local_name], type)
+                # a column/index named e.g. "inf" shadows the default global, GH#47859
+                or local_name in self.env.resolvers
+            )
         ):
             is_local = False
 
