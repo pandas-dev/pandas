@@ -5142,6 +5142,7 @@ def _raise_key_length_error(key_length: int, nlevels: int) -> NoReturn:
 
 def _union_levels(levels: list[Index]) -> Index:
     if not lib.dtypes_all_equal([level.dtype for level in levels]):
+        # the result dtype depends on the order the levels are combined in
         return reduce(Index.union, levels)
 
     while len(levels) > 1:
