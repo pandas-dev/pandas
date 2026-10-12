@@ -217,6 +217,9 @@ def _convert_arrays_to_dataframe(
                 pa_array = pa_array.cast(pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
+    # SQLAlchemy returns str subclasses, which would make pickles depend on it
+    # (GH#52816)
+    columns = [str(col) for col in columns]
     if arrays:
         return DataFrame._from_arrays(
             arrays, columns=columns, index=range(idx_len), verify_integrity=False
