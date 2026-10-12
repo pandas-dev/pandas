@@ -2690,6 +2690,17 @@ def test_column_with_percentage(conn, request):
     tm.assert_frame_equal(res, df)
 
 
+@pytest.mark.parametrize("conn", all_connectable)
+def test_column_with_brackets(conn, request):
+    # GH#40183 fixed by SQLAlchemy 1.4 escaping bind names for psycopg2
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame({"(abc]": [1, 2], "(abc)": [3, 4], "[abc)": [5, 6]})
+    assert df.to_sql(name="test_column_brackets", con=conn, index=False) == 2
+
+    res = sql.read_sql_query("SELECT * FROM test_column_brackets", conn)
+    tm.assert_frame_equal(res, df)
+
+
 def test_sql_open_close(temp_file, test_frame3):
     # Test if the IO in the database still work if the connection closed
     # between the writing and reading (as in many real situations).
