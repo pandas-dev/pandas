@@ -483,10 +483,11 @@ def eval(
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
-            if level == 0 and not env.has_resolvers:
+            if (level == 0 or parser != "pandas") and not env.has_resolvers:
                 # GH#31952 without resolvers, bare names resolve from the scope,
                 #  so later lines must find this result there; "@" is banned at
-                #  level 0, so this cannot shadow an "@" lookup of a local
+                #  level 0 and with the python parser, so this cannot shadow an
+                #  "@" lookup of a local
                 assigned[assigner] = ret
             elif not resolvers:
                 resolvers = ({assigner: ret},)

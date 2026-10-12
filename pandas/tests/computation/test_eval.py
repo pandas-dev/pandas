@@ -2180,8 +2180,20 @@ def test_eval_top_level_multi_line_resolves_locals(engine, parser):
     tm.assert_frame_equal(result, expected)
 
 
+def test_eval_multi_line_python_parser_resolves_locals():
+    # GH#31952 "@" is unavailable with the python parser, so level >= 1 must
+    #  also see the caller's locals by bare name
+    def helper(expr):
+        return pd.eval(expr, target=pd.DataFrame(), level=1, parser="python")
+
+    df = pd.DataFrame({"a": [1, 2]})  # noqa: F841
+    result = helper("c = df.a\nd = c + df.a")
+    expected = pd.DataFrame({"c": [1, 2], "d": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_eval_multi_line_resolver_path_unchanged():
-    # GH#31952 only top-level calls without resolvers changed
+    # GH#31952 calls with resolvers, or "@" available, keep the old behavior
     def helper(expr):
         return pd.eval(expr, target=pd.DataFrame(), level=1)
 
