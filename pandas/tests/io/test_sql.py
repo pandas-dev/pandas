@@ -3471,6 +3471,20 @@ def test_notna_dtype(conn, request):
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_date_dtype_drops_time(conn, request):
+    # GH#39703
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy import Date
+
+    df = pd.DataFrame({"a": pd.to_datetime(["2021-02-10 13:45:07.123456", None])})
+    tbl = "date_dtype_test"
+    assert df.to_sql(name=tbl, con=conn, dtype={"a": Date()}, index=False) == 2
+    result = sql.read_sql_table(tbl, conn)
+    assert result["a"].tolist() == [pd.Timestamp("2021-02-10"), pd.NaT]
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_double_precision(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
