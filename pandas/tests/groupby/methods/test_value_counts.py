@@ -54,19 +54,20 @@ def test_value_counts_with_bins(bins):
         }
     )
     result = df.groupby("key")["score"].value_counts(bins=bins).sort_index()
-    b = dict(enumerate(bins))
-
-    counts = {
-        (0, b[0]): 1,
-        (0, b[4]): 1,
-        (1, b[4]): 2,
-        (2, b[0]): 1,
-        (3, b[4]): 2,
-        (4, b[4]): 3,
-    }
-
-    idx = pd.MultiIndex.from_product([range(5), bins], names=["key", "score"])
-    expected = pd.Series(counts, name="count").reindex(idx, fill_value=0)
+    expected = pd.Series(
+        np.array(
+            [
+                [1, 0, 0, 0, 1],  # key 0
+                [0, 0, 0, 0, 2],  # key 1
+                [1, 0, 0, 0, 0],  # key 2
+                [0, 0, 0, 0, 2],  # key 3
+                [0, 0, 0, 0, 3],  # key 4
+            ],
+            dtype=np.int64,
+        ).ravel(),
+        name="count",
+        index=pd.MultiIndex.from_product([range(5), bins], names=["key", "score"]),
+    )
     tm.assert_series_equal(result, expected)
 
 
