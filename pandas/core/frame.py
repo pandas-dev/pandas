@@ -4536,7 +4536,7 @@ class DataFrame(NDFrame, OpsMixin):
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
-        if is_scalar(value) and (is_list_like(loc) or isinstance(loc, slice)):
+        if not is_list_like(value) and (is_list_like(loc) or isinstance(loc, slice)):
             # GH#71098 a scalar fills every selected column, as df[cols] = 5
             #  does; sanitize per position so the columns don't share one array
             for idx in np.arange(len(self.columns))[loc]:

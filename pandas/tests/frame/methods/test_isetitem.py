@@ -83,6 +83,21 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, pd.DataFrame(expected))
 
+    def test_isetitem_non_list_like_object_fills_every_selected_position(self):
+        # GH#71098 a non-list-like value that is_scalar rejects, as in df[cols] = obj
+        class Thing:
+            pass
+
+        thing = Thing()
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+
+        df.isetitem([0, 2], thing)
+
+        expected = pd.DataFrame(
+            {"a": [thing] * 3, "b": [4, 5, 6], "c": [thing] * 3},
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_isetitem_scalar_does_not_share_one_array(self):
         # GH#71098 a later write to one filled column must not leak into another
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
