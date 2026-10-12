@@ -376,7 +376,7 @@ def test_to_numpy_without_dtype():
 
 @pytest.mark.parametrize("dtype", ["bool[pyarrow]", "boolean"])
 def test_to_numpy_bool_with_na_value_keeps_bool(dtype):
-    # GH#XXXXX
+    # GH#71106
     arr = pd.array([True, None, False], dtype=dtype)
     result = arr.to_numpy(na_value=False)
     tm.assert_numpy_array_equal(result, np.array([True, False, False]))
@@ -384,7 +384,7 @@ def test_to_numpy_bool_with_na_value_keeps_bool(dtype):
 
 
 def test_to_numpy_bool_integer_na_value():
-    # GH#XXXXX
+    # GH#71106
     arr = pd.array([True, None, False], dtype="bool[pyarrow]")
     result = arr.to_numpy(na_value=1, dtype=bool)
     tm.assert_numpy_array_equal(result, np.array([True, True, False]))

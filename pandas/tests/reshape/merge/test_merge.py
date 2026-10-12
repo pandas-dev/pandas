@@ -2999,7 +2999,7 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
 @pytest.mark.parametrize("how", ["inner", "outer"])
 def test_merge_arrow_bool_with_na_and_numpy_bool(how):
-    # GH#XXXXX
+    # GH#71106
     pytest.importorskip("pyarrow")
     left = pd.DataFrame({"k": [False, True, None], "a": [1, 2, 3]})
     right = pd.DataFrame({"k": np.array([True, False]), "b": [10, 20]})

@@ -423,7 +423,7 @@ def test_interpolate_not_numeric(data):
 
 @pytest.mark.parametrize("dtype", ["bool[pyarrow]", "boolean"])
 def test_interpolate_bool_not_implemented(dtype):
-    # GH#XXXXX
+    # GH#71106
     ser = pd.Series([True, None, False], dtype=dtype)
     msg = f"interpolate is not implemented for dtype={dtype}"
     with pytest.raises(NotImplementedError, match=re.escape(msg)):

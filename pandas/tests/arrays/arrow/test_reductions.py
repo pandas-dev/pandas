@@ -23,7 +23,7 @@ def test_median_not_approximate(typ):
     "op", ["mean", "sum", "std", "var", "median", "sem", "skew", "kurt"]
 )
 def test_numeric_only_includes_bool(op):
-    # GH#XXXXX bool[pyarrow] is kept by numeric_only and matches numpy/masked
+    # GH#71106 bool[pyarrow] is kept by numeric_only and matches numpy/masked
     if op in ("skew", "kurt") and pa_version_under20p0:
         pytest.skip("pyarrow.compute.skew/kurtosis added in pyarrow 20.0.0")
     values = [True, False, True, False, True]
@@ -40,7 +40,7 @@ def test_numeric_only_includes_bool(op):
 
 
 def test_bool_sum_prod_int64():
-    # GH#XXXXX
+    # GH#71106
     df = pd.DataFrame(
         {"flag": pd.array([True, False, True], dtype="bool[pyarrow]"), "val": [1, 2, 3]}
     )
@@ -55,7 +55,7 @@ def test_bool_sum_prod_int64():
 
 
 def test_bool_quantile_raises():
-    # GH#XXXXX
+    # GH#71106
     df = pd.DataFrame(
         {"flag": pd.array([True, False, None], dtype="bool[pyarrow]"), "val": [1, 2, 3]}
     )
@@ -67,7 +67,7 @@ def test_bool_quantile_raises():
 
 
 def test_bool_describe_still_dropped():
-    # GH#XXXXX describe still excludes bool
+    # GH#71106 describe still excludes bool
     df = pd.DataFrame(
         {"flag": pd.array([True, False, True], dtype="bool[pyarrow]"), "val": [1, 2, 3]}
     )

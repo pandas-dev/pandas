@@ -338,7 +338,7 @@ class TestSeriesCumulativeOps:
     )
     @pytest.mark.parametrize("skipna", [True, False])
     def test_cummethods_pyarrow_bool(self, method, exp_dtype, skipna):
-        # GH#XXXXX
+        # GH#71106
         pytest.importorskip("pyarrow")
         values = [True, False, None, True]
         ser = pd.Series(values, dtype="bool[pyarrow]")

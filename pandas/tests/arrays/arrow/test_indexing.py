@@ -25,7 +25,7 @@ from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 
 def test_bool_index_uses_masked_engine():
-    # GH#XXXXX
+    # GH#71106
     idx = pd.Index(pd.array([True, False, None], dtype="bool[pyarrow]"))
     assert isinstance(idx._engine, libindex.MaskedBoolEngine)
     assert idx.get_loc(False) == 1
