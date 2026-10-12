@@ -130,6 +130,7 @@ if TYPE_CHECKING:
 
 from pandas.compat.numpy import function as nv
 
+
 class BaseMaskedArray(OpsMixin, ExtensionArray):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
@@ -1449,16 +1450,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if isinstance(value, BaseMaskedArray):
             na_mask = value._mask
             if na_mask.any():
-                # 0 for negs as overrided either way
+                # 0 for negs as overridden either way
                 clean_vals = np.where(na_mask, 0, value._data)
-                res = algos._int_searchsorted(self._data, clean_vals, side, sorter)
+                res = algos.int_searchsorted(self._data, clean_vals, side, sorter)
                 res[na_mask] = len(self)
                 return res
             value = value._data
         elif value is libmissing.NA:  # type: ignore[comparison-overlap]
             return np.array([len(self)])
         # Base class searchsorted would cast to object, which is *much* slower.
-        return algos._int_searchsorted(self._data, value, side, sorter)
+        return algos.int_searchsorted(self._data, value, side, sorter)
 
     def factorize(
         self,

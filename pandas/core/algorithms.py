@@ -1466,6 +1466,7 @@ def take(
         result = arr.take(indices, axis=axis)  # type: ignore[call-arg,assignment]
     return result
 
+
 # ------------------- #
 # searchsorted helper #
 # ------------------- #
@@ -1483,15 +1484,16 @@ def _exact_int_values(values):
     if isinstance(values, (list, tuple)):
         # check python int
         if len(values) and all(_is_py_int(v) for v in values):
-            # if values not out of range of int64 use numpy saftely with int64 
+            # if values not out of range of int64 use numpy saftely with int64
             lo, hi = min(values), max(values)
             if -(2**63) <= lo and hi <= 2**63 - 1:
                 return np.asarray(values, dtype=np.int64)
-            # if values not out of range of uint64 use numpy saftely with uint64 
+            # if values not out of range of uint64 use numpy saftely with uint64
             if 0 <= lo and hi <= 2**64 - 1:
                 return np.asarray(values, dtype=np.uint64)
             # value not in range of int64 or uint64
-            # create object list to keep values and then later call _searchsorted_object_ints to sort
+            # create object list to keep values and
+            #   then later call _searchsorted_object_ints to sort
             out = np.empty(len(values), dtype=object)
             out[:] = list(values)
             return out
@@ -1508,19 +1510,21 @@ def _searchsorted_object_ints(data, values, side, sorter):
     above = np.fromiter((v > info.max for v in flat), dtype=bool, count=flat.size)
     # replace out of range values with safe values, using list masks
     safe = np.array(
-        [info.min if b else info.max if a else v
-            for v, b, a in zip(flat, below, above)],
+        [
+            info.min if b else info.max if a else v
+            for v, b, a in zip(flat, below, above, strict=True)
+        ],
         dtype=data.dtype,
     )
     res = data.searchsorted(safe, side=side, sorter=sorter)
     # after search replace all small values bottom end
-    res[below] = 0 
+    res[below] = 0
     # after search replace all largest values top end
-    res[above] = len(data) 
+    res[above] = len(data)
     return res.reshape(values.shape)
 
 
-def _int_searchsorted(data: np.ndarray, values, side: str, sorter):
+def int_searchsorted(data: np.ndarray, values, side: str, sorter):
     """searchsorted that avoids the uint64, int64, float64 promotion."""
     # check if dtype is iu and is real int or nump int
     if data.dtype.kind in "iu":
@@ -1528,8 +1532,10 @@ def _int_searchsorted(data: np.ndarray, values, side: str, sorter):
     else:
         values = np.asarray(values)
     # if list/tuple has below int64 and greater than uint64 and Object
-    if data.dtype.kind in "iu" and values.dtype.kind == "O" and all(
-        _is_py_int(v) for v in values.ravel()
+    if (
+        data.dtype.kind in "iu"
+        and values.dtype.kind == "O"
+        and all(_is_py_int(v) for v in values.ravel())
     ):
         scalar = values.ndim == 0
         res = _searchsorted_object_ints(data, np.atleast_1d(values), side, sorter)
@@ -1559,6 +1565,7 @@ def _int_searchsorted(data: np.ndarray, values, side: str, sorter):
             res[big] = len(data)
         return res[0] if scalar else res
     return data.searchsorted(values, side=side, sorter=sorter)
+
 
 # ------------ #
 # searchsorted #
@@ -1614,10 +1621,10 @@ def searchsorted(
     numpy.searchsorted : Similar method from NumPy.
     """
     from pandas.core.arrays.masked import BaseMaskedArray
-    
+
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
-        
+
     value = extract_array(value, extract_numpy=True)
 
     if (
@@ -1628,10 +1635,10 @@ def searchsorted(
     ):
         na_mask = value._mask
         clean_vals = value._data.copy()
-        # hide na's 
-        clean_vals[na_mask] = 0  
-        res = _int_searchsorted(arr, clean_vals, side, sorter)
-        res[na_mask] = len(arr)  
+        # hide na's
+        clean_vals[na_mask] = 0
+        res = int_searchsorted(arr, clean_vals, side, sorter)
+        res[na_mask] = len(arr)
         return res
 
     if (
@@ -1664,7 +1671,7 @@ def searchsorted(
 
     # Argument 1 to "searchsorted" of "ndarray" has incompatible type
     # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
-    return _int_searchsorted(arr, value, side, sorter)  # type: ignore[arg-type]
+    return int_searchsorted(arr, value, side, sorter)  # type: ignore[arg-type]
 
 
 # ---- #
