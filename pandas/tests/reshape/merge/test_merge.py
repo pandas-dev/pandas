@@ -2036,6 +2036,24 @@ class TestMergeCategorical:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_categorical_unordered_mixed_categories_different_order(self):
+        # GH#51543
+        df1 = pd.DataFrame(
+            {"Foo": pd.Categorical([1, "B"], categories=[1, "B"]), "Left": [0, 1]}
+        )
+        df2 = pd.DataFrame(
+            {"Foo": pd.Categorical([1, "B"], categories=["B", 1]), "Right": [2, 3]}
+        )
+        result = merge(df1, df2, on="Foo")
+        expected = pd.DataFrame(
+            {
+                "Foo": pd.Categorical([1, "B"], categories=[1, "B"]),
+                "Left": [0, 1],
+                "Right": [2, 3],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("ordered", [True, False])
     def test_multiindex_merge_with_unordered_categoricalindex(self, ordered):
         # GH 36973

@@ -1928,7 +1928,8 @@ def is_all_strings(value: ArrayLike) -> bool:
     Check if this is an array of strings that we should try parsing.
 
     Includes object-dtype ndarray containing all-strings, StringArray,
-    and Categorical with all-string categories.
+    ArrowExtensionArray of pa.string or pa.large_string, and Categorical with
+    all-string categories.
     Does not include numpy string dtypes.
     """
     dtype = value.dtype
@@ -1942,6 +1943,8 @@ def is_all_strings(value: ArrayLike) -> bool:
             )
     elif isinstance(dtype, CategoricalDtype):
         return dtype.categories.inferred_type == "string"
+    elif isinstance(dtype, ArrowDtype):
+        return dtype.kind == "U"
     return dtype == "string"
 
 

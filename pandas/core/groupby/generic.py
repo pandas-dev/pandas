@@ -194,6 +194,30 @@ class NamedAgg:
 
 @set_module("pandas.api.typing")
 class SeriesGroupBy(GroupBy[Series]):
+    """
+    Groupby object for a Series.
+
+    Returned by :meth:`Series.groupby <pandas.Series.groupby>` and by selecting
+    a single column of a :class:`~pandas.api.typing.DataFrameGroupBy`. This is
+    not meant to be instantiated directly.
+
+    See :ref:`api.groupby` for the available methods and :ref:`groupby` for
+    the user guide.
+
+    See Also
+    --------
+    pandas.Series.groupby : Group Series using a mapper or by a Series of columns.
+    pandas.api.typing.DataFrameGroupBy : Groupby object for a DataFrame.
+
+    Examples
+    --------
+    >>> ser = pd.Series([1, 2, 3], index=["a", "a", "b"])
+    >>> ser.groupby(level=0).sum()
+    a    3
+    b    3
+    dtype: int64
+    """
+
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
         out._name = self.obj.name
@@ -2076,6 +2100,32 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
+    """
+    Groupby object for a DataFrame.
+
+    Returned by :meth:`DataFrame.groupby <pandas.DataFrame.groupby>`. Selecting
+    a single column returns a :class:`~pandas.api.typing.SeriesGroupBy`. This
+    is not meant to be instantiated directly.
+
+    See :ref:`api.groupby` for the available methods and :ref:`groupby` for
+    the user guide.
+
+    See Also
+    --------
+    pandas.DataFrame.groupby : Group DataFrame using a mapper or by a Series of
+        columns.
+    pandas.api.typing.SeriesGroupBy : Groupby object for a Series.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"key": ["a", "a", "b"], "val": [1, 2, 3]})
+    >>> df.groupby("key").sum()
+         val
+    key
+    a      3
+    b      3
+    """
+
     def aggregate(
         self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
     ) -> DataFrame:
