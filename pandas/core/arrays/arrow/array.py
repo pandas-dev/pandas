@@ -3868,12 +3868,22 @@ class ArrowExtensionArray(
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
     ) -> ArrayLike:
-        try:
-            values = self._to_groupby_compatible()
-        except NotImplementedError as err:
-            raise TypeError(
-                f"dtype '{self.dtype}' does not support operation 'quantile'"
-            ) from err
+        pa_type = self._pa_array.type
+        is_date_or_time = pa.types.is_date(pa_type) or pa.types.is_time(pa_type)
+        if is_date_or_time:
+            # As in _quantile, compute on the integer representation
+            int_type = pa.int32() if pa_type.bit_width == 32 else pa.int64()
+            values = type(self)(self._pa_array.cast(int_type))._to_masked()
+        elif pa.types.is_decimal(pa_type):
+            # As in _quantile, where pc.quantile returns float64 for decimals
+            values = type(self)(self._pa_array.cast(pa.float64()))._to_masked()
+        else:
+            try:
+                values = self._to_groupby_compatible()
+            except NotImplementedError as err:
+                raise TypeError(
+                    f"dtype '{self.dtype}' does not support operation 'quantile'"
+                ) from err
         result = values._groupby_quantile(
             qs=qs,
             interpolation=interpolation,
@@ -3882,6 +3892,12 @@ class ArrowExtensionArray(
             starts=starts,
             ends=ends,
         )
+        if is_date_or_time:
+            pa_result = result.__arrow_array__()
+            if pa.types.is_floating(pa_result.type):
+                pa_result = pc.floor(pa_result)
+            pa_result = pa_result.cast(int_type).cast(pa_type)
+            return self._from_pyarrow_array(pa_result)
         return self._groupby_result_to_arrow(result)
 
     def _apply_elementwise(self, func: Callable[..., Any]) -> list[list[Any]]:

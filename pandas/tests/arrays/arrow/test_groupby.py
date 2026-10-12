@@ -626,11 +626,8 @@ def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
 @pytest.mark.parametrize(
     "arr",
     [
-        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
-        pa.array([time(2), time(1), None, time(3)]),
         pa.array([b"b", b"a", None, b"c"]),
         pa.array(["b", "a", None, "c"]),
-        pa.array([Decimal(2), Decimal(1), None, Decimal(3)]),
     ],
     ids=lambda arr: str(arr.type),
 )
@@ -641,6 +638,48 @@ def test_groupby_quantile_unsupported_raises_typeerror(arr, frame):
     msg = f"dtype '{re.escape(str(ser.dtype))}' does not support operation 'quantile'"
     with pytest.raises(TypeError, match=msg):
         obj.groupby([0, 0, 1, 1]).quantile()
+
+
+@pytest.mark.parametrize(
+    "arr, expected",
+    [
+        (
+            pa.array([date(2020, 1, 1), date(2020, 1, 3), None, date(2020, 1, 5)]),
+            pa.array([date(2020, 1, 2), date(2020, 1, 5)]),
+        ),
+        (
+            pa.array(
+                [date(2020, 1, 1), date(2020, 1, 3), None, date(2020, 1, 5)],
+                type=pa.date64(),
+            ),
+            pa.array([date(2020, 1, 2), date(2020, 1, 5)], type=pa.date64()),
+        ),
+        (
+            pa.array([3600, 7200, None, 10800], type=pa.time32("s")),
+            pa.array([5400, 10800], type=pa.time32("s")),
+        ),
+        (
+            pa.array([time(1), time(2), None, time(3)], type=pa.time64("ns")),
+            pa.array([time(1, 30), time(3)], type=pa.time64("ns")),
+        ),
+        (
+            pa.array([Decimal("1.5"), Decimal(2), None, Decimal(3)]),
+            pa.array([1.75, 3.0]),
+        ),
+    ],
+    ids=lambda x: str(x.type),
+)
+def test_groupby_quantile_date_time_decimal(arr, expected):
+    # GH#69808 date, time and decimal match Series.quantile
+    ser = pd.Series(ArrowExtensionArray(arr))
+    result = ser.groupby([0, 0, 1, 1]).quantile()
+    tm.assert_series_equal(result, pd.Series(ArrowExtensionArray(expected)))
+
+    result = ser.to_frame().groupby([0, 0, 1, 1]).quantile()
+    tm.assert_frame_equal(result, pd.DataFrame({0: ArrowExtensionArray(expected)}))
+
+    for i, grp in enumerate([ser.iloc[:2], ser.iloc[2:]]):
+        assert grp.quantile() == expected[i].as_py()
 
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
