@@ -2159,3 +2159,44 @@ def test_eval_top_level_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         pd.eval("b = df.a + 1", target=df, inplace=True)
     tm.assert_frame_equal(df, expected)
+
+
+def test_eval_top_level_multi_line_resolves_locals(engine, parser):
+    # GH#31952 lines after the first assignment could not see the caller's locals
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})  # noqa: F841
+    offset = 10  # noqa: F841
+    c = 100  # noqa: F841  # shadowed by the assignment on the first line
+    result = pd.eval(
+        """
+        c = df.a - df.b
+        c = c * 2
+        d = c + df.b + offset
+        """,
+        target=pd.DataFrame(),
+        engine=engine,
+        parser=parser,
+    )
+    expected = pd.DataFrame({"c": [-6, -6, -6], "d": [8, 9, 10]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_eval_multi_line_resolver_path_unchanged():
+    # GH#31952 only top-level calls without resolvers changed
+    def helper(expr):
+        return pd.eval(expr, target=pd.DataFrame(), level=1)
+
+    # with level >= 1, "@k" after a line assigning k is still the local
+    df = pd.DataFrame({"a": [1, 2, 3]})  # noqa: F841
+    k = 10  # noqa: F841
+    result = helper("k = df.a + 1\nd = @k + k")
+    expected = pd.DataFrame({"k": [2, 3, 4], "d": [12, 13, 14]})
+    tm.assert_frame_equal(result, expected)
+
+    # with resolvers, later lines still find earlier results
+    result = pd.eval(
+        "c = x\nd = c + x",
+        target=pd.DataFrame(),
+        resolvers=[{"x": pd.Series([1, 2])}],
+    )
+    expected = pd.DataFrame({"c": [1, 2], "d": [2, 4]})
+    tm.assert_frame_equal(result, expected)
