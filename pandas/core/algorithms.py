@@ -593,8 +593,14 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
+        values = _ensure_arraylike(orig_values, func_name="isin-targets")
 
-        if (
+        if values.dtype.kind == "f" and any(
+            lib.is_integer(v) and not lib.is_bool(v) and abs(int(v)) > 2**53
+            for v in orig_values
+        ):
+            values = construct_1d_object_array_from_listlike(orig_values)
+        elif (
             len(values) > 0
             and values.dtype.kind in "iufcb"
             and not is_signed_integer_dtype(comps)
@@ -1460,6 +1466,40 @@ def take(
         result = arr.take(indices, axis=axis)  # type: ignore[call-arg,assignment]
     return result
 
+# ------------------- #
+# searchsorted helper #
+# ------------------- #
+
+
+def _int_searchsorted(
+        data: np.ndarray, values, side: str, sorter
+    ) -> npt.NDArray[np.intp] | np.intp:
+        """searchsorted that avoids the uint64, int64, float64 promotion."""
+        values = np.asarray(values)
+        if (
+            data.dtype.kind in "iu"
+            and values.dtype.kind in "iu"
+            and data.dtype != values.dtype
+            # float check with numpy as only greater than 2**53 turn to floats
+            and np.result_type(data.dtype, values.dtype).kind == "f"
+        ):
+            scalar = values.ndim == 0
+            values = np.atleast_1d(values)
+            if data.dtype.kind == "u":  # unsigned data, signed values
+                neg = values < 0
+                # replace all neg values to avoid uint failure as not needed
+                safe = np.where(neg, 0, values).astype(data.dtype)
+                res = data.searchsorted(safe, side=side, sorter=sorter)
+                res[neg] = 0
+            else:  # signed data, uint64 values
+                info = np.iinfo(data.dtype)
+                big = values > info.max
+                # replace all large values to stop rounding issue
+                safe = np.where(big, info.max, values).astype(data.dtype)
+                res = data.searchsorted(safe, side=side, sorter=sorter)
+                res[big] = len(data)
+            return res[0] if scalar else res
+        return data.searchsorted(values, side=side, sorter=sorter)
 
 # ------------ #
 # searchsorted #
@@ -1514,8 +1554,26 @@ def searchsorted(
     --------
     numpy.searchsorted : Similar method from NumPy.
     """
+    from pandas.core.arrays.masked import BaseMaskedArray
+    
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
+        
+    value = extract_array(value, extract_numpy=True)
+
+    if (
+        isinstance(arr, np.ndarray)
+        and arr.dtype.kind in "iu"
+        and isinstance(value, BaseMaskedArray)
+        and value.dtype.kind in "iu"
+    ):
+        na_mask = value._mask
+        clean_vals = value._data.copy()
+        # hide na's 
+        clean_vals[na_mask] = 0  
+        res = _int_searchsorted(arr, clean_vals, side, sorter)
+        res[na_mask] = len(arr)  
+        return res
 
     if (
         isinstance(arr, np.ndarray)
@@ -1547,7 +1605,7 @@ def searchsorted(
 
     # Argument 1 to "searchsorted" of "ndarray" has incompatible type
     # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
-    return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
+    return _int_searchsorted(arr, value, side, sorter)  # type: ignore[arg-type]
 
 
 # ---- #
