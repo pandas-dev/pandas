@@ -144,6 +144,8 @@ if TYPE_CHECKING:
 
     from pandas.core.internals import Block
 
+    _WhereArg: TypeAlias = dict[Any, Any] | list[Any] | tuple[Any, ...] | str
+
 
 # encoding
 _default_encoding = "UTF-8"
@@ -369,7 +371,7 @@ def read_hdf(
     key=None,
     mode: str = "r",
     errors: str = "strict",
-    where: str | list | None = None,
+    where: str | list[Any] | None = None,
     start: int | None = None,
     stop: int | None = None,
     columns: list[str] | None = None,
@@ -795,7 +797,7 @@ class HDFStore:
     def __iter__(self) -> Iterator[str]:
         return iter(self.keys())
 
-    def items(self) -> Iterator[tuple[str, list]]:
+    def items(self) -> Iterator[tuple[str, Node]]:
         """
         iterate on key->group
         """
@@ -1442,7 +1444,7 @@ class HDFStore:
         Notes
         -----
         Writing an empty ``DataFrame`` or ``Series`` with ``format='table'``
-        or ``append=True`` is a no-op: the store is not modified and a
+        or ``append=True`` is a no-op: nothing is written for ``key`` and a
         ``UserWarning`` is emitted. Use ``format='fixed'`` to store an empty
         object.
 
@@ -1674,8 +1676,8 @@ class HDFStore:
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
 
-        Appending an empty ``DataFrame`` or ``Series`` is a no-op: the store
-        is not modified and a ``UserWarning`` is emitted.
+        Appending an empty ``DataFrame`` or ``Series`` is a no-op: nothing is
+        written for ``key`` and a ``UserWarning`` is emitted.
 
         Examples
         --------
@@ -1731,7 +1733,7 @@ class HDFStore:
 
     def append_to_multiple(
         self,
-        d: dict,
+        d: dict[str, Any],
         value,
         selector,
         data_columns=None,
@@ -1811,7 +1813,7 @@ class HDFStore:
 
         # figure out how to split the value
         remain_key = None
-        remain_values: list = []
+        remain_values: list[Hashable] = []
         for k, v in d.items():
             if v is None:
                 if remain_key is not None:
@@ -1927,7 +1929,7 @@ class HDFStore:
             raise TypeError("cannot create table index on a Fixed format store")
         s.create_index(columns=columns, optlevel=optlevel, kind=kind)
 
-    def groups(self) -> list:
+    def groups(self) -> list[Node]:
         """
         Return a list of all the top-level nodes.
 
@@ -2381,7 +2383,7 @@ class HDFStore:
         if getattr(value, "empty", None) and (format == "table" or append):
             warnings.warn(
                 "Writing an empty DataFrame or Series with format='table' "
-                "or append=True is a no-op; the HDFStore is not modified.",
+                f"or append=True is a no-op; nothing is written for key {key!r}.",
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
@@ -2558,7 +2560,7 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         # iterate
         if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
@@ -2877,7 +2879,7 @@ class IndexCol:
         """return my cython values"""
         return self.values
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None) -> None:
@@ -3580,7 +3582,7 @@ class GenericFixed(Fixed):
     def _get_index_factory(self, attrs):
         index_class = self._alias_to_class(getattr(attrs, "index_class", ""))
 
-        factory: Callable
+        factory: Callable[..., Index]
 
         kwargs = {}
         if index_class == DatetimeIndex:
@@ -4248,7 +4250,7 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1  # pyright: ignore[reportRedeclaration]
     is_table = True
 
-    metadata: list
+    metadata: list[Any]
 
     def __init__(
         self,
@@ -4259,8 +4261,8 @@ class Table(Fixed):
         index_axes: list[IndexCol] | None = None,
         non_index_axes: list[tuple[AxisInt, Any]] | None = None,
         values_axes: list[DataCol] | None = None,
-        data_columns: list | None = None,
-        info: dict | None = None,
+        data_columns: list[str] | None = None,
+        info: dict[Hashable, Any] | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
@@ -4757,7 +4759,7 @@ class Table(Fixed):
 
     def validate_data_columns(
         self, data_columns, min_itemsize, non_index_axes, index_cnames=()
-    ) -> list:
+    ) -> list[Hashable]:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4884,7 +4886,7 @@ class Table(Fixed):
             )
 
         # create according to the new data
-        new_non_index_axes: list = []
+        new_non_index_axes: list[Any] = []
 
         # nan_representation
         if nan_rep is None:
@@ -6067,7 +6069,7 @@ def _read_index_nan_rep(attrs, name: str = "nan_rep") -> str | None:
 
 
 def _make_nan_rep(
-    values: np.ndarray, mask: np.ndarray, existing: set | None = None
+    values: np.ndarray, mask: np.ndarray, existing: set[Any] | None = None
 ) -> str:
     """
     Choose a string NaN sentinel for a string column that does not collide with
@@ -6079,7 +6081,7 @@ def _make_nan_rep(
     sentinel is persisted for the whole column.
     """
     non_missing = values[~mask]
-    if lib.infer_dtype(non_missing, skipna=True) != "string":
+    if not lib.is_string_array(non_missing, skipna=True):
         # Only a str can equal the sentinel, and an elementwise == against a
         # list or ndarray element is not a bool. Dropping the rest also keeps an
         # unhashable element from raising here, ahead of the "Cannot serialize
@@ -6095,7 +6097,9 @@ def _make_nan_rep(
     return nan_rep
 
 
-def _read_stored_column_values(table, cname: str, encoding: str, errors: str) -> set:
+def _read_stored_column_values(
+    table, cname: str, encoding: str, errors: str
+) -> set[Any]:
     """
     Read the values already stored for a string column (GH#9604), so a NaN
     sentinel chosen for a later append cannot collide with them.
@@ -6110,7 +6114,7 @@ def _read_stored_column_values(table, cname: str, encoding: str, errors: str) ->
 
 def _make_data_col_nan_rep(
     blk_values,
-    columns: list,
+    columns: list[Hashable],
     existing_col,
     table,
     encoding: str,
@@ -6145,7 +6149,7 @@ def _make_data_col_nan_rep(
         # an elementwise == against a list/ndarray element is not a bool, and a
         # non-string column has _maybe_convert_for_string_atom's much better
         # "Cannot serialize the column" error waiting for it anyway
-        and lib.infer_dtype(flat, skipna=True) == "string"
+        and lib.is_string_array(flat, skipna=True)
         and (flat[~mask] == nan_rep).any()
     ):
         # A real value equal to the sentinel is indistinguishable from a
@@ -6167,7 +6171,7 @@ def _convert_index(
     encoding: str,
     errors: str,
     existing_nan_rep: str | None = None,
-    existing_values: set | None = None,
+    existing_values: set[Any] | None = None,
 ) -> IndexCol:
     assert isinstance(name, str)
 
@@ -6378,8 +6382,7 @@ def _maybe_convert_for_string_atom(
         )
 
     # see if we have a valid string type
-    inferred_type = lib.infer_dtype(data, skipna=False)
-    if inferred_type != "string":
+    if not lib.is_string_array(data, skipna=False):
         # we cannot serialize this data, so report an exception on a column
         # by column basis
 
@@ -6706,12 +6709,12 @@ class Selection:
         )
 
     @overload
-    def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
+    def generate(self, where: _WhereArg) -> PyTablesExpr: ...
 
     @overload
     def generate(self, where: None) -> None: ...
 
-    def generate(self, where: dict | list | tuple | str | None) -> PyTablesExpr | None:
+    def generate(self, where: _WhereArg | None) -> PyTablesExpr | None:
         """where can be a : dict,list,tuple,string"""
         if where is None:
             return None

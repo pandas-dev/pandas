@@ -49,6 +49,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
+    validate_min_count,
 )
 
 from pandas.core.dtypes.astype import astype_array
@@ -235,7 +236,7 @@ def _has_dense_fill(arr: SparseArray) -> bool:
 
 
 def _sparse_array_op(
-    left: SparseArray, right: SparseArray, op: Callable, name: str
+    left: SparseArray, right: SparseArray, op: Callable[..., Any], name: str
 ) -> SparseArray:
     """
     Perform a binary operation between two arrays.
@@ -354,7 +355,7 @@ def _sparse_array_op(
 
 
 def _dense_array_op(
-    left: SparseArray, right: SparseArray, op: Callable, name: str
+    left: SparseArray, right: SparseArray, op: Callable[..., Any], name: str
 ) -> SparseArray:
     """
     Densify both operands, run the non-sparse op, and re-sparsify on the fill value.
@@ -2019,10 +2020,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # SparseDtype._check_fill_value guarantees that a non-NA
             #  fill_value fits in the subtype, so only an NA needs promoting.
             npdtype, fill_value = maybe_promote(npdtype, fill_value)
-        elif isinstance(fill_value, (Timestamp, Timedelta)):
-            # np.full would route these through the stdlib datetime protocol
-            #  and so truncate to microseconds
-            fill_value = fill_value.asm8
+        else:
+            fill_value = _unbox_for_fill(npdtype, fill_value)
         npvalues = np.full(self.shape, fill_value, dtype=npdtype)
         npvalues[self.sp_index.indices] = self.sp_values
         return npvalues
@@ -2271,6 +2270,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_sum(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+        min_count = validate_min_count(min_count)
 
         if self.dtype.subtype.kind == "O" and not self._null_fill_value:
             # the fill_value * nsparse adjustment below assumes a commutative +,
@@ -2363,6 +2363,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_prod((), kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+        min_count = validate_min_count(min_count)
         return self._dense_reduce("prod", skipna=skipna, min_count=min_count)
 
     def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
@@ -3114,7 +3115,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # resolve to the ExtensionArray version.
     __repr__ = ExtensionArray.__repr__
 
-    def _formatter(self, boxed: bool = False) -> Callable:
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         # Use str to avoid np.int64(...) wrapping in repr output.
         return str
 

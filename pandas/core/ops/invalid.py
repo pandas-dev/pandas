@@ -91,7 +91,7 @@ def _defers_to(obj: object) -> bool:
 
 def invalid_comparison(
     left: ArrayLike,
-    right: ArrayLike | list | range | Scalar | NAType,
+    right: ArrayLike | list[Any] | range | Scalar | NAType,
     op: Callable[[Any, Any], bool],
 ) -> npt.NDArray[np.bool_]:
     """
@@ -190,7 +190,9 @@ def disallow_datetimelike_logical_op(
         )
 
 
-def disallow_datetimelike_logical_ufunc(ufunc: np.ufunc, inputs: tuple) -> None:
+def disallow_datetimelike_logical_ufunc(
+    ufunc: np.ufunc, inputs: tuple[Any, ...]
+) -> None:
     """
     Raise TypeError if a logical ufunc is applied to datetimelike data.
 

@@ -1338,6 +1338,19 @@ class TestDataFrameReplace:
         # Ellipsis is equivalent to the spelled-out singleton
         tm.assert_frame_equal(df.replace(Ellipsis, 1), expected)
 
+    def test_replace_arbitrary_object(self):
+        # GH#36522 non-scalar, non-list-like objects are valid to_replace values
+        o1, o2, o3 = object(), object(), object()
+        df = pd.DataFrame({"a": [o1, o2], "b": [o2, o1]})
+
+        result = df.replace(to_replace={"a": o1}, value={"a": o3})
+        expected = pd.DataFrame({"a": [o3, o2], "b": [o2, o1]})
+        tm.assert_frame_equal(result, expected)
+
+        result = df.replace(o1, o3)
+        expected = pd.DataFrame({"a": [o3, o2], "b": [o2, o3]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
     def test_replace_no_replacement_dtypes(self, dtype, value):

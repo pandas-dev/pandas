@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -15,6 +16,10 @@ from pandas.core.dtypes.common import ensure_platform_int
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.tseries.offsets import Nano
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+    from typing import Any
 
 
 @set_module("pandas.api.indexers")
@@ -528,9 +533,9 @@ class GroupByIndexer(BaseIndexer):
         self,
         index_array: np.ndarray | None = None,
         window_size: int | BaseIndexer = 0,
-        groupby_indices: dict | None = None,
+        groupby_indices: dict[Hashable, np.ndarray] | None = None,
         window_indexer: type[BaseIndexer] = BaseIndexer,
-        indexer_kwargs: dict | None = None,
+        indexer_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:
         """

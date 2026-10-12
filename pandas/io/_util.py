@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
+import warnings
 import zoneinfo
 
 import numpy as np
@@ -20,6 +23,7 @@ from pandas.compat import (
     pa_version_under25p0,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
 
@@ -28,6 +32,7 @@ import pandas as pd
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
         Sequence,
     )
@@ -39,11 +44,32 @@ if TYPE_CHECKING:
         DtypeBackend,
     )
 
+    from pandas.core.dtypes.base import ExtensionDtype
+
 
 pytz = import_optional_dependency("pytz", errors="ignore")
 
 
-def _arrow_dtype_mapping() -> dict:
+@contextlib.contextmanager
+def suppress_pyarrow_values_warning() -> Generator[None]:
+    """
+    Suppress the deprecation warning pyarrow triggers by calling ``.values``
+    on timezone-aware data when converting pandas objects.
+
+    Remove once the minimum pyarrow (26.0) no longer does this, see GH#68426 and
+    apache/arrow#51302.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            r"(Series|DatetimeIndex)\.values returning an ndarray that drops "
+            "timezone information",
+            Pandas4Warning,
+        )
+        yield
+
+
+def _arrow_dtype_mapping() -> dict[pyarrow.DataType, Any]:
     pa = import_optional_dependency("pyarrow")
     return {
         pa.int8(): pd.Int8Dtype(),
@@ -63,7 +89,7 @@ def _arrow_dtype_mapping() -> dict:
     }
 
 
-def _arrow_string_types_mapper() -> Callable:
+def _arrow_string_types_mapper() -> Callable[[pyarrow.DataType], ExtensionDtype | None]:
     pa = import_optional_dependency("pyarrow")
 
     mapping = {
@@ -80,7 +106,7 @@ def arrow_table_to_pandas(
     table: pyarrow.Table,
     dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
     null_to_int64: bool = False,
-    to_pandas_kwargs: dict | None = None,
+    to_pandas_kwargs: dict[str, Any] | None = None,
     dtype: DtypeArg | None = None,
     names: Sequence[Hashable] | None = None,
 ) -> pd.DataFrame:
@@ -88,7 +114,9 @@ def arrow_table_to_pandas(
 
     to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
 
-    types_mapper: type[pd.ArrowDtype] | Callable | None
+    types_mapper: (
+        type[pd.ArrowDtype] | Callable[[pyarrow.DataType], ExtensionDtype | None] | None
+    )
     if dtype_backend == "numpy_nullable":
         mapping = _arrow_dtype_mapping()
         if null_to_int64:

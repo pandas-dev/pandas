@@ -6,10 +6,15 @@ Two commands:
   unassign any non-maintainer assignees that are inactive (no open linked PR by
   an assignee, no assignee comment or fresh assignment within
   ``STALE_ASSIGNEE_DAYS``); (2) run the PR stale engine
-  (``run_pr_stale_sweep``) that replaces ``actions/stale``: whether a PR is
-  stale is decided purely by the **author's own** activity, the
-  warning-to-close countdown by the engine's own ``Stale`` label event, with
-  owners/members/collaborators exempt.
+  (``run_pr_stale_sweep``) that replaces ``actions/stale``. The sweep first
+  reconciles the ``Needs Issue Assignment`` label on every non-exempt PR —
+  applied (with the gate comment) whenever the author doesn't hold the
+  linked issue, whether they never did or lost it since, and dropped once
+  they do — then a PR is subject to stale while it carries that label or
+  while a maintainer's changes-request is outstanding; whether it is stale is
+  decided purely by the **author's own** activity, the warning-to-close
+  countdown by the engine's own ``Stale`` label event. PRs from
+  owners/members/collaborators are never touched.
 * ``pr-closed`` (the ``pull_request_target`` ``closed`` trigger) — when a
   *human* closes a ``Stale``-labeled PR, free its linked issues. (Auto-closes
   from the engine free issues inline, since a ``GITHUB_TOKEN`` close doesn't
@@ -87,21 +92,25 @@ def _stale_clock_anchor(
     now: datetime,
     pr: core.OpenPRState,
     changes_requested_at: datetime | None,
+    gate_marked_at: datetime | None,
 ) -> datetime | None:
     """When the PR's stale clock started.
 
-    The latest of: the changes-requested review, the author's own activity
-    (commit, PR comment, review reply, or linked-issue comment), and any
-    reopen. The clock never starts before the changes-requested review, so
-    time spent waiting on review never counts against the author. The reads
-    escalate in cost, and each is skipped once a cheaper one already shows
-    the author active within ``PR_STALE_DAYS``.
+    The latest of: the changes-requested review, the gate label application,
+    the author's own activity (commit, PR comment, review reply, or
+    linked-issue comment), and any reopen. The clock never starts before the
+    changes-requested review or the gate label, so time spent waiting on
+    review never counts against the author and a gated PR's clock runs from
+    the bot's comment rather than from an older commit. The reads escalate in
+    cost, and each is skipped once a cheaper one already shows the author
+    active within ``PR_STALE_DAYS``.
     """
     author = pr["author"]
     authors = [author] if author else []
     window = timedelta(days=core.PR_STALE_DAYS)
     candidates = [
         changes_requested_at,
+        gate_marked_at,
         pr["last_commit_at"],
         core.latest_assignee_comment_at(pr["comments"], authors),
         core.latest_review_submitted_at(pr["reviews"], set(authors)),
@@ -118,7 +127,7 @@ def _stale_clock_anchor(
             anchor = comment_at
             if now - anchor < window:
                 return anchor
-    for issue in client.linked_issues_for_pr(pr["number"]):
+    for issue in pr["linked_issues"]:
         activity = client.issue_activity(issue["number"])
         comment_at = core.latest_assignee_comment_at(activity["comments"], authors)
         if comment_at is None and activity["comments_truncated"]:
@@ -134,16 +143,54 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
     """Mark/clear ``Stale`` and auto-close open PRs based on author inactivity."""
     now = datetime.now(UTC)  # noqa: TID251
     for pr in client.iter_open_pull_requests_review_state():
-        contributors = {pr["author"]} - {None}
+        number = pr["number"]
+        author = pr["author"]
+        contributors = {author} - {None}
+        exempt = core.is_exempt(pr["author_association"], pr["author_is_bot"])
+        gated = core.GATE_LABEL in pr["labels"]
+        gate_marked_at = pr["gate_marked_at"]
+        gate_issue: int | None = None
+        if not exempt:
+            # The gate workflow only runs when a PR is (re)opened, so the
+            # label is reconciled here daily: dropped once the author holds
+            # the assignment (or the PR no longer links an issue), and applied
+            # when the author doesn't — including losing it after the gate
+            # last passed (``/untake``, an inactivity release, or a closing
+            # keyword added after opening). Exempt authors are never touched.
+            decision = core.gate_decision(
+                author or "",
+                pr["author_association"],
+                pr["author_is_bot"],
+                pr["linked_issues"],
+            )
+            gate_action = core.gate_action(decision, gated, close_assigned_other=False)
+            if gate_action == "clear_label":
+                client.remove_label(number, core.GATE_LABEL)
+                gated = False
+            elif gate_action == "flag":
+                client.add_labels(number, [core.GATE_LABEL])
+                client.comment(number, messages.gate_flagged(author or "", decision))
+                gated = True
+                # The stale clock runs from this comment, not older activity.
+                gate_marked_at = now
+            if gated:
+                gate_issue = decision["issue"]
         changes_requested_at = core.outstanding_changes_requested_at(pr["reviews"])
         subject = core.pr_subject_to_stale(
-            core.is_exempt(pr["author_association"], False),
+            exempt,
             pr["is_draft"],
+            gated,
             changes_requested_at,
             core.latest_rereview_request_at(pr["review_requests"], contributors),
         )
         anchor = (
-            _stale_clock_anchor(client, now, pr, changes_requested_at)
+            _stale_clock_anchor(
+                client,
+                now,
+                pr,
+                changes_requested_at,
+                gate_marked_at if gated else None,
+            )
             if subject
             else None
         )
@@ -157,14 +204,13 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
             core.PR_STALE_DAYS,
             core.PR_CLOSE_DAYS,
         )
-        number = pr["number"]
         if action == "mark_stale":
             if label_present:
                 # A label someone else applied carries no engine label-event;
                 # cycle it so the close countdown has a fresh, own anchor.
                 client.remove_label(number, core.STALE_LABEL)
             client.add_labels(number, [core.STALE_LABEL])
-            client.comment(number, messages.pr_marked_stale())
+            client.comment(number, messages.pr_marked_stale(gate_issue))
         elif action == "clear_stale":
             client.remove_label(number, core.STALE_LABEL)
         elif action == "close":

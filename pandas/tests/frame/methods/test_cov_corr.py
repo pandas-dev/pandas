@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 class TestDataFrameCov:
-    def test_cov(self, float_frame, float_string_frame):
+    def test_cov(self, float_frame):
         # min_periods no NAs (corner case)
         expected = float_frame.cov()
         result = float_frame.cov(min_periods=len(float_frame))
@@ -33,13 +33,6 @@ class TestDataFrameCov:
         expected = frame["A"].cov(frame["C"])
         tm.assert_almost_equal(result["A"]["C"], expected)
 
-        # fails on non-numeric types
-        with pytest.raises(ValueError, match="could not convert string to float"):
-            float_string_frame.cov()
-        result = float_string_frame.cov(numeric_only=True)
-        expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].cov()
-        tm.assert_frame_equal(result, expected)
-
         # Single column frame
         df = pd.DataFrame(np.linspace(0.0, 1.0, 10))
         result = df.cov()
@@ -54,6 +47,13 @@ class TestDataFrameCov:
             index=df.columns,
             columns=df.columns,
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_cov_non_numeric(self, float_string_frame):
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            float_string_frame.cov()
+        result = float_string_frame.cov(numeric_only=True)
+        expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].cov()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])

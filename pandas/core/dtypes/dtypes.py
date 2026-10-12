@@ -501,21 +501,20 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         categories = self.categories
         ordered = self.ordered
 
+        if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
+            # TODO: hash_array doesn't handle mixed types. It casts
+            # everything to a str first, which means we treat
+            # {'1', '2'} the same as {'1', 2}
+            # find a better solution
+            if ordered:
+                return hash((tuple(categories), True))
+            # unordered: must not depend on category order, GH#51543
+            return hash(frozenset(categories))
+
         if len(categories) and isinstance(categories[0], tuple):
-            # assumes if any individual category is a tuple, then all our. ATM
-            # I don't really want to support just some of the categories being
-            # tuples.
             cat_list = list(categories)  # breaks if an np.array of categories
             cat_array = hash_tuples(cat_list)
         else:
-            if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
-                # TODO: hash_array doesn't handle mixed types. It casts
-                # everything to a str first, which means we treat
-                # {'1', '2'} the same as {'1', 2}
-                # find a better solution
-                hashed = hash((tuple(categories), ordered))
-                return hashed
-
             cat_array = hash_array(categories._values, categorize=False)
         if ordered:
             cat_array = np.vstack(
@@ -1417,7 +1416,7 @@ class IntervalDtype(PandasExtensionDtype):
         raise TypeError(msg)
 
     @property
-    def type(self) -> type[Interval]:
+    def type(self) -> type[Interval[Any]]:
         return Interval
 
     def __str__(self) -> str_type:
@@ -1477,7 +1476,6 @@ class IntervalDtype(PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import IntervalArray
-        from pandas.core.arrays.arrow.array import to_pyarrow_type
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -1502,12 +1500,7 @@ class IntervalDtype(PandasExtensionDtype):
             results.append(iarr)
 
         if not results:
-            empty = pyarrow.array([], type=to_pyarrow_type(self.subtype))
-            return IntervalArray.from_arrays(
-                _convert(empty),
-                _convert(empty),
-                closed=self.closed,
-            )
+            return IntervalArray._from_sequence([], dtype=self)
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
@@ -2549,12 +2542,27 @@ class ArrowDtype(StorageExtensionDtype):
             #  decimal/time/binary/list -> object.  GH#62343
             return first
 
-        new_dtype = find_common_type(
-            [
-                dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
-                for dtype in non_null_dtypes
-            ]
-        )
+        def unwrap(dtype: DtypeObj) -> DtypeObj:
+            if not isinstance(dtype, ArrowDtype):
+                return dtype
+            pa_dtype = dtype.pyarrow_dtype
+            if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+                # numpy_dtype drops the tz, which would unify tz-aware dtypes
+                #  into a tz-naive one (GH#69029)
+                return DatetimeTZDtype(unit=pa_dtype.unit, tz=pa_dtype.tz)
+            return dtype.numpy_dtype
+
+        try:
+            unwrapped = [unwrap(dtype) for dtype in non_null_dtypes]
+        except (KeyError, ValueError):
+            # pa.timestamp does not validate its tz, so it can carry a label
+            #  pandas cannot resolve; see test_get_common_dtype_unresolvable_tz
+            #  (GH#69029)
+            return None
+
+        new_dtype = find_common_type(unwrapped)
+        if isinstance(new_dtype, DatetimeTZDtype):
+            return type(self)(pa.timestamp(new_dtype.unit, tz=new_dtype.tz))
         if not isinstance(new_dtype, np.dtype):
             return None
         try:
@@ -2568,5 +2576,9 @@ class ArrowDtype(StorageExtensionDtype):
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """
         array_class = self.construct_array_type()
-        arr = array.cast(self.pyarrow_dtype, safe=True)
-        return array_class(arr)
+        # check_metadata=True also compares list field names, so those still
+        # get cast; skipping the no-op cast avoids a segfault on pyarrow<26,
+        # see https://github.com/apache/arrow/issues/37004
+        if not array.type.equals(self.pyarrow_dtype, check_metadata=True):
+            array = array.cast(self.pyarrow_dtype, safe=True)
+        return array_class(array)

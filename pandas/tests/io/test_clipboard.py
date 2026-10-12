@@ -290,6 +290,12 @@ class TestClipboard:
                 df.to_clipboard(**kwargs)
         assert clipboard.text() == "unchanged"
 
+    @pytest.mark.parametrize("float_format", ["%.3f", "{:.3f}".format])
+    def test_excel_float_format(self, df, clipboard, float_format):
+        # GH#9449 a callable float_format used to fall back to to_string
+        df.to_clipboard(float_format=float_format)
+        assert clipboard.text() == df.to_csv(sep="\t", float_format="%.3f")
+
     # Separator is ignored when excel=False and should produce a warning
     def test_copy_delim_warning(self, df):
         with tm.assert_produces_warning(UserWarning, match="ignores the sep argument"):

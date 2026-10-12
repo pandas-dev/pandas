@@ -212,7 +212,9 @@ def to_numeric(
 
     if isinstance(arg, ABCSeries):
         is_series = True
-        values = arg.values
+        values = arg._values
+        if needs_i8_conversion(arg.dtype):
+            values = values.view("i8")
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):
