@@ -846,7 +846,6 @@ class TestPivotTable:
             names=[None, "bar"],
         )
         expected = pd.DataFrame(data=data, index=index, columns=columns)
-        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -890,7 +889,6 @@ class TestPivotTable:
             names=[None, "foo"],
         )
         expected = pd.DataFrame(data=data, index=index, columns=columns)
-        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_columns_none_raise_error(self):
@@ -2991,6 +2989,45 @@ class TestPivot:
         with pytest.raises(ValueError, match="duplicate entries"):
             data.pivot(index="a", columns="b", values="c")
 
+    def test_pivot_list_values_preserves_dtypes(self):
+        # GH#43547
+        df = pd.DataFrame(
+            {
+                "idx": [0, 1, 0, 1],
+                "col": ["a", "a", "b", "b"],
+                "ints": [10, 20, 30, 40],
+                "nullable": pd.array([1, 2, 3, None], dtype="Int64"),
+                "floats": [0.1, 0.2, 0.3, 0.4],
+                "strs": ["A", "B", "C", "D"],
+                "dts": pd.date_range("2021-01-01", periods=4),
+            }
+        )
+        values = ["ints", "nullable", "floats", "strs", "dts"]
+        result = df.pivot(index="idx", columns="col", values=values)
+        expected = pd.concat(
+            {
+                "ints": pd.DataFrame({"a": [10, 20], "b": [30, 40]}),
+                "nullable": pd.DataFrame(
+                    {
+                        "a": pd.array([1, 2], dtype="Int64"),
+                        "b": pd.array([3, None], dtype="Int64"),
+                    }
+                ),
+                "floats": pd.DataFrame({"a": [0.1, 0.2], "b": [0.3, 0.4]}),
+                "strs": pd.DataFrame({"a": ["A", "B"], "b": ["C", "D"]}),
+                "dts": pd.DataFrame(
+                    {
+                        "a": df["dts"].iloc[[0, 1]].reset_index(drop=True),
+                        "b": df["dts"].iloc[[2, 3]].reset_index(drop=True),
+                    }
+                ),
+            },
+            axis=1,
+        )
+        expected.index.name = "idx"
+        expected.columns.names = [None, "col"]
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_empty(self):
         df = pd.DataFrame(columns=["a", "b", "c"])
         result = df.pivot(index="a", columns="b", values="c")
@@ -3268,10 +3305,9 @@ class TestPivot:
         df_expected = pd.DataFrame(
             [[1.0, np.nan, np.nan], [np.nan, 2.0, np.nan], [np.nan, np.nan, 3.0]],
             columns=multi_index,
+            dtype="float[pyarrow]",
         )
-        tm.assert_frame_equal(
-            df, df_expected, check_dtype=False, check_column_type=False
-        )
+        tm.assert_frame_equal(df, df_expected, check_column_type=False)
 
     @pytest.mark.parametrize("freq", ["D", "M", "Q", "Y"])
     def test_pivot_empty_dataframe_period_dtype(self, freq):
