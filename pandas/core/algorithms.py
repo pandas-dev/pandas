@@ -1471,35 +1471,94 @@ def take(
 # ------------------- #
 
 
-def _int_searchsorted(
-        data: np.ndarray, values, side: str, sorter
-    ) -> npt.NDArray[np.intp] | np.intp:
-        """searchsorted that avoids the uint64, int64, float64 promotion."""
+def _is_py_int(x) -> bool:
+    return isinstance(x, (int, np.integer)) and not isinstance(x, (bool, np.bool_))
+
+
+def _exact_int_values(values):
+    """
+    Convert list/tuple/scalar/ndarray to an array without silently
+    promoting mixed int64/uint64 (or huge) Python ints to float64.
+    """
+    if isinstance(values, (list, tuple)):
+        # check python int
+        if len(values) and all(_is_py_int(v) for v in values):
+            # if values not out of range of int64 use numpy saftely with int64 
+            lo, hi = min(values), max(values)
+            if -(2**63) <= lo and hi <= 2**63 - 1:
+                return np.asarray(values, dtype=np.int64)
+            # if values not out of range of uint64 use numpy saftely with uint64 
+            if 0 <= lo and hi <= 2**64 - 1:
+                return np.asarray(values, dtype=np.uint64)
+            # value not in range of int64 or uint64
+            # create object list to keep values and then later call _searchsorted_object_ints to sort
+            out = np.empty(len(values), dtype=object)
+            out[:] = list(values)
+            return out
+        return np.asarray(values)
+    return np.asarray(values)
+
+
+def _searchsorted_object_ints(data, values, side, sorter):
+    """values: object array of Python ints. Resolve out of range."""
+    info = np.iinfo(data.dtype)
+    flat = values.ravel()
+    # list mask for above or below range
+    below = np.fromiter((v < info.min for v in flat), dtype=bool, count=flat.size)
+    above = np.fromiter((v > info.max for v in flat), dtype=bool, count=flat.size)
+    # replace out of range values with safe values, using list masks
+    safe = np.array(
+        [info.min if b else info.max if a else v
+            for v, b, a in zip(flat, below, above)],
+        dtype=data.dtype,
+    )
+    res = data.searchsorted(safe, side=side, sorter=sorter)
+    # after search replace all small values bottom end
+    res[below] = 0 
+    # after search replace all largest values top end
+    res[above] = len(data) 
+    return res.reshape(values.shape)
+
+
+def _int_searchsorted(data: np.ndarray, values, side: str, sorter):
+    """searchsorted that avoids the uint64, int64, float64 promotion."""
+    # check if dtype is iu and is real int or nump int
+    if data.dtype.kind in "iu":
+        values = _exact_int_values(values)
+    else:
         values = np.asarray(values)
-        if (
-            data.dtype.kind in "iu"
-            and values.dtype.kind in "iu"
-            and data.dtype != values.dtype
-            # float check with numpy as only greater than 2**53 turn to floats
-            and np.result_type(data.dtype, values.dtype).kind == "f"
-        ):
-            scalar = values.ndim == 0
-            values = np.atleast_1d(values)
-            if data.dtype.kind == "u":  # unsigned data, signed values
-                neg = values < 0
-                # replace all neg values to avoid uint failure as not needed
-                safe = np.where(neg, 0, values).astype(data.dtype)
-                res = data.searchsorted(safe, side=side, sorter=sorter)
-                res[neg] = 0
-            else:  # signed data, uint64 values
-                info = np.iinfo(data.dtype)
-                big = values > info.max
-                # replace all large values to stop rounding issue
-                safe = np.where(big, info.max, values).astype(data.dtype)
-                res = data.searchsorted(safe, side=side, sorter=sorter)
-                res[big] = len(data)
-            return res[0] if scalar else res
-        return data.searchsorted(values, side=side, sorter=sorter)
+    # if list/tuple has below int64 and greater than uint64 and Object
+    if data.dtype.kind in "iu" and values.dtype.kind == "O" and all(
+        _is_py_int(v) for v in values.ravel()
+    ):
+        scalar = values.ndim == 0
+        res = _searchsorted_object_ints(data, np.atleast_1d(values), side, sorter)
+        return res[0] if scalar else res
+    # replace ndarry for either greater than u or below int64
+    if (
+        data.dtype.kind in "iu"
+        and values.dtype.kind in "iu"
+        and data.dtype != values.dtype
+        # float check with numpy as only greater than 2**53 turn to floats
+        and np.result_type(data.dtype, values.dtype).kind == "f"
+    ):
+        scalar = values.ndim == 0
+        values = np.atleast_1d(values)
+        if data.dtype.kind == "u":  # unsigned data, signed values
+            neg = values < 0
+            # replace all neg values to avoid uint failure as not needed
+            safe = np.where(neg, 0, values).astype(data.dtype)
+            res = data.searchsorted(safe, side=side, sorter=sorter)
+            res[neg] = 0
+        else:  # signed data, uint64 values
+            info = np.iinfo(data.dtype)
+            big = values > info.max
+            # replace all large values to stop rounding issue
+            safe = np.where(big, info.max, values).astype(data.dtype)
+            res = data.searchsorted(safe, side=side, sorter=sorter)
+            res[big] = len(data)
+        return res[0] if scalar else res
+    return data.searchsorted(values, side=side, sorter=sorter)
 
 # ------------ #
 # searchsorted #
