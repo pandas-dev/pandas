@@ -35,6 +35,7 @@ from pandas.io.stata import (
     StataMissingValue,
     StataReader,
     StataWriter,
+    StataWriter117,
     StataWriterUTF8,
     ValueLabelTypeMismatch,
     _datetime_to_stata_elapsed_vec,
@@ -2816,3 +2817,313 @@ def test_stata_elapsed_date_narrow_storage(fmt, dtype, value, expected):
     #  needs a value near its own bound to reach it.
     result = _stata_elapsed_date_to_datetime_vec(Series([value], dtype=dtype), fmt)
     tm.assert_series_equal(result, Series(np.array([expected], dtype="M8[s]")))
+
+
+def _chunked_writer(version):
+    # The writer class used by DataFrame.to_stata for each dta version
+    if version == 114:
+        return StataWriter, {}
+    if version == 117:
+        return StataWriter117, {}
+    return StataWriterUTF8, {"version": version}
+
+
+def _write_to_bytes(version, data, **kwargs):
+    writer_class, version_kwargs = _chunked_writer(version)
+    kwargs.setdefault("time_stamp", datetime(2000, 1, 1))
+    bio = io.BytesIO()
+    writer_class(bio, data, **version_kwargs, **kwargs).write_file()
+    return bio.getvalue()
+
+
+def _chunks(df, *bounds):
+    edges = [0, *bounds, len(df)]
+    return [df.iloc[start:stop] for start, stop in itertools.pairwise(edges)]
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+@pytest.mark.parametrize("byteorder", ["<", ">"])
+def test_chunked_write_matches_single_write(version, byteorder):
+    # GH#55881
+    df = DataFrame(
+        {
+            "int8": np.arange(10, dtype=np.int8),
+            "int64": np.arange(10, dtype=np.int64) * 1000,
+            "nullable": pd.array([1, None, 3, 4, 5, 6, 7, None, 9, 10], dtype="Int64"),
+            "float32": np.linspace(0, 1, 10, dtype=np.float32),
+            "float64": [1.5, np.nan, 2, 3, 4, 5, 6, 7, 8, 9],
+            "bool": [True, False] * 5,
+            "string": ["a", None, "ccc", "", "bb", "d", "e", "f", "g", "h"],
+            "date": pd.date_range("2020-01-01", periods=10),
+            "week": pd.date_range("2020-01-01", periods=10, freq="W"),
+            "category": pd.Categorical(list("xyzxyzxyzx")),
+        }
+    )
+    kwargs = {
+        "byteorder": byteorder,
+        "convert_dates": {"week": "tw"},
+        "variable_labels": {"int8": "An int8 column"},
+        "value_labels": {"int8": {1: "one", 2: "two"}},
+    }
+    expected = _write_to_bytes(version, df, **kwargs)
+    chunks = _chunks(df, 3, 3, 7)
+    result = _write_to_bytes(version, iter(chunks), **kwargs)
+    assert result == expected
+
+    reread = read_stata(io.BytesIO(result), convert_categoricals=False)
+    assert len(reread) == len(df)
+    tm.assert_series_equal(reread["int64"], Series(df["int64"], dtype=np.int32))
+
+
+@pytest.mark.parametrize("version", [117, 118, 119])
+def test_chunked_write_strl(version):
+    # GH#55881 strL values are collected across chunks
+    df = DataFrame(
+        {
+            "text": ["x" * 3000, "a", None, "x" * 3000, "b", "y" * 2500],
+            "forced": ["one", "two", "one", None, "three", "two"],
+            "number": np.arange(6, dtype=np.int32),
+        }
+    )
+    expected = _write_to_bytes(version, df, convert_strl=["forced"])
+    result = _write_to_bytes(version, _chunks(df, 2, 2, 5), convert_strl=["forced"])
+    assert result == expected
+    reread = read_stata(io.BytesIO(result))
+    expected_df = df.fillna("").reset_index()
+    expected_df["index"] = expected_df["index"].astype(np.int32)
+    tm.assert_frame_equal(reread, expected_df, check_dtype=False)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_chunked_write_dtype_drift(version):
+    # GH#55881 the types are fixed by the first chunk, so later chunks are
+    # cast to them instead of being written with their own dtype
+    chunks = [
+        DataFrame({"x": np.array([1, 2], dtype=np.int64)}),
+        DataFrame({"x": np.array([3, 4], dtype=np.int64)}),
+    ]
+    result = _write_to_bytes(version, chunks, write_index=False)
+    reread = read_stata(io.BytesIO(result))
+    expected = DataFrame({"x": np.array([1, 2, 3, 4], dtype=np.int32)})
+    tm.assert_frame_equal(reread, expected)
+
+    chunks.append(DataFrame({"x": np.array([5, 2**40], dtype=np.int64)}))
+    msg = "Column x has values between 5 and 1099511627776, outside the range"
+    with pytest.raises(ValueError, match=msg):
+        _write_to_bytes(version, chunks, write_index=False)
+
+    result = _write_to_bytes(
+        version, chunks, write_index=False, stata_types={"x": "double"}
+    )
+    reread = read_stata(io.BytesIO(result))
+    expected = DataFrame({"x": [1.0, 2, 3, 4, 5, 2**40]})
+    tm.assert_frame_equal(reread, expected)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_chunked_write_numeric_conversion(version):
+    # GH#55881
+    first = DataFrame({"b": np.array([1, 2], dtype=np.int8)})
+    with pytest.raises(ValueError, match="outside the range of the Stata byte"):
+        _write_to_bytes(version, [first, DataFrame({"b": [1, 101]})])
+
+    # Integer valued floats, e.g. from a SQL query with NULLs, are allowed
+    chunks = [first, DataFrame({"b": [3.0, np.nan]}), DataFrame({"b": [True]})]
+    result = _write_to_bytes(version, chunks, write_index=False)
+    reread = read_stata(io.BytesIO(result))
+    expected = DataFrame({"b": [1.0, 2, 3, np.nan, 1]})
+    tm.assert_frame_equal(reread, expected)
+
+    with pytest.raises(ValueError, match="contains non-integer values"):
+        _write_to_bytes(version, [first, DataFrame({"b": [1.5]})])
+    with pytest.raises(ValueError, match="contains infinity"):
+        _write_to_bytes(version, [DataFrame({"f": [1.0]}), DataFrame({"f": [np.inf]})])
+    with pytest.raises(ValueError, match="cannot be written to the Stata byte"):
+        _write_to_bytes(version, [first, DataFrame({"b": ["a"]})])
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_chunked_write_string_width(version):
+    # GH#55881 the width of string variables is fixed by the first chunk
+    chunks = [DataFrame({"s": ["a", "bb"]}), DataFrame({"s": ["ccc", None]})]
+    msg = (
+        "Column s contains a string of 3 bytes, longer than the 2 bytes of the "
+        r"Stata str2 variable s.*stata_types=\{'s': 'str3'\}"
+    )
+    with pytest.raises(ValueError, match=msg):
+        _write_to_bytes(version, chunks)
+
+    result = _write_to_bytes(
+        version, chunks, write_index=False, stata_types={"s": "str3"}
+    )
+    reread = read_stata(io.BytesIO(result))
+    tm.assert_frame_equal(reread, DataFrame({"s": ["a", "bb", "ccc", ""]}))
+
+    with pytest.raises(ValueError, match="must contain only strings"):
+        _write_to_bytes(version, [chunks[0], DataFrame({"s": [1]})])
+
+
+@pytest.mark.parametrize("version", [117, 118, 119])
+def test_chunked_write_declared_strl(version):
+    # GH#55881
+    chunks = [DataFrame({"s": ["a"]}), DataFrame({"s": ["b" * 5000, None]})]
+    result = _write_to_bytes(
+        version, chunks, write_index=False, stata_types={"s": "strL"}
+    )
+    reread = read_stata(io.BytesIO(result))
+    tm.assert_frame_equal(reread, DataFrame({"s": ["a", "b" * 5000, ""]}))
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_chunked_write_categoricals(version):
+    # GH#55881 value labels contain the union of the categories of all chunks
+    chunks = [
+        DataFrame({"c": pd.Categorical(["a", "b", None])}),
+        DataFrame({"c": pd.Categorical(["c", "a"], categories=["c", "a"])}),
+        DataFrame({"c": pd.Categorical([], categories=["a"])}),
+    ]
+    result = _write_to_bytes(version, chunks, write_index=False)
+    with StataReader(io.BytesIO(result)) as reader:
+        reread = reader.read()
+        assert reader.value_labels() == {"c": {0: "a", 1: "b", 2: "c"}}
+    expected = DataFrame(
+        {
+            "c": pd.Categorical(
+                ["a", "b", None, "c", "a"], categories=["a", "b", "c"], ordered=True
+            )
+        }
+    )
+    tm.assert_frame_equal(reread, expected)
+
+    with pytest.raises(ValueError, match="must be categorical in every chunk"):
+        _write_to_bytes(version, [chunks[0], DataFrame({"c": ["a"]})])
+
+    many = DataFrame({"c": pd.Categorical([str(i) for i in range(101, 202)])})
+    with pytest.raises(ValueError, match="103 categories across chunks"):
+        _write_to_bytes(version, [chunks[0][:0], many])
+    _write_to_bytes(version, [chunks[0], many], stata_types={"c": "int"})
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_chunked_write_empty_chunks(version):
+    # GH#55881
+    df = DataFrame({"a": [1, 2, 3], "s": ["x", "yy", None]})
+    chunks = [df[:0], df[:2], df[:0], df[2:], df[:0]]
+    result = _write_to_bytes(
+        version, chunks, write_index=False, stata_types={"a": "long", "s": "str2"}
+    )
+    reread = read_stata(io.BytesIO(result))
+    expected = DataFrame(
+        {"a": np.array([1, 2, 3], dtype=np.int32), "s": ["x", "yy", ""]}
+    )
+    tm.assert_frame_equal(reread, expected)
+
+    # Only empty chunks
+    result = _write_to_bytes(version, [df[:0], df[:0]], write_index=False)
+    reread = read_stata(io.BytesIO(result))
+    assert reread.shape == (0, 2)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_chunked_write_non_seekable(version):
+    # GH#55881 the header is updated after the data has been written
+    class NonSeekable(io.BytesIO):
+        def seekable(self):
+            return False
+
+    writer_class, kwargs = _chunked_writer(version)
+    writer = writer_class(NonSeekable(), [DataFrame({"a": [1]})], **kwargs)
+    with pytest.raises(ValueError, match="requires a seekable output"):
+        writer.write_file()
+
+
+def test_chunked_write_to_path(temp_file):
+    # GH#55881
+    df = DataFrame({"a": np.arange(5, dtype=np.int32), "b": list("abcde")})
+    StataWriterUTF8(temp_file, _chunks(df, 1, 4), write_index=False).write_file()
+    tm.assert_frame_equal(read_stata(temp_file), df)
+
+    # The file is removed if a chunk cannot be written
+    chunks = [df, DataFrame({"a": [1], "b": ["too long"]})]
+    with pytest.raises(ValueError, match="longer than"):
+        StataWriterUTF8(temp_file, chunks).write_file()
+    assert not os.path.exists(temp_file)
+
+
+def test_chunked_write_compression(tmp_path):
+    # GH#55881
+    df = DataFrame({"a": np.arange(5, dtype=np.int32)})
+    path = tmp_path / "chunked.dta.gz"
+    StataWriter117(path, _chunks(df, 2), write_index=False).write_file()
+    tm.assert_frame_equal(read_stata(path), df)
+
+
+def test_chunked_write_once():
+    # GH#55881
+    writer = StataWriter(io.BytesIO(), iter([DataFrame({"a": [1]})]))
+    writer.write_file()
+    with pytest.raises(ValueError, match="can only write its file once"):
+        writer.write_file()
+
+
+def test_chunked_write_invalid():
+    # GH#55881
+    df = DataFrame({"a": [1], "d": pd.to_datetime(["2020-01-01"])})
+    with pytest.raises(ValueError, match="at least one DataFrame"):
+        StataWriter(io.BytesIO(), [])
+    with pytest.raises(TypeError, match="must only contain DataFrames"):
+        StataWriter(io.BytesIO(), [{"a": [1]}])
+    with pytest.raises(TypeError, match="must only contain DataFrames"):
+        StataWriter(io.BytesIO(), [df, {"a": [1]}]).write_file()
+    with pytest.raises(TypeError, match="DataFrame or an iterable of DataFrames"):
+        StataWriter(io.BytesIO(), df["a"])
+    with pytest.raises(ValueError, match="same columns as the first chunk"):
+        StataWriter(io.BytesIO(), [df, df[["a"]]]).write_file()
+    with pytest.raises(ValueError, match="'int64' is not a valid Stata type"):
+        StataWriter(io.BytesIO(), df, stata_types={"a": "int64"})
+    with pytest.raises(ValueError, match="'strL' is not a valid Stata type"):
+        StataWriter(io.BytesIO(), df, stata_types={"a": "strL"})
+    with pytest.raises(ValueError, match="str245 of a is too wide"):
+        StataWriter(io.BytesIO(), df, stata_types={"a": "str245"})
+    with pytest.raises(KeyError, match="Can't apply the Stata type for b"):
+        StataWriter(io.BytesIO(), df, stata_types={"b": "byte"})
+    with pytest.raises(ValueError, match="dates are always stored as double"):
+        StataWriter(io.BytesIO(), df, stata_types={"d": "long"})
+    cat = DataFrame({"c": pd.Categorical(["a"])})
+    with pytest.raises(ValueError, match="must be an integer type"):
+        StataWriter(io.BytesIO(), cat, stata_types={"c": "double"})
+
+
+def test_stata_types_single_frame():
+    # GH#55881 stata_types also applies when writing a single DataFrame
+    df = DataFrame({"a": [1, 2], "s": [None, None], "renamed col": [1.5, 2.5]})
+    with tm.assert_produces_warning(InvalidColumnName, match="renamed col"):
+        result = _write_to_bytes(
+            118,
+            df,
+            write_index=False,
+            stata_types={"a": "byte", "s": "str4", "renamed col": "float"},
+        )
+    with StataReader(io.BytesIO(result)) as reader:
+        reread = reader.read()
+        assert reader._typlist == ["b", 4, "f"]
+        assert reader._fmtlist == ["%8.0g", "%4s", "%9.0g"]
+    expected = DataFrame(
+        {
+            "a": np.array([1, 2], dtype=np.int8),
+            "s": ["", ""],
+            "renamed_col": np.array([1.5, 2.5], dtype=np.float32),
+        }
+    )
+    tm.assert_frame_equal(reread, expected)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_empty_categorical(temp_file, version):
+    # GH#55881 writing an empty categorical column raised
+    df = DataFrame({"c": pd.Categorical([], categories=["a", "b"])})
+    df.to_stata(temp_file, write_index=False, version=version)
+    with StataReader(temp_file) as reader:
+        reread = reader.read()
+        assert reader.value_labels() == {"c": {0: "a", 1: "b"}}
+    assert reread.shape == (0, 1)

@@ -6301,6 +6301,44 @@ outside of this range, the variable is cast to ``int16``.
   115 dta file format. Attempting to write *Stata* dta files with strings
   longer than 244 characters raises a ``ValueError``.
 
+.. _io.stata_writer_chunks:
+
+Writing in chunks
++++++++++++++++++
+
+.. versionadded:: 3.2.0
+
+Data that does not fit in memory can be written in chunks by passing an
+iterable of DataFrames, such as the iterator returned by :func:`read_sql` or
+:func:`read_csv` with ``chunksize``, to :class:`~pandas.io.stata.StataWriter`,
+:class:`~pandas.io.stata.StataWriter117` or
+:class:`~pandas.io.stata.StataWriterUTF8`. The first chunk determines the
+variables in the file and their types, because these are written in the header
+before any data. Each further chunk is converted to these types, and a
+``ValueError`` is raised if its values cannot be stored in them, for example an
+integer above 100 in a ``byte`` variable or a string longer than the width of a
+fixed width string variable. Use ``stata_types`` to declare the type of
+variables whose values in the first chunk are not representative.
+
+.. code-block:: python
+
+   from pandas.io.stata import StataWriterUTF8
+
+   chunks = pd.read_csv("large.csv", chunksize=100_000)
+   writer = StataWriterUTF8(
+       "large.dta",
+       chunks,
+       write_index=False,
+       stata_types={"id": "long", "amount": "double", "name": "str40"},
+   )
+   writer.write_file()
+
+Valid types are ``"byte"``, ``"int"`` (16-bit), ``"long"`` (32-bit),
+``"float"``, ``"double"``, ``"str<N>"`` and, for format 117 and later,
+``"strL"``. Categorical value labels contain the union of the categories of
+all chunks. Since the number of observations is only known once all chunks
+have been written, the output must be seekable.
+
 .. _io.stata_reader:
 
 Reading from Stata format

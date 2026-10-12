@@ -18,7 +18,9 @@ from datetime import (
     timedelta,
 )
 from io import BytesIO
+import itertools
 import os
+import re
 import struct
 import sys
 from typing import (
@@ -51,6 +53,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_numeric_dtype,
     is_string_dtype,
 )
@@ -75,6 +78,9 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Iterable,
+        Iterator,
+        Mapping,
         Sequence,
     )
     from types import TracebackType
@@ -2445,6 +2451,55 @@ def _dtype_to_default_stata_fmt(
         raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
+# Stata numeric storage types accepted in ``stata_types``, mapped to the NumPy
+# dtype used on disk and the default display format.
+_stata_numeric_types: Final = {
+    "byte": (np.dtype(np.int8), "%8.0g"),
+    "int": (np.dtype(np.int16), "%8.0g"),
+    "long": (np.dtype(np.int32), "%12.0g"),
+    "float": (np.dtype(np.float32), "%9.0g"),
+    "double": (np.dtype(np.float64), "%10.0g"),
+}
+_stata_fixed_str_re: Final = re.compile(r"str([1-9][0-9]*)")
+# Keys of StataParser.VALID_RANGE and MISSING_VALUES for each numeric type
+_stata_range_keys: Final = {
+    np.dtype(np.int8): "b",
+    np.dtype(np.int16): "h",
+    np.dtype(np.int32): "l",
+    np.dtype(np.float32): "f",
+    np.dtype(np.float64): "d",
+}
+
+
+def _split_chunks(
+    data: DataFrame | Iterable[DataFrame],
+) -> tuple[DataFrame, Iterator[DataFrame] | None]:
+    """
+    Split the data passed to a StataWriter into the first DataFrame, which
+    determines the schema of the file, and an iterator over the remaining
+    chunks. The iterator is None when a single DataFrame was passed.
+    """
+    if isinstance(data, DataFrame):
+        return data, None
+    if isinstance(data, (str, bytes, Series)) or not isinstance(data, abc.Iterable):
+        raise TypeError(
+            "data must be a DataFrame or an iterable of DataFrames, "
+            f"got {type(data).__name__}"
+        )
+    chunks = iter(data)
+    first = next(chunks, None)
+    if first is None:
+        raise ValueError(
+            "data must contain at least one DataFrame; the first DataFrame "
+            "determines the variables and types of the Stata file."
+        )
+    if not isinstance(first, DataFrame):
+        raise TypeError(
+            f"data must only contain DataFrames, got {type(first).__name__}"
+        )
+    return first, chunks
+
+
 class StataWriter(StataParser):
     """
     A class for writing Stata binary dta files
@@ -2456,8 +2511,10 @@ class StataWriter(StataParser):
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
-    data : DataFrame
-        Input to save
+    data : DataFrame or iterable of DataFrame
+        Input to save. If an iterable of DataFrames is passed, the chunks are
+        written one after another to a single file without concatenating them
+        in memory. See the Notes section.
     convert_dates : dict
         Dictionary mapping columns containing datetime types to stata internal
         format to use when writing the dates. Options are 'tc', 'td', 'tm',
@@ -2505,6 +2562,16 @@ class StataWriter(StataParser):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
+    stata_types : dict, optional
+        Dictionary mapping columns to the Stata storage type to use instead of
+        the type inferred from the data (or from the first chunk). Valid types
+        are ``"byte"``, ``"int"``, ``"long"``, ``"float"``, ``"double"``,
+        ``"str<N>"`` for a fixed width string of ``N`` bytes. Note that
+        Stata's ``"int"`` is a 16-bit integer and ``"long"`` a 32-bit integer.
+        Useful when writing chunks, because the type of every variable is
+        fixed when the header is written.
+
+        .. versionadded:: 3.2.0
 
     Returns
     -------
@@ -2522,6 +2589,22 @@ class StataWriter(StataParser):
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
         * Categorical label contains more than 32,000 characters
+        * A chunk is incompatible with the variables of the file
+
+    Notes
+    -----
+    When ``data`` is an iterable of DataFrames, the first DataFrame fixes the
+    variables of the file and their types; each further chunk must have the
+    same columns, and its values are converted to those types. A
+    ``ValueError`` is raised if a chunk contains values that cannot be stored
+    in the type of its variable, for example an integer outside the range of
+    a ``byte`` or a string longer than the width of a fixed width string
+    variable. Use ``stata_types`` to declare wider types up front. Categorical
+    columns may have different categories in each chunk; the value labels of
+    the file contain the union of the categories. The number of
+    observations is written into the header once all chunks have been
+    written, so the output must be seekable. The index of each chunk is
+    written unchanged when ``write_index`` is True.
 
     Examples
     --------
@@ -2539,15 +2622,35 @@ class StataWriter(StataParser):
     >>> data = pd.DataFrame([[datetime(2000, 1, 1)]], columns=["date"])
     >>> writer = StataWriter("./date_data_file.dta", data, {"date": "tw"})
     >>> writer.write_file()
+
+    Write a file from chunks, for example the iterator returned by
+    ``read_sql`` or ``read_csv`` with ``chunksize``, declaring the
+    types of variables whose values may not fit the type inferred from the
+    first chunk
+    >>> chunks = (pd.DataFrame({"a": [i, 2 * i]}) for i in [1, 1000, 100_000])
+    >>> writer = StataWriter(
+    ...     "./chunked_data_file.dta", chunks, stata_types={"a": "long"}
+    ... )
+    >>> writer.write_file()
     """
 
     _max_string_length = 244
+    _dta_version = 114
     _encoding: Literal["latin-1", "utf-8"] = "latin-1"
+
+    _numeric_stata_types: dict[int, np.dtype] = {
+        251: np.dtype(np.int8),
+        252: np.dtype(np.int16),
+        253: np.dtype(np.int32),
+        254: np.dtype(np.float32),
+        255: np.dtype(np.float64),
+    }
+    _strl_stata_type: int | None = None
 
     def __init__(
         self,
         fname: FilePath | WriteBuffer[bytes],
-        data: DataFrame,
+        data: DataFrame | Iterable[DataFrame],
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
@@ -2558,9 +2661,11 @@ class StataWriter(StataParser):
         storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
+        stata_types: Mapping[Hashable, str] | None = None,
     ) -> None:
         super().__init__()
-        self.data = data
+        first, chunks = _split_chunks(data)
+        self.data = first
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._time_stamp = time_stamp
@@ -2572,8 +2677,24 @@ class StataWriter(StataParser):
         self._compression = compression
         self._output_file: IO[bytes] | None = None
         self._converted_names: dict[Hashable, str] = {}
+        # Chunked writing: every chunk, including the first, is converted to
+        # the types fixed by the first chunk (and stata_types) when written
+        self._stata_types = {
+            key: self._parse_stata_type(key, spec)
+            for key, spec in (stata_types or {}).items()
+        }
+        self._chunks = chunks
+        self._chunked = chunks is not None or bool(self._stata_types)
+        self._first_chunk = first if self._chunked else None
+        self._input_columns: list[Hashable] = []
+        self._categories: dict[int, Index] = {}
+        self._strl_writer: StataStrLWriter | None = None
+        self._nobs_offset = 0
+        self._nobs_format = "i"
         # attach nobs, nvars, data, varlist, typlist
-        self._prepare_pandas(data)
+        self._prepare_pandas(first)
+        if self._chunked:
+            self._apply_stata_types()
         self.storage_options = storage_options
 
         if byteorder is None:
@@ -2640,10 +2761,11 @@ class StataWriter(StataParser):
 
         get_base_missing_value = StataMissingValue.get_base_missing_value
         data_formatted = []
-        for col, col_is_cat in zip(data, is_cat, strict=True):
+        for loc, (col, col_is_cat) in enumerate(zip(data, is_cat, strict=True)):
             if col_is_cat:
                 svl = StataValueLabel(data[col], encoding=self._encoding)
                 self._value_labels.append(svl)
+                self._categories[loc] = data[col].cat.categories
                 dtype = data[col].cat.codes.dtype
                 if dtype == np.int64:
                     raise ValueError(
@@ -2653,7 +2775,7 @@ class StataWriter(StataParser):
                 values = data[col].cat.codes._values.copy()
 
                 # Upcast if needed so that correct missing values can be set
-                if values.max() >= get_base_missing_value(dtype):
+                if len(values) and values.max() >= get_base_missing_value(dtype):
                     if dtype == np.int8:
                         dtype = np.dtype(np.int16)
                     elif dtype == np.int16:
@@ -2803,12 +2925,10 @@ class StataWriter(StataParser):
         # NOTE: we might need a different API / class for pandas objects so
         # we can set different semantics - handle this with a PR to pandas.io
 
-        data = data.copy()
-
-        if self._write_index:
-            temp = data.reset_index()
-            if isinstance(temp, DataFrame):
-                data = temp
+        data = self._maybe_reset_index(data.copy())
+        self._input_columns = list(data.columns)
+        if self._stata_types:
+            data = self._replace_declared_columns(data)
 
         # Ensure column names are strings
         data = self._check_column_names(data)
@@ -2903,6 +3023,363 @@ supported types."""
                 ):
                     self.data[col] = encoded
 
+    def _maybe_reset_index(self, data: DataFrame) -> DataFrame:
+        if self._write_index:
+            temp = data.reset_index()
+            if isinstance(temp, DataFrame):
+                return temp
+        return data
+
+    def _parse_stata_type(self, column: Hashable, spec: str) -> tuple[int, str]:
+        """
+        Convert a Stata storage type name from ``stata_types`` to the type
+        code used in the file and its default display format.
+        """
+        if not isinstance(spec, str):
+            raise TypeError(
+                f"The Stata type for {column} must be a string, got {spec!r}"
+            )
+        if spec in _stata_numeric_types:
+            dtype, fmt = _stata_numeric_types[spec]
+            for typ, typ_dtype in self._numeric_stata_types.items():
+                if typ_dtype == dtype:
+                    return typ, fmt
+        match = _stata_fixed_str_re.fullmatch(spec)
+        if match is not None:
+            width = int(match.group(1))
+            if width > self._max_string_length:
+                raise ValueError(
+                    f"The Stata type {spec} of {column} is too wide; fixed width "
+                    f"strings are limited to {self._max_string_length} bytes in "
+                    "this version of the dta format."
+                )
+            return width, f"%{width}s"
+        if spec == "strL" and self._strl_stata_type is not None:
+            return self._strl_stata_type, "%9s"
+        valid = ", ".join(f'"{name}"' for name in _stata_numeric_types)
+        valid += ', "str<N>"'
+        if self._strl_stata_type is not None:
+            valid += ', "strL"'
+        raise ValueError(
+            f"{spec!r} is not a valid Stata type for {column}. Valid types are {valid}."
+        )
+
+    def _replace_declared_columns(self, data: DataFrame) -> DataFrame:
+        """
+        Replace columns with a type in ``stata_types`` by placeholders so the
+        values of the first chunk do not affect the inferred schema. The
+        declared types are applied in ``_apply_stata_types``.
+        """
+        for key, (typ, _) in self._stata_types.items():
+            if key not in data.columns:
+                raise KeyError(
+                    f"Can't apply the Stata type for {key}, it wasn't found in "
+                    "the dataset."
+                )
+            column = data[key]
+            if key in self._convert_dates or lib.is_np_dtype(column.dtype, "M"):
+                raise ValueError(
+                    f"Can't set the Stata type of {key}; dates are always "
+                    "stored as double. Use convert_dates to choose the date "
+                    "format."
+                )
+            if isinstance(column.dtype, CategoricalDtype):
+                continue
+            if typ in self._numeric_stata_types:
+                data[key] = np.zeros(len(data), dtype=np.float64)
+            else:
+                data[key] = Series([""] * len(data), index=data.index, dtype=object)
+        return data
+
+    def _apply_stata_types(self) -> None:
+        """Set the declared types of the variables listed in ``stata_types``."""
+        for key, (typ, fmt) in self._stata_types.items():
+            loc = self.varlist.index(self._converted_names.get(key, key))
+            if loc in self._categories:
+                dtype = self._numeric_stata_types.get(typ)
+                if dtype is None or dtype.kind != "i":
+                    raise ValueError(
+                        f"{key} is categorical, so its Stata type must be an "
+                        'integer type ("byte", "int" or "long").'
+                    )
+            self.typlist[loc] = typ
+            self.fmtlist[loc] = fmt
+
+    def _check_can_write_chunks(self) -> None:
+        if self._first_chunk is None:
+            raise ValueError(
+                "The chunks have already been written. A StataWriter created "
+                "from an iterable of DataFrames can only write its file once."
+            )
+        handle = self.handles.handle
+        seekable = getattr(handle, "seekable", None)
+        if seekable is None or not seekable():
+            raise ValueError(
+                "Writing a Stata file from chunks requires a seekable output, "
+                "because the number of observations in the header is only "
+                "known after all chunks have been written. Write to a path, a "
+                "regular file or a BytesIO buffer instead."
+            )
+
+    def _iter_chunks(self) -> Iterator[DataFrame]:
+        first = self._first_chunk
+        assert first is not None
+        if self._chunks is None:
+            # A single DataFrame (with stata_types) can be written repeatedly
+            yield first
+            return
+        self._first_chunk = None
+        yield first
+        for chunk in self._chunks:
+            if not isinstance(chunk, DataFrame):
+                raise TypeError(
+                    f"data must only contain DataFrames, got {type(chunk).__name__}"
+                )
+            yield chunk
+
+    def _write_data_start(self) -> None:
+        """No-op, future compatibility"""
+
+    def _write_data_end(self) -> None:
+        """No-op, future compatibility"""
+
+    def _write_data_chunks(self) -> None:
+        """
+        Convert each chunk to the types of the variables in the file and write
+        it, then prepare the strLs and value labels that follow the data.
+        """
+        max_nobs = 2**63 - 1 if self._nobs_format == "Q" else 2**31 - 1
+        if self._nobs_format == "I":
+            max_nobs = 2**32 - 1
+        nobs = 0
+        self._write_data_start()
+        for chunk in self._iter_chunks():
+            records = self._prepare_chunk(chunk, nobs)
+            nobs += len(records)
+            if nobs > max_nobs:
+                raise ValueError(
+                    f"The data has more than {max_nobs} observations, the "
+                    "maximum supported by this version of the dta format."
+                )
+            self._write_bytes(records.tobytes())
+        self._write_data_end()
+        self.nobs = nobs
+        if self._strl_writer is not None:
+            self._strl_blob = self._strl_writer.generate_blob(
+                self._strl_writer._gso_table
+            )
+        # Value labels for categoricals use the categories of all chunks
+        for loc, categories in self._categories.items():
+            name = self.varlist[loc]
+            cat = Series(Categorical.from_codes([], categories=categories), name=name)
+            svl = StataValueLabel(cat, encoding=self._encoding)
+            self._value_labels = [
+                svl
+                if vl.labname == name and not isinstance(vl, StataNonCatValueLabel)
+                else vl
+                for vl in self._value_labels
+            ]
+
+    def _update_nobs(self) -> None:
+        """Write the final number of observations into the header."""
+        handle = self.handles.handle
+        end = handle.tell()
+        handle.seek(self._nobs_offset)
+        self._write_bytes(struct.pack(self._byteorder + self._nobs_format, self.nobs))
+        handle.seek(end)
+
+    def _prepare_chunk(self, chunk: DataFrame, row_offset: int) -> np.ndarray:
+        """
+        Convert a chunk to a record array matching the variables of the file.
+        """
+        data = self._maybe_reset_index(chunk.copy(deep=False))
+        if list(data.columns) != self._input_columns:
+            raise ValueError(
+                "All chunks must have the same columns as the first chunk. "
+                f"Expected {self._input_columns}, got {list(data.columns)}."
+            )
+        data.columns = Index(self.varlist)
+        native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
+        arrays: dict[str, np.ndarray] = {}
+        strls = []
+        for loc, (name, typ) in enumerate(zip(self.varlist, self.typlist, strict=True)):
+            column = data.iloc[:, loc]
+            if loc in self._convert_dates:
+                dates = _datetime_to_stata_elapsed_vec(column.copy(), self.fmtlist[loc])
+                arrays[name] = self._chunk_to_numeric(dates, typ, name)
+            elif loc in self._categories:
+                arrays[name] = self._chunk_to_codes(column, loc, typ, name)
+            elif typ == self._strl_stata_type:
+                data[name] = self._chunk_to_strings(column, name)
+                strls.append(name)
+            elif typ <= self._max_string_length:
+                arrays[name] = self._chunk_to_fixed_strings(column, typ, name)
+            else:
+                arrays[name] = self._chunk_to_numeric(column, typ, name)
+
+        if strls:
+            if self._strl_writer is None:
+                self._strl_writer = StataStrLWriter(
+                    data,
+                    strls,
+                    version=self._dta_version,
+                    byteorder=self._byteorder,
+                )
+            ssw = self._strl_writer
+            ssw.df, ssw._row_offset = data, row_offset
+            _, data = ssw.generate_table()
+            for name in strls:
+                arrays[name] = data[name].to_numpy(dtype=np.uint64)
+
+        dtypes = []
+        for name in self.varlist:
+            dtype = arrays[name].dtype
+            if dtype.kind != "S" and not native_byteorder:
+                # The arrays are in native byte order, swap to the file's order
+                dtype = dtype.newbyteorder("S")
+            dtypes.append((name, dtype))
+        records = np.empty(len(data), dtype=np.dtype(dtypes))
+        for name in self.varlist:
+            records[name] = arrays[name]
+        return records
+
+    def _type_name(self, typ: int) -> str:
+        """Stata name of a type code, used in error messages."""
+        if typ == self._strl_stata_type:
+            return "strL"
+        if typ <= self._max_string_length:
+            return f"str{typ}"
+        dtype = self._numeric_stata_types[typ]
+        return next(k for k, (v, _) in _stata_numeric_types.items() if v == dtype)
+
+    def _chunk_to_numeric(self, column: Series, typ: int, name: str) -> np.ndarray:
+        """
+        Cast a column of a chunk to the numeric type of its variable, raising if
+        a value is not representable and replacing missing values by Stata's
+        missing value for the type.
+        """
+        dtype = self._numeric_stata_types[typ]
+        if isinstance(column.dtype, CategoricalDtype):
+            column = Series(np.asarray(column), name=column.name)
+        missing = column.isna().to_numpy(dtype=bool)
+        valid = column[~missing]
+        if is_bool_dtype(valid.dtype):
+            valid = valid.astype(np.int8)
+        elif not is_numeric_dtype(valid.dtype):
+            if len(valid):
+                raise ValueError(
+                    f"Column {name} has dtype {column.dtype}, which cannot be "
+                    f"written to the Stata {self._type_name(typ)} variable {name}."
+                )
+            valid = valid.astype(dtype)
+        values = valid.to_numpy()
+        char = _stata_range_keys[dtype]
+        lower, upper = self.VALID_RANGE[char]
+        if len(values):
+            if values.dtype.kind == "f":
+                if np.isinf(values).any():
+                    raise ValueError(
+                        f"Column {name} contains infinity or -infinity which is "
+                        "outside the range supported by Stata."
+                    )
+                if dtype.kind == "i" and (values != np.round(values)).any():
+                    raise ValueError(
+                        f"Column {name} contains non-integer values, which cannot "
+                        f"be written to the Stata {self._type_name(typ)} "
+                        f"variable {name}. Pass stata_types={{{name!r}: "
+                        "'double'}} to store it as a floating point variable."
+                    )
+            vmin, vmax = values.min(), values.max()
+            if vmin < lower or vmax > upper:
+                raise ValueError(
+                    f"Column {name} has values between {vmin} and {vmax}, outside "
+                    f"the range of the Stata {self._type_name(typ)} variable "
+                    f"{name} ({lower} to {upper}). The type of a variable is "
+                    "fixed by the first chunk; use stata_types to declare a "
+                    "wider type."
+                )
+        result = np.full(len(column), self.MISSING_VALUES[char], dtype=dtype)
+        result[~missing] = values.astype(dtype)
+        return result
+
+    def _chunk_to_codes(
+        self, column: Series, loc: int, typ: int, name: str
+    ) -> np.ndarray:
+        """
+        Convert the codes of a categorical column to the codes of the union of
+        the categories of all chunks written so far.
+        """
+        if not isinstance(column.dtype, CategoricalDtype):
+            raise ValueError(
+                f"Column {name} is categorical in the first chunk, so it must be "
+                f"categorical in every chunk, got {column.dtype}."
+            )
+        categories = self._categories[loc]
+        chunk_categories = column.cat.categories
+        new = chunk_categories[~chunk_categories.isin(categories)]
+        if len(new):
+            categories = categories.append(new)
+            self._categories[loc] = categories
+        indexer = categories.get_indexer(chunk_categories)
+        codes = column.cat.codes.to_numpy()
+        missing = codes < 0
+        dtype = self._numeric_stata_types[typ]
+        char = _stata_range_keys[dtype]
+        # Codes from the base missing value up are reserved for missing values
+        upper = StataMissingValue.BASE_MISSING_VALUES[dtype.name] - 1
+        if len(categories) - 1 > upper:
+            raise ValueError(
+                f"Column {name} has {len(categories)} categories across chunks, "
+                f"more than the Stata {self._type_name(typ)} variable {name} can "
+                "label. Use stata_types to declare a wider integer type."
+            )
+        result = np.full(len(column), self.MISSING_VALUES[char], dtype)
+        result[~missing] = indexer[codes[~missing]]
+        return result
+
+    def _chunk_to_strings(self, column: Series, name: str) -> Series:
+        """Check that a column of a chunk contains only strings or missing."""
+        if isinstance(column.dtype, CategoricalDtype):
+            column = column.astype(object)
+        missing = column.isna()
+        if not missing.all() and (
+            not (is_string_dtype(column.dtype) or column.dtype == object)
+            or infer_dtype(column[~missing], skipna=False) != "string"
+        ):
+            raise ValueError(
+                f"Column {name} is a string variable, so it must contain only "
+                f"strings or missing values, got dtype {column.dtype}."
+            )
+        return column.astype(object).where(~missing, "")
+
+    def _chunk_to_fixed_strings(
+        self, column: Series, typ: int, name: str
+    ) -> np.ndarray:
+        """Encode a string column of a chunk to the fixed width of its variable."""
+        column = self._chunk_to_strings(column, name)
+        try:
+            encoded = [value.encode(self._encoding) for value in column]
+        except UnicodeEncodeError as err:
+            raise ValueError(
+                f"Column {name} contains strings that cannot be encoded in "
+                f"{self._encoding}."
+            ) from err
+        width = max(map(len, encoded), default=0)
+        if width > typ:
+            if width <= self._max_string_length:
+                hint = f"stata_types={{{name!r}: 'str{width}'}}"
+            elif self._strl_stata_type is not None:
+                hint = f"stata_types={{{name!r}: 'strL'}}"
+            else:
+                hint = "version 117 or later, which supports longer strings"
+            raise ValueError(
+                f"Column {name} contains a string of {width} bytes, longer than "
+                f"the {typ} bytes of the Stata str{typ} variable {name}. The "
+                "width of a string variable is fixed by the first chunk; use "
+                f"{hint}."
+            )
+        return np.array(encoded, dtype=f"S{typ}")
+
     def write_file(self) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2961,6 +3438,8 @@ supported types."""
                 self.handles.created_handles.append(self.handles.handle)
 
             try:
+                if self._chunked:
+                    self._check_can_write_chunks()
                 self._write_header(
                     data_label=self._data_label, time_stamp=self._time_stamp
                 )
@@ -2973,11 +3452,16 @@ supported types."""
                 self._write_variable_labels()
                 self._write_expansion_fields()
                 self._write_characteristics()
-                records = self._prepare_data()
-                self._write_data(records)
+                if self._chunked:
+                    self._write_data_chunks()
+                else:
+                    records = self._prepare_data()
+                    self._write_data(records)
                 self._write_strls()
                 self._write_value_labels()
                 self._write_file_close_tag()
+                if self._chunked:
+                    self._update_nobs()
                 self._write_map()
                 self._close()
             except Exception as exc:
@@ -3046,6 +3530,8 @@ supported types."""
         # number of vars, 2 bytes
         self._write_bytes(struct.pack(byteorder + "h", self.nvar)[:2])
         # number of obs, 4 bytes
+        self._nobs_offset = self.handles.handle.tell()
+        self._nobs_format = "i"
         self._write_bytes(struct.pack(byteorder + "i", self.nobs)[:4])
         # data label 81 bytes, char, null terminated
         if data_label is None:
@@ -3285,6 +3771,9 @@ class StataStrLWriter:
         self.df = df
         self.columns = columns
         self._gso_table = {"": (0, 0)}
+        # Number of observations already written, used to number the GSOs
+        # when a file is written in several chunks
+        self._row_offset = 0
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
@@ -3360,7 +3849,7 @@ class StataStrLWriter:
                 key = gso_table.get(val, None)
                 if key is None:
                     # Stata prefers human numbers
-                    key = (v + 1, o + 1)
+                    key = (v + 1, self._row_offset + o + 1)
                     gso_table[val] = key
                 keys[o, j] = self._convert_key(key)
         for i, col in enumerate(self.columns):
@@ -3447,8 +3936,10 @@ class StataWriter117(StataWriter):
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
-    data : DataFrame
-        Input to save
+    data : DataFrame or iterable of DataFrame
+        Input to save. If an iterable of DataFrames is passed, the chunks are
+        written one after another to a single file without concatenating them
+        in memory. See the Notes section.
     convert_dates : dict
         Dictionary mapping columns containing datetime types to stata internal
         format to use when writing the dates. Options are 'tc', 'td', 'tm',
@@ -3479,6 +3970,16 @@ class StataWriter117(StataWriter):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
+    stata_types : dict, optional
+        Dictionary mapping columns to the Stata storage type to use instead of
+        the type inferred from the data (or from the first chunk). Valid types
+        are ``"byte"``, ``"int"``, ``"long"``, ``"float"``, ``"double"``,
+        ``"str<N>"`` for a fixed width string of ``N`` bytes, or ``"strL"``. Note that
+        Stata's ``"int"`` is a 16-bit integer and ``"long"`` a 32-bit integer.
+        Useful when writing chunks, because the type of every variable is
+        fixed when the header is written.
+
+        .. versionadded:: 3.2.0
 
     Returns
     -------
@@ -3496,6 +3997,23 @@ class StataWriter117(StataWriter):
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
         * Categorical label contains more than 32,000 characters
+        * A chunk is incompatible with the variables of the file
+
+    Notes
+    -----
+    When ``data`` is an iterable of DataFrames, the first DataFrame fixes the
+    variables of the file and their types; each further chunk must have the
+    same columns, and its values are converted to those types. A
+    ``ValueError`` is raised if a chunk contains values that cannot be stored
+    in the type of its variable, for example an integer outside the range of
+    a ``byte`` or a string longer than the width of a fixed width string
+    variable. Use ``stata_types`` to declare wider types up front. Categorical
+    columns may have different categories in each chunk; the value labels of
+    the file contain the union of the categories. strL values are collected
+    across chunks and written after the data. The number of observations is
+    written into the header once all chunks have been written, so the output
+    must be seekable. The index of each chunk is written unchanged when
+    ``write_index`` is True.
 
     Examples
     --------
@@ -3522,11 +4040,19 @@ class StataWriter117(StataWriter):
 
     _max_string_length = 2045
     _dta_version = 117
+    _numeric_stata_types: dict[int, np.dtype] = {
+        65530: np.dtype(np.int8),
+        65529: np.dtype(np.int16),
+        65528: np.dtype(np.int32),
+        65527: np.dtype(np.float32),
+        65526: np.dtype(np.float64),
+    }
+    _strl_stata_type: int | None = 32768
 
     def __init__(
         self,
         fname: FilePath | WriteBuffer[bytes],
-        data: DataFrame,
+        data: DataFrame | Iterable[DataFrame],
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
@@ -3538,6 +4064,7 @@ class StataWriter117(StataWriter):
         storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
+        stata_types: Mapping[Hashable, str] | None = None,
     ) -> None:
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
@@ -3556,6 +4083,7 @@ class StataWriter117(StataWriter):
             value_labels=value_labels,
             compression=compression,
             storage_options=storage_options,
+            stata_types=stata_types,
         )
         self._map: dict[str, int] = {}
         self._strl_blob = b""
@@ -3579,6 +4107,7 @@ class StataWriter117(StataWriter):
     ) -> None:
         """Write the file header"""
         byteorder = self._byteorder
+        header_start = self.handles.handle.tell()
         self._write_bytes(bytes("<stata_dta>", "utf-8"))
         bio = BytesIO()
         # ds_format - 117
@@ -3590,6 +4119,11 @@ class StataWriter117(StataWriter):
         bio.write(self._tag(struct.pack(byteorder + nvar_type, self.nvar), "K"))
         # 117 uses 4 bytes, 118 uses 8
         nobs_size = "I" if self._dta_version == 117 else "Q"
+        # Position of the value of N, which is updated when writing chunks
+        self._nobs_offset = (
+            header_start + len(b"<stata_dta><header>") + bio.tell() + len(b"<N>")
+        )
+        self._nobs_format = nobs_size
         bio.write(self._tag(struct.pack(byteorder + nobs_size, self.nobs), "N"))
         # data label 81 bytes, char, null terminated
         label = data_label[:80] if data_label is not None else ""
@@ -3743,9 +4277,15 @@ class StataWriter117(StataWriter):
         self._write_bytes(self._tag(b"", "characteristics"))
 
     def _write_data(self, records: np.rec.recarray) -> None:
+        self._write_data_start()
+        self._write_bytes(records.tobytes())
+        self._write_data_end()
+
+    def _write_data_start(self) -> None:
         self._update_map("data")
         self._write_bytes(b"<data>")
-        self._write_bytes(records.tobytes())
+
+    def _write_data_end(self) -> None:
         self._write_bytes(b"</data>")
 
     def _write_strls(self) -> None:
@@ -3833,8 +4373,10 @@ class StataWriterUTF8(StataWriter117):
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
-    data : DataFrame
-        Input to save
+    data : DataFrame or iterable of DataFrame
+        Input to save. If an iterable of DataFrames is passed, the chunks are
+        written one after another to a single file without concatenating them
+        in memory. See the Notes section.
     convert_dates : dict, default None
         Dictionary mapping columns containing datetime types to stata internal
         format to use when writing the dates. Options are 'tc', 'td', 'tm',
@@ -3869,6 +4411,16 @@ class StataWriterUTF8(StataWriter117):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
+    stata_types : dict, optional
+        Dictionary mapping columns to the Stata storage type to use instead of
+        the type inferred from the data (or from the first chunk). Valid types
+        are ``"byte"``, ``"int"``, ``"long"``, ``"float"``, ``"double"``,
+        ``"str<N>"`` for a fixed width string of ``N`` bytes, or ``"strL"``. Note that
+        Stata's ``"int"`` is a 16-bit integer and ``"long"`` a 32-bit integer.
+        Useful when writing chunks, because the type of every variable is
+        fixed when the header is written.
+
+        .. versionadded:: 3.2.0
 
     Returns
     -------
@@ -3886,6 +4438,23 @@ class StataWriterUTF8(StataWriter117):
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
         * Categorical label contains more than 32,000 characters
+        * A chunk is incompatible with the variables of the file
+
+    Notes
+    -----
+    When ``data`` is an iterable of DataFrames, the first DataFrame fixes the
+    variables of the file and their types; each further chunk must have the
+    same columns, and its values are converted to those types. A
+    ``ValueError`` is raised if a chunk contains values that cannot be stored
+    in the type of its variable, for example an integer outside the range of
+    a ``byte`` or a string longer than the width of a fixed width string
+    variable. Use ``stata_types`` to declare wider types up front. Categorical
+    columns may have different categories in each chunk; the value labels of
+    the file contain the union of the categories. strL values are collected
+    across chunks and written after the data. The number of observations is
+    written into the header once all chunks have been written, so the output
+    must be seekable. The index of each chunk is written unchanged when
+    ``write_index`` is True.
 
     Examples
     --------
@@ -3917,7 +4486,7 @@ class StataWriterUTF8(StataWriter117):
     def __init__(
         self,
         fname: FilePath | WriteBuffer[bytes],
-        data: DataFrame,
+        data: DataFrame | Iterable[DataFrame],
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
@@ -3930,12 +4499,16 @@ class StataWriterUTF8(StataWriter117):
         storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
+        stata_types: Mapping[Hashable, str] | None = None,
     ) -> None:
+        first, chunks = _split_chunks(data)
+        if chunks is not None:
+            data = itertools.chain([first], chunks)
         if version is None:
-            version = 118 if data.shape[1] <= 32767 else 119
+            version = 118 if first.shape[1] <= 32767 else 119
         elif version not in (118, 119):
             raise ValueError("version must be either 118 or 119.")
-        elif version == 118 and data.shape[1] > 32767:
+        elif version == 118 and first.shape[1] > 32767:
             raise ValueError(
                 "You must use version 119 for data sets containing more than"
                 "32,767 variables"
@@ -3954,6 +4527,7 @@ class StataWriterUTF8(StataWriter117):
             convert_strl=convert_strl,
             compression=compression,
             storage_options=storage_options,
+            stata_types=stata_types,
         )
         # Override version set in StataWriter117 init
         self._dta_version = version
