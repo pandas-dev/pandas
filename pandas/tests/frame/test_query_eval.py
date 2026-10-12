@@ -2041,8 +2041,21 @@ def test_query_non_bool_result_raises(expr, got, engine, parser):
         df.query(expr, engine=engine, parser=parser)
 
 
+def test_query_label_selection_raises(engine):
+    # GH#8560 selecting rows by label through query is no longer supported; use .loc
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    labels = [0, 2]  # noqa: F841
+    with pytest.raises(ValueError, match="expr must evaluate to a boolean array"):
+        df.query("@labels", engine=engine)
+
+
 @pytest.mark.parametrize(
-    "dtype", ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+    "dtype",
+    [
+        "boolean",
+        "category",
+        pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
 )
 def test_query_ea_bool_result(dtype, parser):
     # GH#8560 boolean EA results, including NA, are still valid masks
