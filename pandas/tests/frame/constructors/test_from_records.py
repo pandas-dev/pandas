@@ -624,11 +624,13 @@ class TestFromRecords:
         expected = pd.DataFrame([[1], [2]], columns=pd.Index([missing_value]))
         tm.assert_frame_equal(result, expected)
 
-    def test_from_records_listlike_then_str_raises(self):
-        # GH#50461 the str record used to be split into characters
-        msg = "When the first row of data is list-like, all rows must be list-like"
-        with pytest.raises(TypeError, match=msg):
-            pd.DataFrame.from_records([["a", "b"], "cd"])
+    def test_from_records_listlike_then_str_deprecated(self):
+        # GH#50461 the str record is split into characters
+        msg = "a str or bytes row after a list-like row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.DataFrame.from_records([["a", "b"], "cd"])
+        expected = pd.DataFrame([["a", "b"], ["c", "d"]])
+        tm.assert_frame_equal(result, expected)
 
         # a str first record is unaffected
         result = pd.DataFrame.from_records(["ab", "cd"])

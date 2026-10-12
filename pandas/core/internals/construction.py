@@ -9,7 +9,6 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    NoReturn,
 )
 import warnings
 
@@ -826,17 +825,15 @@ def to_arrays(
         return arrays, columns
 
     if isinstance(data[0], (list, tuple)):
-        arr = _list_to_arrays(data)
+        has_str_rows = _warn_if_str_rows(data)
+        arr = _list_to_arrays(data, check_ragged=not has_str_rows)
     elif isinstance(data[0], abc.Mapping):
         arr, columns = _list_of_dict_to_arrays(data, columns)
     elif isinstance(data[0], ABCSeries):
         return _list_of_series_to_arrays(data, columns, dtype)
     else:
-        # a str first row is still split, e.g. from_records(["ab", "cd"])
-        if not is_scalar(data[0]):
-            for row in data:
-                if isinstance(row, (str, bytes)):
-                    _raise_str_row_error(row)
+        # a str first row is split without warning, e.g. from_records(["ab", "cd"])
+        has_str_rows = not is_scalar(data[0]) and _warn_if_str_rows(data)
 
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
@@ -860,21 +857,23 @@ def to_arrays(
             return arrays, columns
 
         data = [tuple(x) for x in data]
-        arr = _list_to_arrays(data)
+        arr = _list_to_arrays(data, check_ragged=not has_str_rows)
 
     content, columns = _finalize_columns_and_data(arr, columns, dtype)
     return content, columns
 
 
-def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
+def _list_to_arrays(
+    data: list[tuple[Any, ...] | list[Any]], check_ragged: bool = True
+) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
 
     # GH#65751 shorter sequences get padded with NaN out to the longest one,
     #  which is deprecated.  A null scalar counts as length 1, mirroring the
     #  handling in lib.to_object_array_tuples.
-    lengths = {_scalar_row_length(row) if is_scalar(row) else len(row) for row in data}
-    if len(lengths) > 1:
+    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    if check_ragged and len(lengths) > 1:
         warnings.warn(
             "Constructing a DataFrame from a list of sequences with mismatched "
             "lengths is deprecated and will raise in a future version. The "
@@ -892,19 +891,20 @@ def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
     return content
 
 
-def _scalar_row_length(row) -> int:
-    if isna(row):
-        return 1
-    if isinstance(row, (str, bytes)):
-        _raise_str_row_error(row)
-    return len(row)
-
-
-def _raise_str_row_error(row) -> NoReturn:
-    raise TypeError(
-        "When the first row of data is list-like, all rows must be list-like; "
-        f"got a row of type {type(row).__name__}."
+def _warn_if_str_rows(data) -> bool:
+    # GH#50461 called when the first row is list-like. Returns whether a str or
+    #  bytes row was found, in which case the caller skips the mismatched-lengths
+    #  warning since this deprecation already covers the call.
+    if not any(isinstance(row, (str, bytes)) for row in data):
+        return False
+    warnings.warn(
+        "Constructing a DataFrame with a str or bytes row after a list-like row "
+        "is deprecated and will raise in a future version. Such rows are "
+        "currently split into their elements; pass list(row) to split explicitly.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
     )
+    return True
 
 
 def _list_of_series_to_arrays(

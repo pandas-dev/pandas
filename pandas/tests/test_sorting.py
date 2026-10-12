@@ -692,7 +692,7 @@ def test_safe_sort_multiindex():
     ],
 )
 def test_safe_sort_tuples_mixed_with_str(values, expected):
-    # GH#50461 the DataFrame constructor rejects a str row after a tuple row, but
-    #  safe_sort still orders a str or bytes element as the tuple of its elements
+    # GH#50461 a str or bytes element is ordered as the tuple of its elements,
+    #  without the DataFrame constructor's deprecation warning
     result = safe_sort(np.array(values, dtype=object))
     tm.assert_numpy_array_equal(result, np.array(expected, dtype=object))
