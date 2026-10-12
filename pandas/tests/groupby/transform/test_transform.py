@@ -1294,7 +1294,7 @@ def test_transform_udf_reduction_keeps_column_dtypes(keys, expected_values):
 
 
 def test_transform_udf_scalar_extension_dtype_column():
-    # GH#42617 a fast path chosen on the first group would cast later groups
+    # GH#42617 only a later group's results have mixed dtypes
     df = pd.DataFrame(
         {"a": [1, 2, 4, 8, 16, 32], "b": pd.array([1, 2, None, 8, 16, 32], "Int64")}
     )
@@ -1306,6 +1306,16 @@ def test_transform_udf_scalar_extension_dtype_column():
             "b": np.array([1, 1, pd.NA, pd.NA, pd.NA, 32], dtype=object),
         }
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_scalar_none_is_nan():
+    # GH#42617 a None result is NaN, as in SeriesGroupBy.transform
+    df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
+    result = df.groupby([0, 0, 1]).transform(
+        lambda x: None if x.name == "a" else x.max()
+    )
+    expected = pd.DataFrame({"a": [np.nan] * 3, "b": [3.0, 3.0, 5.0]})
     tm.assert_frame_equal(result, expected)
 
 

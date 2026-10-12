@@ -2941,11 +2941,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 )
             ):
                 # apply cast the scalars to a common dtype, GH#42617
+                # None -> NaN, matching SeriesGroupBy.transform
                 res = group._constructor(
                     {
-                        pos: Series(val, index=group.index)
+                        pos: np.nan if val is None else val
                         for pos, val in enumerate(col_results)
-                    }
+                    },
+                    index=group.index,
                 )
                 res.columns = group.columns
             return res
