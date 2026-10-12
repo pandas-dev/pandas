@@ -640,7 +640,7 @@ def test_replace_lossy_float_raises(box):
     ids=["where", "mask", "fillna", "clip", "reindex"],
 )
 def test_lossy_float_raises(op):
-    # GH#68638 every caller that routes through _validate_setitem_value
+    # GH#68638 methods that pass a scalar through _validate_setitem_value
     ser = pd.Series([1, None, 3], dtype="int64[pyarrow]")
     with pytest.raises(TypeError, match="Invalid value '1.5'"):
         op(ser)
