@@ -2803,7 +2803,7 @@ class ArrowExtensionArray(
             "kurt",
         ] and pa.types.is_boolean(pa_type):
             # pyarrow sums bool to uint64 and rejects it for std/var/etc.
-            data_to_reduce = self._pa_array.cast(pa.int64())
+            data_to_reduce = self._pa_array.cast(pa.int8())
 
         if name == "sem":
 

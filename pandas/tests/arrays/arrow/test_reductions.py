@@ -24,6 +24,8 @@ def test_median_not_approximate(typ):
 )
 def test_numeric_only_includes_bool(op):
     # GH#XXXXX bool[pyarrow] is kept by numeric_only and matches numpy/masked
+    if op in ("skew", "kurt") and pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew/kurtosis added in pyarrow 20.0.0")
     values = [True, False, True, False, True]
 
     def reduce(dtype):
