@@ -547,10 +547,12 @@ def test_hash_equal_namedtuple_with_nans():
     [
         (np.float64("nan"), np.float64("nan")),
         (np.float64("nan"), float("nan")),
+        (np.float32("nan"), np.float64("nan")),
+        (np.longdouble("nan"), float("nan")),
         (np.complex128(complex(np.nan, 1)), np.complex128(complex(np.nan, 1))),
-        (np.complex128(complex(1, np.nan)), complex(1, np.nan)),
-        (np.complex128(complex(np.nan, np.nan)), complex(np.nan, np.nan)),
-        ((1, np.float64("nan")), (1, float("nan"))),
+        (np.complex64(complex(1, np.nan)), complex(1, np.nan)),
+        (np.clongdouble(complex(np.nan, np.nan)), complex(np.nan, np.nan)),
+        ((1, np.float32("nan")), (1, float("nan"))),
     ],
 )
 def test_hash_equal_numpy_nan_scalars(a, b):
@@ -564,8 +566,8 @@ def test_hash_equal_numpy_nan_scalars(a, b):
     "a, b",
     [
         (np.float64("nan"), complex(np.nan, 0)),
-        (np.complex128(complex(np.nan, 1)), complex(np.nan, 2)),
-        (np.float64("nan"), np.float64(1.0)),
+        (np.complex64(complex(np.nan, 1)), complex(np.nan, 2)),
+        (np.float32("nan"), np.float64(1.0)),
     ],
 )
 def test_numpy_nan_scalars_not_equal(a, b):
