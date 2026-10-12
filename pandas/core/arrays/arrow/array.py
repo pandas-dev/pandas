@@ -4767,7 +4767,7 @@ def _truncates_to_integer(value) -> bool:
 def _may_truncate_to_integer(values) -> bool:
     """
     Whether ``values`` could hold anything an integer-typed pyarrow column would
-    truncate. Cheaper than inspecting the entries. See GH#71072.
+    truncate. Cheaper than inspecting the entries. See GH#71076.
     """
     return lib.infer_dtype(values, skipna=True) not in (
         "integer",
@@ -4780,7 +4780,7 @@ def _may_truncate_to_integer(values) -> bool:
 def _first_truncated_to_integer(value):
     """
     The first entry of ``value`` an integer-typed pyarrow column would truncate,
-    or None if there is none. See GH#71072.
+    or None if there is none. See GH#71076.
     """
     if not is_list_like(value) or isinstance(value, (pa.Array, pa.ChunkedArray)):
         # a pyarrow container is cast, not converted, so pyarrow rejects a lossy

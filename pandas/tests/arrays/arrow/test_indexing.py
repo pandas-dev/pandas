@@ -679,7 +679,7 @@ def test_setitem_lossy_float_raises(value):
     ],
 )
 def test_setitem_lossy_float_list_like_raises(value):
-    # GH#71072 pa.array's safe cast catches a numpy array but truncates a list,
+    # GH#71076 pa.array's safe cast catches a numpy array but truncates a list,
     #  so every container has to reach the same TypeError the scalar does
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
     with pytest.raises(TypeError, match="Invalid value"):
@@ -688,7 +688,7 @@ def test_setitem_lossy_float_list_like_raises(value):
 
 
 def test_setitem_integral_list_like_still_accepted():
-    # GH#71072 the list path must not reject values the column can hold
+    # GH#71076 the list path must not reject values the column can hold
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
     arr[:2] = [9, 8]
     assert list(arr) == [9, 8, 3]
@@ -700,7 +700,7 @@ def test_setitem_integral_list_like_still_accepted():
     ids=["array", "chunked"],
 )
 def test_setitem_lossy_float_pyarrow_container_raises(box):
-    # GH#71072 a pyarrow container is skipped by the check because pyarrow's own
+    # GH#71076 a pyarrow container is skipped by the check because pyarrow's own
     #  cast already refuses it, so it raises ArrowInvalid rather than TypeError
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
     with pytest.raises(pa.ArrowInvalid, match="truncated"):
@@ -742,7 +742,7 @@ def test_index_fillna_lossy_float_upcasts():
 
 
 def test_fillna_lossy_float_list_like_raises():
-    # GH#71072 fillna reaches the container walk, not just the scalar check
+    # GH#71076 fillna reaches the container walk, not just the scalar check
     arr = pd.array([1, None, 3], dtype="int64[pyarrow]")
     with pytest.raises(TypeError, match="Invalid value '8.5'"):
         arr.fillna([9.0, 8.5, 7.0])
