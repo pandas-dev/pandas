@@ -18,7 +18,7 @@ LIST_NODES = (nodes.bullet_list, nodes.enumerated_list)
 EXCLUDE_DOCNAMES = re.compile(r"whatsnew/v(0|1|2\.0\.0)")
 
 
-def find_indented_lists(doctree: nodes.document) -> list[nodes.Node]:
+def find_indented_lists(doctree: nodes.document) -> list[nodes.block_quote]:
     """
     Find lists that are parsed as the sole content of a block quote.
 
@@ -29,8 +29,8 @@ def find_indented_lists(doctree: nodes.document) -> list[nodes.Node]:
 
     Returns
     -------
-    list[docutils.nodes.Node]
-        One node per indented list, carrying its source and line number.
+    list[docutils.nodes.block_quote]
+        The block quotes wrapping each indented list.
     """
     found = []
     for block_quote in doctree.findall(nodes.block_quote):
@@ -40,8 +40,7 @@ def find_indented_lists(doctree: nodes.document) -> list[nodes.Node]:
             if not isinstance(child, nodes.attribution)
         ]
         if children and all(isinstance(child, LIST_NODES) for child in children):
-            # list nodes don't carry a line number; use the first descendant's
-            found.append(next(node for node in block_quote.findall() if node.line))
+            found.append(block_quote)
     return found
 
 

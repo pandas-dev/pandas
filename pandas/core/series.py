@@ -2453,15 +2453,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         :class:`~api.extensions.ExtensionArray` of that type with just
         the unique values is returned. This includes
 
-            * Categorical
-            * Period
-            * Datetime with Timezone
-            * Datetime without Timezone
-            * Timedelta
-            * Interval
-            * Sparse
-            * IntegerNA
-            * String
+        * Categorical
+        * Period
+        * Datetime with Timezone
+        * Datetime without Timezone
+        * Timedelta
+        * Interval
+        * Sparse
+        * IntegerNA
+        * String
 
         See Examples section.
 

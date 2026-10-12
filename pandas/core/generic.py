@@ -2312,31 +2312,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             * Series:
 
-                - default is 'index'
-                - allowed values are: {'split', 'records', 'index', 'table'}.
-                - the format of the JSON string:
+              - default is 'index'
+              - allowed values are: {'split', 'records', 'index', 'table'}.
+              - the format of the JSON string:
 
-                  - 'split' : dict like {'name' -> name, 'index' -> [index],
-                    'data' -> [values]}
-                  - 'records' : list like [value, ... , value]; the index
-                    labels and the Series name are not included
-                  - 'index' : dict like {index -> value}
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                - 'split' : dict like {'name' -> name, 'index' -> [index],
+                  'data' -> [values]}
+                - 'records' : list like [value, ... , value]; the index
+                  labels and the Series name are not included
+                - 'index' : dict like {index -> value}
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             * DataFrame:
 
-                - default is 'columns'
-                - allowed values are: {'split', 'records', 'index', 'columns',
-                  'values', 'table'}.
-                - the format of the JSON string:
+              - default is 'columns'
+              - allowed values are: {'split', 'records', 'index', 'columns',
+                'values', 'table'}.
+              - the format of the JSON string:
 
-                  - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                    'data' -> [values]}
-                  - 'records' : list like [{column -> value}, ... , {column -> value}]
-                  - 'index' : dict like {index -> {column -> value}}
-                  - 'columns' : dict like {column -> {index -> value}}
-                  - 'values' : just the values array
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}
+                - 'records' : list like [{column -> value}, ... , {column -> value}]
+                - 'index' : dict like {index -> {column -> value}}
+                - 'columns' : dict like {column -> {index -> value}}
+                - 'values' : just the values array
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             For ``orient='table'``, the data component is like ``orient='records'``.
 
@@ -3214,9 +3214,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         Requirements for your platform.
 
-          - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
-          - Windows : none
-          - macOS : none
+        - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
+        - Windows : none
+        - macOS : none
 
         This method uses the processes developed for the package `pyperclip`. A
         solution to render any output string format is given in the examples.

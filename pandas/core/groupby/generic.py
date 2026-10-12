@@ -1690,9 +1690,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -1751,9 +1751,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -3170,9 +3170,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -3245,9 +3245,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are

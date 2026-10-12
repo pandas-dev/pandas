@@ -3171,12 +3171,12 @@ class Rolling(RollingAndExpandingMixin):
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * fraction`, where `fraction` is the
-                  fractional part of the index surrounded by `i` and `j`.
-                * lower: `i`.
-                * higher: `j`.
-                * nearest: `i` or `j` whichever is nearest.
-                * midpoint: (`i` + `j`) / 2.
+            * linear: `i + (j - i) * fraction`, where `fraction` is the
+              fractional part of the index surrounded by `i` and `j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
 
         numeric_only : bool, default False
             Include only float, int, boolean columns.
