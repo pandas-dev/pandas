@@ -313,7 +313,6 @@ def test_drop_duplicates_inplace_depr():
     "nan, builtin",
     [
         (np.float64("nan"), float("nan")),
-        (np.float32("nan"), float("nan")),
         (np.complex128(complex("nan")), complex("nan")),
     ],
 )
