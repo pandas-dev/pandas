@@ -194,7 +194,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``sort=True`` and ``dropna=False`` placing the ``NaN`` group in the middle of the result instead of last for object-dtype keys; :meth:`Index.union` had the same misordering (:issue:`70216`)
 -
 
 Reshaping
