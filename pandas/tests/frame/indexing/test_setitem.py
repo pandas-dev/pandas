@@ -1553,3 +1553,70 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
     )
     with pytest.raises(ValueError, match=msg):
         df[select_df] = [3, 3]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series(pd.date_range("2030", periods=3, tz="UTC")),
+        pd.Series(pd.period_range("2030", periods=3, freq="D")),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_2d_capable_ea(value, columns):
+    # GH#71078 these two dtypes fell between _set_item's broadcast and the
+    #  manager's 1-D EA path, so they used to corrupt the frame; they now
+    #  broadcast like every other dtype
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    before = df.copy()
+    source = value.copy()
+
+    df["a"] = source
+
+    source.iloc[0] = source.iloc[2]  # the broadcast copies; this must not reach df
+    positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
+    for pos in range(len(df.columns)):
+        if pos in positions:
+            assert df.dtypes.iloc[pos] == value.dtype
+            tm.assert_series_equal(df.iloc[:, pos], value, check_names=False)
+        else:
+            tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Timestamp("2030", tz="UTC"),
+        pd.Period("2030", freq="D"),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_2d_capable_ea_scalar(value, columns):
+    # GH#71078 a scalar hits the same broadcast path as a Series of the same
+    #  dtype, via _sanitize_column turning it into a 1-D array first
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    before = df.copy()
+    expected_col = pd.Series([value] * len(df))
+
+    df["a"] = value
+
+    positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
+    for pos in range(len(df.columns)):
+        if pos in positions:
+            tm.assert_series_equal(df.iloc[:, pos], expected_col, check_names=False)
+        else:
+            tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
