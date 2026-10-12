@@ -2754,8 +2754,13 @@ class MultiIndex(Index):
             names = []
             for i in range(self.nlevels):
                 level_values = self.levels[i]
-                for mi in other:
-                    level_values = level_values.union(mi.levels[i])
+                with warnings.catch_warnings():
+                    # levels need not be sortable, GH#61477
+                    warnings.filterwarnings(
+                        "ignore", ".*sort order is undefined", RuntimeWarning
+                    )
+                    for mi in other:
+                        level_values = level_values.union(mi.levels[i])
                 level_codes = [
                     recode_for_categories(
                         mi.codes[i], mi.levels[i], level_values, copy=False
@@ -5153,6 +5158,15 @@ def _coerce_indexer_frozen(array_like, categories, copy: bool = False) -> np.nda
     np.ndarray
         Non-writeable.
     """
+    values = np.asarray(array_like)
+    if values.dtype.kind == "O":
+        values = values.astype(np.float64)
+    if (
+        values.dtype.kind == "f"
+        and not (np.isfinite(values) & (values == np.trunc(values))).all()
+    ):
+        # casting would silently map NaN/0.5 to a valid code, GH#26210
+        raise ValueError("MultiIndex codes must be integers, -1 for missing values")
     array_like = coerce_indexer_dtype(array_like, categories)
     if copy:
         array_like = array_like.copy()

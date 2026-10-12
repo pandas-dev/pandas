@@ -877,6 +877,19 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("other", [pd.NA, "x"])
+def test_concat_all_na_object_keeps_pd_na(other):
+    # GH#61303
+    df1 = pd.DataFrame({"val": [1], "na": pd.Series([pd.NA], dtype=object)})
+    df2 = pd.DataFrame({"val": [2], "na": pd.Series([other], dtype=object)})
+
+    result = pd.concat([df1, df2], ignore_index=True)
+    expected = pd.DataFrame(
+        {"val": [1, 2], "na": pd.Series([pd.NA, other], dtype=object)}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_concat_ignore_empty_from_reindex():
     # https://github.com/pandas-dev/pandas/pull/43507#issuecomment-920375856
     df1 = pd.DataFrame({"a": [1], "b": [pd.Timestamp("2012-01-01")]})

@@ -13,7 +13,7 @@ pytest.importorskip("tabulate")
 def test_keyword_deprecation():
     # GH 57280
     msg = (
-        "Starting with pandas version 4.0 all arguments of to_markdown "
+        "Starting with pandas version 4.0 all arguments of Series.to_markdown "
         "except for the argument 'buf' will be keyword-only."
     )
     s = pd.Series()

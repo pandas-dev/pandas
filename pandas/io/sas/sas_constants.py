@@ -49,6 +49,10 @@ os_name_offset: Final = 272
 os_name_length: Final = 16
 page_bit_offset_x86: Final = 16
 page_bit_offset_x64: Final = 32
+# Where a page flagged page_deleted_rows_flag stores the distance from the end of
+# its rows to the bitmap marking which of them are deleted.
+page_deleted_pointer_offset_x86: Final = 12
+page_deleted_pointer_offset_x64: Final = 24
 subheader_pointer_length_x86: Final = 12
 subheader_pointer_length_x64: Final = 24
 page_type_offset: Final = 0
@@ -66,6 +70,8 @@ page_mix_type: Final = 0x0200
 page_amd_type: Final = 0x0400
 page_meta2_type: Final = 0x4000
 page_comp_type: Final = 0x9000
+# Set on data and mix pages holding rows that SAS marked deleted but kept in place
+page_deleted_rows_flag: Final = 0x0080
 page_meta_types: Final = [page_meta_type, page_meta2_type]
 subheader_pointers_offset: Final = 8
 truncated_subheader_id: Final = 1
