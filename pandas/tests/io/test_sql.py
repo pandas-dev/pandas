@@ -1634,6 +1634,8 @@ def test_read_sql_column_labels_are_str(conn, request, string_storage):
     sa = pytest.importorskip("sqlalchemy")
     conn = request.getfixturevalue(conn)
     pd.DataFrame({"a": [1]}).to_sql(name="test_labels", con=conn, index=False)
+    empty = pd.DataFrame({"a": pd.Series([], dtype="int64")})
+    empty.to_sql(name="test_labels_empty", con=conn, index=False)
     table = sa.Table("test_labels", sa.MetaData(), sa.Column("a", sa.Integer))
 
     with pd.option_context("mode.string_storage", string_storage):
@@ -1641,6 +1643,7 @@ def test_read_sql_column_labels_are_str(conn, request, string_storage):
             sql.read_sql_query(sa.select(table), conn),
             sql.read_sql_table("test_labels", conn),
             next(sql.read_sql_query(sa.select(table), conn, chunksize=1)),
+            next(sql.read_sql_table("test_labels_empty", conn, chunksize=1)),
         ]
     for result in results:
         assert type(result.columns[0]) is str

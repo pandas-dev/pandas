@@ -217,9 +217,6 @@ def _convert_arrays_to_dataframe(
                 pa_array = pa_array.cast(pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
-    # SQLAlchemy returns str subclasses, which would make pickles depend on it
-    # (GH#52816)
-    columns = [str(col) for col in columns]
     if arrays:
         return DataFrame._from_arrays(
             arrays, columns=columns, index=range(idx_len), verify_integrity=False
@@ -1240,7 +1237,8 @@ class SQLTable(PandasObject):
         else:
             sql_select = select(self.table)
         result = self.pd_sql.execute(sql_select)
-        column_names = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        column_names = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             return self._query_iterator(
@@ -1914,7 +1912,8 @@ class SQLDatabase(PandasSQL):
 
         """
         result = self.execute(sql, params)
-        columns = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        columns = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             self.returns_generator = True
