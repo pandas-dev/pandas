@@ -487,9 +487,6 @@ static const char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
   NPY_DATETIMEUNIT valueUnit = ((PyObjectEncoder *)tc->encoder)->valueUnit;
   GET_TC(tc)->cStr = int64ToIsoDuration(GET_TC(tc)->longValue, valueUnit, len);
   if (GET_TC(tc)->cStr == NULL) {
-    /* int64ToIsoDuration already set a Python exception; tell the
-       encoder to stop instead of letting the caller dereference a
-       NULL string. */
     ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
   }
   return GET_TC(tc)->cStr;
