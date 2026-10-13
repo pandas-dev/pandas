@@ -222,8 +222,7 @@ class TestDataFrameEval:
 
     def test_query_duplicate_column_name_local_not_shadowed(self, engine, parser):
         # GH#65588 the duplicate-label recorder must not capture an @local whose
-        # name matches a duplicated column: Scope.swapkey rewrites the local by
-        # writing into the first resolver that *contains* the name
+        # name matches a duplicated column
         skip_if_no_pandas_parser(parser)
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["AA", "AA", "B"])
         AA = 4  # noqa: F841

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from itertools import product
+from types import MappingProxyType
 
 import numpy as np
 import pytest
@@ -1352,6 +1353,33 @@ class TestOperations:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_multi_line_expression_reuses_aligned_column(self, engine, parser):
+        # GH#59062 alignment in one line must not leak into the next
+        df = pd.DataFrame({"a": [1.0, np.nan, 3.0], "b": [4.0, 5.0, 7.0]})
+        result = df.eval(
+            """
+        c = a / b.fillna(a)
+        d = b / b.fillna(a)
+        e = a.sum()
+        f = b.std()
+        """,
+            engine=engine,
+            parser=parser,
+        )
+        expected = df.copy()
+        expected["c"] = df["a"] / df["b"]
+        expected["d"] = df["b"] / df["b"]
+        expected["e"] = df["a"].sum()
+        expected["f"] = df["b"].std()
+        tm.assert_frame_equal(result, expected)
+
+    def test_subscript_alignment_does_not_leak(self, engine, parser):
+        # GH#59062
+        df = pd.DataFrame({"a": [1.0, np.nan, 3.0]})
+        result = df.eval("a[a > 0] + a.sum()", engine=engine, parser=parser)
+        expected = df["a"][df["a"] > 0] + df["a"].sum()
+        tm.assert_series_equal(result, expected)
+
     def test_assignment_in_query(self):
         # GH 8664
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
@@ -1822,6 +1850,15 @@ def test_bad_resolver_raises(engine, parser):
     cannot_resolve = 42, 3.0
     with pytest.raises(TypeError, match="Resolver of type .+"):
         pd.eval("1 + 2", resolvers=cannot_resolve, engine=engine, parser=parser)
+
+
+def test_eval_does_not_mutate_resolvers(engine, parser):
+    # GH#59062
+    ser = pd.Series([1.0, 2.0])
+    # read-only, so any write into it raises
+    resolvers = MappingProxyType({"a": ser, "b": ser})
+    result = pd.eval("a + b", resolvers=(resolvers,), engine=engine, parser=parser)
+    tm.assert_series_equal(result, ser + ser)
 
 
 def test_empty_string_raises(engine, parser):
