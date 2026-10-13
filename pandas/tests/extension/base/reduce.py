@@ -167,7 +167,6 @@ class BaseReduceTests:
             # TODO: the message being checked here isn't actually checking anything
             msg = "|".join(
                 [
-                    f"object has no attribute '{op_name}'",
                     "does not support operation",
                     "is not supported",
                     f"{op_name} is not implemented for",
@@ -182,7 +181,7 @@ class BaseReduceTests:
                     "not allowed for this dtype",
                 ]
             )
-            with pytest.raises((TypeError, AttributeError), match=msg):
+            with pytest.raises((TypeError), match=msg):
                 getattr(ser.array, op_name)(**kwargs)
             return
 
