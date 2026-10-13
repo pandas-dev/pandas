@@ -49,7 +49,10 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
 )
 from pandas.util._decorators import set_module
-from pandas.util._validators import validate_endpoints
+from pandas.util._validators import (
+    validate_endpoints,
+    validate_min_count,
+)
 
 from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
@@ -407,6 +410,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         nv.validate_sum(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
         )
+        min_count = validate_min_count(min_count)
 
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count

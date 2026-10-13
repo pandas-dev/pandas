@@ -10,7 +10,7 @@ from pandas.tests.plotting.common import (
     _check_legend_marker,
 )
 
-pytest.importorskip("matplotlib")
+mpl = pytest.importorskip("matplotlib")
 
 
 class TestDataFrameGroupByPlots:
@@ -165,6 +165,15 @@ class TestDataFrameGroupByPlots:
         axes = df.groupby("key")["x"].plot(style="*", legend=True)
         _check_legend_labels(axes.iloc[0], ["1", "2"])
         _check_legend_marker(axes.iloc[0], expected_markers=["*", "*"])
+
+    def test_groupby_plot_line_once_per_group(self):
+        # GH#14486 - each group is plotted once, so one line and legend entry each
+        df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [5, 6, 7, 8], "k": [1, 1, 2, 2]})
+        _, ax = mpl.pyplot.subplots()
+
+        df.groupby("k").plot.line(x="x", y="y", ax=ax, legend=True)
+        assert len(ax.get_lines()) == 2
+        _check_legend_labels(ax, ["y", "y"])
 
     def test_groupby_hist_series_with_legend_raises(self):
         # GH 6279 - SeriesGroupBy histogram with legend and label raises

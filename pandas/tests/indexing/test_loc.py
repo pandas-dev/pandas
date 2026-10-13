@@ -3074,6 +3074,40 @@ class TestLocBooleanLabelsAndSlices:
         )
         obj.loc[bool_value]
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([False, 42, "x"], dtype=object),
+            pd.Index([False, False, "x"], dtype=object),
+            pd.MultiIndex.from_tuples([(False, "a"), (42, "b"), ("x", "c")]),
+        ],
+    )
+    def test_loc_bool_label_in_object_index(self, index):
+        # GH#50165
+        df = pd.DataFrame({"A": range(len(index))}, index=index)
+        result = df.loc[False]
+        expected = df.xs(False)
+        tm.assert_equal(result, expected)
+        tm.assert_equal(df["A"].loc[False], expected["A"])
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([0, 1, "x"], dtype=object),
+            pd.Index([False, 0, "x"], dtype=object),
+            pd.MultiIndex.from_tuples([(0, "a"), (1, "b"), ("x", "c")]),
+        ],
+    )
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_label_does_not_match_int(
+        self, index, frame_or_series, bool_value
+    ):
+        # GH#50165 object-dtype lookups would otherwise match False to 0
+        obj = frame_or_series(range(3), index=index)
+        msg = f"{bool_value}: boolean label can not be used without a boolean index"
+        with pytest.raises(KeyError, match=msg):
+            obj.loc[bool_value]
+
     def test_loc_bool_slice_raises(self, index, frame_or_series):
         # GH20432
         message = (
@@ -3401,6 +3435,19 @@ def test_loc_setitem_int_row_length_mismatch_message():
     msg = "Must have equal len keys and value when setting with an iterable"
     with pytest.raises(ValueError, match=msg):
         df2.loc[0, ["a", "b"]] = [7, 8, 9]
+
+
+def test_loc_setitem_empty_frame_empty_column_key_length_mismatch():
+    # GH#58517 an empty multi-block frame takes the split path; an empty column
+    #  key with a non-empty value must raise the length-mismatch ValueError
+    #  instead of falling into the setitem-with-expansion branch
+    df = pd.DataFrame(
+        {"a": pd.Series([], dtype="int64"), "b": pd.Series([], dtype="float64")}
+    )
+    assert not df._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df.loc[:, []] = [1, 2, 3]
 
 
 @pytest.mark.parametrize(
