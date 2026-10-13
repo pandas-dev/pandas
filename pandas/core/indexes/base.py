@@ -7308,6 +7308,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "Either sort the index or specify an existing label."
                 ) from None
             except TypeError as err:
+                if isinstance(self.dtype, CategoricalDtype):
+                    raise TypeError(
+                        f"Cannot slice {type(self).__name__} with bound "
+                        f"{original_label!r}: it is not one of the categories."
+                    ) from err
                 # label is not comparable with the index values
                 self._raise_invalid_indexer("slice", original_label, err)
 

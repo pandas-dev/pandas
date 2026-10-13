@@ -491,10 +491,7 @@ class TestCategoricalIndex:
     def test_loc_slice_missing_bound_not_in_categories(self):
         # GH#70295
         ser = pd.Series(range(4), index=pd.CategoricalIndex(list("abcd")))
-        msg = (
-            "cannot do slice indexing on CategoricalIndex with these "
-            r"indexers \[aa\] of type str"
-        )
+        msg = "Cannot slice CategoricalIndex with bound 'aa': it is not one of the"
         with pytest.raises(TypeError, match=msg):
             ser.loc["aa":"c"]
 
