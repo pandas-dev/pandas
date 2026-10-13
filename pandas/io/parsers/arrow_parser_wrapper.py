@@ -99,10 +99,9 @@ def _read_pyarrow_table(
     """
     Read ``src`` with ``pyarrow.csv.read_csv``.
 
-    GH#62635 pyarrow infers the number of columns from the complete lines of
-    its first block, so it cannot parse a source that fits in one block and
-    whose only line (after skipped rows) lacks a terminator. A seekable
-    source like that is re-read with a newline appended.
+    GH#62635 pyarrow cannot infer the number of columns when its first block
+    has no complete line, e.g. a single line without a trailing newline. A
+    seekable source like that is re-read in full with a newline appended.
     """
     pa = import_optional_dependency("pyarrow")
     pyarrow_csv = import_optional_dependency("pyarrow.csv")
@@ -117,26 +116,12 @@ def _read_pyarrow_table(
         if start is None or "cannot infer number of columns" not in str(err):
             raise
         src.seek(start)
-        block_size = read_options.block_size
-        data = b""
-        # read() may return fewer bytes than requested before EOF
-        while len(data) <= block_size and (
-            chunk := src.read(block_size + 1 - len(data))
-        ):
-            data += chunk
-        if len(data) > block_size:
-            # more than one block (e.g. a first row too long for pyarrow):
-            #  re-parsing a truncated prefix would drop rows
-            raise
-        # decode first: in e.g. UTF-16 a newline is not b"\n". surrogateescape
-        # keeps undecodable bytes as they are, as pyarrow reads them
+        # decode first: in e.g. UTF-16 a newline is not b"\n"
         try:
-            text = data.decode(encoding, "surrogateescape")
+            text = src.read().decode(encoding, "surrogateescape")
             terminated = (text + "\n").encode(encoding, "surrogateescape")
         except UnicodeError:
             raise err from None
-        if text.endswith(("\n", "\r")):
-            raise
     return pyarrow_csv.read_csv(
         io.BytesIO(terminated), read_options=read_options, **kwargs
     )
