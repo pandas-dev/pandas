@@ -886,7 +886,6 @@ class _VecdotObject:
     __radd__ = __add__
 
 
-@pytest.mark.skipif(not hasattr(np, "vecdot"), reason="np.vecdot requires numpy>=2")
 def test_gufunc_reducing_to_object():
     # GH#71109 a gufunc reducing object data to a single arbitrary object
     #  returned it to _reconstruct, which raised AttributeError on .ndim
