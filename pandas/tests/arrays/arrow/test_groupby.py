@@ -737,6 +737,26 @@ def test_groupby_quantile_decimal_selects_exact_value():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "ms, interpolation, expected",
+    [
+        # 2020-01-01 and 2020-01-02, interpolating to noon
+        ([1577836800000, 1577923200000], "linear", date(2020, 1, 1)),
+        # noon on 2020-01-01 and 2020-01-02, which are not whole days
+        ([1577880000000, 1577966400000], "linear", date(2020, 1, 1)),
+        # one millisecond before the epoch, i.e. on 1969-12-31
+        ([-1, 432000000], "lower", date(1969, 12, 31)),
+    ],
+)
+def test_groupby_quantile_date64_whole_days(ms, interpolation, expected):
+    # GH#69808 date64 results are whole days, including for date64 values that
+    #  are not, which other Arrow producers can write
+    ser = pd.Series(ArrowExtensionArray(pa.array(ms, pa.int64()).cast(pa.date64())))
+    result = ser.groupby([0, 0]).quantile(interpolation=interpolation)
+    result.array._pa_array.validate(full=True)
+    tm.assert_series_equal(result, pd.Series([expected], dtype="date64[pyarrow]"))
+
+
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_groupby_cython_agg_pyarrow_dtype_retention(op_name, dtype):

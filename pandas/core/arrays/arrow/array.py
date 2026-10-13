@@ -3366,12 +3366,25 @@ class ArrowExtensionArray(
 
         data = self._pa_array
         if pa.types.is_temporal(pa_dtype):
-            data = _quantile_temporal_to_int(data)
+            # https://github.com/apache/arrow/issues/33769 in these cases
+            #  we can cast to ints and back
+            nbits = pa_dtype.bit_width
+            if nbits == 32:
+                data = data.cast(pa.int32())
+            else:
+                data = data.cast(pa.int64())
 
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
         if pa.types.is_temporal(pa_dtype):
-            result = _quantile_int_to_temporal(result, pa_dtype)
+            if pa.types.is_floating(result.type):
+                result = pc.floor(result)
+            nbits = pa_dtype.bit_width
+            if nbits == 32:
+                result = result.cast(pa.int32())
+            else:
+                result = result.cast(pa.int64())
+            result = result.cast(pa_dtype)
 
         return self._from_pyarrow_array(result)
 

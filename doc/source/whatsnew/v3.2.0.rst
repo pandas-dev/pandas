@@ -258,7 +258,6 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
-- Bug in :meth:`Series.quantile` and :meth:`DataFrame.quantile` with :class:`ArrowDtype` ``date64`` interpolating to a time within the day, giving a value that is not a whole number of days and does not compare equal to the displayed date (:issue:`69808`)
 
 Styler
 ^^^^^^
