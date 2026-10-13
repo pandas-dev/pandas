@@ -239,7 +239,7 @@ class TestFromDict:
         with pytest.raises(ValueError, match=msg):
             pd.DataFrame.from_dict({"b": 8, "a": 6})
 
-    @pytest.mark.parametrize("value, row", [("BC", ["B", "C"]), ("B", ["B", np.nan])])
+    @pytest.mark.parametrize("value, row", [("BC", ["B", "C"]), ("B", ["B", None])])
     def test_from_dict_orient_index_list_then_str_deprecated(self, value, row):
         # GH#50461 the str value is split into characters; a length mismatch
         #  does not also issue the mismatched-lengths warning
