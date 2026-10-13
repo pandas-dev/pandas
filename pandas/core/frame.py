@@ -4870,8 +4870,29 @@ class DataFrame(NDFrame, OpsMixin):
         except KeyError:
             # This item wasn't present, just insert at end
             self._mgr.insert(len(self._info_axis), key, value, refs)
-        else:
-            self._iset_item_mgr(loc, value, refs=refs)
+            return
+
+        if value.ndim == 1 and not is_integer(loc):
+            # key matched several columns, e.g. duplicate labels or a partial
+            #  date string; broadcast across them
+            positions = np.arange(len(self._info_axis))[loc]
+            if is_1d_only_ea_dtype(value.dtype):
+                # GH#71098 one copy per column so they don't share an array
+                self._iset_item_mgr(positions[0], value, refs=refs)
+                for idx in positions[1:]:
+                    self._iset_item_mgr(idx, value.copy())
+                return
+            # GH#71078 reshape/repeat rather than np.tile, which would
+            #  degrade a 2-D-capable EA (tz-aware datetime64, period)
+            #  to object. repeat(axis=) is not in the _supports_2d
+            #  contract, only NDArrayBacked honours it; see GH#69153
+            # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+            # has no attribute "reshape"  [union-attr]
+            value = value.reshape(1, -1)  # type: ignore[union-attr]
+            value = value.repeat(len(positions), axis=0).T
+            refs = None
+
+        self._iset_item_mgr(loc, value, refs=refs)
 
     def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
@@ -4903,29 +4924,6 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         value, refs = self._sanitize_column(value)
-
-        if key in self.columns and value.ndim == 1:
-            # broadcast across multiple columns if necessary
-            if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
-                existing_piece = self[key]
-                if isinstance(existing_piece, DataFrame):
-                    if is_1d_only_ea_dtype(value.dtype):
-                        # GH#71098 one copy per column so they don't share an array
-                        positions = np.arange(len(self.columns))[
-                            self.columns.get_loc(key)
-                        ]
-                        self._iset_item_mgr(positions[0], value, refs=refs)
-                        for idx in positions[1:]:
-                            self._iset_item_mgr(idx, value.copy())
-                        return
-                    # GH#71078 reshape/repeat rather than np.tile, which would
-                    #  degrade a 2-D-capable EA (tz-aware datetime64, period)
-                    #  to object. repeat(axis=) is not in the _supports_2d
-                    #  contract, only NDArrayBacked honours it; see GH#69153
-                    ncols = len(existing_piece.columns)
-                    value = value.reshape(1, -1).repeat(ncols, axis=0).T
-                    refs = None
-
         self._set_item_mgr(key, value, refs)
 
     def _set_value(
