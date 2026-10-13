@@ -2774,10 +2774,8 @@ def maybe_convert_numeric(
                     fval = NaN
                     seen.null_ = True
                     if distinguish_nan_and_na:
-                        # string "nan" is a real NaN value: not masked, forces float
                         seen.float_ = True
                     else:
-                        # old behaviour: "nan" is treated like NA
                         mask[i] = 1
                         if not allow_null_in_int:
                             seen.float_ = True
