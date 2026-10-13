@@ -2578,6 +2578,8 @@ def maybe_convert_numeric(
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
 ) -> tuple[np.ndarray, np.ndarray | None]:
+    print("the values are")
+    print(values)
     """
     Convert object array to a numeric array if possible.
 
@@ -2767,17 +2769,20 @@ def maybe_convert_numeric(
                 complexes[i] = val
             seen.float_ = True
         else:
+            print(val)
             if isinstance(val, str):
                 val_lower = val.lower()
                 if convert_to_masked_nullable and val_lower in ("nan", "-nan", "+nan"):
                     fval = NaN
                     seen.null_ = True
-                    if allow_null_in_int:
-                        mask[i] = 1
-                    else:
-                        if convert_to_masked_nullable and not distinguish_nan_and_na:
-                            mask[i] = 1
+                    if distinguish_nan_and_na:
+                        # string "nan" is a real NaN value: not masked, forces float
                         seen.float_ = True
+                    else:
+                        # old behaviour: "nan" is treated like NA
+                        mask[i] = 1
+                        if not allow_null_in_int:
+                            seen.float_ = True
                     floats[i] = fval
                     if have_complexes:
                         complexes[i] = fval
