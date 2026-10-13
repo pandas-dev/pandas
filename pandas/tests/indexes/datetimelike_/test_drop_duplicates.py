@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    PeriodIndex,
-    Series,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -22,7 +16,7 @@ class DropDuplicates:
         result = idx_dup.drop_duplicates()
 
         expected = idx
-        if not isinstance(idx, PeriodIndex):
+        if not isinstance(idx, pd.PeriodIndex):
             # freq is reset except for PeriodIndex
             assert idx_dup.freq is None
             assert result.freq is None
@@ -62,8 +56,8 @@ class DropDuplicates:
         result = idx.drop_duplicates(keep=keep)
         tm.assert_index_equal(result, expected)
 
-        result = Series(idx).drop_duplicates(keep=keep)
-        expected = Series(expected, index=index)
+        result = pd.Series(idx).drop_duplicates(keep=keep)
+        expected = pd.Series(expected, index=index)
         tm.assert_series_equal(result, expected)
 
 
@@ -80,7 +74,7 @@ class TestDropDuplicatesPeriodIndex(DropDuplicates):
         """
         Fixture to get PeriodIndex for 10 periods for different frequencies.
         """
-        return period_range("2011-01-01", periods=10, freq=freq, name="idx")
+        return pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
 
 
 class TestDropDuplicatesDatetimeIndex(DropDuplicates):
@@ -89,7 +83,7 @@ class TestDropDuplicatesDatetimeIndex(DropDuplicates):
         """
         Fixture to get DatetimeIndex for 10 periods for different frequencies.
         """
-        return date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
+        return pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
 
 
 class TestDropDuplicatesTimedeltaIndex(DropDuplicates):
@@ -98,4 +92,4 @@ class TestDropDuplicatesTimedeltaIndex(DropDuplicates):
         """
         Fixture to get TimedeltaIndex for 10 periods for different frequencies.
         """
-        return timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
+        return pd.timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")

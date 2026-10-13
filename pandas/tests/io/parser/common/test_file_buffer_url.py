@@ -22,10 +22,7 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Index,
-)
+import pandas as pd
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -67,10 +64,10 @@ def test_local_file(all_parsers, datapath):
 
 def test_path_path_lib(all_parsers, temp_file):
     parser = all_parsers
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     result = tm.round_trip_pathlib(
         df.to_csv, lambda p: parser.read_csv(p, index_col=0), temp_file
@@ -122,56 +119,56 @@ def test_no_permission(all_parsers, temp_file):
         (
             "a,b,c\n4,5,6\n ",
             {},
-            DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
+            pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # gh-10548: EAT_LINE_COMMENT
         (
             "a,b,c\n4,5,6\n#comment",
             {"comment": "#"},
-            DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
+            pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_CRNL_NOP
         (
             "a,b,c\n4,5,6\n\r",
             {},
-            DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
+            pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_COMMENT
         (
             "a,b,c\n4,5,6#comment",
             {"comment": "#"},
-            DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
+            pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # SKIP_LINE
         (
             "a,b,c\n4,5,6\nskipme",
             {"skiprows": [2]},
-            DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
+            pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_LINE_COMMENT
         (
             "a,b,c\n4,5,6\n#comment",
             {"comment": "#", "skip_blank_lines": False},
-            DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
+            pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # IN_FIELD
         (
             "a,b,c\n4,5,6\n ",
             {"skip_blank_lines": False},
-            DataFrame([["4", 5, 6], [" ", None, None]], columns=["a", "b", "c"]),
+            pd.DataFrame([["4", 5, 6], [" ", None, None]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_CRNL
         (
             "a,b,c\n4,5,6\n\r",
             {"skip_blank_lines": False},
-            DataFrame([[4, 5, 6], [None, None, None]], columns=["a", "b", "c"]),
+            pd.DataFrame([[4, 5, 6], [None, None, None]], columns=["a", "b", "c"]),
             None,
         ),
         # ESCAPED_CHAR
@@ -252,7 +249,7 @@ def test_temporary_file(all_parsers, temp_file):
 
         result = parser.read_csv(new_file, sep=r"\s+", header=None)
 
-        expected = DataFrame([[0, 0]])
+        expected = pd.DataFrame([[0, 0]])
         tm.assert_frame_equal(result, expected)
 
 
@@ -261,7 +258,7 @@ def test_internal_eof_byte(all_parsers):
     parser = all_parsers
     data = "a,b\n1\x1a,2"
 
-    expected = DataFrame([["1\x1a", 2]], columns=["a", "b"])
+    expected = pd.DataFrame([["1\x1a", 2]], columns=["a", "b"])
     result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
 
@@ -270,7 +267,7 @@ def test_internal_eof_byte_to_file(all_parsers, temp_file):
     # see gh-16559
     parser = all_parsers
     data = b'c1,c2\r\n"test \x1a    test", test\r\n'
-    expected = DataFrame([["test \x1a    test", " test"]], columns=["c1", "c2"])
+    expected = pd.DataFrame([["test \x1a    test", " test"]], columns=["c1", "c2"])
     path = f"__{uuid.uuid4()}__.csv"
 
     path2 = temp_file.parent / path
@@ -345,7 +342,7 @@ def test_valid_file_buffer_seems_invalid(all_parsers):
 
     data = "a\n1"
     parser = all_parsers
-    expected = DataFrame({"a": [1]})
+    expected = pd.DataFrame({"a": [1]})
 
     result = parser.read_csv(NoSeekTellBuffer(data))
     tm.assert_frame_equal(result, expected)
@@ -360,7 +357,7 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     GH 36980
     """
     parser = all_parsers
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
 
     content = "a,b\n1,2"
     handle = io_class(content.encode("utf-8") if io_class == BytesIO else content)
@@ -376,7 +373,7 @@ def test_memory_map_compression(all_parsers, compression, temp_file):
     GH 37621
     """
     parser = all_parsers
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
 
     path = temp_file
     expected.to_csv(path, index=False, compression=compression)
@@ -451,7 +448,7 @@ def test_memory_map(all_parsers, datapath):
     mmap_file = datapath("io", "parser", "data", "test_mmap.csv")
     parser = all_parsers
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"a": [1, 2, 3], "b": ["one", "two", "three"], "c": ["I", "II", "III"]}
     )
 

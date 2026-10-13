@@ -9,7 +9,7 @@ import zipfile
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -144,7 +144,7 @@ def test_compression_utf_encoding(all_parsers, datapath, utf_value, encoding_fmt
     path = datapath("io", "parser", "data", f"utf{utf_value}_ex_small.zip")
 
     result = parser.read_csv(path, encoding=encoding, compression="zip", sep="\t")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "Country": ["Venezuela", "Venezuela"],
             "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],
@@ -174,7 +174,7 @@ def test_compression_tar_archive(all_parsers, datapath):
 
 def test_ignore_compression_extension(tmp_path, all_parsers):
     parser = all_parsers
-    df = DataFrame({"a": [0, 1]})
+    df = pd.DataFrame({"a": [0, 1]})
 
     path_csv = tmp_path / "test.csv"
     path_zip = tmp_path / "test.csv.zip"
@@ -189,7 +189,7 @@ def test_ignore_compression_extension(tmp_path, all_parsers):
 
 def test_writes_tar_gz(tmp_path, all_parsers):
     parser = all_parsers
-    data = DataFrame(
+    data = pd.DataFrame(
         {
             "Country": ["Venezuela", "Venezuela"],
             "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],

@@ -145,7 +145,7 @@ An example where the startup folder is in a default IPython profile can be found
   $IPYTHONDIR/profile_default/startup
 
 More information can be found in the `IPython documentation
-<https://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
+<https://ipython.readthedocs.io/en/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
 
 .. code-block:: python
 
@@ -333,20 +333,21 @@ Unicode formatting
 
 .. warning::
 
-   Enabling this option will affect the performance for printing of DataFrame and Series (about 2 times slower).
+   Enabling this option makes printing DataFrame and Series slower.
    Use only when it is actually required.
 
-Some East Asian countries use Unicode characters whose width corresponds to two Latin characters.
-If a DataFrame or Series contains these characters, the default output mode may not align them properly.
+Some Unicode characters, such as Chinese, Japanese and Korean characters and most emoji, are displayed
+twice as wide as Latin characters. If a DataFrame or Series contains these characters, the default output
+mode may not align them properly.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"国籍": ["UK", "日本"], "名前": ["Alice", "しのぶ"]})
+   df = pd.DataFrame({"国籍": ["UK", "日本"], "名前": ["Alice", "しのぶ"], "emoji": ["💾", "🤓🤘"]})
    df
 
-Enabling ``display.unicode.east_asian_width`` allows pandas to check each character's "East Asian Width" property.
-These characters can be aligned properly by setting this option to ``True``. However, this will result in longer render
-times than the standard ``len`` function.
+Enabling ``display.unicode.east_asian_width`` allows pandas to check each character's
+`East Asian Width <https://unicode.org/reports/tr11/>`__ property, which despite its name also marks most
+emoji as wide. These characters can be aligned properly by setting this option to ``True``.
 
 .. ipython:: python
 

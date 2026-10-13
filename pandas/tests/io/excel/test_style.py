@@ -4,15 +4,7 @@ import uuid
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Timestamp,
-    period_range,
-    read_excel,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
@@ -44,7 +36,7 @@ def assert_equal_cell_styles(cell1, cell2):
 def test_styler_default_values(tmp_excel):
     # GH 54154
     openpyxl = pytest.importorskip("openpyxl")
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+    df = pd.DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
 
     with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name="custom")
@@ -66,7 +58,7 @@ def test_styler_default_values(tmp_excel):
 def test_styler_to_excel_unstyled(engine, tmp_excel):
     # compare DataFrame.to_excel and Styler.to_excel when no styles applied
     pytest.importorskip(engine)
-    df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
     with ExcelWriter(tmp_excel, engine=engine) as writer:
         df.to_excel(writer, sheet_name="dataframe")
         df.style.to_excel(writer, sheet_name="unstyled")
@@ -158,7 +150,7 @@ def test_styler_custom_style(tmp_excel):
     # GH 54154
     css_style = "background-color: #111222"
     openpyxl = pytest.importorskip("openpyxl")
-    df = DataFrame([{"A": 1, "B": 2}, {"A": 1, "B": 2}])
+    df = pd.DataFrame([{"A": 1, "B": 2}, {"A": 1, "B": 2}])
 
     with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
         styler = df.style.map(lambda x: css_style)
@@ -187,7 +179,7 @@ def test_styler_custom_style(tmp_excel):
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
 def test_styler_to_excel_basic(engine, css, attrs, expected, tmp_excel):
     pytest.importorskip(engine)
-    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: css)
 
     with ExcelWriter(tmp_excel, engine=engine) as writer:
@@ -214,7 +206,7 @@ def test_styler_to_excel_basic(engine, css, attrs, expected, tmp_excel):
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
 def test_styler_to_excel_basic_indexes(engine, css, attrs, expected, tmp_excel):
     pytest.importorskip(engine)
-    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
 
     styler = df.style
     styler.map_index(lambda x: css, axis=0)
@@ -279,7 +271,7 @@ def test_styler_to_excel_border_style(engine, border_style, tmp_excel):
     expected = border_style
 
     pytest.importorskip(engine)
-    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: css)
 
     with ExcelWriter(tmp_excel, engine=engine) as writer:
@@ -308,7 +300,7 @@ def test_styler_custom_converter(tmp_excel):
     def custom_converter(css):
         return {"font": {"color": {"rgb": "111222"}}}
 
-    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: "color: #888999")
     with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
         ExcelFormatter(styler, style_converter=custom_converter).write(
@@ -320,7 +312,6 @@ def test_styler_custom_converter(tmp_excel):
 
 
 @pytest.mark.single_cpu
-@td.skip_if_not_us_locale
 @pytest.mark.filterwarnings(
     "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
 )
@@ -328,22 +319,22 @@ def test_styler_to_s3(s3_bucket_public, s3so):
     # GH#46381
     mock_bucket_name = s3_bucket_public.name
     target_file = f"{uuid.uuid4()}.xlsx"
-    df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
+    df = pd.DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
     styler = df.style.set_sticky(axis="index")
     uri = f"s3://{mock_bucket_name}/{target_file}"
     styler.to_excel(uri, storage_options=s3so)
-    result = read_excel(uri, index_col=0, storage_options=s3so)
+    result = pd.read_excel(uri, index_col=0, storage_options=s3so)
     tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.parametrize("merge_cells", [True, False, "columns"])
 def test_format_hierarchical_rows_periodindex(merge_cells):
     # GH#60099
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": [1, 2]},
-        index=MultiIndex.from_arrays(
+        index=pd.MultiIndex.from_arrays(
             [
-                period_range(start="2006-10-06", end="2006-10-07", freq="D"),
+                pd.period_range(start="2006-10-06", end="2006-10-07", freq="D"),
                 ["X", "Y"],
             ],
             names=["date", "category"],
@@ -354,6 +345,51 @@ def test_format_hierarchical_rows_periodindex(merge_cells):
 
     for cell in formatted_cells:
         if cell.row != 0 and cell.col == 0:
-            assert isinstance(cell.val, Timestamp), (
+            assert isinstance(cell.val, pd.Timestamp), (
                 "Period should be converted to Timestamp"
             )
+
+
+@pytest.mark.parametrize("cols", [["B"], ["C", "A"], ["B", "B"], ["A", "B", "C"]])
+def test_styler_to_excel_columns_subset(cols):
+    # GH#42276 styles must follow their column when `columns` subsets or reorders
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+    styler = df.style.map(lambda x: f"color: {x}").map_index(
+        lambda x: f"color: {x}", axis=1
+    )
+    formatter = ExcelFormatter(styler, cols=cols, style_converter=dict)
+    styles = {
+        (cell.row, cell.col): cell.style for cell in formatter.get_formatted_cells()
+    }
+
+    for col_num, col in enumerate(cols, start=1):
+        assert styles[0, col_num] == {"color": col}
+        for row_num, val in enumerate(df[col], start=1):
+            assert styles[row_num, col_num] == {"color": str(val)}
+
+
+def test_styler_to_excel_columns_all_duplicate_labels():
+    # selecting every column of a frame with duplicate labels is a no-op reindex
+    df = pd.DataFrame([[1, 2, 3]], columns=["A", "A", "B"])
+    styler = df.style.map_index(lambda x: f"color: {x}", axis=1)
+    formatter = ExcelFormatter(styler, cols=["A", "A", "B"], style_converter=dict)
+    cells = formatter.get_formatted_cells()
+    styles = {cell.col: cell.style for cell in cells if cell.row == 0}
+    assert styles == {1: {"color": "A"}, 2: {"color": "A"}, 3: {"color": "B"}}
+
+
+@pytest.mark.parametrize("merge_cells", [True, False])
+def test_styler_to_excel_columns_subset_multiindex(merge_cells):
+    # GH#42276
+    columns = pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")])
+    df = pd.DataFrame([[1, 2]], columns=columns)
+    styler = df.style.map_index(lambda x: f"color: {x}", axis=1)
+    formatter = ExcelFormatter(
+        styler, cols=[("b", "y")], merge_cells=merge_cells, style_converter=dict
+    )
+    styles = {
+        (cell.row, cell.col): cell.style
+        for cell in formatter.get_formatted_cells()
+        if cell.row < 2 and cell.col == 1
+    }
+    assert styles == {(0, 1): {"color": "b"}, (1, 1): {"color": "y"}}

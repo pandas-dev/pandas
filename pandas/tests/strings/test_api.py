@@ -3,14 +3,8 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas import (
-    CategoricalDtype,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    _testing as tm,
-)
+import pandas as pd
+import pandas._testing as tm
 from pandas.core.strings.accessor import StringMethods
 
 # subset of the full set from pandas/conftest.py
@@ -67,13 +61,13 @@ def any_allowed_skipna_inferred_dtype(request):
 
 def test_api(any_string_dtype):
     # GH 6106, GH 9322
-    assert Series.str is StringMethods
-    assert isinstance(Series([""], dtype=any_string_dtype).str, StringMethods)
+    assert pd.Series.str is StringMethods
+    assert isinstance(pd.Series([""], dtype=any_string_dtype).str, StringMethods)
 
 
 def test_no_circular_reference(any_string_dtype):
     # GH 47667
-    ser = Series([""], dtype=any_string_dtype)
+    ser = pd.Series([""], dtype=any_string_dtype)
     ref = weakref.ref(ser)
     ser.str  # Used to cache and cause circular reference
     del ser
@@ -82,7 +76,7 @@ def test_no_circular_reference(any_string_dtype):
 
 def test_api_mi_raises():
     # GH 23679
-    mi = MultiIndex.from_arrays([["a", "b", "c"]])
+    mi = pd.MultiIndex.from_arrays([["a", "b", "c"]])
     msg = "Can only use .str accessor with Index, not MultiIndex"
     with pytest.raises(AttributeError, match=msg):
         mi.str
@@ -135,7 +129,7 @@ def test_api_per_method(
     method_name, args, kwargs = any_string_method
 
     reason = None
-    if box is Index and values.size == 0:
+    if box is pd.Index and values.size == 0:
         if method_name in ["partition", "rpartition"] and kwargs.get("expand", True):
             raises = TypeError
             reason = "Method cannot deal with empty Index"
@@ -147,7 +141,7 @@ def test_api_per_method(
             reason = "Need to fortify get_dummies corner cases"
 
     elif (
-        box is Index
+        box is pd.Index
         and inferred_dtype == "empty"
         and dtype == object
         and method_name == "get_dummies"
@@ -200,10 +194,10 @@ def test_api_per_method(
 
 def test_api_for_categorical(any_string_method, any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/10661
-    s = Series(list("aabb"), dtype=any_string_dtype)
+    s = pd.Series(list("aabb"), dtype=any_string_dtype)
     s = s + " " + s
     c = s.astype("category")
-    c = c.astype(CategoricalDtype(c.dtype.categories.astype("object")))
+    c = c.astype(pd.CategoricalDtype(c.dtype.categories.astype("object")))
     assert isinstance(c.str, StringMethods)
 
     method_name, args, kwargs = any_string_method
@@ -211,9 +205,9 @@ def test_api_for_categorical(any_string_method, any_string_dtype):
     result = getattr(c.str, method_name)(*args, **kwargs)
     expected = getattr(s.astype("object").str, method_name)(*args, **kwargs)
 
-    if isinstance(result, DataFrame):
+    if isinstance(result, pd.DataFrame):
         tm.assert_frame_equal(result, expected)
-    elif isinstance(result, Series):
+    elif isinstance(result, pd.Series):
         tm.assert_series_equal(result, expected)
     else:
         # str.cat(others=None) returns string, for example

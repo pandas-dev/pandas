@@ -722,7 +722,7 @@ The ``plt.close`` method is used to `close <https://matplotlib.org/stable/api/_a
    ts = pd.Series(np.random.randn(1000), index=pd.date_range("1/1/2000", periods=1000))
    ts = ts.cumsum()
 
-   @savefig series_plot_basic.png
+   @savefig series_plot.png
    ts.plot();
 
 .. note::
@@ -743,7 +743,7 @@ The ``plt.close`` method is used to `close <https://matplotlib.org/stable/api/_a
 
    plt.figure();
    df.plot();
-   @savefig frame_plot_basic.png
+   @savefig frame_plot.png
    plt.legend(loc='best');
 
 Importing and exporting data

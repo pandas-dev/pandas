@@ -4,10 +4,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Series,
-)
 import pandas._testing as tm
 
 
@@ -15,13 +11,13 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", Series([False, False, False, False, True, True, False])),
-        ("last", Series([False, True, True, False, False, False, False])),
-        (False, Series([False, True, True, False, True, True, False])),
+        ("first", pd.Series([False, False, False, False, True, True, False])),
+        ("last", pd.Series([False, True, True, False, False, False, False])),
+        (False, pd.Series([False, True, True, False, True, True, False])),
     ],
 )
 def test_drop_duplicates(any_numpy_dtype, keep, expected):
-    tc = Series([1, 0, 3, 5, 3, 0, 4], dtype=np.dtype(any_numpy_dtype))
+    tc = pd.Series([1, 0, 3, 5, 3, 0, 4], dtype=np.dtype(any_numpy_dtype))
 
     if tc.dtype == "bool":
         pytest.skip("tested separately in test_drop_duplicates_bool")
@@ -44,8 +40,8 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
     ],
 )
 def test_drop_duplicates_bool(keep, expected):
-    tc = Series([True, False, True, False])
-    expected = Series(expected)
+    tc = pd.Series([True, False, True, False])
+    expected = pd.Series(expected)
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()
@@ -56,8 +52,8 @@ def test_drop_duplicates_bool(keep, expected):
 
 @pytest.mark.parametrize("values", [[], list(range(5))])
 def test_drop_duplicates_no_duplicates(any_numpy_dtype, keep, values):
-    tc = Series(values, dtype=np.dtype(any_numpy_dtype))
-    expected = Series([False] * len(tc), dtype="bool")
+    tc = pd.Series(values, dtype=np.dtype(any_numpy_dtype))
+    expected = pd.Series([False] * len(tc), dtype="bool")
 
     if tc.dtype == "bool":
         # 0 -> False and 1-> True
@@ -93,15 +89,15 @@ class TestSeriesDropDuplicates:
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
-        cat = Categorical(input1, categories=cat_array, ordered=ordered)
-        tc1 = Series(cat)
+        cat = pd.Categorical(input1, categories=cat_array, ordered=ordered)
+        tc1 = pd.Series(cat)
         return tc1
 
     @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool(self, cat_series_unused_category):
         tc1 = cat_series_unused_category
 
-        expected = Series([False, False, False, True])
+        expected = pd.Series([False, False, False, True])
 
         result = tc1.duplicated()
         tm.assert_series_equal(result, expected)
@@ -120,7 +116,7 @@ class TestSeriesDropDuplicates:
     ):
         tc1 = cat_series_unused_category
 
-        expected = Series([False, False, True, False])
+        expected = pd.Series([False, False, True, False])
 
         result = tc1.duplicated(keep="last")
         tm.assert_series_equal(result, expected)
@@ -139,7 +135,7 @@ class TestSeriesDropDuplicates:
     ):
         tc1 = cat_series_unused_category
 
-        expected = Series([False, False, True, True])
+        expected = pd.Series([False, False, True, True])
 
         result = tc1.duplicated(keep=False)
         tm.assert_series_equal(result, expected)
@@ -160,15 +156,15 @@ class TestSeriesDropDuplicates:
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
-        cat = Categorical(input2, categories=cat_array, ordered=ordered)
-        tc2 = Series(cat)
+        cat = pd.Categorical(input2, categories=cat_array, ordered=ordered)
+        tc2 = pd.Series(cat)
         return tc2
 
     @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_non_bool2(self, cat_series):
         tc2 = cat_series
 
-        expected = Series([False, False, False, False, True, True, False])
+        expected = pd.Series([False, False, False, False, True, True, False])
 
         result = tc2.duplicated()
         tm.assert_series_equal(result, expected)
@@ -185,7 +181,7 @@ class TestSeriesDropDuplicates:
     def test_drop_duplicates_categorical_non_bool2_keeplast(self, cat_series):
         tc2 = cat_series
 
-        expected = Series([False, True, True, False, False, False, False])
+        expected = pd.Series([False, True, True, False, False, False, False])
 
         result = tc2.duplicated(keep="last")
         tm.assert_series_equal(result, expected)
@@ -202,7 +198,7 @@ class TestSeriesDropDuplicates:
     def test_drop_duplicates_categorical_non_bool2_keepfalse(self, cat_series):
         tc2 = cat_series
 
-        expected = Series([False, True, True, False, True, True, False])
+        expected = pd.Series([False, True, True, False, True, True, False])
 
         result = tc2.duplicated(keep=False)
         tm.assert_series_equal(result, expected)
@@ -217,13 +213,13 @@ class TestSeriesDropDuplicates:
 
     @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.drop_duplicates")
     def test_drop_duplicates_categorical_bool(self, ordered):
-        tc = Series(
-            Categorical(
+        tc = pd.Series(
+            pd.Categorical(
                 [True, False, True, False], categories=[True, False], ordered=ordered
             )
         )
 
-        expected = Series([False, False, True, True])
+        expected = pd.Series([False, False, True, True])
         tm.assert_series_equal(tc.duplicated(), expected)
         tm.assert_series_equal(tc.drop_duplicates(), tc[~expected])
         sc = tc.copy()
@@ -231,7 +227,7 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
 
-        expected = Series([True, True, False, False])
+        expected = pd.Series([True, True, False, False])
         tm.assert_series_equal(tc.duplicated(keep="last"), expected)
         tm.assert_series_equal(tc.drop_duplicates(keep="last"), tc[~expected])
         sc = tc.copy()
@@ -239,7 +235,7 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
 
-        expected = Series([True, True, True, True])
+        expected = pd.Series([True, True, True, True])
         tm.assert_series_equal(tc.duplicated(keep=False), expected)
         tm.assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
         sc = tc.copy()
@@ -249,49 +245,51 @@ class TestSeriesDropDuplicates:
 
     def test_drop_duplicates_categorical_bool_na(self, nulls_fixture):
         # GH#44351
-        ser = Series(
-            Categorical(
+        ser = pd.Series(
+            pd.Categorical(
                 [True, False, True, False, nulls_fixture],
                 categories=[True, False],
                 ordered=True,
             )
         )
         result = ser.drop_duplicates()
-        expected = Series(
-            Categorical([True, False, np.nan], categories=[True, False], ordered=True),
+        expected = pd.Series(
+            pd.Categorical(
+                [True, False, np.nan], categories=[True, False], ordered=True
+            ),
             index=[0, 1, 4],
         )
         tm.assert_series_equal(result, expected)
 
     def test_drop_duplicates_ignore_index(self):
         # GH#48304
-        ser = Series([1, 2, 2, 3])
+        ser = pd.Series([1, 2, 2, 3])
         result = ser.drop_duplicates(ignore_index=True)
-        expected = Series([1, 2, 3])
+        expected = pd.Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
     def test_duplicated_arrow_dtype(self):
         pytest.importorskip("pyarrow")
-        ser = Series([True, False, None, False], dtype="bool[pyarrow]")
+        ser = pd.Series([True, False, None, False], dtype="bool[pyarrow]")
         result = ser.drop_duplicates()
-        expected = Series([True, False, None], dtype="bool[pyarrow]")
+        expected = pd.Series([True, False, None], dtype="bool[pyarrow]")
         tm.assert_series_equal(result, expected)
 
     def test_drop_duplicates_arrow_strings(self):
         # GH#54904
         pa = pytest.importorskip("pyarrow")
-        ser = Series(["a", "a"], dtype=pd.ArrowDtype(pa.string()))
+        ser = pd.Series(["a", "a"], dtype=pd.ArrowDtype(pa.string()))
         result = ser.drop_duplicates()
-        expected = Series(["a"], dtype=pd.ArrowDtype(pa.string()))
+        expected = pd.Series(["a"], dtype=pd.ArrowDtype(pa.string()))
         tm.assert_series_equal(result, expected)
 
 
 def test_drop_duplicates_inplace_depr():
     msg = "The inplace keyword in Series.drop_duplicates is deprecated"
 
-    ser = Series([1, 2, 2, 3])
+    ser = pd.Series([1, 2, 2, 3])
     ser_orig = ser.copy()
-    expected = Series([1, 2, 3], index=[0, 1, 3])
+    expected = pd.Series([1, 2, 3], index=[0, 1, 3])
 
     # does not use keyword, no warning
     with tm.assert_produces_warning(False):

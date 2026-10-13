@@ -105,10 +105,16 @@ cdef class IntervalTree(IntervalMixin):
         # <= when both sides closed since endpoints can overlap
         op = le if self.closed == 'both' else lt
 
+        sorter = self.left_sorter
+        if self.closed != 'both':
+            # GH#26893 empty intervals contain no points, so they overlap
+            # nothing; dropping them preserves the sweep's sort order
+            sorter = sorter[self.left[sorter] != self.right[sorter]]
+
         # overlap if start of current interval < end of previous interval
         # (current and previous in terms of sorted order by left/start side)
-        current = self.left[self.left_sorter[1:]]
-        previous = self.right[self.left_sorter[:-1]]
+        current = self.left[sorter[1:]]
+        previous = self.right[sorter[:-1]]
         self._is_overlapping = bool(op(current, previous).any())
 
         return self._is_overlapping

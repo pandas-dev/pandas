@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
     overload,
 )
@@ -563,7 +564,7 @@ def ensure_wrapped_if_datetimelike(arr):
 
 def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
-    Convert numpy MaskedArray to ensure mask is softened.
+    Convert numpy MaskedArray to a plain ndarray with the masked entries filled.
     """
     mask = ma.getmaskarray(data)
     if mask.any():
@@ -573,7 +574,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
         data[mask] = fill_value
     else:
         data = data.copy()
-    return data
+    return np.asarray(data)
 
 
 def sanitize_array(
@@ -834,7 +835,7 @@ def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
 
 
 def _try_cast(
-    arr: list | np.ndarray,
+    arr: list[Any] | np.ndarray,
     dtype: np.dtype,
     copy: bool,
 ) -> ArrayLike:

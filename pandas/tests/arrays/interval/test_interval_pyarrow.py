@@ -51,6 +51,28 @@ def test_arrow_array():
         pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))
 
 
+def test_arrow_array_tz_subtype():
+    # GH#67753
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    breaks = pd.date_range("2017", periods=4, freq="D", tz="Europe/Brussels")
+    arr = IntervalArray.from_breaks(breaks)
+
+    result = pa.array(arr)
+    assert isinstance(result.type, ArrowIntervalType)
+    assert result.type.closed == arr.closed
+    assert result.type.subtype == pa.timestamp(breaks.unit, "Europe/Brussels")
+
+    # round-trip through the serialized extension type
+    restored = ArrowIntervalType.__arrow_ext_deserialize__(
+        result.type.storage_type, result.type.__arrow_ext_serialize__()
+    )
+    assert restored == result.type
+    assert restored.subtype == result.type.subtype
+
+
 def test_arrow_array_missing(using_nan_is_na):
     pa = pytest.importorskip("pyarrow")
 
@@ -82,8 +104,12 @@ def test_arrow_array_missing(using_nan_is_na):
 
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
-    ids=["float", "datetime64[ns]"],
+    [
+        [0.0, 1.0, 2.0, 3.0],
+        pd.date_range("2017", periods=4, freq="D"),
+        pd.date_range("2017", periods=4, freq="D", tz="Europe/Brussels"),
+    ],
+    ids=["float", "datetime64[ns]", "datetime64[ns, tz]"],
 )
 def test_arrow_table_roundtrip(breaks):
     pa = pytest.importorskip("pyarrow")
@@ -115,8 +141,12 @@ def test_arrow_table_roundtrip(breaks):
 
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
-    ids=["float", "datetime64[ns]"],
+    [
+        [0.0, 1.0, 2.0, 3.0],
+        pd.date_range("2017", periods=4, freq="D"),
+        pd.date_range("2017", periods=4, freq="D", tz="Europe/Brussels"),
+    ],
+    ids=["float", "datetime64[ns]", "datetime64[ns, tz]"],
 )
 def test_arrow_table_roundtrip_without_metadata(breaks):
     pa = pytest.importorskip("pyarrow")
@@ -152,3 +182,33 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_masked_subtype():
+    # GH#64297
+    pa = pytest.importorskip("pyarrow")
+
+    lefts, rights = [0, 1, None], [1, 2, None]
+    dtype = pd.IntervalDtype("Int64", closed="right")
+    expected = IntervalArray.from_arrays(
+        pd.array(lefts, dtype="Int64"), pd.array(rights, dtype="Int64"), closed="right"
+    )
+    assert expected.dtype == dtype
+
+    arr = pa.array(
+        [
+            {"left": left, "right": right}
+            for left, right in zip(lefts, rights, strict=True)
+        ],
+        type=pa.struct([("left", pa.int64()), ("right", pa.int64())]),
+    )
+
+    result = dtype.__from_arrow__(arr)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr, arr[:1]]))
+    tm.assert_extension_array_equal(result[: len(expected)], expected)
+    tm.assert_extension_array_equal(result[len(expected) :], expected[:1])
+
+    result = dtype.__from_arrow__(pa.chunked_array([], type=arr.type))
+    tm.assert_extension_array_equal(result, expected[:0])

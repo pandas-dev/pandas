@@ -3,21 +3,14 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DatetimeIndex,
-    IntervalIndex,
-    NaT,
-    Period,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestDropna:
     @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.dropna")
     def test_dropna_empty(self):
-        ser = Series([], dtype=object)
+        ser = pd.Series([], dtype=object)
 
         assert len(ser.dropna()) == 0
         return_value = ser.dropna(inplace=True)
@@ -43,8 +36,8 @@ class TestDropna:
     @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.dropna")
     def test_dropna_no_nan(self):
         for ser in [
-            Series([1, 2, 3], name="x"),
-            Series([False, True, False], name="x"),
+            pd.Series([1, 2, 3], name="x"),
+            pd.Series([False, True, False], name="x"),
         ]:
             result = ser.dropna()
             tm.assert_series_equal(result, ser)
@@ -56,9 +49,9 @@ class TestDropna:
             tm.assert_series_equal(s2, ser)
 
     def test_dropna_intervals(self):
-        ser = Series(
+        ser = pd.Series(
             [np.nan, 1, 2, 3],
-            IntervalIndex.from_arrays([np.nan, 0, 1, 2], [np.nan, 1, 2, 3]),
+            pd.IntervalIndex.from_arrays([np.nan, 0, 1, 2], [np.nan, 1, 2, 3]),
         )
 
         result = ser.dropna()
@@ -67,42 +60,42 @@ class TestDropna:
 
     def test_dropna_period_dtype(self):
         # GH#13737
-        ser = Series([Period("2011-01", freq="M"), Period("NaT", freq="M")])
+        ser = pd.Series([pd.Period("2011-01", freq="M"), pd.Period("NaT", freq="M")])
         result = ser.dropna()
-        expected = Series([Period("2011-01", freq="M")])
+        expected = pd.Series([pd.Period("2011-01", freq="M")])
 
         tm.assert_series_equal(result, expected)
 
     def test_datetime64_tz_dropna(self, unit):
         # DatetimeLikeBlock
-        ser = Series(
+        ser = pd.Series(
             [
-                Timestamp("2011-01-01 10:00"),
-                NaT,
-                Timestamp("2011-01-03 10:00"),
-                NaT,
+                pd.Timestamp("2011-01-01 10:00"),
+                pd.NaT,
+                pd.Timestamp("2011-01-03 10:00"),
+                pd.NaT,
             ],
             dtype=f"M8[{unit}]",
         )
         result = ser.dropna()
-        expected = Series(
-            [Timestamp("2011-01-01 10:00"), Timestamp("2011-01-03 10:00")],
+        expected = pd.Series(
+            [pd.Timestamp("2011-01-01 10:00"), pd.Timestamp("2011-01-03 10:00")],
             index=[0, 2],
             dtype=f"M8[{unit}]",
         )
         tm.assert_series_equal(result, expected)
 
         # DatetimeTZBlock
-        idx = DatetimeIndex(
-            ["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz="Asia/Tokyo"
+        idx = pd.DatetimeIndex(
+            ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz="Asia/Tokyo"
         ).as_unit(unit)
-        ser = Series(idx)
+        ser = pd.Series(idx)
         assert ser.dtype == f"datetime64[{unit}, Asia/Tokyo]"
         result = ser.dropna()
-        expected = Series(
+        expected = pd.Series(
             [
-                Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
-                Timestamp("2011-01-03 10:00", tz="Asia/Tokyo"),
+                pd.Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
+                pd.Timestamp("2011-01-03 10:00", tz="Asia/Tokyo"),
             ],
             index=[0, 2],
             dtype=f"datetime64[{unit}, Asia/Tokyo]",
@@ -114,9 +107,9 @@ class TestDropna:
     @pytest.mark.parametrize("val", [1, 1.5])
     def test_dropna_ignore_index(self, val):
         # GH#31725
-        ser = Series([1, 2, val], index=[3, 2, 1])
+        ser = pd.Series([1, 2, val], index=[3, 2, 1])
         result = ser.dropna(ignore_index=True)
-        expected = Series([1, 2, val])
+        expected = pd.Series([1, 2, val])
         tm.assert_series_equal(result, expected)
 
         ser.dropna(ignore_index=True, inplace=True)
@@ -126,9 +119,9 @@ class TestDropna:
 def test_dropna_inplace_depr():
     msg = "The inplace keyword in Series.dropna is deprecated"
 
-    ser = Series([1.0, 1.5, np.nan, 2.0])
+    ser = pd.Series([1.0, 1.5, np.nan, 2.0])
     ser_orig = ser.copy()
-    expected = Series([1.0, 1.5, 2.0], index=[0, 1, 3])
+    expected = pd.Series([1.0, 1.5, 2.0], index=[0, 1, 3])
 
     # does not use keyword, no warning
     with tm.assert_produces_warning(False):

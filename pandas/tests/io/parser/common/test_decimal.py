@@ -7,7 +7,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -34,7 +34,7 @@ import pandas._testing as tm
 )
 def test_1000_sep_with_decimal(all_parsers, data, thousands, decimal):
     parser = all_parsers
-    expected = DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
+    expected = pd.DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
 
     if parser.engine == "pyarrow":
         msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
@@ -58,7 +58,7 @@ def test_euro_decimal_format(all_parsers):
 3;878,158;108013,434;GHI;rez;2,735694704"""
 
     result = parser.read_csv(StringIO(data), sep=";", decimal=",")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [1, 1521.1541, 187101.9543, "ABC", "poi", 4.738797819],
             [2, 121.12, 14897.76, "DEF", "uyt", 0.377320872],
@@ -66,4 +66,36 @@ def test_euro_decimal_format(all_parsers):
         ],
         columns=["Id", "Number1", "Number2", "Text1", "Text2", "Number3"],
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Float64", "Float32", "float64[pyarrow]"])
+def test_decimal_with_extension_float_dtype(all_parsers, dtype):
+    # GH#52086
+    if dtype == "float64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = 'a\n"1,5"\nNA\n2,25\n'
+
+    result = parser.read_csv(StringIO(data), sep=";", decimal=",", dtype={"a": dtype})
+    expected = pd.DataFrame({"a": pd.array([1.5, None, 2.25], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "int64[pyarrow]"])
+def test_thousands_with_extension_dtype(all_parsers, dtype):
+    # GH#52086 "1.000" was read as 1
+    if dtype == "int64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a\n1.000\nNA\n2.500\n"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), thousands=".", dtype={"a": dtype})
+        return
+
+    result = parser.read_csv(StringIO(data), thousands=".", dtype={"a": dtype})
+    expected = pd.DataFrame({"a": pd.array([1000, None, 2500], dtype=dtype)})
     tm.assert_frame_equal(result, expected)
