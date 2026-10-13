@@ -720,8 +720,8 @@ class ExtensionArray:
         Returns
         -------
         numpy.ndarray
-            The values of the array converted to ``dtype``, with missing values
-            replaced by ``na_value``.
+            The values of the array converted to ``dtype``. When ``na_value``
+            is passed, missing values are replaced by it.
 
         See Also
         --------
@@ -3095,8 +3095,9 @@ class ExtensionArray:
         """
         Map values using an input mapping or function.
 
-        The mapper is applied to each element of the array in turn. Subclasses
-        may override this method with an implementation that avoids the
+        A callable mapper is applied to each element of the array in turn; a
+        dict or Series mapper is used as a lookup table. Subclasses may
+        override this method with an implementation that avoids the
         elementwise loop or preserves their dtype.
 
         Parameters

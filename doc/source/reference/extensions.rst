@@ -75,6 +75,7 @@ objects.
       api.extensions.ExtensionArray.to_numpy
       api.extensions.ExtensionArray.transpose
       api.extensions.ExtensionArray.unique
+      api.extensions.ExtensionArray.value_counts
       api.extensions.ExtensionArray.dtype
       api.extensions.ExtensionArray.nbytes
       api.extensions.ExtensionArray.ndim
