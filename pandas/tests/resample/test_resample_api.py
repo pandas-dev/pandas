@@ -357,6 +357,18 @@ def test_agg_empty_func_series(func):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("spelling", ["dict", "list"])
+def test_agg_many_columns_result_not_fragmented(spelling):
+    # GH#61628 per-column agg results made reset_index warn about fragmentation
+    cols = [f"col_{i}" for i in range(101)]
+    index = date_range("2000-01-01", periods=4, freq="h")
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols, index=index)
+    func = dict.fromkeys(cols, "sum") if spelling == "dict" else ["sum"]
+    result = df.resample("2h").agg(func)
+    with tm.assert_produces_warning(None):
+        result.reset_index()
+
+
 @pytest.mark.parametrize("func", [[], {}])
 def test_agg_empty_func_groupby(func):
     # GH#39609

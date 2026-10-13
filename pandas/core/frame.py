@@ -4897,13 +4897,18 @@ class DataFrame(NDFrame, OpsMixin):
         if (
             key in self.columns
             and value.ndim == 1
-            and not isinstance(value.dtype, ExtensionDtype)
+            and not is_1d_only_ea_dtype(value.dtype)
         ):
             # broadcast across multiple columns if necessary
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1)).T
+                    # GH#71078 reshape/repeat rather than np.tile, which would
+                    #  degrade a 2-D-capable EA (tz-aware datetime64, period)
+                    #  to object. repeat(axis=) is not in the _supports_2d
+                    #  contract, only NDArrayBacked honours it; see GH#69153
+                    ncols = len(existing_piece.columns)
+                    value = value.reshape(1, -1).repeat(ncols, axis=0).T
                     refs = None
 
         self._set_item_mgr(key, value, refs)
@@ -20349,11 +20354,7 @@ class _DuplicateColumnRecorder(dict[Any, Any]):
     this only takes note and ``query`` decides once it can see the result.
 
     Lookups always raise ``KeyError`` so that the column resolvers behind this
-    one still supply the value. The names live in an attribute rather than in
-    the dict itself because the scope machinery rewrites an ``@local``
-    reference by writing it into the first resolver that *contains* that name
-    (``Scope.swapkey``), so anything stored here would capture locals sharing a
-    name with a duplicated column.
+    one still supply the value.
     """
 
     def __init__(self, names: set[Hashable]) -> None:
