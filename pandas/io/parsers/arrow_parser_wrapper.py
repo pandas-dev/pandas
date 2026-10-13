@@ -76,7 +76,12 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
     if dtype == object:
         # match the other engines: object dtype holds the raw strings
         return pa.large_string()
-    target_dtype = to_pyarrow_type(dtype)
+    try:
+        target_dtype = to_pyarrow_type(dtype)
+    except TypeError:
+        # extension dtypes without a pyarrow equivalent (e.g. period,
+        # interval, sparse) are left to inference like any non-string dtype
+        return None
     if target_dtype is not None and (
         pa.types.is_string(target_dtype) or pa.types.is_large_string(target_dtype)
     ):
