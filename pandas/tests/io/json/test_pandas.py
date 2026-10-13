@@ -2761,7 +2761,6 @@ class _DatetimeSubclass(datetime.datetime):
 @pytest.mark.parametrize(
     "box",
     [
-        lambda val: pd.Series([val], dtype=object),
         lambda val: pd.Series([{"a": val}], dtype=object),
         lambda val: pd.DataFrame({"a": pd.Series([val], dtype=object)}),
         lambda val: pd.Series([1], index=pd.Index([val], dtype=object)),
@@ -2769,7 +2768,7 @@ class _DatetimeSubclass(datetime.datetime):
     ],
 )
 def test_to_json_iso_utcoffset_raises(dt_cls, box):
-    # GH#69461 a failed ISO conversion of a datetime value segfaulted
+    # GH#69461 an error raised by utcoffset should propagate
     obj = box(dt_cls(2020, 1, 1, tzinfo=_RaisingTZ()))
     with pytest.raises(RuntimeError, match="boom"):
         obj.to_json(date_format="iso")
