@@ -27,9 +27,10 @@ what to change afterwards.
 - **Local mode**: review the current branch including uncommitted changes. Find the remote
   whose URL contains `pandas-dev/pandas` (`git remote -v`), then diff with
   `git diff $(git merge-base HEAD <remote>/main)`. That diff omits untracked files, so also
-  Read every `??` file in `git status --porcelain`. If the branch already has a PR
-  (`gh pr list --repo pandas-dev/pandas --head "$(git branch --show-current)" --json number`),
-  also read its thread as in step 2.
+  Read every `??` file in `git status --porcelain -uall`. If the branch already has a PR
+  (`gh pr list --repo pandas-dev/pandas --head "$(git branch --show-current)" --author "@me" --json number`),
+  also read its thread as in step 2. `--head` matches the branch name in any fork, so treat
+  a detached HEAD or anything other than exactly one result as no PR yet.
 
 The code under review is the working tree in local mode, or in PR mode when
 `git rev-parse HEAD` equals `headRefOid`. Otherwise read files at the head with
