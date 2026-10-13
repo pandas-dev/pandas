@@ -117,7 +117,7 @@ details, see the commit logs at https://github.com/pandas-dev/pandas.
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
 - [tzdata - Provides an IANA time zone database](https://tzdata.python.org) (Only required on Windows/Emscripten)
 
-See the [full installation instructions](https://pandas.pydata.org/docs/getting-started/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
+See the [full installation instructions](https://pandas.pydata.org/docs/getting_started/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
 To install pandas from source you need [Cython](https://cython.org/) in addition to the normal
