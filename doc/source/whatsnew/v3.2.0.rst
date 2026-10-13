@@ -87,6 +87,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
 
 .. ---------------------------------------------------------------------------
@@ -217,6 +218,7 @@ I/O
 - Bug in :func:`read_csv` where using ``engine="python"`` with custom ``converters`` returning unhashable types (such as lists or dicts) raised ``TypeError`` (:issue:`56848`)
 - Bug in :func:`read_json` with ``typ="series"`` returning ``datetime64`` dtype for all-null data instead of ``float64``, matching ``DataFrame`` columns (:issue:`35464`)
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
+- Bug in :func:`read_sql_query` and :func:`read_sql_table` with a SQLAlchemy connection returning column labels that require ``sqlalchemy`` to unpickle (:issue:`52816`)
 - Bug in :meth:`Series.to_json` with ``orient="table"`` writing a falsy :class:`Series` name such as ``0``, ``False`` or ``""`` as ``"values"`` (:issue:`19129`)
 
 Period
@@ -239,6 +241,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` raising ``NotImplementedError``, often with no message, instead of ``TypeError`` on columns that do not support them, e.g. ``object`` columns and :class:`ArrowDtype` date, time and binary columns (:issue:`69791`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
+- Bug in :meth:`.GroupBy.quantile` raising ``NotImplementedError`` with no message, instead of ``TypeError``, on :class:`ArrowDtype` columns it does not support, e.g. binary columns (:issue:`69808`)
 - Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` on ``complex`` data silently discarding the imaginary part, and :meth:`.GroupBy.var` raising; these now match :meth:`Series.std`, :meth:`Series.sem`, and :meth:`Series.var` (:issue:`43770`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``sort=True`` and ``dropna=False`` placing the ``NaN`` group in the middle of the result instead of last for object-dtype keys; :meth:`Index.union` had the same misordering (:issue:`70216`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` and ``closed="right"`` returning shifted labels or incorrect aggregations (:issue:`44363`)
@@ -264,6 +267,7 @@ Styler
 - Bug in :class:`.Styler` methods taking a ``level`` argument, such as :meth:`.Styler.hide` and :meth:`.Styler.format_index`, ignoring or raising on negative, out-of-range or NumPy integer levels; ``level`` is now resolved as in :meth:`DataFrame.droplevel`, so an integer matching a level name refers to that level (:issue:`42933`)
 - Bug in :meth:`.Styler.background_gradient` and :meth:`.Styler.text_gradient` coloring missing values with the lowest colormap color instead of the missing-value color when all valid values in a column, row, or table were equal (:issue:`47695`)
 - Bug in :meth:`.Styler.bar` raising ``TypeError`` for data containing ``pd.NA`` when ``align`` is ``"mean"`` or a callable, or when ``cmap`` is given (:issue:`56425`)
+- Bug in :meth:`.Styler.map`, :meth:`.Styler.apply` and :meth:`.Styler.set_table_styles` truncating CSS values that contain a ``;`` inside quotes or parentheses, such as ``url("data:image/png;base64,...")`` (:issue:`59623`)
 - Bug in :meth:`.Styler.to_excel` applying styles to the wrong columns when ``columns`` selects or reorders columns (:issue:`42276`)
 - Bug in :meth:`.Styler.to_html` where Chrome and other Chromium-based browsers did not apply a style shared by more than 8192 cells to the cells beyond the first 8192 (:issue:`40913`)
 
