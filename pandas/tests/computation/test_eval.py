@@ -1498,6 +1498,23 @@ class TestOperations:
             with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("[3] not in (1, 2, [[3]])", engine=engine, parser=parser)
 
+    @pytest.mark.parametrize(
+        "expr, expected",
+        [
+            ("abs(a) in [1, 2]", [True, True, True, False]),
+            ("abs(a) not in [1, 2]", [False, False, False, True]),
+            ("-a in [1, 2]", [False, True, False, False]),
+            ("abs(a) + 0 in [1, 2]", [True, True, True, False]),
+            ("abs(a) == [2, 1, 1, 3]", [False, True, False, True]),
+            ("-a > [0, 0, 0, 0]", [False, True, False, True]),
+        ],
+    )
+    def test_in_ops_with_unary_or_math_operand(self, engine, expr, expected):
+        # GH#31848 numexpr raised AttributeError on a UnaryOp/MathCall operand
+        df = pd.DataFrame({"a": [1, -1, 2, -3]})
+        result = df.eval(expr, engine=engine)
+        tm.assert_series_equal(result, pd.Series(expected), check_names=False)
+
     def test_check_many_exprs(self, engine, parser):
         a = 1  # noqa: F841
         expr = " * ".join("a" * 33)
