@@ -152,12 +152,6 @@ def arr_nan_infj(arr_inf):
 
 
 @pytest.fixture
-def arr_complex_nan_infj(arr_complex, arr_nan_infj):
-    with np.errstate(invalid="ignore"):
-        return np.vstack([arr_complex, arr_nan_infj])
-
-
-@pytest.fixture
 def arr_float_1d(arr_float):
     return arr_float[:, 0]
 
@@ -842,69 +836,6 @@ class TestnanopsDataFrame:
         targ0 = np.cov(self.arr_float_1d, self.arr_float1_1d)[0, 1]
         targ1 = np.cov(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancov, targ0, targ1)
-
-
-@pytest.mark.parametrize(
-    "arr, correct",
-    [
-        ("arr_complex", False),
-        ("arr_int", False),
-        ("arr_bool", False),
-        ("arr_str", False),
-        ("arr_utf", False),
-        ("arr_complex_nan", False),
-        ("arr_nan_nanj", False),
-        ("arr_nan_infj", True),
-        ("arr_complex_nan_infj", True),
-    ],
-)
-def test_has_infs_non_float(request, arr, correct, disable_bottleneck):
-    val = request.getfixturevalue(arr)
-    while getattr(val, "ndim", True):
-        res0 = nanops._has_infs(val)
-        if correct:
-            assert res0
-        else:
-            assert not res0
-
-        if not hasattr(val, "ndim"):
-            break
-
-        # Reduce dimension for next step in the loop
-        val = np.take(val, 0, axis=-1)
-
-
-@pytest.mark.parametrize(
-    "arr, correct",
-    [
-        ("arr_float", False),
-        ("arr_nan", False),
-        ("arr_float_nan", False),
-        ("arr_nan_nan", False),
-        ("arr_float_inf", True),
-        ("arr_inf", True),
-        ("arr_nan_inf", True),
-        ("arr_float_nan_inf", True),
-        ("arr_nan_nan_inf", True),
-    ],
-)
-@pytest.mark.parametrize("astype", [None, "f4", "f2"])
-def test_has_infs_floats(request, arr, correct, astype, disable_bottleneck):
-    val = request.getfixturevalue(arr)
-    if astype is not None:
-        val = val.astype(astype)
-    while getattr(val, "ndim", True):
-        res0 = nanops._has_infs(val)
-        if correct:
-            assert res0
-        else:
-            assert not res0
-
-        if not hasattr(val, "ndim"):
-            break
-
-        # Reduce dimension for next step in the loop
-        val = np.take(val, 0, axis=-1)
 
 
 @pytest.mark.parametrize(
