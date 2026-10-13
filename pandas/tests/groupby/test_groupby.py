@@ -35,7 +35,7 @@ def test_groupby_nonobject_dtype(multiindex_dataframe_random_data):
     tm.assert_frame_equal(result, expected, check_index_type=False)
 
 
-def test_groupby_nonobject_dtype_mixed():
+def test_groupby_nonobject_dtype_mixed(using_python_scalars):
     # GH 3911, mixed frame non-conversion
     df = pd.DataFrame(
         {
@@ -53,6 +53,9 @@ def test_groupby_nonobject_dtype_mixed():
     applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
     expected = df.drop(columns="A").dtypes
+    if using_python_scalars:
+        # the mixed-dtype rows hold Python floats, which infer as float64
+        expected["D"] = np.dtype("float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -1286,6 +1289,9 @@ def test_groupby_two_group_keys_all_nan():
     # GH #36842: Grouping over two group keys shouldn't raise an error
     df = pd.DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [1, 2]})
     result = df.groupby(["a", "b"]).indices
+    assert result == {}
+    # GH#26846: only one key all-NaN
+    result = df.groupby(["a", "c"]).indices
     assert result == {}
 
 

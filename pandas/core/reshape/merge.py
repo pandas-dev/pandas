@@ -24,7 +24,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.errors import MergeError
+from pandas.errors import (
+    MergeError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -670,14 +673,14 @@ def merge_asof(
 
     For each row in the left DataFrame:
 
-      - A "backward" search selects the last row in the right DataFrame whose
-        'on' key is less than or equal to the left's key.
+    - A "backward" search selects the last row in the right DataFrame whose
+      'on' key is less than or equal to the left's key.
 
-      - A "forward" search selects the first row in the right DataFrame whose
-        'on' key is greater than or equal to the left's key.
+    - A "forward" search selects the first row in the right DataFrame whose
+      'on' key is greater than or equal to the left's key.
 
-      - A "nearest" search selects the row in the right DataFrame whose 'on'
-        key is closest in absolute distance to the left's key.
+    - A "nearest" search selects the row in the right DataFrame whose 'on'
+      key is closest in absolute distance to the left's key.
 
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
@@ -3386,6 +3389,15 @@ def _items_overlap_with_suffix(
         raise MergeError(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
             "not allowed.",
+        )
+    # GH#13659 left and right labels collide after suffixing, e.g. equal suffixes
+    cross_dups = llabels.intersection(rlabels)
+    if len(cross_dups):
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(cross_dups)} "
+            "is deprecated and will raise a MergeError in a future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

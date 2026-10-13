@@ -67,6 +67,9 @@ class CSSDict(TypedDict):
 CSSStyles: TypeAlias = list[CSSDict]
 Subset = slice | Sequence[Any] | Index
 
+# Chromium ignores selectors past the 8192nd in a single rule, GH#40913
+_MAX_SELECTORS_PER_RULE = 8192
+
 
 class StylerRenderer:
     """
@@ -420,8 +423,12 @@ class StylerRenderer:
         }  # add the cell_ids styles map to the render dictionary in right format
         for k, attr in ctx_maps.items():
             map = [
-                {"props": list(props), "selectors": selectors}
+                {
+                    "props": list(props),
+                    "selectors": selectors[start : start + _MAX_SELECTORS_PER_RULE],
+                }
                 for props, selectors in getattr(self, attr).items()
+                for start in range(0, len(selectors), _MAX_SELECTORS_PER_RULE)
             ]
             d.update({k: map})
 
@@ -1112,12 +1119,12 @@ class StylerRenderer:
         When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
-          - ``styler.format.formatter``: default None.
-          - ``styler.format.na_rep``: default None.
-          - ``styler.format.precision``: default 6.
-          - ``styler.format.decimal``: default ".".
-          - ``styler.format.thousands``: default None.
-          - ``styler.format.escape``: default None.
+        - ``styler.format.formatter``: default None.
+        - ``styler.format.na_rep``: default None.
+        - ``styler.format.precision``: default 6.
+        - ``styler.format.decimal``: default ".".
+        - ``styler.format.thousands``: default None.
+        - ``styler.format.escape``: default None.
 
         .. warning::
            `Styler.format` is ignored when using the output format `Styler.to_excel`,
@@ -1401,7 +1408,7 @@ class StylerRenderer:
         >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
         ... # doctest: +SKIP
                        A       B
-              2.0    nan     4.0
+              2.0    NaN     4.0
         0       1      2       3
 
         Using a callable ``formatter`` function.
@@ -1541,10 +1548,10 @@ class StylerRenderer:
         This method should be used, rather than :meth:`Styler.format_index`, in one of
         the following cases (see examples):
 
-          - A specified set of labels are required which are not a function of the
-            underlying index keys.
-          - The function of the underlying index keys requires a counter variable,
-            such as those available upon enumeration.
+        - A specified set of labels are required which are not a function of the
+          underlying index keys.
+        - The function of the underlying index keys requires a counter variable,
+          such as those available upon enumeration.
 
         Examples
         --------
@@ -1625,8 +1632,9 @@ class StylerRenderer:
             )
 
         if level is None:
-            level = [i for i in range(obj.nlevels) if not hidden_lvls[i]]
-        levels_ = refactor_levels(level, obj)
+            levels_ = [i for i in range(obj.nlevels) if not hidden_lvls[i]]
+        else:
+            levels_ = refactor_levels(level, obj)
 
         def alias_(x, value):
             if isinstance(value, str):
@@ -1965,7 +1973,10 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     value : Any
         Matches input type, or string if input is float or complex or int with sep.
     """
-    if is_float(x) or is_complex(x):
+    if is_float(x) and np.isnan(x):
+        # match DataFrame repr, GH#12710
+        return "NaN"
+    elif is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
         return f"{x:,}" if thousands else str(x)
@@ -2139,14 +2150,52 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
             )
-        s = style.split(";")
-        return [
-            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
-            for x in s
-            if x.strip() != ""
-        ]
+        declarations = (
+            decl.partition(":")
+            for decl in _split_css_declarations(style)
+            if decl.strip() != ""
+        )
+        return [(prop.strip(), value.strip()) for prop, _, value in declarations]
 
     return style
+
+
+def _split_css_declarations(style: str) -> list[str]:
+    """
+    Split a CSS declaration string on ``;``, ignoring separators that appear
+    inside quoted strings or parentheses.
+
+    This keeps values such as ``url("data:image/png;base64,...")`` intact.
+
+    Examples
+    --------
+    >>> _split_css_declarations("a: b; c: url('x;y')")
+    ['a: b', " c: url('x;y')"]
+    """
+    declarations = []
+    start = 0
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for i, char in enumerate(style):
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif quote is not None:
+            if char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+        elif char == ";" and depth == 0:
+            declarations.append(style[start:i])
+            start = i + 1
+    declarations.append(style[start:])
+    return declarations
 
 
 def refactor_levels(
@@ -2154,33 +2203,24 @@ def refactor_levels(
     obj: Index,
 ) -> list[int]:
     """
-    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
+    Convert a user-supplied ``level`` arg to a list of level numbers.
 
     Parameters
     ----------
-    level : int, str, list
-        Original ``level`` arg supplied to above methods.
-    obj:
-        Either ``self.index`` or ``self.columns``
+    level : int, str, list or None
+        Level name or number, or a list of such. None means all levels.
+    obj : Index
+        Either ``self.index`` or ``self.columns``.
 
     Returns
     -------
-    list : refactored arg with a list of levels to hide
+    list[int]
     """
     if level is None:
-        levels_: list[int] = list(range(obj.nlevels))
-    elif isinstance(level, int):
-        levels_ = [level]
-    elif isinstance(level, str):
-        levels_ = [obj._get_level_number(level)]
-    elif isinstance(level, list):
-        levels_ = [
-            obj._get_level_number(lev) if not isinstance(lev, int) else lev
-            for lev in level
-        ]
-    else:
-        raise ValueError("`level` must be of type `int`, `str` or list of such")
-    return levels_
+        return list(range(obj.nlevels))
+    if not isinstance(level, list):
+        level = [level]
+    return [obj._get_level_number(lev) for lev in level]
 
 
 class Tooltips:

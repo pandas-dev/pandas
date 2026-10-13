@@ -3008,9 +3008,7 @@ class IndexCol:
             if (
                 new_metadata is not None
                 and cur_metadata is not None
-                and not array_equivalent(
-                    new_metadata, cur_metadata, strict_nan=True, dtype_equal=True
-                )
+                and not array_equivalent(new_metadata, cur_metadata, strict_nan=True)
             ):
                 raise ValueError(
                     "cannot append a categorical with different categories "
@@ -6081,7 +6079,7 @@ def _make_nan_rep(
     sentinel is persisted for the whole column.
     """
     non_missing = values[~mask]
-    if lib.infer_dtype(non_missing, skipna=True) != "string":
+    if not lib.is_string_array(non_missing, skipna=True):
         # Only a str can equal the sentinel, and an elementwise == against a
         # list or ndarray element is not a bool. Dropping the rest also keeps an
         # unhashable element from raising here, ahead of the "Cannot serialize
@@ -6149,7 +6147,7 @@ def _make_data_col_nan_rep(
         # an elementwise == against a list/ndarray element is not a bool, and a
         # non-string column has _maybe_convert_for_string_atom's much better
         # "Cannot serialize the column" error waiting for it anyway
-        and lib.infer_dtype(flat, skipna=True) == "string"
+        and lib.is_string_array(flat, skipna=True)
         and (flat[~mask] == nan_rep).any()
     ):
         # A real value equal to the sentinel is indistinguishable from a
@@ -6382,8 +6380,7 @@ def _maybe_convert_for_string_atom(
         )
 
     # see if we have a valid string type
-    inferred_type = lib.infer_dtype(data, skipna=False)
-    if inferred_type != "string":
+    if not lib.is_string_array(data, skipna=False):
         # we cannot serialize this data, so report an exception on a column
         # by column basis
 

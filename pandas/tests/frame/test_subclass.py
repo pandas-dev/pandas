@@ -663,6 +663,36 @@ class TestDataFrameSubclassing:
         result = df.count()
         assert isinstance(result, tm.SubclassedSeries)
 
+    @pytest.mark.parametrize(
+        "dropna_kwargs", [{}, {"how": "all"}, {"thresh": 2}, {"subset": ["A", "B"]}]
+    )
+    @pytest.mark.parametrize("multi_block", [False, True])
+    def test_dropna_does_not_transpose(self, dropna_kwargs, multi_block):
+        # GH#50708 a transpose runs the subclass constructor on a frame with
+        # one column per row, which is very slow for tall frames
+        widths = []
+
+        class WidthRecordingFrame(pd.DataFrame):
+            def __init__(self, *args, **kwargs) -> None:
+                super().__init__(*args, **kwargs)
+                widths.append(self.shape[1])
+
+            @property
+            def _constructor(self):
+                return WidthRecordingFrame
+
+        values = np.arange(30, dtype=np.float64).reshape(10, 3)
+        values[::3, 0] = np.nan
+        df = WidthRecordingFrame(values, columns=["A", "B", "C"])
+        if multi_block:
+            df["C"] = df["C"].astype(np.int64)
+            assert len(df._mgr.blocks) == 2
+
+        widths.clear()
+        result = df.dropna(**dropna_kwargs)
+        assert isinstance(result, WidthRecordingFrame)
+        assert max(widths) <= 3
+
     def test_isin(self):
         df = tm.SubclassedDataFrame(
             {"num_legs": [2, 4], "num_wings": [2, 0]}, index=["falcon", "dog"]
