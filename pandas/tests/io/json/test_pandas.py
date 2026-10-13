@@ -1483,12 +1483,6 @@ class TestPandasContainer:
             def utcoffset(self, dt):
                 raise RuntimeError("boom")
 
-            def dst(self, dt):
-                return None
-
-            def tzname(self, dt):
-                return None
-
         ser = pd.Series([datetime.datetime(2020, 1, 1, tzinfo=BadTZ())], dtype=object)
         with pytest.raises(RuntimeError, match="boom"):
             ser.to_json(date_format="iso")
