@@ -305,3 +305,27 @@ def test_str_dtype():
     result = df.explode(column="a")
     assert result is not df
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "column, explode_ef",
+    [(("B", "C"), False), ([("B", "C")], False), ([("B", "C"), ("E", "F")], True)],
+)
+def test_explode_tuple_label_flat_columns(column, explode_ef):
+    # GH 55142
+    df = pd.DataFrame(
+        {"A": [1, 2], ("B", "C"): [[3, 4], [5]], ("E", "F"): [[6, 7], [8]]},
+        index=list("ab"),
+    )
+    result = df.explode(column)
+    expected = pd.DataFrame(
+        {
+            "A": [1, 1, 2],
+            ("B", "C"): np.array([3, 4, 5], dtype=object),
+            ("E", "F"): np.array([6, 7, 8], dtype=object)
+            if explode_ef
+            else [[6, 7], [6, 7], [8]],
+        },
+        index=list("aab"),
+    )
+    tm.assert_frame_equal(result, expected)
