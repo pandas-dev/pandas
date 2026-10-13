@@ -3577,6 +3577,25 @@ def test_read_sql_table_float_asdecimal(sqlite_engine):
     tm.assert_frame_equal(res, df, check_exact=True)
 
 
+def test_read_sql_table_datetime_utc_z_suffix(sqlite_engine):
+    # GH#30879
+    from sqlalchemy import text
+
+    with sqlite_engine.begin() as conn:
+        conn.execute(text("CREATE TABLE gpkg_contents (last_change DATETIME);"))
+        conn.execute(
+            text("INSERT INTO gpkg_contents VALUES ('2019-01-01T00:00:00.000Z');")
+        )
+
+    result = sql.read_sql_table(
+        "gpkg_contents", sqlite_engine, parse_dates=["last_change"]
+    )
+    expected = pd.DataFrame(
+        {"last_change": pd.DatetimeIndex(["2019-01-01"], tz="UTC").as_unit("us")}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_connectable_issue_example(conn, request):
     conn = request.getfixturevalue(conn)
