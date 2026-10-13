@@ -2476,15 +2476,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         :class:`~api.extensions.ExtensionArray` of that type with just
         the unique values is returned. This includes
 
-            * Categorical
-            * Period
-            * Datetime with Timezone
-            * Datetime without Timezone
-            * Timedelta
-            * Interval
-            * Sparse
-            * IntegerNA
-            * String
+        * Categorical
+        * Period
+        * Datetime with Timezone
+        * Datetime without Timezone
+        * Timedelta
+        * Interval
+        * Sparse
+        * IntegerNA
+        * String
 
         See Examples section.
 
@@ -2967,12 +2967,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
-                  the fractional part of the index surrounded by `i > j`.
-                * lower: `i`.
-                * higher: `j`.
-                * nearest: `i` or `j` whichever is nearest.
-                * midpoint: (`i` + `j`) / 2.
+            * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
+              the fractional part of the index surrounded by `i > j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
 
         Returns
         -------

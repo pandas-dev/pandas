@@ -131,6 +131,7 @@ from signature_overrides import apply_signature_overrides
 
 extensions = [
     "contributors",  # custom pandas extension
+    "rst_list_indentation",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
