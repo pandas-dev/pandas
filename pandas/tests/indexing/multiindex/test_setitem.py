@@ -703,3 +703,66 @@ def test_insert_multiindex_full_tuple_no_warning():
     with tm.assert_produces_warning(None):
         df.insert(1, ("c", "d"), [2])
     assert df.columns.tolist() == [("a", "b"), ("c", "d")]
+
+
+class TestLocSetitemMultiIndexAmbiguousTupleWarning:
+    # GH#65326 - .loc[tuple] on a MultiIndex with nlevels == ndim is
+    #  ambiguous between a MultiIndex row key and (row, column) indexers.
+    #  When the tuple doesn't match an existing MultiIndex key *and* the
+    #  (row, column) reading would expand the frame, warn that the
+    #  (row, column) interpretation is deprecated.
+
+    def test_new_row_existing_column_warns(self):
+        # row-candidate ("z",) doesn't exist; "A" is an existing column
+        mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        df = pd.DataFrame({"A": [1, 2]}, index=mi)
+        msg = re.escape("(('z', 3), 'A')")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.loc[("z", 3), "A"] = 99
+        assert df.loc[("z", 3), "A"] == 99
+
+    def test_existing_row_new_column_warns(self):
+        # row ("a", 1) exists; column "C" does not
+        mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        df = pd.DataFrame({"A": [1, 2]}, index=mi)
+        msg = re.escape("(('a', 1), 'C')")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.loc[("a", 1), "C"] = 99
+        assert df.loc[("a", 1), "C"] == 99
+
+    def test_both_new_warns(self):
+        # neither the row nor the column exist yet
+        mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        df = pd.DataFrame({"A": [1, 2]}, index=mi)
+        msg = re.escape("(('z', 3), 'C')")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.loc[("z", 3), "C"] = 99
+        assert df.loc[("z", 3), "C"] == 99
+
+    def test_existing_row_and_column_overwrite_no_warning(self):
+        # both the row and the column already exist: plain overwrite,
+        #  not an expansion, should not warn (GH#65326)
+        mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=mi)
+        with tm.assert_produces_warning(None):
+            df.loc["a", "B"] = 99
+        assert df.loc[("a", 1), "B"] == 99
+
+    def test_existing_full_multiindex_key_overwrite_no_warning(self):
+        # the tuple is itself a valid, existing MultiIndex row key:
+        #  unambiguous MultiIndex-key interpretation, should not warn
+        mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=mi)
+        with tm.assert_produces_warning(None):
+            df.loc[("a", 1)] = [10, 20]
+        tm.assert_series_equal(
+            df.loc[("a", 1)], pd.Series([10, 20], index=["A", "B"], name=("a", 1))
+        )
+
+    def test_nlevels_greater_than_ndim_no_warning(self):
+        # nlevels > ndim is not the ambiguous case, should not warn (GH#65326)
+        mi = pd.MultiIndex.from_tuples([("a", 1, "x"), ("b", 2, "y")])
+        df = pd.DataFrame({"A": [1, 2]}, index=mi)
+        with tm.assert_produces_warning(None):
+            df.loc[("z", 3, "w"), :] = [99]
+        assert df.loc[("z", 3, "w"), "A"] == 99
