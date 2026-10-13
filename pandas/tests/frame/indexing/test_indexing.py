@@ -1607,6 +1607,46 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(val, pd.Timedelta)
 
 
+@pytest.mark.parametrize(
+    "indexer", [lambda df: df.iloc[0], lambda df: df.loc[0], lambda df: df.xs(0)]
+)
+def test_mixed_dtype_row_python_scalars(indexer):
+    # GH#13468 match iterrows
+    stored = np.int8(3)
+    df = pd.DataFrame(
+        {
+            "a": [1, 2],
+            "b": [1.5, 2.5],
+            "c": [True, False],
+            "d": pd.array([4, None], dtype="Int64"),
+            "e": np.array([stored, 4], dtype=object),
+        }
+    )
+    with pd.option_context("future.python_scalars", True):
+        row = indexer(df)
+        _, expected = next(df.iterrows())
+    assert row.dtype == object
+    assert [type(x) for x in row.array] == [int, float, bool, int, np.int8]
+    # NumPy scalars stored in object dtype are user data, not unboxed
+    assert row["e"] is stored
+    tm.assert_series_equal(row, expected)
+
+
+def test_mixed_dtype_row_python_scalars_extension_dtype():
+    # GH#13468 the row has an extension dtype, so values are left to the array
+    stored = np.int8(3)
+    df = pd.DataFrame(
+        {
+            "a": pd.arrays.SparseArray(np.array([stored, None], dtype=object)),
+            "b": [7, 8],
+        }
+    )
+    with pd.option_context("future.python_scalars", True):
+        row = df.iloc[0]
+    assert isinstance(row.dtype, pd.SparseDtype)
+    assert row.array[0] is stored
+
+
 msg1 = r"Cannot setitem on a Categorical with a new category( \(.*\))?, set the"
 msg2 = "Cannot set a Categorical with another, without identical categories"
 

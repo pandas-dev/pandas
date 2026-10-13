@@ -154,6 +154,17 @@ def test_agg_consistency(step):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("spelling", ["dict", "list"])
+def test_agg_many_columns_result_not_fragmented(spelling):
+    # GH#61628 per-column agg results made reset_index warn about fragmentation
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    func = dict.fromkeys(cols, "sum") if spelling == "dict" else ["sum"]
+    result = df.rolling(2).agg(func)
+    with tm.assert_produces_warning(None):
+        result.reset_index()
+
+
 def test_agg_nested_dicts():
     # API change for disallowing these types of nested dicts
     df = pd.DataFrame({"A": range(5), "B": range(0, 10, 2)})
