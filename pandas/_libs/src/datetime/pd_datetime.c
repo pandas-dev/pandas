@@ -53,11 +53,13 @@ static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
   if (offset == NULL) {
     return -1;
   }
+
   /* Apply the time zone offset if datetime obj is tz-aware */
   if (offset == Py_None) {
     Py_DECREF(offset);
     return 0;
   }
+
   /*
    * The timedelta should have a function "total_seconds"
    * which contains the value we want.
@@ -67,11 +69,13 @@ static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
   if (tmp == NULL) {
     return -1;
   }
+
   PyObject *tmp_int = PyNumber_Long(tmp);
   if (tmp_int == NULL) {
     Py_DECREF(tmp);
     return -1;
   }
+
   int seconds_offset = PyLong_AsLong(tmp_int);
   if (seconds_offset == -1 && PyErr_Occurred()) {
     Py_DECREF(tmp_int);
@@ -232,10 +236,6 @@ static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
 
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
   char *result = PyObject_Malloc(*len);
-  if (result == NULL) {
-    PyErr_NoMemory();
-    return NULL;
-  }
   // Check to see if PyDateTime has a timezone.
   // Don't convert to UTC if it doesn't.
   int is_tz_aware = 0;

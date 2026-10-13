@@ -501,6 +501,9 @@ static const char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
   NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
   GET_TC(tc)->cStr = PyDateTimeToIso(obj, base, len);
   if (GET_TC(tc)->cStr == NULL) {
+    /* PyDateTimeToIso already set a Python exception; tell the
+       encoder to stop instead of letting the caller dereference a
+       NULL string. */
     ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
   }
   return GET_TC(tc)->cStr;
