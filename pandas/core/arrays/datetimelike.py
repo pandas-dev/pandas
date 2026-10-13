@@ -2404,6 +2404,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         skipna: bool = True,
         **kwargs,
     ) -> bool:
+        nv.validate_any((), {"keepdims": keepdims, **kwargs})
         # GH#34479 the nanops call will raise a TypeError for non-td64 dtype
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
@@ -2415,8 +2416,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         skipna: bool = True,
         **kwargs,
     ) -> bool:
+        nv.validate_all((), {"keepdims": keepdims, **kwargs})
         # GH#34479 the nanops call will raise a TypeError for non-td64 dtype
-
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     # --------------------------------------------------------------

@@ -2436,7 +2436,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def mean(
         self,
         *,
-        axis: Axis | None = 0,
+        axis: Axis | None = None,
         keepdims: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -2459,7 +2459,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         -------
         scalar
         """
-        nv.validate_mean((), kwargs)
+        nv.validate_mean((), {"axis": axis, "keepdims": keepdims, **kwargs})
         skipna = validate_bool_kwarg(skipna, "skipna")
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
@@ -2521,9 +2521,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.median()
         2.5
         """
-        nv.validate_median((), kwargs)
+        nv.validate_median((), {"keepdims": keepdims, **kwargs})
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("median", skipna=skipna)
+        return self._dense_reduce("median", axis=axis, skipna=skipna)
 
     def var(
         self,
@@ -2565,9 +2565,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.var()
         1.6666666666666667
         """
-        nv.validate_stat_ddof_func((), kwargs, fname="var")
+        nv.validate_stat_ddof_func((), {"keepdims": keepdims, **kwargs}, fname="var")
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("var", skipna=skipna, ddof=ddof)
+        return self._dense_reduce("var", axis=axis, skipna=skipna, ddof=ddof)
 
     def std(
         self,
@@ -2609,9 +2609,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.std()
         1.2909944487358056
         """
-        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        nv.validate_stat_ddof_func((), {"keepdims": keepdims, **kwargs}, fname="std")
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("std", skipna=skipna, ddof=ddof)
+        return self._dense_reduce("std", axis=axis, skipna=skipna, ddof=ddof)
 
     def sem(
         self,
@@ -2653,9 +2653,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.sem()
         np.float64(0.6454972243679028)
         """
-        nv.validate_stat_ddof_func((), kwargs, fname="sem")
+        nv.validate_stat_ddof_func((), {"keepdims": keepdims, **kwargs}, fname="sem")
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("sem", skipna=skipna, ddof=ddof)
+        return self._dense_reduce("sem", axis=axis, skipna=skipna, ddof=ddof)
 
     def skew(
         self,
@@ -2693,9 +2693,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.skew()
         np.float64(0.0)
         """
-        nv.validate_stat_ddof_func((), kwargs, fname="skew")
+        nv.validate_stat_ddof_func((), {"keepdims": keepdims, **kwargs}, fname="skew")
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("skew", skipna=skipna)
+        return self._dense_reduce("skew", axis=axis, skipna=skipna)
 
     def kurt(
         self,
@@ -2733,9 +2733,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.kurt()
         np.float64(-1.200000000000001)
         """
-        nv.validate_stat_ddof_func((), kwargs, fname="kurt")
+        nv.validate_stat_ddof_func((), {"keepdims": keepdims, **kwargs}, fname="kurt")
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("kurt", skipna=skipna)
+        return self._dense_reduce("kurt", axis=axis, skipna=skipna)
 
     def max(
         self,
@@ -2763,6 +2763,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         -------
         scalar
         """
+        nv.validate_max((), {"axis": axis, "keepdims": keepdims, **kwargs})
         nv.validate_minmax_axis(axis, self.ndim)
         return self._min_max("max", skipna=skipna)
 
@@ -2792,6 +2793,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         -------
         scalar
         """
+        nv.validate_min((), {"axis": axis, "keepdims": keepdims, **kwargs})
         nv.validate_minmax_axis(axis, self.ndim)
         return self._min_max("min", skipna=skipna)
 
