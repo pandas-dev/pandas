@@ -27,6 +27,7 @@ from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 
@@ -276,7 +277,7 @@ def _post_convert_dtypes(
 
 
 def _numpy_dtype(dtype: DtypeObj) -> np.dtype | None:
-    # the numpy dtype a column's values compare as, if known
+    # the numpy dtype underlying a column's dtype, if any
     if isinstance(dtype, np.dtype):
         return dtype
     if isinstance(dtype, pd.SparseDtype):
@@ -307,39 +308,26 @@ def validate_integer_casts(original: pd.DataFrame, casted: pd.DataFrame) -> None
     for i, (old, new) in enumerate(zip(original.dtypes, casted.dtypes, strict=True)):
         # check dtypes first; iloc on every column is slow for wide frames
         if _can_wrap(old, new):
-            validate_integer_cast(original.iloc[:, i], casted.iloc[:, i])
+            validate_integer_cast(original.iloc[:, i], new)
 
 
-def validate_integer_cast(original: pd.Series, casted: pd.Series) -> None:
+def validate_integer_cast(original: pd.Series, dtype: DtypeObj) -> None:
     """
-    Raise if casting a column to an integer dtype wrapped around (GH#38013).
+    Raise if casting a column to an integer ``dtype`` wrapped around (GH#38013).
 
     Discarding a float's fractional part is allowed, as in the python engine.
     """
-    if not _can_wrap(original.dtype, casted.dtype):
+    if not _can_wrap(original.dtype, dtype):
         return
-    mask = original.isna().to_numpy()
-    if mask.any():
-        original = original[~mask]
-        casted = casted[~mask]
-    # compare in numpy: pyarrow refuses to compare integers above 2**53
-    #  with doubles
-    before = original.to_numpy(dtype=_numpy_dtype(original.dtype))
-    after = casted.to_numpy(dtype=_numpy_dtype(casted.dtype))
-    if before.dtype.kind == "f":
-        truncated = np.trunc(before)
-        info = np.iinfo(after.dtype)
-        # check the bounds explicitly: a cast that saturates at info.max
-        #  compares equal to e.g. 2.0**63 once converted back to float
-        bad = (
-            (truncated < info.min) | (truncated >= info.max + 1) | (truncated != after)
-        )
-    else:
-        bad = before != after
-    if bad.any():
+    lo, hi = original.min(), original.max()
+    if isna(lo):
+        return
+    info = np.iinfo(_numpy_dtype(dtype))
+    # int() truncates exactly, so e.g. 2.0**63 does not equal int64 max
+    if int(lo) < info.min or int(hi) > info.max:
         raise ValueError(
-            f"cannot safely convert passed user dtype of {casted.dtype} for "
-            f"{before.dtype} dtyped data in column {original.name}"
+            f"cannot safely convert passed user dtype of {dtype} for "
+            f"{_numpy_dtype(original.dtype)} dtyped data in column {original.name}"
         )
 
 
