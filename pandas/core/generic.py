@@ -601,13 +601,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _get_index_resolvers(self) -> dict[Hashable, Series | MultiIndex]:
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import clean_resolvers
 
         d: dict[str, Series | MultiIndex] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
-        return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
+        return clean_resolvers((k, v) for k, v in d.items() if not isinstance(k, int))
 
     @final
     def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series | DataFrame]:
@@ -618,12 +618,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         be referred to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import (
+            clean_column_name,
+            clean_resolvers,
+        )
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
-        return {clean_column_name(k): self[k] for k in self.columns}
+        return clean_resolvers((k, self[k]) for k in self.columns)
 
     @final
     @property

@@ -1969,12 +1969,12 @@ def test_negate_lt_eq_le(engine, parser):
     DEFAULT_GLOBALS.keys(),
 )
 def test_eval_no_support_column_name(request, engine, parser, column):
-    # GH#44603, GH#35695
-    if column in ["True", "False", "inf", "Inf"]:
+    # GH#44603, GH#35695, GH#47859
+    if column in ["True", "False"]:
         request.applymarker(
             pytest.mark.xfail(
                 raises=KeyError,
-                reason=f"GH#47859 DataFrame eval not supported with {column}",
+                reason=f"{column} is a keyword literal; use backticks",
             )
         )
 
@@ -1986,6 +1986,38 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     result = df.query(f"{column}>6", engine=engine, parser=parser)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("column", ["inf", "Inf"])
+def test_query_column_shadows_inf(engine, parser, column):
+    # GH#47859
+    df = pd.DataFrame({column: [1.0, 10.0, 20.0], "col1": [1, 2, 3]})
+    expected = df.iloc[1:]
+
+    result = df.query(f"col1 < {column}", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.set_index(column).query(f"{column} > 6", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, expected.set_index(column))
+
+    if parser == "pandas":
+        result = df.query(f"`{column}` > 6", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, expected)
+
+        # "@" still refers to the default global
+        result = df.query(f"col1 < @{column}", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df)
+
+
+def test_query_float_inf_label_does_not_shadow_inf(engine, parser):
+    # GH#47859 only a str label named "inf" shadows np.inf
+    df = pd.DataFrame({"x": [1.0, 5.0], np.inf: [0.0, 0.0]})
+    result = df.query("x < inf", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df)
+
+    df = df.set_index(np.inf)
+    result = df.query("x < inf", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
