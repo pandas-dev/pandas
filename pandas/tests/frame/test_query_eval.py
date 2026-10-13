@@ -2036,7 +2036,7 @@ def test_query_not_scalar_keeps_bool_mask(expr, expected_rows, engine):
     ],
 )
 def test_query_tz_aware_compared_to_naive_string(op, func, engine, parser):
-    # GH#26236 the string is localized to the column's tz, like the mask
+    # GH#26236 the string is localized to the column's tz, as in a plain comparison
     dti = pd.date_range("2000-01-01", periods=3, tz="US/Eastern", name="idx")
     df = pd.DataFrame({"dt": dti}, index=dti)
     expected = df[func(df["dt"], "2000-01-02")]
