@@ -341,17 +341,28 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
+_MS_PER_DAY = 86_400_000
+
+
+def _temporal_storage_type(pa_type: pa.DataType) -> pa.DataType:
+    """
+    Integer type with the same storage as a temporal type.
+    """
+    return pa.int32() if pa_type.bit_width == 32 else pa.int64()
+
+
 def _quantile_temporal_to_int(arr: pa.ChunkedArray) -> pa.ChunkedArray:
     """
     Integer representation of temporal data for computing quantiles.
 
     pc.quantile has no temporal kernels (https://github.com/apache/arrow/issues/33769).
-    date64 goes through date32 so that results are whole days; the unsafe cast
-    truncates any (spec-violating) values that are not whole days.
+    date64 is converted to whole days, flooring any (spec-violating) values
+    that are not whole days, so results are whole days.
     """
     if pa.types.is_date64(arr.type):
-        arr = arr.cast(pa.date32(), safe=False)
-    return arr.cast(pa.int32() if arr.type.bit_width == 32 else pa.int64())
+        ms = arr.cast(pa.int64()).cast(pa.float64())
+        return pc.floor(pc.divide(ms, _MS_PER_DAY)).cast(pa.int64())
+    return arr.cast(_temporal_storage_type(arr.type))
 
 
 def _quantile_int_to_temporal(
@@ -363,9 +374,9 @@ def _quantile_int_to_temporal(
     if pa.types.is_floating(result.type):
         result = pc.floor(result)
     if pa.types.is_date64(pa_type):
-        return result.cast(pa.int32()).cast(pa.date32()).cast(pa_type)
-    int_type = pa.int32() if pa_type.bit_width == 32 else pa.int64()
-    return result.cast(int_type).cast(pa_type)
+        days = result.cast(pa.int64())
+        return pc.multiply_checked(days, _MS_PER_DAY).cast(pa_type)
+    return result.cast(_temporal_storage_type(pa_type)).cast(pa_type)
 
 
 def _is_temporal_pa_type(pa_type: pa.DataType) -> bool | None:

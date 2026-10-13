@@ -1233,17 +1233,27 @@ def test_quantile_date64_whole_days():
     tm.assert_series_equal(result, expected)
 
 
-def test_quantile_date64_not_whole_days():
+@pytest.mark.parametrize(
+    "ms, interpolation, expected",
+    [
+        # noon on 2020-01-01 and 2020-01-02
+        ([1577880000000, 1577966400000], "linear", date(2020, 1, 1)),
+        # one millisecond before the epoch, i.e. on 1969-12-31
+        ([-1, 432000000], "lower", date(1969, 12, 31)),
+    ],
+)
+def test_quantile_date64_not_whole_days(ms, interpolation, expected):
     # GH#69808 date64 values that are not a whole number of days, which other
-    #  Arrow producers can write, are truncated rather than raising
-    arr = pa.array([1577880000000, 1577966400000], type=pa.int64()).cast(pa.date64())
+    #  Arrow producers can write, are floored to the day rather than raising
+    arr = pa.array(ms, type=pa.int64()).cast(pa.date64())
     ser = pd.Series(ArrowExtensionArray(arr))
-    expected = pd.Series([date(2020, 1, 1)], index=[0.5], dtype="date64[pyarrow]")
-    tm.assert_series_equal(ser.quantile([0.5]), expected)
+    result = ser.quantile([0.5], interpolation=interpolation)
+    tm.assert_series_equal(
+        result, pd.Series([expected], index=[0.5], dtype="date64[pyarrow]")
+    )
 
-    result = ser.groupby([0, 0]).quantile()
-    expected = pd.Series([date(2020, 1, 1)], dtype="date64[pyarrow]")
-    tm.assert_series_equal(result, expected)
+    result = ser.groupby([0, 0]).quantile(interpolation=interpolation)
+    tm.assert_series_equal(result, pd.Series([expected], dtype="date64[pyarrow]"))
 
 
 @pytest.mark.parametrize(
