@@ -81,6 +81,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -6753,16 +6754,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # GH#63433: cast only the listed columns, grouped by target dtype, and
             #  assemble the result from those plus the untouched columns.
-            # Keyed by identity: dtypes can compare equal without being identical,
-            #  e.g. CategoricalDtype with the same categories in another order.
-            locs_by_dtype: dict[int, tuple[Any, list[int]]] = {}
+            # Grouped by value, so equal dtypes built separately (such as one
+            #  f-string per column) are cast together. A CategoricalDtype is
+            #  grouped by identity: it compares equal to one with the same
+            #  categories in another order, which casts differently.
+            locs_by_dtype: dict[Any, tuple[Any, list[int]]] = {}
             mask = dtype_ser.notna()
             for loc, column_dtype in zip(
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
             ):
-                _, group = locs_by_dtype.setdefault(
-                    id(column_dtype), (column_dtype, [])
+                key = (
+                    id(column_dtype)
+                    if isinstance(column_dtype, CategoricalDtype)
+                    else column_dtype
                 )
+                _, group = locs_by_dtype.setdefault(key, (column_dtype, []))
                 group.append(int(loc))
             if not locs_by_dtype:
                 return self.copy(deep=False)

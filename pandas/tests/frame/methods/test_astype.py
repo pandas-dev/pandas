@@ -914,6 +914,21 @@ def test_astype_dict_all_columns_one_dtype_stays_consolidated():
     tm.assert_frame_equal(result, df.astype("float32"))
 
 
+def test_astype_dict_equal_dtypes_built_separately_cast_together():
+    # GH#63433 an equal dtype given as a separate object per column, such as an
+    #  f-string, is still cast together with the others
+    df = pd.DataFrame({f"c{i}": np.arange(5, dtype="int64") for i in range(10)})
+    bits = 32
+
+    # A comprehension on purpose: dict.fromkeys would share one string.
+    dtypes = {c: f"float{bits}" for c in df.columns}  # noqa: C420
+
+    result = df.astype(dtypes)
+
+    assert result._mgr.nblocks == 1
+    tm.assert_frame_equal(result, df.astype("float32"))
+
+
 def test_astype_dict_wide_interleaved():
     # GH#63433 casting every other column of a wide frame: each column cast in
     #  turn was quadratic in the width
