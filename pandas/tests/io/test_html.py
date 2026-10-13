@@ -1270,7 +1270,7 @@ class TestReadHtml:
                 {0: str, 1: str, 2: "Int64"},
                 {"val": ["1,000", "2.5"], "n": pd.array([1, None], dtype="Int64")},
             ),
-            (str, {"val": ["1,000", "2.5"], "n": pd.array(["1", np.nan], dtype=str)}),
+            (str, {"val": ["1,000", "2.5"], "n": pd.Series(["1", np.nan], dtype=str)}),
         ],
     )
     def test_dtype(self, flavor_read_html, dtype, expected):
