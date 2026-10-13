@@ -156,6 +156,7 @@ jobs:
         pixi run \
           ci-build-documentation \
           zip_html
+      if: matrix.os == 'ubuntu-24.04'
 
     - name: Copy cheatsheets into site directory
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
