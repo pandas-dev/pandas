@@ -4904,15 +4904,20 @@ class DataFrame(NDFrame, OpsMixin):
 
         value, refs = self._sanitize_column(value)
 
-        if (
-            key in self.columns
-            and value.ndim == 1
-            and not is_1d_only_ea_dtype(value.dtype)
-        ):
+        if key in self.columns and value.ndim == 1:
             # broadcast across multiple columns if necessary
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
+                    if is_1d_only_ea_dtype(value.dtype):
+                        # GH#71098 one copy per column so they don't share an array
+                        positions = np.arange(len(self.columns))[
+                            self.columns.get_loc(key)
+                        ]
+                        self._iset_item_mgr(positions[0], value, refs=refs)
+                        for idx in positions[1:]:
+                            self._iset_item_mgr(idx, value.copy())
+                        return
                     # GH#71078 reshape/repeat rather than np.tile, which would
                     #  degrade a 2-D-capable EA (tz-aware datetime64, period)
                     #  to object. repeat(axis=) is not in the _supports_2d

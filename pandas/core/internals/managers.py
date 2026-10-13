@@ -1373,6 +1373,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
+        # GH#71098 value needs one column per position; callers do any broadcasting
+        ncols = 1 if value_is_extension_type else len(value)
+        if ncols != len(blknos):
+            raise ValueError(
+                f"Got {len(blknos)} positions but value has {ncols} columns."
+            )
+
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []

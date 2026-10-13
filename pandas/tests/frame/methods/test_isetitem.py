@@ -106,3 +106,23 @@ class TestDataFrameSetItem:
         df.iloc[0, 0] = 99
 
         tm.assert_frame_equal(df, pd.DataFrame({"a": [99, 5, 5], "b": [5, 5, 5]}))
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            [10, 20, 30],
+            np.array([10, 20, 30]),
+            pd.Series([10, 20, 30]),
+            pd.array([10, 20, 30], dtype="Int64"),
+            pd.Series(pd.date_range("2030", periods=3, tz="UTC")),
+        ],
+    )
+    @pytest.mark.parametrize("loc", [[0, 2], slice(0, 3, 2)])
+    def test_isetitem_1d_value_several_positions_raises(self, value, loc):
+        # GH#71098 a single column used to be stored for several positions
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        expected = df.copy()
+
+        with pytest.raises(ValueError, match="Got 2 positions but value has 1 columns"):
+            df.isetitem(loc, value)
+        tm.assert_frame_equal(df, expected)

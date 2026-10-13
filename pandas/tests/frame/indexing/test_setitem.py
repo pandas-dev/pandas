@@ -1620,3 +1620,26 @@ def test_setitem_key_matching_several_columns_2d_capable_ea_scalar(value, column
             tm.assert_series_equal(df.iloc[:, pos], expected_col, check_names=False)
         else:
             tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_1d_only_ea(columns):
+    # GH#71098 the matched columns used to share one array
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    value = pd.array([10, 20, 30], dtype="Int64")
+
+    df["a"] = value
+
+    positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
+    expected = pd.Series(value)
+    for pos in positions:
+        tm.assert_series_equal(df.iloc[:, pos], expected, check_names=False)
+    df.iloc[0, positions[0]] = 99
+    tm.assert_series_equal(df.iloc[:, positions[1]], expected, check_names=False)
