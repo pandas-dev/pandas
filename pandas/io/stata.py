@@ -2653,7 +2653,7 @@ class StataWriter(StataParser):
                 values = data[col].cat.codes._values.copy()
 
                 # Upcast if needed so that correct missing values can be set
-                if values.max() >= get_base_missing_value(dtype):
+                if len(values) and values.max() >= get_base_missing_value(dtype):
                     if dtype == np.int8:
                         dtype = np.dtype(np.int16)
                     elif dtype == np.int16:
