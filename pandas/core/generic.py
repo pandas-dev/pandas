@@ -1448,7 +1448,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.item(), a.any() or a.all()."
+            "Use a.empty, a.item(), a.any() or a.all(). "
+            "If you are combining conditions, use '&', '|' and '~' instead of "
+            "'and', 'or' and 'not'."
         )
 
     @final

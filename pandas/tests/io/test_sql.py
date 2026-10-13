@@ -1629,6 +1629,27 @@ def test_read_sql_percent_operator_and_selectable(conn, request):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_column_labels_are_str(conn, request, string_storage):
+    # GH#52816 SQLAlchemy result keys are str subclasses
+    sa = pytest.importorskip("sqlalchemy")
+    conn = request.getfixturevalue(conn)
+    pd.DataFrame({"a": [1]}).to_sql(name="test_labels", con=conn, index=False)
+    empty = pd.DataFrame({"a": pd.Series([], dtype="int64")})
+    empty.to_sql(name="test_labels_empty", con=conn, index=False)
+    table = sa.Table("test_labels", sa.MetaData(), sa.Column("a", sa.Integer))
+
+    with pd.option_context("mode.string_storage", string_storage):
+        results = [
+            sql.read_sql_query(sa.select(table), conn),
+            sql.read_sql_table("test_labels", conn),
+            next(sql.read_sql_query(sa.select(table), conn, chunksize=1)),
+            next(sql.read_sql_table("test_labels_empty", conn, chunksize=1)),
+        ]
+    for result in results:
+        assert type(result.columns[0]) is str
+
+
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     if "adbc" in conn:
@@ -3575,6 +3596,25 @@ def test_read_sql_table_float_asdecimal(sqlite_engine):
         event.listen(pandas_sql.meta, "column_reflect", as_decimal_float)
         res = pandas_sql.read_table("test_float_asdecimal")
     tm.assert_frame_equal(res, df, check_exact=True)
+
+
+def test_read_sql_table_datetime_utc_z_suffix(sqlite_engine):
+    # GH#30879
+    from sqlalchemy import text
+
+    with sqlite_engine.begin() as conn:
+        conn.execute(text("CREATE TABLE gpkg_contents (last_change DATETIME);"))
+        conn.execute(
+            text("INSERT INTO gpkg_contents VALUES ('2019-01-01T00:00:00.000Z');")
+        )
+
+    result = sql.read_sql_table(
+        "gpkg_contents", sqlite_engine, parse_dates=["last_change"]
+    )
+    expected = pd.DataFrame(
+        {"last_change": pd.DatetimeIndex(["2019-01-01"], tz="UTC").as_unit("us")}
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
