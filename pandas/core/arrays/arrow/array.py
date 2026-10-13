@@ -346,10 +346,11 @@ def _quantile_temporal_to_int(arr: pa.ChunkedArray) -> pa.ChunkedArray:
     Integer representation of temporal data for computing quantiles.
 
     pc.quantile has no temporal kernels (https://github.com/apache/arrow/issues/33769).
-    date64 goes through date32 so that results are whole days.
+    date64 goes through date32 so that results are whole days; the unsafe cast
+    truncates any (spec-violating) values that are not whole days.
     """
     if pa.types.is_date64(arr.type):
-        arr = arr.cast(pa.date32())
+        arr = arr.cast(pa.date32(), safe=False)
     return arr.cast(pa.int32() if arr.type.bit_width == 32 else pa.int64())
 
 
@@ -3893,8 +3894,7 @@ class ArrowExtensionArray(
         elif is_decimal and selects_value:
             # Compute on the rank of each value and take the value back, so
             # the result is exact and keeps the decimal type, as in _quantile
-            uniques = pc.unique(self._pa_array.drop_null())
-            uniques = uniques.take(pc.array_sort_indices(uniques))
+            uniques = pc.unique(self._pa_array.drop_null()).sort()
             ranks = pc.index_in(self._pa_array, value_set=uniques)
             values = self._from_pyarrow_array(ranks)._to_masked()
         elif is_decimal:

@@ -1233,6 +1233,19 @@ def test_quantile_date64_whole_days():
     tm.assert_series_equal(result, expected)
 
 
+def test_quantile_date64_not_whole_days():
+    # GH#69808 date64 values that are not a whole number of days, which other
+    #  Arrow producers can write, are truncated rather than raising
+    arr = pa.array([1577880000000, 1577966400000], type=pa.int64()).cast(pa.date64())
+    ser = pd.Series(ArrowExtensionArray(arr))
+    expected = pd.Series([date(2020, 1, 1)], index=[0.5], dtype="date64[pyarrow]")
+    tm.assert_series_equal(ser.quantile([0.5]), expected)
+
+    result = ser.groupby([0, 0]).quantile()
+    expected = pd.Series([date(2020, 1, 1)], dtype="date64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
