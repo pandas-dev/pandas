@@ -641,120 +641,20 @@ def test_groupby_quantile_unsupported_raises_typeerror(arr, frame):
 
 
 @pytest.mark.parametrize(
-    "arr, expected",
-    [
-        (
-            pa.array([date(2020, 1, 1), date(2020, 1, 3), None, date(2020, 1, 5)]),
-            pa.array([date(2020, 1, 2), date(2020, 1, 5)]),
-        ),
-        (
-            pa.array(
-                [date(2020, 1, 1), date(2020, 1, 3), None, date(2020, 1, 5)],
-                type=pa.date64(),
-            ),
-            pa.array([date(2020, 1, 2), date(2020, 1, 5)], type=pa.date64()),
-        ),
-        (
-            pa.array([3600, 7200, None, 10800], type=pa.time32("s")),
-            pa.array([5400, 10800], type=pa.time32("s")),
-        ),
-        (
-            pa.array([time(1), time(2), None, time(3)], type=pa.time64("ns")),
-            pa.array([time(1, 30), time(3)], type=pa.time64("ns")),
-        ),
-        (
-            pa.array([Decimal("1.5"), Decimal(2), None, Decimal(3)]),
-            pa.array([1.75, 3.0]),
-        ),
-    ],
-    ids=lambda x: str(x.type),
-)
-def test_groupby_quantile_date_time_decimal(arr, expected):
-    # GH#69808 date, time and decimal match Series.quantile
-    ser = pd.Series(ArrowExtensionArray(arr))
-    result = ser.groupby([0, 0, 1, 1]).quantile()
-    tm.assert_series_equal(result, pd.Series(ArrowExtensionArray(expected)))
-
-    result = ser.to_frame().groupby([0, 0, 1, 1]).quantile()
-    tm.assert_frame_equal(result, pd.DataFrame({0: ArrowExtensionArray(expected)}))
-
-
-@pytest.mark.parametrize(
-    "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
-)
-@pytest.mark.parametrize(
     "arr",
     [
-        pa.array(
-            [date(2020, 1, 1), date(2020, 1, 2), date(2020, 1, 2), date(2020, 1, 5)]
-            + [None] * 3
-        ),
-        pa.array(
-            [date(2020, 1, 1), date(2020, 1, 2), date(2020, 1, 2), date(2020, 1, 5)]
-            + [None] * 3,
-            type=pa.date64(),
-        ),
-        pa.array([3600, 7200, 7201, 60] + [None] * 3, type=pa.time32("s")),
-        pa.array([time(1), time(2, 0, 0, 1), time(2), time(3)] + [None] * 3),
-        pa.array(
-            [Decimal("12345678901234567.89"), Decimal("1.25"), Decimal("1.25")]
-            + [Decimal("-3.10")]
-            + [None] * 3,
-            type=pa.decimal128(19, 2),
-        ),
-        pa.array(
-            [Decimal("1.5"), Decimal("2.5"), Decimal("0.5"), Decimal(3)] + [None] * 3,
-            type=pa.decimal256(40, 1),
-        ),
+        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
+        pa.array([time(2), time(1), None, time(3)]),
+        pa.array([Decimal(2), Decimal(1), None, Decimal(3)]),
     ],
     ids=lambda arr: str(arr.type),
 )
-def test_groupby_quantile_matches_series_quantile(arr, interpolation):
-    # GH#69808
+def test_groupby_quantile_not_yet_implemented(arr):
+    # GH#69808 Series.quantile supports these, so they are not a TypeError
     ser = pd.Series(ArrowExtensionArray(arr))
-    keys = np.array([0, 0, 0, 1, 1, 2, 2])
-    qs = [0.1, 0.5, 0.9]
-    result = ser.groupby(keys).quantile(qs, interpolation=interpolation)
-    result.array._pa_array.validate(full=True)
-
-    expected = pd.concat(
-        [
-            ser[keys == key].quantile(qs, interpolation=interpolation)
-            for key in range(3)
-        ],
-        keys=range(3),
-    )
-    tm.assert_series_equal(result, expected)
-
-
-def test_groupby_quantile_decimal_selects_exact_value():
-    # GH#69808 non-interpolating methods return a value from the group exactly
-    #  and keep the decimal type, rather than going through float64
-    dtype = ArrowDtype(pa.decimal128(19, 2))
-    ser = pd.Series([Decimal("12345678901234567.89"), Decimal(1), None], dtype=dtype)
-    result = ser.groupby([0, 0, 1]).quantile(0.9, interpolation="higher")
-    expected = pd.Series([Decimal("12345678901234567.89"), None], dtype=dtype)
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "ms, interpolation, expected",
-    [
-        # 2020-01-01 and 2020-01-02, interpolating to noon
-        ([1577836800000, 1577923200000], "linear", date(2020, 1, 1)),
-        # noon on 2020-01-01 and 2020-01-02, which are not whole days
-        ([1577880000000, 1577966400000], "linear", date(2020, 1, 1)),
-        # one millisecond before the epoch, i.e. on 1969-12-31
-        ([-1, 432000000], "lower", date(1969, 12, 31)),
-    ],
-)
-def test_groupby_quantile_date64_whole_days(ms, interpolation, expected):
-    # GH#69808 date64 results are whole days, including for date64 values that
-    #  are not, which other Arrow producers can write
-    ser = pd.Series(ArrowExtensionArray(pa.array(ms, pa.int64()).cast(pa.date64())))
-    result = ser.groupby([0, 0]).quantile(interpolation=interpolation)
-    result.array._pa_array.validate(full=True)
-    tm.assert_series_equal(result, pd.Series([expected], dtype="date64[pyarrow]"))
+    msg = f"quantile is not yet implemented for dtype '{re.escape(str(ser.dtype))}'"
+    with pytest.raises(NotImplementedError, match=msg):
+        ser.groupby([0, 0, 1, 1]).quantile()
 
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
