@@ -9,11 +9,17 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
+
+from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Iterable,
         Iterator,
     )
 
@@ -133,6 +139,21 @@ def clean_column_name(name: Hashable) -> Hashable:
         return create_valid_python_identifier(tokval)
     except SyntaxError:
         return name
+
+
+def clean_resolvers(items: Iterable[tuple[Hashable, Any]]) -> dict[Hashable, Any]:
+    """
+    Key each (label, value) pair by :func:`clean_column_name` of the label.
+
+    Skip a non-str label like ``np.inf`` whose cleaned name would shadow a
+    default global, GH#47859.
+    """
+    result = {}
+    for label, value in items:
+        name = clean_column_name(label)
+        if isinstance(label, str) or name not in DEFAULT_GLOBALS:
+            result[name] = value
+    return result
 
 
 class ParseState(Enum):
