@@ -36,6 +36,16 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("loc", [slice(0, 3, 2), np.array([True, False, True])])
+    def test_isetitem_df_slice_or_mask(self, loc):
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        value = pd.DataFrame({"x": [10, 20, 30], "y": [40, 50, 60]})
+
+        df.isetitem(loc, value)
+
+        expected = pd.DataFrame({"a": [10, 20, 30], "b": [4, 5, 6], "c": [40, 50, 60]})
+        tm.assert_frame_equal(df, expected)
+
     def test_isetitem_dimension_mismatch(self):
         # GH#51701
         df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]})

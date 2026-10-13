@@ -4521,6 +4521,10 @@ class DataFrame(NDFrame, OpsMixin):
         0     1  5
         1     2  6
         """
+        if not is_integer(loc):
+            # resolve a slice or boolean mask to positions
+            loc = np.arange(len(self.columns))[loc]
+
         if isinstance(value, DataFrame):
             if is_integer(loc):
                 loc = [loc]
@@ -4536,10 +4540,10 @@ class DataFrame(NDFrame, OpsMixin):
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
-        if not is_list_like(value) and (is_list_like(loc) or isinstance(loc, slice)):
+        if not is_list_like(value) and not is_integer(loc):
             # GH#71098 a scalar fills every selected column, as df[cols] = 5
             #  does; sanitize per position so the columns don't share one array
-            for idx in np.arange(len(self.columns))[loc]:
+            for idx in loc:
                 arraylike, refs = self._sanitize_column(value)
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
