@@ -214,6 +214,13 @@ def test_drop_duplicates_empty(df):
     tm.assert_frame_equal(result, df)
 
 
+def test_drop_duplicates_empty_subset(keep):
+    # GH#12869
+    df = pd.DataFrame({"A": [1, 1, 2]}, index=["x", "y", "z"])
+    result = df.drop_duplicates(subset=[], keep=keep)
+    tm.assert_frame_equal(result, df)
+
+
 def test_drop_duplicates_NA():
     # none
     df = pd.DataFrame(

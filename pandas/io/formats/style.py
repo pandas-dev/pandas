@@ -2707,9 +2707,9 @@ class Styler(StylerRenderer):
 
         else:
             # handle the MultiIndex case
-            range_idx = list(range(obj.nlevels))
-            levels_: list[int] = refactor_levels(levels, obj) if levels else range_idx
-            levels_ = sorted(levels_)
+            if isinstance(levels, list) and not levels:
+                levels = None  # an empty list sticks all levels, like None
+            levels_ = sorted(refactor_levels(levels, obj))
 
             if axis == 1:
                 styles = []
