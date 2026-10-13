@@ -365,6 +365,9 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     ------
     NotImplementedError
         If the JSON table schema contains either timezone or timedelta data
+    ValueError
+        If distinct field names share a key in the data, or a float field
+        name has no matching key in the data.
 
     Notes
     -----
@@ -384,10 +387,40 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     table = ujson_loads(json, precise_float=precise_float)
     schema = table["schema"]
     names = [field["name"] for field in schema["fields"]]
-    # "data" keys a non-string label by its string form (GH#19129); address
-    #  the frame by position until the labels are restored at the end
-    df = DataFrame(table["data"], columns=[str(name) for name in names])
+    keys = [str(name) for name in names]
+    data = table["data"]
+    dict_records = bool(data) and isinstance(data[0], dict)
+    if dict_records:
+        # "data" keys a label by its string form (GH#19129), so distinct
+        #  labels sharing one (5 and "5") cannot be told apart
+        seen: dict[str, Any] = {}
+        for name, key in zip(names, keys, strict=True):
+            other = seen.setdefault(key, name)
+            if type(other) is not type(name) or other != name:
+                raise ValueError(
+                    f"Cannot read field names {other!r} and {name!r}: both are "
+                    f'keyed as "{key}" in "data"'
+                )
+    # address the frame by position until the labels are restored at the end
+    df = DataFrame(data, columns=keys)
     df.columns = range(len(names))
+
+    if dict_records:
+        # the default float parser can perturb a name (0.3 -> 0.30000000000000004)
+        #  so that it misses its "data" key; raise rather than return NaN
+        unmatched = [
+            key
+            for pos, (name, key) in enumerate(zip(names, keys, strict=True))
+            if isinstance(name, float) and df[pos].isna().all()
+        ]
+        if unmatched:
+            present = set().union(*data)
+            missing = [key for key in unmatched if key not in present]
+            if missing:
+                raise ValueError(
+                    f'Float field names {missing} have no matching key in "data"; '
+                    "try precise_float=True"
+                )
 
     dtypes = {
         pos: convert_json_field_to_pandas_type(field)
