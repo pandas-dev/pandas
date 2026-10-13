@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -261,6 +262,88 @@ def test_bitwise(pa_type):
     expected = ~(left.fillna(0).to_numpy())
     expected = pd.Series(expected, dtype=dtype).mask(left.isnull())
     tm.assert_series_equal(result, expected)
+
+
+@pytest.fixture(
+    params=[
+        pd.Categorical(["test"]),
+        pd.offsets.Minute(3),
+        pd.Interval(0, 1),
+        object(),
+    ],
+    ids=["categorical", "dateoffset", "interval", "object"],
+)
+def unconvertible_object(request):
+    """An object that pyarrow cannot convert to one of its own types."""
+    return request.param
+
+
+def object_array_of(value):
+    # np.array([value, value]) would give a 2D array for array-like values
+    #  such as Categorical
+    result = np.empty(2, dtype=object)
+    result.fill(value)
+    return result
+
+
+@pytest.mark.parametrize(
+    "op", [operator.add, operator.sub, operator.mul, operator.and_, operator.or_]
+)
+def test_op_unconvertible_object_raises(unconvertible_object, op):
+    # GH#62682 pyarrow cannot convert the operand, so we raise our own
+    # TypeError instead of letting an ArrowInvalid/ArrowTypeError escape
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(unconvertible_object)
+
+    msg = f"operation '{op.__name__}' not supported for dtype 'int64[pyarrow]'"
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        op(arr, other)
+
+
+@pytest.mark.parametrize("other", [pd.offsets.Minute(3), pd.Interval(0, 1)])
+def test_arith_unconvertible_scalar(other):
+    # GH#62682 pyarrow raises ArrowTypeError boxing a DateOffset and ArrowInvalid
+    #  for an Interval
+    arr = pd.array([1, 2, None], dtype=ArrowDtype(pa.int64()))
+
+    msg = "operation 'add' not supported for dtype 'int64[pyarrow]'"
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        arr + other
+
+
+def test_str_arith_object_fallback_not_wrapped():
+    # GH#62682 the string path must keep falling back to object dtype rather
+    #  than reporting the operand as unsupported
+    class Radd:
+        def __radd__(self, other):
+            return other + "!"
+
+    other = np.empty(2, dtype=object)
+    other[:] = [Radd(), Radd()]
+    arr = pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
+
+    result = arr + other
+    expected = pd.array(["a!", "b!"], dtype=ArrowDtype(pa.string()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, values", [(ArrowDtype(pa.int64()), [1, None]), (None, ["a", None])]
+)
+def test_arith_dataframe_of_unconvertible_objects(unconvertible_object, dtype, values):
+    # GH#62682 the operand reaches ArrowExtensionArray as a DataFrame column, as
+    #  in the issue; dtype=object is required, since inferred interval columns
+    #  box as pyarrow structs and raise TypeError before reaching this path.
+    arr = pd.array(values, dtype=dtype)
+    df = pd.DataFrame([[unconvertible_object, unconvertible_object]], dtype=object)
+    msg = "|".join(
+        [
+            "can only concatenate str",
+            re.escape(f"operation 'add' not supported for dtype '{arr.dtype}'"),
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr + df
 
 
 @pytest.mark.parametrize(
