@@ -473,9 +473,6 @@ static const char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
   GET_TC(tc)->cStr =
       int64ToIso(GET_TC(tc)->longValue, valueUnit, base, utc, len);
   if (GET_TC(tc)->cStr == NULL) {
-    /* int64ToIso already set a Python exception (MemoryError or
-       ValueError); tell the encoder to stop instead of letting the
-       caller dereference a NULL string. */
     ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
   }
   return GET_TC(tc)->cStr;
