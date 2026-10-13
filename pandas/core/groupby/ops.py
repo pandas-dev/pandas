@@ -22,6 +22,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    iNaT,
     lib,
 )
 import pandas._libs.groupby as libgroupby
@@ -232,7 +233,10 @@ class WrappedCythonOp:
             )
 
     def _get_cython_vals(
-        self, values: np.ndarray, uses_mask: bool = False
+        self,
+        values: np.ndarray,
+        uses_mask: bool = False,
+        is_datetimelike: bool = False,
     ) -> np.ndarray:
         """
         Cast numeric dtypes to float64 for functions that only support that.
@@ -254,10 +258,15 @@ class WrappedCythonOp:
 
         elif values.dtype.kind in "iu":
             if how in ["var", "mean"] or (
-                self.kind == "transform" and self.has_dropped_na and not uses_mask
+                self.kind == "transform"
+                and self.has_dropped_na
+                and not uses_mask
+                and not is_datetimelike
             ):
                 # has_dropped_na check need for test_null_group_str_transformer
                 # result may still include NaN, so we have to cast
+                # datetimelike values stay int64 so that NaT is still
+                #  recognized and precision is kept, see _call_cython_op
                 values = ensure_float64(values)
 
             elif how in ["sum", "ohlc", "prod", "cumsum", "cumprod"]:
@@ -449,10 +458,21 @@ class WrappedCythonOp:
 
         out_shape = self._get_output_shape(ngroups, values)
         func = self._get_cython_function(self.kind, self.how, values.dtype, is_numeric)
-        values = self._get_cython_vals(values, uses_mask=mask is not None)
+        values = self._get_cython_vals(
+            values, uses_mask=mask is not None, is_datetimelike=is_datetimelike
+        )
         out_dtype = self._get_out_dtype(values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
+        if (
+            self.kind == "transform"
+            and self.has_dropped_na
+            and is_datetimelike
+            and result.dtype.kind == "i"
+        ):
+            # GH#69923 The kernels skip rows with a dropped (NA) key, so they
+            #  need to be set to NaT beforehand
+            result.fill(iNaT)
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
             if self.how in [

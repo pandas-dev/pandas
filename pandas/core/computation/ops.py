@@ -114,7 +114,11 @@ class Term:
         if (
             not str(self.name).startswith(LOCAL_TAG)
             and local_name in self.env.scope
-            and isinstance(self.env.scope[local_name], type)
+            and (
+                isinstance(self.env.scope[local_name], type)
+                # a column/index named e.g. "inf" shadows the default global, GH#47859
+                or local_name in self.env.resolvers
+            )
         ):
             is_local = False
 
@@ -234,6 +238,23 @@ class Op:
         # recurse over the operands
         parened = (f"({pprint_thing(opr)})" for opr in self.operands)
         return pprint_thing(f" {self.op} ".join(parened))
+
+    def evaluate(self, env, engine: str, parser, term_type, eval_in_python):
+        """
+        Evaluate the operation in python *before* being passed to the engine.
+
+        Called by ``BinOp.evaluate`` on its operands, e.g. for
+        ``abs(a) in [1, 2]`` or ``-a in [1, 2]``.
+
+        Returns
+        -------
+        term_type
+            The "pre-evaluated" expression as an instance of ``term_type``
+        """
+        # error: "Op" not callable
+        res = self(env)  # type: ignore[operator]
+        name = env.add_tmp(res)
+        return term_type(name, env=env)
 
     @property
     def return_type(self):
