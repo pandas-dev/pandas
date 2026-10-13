@@ -441,7 +441,7 @@ class ArrowParserWrapper(ParserBase):
                             and parse_as_dates
                         ):
                             casted = frame[key].astype(new_dtype)
-                            validate_integer_cast(frame[key], casted)
+                            validate_integer_cast(frame[key], casted.dtype)
                             frame[key] = casted
                         del self.dtype[key]
 
