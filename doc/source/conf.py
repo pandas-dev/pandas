@@ -174,7 +174,7 @@ else:
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
 if pattern:
-    # Sphinx matches exclude_patterns against "/"-separated paths
+    # Sphinx uses "/"-separated docnames, see GH#26574
     pattern = pattern.replace(os.sep, "/")
 single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
 include_api = pattern is None or pattern == "whatsnew"
