@@ -3008,9 +3008,7 @@ class IndexCol:
             if (
                 new_metadata is not None
                 and cur_metadata is not None
-                and not array_equivalent(
-                    new_metadata, cur_metadata, strict_nan=True, dtype_equal=True
-                )
+                and not array_equivalent(new_metadata, cur_metadata, strict_nan=True)
             ):
                 raise ValueError(
                     "cannot append a categorical with different categories "
