@@ -15,12 +15,6 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import (
-    NaT,
-    NaTType,
-    Timedelta,
-    Timestamp,
-)
 from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
@@ -120,13 +114,11 @@ def to_numeric(
     Returns
     -------
     scalar, Series, Index, numpy.ndarray, or ExtensionArray
-        Numeric scalars are returned unchanged. Datetime-like scalars other
-        than ``NaT`` give the same ``int`` as a :class:`Series` holding them.
-        Other scalars are returned as a NumPy scalar:
-        ``np.int64`` if possible (``np.uint64`` for positive values above the
-        ``int64`` maximum), otherwise ``np.float64``, before any ``downcast``
-        is applied. With ``dtype_backend="pyarrow"``, a Python scalar is
-        returned instead.
+        Numeric scalars are returned unchanged. Other scalars are returned
+        as a NumPy scalar: ``np.int64`` if possible (``np.uint64`` for
+        positive values above the ``int64`` maximum), otherwise ``np.float64``,
+        before any ``downcast`` is applied. With ``dtype_backend="pyarrow"``,
+        a Python scalar is returned instead.
         For 1-d: :class:`Series` if Series, :class:`Index` if Index,
         otherwise an array as specified by ``dtype_backend``.
 
@@ -235,17 +227,17 @@ def to_numeric(
         # np.timedelta64 subclasses np.integer, so this must precede is_number
         if isinstance(arg, (datetime, np.datetime64, timedelta, np.timedelta64)):
             # match the Series path, which infers datetime64/timedelta64; GH#43280
-            boxed: Timedelta | Timestamp | NaTType
+            from pandas import Index
+
             try:
-                if isinstance(arg, (timedelta, np.timedelta64)):
-                    boxed = Timedelta(arg)
-                else:
-                    boxed = Timestamp(arg)
+                idx = Index([arg])
             except ValueError:
-                # out of bounds or unsupported unit; errors= decides below
-                boxed = NaT
-            if boxed is not NaT:
-                return boxed._value
+                # unsupported unit; errors= decides below
+                pass
+            else:
+                return to_numeric(
+                    idx, errors=errors, downcast=downcast, dtype_backend=dtype_backend
+                )[0]
         elif is_decimal(arg):
             return float(arg)
         elif is_number(arg):
