@@ -341,6 +341,32 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
+def _quantile_temporal_to_int(arr: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    Integer representation of temporal data for computing quantiles.
+
+    pc.quantile has no temporal kernels (https://github.com/apache/arrow/issues/33769).
+    date64 goes through date32 so that results are whole days.
+    """
+    if pa.types.is_date64(arr.type):
+        arr = arr.cast(pa.date32())
+    return arr.cast(pa.int32() if arr.type.bit_width == 32 else pa.int64())
+
+
+def _quantile_int_to_temporal(
+    result: pa.Array | pa.ChunkedArray, pa_type: pa.DataType
+) -> pa.Array | pa.ChunkedArray:
+    """
+    Inverse of _quantile_temporal_to_int, flooring interpolated values.
+    """
+    if pa.types.is_floating(result.type):
+        result = pc.floor(result)
+    if pa.types.is_date64(pa_type):
+        return result.cast(pa.int32()).cast(pa.date32()).cast(pa_type)
+    int_type = pa.int32() if pa_type.bit_width == 32 else pa.int64()
+    return result.cast(int_type).cast(pa_type)
+
+
 def _is_temporal_pa_type(pa_type: pa.DataType) -> bool | None:
     """
     Whether `pa_type` is temporal, or None if it does not settle that.
@@ -3328,25 +3354,12 @@ class ArrowExtensionArray(
 
         data = self._pa_array
         if pa.types.is_temporal(pa_dtype):
-            # https://github.com/apache/arrow/issues/33769 in these cases
-            #  we can cast to ints and back
-            nbits = pa_dtype.bit_width
-            if nbits == 32:
-                data = data.cast(pa.int32())
-            else:
-                data = data.cast(pa.int64())
+            data = _quantile_temporal_to_int(data)
 
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
         if pa.types.is_temporal(pa_dtype):
-            if pa.types.is_floating(result.type):
-                result = pc.floor(result)
-            nbits = pa_dtype.bit_width
-            if nbits == 32:
-                result = result.cast(pa.int32())
-            else:
-                result = result.cast(pa.int64())
-            result = result.cast(pa_dtype)
+            result = _quantile_int_to_temporal(result, pa_dtype)
 
         return self._from_pyarrow_array(result)
 
@@ -3870,13 +3883,24 @@ class ArrowExtensionArray(
     ) -> ArrayLike:
         pa_type = self._pa_array.type
         is_date_or_time = pa.types.is_date(pa_type) or pa.types.is_time(pa_type)
+        is_decimal = pa.types.is_decimal(pa_type)
+        # Non-interpolating methods select a value from the group
+        selects_value = interpolation in {"lower", "higher", "nearest"}
         if is_date_or_time:
             # As in _quantile, compute on the integer representation
-            int_type = pa.int32() if pa_type.bit_width == 32 else pa.int64()
-            values = type(self)(self._pa_array.cast(int_type))._to_masked()
-        elif pa.types.is_decimal(pa_type):
-            # As in _quantile, where pc.quantile returns float64 for decimals
-            values = type(self)(self._pa_array.cast(pa.float64()))._to_masked()
+            int_values = _quantile_temporal_to_int(self._pa_array)
+            values = self._from_pyarrow_array(int_values)._to_masked()
+        elif is_decimal and selects_value:
+            # Compute on the rank of each value and take the value back, so
+            # the result is exact and keeps the decimal type, as in _quantile
+            uniques = pc.unique(self._pa_array.drop_null())
+            uniques = uniques.take(pc.array_sort_indices(uniques))
+            ranks = pc.index_in(self._pa_array, value_set=uniques)
+            values = self._from_pyarrow_array(ranks)._to_masked()
+        elif is_decimal:
+            # As in _quantile, where pc.quantile interpolates decimals as float64
+            float_values = self._pa_array.cast(pa.float64())
+            values = self._from_pyarrow_array(float_values)._to_masked()
         else:
             try:
                 values = self._to_groupby_compatible()
@@ -3893,11 +3917,10 @@ class ArrowExtensionArray(
             ends=ends,
         )
         if is_date_or_time:
-            pa_result = result.__arrow_array__()
-            if pa.types.is_floating(pa_result.type):
-                pa_result = pc.floor(pa_result)
-            pa_result = pa_result.cast(int_type).cast(pa_type)
+            pa_result = _quantile_int_to_temporal(result.__arrow_array__(), pa_type)
             return self._from_pyarrow_array(pa_result)
+        elif is_decimal and selects_value:
+            return self._from_pyarrow_array(uniques.take(result.__arrow_array__()))
         return self._groupby_result_to_arrow(result)
 
     def _apply_elementwise(self, func: Callable[..., Any]) -> list[list[Any]]:

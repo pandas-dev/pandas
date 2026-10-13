@@ -678,8 +678,63 @@ def test_groupby_quantile_date_time_decimal(arr, expected):
     result = ser.to_frame().groupby([0, 0, 1, 1]).quantile()
     tm.assert_frame_equal(result, pd.DataFrame({0: ArrowExtensionArray(expected)}))
 
-    for i, grp in enumerate([ser.iloc[:2], ser.iloc[2:]]):
-        assert grp.quantile() == expected[i].as_py()
+
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
+)
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array(
+            [date(2020, 1, 1), date(2020, 1, 2), date(2020, 1, 2), date(2020, 1, 5)]
+            + [None] * 3
+        ),
+        pa.array(
+            [date(2020, 1, 1), date(2020, 1, 2), date(2020, 1, 2), date(2020, 1, 5)]
+            + [None] * 3,
+            type=pa.date64(),
+        ),
+        pa.array([3600, 7200, 7201, 60] + [None] * 3, type=pa.time32("s")),
+        pa.array([time(1), time(2, 0, 0, 1), time(2), time(3)] + [None] * 3),
+        pa.array(
+            [Decimal("12345678901234567.89"), Decimal("1.25"), Decimal("1.25")]
+            + [Decimal("-3.10")]
+            + [None] * 3,
+            type=pa.decimal128(19, 2),
+        ),
+        pa.array(
+            [Decimal("1.5"), Decimal("2.5"), Decimal("0.5"), Decimal(3)] + [None] * 3,
+            type=pa.decimal256(40, 1),
+        ),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_quantile_matches_series_quantile(arr, interpolation):
+    # GH#69808
+    ser = pd.Series(ArrowExtensionArray(arr))
+    keys = np.array([0, 0, 0, 1, 1, 2, 2])
+    qs = [0.1, 0.5, 0.9]
+    result = ser.groupby(keys).quantile(qs, interpolation=interpolation)
+    result.array._pa_array.validate(full=True)
+
+    expected = pd.concat(
+        [
+            ser[keys == key].quantile(qs, interpolation=interpolation)
+            for key in range(3)
+        ],
+        keys=range(3),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_quantile_decimal_selects_exact_value():
+    # GH#69808 non-interpolating methods return a value from the group exactly
+    #  and keep the decimal type, rather than going through float64
+    dtype = ArrowDtype(pa.decimal128(19, 2))
+    ser = pd.Series([Decimal("12345678901234567.89"), Decimal(1), None], dtype=dtype)
+    result = ser.groupby([0, 0, 1]).quantile(0.9, interpolation="higher")
+    expected = pd.Series([Decimal("12345678901234567.89"), None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])

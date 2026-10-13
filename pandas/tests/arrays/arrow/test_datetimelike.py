@@ -1223,6 +1223,16 @@ def test_quantile_temporal(pa_type):
     assert result == expected
 
 
+def test_quantile_date64_whole_days():
+    # GH#69808 interpolating between days stored a date64 that was not a
+    #  whole number of days
+    ser = pd.Series([date(2020, 1, 1), date(2020, 1, 2)], dtype="date64[pyarrow]")
+    result = ser.quantile([0.5])
+    result.array._pa_array.validate(full=True)
+    expected = pd.Series([date(2020, 1, 1)], index=[0.5], dtype="date64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
