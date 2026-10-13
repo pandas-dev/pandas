@@ -1647,7 +1647,7 @@ def test_setitem_key_matching_several_columns_1d_only_ea(columns, key):
     tm.assert_series_equal(df.iloc[:, positions[1]], expected, check_names=False)
 
 
-@pytest.mark.parametrize("value", [5, np.array([10, 20, 30])])
+@pytest.mark.parametrize("value", [5, np.array([10, 20, 30], dtype=np.int64)])
 @pytest.mark.parametrize(
     "columns, key",
     [
@@ -1658,10 +1658,10 @@ def test_setitem_key_matching_several_columns_1d_only_ea(columns, key):
 )
 def test_setitem_key_matching_several_unique_columns(columns, key, value):
     # GH#71098 a key matching several unique columns used to corrupt the frame
-    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    df = pd.DataFrame(np.arange(9, dtype=np.int64).reshape(3, 3), columns=columns)
 
     df[key] = value
 
-    expected = np.arange(9).reshape(3, 3)
+    expected = np.arange(9, dtype=np.int64).reshape(3, 3)
     expected[:, :2] = np.asarray(value).reshape(-1, 1)
     tm.assert_frame_equal(df, pd.DataFrame(expected, columns=columns))
