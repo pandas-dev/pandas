@@ -1524,7 +1524,12 @@ def _searchsorted_object_ints(data, values, side, sorter):
     return res.reshape(values.shape)
 
 
-def int_searchsorted(data: np.ndarray, values, side: Literal["left", "right"] = "left", sorter: NumpySorter | None = None):
+def int_searchsorted(
+    data: np.ndarray,
+    values,
+    side: Literal["left", "right"] = "left",
+    sorter: NumpySorter | None = None,
+):
     """searchsorted that avoids the uint64, int64, float64 promotion."""
     # check if dtype is iu and is real int or nump int
     if data.dtype.kind in "iu":
