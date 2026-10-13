@@ -1876,20 +1876,14 @@ class MultiIndex(Index):
         if any(-1 in code for code in self.codes):
             return False
 
-        # Compare codes, remapped to the level's own sort order where the level
-        # is unsorted (e.g. a Categorical level, GH#47607).
-        keys = []
-        for lev, level_codes in zip(self.levels, self.codes, strict=True):
-            if not lev.is_monotonic_increasing:
-                try:
-                    indexer = ensure_platform_int(lev.argsort())
-                except TypeError:
-                    # we have mixed types
-                    return Index(self._values, copy=False).is_monotonic_increasing
-                ranks = lib.get_reverse_indexer(indexer, len(indexer))
-                level_codes = ranks.take(level_codes)
-            keys.append(level_codes.astype("int64", copy=False))
-        return libalgos.is_lexsorted(keys)
+        try:
+            target = self._sort_levels_monotonic(raise_if_incomparable=True)
+        except TypeError:
+            # we have mixed types
+            return Index(self._values, copy=False).is_monotonic_increasing
+        return libalgos.is_lexsorted(
+            [x.astype("int64", copy=False) for x in target.codes]
+        )
 
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
@@ -2391,7 +2385,7 @@ class MultiIndex(Index):
                     ('b', 'bb')],
                    )
         """
-        if self._is_lexsorted() and self.is_monotonic_increasing:
+        if all(lev.is_monotonic_increasing for lev in self.levels):
             return self
 
         new_levels = []
