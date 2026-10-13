@@ -2935,7 +2935,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if (
                 isinstance(res, Series)
                 and len(col_results) == len(res)
-                and all(is_scalar(val) for val in col_results)
+                and not any(is_list_like(val) for val in col_results)
                 and any(
                     infer_dtype_from_scalar(val)[0] != res.dtype for val in col_results
                 )

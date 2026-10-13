@@ -1319,6 +1319,28 @@ def test_transform_udf_scalar_none_is_nan():
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_udf_scalar_user_defined_class():
+    # GH#42617 a non-list-like result that pandas does not treat as a scalar
+    class Box:
+        def __init__(self, value):
+            self.value = value
+
+        def __eq__(self, other):
+            return isinstance(other, Box) and self.value == other.value
+
+    df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
+    result = df.groupby([0, 0, 1]).transform(
+        lambda x: Box(x.max()) if x.name == "b" else x.max()
+    )
+    expected = pd.DataFrame(
+        {
+            "a": [2, 2, 4],
+            "b": np.array([Box(3.0), Box(3.0), Box(5.0)], dtype=object),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_transform_udf_scalar_same_dtypes_uses_fast_path():
     # GH#42617 frames whose results share one dtype keep the fast path
     df = pd.DataFrame({"a": [1.0, 2.0, 4.0], "b": [2.0, 3.0, 5.0]})
