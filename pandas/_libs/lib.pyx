@@ -2578,8 +2578,6 @@ def maybe_convert_numeric(
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
 ) -> tuple[np.ndarray, np.ndarray | None]:
-    print("the values are")
-    print(values)
     """
     Convert object array to a numeric array if possible.
 
