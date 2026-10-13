@@ -2715,13 +2715,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Broadcast result of the transformation
 
         >>> grouped.transform(lambda x: x.max() - x.min())
-             C    D
-        0  4.0  6.0
-        1  3.0  8.0
-        2  4.0  6.0
-        3  3.0  8.0
-        4  4.0  6.0
-        5  3.0  8.0
+           C    D
+        0  4  6.0
+        1  3  8.0
+        2  4  6.0
+        3  3  8.0
+        4  4  6.0
+        5  3  8.0
 
         >>> grouped.transform("mean")
                   C    D
