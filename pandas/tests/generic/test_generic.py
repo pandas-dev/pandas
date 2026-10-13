@@ -490,7 +490,7 @@ class TestNDFrame:
         assert obj2.flags is not obj.flags
 
 
-@pytest.mark.parametrize("box", [DataFrame, Series, Index])
+@pytest.mark.parametrize("box", [pd.DataFrame, pd.Series, pd.Index])
 def test_nonzero_suggests_bitwise_operators(box):
     # GH#35037
     obj = box([1, 2, 3])
