@@ -2767,7 +2767,6 @@ def maybe_convert_numeric(
                 complexes[i] = val
             seen.float_ = True
         else:
-            print(val)
             if isinstance(val, str):
                 val_lower = val.lower()
                 if convert_to_masked_nullable and val_lower in ("nan", "-nan", "+nan"):
