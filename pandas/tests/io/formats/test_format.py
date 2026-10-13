@@ -318,6 +318,79 @@ class TestDataFrameFormatting:
             for line in result.split("\n"):
                 assert len(line) <= terminal_width
 
+    @pytest.mark.parametrize("index", [False, True])
+    @pytest.mark.parametrize("header", [False, True])
+    @pytest.mark.parametrize("ncols", [7, 8])
+    def test_to_string_truncation_uneven_widths(
+        self, monkeypatch, index, header, ncols
+    ):
+        terminal_width = 20
+        monkeypatch.setattr(
+            "pandas.io.formats.string.get_terminal_size",
+            lambda: (terminal_width, 24),
+        )
+        monkeypatch.setattr(
+            "pandas.io.formats.format.get_terminal_size",
+            lambda: (terminal_width, 24),
+        )
+        values = ["x"] * ncols
+        values[ncols // 2 + 1] = "https://example.com/very/long/example/path"
+        df = pd.DataFrame([values], columns=list("abcdefgh"[:ncols]))
+
+        result = df.to_string(
+            index=index, header=header, max_cols=0, line_width=terminal_width
+        )
+        expected = df.to_string(index=index, header=header, max_cols=4)
+
+        assert result == expected
+        assert all(len(line) <= terminal_width for line in result.splitlines())
+
+    @pytest.mark.parametrize("ncols", [1001, 1002])
+    @pytest.mark.parametrize("index", [False, True])
+    def test_to_string_truncation_large_frame(self, monkeypatch, ncols, index):
+        terminal_width = ncols + 10
+        monkeypatch.setattr(
+            "pandas.io.formats.string.get_terminal_size",
+            lambda: (terminal_width, 24),
+        )
+        monkeypatch.setattr(
+            "pandas.io.formats.format.get_terminal_size",
+            lambda: (terminal_width, 24),
+        )
+        values = ["x"] * ncols
+        values[ncols // 2 + 1] = "x" * (2 * ncols)
+        df = pd.DataFrame([values])
+
+        result = df.to_string(index=index, max_cols=0, line_width=terminal_width)
+
+        assert "..." in result
+        assert all(len(line) <= terminal_width for line in result.splitlines())
+
+    @pytest.mark.parametrize("index", [False, True])
+    @pytest.mark.parametrize("ncols", [1, 2, 7, 8])
+    @pytest.mark.parametrize("width", [12, 20, 40, 80])
+    def test_to_string_truncation_matches_retained_columns(
+        self, monkeypatch, index, ncols, width
+    ):
+        monkeypatch.setattr(
+            "pandas.io.formats.string.get_terminal_size", lambda: (width, 24)
+        )
+        monkeypatch.setattr(
+            "pandas.io.formats.format.get_terminal_size", lambda: (width, 24)
+        )
+        values = ["x" * (1 + i * 3) for i in range(ncols)]
+        df = pd.DataFrame([values])
+        expected = df.to_string(index=index)
+        if max(map(len, expected.splitlines())) >= width and ncols > 2:
+            for keep in range(2 * ((ncols - 1) // 2), 1, -2):
+                expected = df.to_string(index=index, max_cols=keep)
+                if max(map(len, expected.splitlines())) < width:
+                    break
+
+        result = df.to_string(index=index, max_cols=0, line_width=width)
+
+        assert result == expected
+
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
         # determine size of truncation (...) column

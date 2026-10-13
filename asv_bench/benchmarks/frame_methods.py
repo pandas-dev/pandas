@@ -1,5 +1,6 @@
 import string
 import warnings
+from unittest.mock import patch
 
 import numpy as np
 
@@ -242,6 +243,34 @@ class ToString:
 
     def time_to_string_floats(self):
         self.df.to_string()
+
+
+class ToStringTerminalWidth:
+    params = [[7, 1000, 10000], [False, True]]
+    param_names = ["ncols", "index"]
+
+    def setup(self, ncols, index):
+        values = ["x"] * ncols
+        values[ncols // 2 + 1] = "x" * 40
+        self.df = DataFrame([values])
+        # Keep all columns through the initial count-based truncation.
+        self.width = ncols + 10
+        self.patches = [
+            patch(
+                f"pandas.io.formats.{module}.get_terminal_size",
+                return_value=(self.width, 24),
+            )
+            for module in ["format", "string"]
+        ]
+        for patcher in self.patches:
+            patcher.start()
+
+    def teardown(self, ncols, index):
+        for patcher in reversed(self.patches):
+            patcher.stop()
+
+    def time_to_string(self, ncols, index):
+        self.df.to_string(index=index, max_cols=0, line_width=self.width)
 
 
 class ToHTML:
