@@ -1576,7 +1576,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Parameters
         ----------
-        axis : int, optional, default 0
+        axis : int, optional, default None
             Axis for the function to be applied on.
         keepdims : bool, default False
             Not Used. NumPy compatibility.

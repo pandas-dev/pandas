@@ -2024,7 +2024,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, optional, default 0
+        axis : int, optional, default None
             Axis along which to perform the operation.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
@@ -2136,7 +2136,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         Parameters
         ----------
-        axis : int, optional, default 0
+        axis : int, optional, default None
             Axis along which to perform the operation.
         keepdims : bool, default False
             If this is True, the axes which are reduced are left in the result as

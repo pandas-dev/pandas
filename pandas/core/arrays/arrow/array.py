@@ -1661,7 +1661,7 @@ class ArrowExtensionArray(
 
         Parameters
         ----------
-        axis : int or None, default 0
+        axis : int or None, default None
             The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             If False, a scalar is returned.
@@ -1756,7 +1756,7 @@ class ArrowExtensionArray(
 
         Parameters
         ----------
-        axis : int or None, default 0
+        axis : int or None, default None
             The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             If False, a scalar is returned.
