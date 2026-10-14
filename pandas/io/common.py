@@ -69,6 +69,8 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+# the _VALID_URLS schemes urllib can open; the rest (e.g. sftp) go to fsspec, GH#46765
+_URLLIB_SCHEMES = {"http", "https", "ftp", "file"}
 _FSSPEC_URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*(::[A-Za-z0-9+\-+.]+)*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
@@ -392,7 +394,22 @@ def _get_filepath_or_buffer(
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
-    if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and any(char in mode for char in "wax+"):
+        parsed = parse_url(filepath_or_buffer)
+        if parsed.scheme == "file" and parsed.netloc.lower() in ("", "localhost"):
+            # GH#55828 urlopen can only read; write to the path urllib reads from
+            import urllib.request
+
+            path = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+            filepath_or_buffer = urllib.request.url2pathname(path)
+        elif parsed.scheme in _URLLIB_SCHEMES:
+            # GH#55828 the urlopen branch below would silently discard the write
+            raise ValueError(f"Cannot write to URL: {filepath_or_buffer}")
+
+    if (
+        isinstance(filepath_or_buffer, str)
+        and parse_url(filepath_or_buffer).scheme in _URLLIB_SCHEMES
+    ):
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data

@@ -194,6 +194,30 @@ class NamedAgg:
 
 @set_module("pandas.api.typing")
 class SeriesGroupBy(GroupBy[Series]):
+    """
+    Groupby object for a Series.
+
+    Returned by :meth:`Series.groupby <pandas.Series.groupby>` and by selecting
+    a single column of a :class:`~pandas.api.typing.DataFrameGroupBy`. This is
+    not meant to be instantiated directly.
+
+    See :ref:`api.groupby` for the available methods and :ref:`groupby` for
+    the user guide.
+
+    See Also
+    --------
+    pandas.Series.groupby : Group Series using a mapper or by a Series of columns.
+    pandas.api.typing.DataFrameGroupBy : Groupby object for a DataFrame.
+
+    Examples
+    --------
+    >>> ser = pd.Series([1, 2, 3], index=["a", "a", "b"])
+    >>> ser.groupby(level=0).sum()
+    a    3
+    b    3
+    dtype: int64
+    """
+
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
         out._name = self.obj.name
@@ -1695,9 +1719,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -1756,9 +1780,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -2076,6 +2100,32 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
+    """
+    Groupby object for a DataFrame.
+
+    Returned by :meth:`DataFrame.groupby <pandas.DataFrame.groupby>`. Selecting
+    a single column returns a :class:`~pandas.api.typing.SeriesGroupBy`. This
+    is not meant to be instantiated directly.
+
+    See :ref:`api.groupby` for the available methods and :ref:`groupby` for
+    the user guide.
+
+    See Also
+    --------
+    pandas.DataFrame.groupby : Group DataFrame using a mapper or by a Series of
+        columns.
+    pandas.api.typing.SeriesGroupBy : Groupby object for a Series.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"key": ["a", "a", "b"], "val": [1, 2, 3]})
+    >>> df.groupby("key").sum()
+         val
+    key
+    a      3
+    b      3
+    """
+
     def aggregate(
         self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
     ) -> DataFrame:
@@ -2255,15 +2305,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # This method can consume the un-normalized {column: aggfunc} form, but only
         #  when the columns are unique: dict aggregation fans a single key out to
         #  every matching column, while named aggregation must produce exactly one
-        #  output per keyword.
+        #  output per keyword. The columns must also be unnamed, since the dict
+        #  form keeps columns.name and the normalized form drops it.
         #  `func is None` is a precondition for relabeling at all, and short-circuits
         #  materializing _obj_with_exclusions on the far more common plain-agg path.
-        allow_skip_normalization = (
-            func is None and self._obj_with_exclusions.columns.is_unique
+        allow_skip_normalization = func is None and (
+            self._obj_with_exclusions.columns.is_unique
+            and self._obj_with_exclusions.columns.name is None
         )
+        named_agg = func is None
         relabeling, func, columns, order = reconstruct_func(
             func, allow_skip_normalization, **kwargs
         )
+        if named_agg:
+            # kwargs held the spec; not keyed on relabeling, which
+            #  allow_skip_normalization can make False
+            kwargs = {}
         func = maybe_mangle_lambdas(func)
 
         if maybe_use_numba(engine):
@@ -2466,7 +2523,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
+            try:
+                return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
+            except NotImplementedError as err:
+                raise TypeError(
+                    f"{how} is not supported for {bvalues.dtype} dtype"
+                ) from err
 
         res_mgr = mgr.apply(arr_func)
 
@@ -3180,9 +3242,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -3255,9 +3317,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
