@@ -8057,7 +8057,10 @@ cpdef to_offset(freq, bint is_period=False):
             #  so we convert back here.
             result = Day(result.n // 24)
     else:
-        result = None
+        raise TypeError(
+            "freq must be a str, datetime.timedelta or BaseOffset, "
+            f"got {type(freq).__name__}"
+        )
 
     if result is None:
         raise_invalid_freq(freq=freq)

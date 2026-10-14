@@ -1,5 +1,6 @@
 import re
 
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
@@ -92,6 +93,22 @@ def test_to_offset_invalid(freqstr):
     msg = re.escape(f"Invalid frequency: {freqstr}")
     with pytest.raises(ValueError, match=msg):
         to_offset(freqstr)
+
+
+@pytest.mark.parametrize(
+    "freq, type_name",
+    [
+        (5, "int"),
+        (1.5, "float"),
+        (np.timedelta64(15, "m"), "timedelta64"),
+        ([1], "list"),
+    ],
+)
+def test_to_offset_invalid_type(freq, type_name):
+    # GH#71253
+    msg = f"freq must be a str, datetime.timedelta or BaseOffset, got {type_name}"
+    with pytest.raises(TypeError, match=msg):
+        to_offset(freq)
 
 
 @pytest.mark.parametrize(
