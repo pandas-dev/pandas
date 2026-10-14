@@ -7,7 +7,12 @@ Getting started
 ===============
 
 To quickly try pandas in your browser without installing anything, you can use
-the `Try pandas online <https://pandas.pydata.org/try.html>`__ page.
+the experimental interactive shell.
+
+.. button-link:: https://pandas.pydata.org/try.html
+    :color: primary
+
+    Try pandas in your browser
 
 Installation
 ------------
@@ -654,6 +659,33 @@ For a quick overview of pandas functionality, see :ref:`10 Minutes to pandas<10m
 
 You can also reference the pandas `cheat sheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_
 for a succinct guide for manipulating data with pandas.
+
+Video
+~~~~~
+
+.. raw:: html
+
+    <iframe
+      src="https://www.youtube.com/embed/_T8LGqJtuGc"
+      title="Wes McKinney: pandas in 10 minutes"
+      style="width: 100%; max-width: 560px; aspect-ratio: 16 / 9;"
+      frameborder="0"
+      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen
+    ></iframe>
+
+Book
+~~~~
+
+The book we recommend to learn pandas is `Python for Data Analysis <https://amzn.to/3DyLaJc>`__,
+by `Wes McKinney <https://wesmckinney.com/>`__.
+
+.. image:: https://pandas.pydata.org/static/img/books/pydata_book.gif
+    :alt: Python for Data Analysis
+    :target: https://amzn.to/3DyLaJc
+
+Community
+~~~~~~~~~
 
 The community produces a wide variety of tutorials available online. Some of the
 material is enlisted in the community contributed :ref:`communitytutorials`.
