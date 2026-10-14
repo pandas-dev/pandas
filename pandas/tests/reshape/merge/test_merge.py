@@ -1607,6 +1607,18 @@ class TestMergeDtypes:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_object_key_mixed_integer_float_bool(self):
+        # GH 62033
+        left = pd.DataFrame(
+            {"key": np.array([1, 1.0, True], dtype=object), "a": [1, 2, 3]}
+        )
+        right = pd.DataFrame({"key": [1, 2, 3], "b": [4, 5, 6]})
+        result = left.merge(right, on="key")
+        expected = pd.DataFrame(
+            {"key": np.array([1, 1.0, True], dtype=object), "a": [1, 2, 3], "b": 4}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_on_ints_floats_warning(self):
         # GH 16572
         # merge will produce a warning when merging on int and
@@ -1686,6 +1698,7 @@ class TestMergeDtypes:
             (pd.Series([1, 2], dtype="uint64"), ["a", "b", "c"]),
             (pd.Series([1, 2], dtype="int32"), ["a", "b", "c"]),
             ([0, 1, 2], ["0", "1", "2"]),
+            (pd.Series([0, 1, 2, 3]), np.array([0, 1.0, True, "2"], dtype=object)),
             ([0.0, 1.0, 2.0], ["0", "1", "2"]),
             (
                 pd.date_range("1/1/2011", periods=2, freq="D"),

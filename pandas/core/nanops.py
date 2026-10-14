@@ -1104,7 +1104,18 @@ def nanmedian(
     if values.dtype.kind not in "fc":
         # complex is left alone; np.nanmedian handles it, and casting it to f8
         #  would silently drop the imaginary part
-        values = values.astype("f8")
+        if values.dtype == object:
+            # GH#34671 avoid casting strings to numeric
+            inferred = lib.infer_dtype(values)
+            if inferred == "string":
+                raise TypeError("Cannot convert values to numeric")
+        try:
+            values = values.astype("f8")
+        except (TypeError, ValueError) as err:
+            # e.g. "could not convert string to float: 'a'"
+            if values.dtype == object:
+                raise TypeError("Cannot convert values to numeric") from err
+            raise TypeError(str(err)) from err
     if not using_nan_sentinel and mask is not None:
         if not values.flags.writeable:
             values = values.copy()

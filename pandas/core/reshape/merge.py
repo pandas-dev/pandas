@@ -1834,8 +1834,28 @@ class _MergeOperation:
                 bool_types = ["integer", "mixed-integer", "boolean", "empty"]
                 string_types = ["string", "unicode", "mixed", "bytes", "empty"]
 
+                def inferred_mixed_can_be_numeric(values, inferred) -> bool:
+                    if inferred != "mixed" or any(
+                        isinstance(x, (str, bytes)) for x in values
+                    ):
+                        return False
+                    try:
+                        values.astype("f8")
+                    except (TypeError, ValueError):
+                        return False
+                    return True
+
                 # inferred bool
                 if inferred_left in bool_types and inferred_right in bool_types:
+                    pass
+
+                elif (
+                    inferred_mixed_can_be_numeric(lk, inferred_left)
+                    and inferred_right in bool_types
+                ) or (
+                    inferred_mixed_can_be_numeric(rk, inferred_right)
+                    and inferred_left in bool_types
+                ):
                     pass
 
                 # unless we are merging non-string-like with string-like

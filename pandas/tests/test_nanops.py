@@ -506,6 +506,12 @@ class TestnanopsDataFrame:
             allow_obj="convert",
         )
 
+    def test_nanmedian_mixed_integer_float_bool_object(self, skipna):
+        # GH 62033
+        arr = np.array([1, 1.0, True], dtype=object)
+        result = nanops.nanmedian(arr, skipna=skipna)
+        assert result == 1.0
+
     @pytest.mark.parametrize("ddof", range(3))
     def test_nanvar(self, ddof, skipna):
         self.check_funs(
