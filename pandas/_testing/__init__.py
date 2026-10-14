@@ -614,8 +614,11 @@ class TestObject:
     def __init__(self, value: Any) -> None:
         self._value = value
 
-    def __eq__(self, other: TestObject) -> bool:
-        return self._value == other._value
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, TestObject):
+            return self._value == other._value
+        else:
+            return False
 
 
 __all__ = [
