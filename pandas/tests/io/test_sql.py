@@ -716,7 +716,10 @@ def _postgresql_adbc_uri():
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
-    uri = "postgresql://postgres:postgres@localhost:5432/pandas"
+    uri = os.environ.get(
+        "PANDAS_TEST_POSTGRESQL_ADBC_URI",
+        "postgresql://postgres:postgres@localhost:5432/pandas",
+    )
     skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
     return uri
 
