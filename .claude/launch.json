@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "docs",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pixi run -e docs-and-web build-pandas --editable && cd doc && pixi run -e docs-and-web python make.py html && pixi run -e docs-and-web python -m http.server 8000 --bind 127.0.0.1 -d build/html"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "website",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pixi run ci-build-website && pixi run -e docs-and-web python -m http.server 8080 --bind 127.0.0.1 -d web/build"
+      ],
+      "port": 8080
+    }
+  ]
+}
