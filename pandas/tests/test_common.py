@@ -296,6 +296,8 @@ def test_import_initializes_c_apis_and_options(lazy_imports):
         import pandas as pd
 
         importlib.import_module("pandas._libs")
+        assert pd.pandas is pd
+        assert pd._libs.pandas is pd
         assert type(pd._pandas_datetime_CAPI).__name__ == "PyCapsule"
         assert type(pd._pandas_parser_CAPI).__name__ == "PyCapsule"
         assert isinstance(pd.get_option("display.max_rows"), int)
@@ -305,6 +307,7 @@ def test_import_initializes_c_apis_and_options(lazy_imports):
         [sys.executable, "-X", f"lazy_imports={lazy_imports}", "-c", code],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     assert result.returncode == 0, result.stderr
