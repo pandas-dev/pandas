@@ -5116,6 +5116,9 @@ class DataFrame(NDFrame, OpsMixin):
             with. Reducing those columns back to one dimension, as in
             ``df.query("a.max(axis=1) > 4")``, is fine.
 
+            If ``expr`` evaluates to anything other than a boolean array or a
+            DataFrame.
+
         See Also
         --------
         eval : Evaluate a string describing operations on
@@ -5251,6 +5254,17 @@ class DataFrame(NDFrame, OpsMixin):
                 "a row mask. Rename or drop the duplicate labels, or reduce "
                 "the result to one dimension with e.g. .any(axis=1)."
             )
+
+        # GH#8560 a non-boolean result would otherwise be silently used as labels;
+        #  a non-boolean DataFrame already raises in __getitem__
+        if not isinstance(res, DataFrame) and not com.is_bool_indexer(res):
+            msg = "expr must evaluate to a boolean array, got"
+            dtype = getattr(res, "dtype", None) if is_list_like(res) else None
+            if dtype is None:
+                raise ValueError(f"{msg} {type(res).__name__}")
+            # an empty object column may still be a bool column once it has rows
+            if not (dtype == object and len(res) == 0):
+                raise ValueError(f"{msg} dtype {dtype}")
 
         try:
             result = self.loc[res]
