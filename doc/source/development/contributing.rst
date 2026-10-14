@@ -28,7 +28,8 @@ following guidelines:
 * You must ensure the contribution fully abides by all documented, contribution conventions in pandas.
 * You must not use AI to speak for you when interacting with the community.
 * You must run your pull request through :ref:`pandas-review <contributing.ai.self_review>` until it reports
-  ``LGTM`` or ``NITS ONLY`` before expecting a review.
+  ``LGTM`` or ``NITS ONLY``, or explain on the pull request why its remaining findings don't apply, before
+  expecting a review.
 
 A useful disclosure names the tool, the model and version it ran, and any reasoning-effort or thinking setting, so
 that reviewers know how much scrutiny to apply: ``claude opus 4.8 (xhigh)`` tells us something, ``claude`` does not.
@@ -60,7 +61,8 @@ Self-review with pandas-review
 `pandas-review <https://github.com/pandas-dev/pandas/blob/main/.claude/skills/pandas-review/SKILL.md>`_
 is an agent skill that reviews your change the way a maintainer would and ends with a verdict. If you used an
 automated tool, run it before you open a pull request and again before you re-request review, and don't expect a
-review until it reports ``LGTM`` or ``NITS ONLY``.
+review until it reports ``LGTM`` or ``NITS ONLY``, or you have explained on the pull request why its remaining
+findings don't apply.
 
 * **Claude Code:** from your pandas clone, run ``/pandas-review`` to review the current branch, or
   ``/pandas-review 12345`` for an open pull request.

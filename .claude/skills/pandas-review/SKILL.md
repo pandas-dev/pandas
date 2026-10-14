@@ -36,8 +36,9 @@ The code under review is the working tree in local mode, or in PR mode when
 `git rev-parse HEAD` equals `headRefOid`. Otherwise read files at the head with
 `gh api -X GET "repos/pandas-dev/pandas/contents/<path>?ref=<headRefOid>" -H "Accept: application/vnd.github.raw"`.
 
-If `git log --oneline HEAD..<remote>/main` is non-empty, say how many commits behind `main`
-the branch is (as of the last fetch). CI tests the PR merged into `main`, so a recent change
+If the code under review is local and `git log --oneline HEAD..<remote>/main` is non-empty
+(`<remote>` being the one whose URL contains `pandas-dev/pandas`), say how many commits behind
+`main` the branch is (as of the last fetch). CI tests the PR merged into `main`, so a recent change
 on `main` can break it there even when it passes locally.
 
 ## 2. Read the whole thread (PR mode, or local mode with an existing PR)
