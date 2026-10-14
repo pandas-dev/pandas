@@ -9,6 +9,7 @@ from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -528,7 +529,9 @@ def _logical_not(operand):
 
 UNARY_OPS_SYMS = ("+", "-", "~", "not")
 _unary_ops_funcs = (operator.pos, operator.neg, operator.invert, _logical_not)
-_unary_ops_dict = dict(zip(UNARY_OPS_SYMS, _unary_ops_funcs, strict=True))
+_unary_ops_dict: dict[str, Callable[[Any], Any]] = dict(
+    zip(UNARY_OPS_SYMS, _unary_ops_funcs, strict=True)
+)
 
 
 class UnaryOp(Op):
