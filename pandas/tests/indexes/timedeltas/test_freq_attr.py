@@ -92,3 +92,12 @@ class TestFreq:
         msg = "TimedeltaArray/Index freq must be a Tick"
         with pytest.raises(TypeError, match=msg):
             pd.TimedeltaIndex([]).set_freq(MonthEnd(1))
+
+    def test_set_freq_infer(self):
+        # GH#61094
+        idx = pd.TimedeltaIndex(["0 days", "2 days", "4 days"])
+        assert idx.set_freq("infer").freq == "2D"
+        assert (
+            pd.TimedeltaIndex(["0 days", "1 days", "3 days"]).set_freq("infer").freq
+            is None
+        )

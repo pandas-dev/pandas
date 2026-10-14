@@ -751,7 +751,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         ----------
         freq : str, DateOffset or None
             Frequency to set. It must conform to the values of the Index.
-            ``None`` removes the frequency.
+            ``"infer"`` sets the frequency inferred from the values, or ``None``
+            if none can be inferred. ``None`` removes the frequency.
 
         Returns
         -------
@@ -784,11 +785,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         >>> idx.set_freq("2D").set_freq(None)
         DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
                       dtype='datetime64[us]', freq=None)
+        >>> idx.set_freq("infer")
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq='2D')
         """
         result = self._view()
         # don't share the cache, some cached attributes depend on freq
         result._cache = {}
-        result.freq = freq
+        if freq == "infer":
+            # the inferred freq conforms by construction, so skip validation
+            result._freq = to_offset(self._inferred_freq_str)
+        else:
+            result.freq = freq
         return result
 
     def astype(self, dtype, copy: bool = True):

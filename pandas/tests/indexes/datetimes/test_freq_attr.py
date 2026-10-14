@@ -91,3 +91,15 @@ class TestFreq:
         result = idx.set_freq("h")
         expected = pd.DatetimeIndex(["2020-01-01"], freq="h")
         assert repr(result) == repr(expected)
+
+    def test_set_freq_infer(self):
+        # GH#61094
+        idx = pd.DatetimeIndex(["20180101", "20180103", "20180105"])
+        result = idx.set_freq("infer")
+        assert result.freq == "2D"
+        assert idx.freq is None
+
+        # nothing to infer -> None, matching the constructor
+        idx = pd.DatetimeIndex(["20180101", "20180102", "20180104"])
+        assert idx.set_freq("infer").freq is None
+        assert pd.DatetimeIndex(["20180101"]).set_freq("infer").freq is None
