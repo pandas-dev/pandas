@@ -197,6 +197,21 @@ class TestDataFrameClip:
         expected = pd.DataFrame({"a": [bound, 1.0, bound, 1.0]})
         tm.assert_frame_equal(result, expected)
 
+    def test_clip_int_data_with_float_bound_inplace_raises(self):
+        # GH#49217 inplace does not upcast, as with where(inplace=True)
+        df = pd.DataFrame({"a": [1, 5, 9], "b": [2, 3, 4]})
+        expected = df.copy()
+        with pytest.raises(TypeError, match="Invalid value '2.5' for dtype 'int64'"):
+            df.clip(2.5, 7, inplace=True)
+        tm.assert_frame_equal(df, expected)
+
+    def test_clip_int_data_with_unused_float_bound_keeps_block(self):
+        # GH#49217 a float bound that clips nothing does not split the block
+        df = pd.DataFrame({"a": [1, 5], "b": [9, 3]})
+        result = df.clip(0.5, 10)
+        tm.assert_frame_equal(result, df)
+        assert len(result._mgr.blocks) == 1
+
     def test_clip_with_list_bound(self):
         # GH#54817
         df = pd.DataFrame([1, 5])

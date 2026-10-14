@@ -9117,8 +9117,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return self
             return result.__finalize__(self, method="clip")
 
-        # fast-path for scalars
-        if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
+        if lower is None and upper is None:
             return self._clip_with_scalar(lower, upper, inplace=inplace)
 
         result = self

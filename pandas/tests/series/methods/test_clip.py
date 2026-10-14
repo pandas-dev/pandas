@@ -205,3 +205,14 @@ class TestSeriesClip:
             pd.to_datetime(["2020-01-10", "2020-01-21", "2020-02-01"]), dtype=ser.dtype
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, lower, upper", [([1, 5, 9], 2.5, 7), ([True, False], 0.5, None)]
+    )
+    def test_clip_inplace_upcast_raises(self, data, lower, upper):
+        # GH#49217 inplace does not upcast, as with where(inplace=True)
+        ser = pd.Series(data)
+        expected = ser.copy()
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser.clip(lower, upper, inplace=True)
+        tm.assert_series_equal(ser, expected)
