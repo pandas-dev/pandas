@@ -3308,9 +3308,8 @@ def _can_hold_categories(categories: Index) -> bool:
     Whether the values are unique and hashable, so can back a CategoricalDtype.
     """
     try:
-        if "mixed" in categories.inferred_type:
-            # other inferred types hold only hashable scalars; Index.is_unique
-            # skips hashing for strictly monotonic values, GH#54359
+        if categories.dtype == object:
+            # Index.is_unique skips hashing for strictly monotonic values, GH#54359
             return len(algorithms.unique(categories._values)) == len(categories)
         return categories.is_unique
     except TypeError:
