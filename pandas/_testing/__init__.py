@@ -601,6 +601,20 @@ def run_multithreaded(
         for f in futures:
             f.result()
 
+class TestObject:
+    """Substitutes bare `object` in replace functionality
+    testing. Bare `object` equality comparison breaks after
+    `copy.deepcopy` as it seems to be using `id()`.
+
+    This simple object allows comparison by value. Hence indifferent
+    to deep copying.
+    """
+
+    def __init__(self, value: Any) -> None:
+        self._value = value
+
+    def __eq__(self, other: TestObject) -> bool:
+        return self._value == other._value
 
 __all__ = [
     "ALL_INT_EA_DTYPES",
@@ -622,6 +636,7 @@ __all__ = [
     "SIGNED_INT_NUMPY_DTYPES",
     "STRING_DTYPES",
     "TIMEDELTA64_DTYPES",
+    "TestObject",
     "UNSIGNED_INT_EA_DTYPES",
     "UNSIGNED_INT_NUMPY_DTYPES",
     "SubclassedDataFrame",

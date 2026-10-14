@@ -473,7 +473,7 @@ class TestSeriesReplace:
 
     def test_replace_arbitrary_object(self):
         # GH#36522 non-scalar, non-list-like objects are valid to_replace values
-        o1, o2, o3 = object(), object(), object()
+        o1, o2, o3 = tm.TestObject(1), tm.TestObject(2), tm.TestObject(3)
         ser = pd.Series([o1, o2, o1])
         result = ser.replace(o1, o3)
         expected = pd.Series([o3, o2, o3])
