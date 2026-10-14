@@ -264,14 +264,12 @@ def test_bitwise(pa_type):
     tm.assert_series_equal(result, expected)
 
 
+# No offsets: pyarrow inferring the type of an object array of Ticks deadlocks
+#  under coverage on py3.12/3.13, see GH-69154. test_arith_unconvertible_scalar
+#  covers offsets.
 @pytest.fixture(
-    params=[
-        pd.Categorical(["test"]),
-        pd.offsets.Minute(3),
-        pd.Interval(0, 1),
-        object(),
-    ],
-    ids=["categorical", "dateoffset", "interval", "object"],
+    params=[pd.Categorical(["test"]), pd.Interval(0, 1), object()],
+    ids=["categorical", "interval", "object"],
 )
 def unconvertible_object(request):
     """An object that pyarrow cannot convert to one of its own types."""
