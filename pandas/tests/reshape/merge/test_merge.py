@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 import numpy as np
@@ -1680,6 +1681,61 @@ class TestMergeDtypes:
         assert is_object_dtype(result.A.dtype) or is_string_dtype(result.A.dtype)
 
     @pytest.mark.parametrize(
+        "obj_vals, num_vals, expected_key",
+        [
+            ([1.5, None], [1.5, 2.5], [1.5]),
+            ([1.5, pd.NA], [1.5, 2.5], [1.5]),
+            ([Decimal("1.5"), None], [1.5, 2.5], [Decimal("1.5")]),
+            ([True, None], [1, 2], [True]),
+            ([None, None], [1.5, 2.5], []),
+            ([], np.array([], dtype="float64"), []),
+            ([1.5, "a"], [1.5, 2.5], [1.5]),
+            ([1.5, Decimal("2.5")], [1.5, 3.5], [1.5]),
+        ],
+    )
+    def test_merge_object_not_all_strings_on_numeric(
+        self, obj_vals, num_vals, expected_key
+    ):
+        # GH#70218 only an object key holding just strings should raise
+        df1 = pd.DataFrame(
+            {"key": pd.Series(obj_vals, dtype=object), "a": range(len(obj_vals))}
+        )
+        df2 = pd.DataFrame({"key": num_vals, "b": range(len(num_vals))})
+
+        result = merge(df1, df2, on="key")
+        expected = pd.DataFrame(
+            {
+                "key": pd.Series(expected_key, dtype=object),
+                "a": range(len(expected_key)),
+                "b": range(len(expected_key)),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # key values come from the left (numeric) frame, as object dtype
+        result = merge(df2, df1, on="key")
+        expected = expected[["key", "b", "a"]].assign(
+            key=pd.Series(num_vals[: len(expected_key)], dtype=object)
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_merge_sparse_object_on_numeric(self):
+        # GH#70218 Sparse[object] is not a string dtype, so it should not raise
+        df1 = pd.DataFrame(
+            {
+                "key": pd.arrays.SparseArray([1.5, 2.5], dtype=pd.SparseDtype(object)),
+                "a": [0, 1],
+            }
+        )
+        df2 = pd.DataFrame({"key": [1.5], "b": [0]})
+
+        result = merge(df1, df2, on="key")
+        expected = pd.DataFrame(
+            {"key": pd.Series([1.5], dtype=object), "a": [0], "b": [0]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "df1_vals, df2_vals",
         [
             # do not infer to numeric
@@ -1687,6 +1743,7 @@ class TestMergeDtypes:
             (pd.Series([1, 2], dtype="int32"), ["a", "b", "c"]),
             ([0, 1, 2], ["0", "1", "2"]),
             ([0.0, 1.0, 2.0], ["0", "1", "2"]),
+            ([0.0, 1.0], pd.Series(["0", None], dtype=object)),
             (
                 pd.date_range("1/1/2011", periods=2, freq="D"),
                 ["2011-01-01", "2011-01-02"],
@@ -2032,6 +2089,24 @@ class TestMergeCategorical:
                 "Foo": pd.Categorical(["A", "B", "C"]),
                 "Left": ["A0", "B0", "C0"],
                 "Right": ["A1", "B1", "C1"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_merge_categorical_unordered_mixed_categories_different_order(self):
+        # GH#51543
+        df1 = pd.DataFrame(
+            {"Foo": pd.Categorical([1, "B"], categories=[1, "B"]), "Left": [0, 1]}
+        )
+        df2 = pd.DataFrame(
+            {"Foo": pd.Categorical([1, "B"], categories=["B", 1]), "Right": [2, 3]}
+        )
+        result = merge(df1, df2, on="Foo")
+        expected = pd.DataFrame(
+            {
+                "Foo": pd.Categorical([1, "B"], categories=[1, "B"]),
+                "Left": [0, 1],
+                "Right": [2, 3],
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -2924,6 +2999,18 @@ def test_merge_different_index_names():
     result = merge(left, right, left_on="c", right_on="d")
     expected = pd.DataFrame({"a_x": [1], "a_y": 1})
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_index_different_index_names(join_type):
+    # GH#16249
+    left = pd.DataFrame({"a": [1]}, index=pd.DatetimeIndex(["2016-02-01"], name="lhs"))
+    right = pd.DataFrame(
+        {"b": [1.5, 2.5]},
+        index=pd.DatetimeIndex(["2016-02-01", "2016-02-02"], name="rhs"),
+    )
+    result = merge(left, right, how=join_type, left_index=True, right_index=True)
+    expected_name = "rhs" if join_type == "right" else "lhs"
+    assert result.index.name == expected_name
 
 
 def test_merge_ea(any_numeric_ea_dtype, join_type):

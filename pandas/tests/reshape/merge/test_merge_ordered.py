@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -98,7 +100,10 @@ class TestMergeOrdered:
         "arg", [[pd.DataFrame()], [None, pd.DataFrame()], [pd.DataFrame(), None]]
     )
     def test_empty_sequence_concat_ok(self, arg):
-        pd.concat(arg)
+        warn = Pandas4Warning if any(x is None for x in arg) else None
+        msg = "Passing None in the objects to concat is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            pd.concat(arg)
 
     def test_doc_example(self):
         left = pd.DataFrame(

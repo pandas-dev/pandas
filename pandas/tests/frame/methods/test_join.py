@@ -435,6 +435,20 @@ def test_join_list_series(float_frame):
     tm.assert_frame_equal(result, float_frame)
 
 
+@pytest.mark.parametrize("as_list", [True, False])
+@pytest.mark.parametrize("categorical_left", [True, False])
+def test_join_interval_index_with_categorical_of_intervals(as_list, categorical_left):
+    # GH#25019
+    ii = pd.interval_range(0, 1, 2)
+    df_ii = pd.DataFrame({"a": [1, 2]}, index=ii)
+    df_cat = pd.DataFrame({"b": [3, 4]}, index=pd.CategoricalIndex(ii))
+    left, right = (df_cat, df_ii) if categorical_left else (df_ii, df_cat)
+
+    result = left.join([right] if as_list else right)
+    expected = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=left.index)
+    tm.assert_frame_equal(result, expected[[*left.columns, *right.columns]])
+
+
 class TestDataFrameJoin:
     def test_join(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
