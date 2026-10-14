@@ -9,6 +9,7 @@ from functools import partial
 import operator
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -17,6 +18,7 @@ import numpy as np
 from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_list_like,
     is_scalar,
 )
@@ -114,7 +116,11 @@ class Term:
         if (
             not str(self.name).startswith(LOCAL_TAG)
             and local_name in self.env.scope
-            and isinstance(self.env.scope[local_name], type)
+            and (
+                isinstance(self.env.scope[local_name], type)
+                # a column/index named e.g. "inf" shadows the default global, GH#47859
+                or local_name in self.env.resolvers
+            )
         ):
             is_local = False
 
@@ -209,7 +215,7 @@ class Constant(Term):
         return repr(self.name)
 
 
-_bool_op_map = {"not": "~", "and": "&", "or": "|"}
+_bool_op_map = {"and": "&", "or": "|"}
 
 
 class Op:
@@ -234,6 +240,23 @@ class Op:
         # recurse over the operands
         parened = (f"({pprint_thing(opr)})" for opr in self.operands)
         return pprint_thing(f" {self.op} ".join(parened))
+
+    def evaluate(self, env, engine: str, parser, term_type, eval_in_python):
+        """
+        Evaluate the operation in python *before* being passed to the engine.
+
+        Called by ``BinOp.evaluate`` on its operands, e.g. for
+        ``abs(a) in [1, 2]`` or ``-a in [1, 2]``.
+
+        Returns
+        -------
+        term_type
+            The "pre-evaluated" expression as an instance of ``term_type``
+        """
+        # error: "Op" not callable
+        res = self(env)  # type: ignore[operator]
+        name = env.add_tmp(res)
+        return term_type(name, env=env)
 
     @property
     def return_type(self):
@@ -447,25 +470,29 @@ class BinOp(Op):
                 encoder = pprint_thing
             return encoder(value)
 
+        def convert(term) -> None:
+            v = term.value
+            if isinstance(v, (int, float)):
+                v = stringify(v)
+            try:
+                v = Timestamp(ensure_decoded(v))
+            except ValueError:
+                if self.op in ("==", "!="):
+                    # leave unparsable values to compare unequal, matching
+                    #  comparisons outside of eval
+                    return
+                raise
+            if v.tz is not None:
+                v = v.tz_convert("UTC")
+            term.update(v)
+
         lhs, rhs = self.lhs, self.rhs
 
         if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.is_scalar:
-            v = rhs.value
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = Timestamp(ensure_decoded(v))
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            self.rhs.update(v)
+            convert(rhs)
 
         if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.is_scalar:
-            v = lhs.value
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = Timestamp(ensure_decoded(v))
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            self.lhs.update(v)
+            convert(lhs)
 
     def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs
@@ -489,9 +516,22 @@ class BinOp(Op):
             raise NotImplementedError("cannot evaluate scalar only bool ops")
 
 
+def _logical_not(operand):
+    # ~ is already logical for bool; np.logical_not raises on bool[pyarrow] with NA
+    if is_bool_dtype(getattr(operand, "dtype", None)):
+        return ~operand
+    result = np.logical_not(operand)
+    if getattr(result, "dtype", None) == object:
+        # numpy's only object loop for logical_not is O->O
+        result = result.astype(bool)
+    return result
+
+
 UNARY_OPS_SYMS = ("+", "-", "~", "not")
-_unary_ops_funcs = (operator.pos, operator.neg, operator.invert, operator.invert)
-_unary_ops_dict = dict(zip(UNARY_OPS_SYMS, _unary_ops_funcs, strict=True))
+_unary_ops_funcs = (operator.pos, operator.neg, operator.invert, _logical_not)
+_unary_ops_dict: dict[str, Callable[[Any], Any]] = dict(
+    zip(UNARY_OPS_SYMS, _unary_ops_funcs, strict=True)
+)
 
 
 class UnaryOp(Op):
@@ -524,15 +564,20 @@ class UnaryOp(Op):
 
     def __call__(self, env) -> MathCall:
         operand = self.operand(env)
-        # error: Cannot call function of unknown type
-        return self.func(operand)  # type: ignore[operator]
+        return self.func(operand)
 
     def __repr__(self) -> str:
+        if self.op == "not":
+            # this string is what numexpr evaluates: it has no "not", and its ~
+            # is bitwise on ints and bool literals
+            return pprint_thing(f"(({self.operand}) == 0)")
         return pprint_thing(f"{self.op}({self.operand})")
 
     @property
     def return_type(self) -> np.dtype:
         operand = self.operand
+        if self.op == "not":
+            return np.dtype("bool")
         if operand.return_type == np.dtype("bool"):
             return np.dtype("bool")
         if isinstance(operand, Op) and (

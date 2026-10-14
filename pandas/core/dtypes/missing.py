@@ -7,6 +7,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
+    Any,
     TypeVar,
     cast,
     overload,
@@ -71,12 +72,12 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar | Pattern | NAType | NaTType) -> bool: ...
+def isna(obj: Scalar | Pattern[Any] | NAType | NaTType) -> bool: ...
 
 
 @overload
 def isna(
-    obj: ArrayLike | Index | list,
+    obj: ArrayLike | Index | list[Any],
 ) -> npt.NDArray[np.bool_]: ...
 
 
@@ -87,7 +88,7 @@ def isna(obj: NDFrameT) -> NDFrameT: ...
 # handle unions
 @overload
 def isna(
-    obj: NDFrameT | ArrayLike | Index | list,
+    obj: NDFrameT | ArrayLike | Index | list[Any],
 ) -> NDFrameT | npt.NDArray[np.bool_]: ...
 
 
@@ -285,12 +286,12 @@ def _isna_recarray_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
 
 
 @overload
-def notna(obj: Scalar | Pattern | NAType | NaTType) -> bool: ...
+def notna(obj: Scalar | Pattern[Any] | NAType | NaTType) -> bool: ...
 
 
 @overload
 def notna(
-    obj: ArrayLike | Index | list,
+    obj: ArrayLike | Index | list[Any],
 ) -> npt.NDArray[np.bool_]: ...
 
 
@@ -301,7 +302,7 @@ def notna(obj: NDFrameT) -> NDFrameT: ...
 # handle unions
 @overload
 def notna(
-    obj: NDFrameT | ArrayLike | Index | list,
+    obj: NDFrameT | ArrayLike | Index | list[Any],
 ) -> NDFrameT | npt.NDArray[np.bool_]: ...
 
 

@@ -242,6 +242,19 @@ class PyArrowImpl(BaseImpl):
             merged_metadata = {**existing_metadata, **df_metadata}
             table = table.replace_schema_metadata(merged_metadata)
 
+        if partition_cols is None and kwargs:
+            # pyarrow opens the destination before validating kwargs, so a
+            # misspelled kwarg would clobber an existing file or be masked by
+            # an error about the path (GH#45815). Validate against a buffer,
+            # skipping kwargs that are single-use (encryption_properties on
+            # pyarrow<20) or record each write (metadata_collector).
+            self.api.parquet.write_table(
+                table.schema.empty_table(),
+                self.api.BufferOutputStream(),
+                compression=compression,
+                **{**kwargs, "metadata_collector": None, "encryption_properties": None},
+            )
+
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,

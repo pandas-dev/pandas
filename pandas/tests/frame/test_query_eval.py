@@ -222,8 +222,7 @@ class TestDataFrameEval:
 
     def test_query_duplicate_column_name_local_not_shadowed(self, engine, parser):
         # GH#65588 the duplicate-label recorder must not capture an @local whose
-        # name matches a duplicated column: Scope.swapkey rewrites the local by
-        # writing into the first resolver that *contains* the name
+        # name matches a duplicated column
         skip_if_no_pandas_parser(parser)
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["AA", "AA", "B"])
         AA = 4  # noqa: F841
@@ -313,9 +312,6 @@ class TestDataFrameEval:
     def test_query_datetime_compared_to_string_no_warning(self, engine, parser):
         # GH#57028 comparing a datetime64 column to a string warned about the
         # behavior of 'isin', which the expression does not use.
-        # Comparing against a string literal is rewritten to a membership op,
-        # which the python parser does not implement.
-        skip_if_no_pandas_parser(parser)
         df = pd.DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
 
         with tm.assert_produces_warning(None):
@@ -1214,41 +1210,18 @@ class TestDataFrameQueryStrings:
         df["strings"] = pd.Series(list("aabbccddee"))
         expect = df[df.strings == "a"]
 
-        if parser != "pandas":
-            col = "strings"
-            lst = '"a"'
+        res = df.query('"a" == strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            lhs = [col] * 2 + [lst] * 2
-            rhs = lhs[::-1]
+        res = df.query('strings == "a"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            eq, ne = "==", "!="
-            ops = 2 * ([eq, ne])
-            msg = r"'(Not)?In' nodes are not implemented"
+        expect = df[df.strings != "a"]
+        res = df.query('strings != "a"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
-            for lh, op_, rh in zip(lhs, ops, rhs, strict=True):
-                ex = f"{lh} {op_} {rh}"
-                with pytest.raises(NotImplementedError, match=msg):
-                    df.query(
-                        ex,
-                        engine=engine,
-                        parser=parser,
-                        local_dict={"strings": df.strings},
-                    )
-        else:
-            res = df.query('"a" == strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('strings == "a"', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-            tm.assert_frame_equal(res, df[df.strings.isin(["a"])])
-
-            expect = df[df.strings != "a"]
-            res = df.query('strings != "a"', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-
-            res = df.query('"a" != strings', engine=engine, parser=parser)
-            tm.assert_frame_equal(res, expect)
-            tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
+        res = df.query('"a" != strings', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, expect)
 
     def test_str_list_query_method(self, parser, engine):
         df = pd.DataFrame(
@@ -1459,6 +1432,10 @@ class TestDataFrameQueryStrings:
         tm.assert_frame_equal(res1, res2)
         tm.assert_frame_equal(res1, res3)
         tm.assert_frame_equal(res2, res3)
+
+        # GH#54199 != excludes missing values, like the mask outside of query
+        result = df.query("a != 'asdf'", parser=parser, engine=engine)
+        tm.assert_frame_equal(result, df[df["a"] != "asdf"])
 
 
 class TestDataFrameEvalWithFrame:
@@ -2002,17 +1979,24 @@ class TestDataFrameQueryInWithColumnRefs:
         ("period[D]", ["2020-01-01", "2020-01-02"]),
     ],
 )
-@pytest.mark.xfail(
-    reason="GH#23420, GH#35595 _rewrite_membership_op turns == into isin, "
-    "which does not parse the string"
-)
 def test_query_datetimelike_eq_string(dtype, values, engine, parser):
-    skip_if_no_pandas_parser(parser)
+    # GH#54199, GH#23420
     df = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
 
     result = df.query(f'a == "{values[0]}"', engine=engine, parser=parser)
-
     tm.assert_frame_equal(result, df.iloc[[0]])
+
+    result = df.query(f'"{values[0]}" != a', engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[[1]])
+
+
+@pytest.mark.parametrize("op, expected", [("==", []), ("!=", [0, 1])])
+def test_query_datetime_eq_unparsable_string(op, expected, engine, parser):
+    # GH#54199 matches df["a"] == "foo" rather than raising on the parse
+    df = pd.DataFrame({"a": pd.date_range("2020-01-01", periods=2)})
+
+    result = df.query(f'a {op} "foo"', engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[expected])
 
 
 @pytest.mark.parametrize(
@@ -2020,11 +2004,21 @@ def test_query_datetimelike_eq_string(dtype, values, engine, parser):
     [("<", operator.lt), ("<=", operator.le), (">", operator.gt), (">=", operator.ge)],
 )
 def test_query_timedelta_compared_to_string(op, func, engine, parser):
-    # GH#23420 the ordered comparisons raised ValueError on timedelta;
-    #  == is still wrong, see test_query_datetimelike_eq_string
+    # GH#23420 the ordered comparisons raised ValueError on timedelta
     df = pd.DataFrame({"dt": pd.to_timedelta(["5 days", "3 days"])})
 
     result = df.query(f'dt {op} "4 days"', engine=engine, parser=parser)
 
     expected = df[func(df["dt"], pd.Timedelta("4 days"))]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "expr, expected_rows",
+    [("a > 1 and not True", []), ("a > 1 or not True", [1, 2])],
+)
+def test_query_not_scalar_keeps_bool_mask(expr, expected_rows, engine):
+    # GH#11367 "not True" was -2, turning the mask into integer row labels
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    result = df.query(expr, engine=engine)
+    tm.assert_frame_equal(result, df.iloc[expected_rows])

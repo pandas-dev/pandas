@@ -49,6 +49,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -634,11 +635,22 @@ class ArrowExtensionArray(
             scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
             scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
             scalars = scalars.cast(pa.bool_())
-        elif (
-            pa.types.is_integer(pa_type)
-            or pa.types.is_floating(pa_type)
-            or pa.types.is_decimal(pa_type)
-        ):
+        elif pa.types.is_decimal(pa_type):
+            # cast the strings directly: going through float64 via to_numeric
+            #  loses precision
+            if not is_pa_array:
+                # pa.array refuses a mask with objects implementing __arrow_array__
+                strings = np.asarray(strings, dtype=object)
+                strings = pa.array(strings, type=pa.string(), mask=isna(strings))
+            elif not (
+                pa.types.is_string(strings.type)
+                or pa.types.is_large_string(strings.type)
+            ):
+                # utf8_trim_whitespace has no kernel for e.g. string_view or binary
+                strings = strings.cast(pa.string())
+            # to_numeric strips whitespace but pyarrow's cast does not
+            scalars = pc.utf8_trim_whitespace(strings).cast(pa_type)
+        elif pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type):
             from pandas.core.tools.numeric import to_numeric
 
             if is_pa_array:
@@ -720,10 +732,11 @@ class ArrowExtensionArray(
                     )
             else:
                 arr = pa.array(values, from_pandas=True)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
             # e.g. test_by_column_values_with_same_starting_value with nested
             #  values, one entry of which is an ArrowStringArray
             #  or test_agg_lambda_complex128_dtype_conversion for complex values
+            #  or OverflowError for e.g. 2**70, GH#70233
             values = np.asarray(values, dtype=object)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
@@ -1360,7 +1373,9 @@ class ArrowExtensionArray(
             f"dtype '{self.dtype}' with {other_type}"
         )
 
-    def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+    def _evaluate_op_method(
+        self, other, op, arrow_funcs, *, wrap_box_errors: bool = True
+    ) -> Self:
         if (
             is_list_like(other)
             and not isinstance(other, (np.ndarray, ExtensionArray, list))
@@ -1378,7 +1393,14 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other_original = other
         ops.raise_if_2d(other)
-        other = self._box_pa(other)
+        try:
+            other = self._box_pa(other)
+        except (pa.ArrowInvalid, pa.ArrowTypeError) as err:
+            # GH#62682 pyarrow could not convert `other`
+            if not wrap_box_errors:
+                # _arith_method retries the operation in object dtype
+                raise
+            raise TypeError(self._op_method_error_message(other_original, op)) from err
         other_inferred = other
         if (
             isinstance(other, pa.Scalar)
@@ -1567,7 +1589,9 @@ class ArrowExtensionArray(
             self._pa_array.type
         ):
             try:
-                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+                result = self._evaluate_op_method(
+                    other, op, ARROW_ARITHMETIC_FUNCS, wrap_box_errors=False
+                )
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 result = self._str_arith_method_object_fallback(other, op)
         else:
@@ -1995,8 +2019,20 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        value_set = self._box_pa(values)
-        result = pc.is_in(self._pa_array, value_set=value_set)
+        try:
+            value_set = self._box_pa(values)
+            result = pc.is_in(self._pa_array, value_set=value_set)
+        except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
+            # pyarrow cannot box e.g. [1, 2**63], ["a", 1] or [2**53 + 1, 1.5];
+            # compare the non-null entries as a numpy array instead
+            values = np.asarray(values, dtype=object)
+            mask = self.isna()
+            values_mask = isna(values)
+            res = np.empty(len(self), dtype=bool)
+            # match pc.is_in: missing values in values (NaN included) match only nulls
+            res[~mask] = algos.isin(self[~mask].to_numpy(), values[~values_mask])
+            res[mask] = values_mask.any()
+            return res
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
@@ -2417,10 +2453,9 @@ class ArrowExtensionArray(
         dtype : str or numpy.dtype, optional
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
-            another array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            Whether to ensure that the returned value is not a view on
+            another array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
@@ -2978,6 +3013,7 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         return self._reduce(
             "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
@@ -3084,6 +3120,7 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
         return self._reduce(
             "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
@@ -3878,14 +3915,22 @@ class ArrowExtensionArray(
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
     ) -> ArrayLike:
-        from pandas.core.arrays.string_ import StringDtype
-
-        if isinstance(self.dtype, StringDtype):
+        pa_type = self._pa_array.type
+        if (
+            pa.types.is_date(pa_type)
+            or pa.types.is_time(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            # Series.quantile supports these, so they are not a TypeError
+            raise NotImplementedError(
+                f"quantile is not yet implemented for dtype '{self.dtype}'"
+            )
+        try:
+            values = self._to_groupby_compatible()
+        except NotImplementedError as err:
             raise TypeError(
                 f"dtype '{self.dtype}' does not support operation 'quantile'"
-            )
-
-        values = self._to_groupby_compatible()
+            ) from err
         result = values._groupby_quantile(
             qs=qs,
             interpolation=interpolation,

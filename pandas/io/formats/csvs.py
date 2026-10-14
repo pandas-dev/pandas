@@ -20,7 +20,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import writers as libwriters
+from pandas._libs import (
+    lib,
+    writers as libwriters,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -100,7 +103,9 @@ class CSVFormatter:
 
     @property
     def na_rep(self) -> str:
-        return self.fmt.na_rep
+        na_rep = self.fmt.na_rep
+        assert na_rep is not lib.no_default  # to_csv always passes na_rep
+        return na_rep
 
     @property
     def float_format(self) -> FloatFormatType | None:

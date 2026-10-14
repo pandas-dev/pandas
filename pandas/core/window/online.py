@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
+@functools.cache
 def generate_online_numba_ewma_func(
     nogil: bool,
     parallel: bool,
@@ -63,7 +65,7 @@ def generate_online_numba_ewma_func(
             cur = values[i]
             is_observations = ~np.isnan(cur)
             nobs += is_observations.astype(np.int64)
-            for j in numba.prange(len(cur)):  # type: ignore[attr-defined, no-untyped-call]
+            for j in numba.prange(len(cur)):
                 if not np.isnan(weighted_avg[j]):
                     if is_observations[j] or not ignore_na:
                         # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
