@@ -50,3 +50,41 @@ table {
 .card, .card img {
   background-color: var(--pst-color-background);
 }
+
+
+/* Website pages (Markdown files) and home page */
+
+.blue {
+  color: #150458;
+}
+
+.pink {
+  color: #e70488;
+}
+
+.follow-us-button {
+  font-size: 2.4rem;
+}
+
+.book {
+  padding: 0 20%;
+}
+
+table.logo td {
+  text-align: center;
+}
+
+table.logo img {
+  height: 4rem;
+}
+
+@media (min-width: 576px) {
+  .card-group.maintainers div.card {
+    min-width: 10rem;
+    max-width: 10rem;
+  }
+}
+
+div.card {
+  margin: 0 0 0.2em 0.2em;
+}

@@ -12,8 +12,8 @@ pandas documentation
 
 **Download documentation**: `Zipped HTML <pandas.zip>`__
 
-**Previous versions**: Documentation of previous pandas versions is available at
-`pandas.pydata.org <https://pandas.pydata.org/>`__.
+**Previous versions**: Documentation of previous pandas versions is available in
+the version switcher at the top of the page.
 
 **Useful links**:
 `Binary Installers <https://pypi.org/project/pandas>`__ |
@@ -107,6 +107,30 @@ programming language.
             To the development guide
 
 {% endif %}
+{% if not single_doc -%}
+.. raw:: html
+{% raw %}
+    {% if sponsors %}
+    <section class="pandas-sponsors">
+        <h2>With the support of:</h2>
+        {% for row in sponsors.active | batch(6, "") %}
+        <div class="row mx-auto">
+            {% for company in row %}
+            <div class="col-6 col-md-2 d-flex align-items-center justify-content-center">
+                {% if company %}
+                <a href="{{ company.url }}" target="_blank">
+                    <img class="img-fluid w-100" alt="{{ company.name }}" src="{{ company.logo }}"/>
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        <p class="mt-4">The full list of companies supporting <i>pandas</i> is available in the <a href="about/sponsors.html">sponsors page</a>.</p>
+    </section>
+    {% endif %}
+{% endraw %}
+{% endif %}
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
     :maxdepth: 3
@@ -140,4 +164,11 @@ programming language.
     {% if not single_doc -%}
     development/index
     whatsnew/index
+{% endif %}
+{% if include_website %}
+.. toctree::
+    :hidden:
+
+    About us <about/index>
+    community/index
 {% endif %}

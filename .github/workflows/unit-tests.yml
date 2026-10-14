@@ -11,7 +11,6 @@ on:
       - 3.0.x
     paths-ignore:
       - "doc/**"
-      - "web/**"
       # code-scanning workflows; checked by zizmor in security.yml
       - ".github/workflows/codeql.yml"
       - ".github/workflows/scorecard.yml"
