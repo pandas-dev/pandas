@@ -7,6 +7,7 @@ Name `localization` is chosen to avoid overlap with builtin `locale` module.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import functools
 import locale
 import platform
 import re
@@ -112,6 +113,54 @@ def _valid_locales(locales: list[str] | str, normalize: bool) -> list[str]:
     ]
 
 
+# Windows has no "locale -a" to enumerate with, so we hardcode a few values.
+#  GH#46597
+_WINDOWS_LOCALES = [
+    "de-DE.UTF-8",  # Latin with diacritics
+    "el-GR.UTF-8",  # Greek, where capitalize() has to handle final sigma
+    "en-US.UTF-8",  # ASCII baseline
+    "ja-JP.UTF-8",  # caseless script, capitalize() is a no-op
+    "tr-TR.UTF-8",  # dotted and dotless i
+]
+
+
+@functools.cache
+def _get_locales(prefix: str | None, normalize: bool) -> tuple[str, ...]:
+    if platform.system() in ("Linux", "Darwin"):
+        raw_locales = subprocess.check_output(["locale", "-a"])
+        # raw_locales is "\n" separated list of locales
+        # it may contain non-decodable parts, so split
+        # extract what we can and then rejoin.
+        out_locales = []
+        for raw_locale in raw_locales.split(b"\n"):
+            try:
+                out_locales.append(
+                    str(raw_locale, encoding=cast("str", options.display.encoding))
+                )
+            except UnicodeError:
+                # 'locale -a' is used to populated 'raw_locales' and on
+                # Redhat 7 Linux (and maybe others) prints locale names
+                # using windows-1252 encoding.  Bug only triggered by
+                # a few special characters and when there is an
+                # extensive list of installed locales.
+                out_locales.append(str(raw_locale, encoding="windows-1252"))
+    elif platform.system() == "Windows":
+        # Note: is_platform_windows causes circular import here
+        out_locales = _WINDOWS_LOCALES
+        # These are already spelled the way the CRT wants them; running them
+        #  through the POSIX alias table would rename them ("ar-SA" -> "ar_AA").
+        normalize = False
+    else:
+        return ()
+
+    if prefix is None:
+        return tuple(_valid_locales(out_locales, normalize))
+
+    pattern = re.compile(f"{prefix}.*")
+    found = pattern.findall("\n".join(out_locales))
+    return tuple(_valid_locales(found, normalize))
+
+
 def get_locales(
     prefix: str | None = None,
     normalize: bool = True,
@@ -138,41 +187,9 @@ def get_locales(
 
             locale.setlocale(locale.LC_ALL, locale_string)
 
-    On error will return an empty list (no locale available, e.g. Windows)
+    On error will return an empty list (no locale available)
 
     """
-    if platform.system() in ("Linux", "Darwin"):
-        raw_locales = subprocess.check_output(["locale", "-a"])
-    else:
-        # Other platforms e.g. windows platforms don't define "locale -a"
-        #  Note: is_platform_windows causes circular import here
-        return []
-
-    try:
-        # raw_locales is "\n" separated list of locales
-        # it may contain non-decodable parts, so split
-        # extract what we can and then rejoin.
-        split_raw_locales = raw_locales.split(b"\n")
-        out_locales = []
-        for x in split_raw_locales:
-            try:
-                out_locales.append(
-                    str(x, encoding=cast("str", options.display.encoding))
-                )
-            except UnicodeError:
-                # 'locale -a' is used to populated 'raw_locales' and on
-                # Redhat 7 Linux (and maybe others) prints locale names
-                # using windows-1252 encoding.  Bug only triggered by
-                # a few special characters and when there is an
-                # extensive list of installed locales.
-                out_locales.append(str(x, encoding="windows-1252"))
-
-    except TypeError:
-        pass
-
-    if prefix is None:
-        return _valid_locales(out_locales, normalize)
-
-    pattern = re.compile(f"{prefix}.*")
-    found = pattern.findall("\n".join(out_locales))
-    return _valid_locales(found, normalize)
+    # Every candidate is probed with setlocale, and several test modules call
+    #  this at collection time, so the result is cached.
+    return list(_get_locales(prefix, normalize))

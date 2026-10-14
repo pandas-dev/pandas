@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex
 import pandas._testing as tm
 
 
@@ -41,8 +40,8 @@ def test_inplace_mutation_resets_values():
     levels2 = [[1, 2, 3], ["a"]]
     codes = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
 
-    mi1 = MultiIndex(levels=levels, codes=codes)
-    mi2 = MultiIndex(levels=levels2, codes=codes)
+    mi1 = pd.MultiIndex(levels=levels, codes=codes)
+    mi2 = pd.MultiIndex(levels=levels2, codes=codes)
 
     # instantiating MultiIndex should not access/cache _.values
     assert "_values" not in mi1._cache
@@ -88,7 +87,7 @@ def test_inplace_mutation_resets_values():
 
 def test_boxable_categorical_values():
     cat = pd.Categorical(pd.date_range("2012-01-01", periods=3, freq="h"))
-    result = MultiIndex.from_product([["a", "b", "c"], cat]).values
+    result = pd.MultiIndex.from_product([["a", "b", "c"], cat]).values
     expected = pd.Series(
         [
             ("a", pd.Timestamp("2012-01-01 00:00:00")),

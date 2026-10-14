@@ -3,10 +3,7 @@ import pytest
 
 from pandas.compat import is_platform_arm
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.util.version import Version
 
@@ -25,7 +22,7 @@ pytestmark.append(
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEWM:
     def test_invalid_update(self):
-        df = DataFrame({"a": range(5), "b": range(5)})
+        df = pd.DataFrame({"a": range(5), "b": range(5)})
         online_ewm = df.head(2).ewm(0.5).online()
         with pytest.raises(
             ValueError,
@@ -35,7 +32,13 @@ class TestEWM:
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
-        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
+        "obj",
+        [
+            pd.DataFrame({"a": range(5), "b": range(5)}),
+            # GH#66522 online mean ignored the decay for single-column frames
+            pd.DataFrame({"a": range(5)}),
+            pd.Series(range(5), name="foo"),
+        ],
     )
     def test_online_vs_non_online_mean(self, obj, nogil, parallel, adjust, ignore_na):
         expected = obj.ewm(0.5, adjust=adjust, ignore_na=ignore_na).mean()
@@ -58,12 +61,13 @@ class TestEWM:
 
     @pytest.mark.xfail(raises=NotImplementedError)
     @pytest.mark.parametrize(
-        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
+        "obj",
+        [pd.DataFrame({"a": range(5), "b": range(5)}), pd.Series(range(5), name="foo")],
     )
     def test_update_times_mean(
         self, obj, nogil, parallel, adjust, ignore_na, halflife_with_times
     ):
-        times = Series(
+        times = pd.Series(
             np.array(
                 ["2020-01-01", "2020-01-05", "2020-01-07", "2020-01-17", "2020-01-21"],
                 dtype="datetime64[ns]",
@@ -101,7 +105,7 @@ class TestEWM:
 
     @pytest.mark.parametrize("method", ["aggregate", "std", "corr", "cov", "var"])
     def test_ewm_notimplementederror_raises(self, method):
-        ser = Series(range(10))
+        ser = pd.Series(range(10))
         kwargs = {}
         if method == "aggregate":
             kwargs["func"] = lambda x: x

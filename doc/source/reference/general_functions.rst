@@ -77,6 +77,12 @@ Top-level evaluation
    col
    eval
 
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   api.typing.Expression
+
 Datetime formats
 ~~~~~~~~~~~~~~~~
 .. autosummary::

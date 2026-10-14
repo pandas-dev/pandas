@@ -27,7 +27,6 @@ dependencies:
   - fastparquet>=0.6.3
   - fsspec>=2021.07.0
   - html5lib>=1.1
-  - hypothesis
   - gcsfs>=2021.07.0
   - jinja2
   - lxml>=4.6.3

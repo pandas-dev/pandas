@@ -2,10 +2,9 @@ import os
 
 import pytest
 
-from pandas import (
-    array,
-    compat,
-)
+from pandas.compat import is_platform_windows
+
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -21,7 +20,7 @@ def test_convert_rows_list_to_csv_str():
     rows_list = ["aaa", "bbb", "ccc"]
     ret = tm.convert_rows_list_to_csv_str(rows_list)
 
-    if compat.is_platform_windows():
+    if is_platform_windows():
         expected = "aaa\r\nbbb\r\nccc\r\n"
     else:
         expected = "aaa\nbbb\nccc\n"
@@ -50,9 +49,9 @@ def test_external_error_raised():
 
 
 def test_is_sorted():
-    arr = array([1, 2, 3], dtype="Int64")
+    arr = pd.array([1, 2, 3], dtype="Int64")
     tm.assert_is_sorted(arr)
 
-    arr = array([4, 2, 3], dtype="Int64")
+    arr = pd.array([4, 2, 3], dtype="Int64")
     with pytest.raises(AssertionError, match="ExtensionArray are different"):
         tm.assert_is_sorted(arr)

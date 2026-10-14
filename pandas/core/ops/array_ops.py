@@ -59,7 +59,10 @@ from pandas.core.construction import (
 )
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
-from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.invalid import (
+    disallow_datetimelike_logical_op,
+    invalid_comparison,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -446,6 +449,8 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     # NB: We assume extract_array has already been called on left and right
     lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
+
+    disallow_datetimelike_logical_op(lvalues, rvalues, op)
 
     if should_extension_dispatch(lvalues, rvalues):
         # Call the method on lvalues

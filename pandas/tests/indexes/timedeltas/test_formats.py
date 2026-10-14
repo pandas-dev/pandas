@@ -1,32 +1,28 @@
 import pytest
 
 import pandas as pd
-from pandas import (
-    Series,
-    TimedeltaIndex,
-)
 
 
 class TestTimedeltaIndexRendering:
     def test_repr_round_days_non_nano(self):
         # GH#55405
         # we should get "1 days", not "1 days 00:00:00" with non-nano
-        tdi = TimedeltaIndex(["1 days"], freq="D").as_unit("s")
+        tdi = pd.TimedeltaIndex(["1 days"], freq="D").as_unit("s")
         result = repr(tdi)
         expected = "TimedeltaIndex(['1 days'], dtype='timedelta64[s]', freq='D')"
         assert result == expected
 
-        result2 = repr(Series(tdi))
+        result2 = repr(pd.Series(tdi))
         expected2 = "0   1 days\ndtype: timedelta64[s]"
         assert result2 == expected2
 
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_representation(self, method):
-        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
-        idx2 = TimedeltaIndex(["1 days"], freq="D")
-        idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
-        idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
-        idx5 = TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
+        idx1 = pd.TimedeltaIndex([], freq="D", dtype="m8[ns]")
+        idx2 = pd.TimedeltaIndex(["1 days"], freq="D")
+        idx3 = pd.TimedeltaIndex(["1 days", "2 days"], freq="D")
+        idx4 = pd.TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
+        idx5 = pd.TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
 
         exp1 = "TimedeltaIndex([], dtype='timedelta64[ns]', freq='D')"
 
@@ -55,11 +51,11 @@ class TestTimedeltaIndexRendering:
 
     # TODO: this is a Series.__repr__ test
     def test_representation_to_series(self):
-        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
-        idx2 = TimedeltaIndex(["1 days"], freq="D")
-        idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
-        idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
-        idx5 = TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
+        idx1 = pd.TimedeltaIndex([], freq="D", dtype="m8[ns]")
+        idx2 = pd.TimedeltaIndex(["1 days"], freq="D")
+        idx3 = pd.TimedeltaIndex(["1 days", "2 days"], freq="D")
+        idx4 = pd.TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
+        idx5 = pd.TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
 
         exp1 = """Series([], dtype: timedelta64[ns])"""
 
@@ -82,16 +78,16 @@ class TestTimedeltaIndexRendering:
                 [exp1, exp2, exp3, exp4, exp5],
                 strict=True,
             ):
-                result = repr(Series(idx))
+                result = repr(pd.Series(idx))
                 assert result == expected
 
     def test_summary(self):
         # GH#9116
-        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
-        idx2 = TimedeltaIndex(["1 days"], freq="D")
-        idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
-        idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
-        idx5 = TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
+        idx1 = pd.TimedeltaIndex([], freq="D", dtype="m8[ns]")
+        idx2 = pd.TimedeltaIndex(["1 days"], freq="D")
+        idx3 = pd.TimedeltaIndex(["1 days", "2 days"], freq="D")
+        idx4 = pd.TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
+        idx5 = pd.TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
 
         exp1 = "TimedeltaIndex: 0 entries\nFreq: D"
 

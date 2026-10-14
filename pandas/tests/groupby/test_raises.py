@@ -10,12 +10,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Grouper,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
@@ -25,13 +20,16 @@ from pandas.tests.groupby import get_groupby_method_args
         "a",
         ["a"],
         ["a", "b"],
-        Grouper(key="a"),
+        pd.Grouper(key="a"),
         lambda x: x % 2,
         [0, 0, 0, 1, 2, 2, 2, 3, 3],
         np.array([0, 0, 0, 1, 2, 2, 2, 3, 3]),
         dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3], strict=True)),
-        Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
-        [Series([1, 1, 1, 1, 1, 2, 2, 2, 2]), Series([3, 3, 4, 4, 4, 4, 4, 3, 3])],
+        pd.Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
+        [
+            pd.Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
+            pd.Series([3, 3, 4, 4, 4, 4, 4, 3, 3]),
+        ],
     ]
 )
 def by(request):
@@ -45,7 +43,7 @@ def groupby_series(request):
 
 @pytest.fixture
 def df_with_string_col():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
@@ -58,7 +56,7 @@ def df_with_string_col():
 
 @pytest.fixture
 def df_with_datetime_col():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
@@ -71,12 +69,12 @@ def df_with_datetime_col():
 
 @pytest.fixture
 def df_with_cat_col():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
             "c": range(9),
-            "d": Categorical(
+            "d": pd.Categorical(
                 ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
                 categories=["a", "b", "c", "d"],
                 ordered=True,
@@ -131,22 +129,10 @@ def test_groupby_raises_string(
         "corrwith": (TypeError, "Could not convert"),
         "count": (None, ""),
         "cumcount": (None, ""),
-        "cummax": (
-            (NotImplementedError, TypeError),
-            "(function|cummax) is not (implemented|supported) for (this|object) dtype",
-        ),
-        "cummin": (
-            (NotImplementedError, TypeError),
-            "(function|cummin) is not (implemented|supported) for (this|object) dtype",
-        ),
-        "cumprod": (
-            (NotImplementedError, TypeError),
-            "(function|cumprod) is not (implemented|supported) for (this|object) dtype",
-        ),
-        "cumsum": (
-            (NotImplementedError, TypeError),
-            "(function|cumsum) is not (implemented|supported) for (this|object) dtype",
-        ),
+        "cummax": (TypeError, "cummax is not supported for object dtype"),
+        "cummin": (TypeError, "cummin is not supported for object dtype"),
+        "cumprod": (TypeError, "cumprod is not supported for object dtype"),
+        "cumsum": (TypeError, "cumsum is not supported for object dtype"),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "first": (None, ""),
@@ -262,7 +248,7 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            "Could not convert string .* to numeric|"
+            "Could not convert .* to numeric|"
             "Cannot perform reduction 'mean' with string dtype",
         ),
     }[groupby_func_np]
@@ -291,8 +277,8 @@ def test_groupby_raises_datetime(
             return
 
     klass, msg = {
-        "all": (TypeError, "'all' with datetime64 dtypes is no longer supported"),
-        "any": (TypeError, "'any' with datetime64 dtypes is no longer supported"),
+        "all": (TypeError, "'all' with datetime64 dtypes is not supported"),
+        "any": (TypeError, "'any' with datetime64 dtypes is not supported"),
         "bfill": (None, ""),
         "corrwith": (TypeError, "cannot perform __mul__ with this index type"),
         "count": (None, ""),
@@ -389,9 +375,19 @@ def test_groupby_raises_datetime_np(
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
+@pytest.mark.parametrize(
+    "func", ["any", "all", "std", "sem", "skew", "idxmin", "idxmax"]
+)
+def test_groupby_raises_interval(func):
+    # GH#69717 used to raise NotImplementedError
+    ser = pd.Series(pd.interval_range(0, 4))
+    with pytest.raises(TypeError, match=f"{func} is not supported for interval"):
+        getattr(ser.groupby([0, 0, 1, 1]), func)()
+
+
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "kurt", "var"])
 def test_groupby_raises_timedelta(func):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
@@ -437,30 +433,10 @@ def test_groupby_raises_category(
         ),
         "count": (None, ""),
         "cumcount": (None, ""),
-        "cummax": (
-            (NotImplementedError, TypeError),
-            "(category type does not support cummax operations|"
-            "category dtype not supported|"
-            "cummax is not supported for category dtype)",
-        ),
-        "cummin": (
-            (NotImplementedError, TypeError),
-            "(category type does not support cummin operations|"
-            "category dtype not supported|"
-            "cummin is not supported for category dtype)",
-        ),
-        "cumprod": (
-            (NotImplementedError, TypeError),
-            "(category type does not support cumprod operations|"
-            "category dtype not supported|"
-            "cumprod is not supported for category dtype)",
-        ),
-        "cumsum": (
-            (NotImplementedError, TypeError),
-            "(category type does not support cumsum operations|"
-            "category dtype not supported|"
-            "cumsum is not supported for category dtype)",
-        ),
+        "cummax": (TypeError, "category type does not support cummax operations"),
+        "cummin": (TypeError, "category type does not support cummin operations"),
+        "cumprod": (TypeError, "category type does not support cumprod operations"),
+        "cumsum": (TypeError, "category type does not support cumsum operations"),
         "diff": (
             TypeError,
             r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
@@ -573,7 +549,7 @@ def test_groupby_raises_category_on_category(
 ):
     # GH#50749
     df = df_with_cat_col
-    df["a"] = Categorical(
+    df["a"] = pd.Categorical(
         ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
         categories=["a", "b", "c", "d"],
         ordered=True,
@@ -603,30 +579,10 @@ def test_groupby_raises_category_on_category(
         ),
         "count": (None, ""),
         "cumcount": (None, ""),
-        "cummax": (
-            (NotImplementedError, TypeError),
-            "(cummax is not supported for category dtype|"
-            "category dtype not supported|"
-            "category type does not support cummax operations)",
-        ),
-        "cummin": (
-            (NotImplementedError, TypeError),
-            "(cummin is not supported for category dtype|"
-            "category dtype not supported|"
-            "category type does not support cummin operations)",
-        ),
-        "cumprod": (
-            (NotImplementedError, TypeError),
-            "(cumprod is not supported for category dtype|"
-            "category dtype not supported|"
-            "category type does not support cumprod operations)",
-        ),
-        "cumsum": (
-            (NotImplementedError, TypeError),
-            "(cumsum is not supported for category dtype|"
-            "category dtype not supported|"
-            "category type does not support cumsum operations)",
-        ),
+        "cummax": (TypeError, "category type does not support cummax operations"),
+        "cummin": (TypeError, "category type does not support cummin operations"),
+        "cumprod": (TypeError, "category type does not support cumprod operations"),
+        "cumsum": (TypeError, "category type does not support cumsum operations"),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "first": (None, ""),

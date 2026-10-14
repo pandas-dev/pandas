@@ -158,7 +158,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[s]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -507,17 +507,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     def _parse_with_reso(self, label: str) -> tuple[datetime, Resolution]:
         # overridden by TimedeltaIndex
-        try:
-            if self.freq is None or hasattr(self.freq, "rule_code"):
-                freq = self.freq
-        except NotImplementedError:
-            freq = getattr(self, "freqstr", getattr(self, "_inferred_freq_str", None))
-
         freqstr: str | None
-        if freq is not None and not isinstance(freq, str):
-            freqstr = freq.rule_code
+        if self.freq is None:
+            freqstr = None
         else:
-            freqstr = freq
+            try:
+                freqstr = self.freq.rule_code
+            except NotImplementedError:
+                # e.g. a generic DateOffset, which has no rule_code; it also
+                #  carries no quarter/month anchor, so None is the right answer
+                freqstr = None
 
         if isinstance(label, np.str_):
             # GH#45580
@@ -1031,10 +1030,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 "DatetimeIndex.values returning an ndarray that drops "
                 "timezone information is deprecated. In a future version, "
                 "this will return the underlying DatetimeArray instead. "
-                "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
-                "'DatetimeIndex.array' to get the ExtensionArray.",
+                "Use 'DatetimeIndex.tz_convert(None).to_numpy()' to get a NumPy array "
+                "of UTC values, or 'DatetimeIndex.array' to get the ExtensionArray.\n"
+                "See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#whatsnew-310-deprecations-values"
+                " for more details.",
                 Pandas4Warning,
-                stacklevel=find_stack_level(),
+                # TODO bump this to stacklevel=2 in a future version
+                stacklevel=1,
             )
         data = self._data._ndarray
         data = data.view()

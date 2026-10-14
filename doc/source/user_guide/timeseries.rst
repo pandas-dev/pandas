@@ -88,7 +88,8 @@ Date offsets            ``DateOffset``     ``None``              ``None``       
 
 The default resolution for date times and time deltas is microsecond ("us"), though second ("s"),
 millisecond ("ms"), and nanosecond ("ns") are also supported. The resolution can be changed using
-:meth:`~Series.dt.as_unit`.
+:meth:`~Series.dt.as_unit`. Arithmetic keeps the resolution of its operands, see
+:ref:`Timedelta arithmetic <timedeltas.unit_preserving_arithmetic>`.
 
 For time series data, it's conventional to represent the time component in the index of a :class:`Series` or :class:`DataFrame`
 so manipulations can be performed with respect to the time element.
@@ -1066,6 +1067,22 @@ business offsets operate on the weekdays.
    # Date is brought to the closest offset date first and then the hour is added
    ts + offset
 
+Both methods roll *conditionally*: a date that is already a valid offset date is
+returned unchanged, so :meth:`rollforward` and :meth:`rollback` give the same
+answer there. Use :meth:`is_on_offset` to check whether a date is already valid,
+and add or subtract the offset to move unconditionally.
+
+.. ipython:: python
+
+   # The last business day of July 2021, so already a valid BMonthEnd date
+   ts = pd.Timestamp("2021-07-30")
+   offset = pd.offsets.BMonthEnd()
+   offset.is_on_offset(ts)
+   offset.rollback(ts)
+   offset.rollforward(ts)
+   # Subtract the offset to always move to the previous business month end
+   ts - offset
+
 These operations preserve time (hour, minute, etc) information by default.
 To reset time to midnight, use :meth:`normalize` before or after applying
 the operation (depending on whether you want the time information included
@@ -1554,6 +1571,9 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+For a calendar step that is not anchored, such as yearly from an arbitrary
+date, pass a :class:`DateOffset` like ``freq=pd.DateOffset(years=1)``.
+
 Anchored offset semantics
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1796,7 +1816,8 @@ financial applications.
 on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
-The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
+The ``resample()`` method can be used directly from
+:class:`~pandas.api.typing.DataFrameGroupBy` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 Basics

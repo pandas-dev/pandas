@@ -5,14 +5,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    concat,
-    isna,
-    notna,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries import offsets
@@ -39,7 +32,7 @@ from pandas.tseries import offsets
 )
 def test_series(series, compare_func, roll_func, kwargs, step):
     result = getattr(series.rolling(50, step=step), roll_func)(**kwargs)
-    assert isinstance(result, Series)
+    assert isinstance(result, pd.Series)
     end = range(0, len(series), step or 1)[-1] + 1
     tm.assert_almost_equal(result.iloc[-1], compare_func(series[end - 50 : end]))
 
@@ -65,7 +58,7 @@ def test_series(series, compare_func, roll_func, kwargs, step):
 )
 def test_frame(raw, frame, compare_func, roll_func, kwargs, step):
     result = getattr(frame.rolling(50, step=step), roll_func)(**kwargs)
-    assert isinstance(result, DataFrame)
+    assert isinstance(result, pd.DataFrame)
     end = range(0, len(frame), step or 1)[-1] + 1
     tm.assert_series_equal(
         result.iloc[-1, :],
@@ -149,7 +142,7 @@ def test_time_rule_frame(raw, frame, compare_func, roll_func, kwargs, minp):
     ],
 )
 def test_nans(compare_func, roll_func, kwargs):
-    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj = pd.Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.nan
     obj[-10:] = np.nan
 
@@ -158,16 +151,16 @@ def test_nans(compare_func, roll_func, kwargs):
 
     # min_periods is working correctly
     result = getattr(obj.rolling(20, min_periods=15), roll_func)(**kwargs)
-    assert isna(result.iloc[23])
-    assert not isna(result.iloc[24])
+    assert pd.isna(result.iloc[23])
+    assert not pd.isna(result.iloc[24])
 
-    assert not isna(result.iloc[-6])
-    assert isna(result.iloc[-5])
+    assert not pd.isna(result.iloc[-6])
+    assert pd.isna(result.iloc[-5])
 
-    obj2 = Series(np.random.default_rng(2).standard_normal(20))
+    obj2 = pd.Series(np.random.default_rng(2).standard_normal(20))
     result = getattr(obj2.rolling(10, min_periods=5), roll_func)(**kwargs)
-    assert isna(result.iloc[3])
-    assert notna(result.iloc[4])
+    assert pd.isna(result.iloc[3])
+    assert pd.notna(result.iloc[4])
 
     if roll_func != "sum":
         result0 = getattr(obj.rolling(20, min_periods=0), roll_func)(**kwargs)
@@ -176,7 +169,7 @@ def test_nans(compare_func, roll_func, kwargs):
 
 
 def test_nans_count():
-    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj = pd.Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.nan
     obj[-10:] = np.nan
     result = obj.rolling(50, min_periods=30).count()
@@ -207,8 +200,8 @@ def test_min_periods(series, minp, roll_func, kwargs, step):
     expected = getattr(
         series.rolling(len(series), min_periods=minp, step=step), roll_func
     )(**kwargs)
-    nan_mask = isna(result)
-    tm.assert_series_equal(nan_mask, isna(expected))
+    nan_mask = pd.isna(result)
+    tm.assert_series_equal(nan_mask, pd.isna(expected))
 
     nan_mask = ~nan_mask
     tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
@@ -217,8 +210,8 @@ def test_min_periods(series, minp, roll_func, kwargs, step):
 def test_min_periods_count(series, step):
     result = series.rolling(len(series) + 1, min_periods=0, step=step).count()
     expected = series.rolling(len(series), min_periods=0, step=step).count()
-    nan_mask = isna(result)
-    tm.assert_series_equal(nan_mask, isna(expected))
+    nan_mask = pd.isna(result)
+    tm.assert_series_equal(nan_mask, pd.isna(expected))
 
     nan_mask = ~nan_mask
     tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
@@ -240,7 +233,7 @@ def test_min_periods_count(series, step):
     ],
 )
 def test_center(roll_func, kwargs, minp):
-    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj = pd.Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.nan
     obj[-10:] = np.nan
 
@@ -249,7 +242,8 @@ def test_center(roll_func, kwargs, minp):
     )
     expected = (
         getattr(
-            concat([obj, Series([np.nan] * 9)]).rolling(20, min_periods=minp), roll_func
+            pd.concat([obj, pd.Series([np.nan] * 9)]).rolling(20, min_periods=minp),
+            roll_func,
         )(**kwargs)
         .iloc[9:]
         .reset_index(drop=True)
@@ -354,10 +348,10 @@ def test_center_reindex_frame(frame, roll_func, kwargs, minp, fill_value):
 )
 def test_rolling_functions_window_non_shrinkage(f):
     # GH 7764
-    s = Series(range(4))
-    s_expected = Series(np.nan, index=s.index)
-    df = DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]], columns=["A", "B"])
-    df_expected = DataFrame(np.nan, index=df.index, columns=df.columns)
+    s = pd.Series(range(4))
+    s_expected = pd.Series(np.nan, index=s.index)
+    df = pd.DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]], columns=["A", "B"])
+    df_expected = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
 
     s_result = f(s)
     tm.assert_series_equal(s_result, s_expected)
@@ -371,15 +365,17 @@ def test_rolling_max_gh6297(step):
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 2 datapoints on one of the days
     indices.append(datetime(1975, 1, 3, 6, 0))
-    series = Series(range(1, 7), index=indices)
+    series = pd.Series(range(1, 7), index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
     series = series.sort_index()
 
-    expected = Series(
+    expected = pd.Series(
         [1.0, 2.0, 6.0, 4.0, 5.0],
-        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+        index=pd.DatetimeIndex(
+            [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+        ),
     )[::step]
     x = series.resample("D").max().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
@@ -390,33 +386,39 @@ def test_rolling_max_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series([*list(range(5)), 10, 20], index=indices)
+    series = pd.Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
     series = series.sort_index()
 
     # Default how should be max
-    expected = Series(
+    expected = pd.Series(
         [0.0, 1.0, 2.0, 3.0, 20.0],
-        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+        index=pd.DatetimeIndex(
+            [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+        ),
     )[::step]
     x = series.resample("D").max().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
 
     # Now specify median (10.0)
-    expected = Series(
+    expected = pd.Series(
         [0.0, 1.0, 2.0, 3.0, 10.0],
-        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+        index=pd.DatetimeIndex(
+            [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+        ),
     )[::step]
     x = series.resample("D").median().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
 
     # Now specify mean (4+10+20)/3
     v = (4.0 + 10.0 + 20.0) / 3.0
-    expected = Series(
+    expected = pd.Series(
         [0.0, 1.0, 2.0, 3.0, v],
-        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+        index=pd.DatetimeIndex(
+            [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+        ),
     )[::step]
     x = series.resample("D").mean().rolling(window=1, step=step).max()
     tm.assert_series_equal(expected, x)
@@ -427,16 +429,18 @@ def test_rolling_min_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series([*list(range(5)), 10, 20], index=indices)
+    series = pd.Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
     series = series.sort_index()
 
     # Default how should be min
-    expected = Series(
+    expected = pd.Series(
         [0.0, 1.0, 2.0, 3.0, 4.0],
-        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+        index=pd.DatetimeIndex(
+            [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+        ),
     )[::step]
     r = series.resample("D").min().rolling(window=1, step=step)
     tm.assert_series_equal(expected, r.min())
@@ -447,16 +451,18 @@ def test_rolling_median_resample():
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series([*list(range(5)), 10, 20], index=indices)
+    series = pd.Series([*list(range(5)), 10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
     series = series.sort_index()
 
     # Default how should be median
-    expected = Series(
+    expected = pd.Series(
         [0.0, 1.0, 2.0, 3.0, 10],
-        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+        index=pd.DatetimeIndex(
+            [datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"
+        ),
     )
     x = series.resample("D").median().rolling(window=1).median()
     tm.assert_series_equal(expected, x)
@@ -465,10 +471,10 @@ def test_rolling_median_resample():
 def test_rolling_median_memory_error():
     # GH11722
     n = 20000
-    Series(np.random.default_rng(2).standard_normal(n)).rolling(
+    pd.Series(np.random.default_rng(2).standard_normal(n)).rolling(
         window=2, center=False
     ).median()
-    Series(np.random.default_rng(2).standard_normal(n)).rolling(
+    pd.Series(np.random.default_rng(2).standard_normal(n)).rolling(
         window=2, center=False
     ).median()
 
@@ -480,11 +486,11 @@ def test_rolling_min_max_numeric_types(any_real_numpy_dtype):
     # the return type is float64. Other tests will cover quantitative
     # correctness
     result = (
-        DataFrame(np.arange(20, dtype=any_real_numpy_dtype)).rolling(window=5).max()
+        pd.DataFrame(np.arange(20, dtype=any_real_numpy_dtype)).rolling(window=5).max()
     )
     assert result.dtypes[0] == np.dtype("f8")
     result = (
-        DataFrame(np.arange(20, dtype=any_real_numpy_dtype)).rolling(window=5).min()
+        pd.DataFrame(np.arange(20, dtype=any_real_numpy_dtype)).rolling(window=5).min()
     )
     assert result.dtypes[0] == np.dtype("f8")
 
@@ -517,11 +523,11 @@ def test_rolling_min_max_numeric_types(any_real_numpy_dtype):
 )
 def test_moment_functions_zero_length(f):
     # GH 8056
-    s = Series(dtype=np.float64)
+    s = pd.Series(dtype=np.float64)
     s_expected = s
-    df1 = DataFrame()
+    df1 = pd.DataFrame()
     df1_expected = df1
-    df2 = DataFrame(columns=["a"])
+    df2 = pd.DataFrame(columns=["a"])
     df2["a"] = df2["a"].astype("float64")
     df2_expected = df2
 

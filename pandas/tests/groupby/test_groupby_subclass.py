@@ -5,11 +5,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
@@ -24,7 +20,7 @@ from pandas.tests.groupby import get_groupby_method_args
 def test_groupby_preserves_subclass(obj, groupby_func):
     # GH28330 -- preserve subclass through groupby operations
 
-    if isinstance(obj, Series) and groupby_func in {"corrwith"}:
+    if isinstance(obj, pd.Series) and groupby_func in {"corrwith"}:
         pytest.skip(f"Not applicable for Series and {groupby_func}")
 
     grouped = obj.groupby(np.arange(0, 10))
@@ -43,13 +39,13 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     # Reduction or transformation kernels should preserve type
     slices = {"ngroup", "cumcount", "size"}
-    if isinstance(obj, DataFrame) and groupby_func in slices:
+    if isinstance(obj, pd.DataFrame) and groupby_func in slices:
         assert isinstance(result1, tm.SubclassedSeries)
     else:
         assert isinstance(result1, type(obj))
 
     # Confirm .agg() groupby operations return same results
-    if isinstance(result1, DataFrame):
+    if isinstance(result1, pd.DataFrame):
         tm.assert_frame_equal(result1, result2)
     else:
         tm.assert_series_equal(result1, result2)
@@ -71,7 +67,7 @@ def test_groupby_preserves_metadata():
         return group.testattr
 
     result = custom_df.groupby("c").apply(func)
-    expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
+    expected = tm.SubclassedSeries(["hello"] * 3, index=pd.Index([7, 8, 9], name="c"))
     tm.assert_series_equal(result, expected)
 
     result = custom_df.groupby("c").apply(func)
@@ -123,13 +119,13 @@ def test_groupby_apply_preserves_metadata():
     assert result.testattr == "hello"
 
 
-@pytest.mark.parametrize("obj", [DataFrame, tm.SubclassedDataFrame])
+@pytest.mark.parametrize("obj", [pd.DataFrame, tm.SubclassedDataFrame])
 def test_groupby_resample_preserves_subclass(obj):
     # GH28330 -- preserve subclass through groupby.resample()
 
     df = obj(
         {
-            "Buyer": Series("Carl Carl Carl Carl Joe Carl".split(), dtype=object),
+            "Buyer": pd.Series("Carl Carl Carl Carl Joe Carl".split(), dtype=object),
             "Quantity": [18, 3, 5, 1, 9, 3],
             "Date": [
                 datetime(2013, 9, 1, 13, 0),

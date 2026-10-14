@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import TimedeltaIndex
+import pandas as pd
 
 from pandas.tseries.offsets import (
     BaseOffset,
@@ -15,7 +15,7 @@ class TestFreq:
     @pytest.mark.parametrize("freq", ["2D", Day(2), "48h", Hour(48)])
     def test_freq_setter(self, values, freq):
         # GH#20678
-        idx = TimedeltaIndex(values)
+        idx = pd.TimedeltaIndex(values)
 
         # can set to an offset, converting from string if necessary
         idx.freq = freq
@@ -27,7 +27,7 @@ class TestFreq:
         assert idx.freq is None
 
     def test_with_freq_empty_requires_tick(self):
-        idx = TimedeltaIndex([])
+        idx = pd.TimedeltaIndex([])
 
         off = MonthEnd(1)
         msg = "TimedeltaArray/Index freq must be a Tick"
@@ -36,7 +36,7 @@ class TestFreq:
 
     def test_freq_setter_errors(self):
         # GH#20678
-        idx = TimedeltaIndex(["0 days", "2 days", "4 days"])
+        idx = pd.TimedeltaIndex(["0 days", "2 days", "4 days"])
 
         # setting with an incompatible freq
         msg = (
@@ -59,10 +59,10 @@ class TestFreq:
         # Setting the freq for one TimedeltaIndex shouldn't alter the freq
         #  for another that views the same data
 
-        tdi = TimedeltaIndex(["0 days", "2 days", "4 days"], freq="2D")
+        tdi = pd.TimedeltaIndex(["0 days", "2 days", "4 days"], freq="2D")
         tda = tdi._data
 
-        tdi2 = TimedeltaIndex(tda)._with_freq(None)
+        tdi2 = pd.TimedeltaIndex(tda)._with_freq(None)
         assert tdi2.freq is None
 
         # Original was not altered. freq is now Index-level state.

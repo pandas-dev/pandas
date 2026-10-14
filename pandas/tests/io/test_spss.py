@@ -9,8 +9,6 @@ import pandas._testing as tm
 pyreadstat = pytest.importorskip("pyreadstat")
 
 
-# TODO(CoW) - detection of chained assignment in cython
-# https://github.com/pandas-dev/pandas/issues/51315
 @pytest.mark.parametrize("path_klass", [lambda p: p, Path])
 def test_spss_labelled_num(path_klass, datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)

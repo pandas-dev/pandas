@@ -5,12 +5,7 @@ Assertion helpers for arithmetic tests.
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    array,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import (
     BooleanArray,
@@ -72,14 +67,14 @@ def get_upcast_box(left, right, is_cmp: bool = False):
         Whether the operation is a comparison method.
     """
 
-    if isinstance(left, DataFrame) or isinstance(right, DataFrame):
-        return DataFrame
-    if isinstance(left, Series) or isinstance(right, Series):
-        return Series
-    if isinstance(left, Index) or isinstance(right, Index):
+    if isinstance(left, pd.DataFrame) or isinstance(right, pd.DataFrame):
+        return pd.DataFrame
+    if isinstance(left, pd.Series) or isinstance(right, pd.Series):
+        return pd.Series
+    if isinstance(left, pd.Index) or isinstance(right, pd.Index):
         if is_cmp:
             return np.array
-        return Index
+        return pd.Index
     return tm.to_array
 
 
@@ -96,7 +91,7 @@ def assert_invalid_comparison(left, right, box):
     # Not for tznaive-tzaware comparison
 
     # Note: not quite the same as how we do this for tm.box_expected
-    xbox = box if box not in [Index, array] else np.array
+    xbox = box if box not in [pd.Index, pd.array] else np.array
 
     def xbox2(x):
         # Eventually we'd like this to be tighter, but for now we'll

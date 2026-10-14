@@ -4,14 +4,11 @@ Tests involving custom Index subclasses
 
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Index,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
-class CustomIndex(Index):
+class CustomIndex(pd.Index):
     def __new__(cls, data, name=None):
         # assert that this index class cannot hold strings
         if any(isinstance(val, str) for val in data):
@@ -29,13 +26,13 @@ def test_insert_fallback_to_base_index():
 
     idx = CustomIndex([1, 2, 3])
     result = idx.insert(0, "string")
-    expected = Index(["string", 1, 2, 3], dtype=object)
+    expected = pd.Index(["string", 1, 2, 3], dtype=object)
     tm.assert_index_equal(result, expected)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((2, 3)),
         columns=idx,
-        index=Index([1, 2], name="string"),
+        index=pd.Index([1, 2], name="string"),
     )
     result = df.reset_index()
     tm.assert_index_equal(result.columns, expected)

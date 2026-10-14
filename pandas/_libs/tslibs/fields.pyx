@@ -695,18 +695,6 @@ def get_timedelta_days(
     return out
 
 
-cpdef isleapyear_arr(ndarray years):
-    """vectorized version of isleapyear; NaT evaluates as False"""
-    cdef:
-        ndarray[int8_t] out
-
-    out = np.zeros(len(years), dtype="int8")
-    out[np.logical_or(years % 400 == 0,
-                      np.logical_and(years % 4 == 0,
-                                     years % 100 > 0))] = 1
-    return out.view(bool)
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):

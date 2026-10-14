@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import Series
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -15,6 +15,6 @@ from pandas import Series
 )
 def test_series(data, index, expected):
     # GH#52897
-    ser = Series(data, index=index)
+    ser = pd.Series(data, index=index)
     assert ser.size == expected
     assert isinstance(ser.size, int)

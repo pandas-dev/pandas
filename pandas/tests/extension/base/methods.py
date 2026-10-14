@@ -2,12 +2,14 @@ import inspect
 from io import StringIO
 import operator
 import re
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas._libs._ujson import ujson_dumps
 from pandas._typing import Dtype
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -20,6 +22,19 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
+
+# GH#24433 methods whose default implementation may cast to object, mapped to
+# the methods an EA must override (any one of) to avoid it; map is left out
+# since it is elementwise regardless, and isin/value_counts since they are only
+# slow without a fast __array__
+SLOW_DEFAULTS = {
+    "unique": ["unique"],
+    "factorize": ["factorize", "_values_for_factorize"],
+    "argsort": ["argsort", "_values_for_argsort"],
+    "argmin": ["argmin", "_values_for_argsort"],
+    "argmax": ["argmax", "_values_for_argsort"],
+    "searchsorted": ["searchsorted"],
+}
 
 
 class BaseMethodsTests:
@@ -35,6 +50,23 @@ class BaseMethodsTests:
         )
         assert res.dtype == np.uint64
         assert res.shape == data.shape
+
+    @pytest.mark.parametrize("method", list(SLOW_DEFAULTS))
+    def test_slow_defaults_overridden(self, data, method):
+        # GH#24433 warn EA authors about defaults that may cast to object
+        base_cls = pd.api.extensions.ExtensionArray
+        inherited = all(
+            getattr(type(data), meth) is getattr(base_cls, meth)
+            for meth in SLOW_DEFAULTS[method]
+        )
+        if inherited and pd.get_option("mode.performance_warnings"):
+            warnings.warn(
+                f"{type(data).__name__} uses the default ExtensionArray "
+                f"implementation of {method}, which may be slow. "
+                "See the ExtensionArray docstring for methods to override.",
+                PerformanceWarning,
+                stacklevel=1,
+            )
 
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
@@ -207,8 +239,9 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
-        # all missing with skipna=True is the same as empty
-        err_msg = "attempt to get"
+        # GH#68467 all-NA is distinguished from empty, as it is for
+        #  the numpy-backed dtypes
+        err_msg = "Encountered all NA values"
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
@@ -261,6 +294,7 @@ class BaseMethodsTests:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("sort_by_key", [None, lambda x: x])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
@@ -275,6 +309,7 @@ class BaseMethodsTests:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("sort_by_key", [None, lambda x: x])
     def test_sort_values_missing(
         self, data_missing_for_sorting, ascending, sort_by_key
     ):

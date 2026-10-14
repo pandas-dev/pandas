@@ -7,7 +7,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -33,7 +33,7 @@ j,-inF"""
             parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
         return
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"A": [float("inf"), float("-inf")] * 5},
         index=["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
     )
@@ -64,7 +64,7 @@ c,+Infinity
             parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
         return
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"A": [float("infinity"), float("-infinity"), float("+infinity")]},
         index=["a", "b", "c"],
     )

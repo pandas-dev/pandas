@@ -16,14 +16,13 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
 def test_multiindex_group_all_columns_when_empty(groupby_func):
     # GH 32464
-    df = DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
+    df = pd.DataFrame({"a": [], "b": [], "c": []}).set_index(["a", "b", "c"])
     gb = df.groupby(["a", "b", "c"], group_keys=True)
     method = getattr(gb, groupby_func)
     args = get_groupby_method_args(groupby_func, df)
@@ -44,7 +43,7 @@ def test_duplicate_columns(request, groupby_func, as_index):
     if groupby_func == "corrwith":
         msg = "GH#50845 - corrwith fails when there are duplicate columns"
         request.applymarker(pytest.mark.xfail(reason=msg))
-    df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
+    df = pd.DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby("a", as_index=as_index)
     result = getattr(gb, groupby_func)(*args)
@@ -69,7 +68,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip(f"Not applicable for {groupby_func}")
 
-    df = DataFrame([[1, 1]], columns=idx)
+    df = pd.DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
     args = get_groupby_method_args(groupby_func, df)
@@ -91,8 +90,8 @@ def test_not_c_contiguous_mask(groupby_func):
     if groupby_func == "corrwith":
         # corrwith is deprecated
         return
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]}, dtype="Int64", index=[0, 1, 2])
-    reversed = DataFrame(
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]}, dtype="Int64", index=[0, 1, 2])
+    reversed = pd.DataFrame(
         {"a": [2, 1, 1], "b": [5, 4, 3]}, dtype="Int64", index=[2, 1, 0]
     )[::-1]
     assert not reversed["b"].array._mask.flags["C_CONTIGUOUS"]
