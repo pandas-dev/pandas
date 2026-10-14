@@ -1592,6 +1592,57 @@ def test_dtd(parser, temp_file):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
+def test_internal_entity(parser, temp_file):
+    xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE shapes [
+    <!ENTITY dim "2D">
+]>
+<shapes>
+  <shape>
+    <name>circle</name>
+    <type>&dim;</type>
+  </shape>
+</shapes>"""
+
+    df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
+
+    df_iter = read_xml_iterparse(
+        xml, temp_file, parser=parser, iterparse={"shape": ["name", "type"]}
+    )
+
+    df_expected = pd.DataFrame({"name": ["circle"], "type": ["2D"]})
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+@pytest.mark.parametrize("iterparse", [None, {"shape": ["name", "type"]}])
+def test_external_entity_not_resolved(parser, iterparse, tmp_path):
+    # CVE-2026-41066: lxml < 6.1 iterparse resolved external entities by default
+    secret = tmp_path / "secret.txt"
+    secret.write_text("secret", encoding="utf-8")
+    xml_file = tmp_path / "xxe.xml"
+    xml_file.write_text(
+        f"""\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE shapes [
+    <!ENTITY xxe SYSTEM "{secret.as_uri()}">
+]>
+<shapes>
+  <shape>
+    <name>&xxe;</name>
+    <type>2D</type>
+  </shape>
+</shapes>""",
+        encoding="utf-8",
+    )
+
+    msg = "|".join(["Entity 'xxe' not defined", "undefined entity &xxe;"])
+    with pytest.raises(SyntaxError, match=msg):
+        read_xml(xml_file, xpath=".//shape", parser=parser, iterparse=iterparse)
+
+
 def test_processing_instruction(parser, temp_file):
     xml = """\
 <?xml version="1.0" encoding="UTF-8"?>
