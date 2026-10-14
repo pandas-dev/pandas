@@ -44,8 +44,10 @@ These are bug fixes that might have notable behavior changes.
 Partial string indexing that matches no entries raises ``KeyError``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Indexing a :class:`DatetimeIndex` or :class:`PeriodIndex` with a partial string
-that matched none of its entries sometimes returned an empty result instead of
+Indexing a :class:`DatetimeIndex` or :class:`PeriodIndex` with a date string
+less precise than the index's resolution selects every entry within the
+string's period (see :ref:`timeseries.slice_vs_exact_match`). When no entry
+fell within that period, this sometimes returned an empty result instead of
 raising ``KeyError``:
 
 .. code-block:: ipython
