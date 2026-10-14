@@ -867,3 +867,31 @@ def test_logical_ufunc_symbolic_operand(box):
 
     tm.assert_numpy_array_equal(np.logical_and(left, _SymbolicArray()), expected)
     tm.assert_numpy_array_equal(np.logical_and(_SymbolicArray(), left), expected)
+
+
+class _VecdotObject:
+    # not recognized by lib.is_scalar and has no ndim
+    def __init__(self, value) -> None:
+        self.value = value
+
+    def conjugate(self):
+        return self
+
+    def __mul__(self, other):
+        return _VecdotObject(self.value * other.value)
+
+    def __add__(self, other):
+        return _VecdotObject(self.value + getattr(other, "value", other))
+
+    __radd__ = __add__
+
+
+def test_gufunc_reducing_to_object():
+    # GH#71109 a gufunc reducing object data to a single arbitrary object
+    #  returned it to _reconstruct, which raised AttributeError on .ndim
+    ser = pd.Series([_VecdotObject(1), _VecdotObject(2), _VecdotObject(3)])
+
+    result = np.vecdot(ser, ser)
+
+    assert isinstance(result, _VecdotObject)
+    assert result.value == 14

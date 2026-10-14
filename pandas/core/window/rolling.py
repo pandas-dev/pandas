@@ -651,6 +651,8 @@ class BaseWindow(SelectionMixin["NDFrame"]):
 
     def aggregate(self, func=None, *args, **kwargs):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        if relabeling:
+            kwargs = {}
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if isinstance(result, ABCDataFrame) and relabeling:
             result = result.iloc[:, order]
