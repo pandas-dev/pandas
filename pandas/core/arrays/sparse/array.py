@@ -2358,7 +2358,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         axis : int, default None
-            Not Used. NumPy compatibility.
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
@@ -2385,10 +2385,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.prod()
         np.int64(6)
         """
-        nv.validate_prod((), {"axis": axis, "keepdims": keepdims, **kwargs})
+        nv.validate_prod((), {"keepdims": keepdims, **kwargs})
         skipna = validate_bool_kwarg(skipna, "skipna")
         min_count = validate_min_count(min_count)
-        return self._dense_reduce("prod", skipna=skipna, min_count=min_count)
+        return self._dense_reduce("prod", axis=axis, skipna=skipna, min_count=min_count)
 
     def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
         """
@@ -2499,7 +2499,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         axis : int, default None
-            Not Used. NumPy compatibility.
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
@@ -2540,7 +2540,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         axis : int, default None
-            Not Used. NumPy compatibility.
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
@@ -2584,7 +2584,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         axis : int, default None
-            Not Used. NumPy compatibility.
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
@@ -2628,7 +2628,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         axis : int, default None
-            Not Used. NumPy compatibility.
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
@@ -2671,7 +2671,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         axis : int, default None
-            Not Used. NumPy compatibility.
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
@@ -2711,7 +2711,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         axis : int, default None
-            Not Used. NumPy compatibility.
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         keepdims : bool, default False
             Not Used. NumPy compatibility.
         skipna : bool, default True
