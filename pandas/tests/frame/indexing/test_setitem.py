@@ -1556,6 +1556,51 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
 
 
 @pytest.mark.parametrize(
+    "value, ncols",
+    [
+        (np.arange(3).reshape(3, 1), 1),
+        (np.arange(9).reshape(3, 3), 3),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_mismatched_value(value, ncols, columns):
+    # GH#68445 the broadcast in _set_item skips these, so they used to leave a block
+    #  narrower than its placement, or drop columns of value, rather than raise
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    expected = df.copy()
+    msg = f"Got 2 positions but value has {ncols} columns"
+    with pytest.raises(ValueError, match=msg):
+        df["a"] = value
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [["a", "a", "b"], ["a", "b", "a"]],
+)
+def test_setitem_key_matching_several_columns_matching_width(columns):
+    # GH#68445 positive control for the check above; the boolean-mask loc is the
+    #  one where the value's columns could be placed out of order
+    df = pd.DataFrame(np.zeros((3, 3), dtype=int), columns=columns)
+    value = np.arange(6).reshape(3, 2)
+
+    df["a"] = value
+
+    expected_arr = np.zeros((3, 3), dtype=int)
+    positions = [i for i, col in enumerate(columns) if col == "a"]
+    expected_arr[:, positions] = value
+    expected = pd.DataFrame(expected_arr, columns=columns)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
     "value",
     [
         pd.Series(pd.date_range("2030", periods=3, tz="UTC")),

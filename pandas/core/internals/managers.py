@@ -1373,9 +1373,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
-        # GH#71098 value needs one column per position; callers do any broadcasting
+        # GH#68445, GH#71098 value needs one column per position; callers do any
+        #  broadcasting. An empty loc writes nothing, so it stays a no-op.
         ncols = 1 if value_is_extension_type else len(value)
-        if ncols != len(blknos):
+        if len(blknos) and ncols != len(blknos):
             raise ValueError(
                 f"Got {len(blknos)} positions but value has {ncols} columns."
             )
