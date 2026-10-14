@@ -3497,6 +3497,12 @@ class DataFrame(NDFrame, OpsMixin):
         or attributes, and the output supports namespaces, XSLT stylesheets,
         and custom root/row element names.
 
+        .. warning::
+
+           XSLT is a programming language, and a ``stylesheet`` is run without
+           restrictions: it can read and write local files. Only use stylesheets
+           from trusted sources.
+
         Parameters
         ----------
         path_or_buffer : str, path object, file-like object, or None, default None
