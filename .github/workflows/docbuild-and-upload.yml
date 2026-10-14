@@ -133,18 +133,14 @@ jobs:
         pixi run \
           ci-test-nbconvert-doc-notebooks "$(find doc/source -name '*.ipynb')"
 
-    - name: Build website
-      run: |
-        pixi run \
-          ci-build-website
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Build documentation
       run: |
         pixi run \
           ci-build-documentation \
           html
+      env:
+        # used to fetch the data for the website pages (releases, maintainers...)
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build the interactive terminal
       run: |
@@ -158,8 +154,8 @@ jobs:
           zip_html
       if: matrix.os == 'ubuntu-24.04'
 
-    - name: Copy cheatsheets into site directory
-      run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
+    - name: Copy cheatsheets into site root directory
+      run: cp doc/cheatsheet/Pandas_Cheat_Sheet* doc/build/root/
 
     - name: Checkout pandas-dev.github.io
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -170,9 +166,20 @@ jobs:
         persist-credentials: true
       if: matrix.os == 'ubuntu-24.04' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true')
 
-    - name: Upload web
-      run: rsync -a --delete --exclude='.git' --exclude='README.md' --exclude='CNAME' --exclude='.nojekyll' --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ pandas-dev.github.io/
+    # Files that need to be at the root of the site (e.g. versions.json, which
+    # is updated on main after a release), see doc/make.py
+    - name: Upload site root files
+      run: rsync -a doc/build/root/ pandas-dev.github.io/
       if: matrix.os == 'ubuntu-24.04' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    # The website pages are part of the documentation, published at /docs/ (the
+    # stable version), so the redirects from their previous location are only
+    # published with a final release (/docs/ doesn't change with a release
+    # candidate). versions.json is excluded, since the release branch may not
+    # have its latest version.
+    - name: Upload site root with redirects
+      run: rsync -a --delete --exclude='.git' --exclude='README.md' --exclude='CNAME' --exclude='.nojekyll' --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' --exclude='/versions.json' doc/build/root/ doc/build/redirects/ pandas-dev.github.io/
+      if: matrix.os == 'ubuntu-24.04' && env.PUBLISH_PROD == 'true' && !contains(env.PANDAS_VERSION, 'rc')
 
     - name: Upload dev docs
       run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/dev
@@ -198,13 +205,14 @@ jobs:
         git push || (git pull --rebase && git push)
       if: matrix.os == 'ubuntu-24.04' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true')
 
-    - name: Move docs into site directory
-      run: mv doc/build/html web/build/docs
-
+    # Used by the /preview comment command, which publishes the only artifact
+    # of this job. The site root (doc/build/root and doc/build/redirects) isn't
+    # included, since it only contains redirects to the published documentation
+    # and files shared by all its versions.
     - name: Save website as an artifact
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
       with:
         name: website
-        path: web/build
+        path: doc/build/html
         retention-days: 14
       if: matrix.os == 'ubuntu-24.04'

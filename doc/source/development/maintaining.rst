@@ -294,10 +294,10 @@ The required steps for adding a maintainer are:
 If adding to ``pandas-core``, there are two additional steps:
 
 3. Add the contributor to the pandas Google group.
-4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/web/pandas/config.yml``.
+4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/doc/website.yml``.
 
 The current list of core-team members is at
-https://github.com/pandas-dev/pandas/blob/main/web/pandas/config.yml
+https://github.com/pandas-dev/pandas/blob/main/doc/website.yml
 
 
 .. _maintaining.merging:
@@ -486,7 +486,7 @@ Post-Release
      - (the stable symlink should already be pointing to the correct X.Y version)
 
 2. If releasing a major or minor release, open a PR in our source code to update
-   ``web/pandas/versions.json``, to have the desired versions in the documentation
+   ``doc/root/versions.json``, to have the desired versions in the documentation
    dropdown menu.
 
 3. Close the milestone and the issue for the released version.
@@ -506,5 +506,5 @@ Post-Release
 7. Update this release instructions to fix anything incorrect and to update about any
    change since the last release.
 
-.. _governance documents: https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md
+.. _governance documents: https://github.com/pandas-dev/pandas/blob/main/doc/source/about/governance.md
 .. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization

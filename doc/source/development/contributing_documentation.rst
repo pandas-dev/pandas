@@ -206,6 +206,60 @@ the documentation are also built by GitHub Actions. These docs are then hosted `
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :any:`Continuous Integration <contributing.ci>` section.
 
+.. _contributing.website:
+
+Website pages
+~~~~~~~~~~~~~
+
+The pages of the pandas website (about us, community, blog, PDEPs...) are part of
+the documentation: they are the Markdown files in ``doc/source/``, parsed with
+`MyST <https://myst-parser.readthedocs.io/>`__. Before being parsed, they are
+rendered with `Jinja2 <https://jinja.palletsprojects.com/>`__, using the values
+defined in ``doc/website.yml`` (e.g. the maintainers and the sponsors), and data
+fetched from GitHub and blog feeds (e.g. the latest releases) by the
+``pandas_website`` extension in ``doc/sphinxext/pandas_website.py``. Like the
+rest of the documentation, the navigation of the site is defined by the toctrees,
+starting from the one in ``doc/source/index.rst.template``.
+
+{% raw %}
+
+In Markdown, a blank line ends a block of HTML, and the lines after it indented
+four or more spaces are shown as code. So Jinja tags on their own line inside a
+block of HTML must remove the whitespace before them, which removes the line, by
+starting with ``{%-``. For example::
+
+    <ul>
+        {%- for company in sponsors.past %}
+            <li>{{ company.name }}</li>
+        {%- endfor %}
+    </ul>
+
+{% endraw %}
+
+There are two directories with static files in ``doc/source/``:
+
+- ``_static/`` contains the static files of the documentation pages (e.g. style
+  sheets and images), which Sphinx publishes in ``_static/`` with each version
+  of the documentation.
+- ``static/`` contains the images of the website pages, and the pandas logos.
+  It's copied as it is to ``static/`` in the documentation, and to the root of
+  https://pandas.pydata.org/, since the documentation of previous versions and
+  other sites link to the logos there. Don't rename or remove its files.
+
+Since fetching the data requires network access, the website pages are only built
+when building the whole documentation (``python make.py html``, with or without
+``--no-api``), and not when using ``--single`` or ``--whatsnew``. Setting the
+``GITHUB_TOKEN`` environment variable to a GitHub token avoids exceeding the quota
+of the GitHub API.
+
+The documentation is published at https://pandas.pydata.org/docs/. The root of
+https://pandas.pydata.org/ only contains redirects to the documentation, and the
+files that need to be at the root of the site (in ``doc/root/``). When building
+the whole documentation, these files are generated in ``doc/build/root/``, and
+published with every change to ``main``. The redirects are generated in
+``doc/build/redirects/``, and only published with a final release, since the
+pages are published at /docs/ with each release.
+
 Previewing changes
 ------------------
 
