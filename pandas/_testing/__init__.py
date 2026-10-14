@@ -607,6 +607,7 @@ def run_multithreaded(
         for f in futures:
             f.result()
 
+
 class TestObject:
     """Substitutes bare `object` in replace functionality
     testing. Bare `object` equality comparison breaks after
@@ -621,6 +622,7 @@ class TestObject:
 
     def __eq__(self, other: TestObject) -> bool:
         return self._value == other._value
+
 
 __all__ = [
     "ALL_INT_EA_DTYPES",
