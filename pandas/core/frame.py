@@ -17218,6 +17218,11 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise NotImplementedError(name)
 
+        if name in ("min", "max") and any(
+            block.dtype.kind == "c" for block in self._mgr.blocks
+        ):
+            nanops.warn_complex_unordered()
+
         for block in self._mgr.blocks:
             vals = block.values
             if acc_dtype is not None and vals.dtype != acc_dtype:
