@@ -152,12 +152,15 @@ def test_str_match_multiline_flag():
     tm.assert_series_equal(result, expected)
 
 
-def test_str_contains_re2_unicode_escape():
-    # GH 63901
+def test_str_contains_unicode_escape():
+    # GH 63901, GH#63683 patterns are Python regular expressions
     ser = pd.Series(["a", "\u0e01", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.contains(r"[\x{0e00}-\x{0e7f}]")
+    result = ser.str.contains(r"[\u0e00-\u0e7f]")
     expected = pd.Series([False, True, None], dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
+
+    with pytest.raises(re.error, match="incomplete escape"):
+        ser.str.contains(r"[\x{0e00}-\x{0e7f}]")
 
 
 @pytest.mark.parametrize(
@@ -224,11 +227,11 @@ def test_str_replace(pat, repl, n, regex, exp):
     tm.assert_series_equal(result, expected)
 
 
-def test_str_replace_re2_unicode_property():
+def test_str_replace_re2_unicode_property_raises():
+    # GH#63683 patterns are Python regular expressions
     ser = pd.Series(["Jan", "Feb", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.replace(r"\p{Lu}", "U", regex=True)
-    expected = pd.Series(["Uan", "Ueb", None], dtype=ArrowDtype(pa.string()))
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(re.error, match="bad escape"):
+        ser.str.replace(r"\p{Lu}", "U", regex=True)
 
 
 def test_str_replace_negative_n():
@@ -916,9 +919,11 @@ def test_str_rsplit():
 
 
 def test_str_extract_non_symbolic():
+    # GH#63683
     ser = pd.Series(["a1", "b2", "c3"], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(ValueError, match="pat=.* must contain a symbolic group name."):
-        ser.str.extract(r"[ab](\d)")
+    result = ser.str.extract(r"[ab](\d)")
+    expected = pd.DataFrame({0: ["1", "2", None]}, dtype=ArrowDtype(pa.string()))
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("expand", [True, False])
