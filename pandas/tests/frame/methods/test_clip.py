@@ -212,6 +212,13 @@ class TestDataFrameClip:
         tm.assert_frame_equal(result, df)
         assert len(result._mgr.blocks) == 1
 
+    def test_clip_with_scalar_array_bound(self):
+        # GH#59053
+        df = pd.DataFrame([[10, 20], [30, 40]])
+        result = df.clip(np.array(15))
+        expected = pd.DataFrame([[15, 20], [30, 40]])
+        tm.assert_frame_equal(result, expected)
+
     def test_clip_with_list_bound(self):
         # GH#54817
         df = pd.DataFrame([1, 5])
