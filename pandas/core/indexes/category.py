@@ -11,10 +11,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas.util._decorators import (
-    cache_readonly,
-    set_module,
-)
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -154,10 +151,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     @property
     def _can_hold_strings(self) -> bool:
         return self.categories._can_hold_strings
-
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        return self.categories._should_fallback_to_positional
 
     _data: Categorical
     _values: Categorical

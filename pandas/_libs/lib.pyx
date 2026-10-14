@@ -2650,6 +2650,7 @@ def maybe_convert_numeric(
         bint have_bools = False
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
+        bint use_na_values = len(na_values) > 0
 
     for i in range(n):
         val = values[i]
@@ -2659,7 +2660,7 @@ def maybe_convert_numeric(
         # However, if no ints present (all null array), we need to return floats
         allow_null_in_int = convert_to_masked_nullable and not seen.float_
 
-        if val.__hash__ is not None and val in na_values:
+        if use_na_values and val.__hash__ is not None and val in na_values:
             if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1

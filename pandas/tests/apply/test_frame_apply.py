@@ -1921,10 +1921,33 @@ def test_agg_mapping_func_deprecated():
     )
     tm.assert_frame_equal(result, expected)
 
-    # TODO: the result below is wrong, should be fixed (GH53325)
+    # GH#23889
     result = df.agg({"x": foo1}, 0, 3, c=4)
-    expected = pd.DataFrame([2, 3, 4], columns=["x"])
+    expected = df + 7
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"x": [np.nan, np.nan], "y": [1.0, 2.0]})
+    result = df.agg({"x": "sum", "y": ["sum"]}, min_count=3)
+    expected = pd.DataFrame({"x": [np.nan], "y": [np.nan]}, index=["sum"])
+    tm.assert_frame_equal(result, expected)
+
+    # duplicate columns
+    df.columns = ["x", "x"]
+    result = df.agg({"x": "sum"}, min_count=2)
+    expected = pd.Series([np.nan, 3.0], index=["x", "x"])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_dict_reducer_with_args():
+    # TODO: dict-like apply still drops args/kwargs, which is a bug;
+    #  forwarding them must keep reducing here, not map np.sum elementwise
+    df = pd.DataFrame({"x": [1.0, 2.0]})
+    result = df.apply({"x": np.sum}, args=(0,))
+    expected = pd.Series([3.0], index=["x"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_std():
@@ -2047,6 +2070,79 @@ def test_agg_empty_dict():
     result = df.agg({})
     expected = pd.DataFrame(index=pd.Index([]), columns=df.columns[:0])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["uint64", "UInt64", "uint64[pyarrow]", "Sparse[uint64]"]
+)
+@pytest.mark.parametrize("funcs", [["max", "count"], ["max", "count", "mean"]])
+@pytest.mark.parametrize("big", [True, False])
+def test_agg_list_like_unsigned_and_signed_is_object(dtype, funcs, big):
+    # GH#65031 max returns unsigned and count signed, and their common float
+    # dtype rounds values above 2**53, so the result is object whatever the values
+    if dtype == "uint64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    value = 2**64 - 3 if big else 5
+    df = pd.DataFrame(
+        {"a": pd.Series([value, 1], dtype=dtype), "b": pd.Series([5, 1], dtype=dtype)}
+    )
+
+    result = df.agg(funcs)
+
+    # asserted entry-wise because mean's own result is not under test
+    assert (result.dtypes == object).all()
+    assert result.loc["max", "a"] == value
+    assert result.loc["count", "a"] == 2
+
+
+@pytest.mark.parametrize("dtype", ["int64", "float64", "bool"])
+@pytest.mark.parametrize("funcs", [["sum", "any"], ["max", "all", "sum"]])
+def test_agg_list_like_bool_with_numeric_is_object(dtype, funcs):
+    # GH#65031 bool results are not cast to numbers, as in Series.agg
+    df = pd.DataFrame({"a": pd.Series([1, 1], dtype=dtype)})
+
+    result = df.agg(funcs)
+
+    tm.assert_series_equal(result["a"], df["a"].agg(funcs))
+    assert result["a"].dtype == object
+    assert result.loc[funcs[1], "a"] is True
+
+
+@pytest.mark.parametrize("funcs", [["sum", "mean"], ["min", "max", "mean"]])
+@pytest.mark.parametrize("values", [[10**17, 10**17 + 16], [10**17, 10**17 + 1]])
+def test_agg_list_like_signed_int_and_float_is_float(funcs, values):
+    # GH#65031 int64 with float64 stays float64 as in Series.agg, whatever the
+    # values
+    df = pd.DataFrame({"a": values})
+
+    result = df.agg(funcs)
+
+    tm.assert_series_equal(result["a"], df["a"].agg(funcs))
+    assert result["a"].dtype == np.float64
+
+
+def test_agg_list_like_unsigned_and_signed_common_int():
+    # GH#65031 uint32 and int64 have a common integer dtype, so nothing is lost
+    df = pd.DataFrame({"a": pd.Series([5, 1], dtype="uint32")})
+
+    result = df.agg(["max", "count"])
+
+    expected = pd.DataFrame({"a": [5, 2]}, index=["max", "count"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_list_like_axis_1_not_cast_to_float():
+    # GH#65031 axis=1 reduces the transpose, so the object fallback applies there
+    # too
+    big = 2**64 - 3
+    df = pd.DataFrame({"a": pd.Series([big, 5], dtype="uint64")})
+
+    result = df.agg(["max", "count"], axis=1)
+
+    # the dtype assert is what fires: a rounded np.float64 still compares equal to
+    # big, because numpy widens the int rather than comparing it exactly
+    assert result["max"].dtype == object
+    assert result.loc[0, "max"] == big
 
 
 def test_agg_dist_like_and_nonunique_columns():
@@ -2174,6 +2270,18 @@ def test_agg_dict_string_funcs_with_duplicate_columns():
     result = df.agg({"a": "sum", "b": "min"})
     expected = pd.Series([6, 8, 3, 4], index=["a", "a", "b", "b"])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("spelling", ["dict", "list"])
+def test_agg_many_columns_result_not_fragmented(spelling):
+    # GH#61628 per-column agg results made a later insert warn about fragmentation
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    # np.sum rather than "sum": a list of strings takes a path that never fragmented
+    func = {col: ["sum"] for col in cols} if spelling == "dict" else [np.sum]
+    result = df.agg(func)
+    with tm.assert_produces_warning(None):
+        result.insert(0, "x", 0)
 
 
 def test_apply_expand_single_row_preserves_dict_order():
