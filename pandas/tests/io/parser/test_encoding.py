@@ -25,6 +25,60 @@ import pandas._testing as tm
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
+@pytest.mark.parametrize("engine", [None, "c", "python"])
+@pytest.mark.parametrize(
+    "option,marker,value",
+    [("thousands", "\u202f", "1/234"), ("decimal", "\u066b", "1k5")],
+)
+def test_unicode_numeric_marker_does_not_match_ascii(engine, option, marker, value):
+    # GH#71158: truncating the code point to a byte matched unrelated ASCII.
+    data = StringIO(f"value\n{value}\n")
+    kwargs = {option: marker, "engine": engine}
+    msg = f"the 'c' engine does not support non-ASCII {option} markers"
+    if engine == "c":
+        with pytest.raises(ValueError, match=msg):
+            pd.read_csv(data, **kwargs)
+        return
+
+    warning = ParserWarning if engine is None else None
+    with tm.assert_produces_warning(warning, match=msg):
+        result = pd.read_csv(data, **kwargs)
+    expected = pd.DataFrame({"value": [value]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("engine", [None, "c", "python"])
+@pytest.mark.parametrize("option", ["thousands", "decimal"])
+@pytest.mark.parametrize(
+    "marker", ["\u00a0", "\u0100", "\u066b", "\u202f", "\U0001f4af"]
+)
+@pytest.mark.parametrize("encoding", [None, "utf-8", "utf-16"])
+def test_unicode_numeric_marker(engine, option, marker, encoding):
+    # GH#71158: even code points below 256 occupy multiple bytes in UTF-8.
+    text = f"value\n1{marker}234\n"
+    data = StringIO(text) if encoding is None else BytesIO(text.encode(encoding))
+    kwargs = {option: marker, "engine": engine, "encoding": encoding}
+    msg = f"the 'c' engine does not support non-ASCII {option} markers"
+    if engine == "c":
+        with pytest.raises(ValueError, match=msg):
+            pd.read_csv(data, **kwargs)
+        return
+
+    warning = ParserWarning if engine is None else None
+    with tm.assert_produces_warning(warning, match=msg):
+        result = pd.read_csv(data, **kwargs)
+    expected = pd.DataFrame({"value": [1234 if option == "thousands" else 1.234]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("option", ["thousands", "decimal"])
+def test_unicode_numeric_marker_fallback_unsupported_option(option):
+    # GH#71158: fallback must not silently discard C-engine-only options.
+    msg = f"Falling back.*non-ASCII {option} markers.*low_memory"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_csv(StringIO("value\n1234\n"), low_memory=False, **{option: "\u202f"})
+
+
 def test_bytes_io_input(all_parsers):
     encoding = "cp1255"
     parser = all_parsers
