@@ -185,6 +185,11 @@ _OFFSET_SIGNATURES = {
         "n",
         "normalize",
     ),
+    pd.tseries.offsets.YearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
 }
 
 
