@@ -10,8 +10,6 @@ from datetime import (
     timedelta,
     timezone,
 )
-from functools import partial
-from operator import methodcaller
 import warnings
 
 from pandas._config import (
@@ -97,7 +95,6 @@ cnp.import_array()
 from pandas._libs cimport util
 
 from pandas._libs import lib
-from pandas._libs.missing import isnaobj
 
 from pandas._libs.khash cimport (
     kh_destroy_float64,
@@ -487,8 +484,7 @@ cdef class TextReader:
         # list.  See _convert_batched.
         list _batched_cols
         # worker count of the parallel read (0 = serial); numeric columns
-        # only batch once enough workers contend for bandwidth, and a failed
-        # conversion skips locating its value (the serial re-read does that)
+        # only batch once enough workers contend for bandwidth
         public int block_workers
         # String columns in the widest batched sweep this reader ran; exists
         # for test_pyarrow_string_fast_path_batches_columns_together and should
@@ -1689,8 +1685,10 @@ cdef class TextReader:
                     self.encoding_errors)
                 if bad_token is not None:
                     position, token = bad_token
-                    raise _invalid_value_error(name, col_dtype, token,
-                                               self.row_offset + position)
+                    raise ValueError(
+                        f"Unable to convert column {name} to type {col_dtype}: "
+                        f"invalid value {token!r} at position "
+                        f"{self.row_offset + position}")
 
             # only allow safe casts, eg. with a nan you cannot safely cast to int
             try:
@@ -1797,26 +1795,25 @@ cdef class TextReader:
                                                     na_hashset)
 
             array_type = dtype.construct_array_type()
-            # use _from_sequence_of_strings if the class defines it
-            if isinstance(dtype, BooleanDtype):
-                # xref GH 47534: BooleanArray._from_sequence_of_strings has extra
-                # kwargs
-                convert = partial(
-                    array_type._from_sequence_of_strings, dtype=dtype,
-                    true_values=[x.decode() for x in self.true_values],
-                    false_values=[x.decode() for x in self.false_values])
-            else:
-                convert = partial(array_type._from_sequence_of_strings, dtype=dtype)
             try:
-                result = convert(result)
+                # use _from_sequence_of_strings if the class defines it
+                if isinstance(dtype, BooleanDtype):
+                    # xref GH 47534: BooleanArray._from_sequence_of_strings has extra
+                    # kwargs
+                    true_values = [x.decode() for x in self.true_values]
+                    false_values = [x.decode() for x in self.false_values]
+                    result = array_type._from_sequence_of_strings(
+                        result, dtype=dtype, true_values=true_values,
+                        false_values=false_values)
+                else:
+                    result = array_type._from_sequence_of_strings(result, dtype=dtype)
             except NotImplementedError:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
                     f"_from_sequence_of_strings in order "
                     f"to be used in parser methods")
             except (ValueError, TypeError, OverflowError) as err:
-                raise self._conversion_error(result, dtype, name, convert,
-                                             err) from err
+                raise conversion_error(err, dtype, name) from err
 
             return result, na_count, None
 
@@ -1839,18 +1836,7 @@ cdef class TextReader:
                     if not user_dtype:
                         # inference falls back to Python ints or strings
                         raise
-                    values, _ = self._string_convert(i, start, end, na_filter,
-                                                     na_hashset)
-                    # _try_uint64 skips NAs, so the retries must not fail on them
-                    values[isnaobj(values)] = 0
-                    if self.parser.thousands == b"\0":
-                        convert = methodcaller("astype", dtype)
-                    else:
-                        # int() rejects the separator our converters accepted
-                        convert = partial(_astype_without, dtype=dtype,
-                                          sep=chr(self.parser.thousands))
-                    raise self._conversion_error(values, dtype, name, convert,
-                                                 err) from err
+                    raise conversion_error(err, dtype, name) from err
                 na_count = 0
 
             if result is not None and user_dtype and result.dtype != dtype:
@@ -1878,12 +1864,10 @@ cdef class TextReader:
             # latter is what to_csv writes for complex columns.
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
-            convert = partial(np.asarray, dtype=dtype)
             try:
-                return convert(result), na_count, None
+                return np.asarray(result, dtype=dtype), na_count, None
             except ValueError as err:
-                raise self._conversion_error(result, dtype, name, convert,
-                                             err) from err
+                raise conversion_error(err, dtype, name) from err
         elif dtype.kind == "b":
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
@@ -1925,13 +1909,6 @@ cdef class TextReader:
                             f"using parse_dates instead")
         else:
             raise TypeError(f"the dtype {dtype} is not supported for parsing")
-
-    cdef _conversion_error(self, values, dtype, name, convert, err):
-        if self.block_workers:
-            # a parallel read discards this error and re-reads serially
-            convert = None
-        return conversion_error(values, dtype, name, self.row_offset, convert,
-                                err)
 
     # -> tuple[ArrayLike, int]
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
@@ -2369,38 +2346,17 @@ STR_NA_VALUES = {
 }
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
-# Rows per slice when locating the value a column conversion failed on.
-_LOCATE_BLOCK = 4096
 
-
-def conversion_error(values, dtype, name, int64_t offset, convert, err):
+def conversion_error(err, dtype, name):
     """
-    Build the error for a column of a ``dtype`` argument that failed to convert.
-
-    Retries ``convert`` (the conversion that raised ``err``) on blocks, then
-    single values, of ``values`` up to the first value that fails on its own;
-    ``convert=None`` skips this and names no value.
-    ``offset`` is the number of data rows read before ``values[0]``.
+    Name the column in the error raised converting it to the ``dtype`` argument.
     """
-    position = -1
-    if convert is not None:
-        with warnings.catch_warnings():
-            # a lone value can warn where the column did not, e.g. on
-            #  guessing a date format
-            warnings.simplefilter("ignore")
-            position = _first_failure(values, convert)
-            if position != -1:
-                try:
-                    convert(values[:position])
-                except (ValueError, TypeError, OverflowError):
-                    # an earlier value fails only alongside others, e.g.
-                    #  against a format inferred from the first value
-                    position = -1
-    if position == -1:
-        return _error_like(
-            err, f"Unable to convert column {name} to type {dtype}: {err}")
-    return _invalid_value_error(name, dtype, values[position], offset + position,
-                                err)
+    msg = f"Unable to convert column {name} to type {dtype}: {err}"
+    # keep the error's class, e.g. pyarrow.ArrowInvalid
+    try:
+        return type(err)(msg)
+    except Exception:
+        return ValueError(msg)
 
 
 def unsafe_cast_error(original, changed, dtype, name, int64_t offset):
@@ -2409,60 +2365,20 @@ def unsafe_cast_error(original, changed, dtype, name, int64_t offset):
     naming the first one; ``changed`` is the elementwise mask of changes.
     """
     position = changed.argmax()
+    value = original[position]
+    if isinstance(value, np.generic):
+        # repr as 2.5, not np.float64(2.5)
+        value = value.item()
     return ValueError(
         f"cannot safely convert passed user dtype of {dtype} for "
         f"{original.dtype.name} dtyped data in column {name}: value "
-        f"{_py_scalar(original[position])!r} at position {offset + position}"
+        f"{value!r} at position {offset + position}"
     )
-
-
-cdef _invalid_value_error(name, dtype, value, int64_t position, err=None):
-    return _error_like(
-        err,
-        f"Unable to convert column {name} to type {dtype}: invalid value "
-        f"{_py_scalar(value)!r} at position {position}",
-    )
-
-
-cdef _error_like(err, str msg):
-    # keep the class of the error being replaced, e.g. pyarrow.ArrowInvalid
-    if err is not None:
-        try:
-            return type(err)(msg)
-        except Exception:
-            pass
-    return ValueError(msg)
-
-
-def _astype_without(values, dtype, sep):
-    stripped = [val.replace(sep, "") if isinstance(val, str) else val
-                for val in values]
-    return np.array(stripped, dtype=object).astype(dtype)
 
 
 cdef _bool_na_mask(ndarray result):
     # _try_bool_flex marks NA slots with the uint8 NA sentinel
     return result.view(np.uint8) == na_values[np.uint8]
-
-
-cdef _py_scalar(value):
-    # repr as 2.5, not np.float64(2.5)
-    return value.item() if isinstance(value, np.generic) else value
-
-
-cdef Py_ssize_t _first_failure(values, convert):
-    cdef Py_ssize_t n = len(values), block_start, k
-    for block_start in range(0, n, _LOCATE_BLOCK):
-        try:
-            convert(values[block_start:block_start + _LOCATE_BLOCK])
-        except (ValueError, TypeError, OverflowError):
-            for k in range(block_start, min(block_start + _LOCATE_BLOCK, n)):
-                try:
-                    convert(values[k:k + 1])
-                except (ValueError, TypeError, OverflowError):
-                    return k
-            return -1
-    return -1
 
 
 def _maybe_upcast(

@@ -1515,8 +1515,7 @@ def test_embedded_nul_raises_for_explicit_int_dtype(c_parser_only):
     parser = c_parser_only
     data = b'a\n"1\x00xyz"\n2\n'
 
-    msg = "column a to type Int64: invalid value .* at position 0"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="Unable to parse string"):
         parser.read_csv(BytesIO(data), dtype="Int64")
 
 
@@ -1530,8 +1529,7 @@ def test_embedded_nul_raises_for_boolean_dtype(c_parser_only, field):
     parser = c_parser_only
     data = f'a\nTrue\n"{field}"\n'.encode()
 
-    msg = "column a to type boolean: invalid value .* at position 1"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="cannot be cast to bool"):
         parser.read_csv(BytesIO(data), dtype="boolean")
 
 

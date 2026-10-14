@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from collections import abc
 import csv
-from functools import partial
 from io import StringIO
-from operator import methodcaller
 import re
 from typing import (
     IO,
@@ -69,7 +67,6 @@ from pandas.io.parsers.base_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
-        Callable,
         Hashable,
         Iterator,
         Mapping,
@@ -559,43 +556,36 @@ class PythonParser(ParserBase):
         # use the EA's implementation of casting
         elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
-            convert: Callable[[ArrayLike], ArrayLike]
-            if isinstance(cast_type, BooleanDtype):
-                values = np.array([str(val) for val in values], dtype=object)
-                # error: Unexpected keyword argument "true_values" for
-                # "_from_sequence_of_strings" of "ExtensionArray"
-                convert = partial(  # type: ignore[call-arg]
-                    array_type._from_sequence_of_strings,
-                    dtype=cast_type,
-                    true_values=self.true_values,  # pyright: ignore[reportCallIssue]
-                    false_values=self.false_values,  # pyright: ignore[reportCallIssue]
-                    none_values=self.na_values,  # pyright: ignore[reportCallIssue]
-                )
-            else:
-                convert = partial(array_type._from_sequence_of_strings, dtype=cast_type)
             try:
-                return convert(values)
+                if isinstance(cast_type, BooleanDtype):
+                    # error: Unexpected keyword argument "true_values" for
+                    # "_from_sequence_of_strings" of "ExtensionArray"
+                    values_str = [str(val) for val in values]
+                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
+                        values_str,
+                        dtype=cast_type,
+                        true_values=self.true_values,  # pyright: ignore[reportCallIssue]
+                        false_values=self.false_values,  # pyright: ignore[reportCallIssue]
+                        none_values=self.na_values,  # pyright: ignore[reportCallIssue]
+                    )
+                else:
+                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
                     "_from_sequence_of_strings in order to be used in parser methods"
                 ) from err
             except (ValueError, TypeError, OverflowError) as err:
-                raise conversion_error(
-                    values, cast_type, column, self._row_offset, convert, err
-                ) from err
+                raise conversion_error(err, cast_type, column) from err
 
         elif isinstance(values, ExtensionArray):
             # with dtype_backend="pyarrow", _infer_types has already boxed the
             #  column, so an explicit numpy integer dtype reaches this branch,
             #  not the one below
-            convert = methodcaller("astype", cast_type, copy=False)
             try:
-                casted: ArrayLike = convert(values)
+                casted: ArrayLike = values.astype(cast_type, copy=False)
             except (ValueError, OverflowError) as err:
-                raise conversion_error(
-                    values, cast_type, column, self._row_offset, convert, err
-                ) from err
+                raise conversion_error(err, cast_type, column) from err
             _validate_integer_cast(values, casted, cast_type, column, self._row_offset)
             values = casted
         elif issubclass(cast_type.type, str):
@@ -606,13 +596,10 @@ class PythonParser(ParserBase):
                 values, skipna=True, convert_na_value=False
             )
         else:
-            convert = partial(astype_array, dtype=cast_type, copy=True)
             try:
-                casted = convert(values)
+                casted = astype_array(values, cast_type, copy=True)
             except (ValueError, OverflowError) as err:
-                raise conversion_error(
-                    values, cast_type, column, self._row_offset, convert, err
-                ) from err
+                raise conversion_error(err, cast_type, column) from err
             _validate_integer_cast(values, casted, cast_type, column, self._row_offset)
             values = casted
         return values

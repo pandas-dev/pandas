@@ -24,14 +24,7 @@ from pandas._typing import (
 STR_NA_VALUES: set[str]
 DEFAULT_BUFFER_HEURISTIC: int
 
-def conversion_error(
-    values: ArrayLike,
-    dtype: DtypeObj,
-    name: Hashable,
-    offset: int,
-    convert: Callable[[ArrayLike], ArrayLike] | None,
-    err: Exception,
-) -> Exception: ...
+def conversion_error(err: Exception, dtype: DtypeObj, name: Hashable) -> Exception: ...
 def unsafe_cast_error(
     original: np.ndarray,
     changed: npt.NDArray[np.bool_],
