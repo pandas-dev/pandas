@@ -1020,7 +1020,7 @@ def test_adbc_has_table_schema_with_no_tables(postgresql_adbc_conn):
         pandas_sql = sql.ADBCDatabase(conn)
         assert not pandas_sql.has_table(table_name, schema=schema)
 
-        df = DataFrame({"a": [1]})
+        df = pd.DataFrame({"a": [1]})
         assert df.to_sql(table_name, conn, schema=schema, index=False) == 1
         assert pandas_sql.has_table(table_name, schema=schema)
     finally:
