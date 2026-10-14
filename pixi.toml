@@ -179,10 +179,10 @@ types-PyMySQL = "*"
 types-pytz = "*"
 types-PyYAML = "*"
 
-[environments.docs-and-web]
+[environments.docs]
 features = ["py312", "numpy", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
 
-[environments.docs-and-web.dependencies]
+[environments.docs.dependencies]
 gitpython = "*" # obtain contributors from git for whatsnew
 ipykernel = "*" # used in doc/source/user_guide/style.ipynb
 ipywidgets = "*" # used in doc/source/user_guide/style.ipynb
@@ -200,7 +200,7 @@ feedparser = "*"
 jinja2 = "*"
 jupyterlite-core = "*"
 jupyterlite-pyodide-kernel = "*"
-markdown = "*"
+myst-parser = "*"
 packaging = "*"
 pygments = "*" # Code highlighting
 pytest = "*"
@@ -368,7 +368,7 @@ cmd = [
   "doc/make.py",
   "clean",
 ]
-default-environment = "docs-and-web"
+default-environment = "docs"
 
 [tasks.ci-test-nbconvert-doc-notebooks]
 description = "Execute the notebooks in the documentation"
@@ -385,7 +385,7 @@ cmd = [
   ">",
   "/dev/null",
 ]
-default-environment = "docs-and-web"
+default-environment = "docs"
 
 [tasks.ci-build-documentation]
 description = "Build the documentation with warnings as errors"
@@ -398,30 +398,20 @@ cmd = [
   "--warnings-are-errors",
   "{{ doc_type }}",
 ]
-default-environment = "docs-and-web"
+default-environment = "docs"
 
 [tasks.ci-test-website]
-description = "Run the tests of the website"
+description = "Run the tests of the website Sphinx extension"
 cmd = [
   "python",
   "-m",
   "pytest",
-  "web",
+  "doc/sphinxext/tests",
 ]
-default-environment = "docs-and-web"
-
-[tasks.ci-build-website]
-description = "Build the website into web/build"
-cmd = [
-  "python",
-  "web/pandas_web.py",
-  "web/pandas",
-  "--target-path=web/build",
-]
-default-environment = "docs-and-web"
+default-environment = "docs"
 
 [tasks.ci-build-interactive_terminal]
-description = "Build the JupyterLite interactive terminal of the website"
+description = "Build the JupyterLite interactive terminal of the documentation"
 cmd = [
   "python",
   "-m",
@@ -429,5 +419,5 @@ cmd = [
   "lite",
   "build",
 ]
-cwd = "web/interactive_terminal/"
-default-environment = "docs-and-web"
+cwd = "doc/interactive_terminal/"
+default-environment = "docs"
