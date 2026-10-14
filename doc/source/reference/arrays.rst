@@ -532,6 +532,13 @@ the :class:`Categorical` back to a NumPy array, so categories and order informat
 
    Categorical.__array__
 
+:meth:`Categorical.to_dense` instead keeps the dtype of the categories.
+
+.. autosummary::
+   :toctree: api/
+
+   Categorical.to_dense
+
 A :class:`Categorical` can be stored in a :class:`Series` or :class:`DataFrame`.
 To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
 ``Series(..., dtype=dtype)`` where ``dtype`` is either
