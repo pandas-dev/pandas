@@ -168,6 +168,7 @@ class ExtensionArray:
     tolist
     transpose
     unique
+    value_counts
     view
     _accumulate
     _concat_same_type
