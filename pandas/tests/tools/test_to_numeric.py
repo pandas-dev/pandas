@@ -431,9 +431,6 @@ def test_timedelta_pyarrow():
         np.datetime64("2017-01-01T12", "ns"),
         timedelta(days=1),
         np.timedelta64(5, "ms"),
-        pd.NaT,
-        np.datetime64("NaT", "ns"),
-        np.timedelta64("NaT", "ns"),
     ],
 )
 @pytest.mark.parametrize(
@@ -456,13 +453,16 @@ def test_timedelta_timestamp_scalar(scalar, kwargs):
 @pytest.mark.parametrize(
     "scalar",
     [
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
         timedelta.max,
         np.datetime64(10**12, "Y"),
         np.timedelta64(5, "Y"),
     ],
 )
 def test_unconvertible_datetimelike_scalar(scalar):
-    # GH#43280 out of bounds and unsupported units respect errors=
+    # GH#43280 NaT, out of bounds and unsupported units respect errors=
     with pytest.raises(TypeError, match="Invalid object type"):
         pd.to_numeric(scalar)
     assert np.isnan(pd.to_numeric(scalar, errors="coerce"))

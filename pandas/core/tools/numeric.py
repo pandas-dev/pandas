@@ -38,6 +38,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -227,17 +228,20 @@ def to_numeric(
         # np.timedelta64 subclasses np.integer, so this must precede is_number
         if isinstance(arg, (datetime, np.datetime64, timedelta, np.timedelta64)):
             # match the Series path, which infers datetime64/timedelta64; GH#43280
-            from pandas import Index
-
-            try:
-                idx = Index([arg])
-            except ValueError:
-                # unsupported unit; errors= decides below
-                pass
-            else:
-                return to_numeric(
-                    idx, errors=errors, downcast=downcast, dtype_backend=dtype_backend
-                )[0]
+            # NaT keeps errors= handling; the Series path gives iNaT, see GH#16674
+            if not libmissing.checknull(arg):
+                try:
+                    idx = Index([arg])
+                except ValueError:
+                    # unsupported unit; errors= decides below
+                    pass
+                else:
+                    return to_numeric(
+                        idx,
+                        errors=errors,
+                        downcast=downcast,
+                        dtype_backend=dtype_backend,
+                    )[0]
         elif is_decimal(arg):
             return float(arg)
         elif is_number(arg):
@@ -354,8 +358,6 @@ def to_numeric(
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy
-        from pandas import Index
-
         return Index(values, name=arg.name)
     elif is_scalars:
         return values[0]
