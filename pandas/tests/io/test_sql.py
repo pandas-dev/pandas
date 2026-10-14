@@ -1008,11 +1008,10 @@ adbc_connectable_types = [
 def test_adbc_has_table_schema_with_no_tables(postgresql_adbc_conn):
     # GH 59841
     conn = postgresql_adbc_conn
-    schema = "pandas_empty_schema"
+    schema = f"pandas_empty_schema_{uuid.uuid4().hex}"
     table_name = "test_table"
 
     with conn.cursor() as cur:
-        cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
         cur.execute(f"CREATE SCHEMA {schema}")
     conn.commit()
 
