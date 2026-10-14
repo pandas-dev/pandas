@@ -297,13 +297,13 @@ def check_reduction_matches_series(index, opname, skipna):
     if index.dtype.kind == "c" and opname == "median":
         warn = Pandas4Warning
     try:
-        with tm.assert_produces_warning(warn, match="median of complex data"):
+        with tm.assert_produces_warning(warn, match="deprecated on complex data"):
             expected = getattr(ser, opname)(skipna=skipna)
     except TypeError as err:
         with pytest.raises(TypeError, match=re.escape(str(err))):
             getattr(index, opname)(skipna=skipna)
         return
-    with tm.assert_produces_warning(warn, match="median of complex data"):
+    with tm.assert_produces_warning(warn, match="deprecated on complex data"):
         result = getattr(index, opname)(skipna=skipna)
     assert type(result) is type(expected)
     tm.assert_almost_equal(result, expected)
