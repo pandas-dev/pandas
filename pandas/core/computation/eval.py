@@ -250,9 +250,9 @@ def eval(
         such as floor division ``//``, in addition to built-in and user-defined
         Python functions.
 
-        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
-        :keyword:`or`, and :keyword:`not` with the same semantics as the
-        corresponding bitwise operators.
+        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`
+        and :keyword:`or` with the same semantics as the corresponding bitwise
+        operators, and :keyword:`not` as a logical negation.
     parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
