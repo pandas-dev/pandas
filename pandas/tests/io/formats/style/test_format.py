@@ -157,6 +157,19 @@ def test_format_non_numeric_na():
     assert ctx["body"][1][2]["display_value"] == "-"
 
 
+@pytest.mark.parametrize("dtype", ["float64", "float32", "object"])
+@pytest.mark.parametrize(
+    "kwargs", [{}, {"thousands": ","}, {"decimal": ","}, {"precision": 2}]
+)
+def test_format_default_nan(dtype, kwargs):
+    # GH#12710 match DataFrame repr
+    df = pd.DataFrame({"A": [1.5, np.nan]}, index=[1.5, np.nan], dtype=dtype)
+    styler = df.style.format(**kwargs).format_index(**kwargs)
+    ctx = styler._translate(True, True)
+    assert ctx["body"][1][0]["display_value"] == "NaN"
+    assert ctx["body"][1][1]["display_value"] == "NaN"
+
+
 @pytest.mark.parametrize(
     "func, attr, kwargs",
     [
@@ -454,7 +467,7 @@ def test_format_options():
     ctx = df.style._translate(True, True)
 
     # test option: na_rep
-    assert ctx["body"][1][2]["display_value"] == "nan"
+    assert ctx["body"][1][2]["display_value"] == "NaN"
     with pd.option_context("styler.format.na_rep", "MISSING"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][1][2]["display_value"] == "MISSING"

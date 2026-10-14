@@ -382,7 +382,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return _reconstruct(result)
 
     def _reconstruct(result):
-        if lib.is_scalar(result):
+        if lib.is_scalar(result) or not hasattr(result, "ndim"):
+            # e.g. a gufunc with signature "(n)->()" reducing object-dtype
+            #  data to an arbitrary Python object
             return result
 
         if result.ndim != self.ndim:

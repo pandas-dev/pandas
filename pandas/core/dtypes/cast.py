@@ -181,6 +181,8 @@ def maybe_box_native(value: Scalar | NAType | None) -> Scalar | NAType | None:
         value = int(value)
     elif is_bool(value):
         value = bool(value)
+    elif is_complex(value):
+        value = complex(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
     elif value is NA:
@@ -1317,7 +1319,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if lib.is_np_dtype(dtype, "iu"):
+    if lib.is_np_dtype(dtype, "iub"):
         for obj in objs:
             # We don't want to accidentally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1331,7 +1333,10 @@ def common_dtype_categorical_compat(
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
-                    dtype = np.dtype(np.float64)
+                    if dtype.kind == "b":
+                        dtype = np.dtype(object)
+                    else:
+                        dtype = np.dtype(np.float64)
                     break
     return dtype
 
