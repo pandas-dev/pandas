@@ -240,11 +240,15 @@ class TestDataFrameClip:
         tm.assert_frame_equal(result, expected)
 
     def test_clip_ordered_categorical_mixed_dtypes(self):
-        # GH#49217 columns ordering the bounds differently keep ordering by value
+        # GH#49217 each column orders the bounds the way it compares them
         dtype = pd.CategoricalDtype([3, 1, 2], ordered=True)
         df = pd.DataFrame({"a": [0, 2, 5], "b": pd.Series([3, 1, 2], dtype=dtype)})
         result = df.clip(1, 3)
-        tm.assert_series_equal(result["a"], pd.Series([1, 2, 3], name="a"))
+        expected = pd.DataFrame(
+            {"a": [1, 2, 3], "b": pd.Series([3, 1, 1], dtype=dtype)}
+        )
+        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result["b"], df["b"].clip(1, 3))
 
 
 @pytest.mark.parametrize(

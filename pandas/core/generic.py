@@ -9104,34 +9104,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif np.all(isna_upper):
             upper = None
 
-        # GH 2747 (arguments were reversed)
         if (
-            lower is not None
-            and upper is not None
-            and is_scalar(lower)
-            and is_scalar(upper)
+            not is_list_like(lower)
+            and not is_list_like(upper)
+            and (lower is not None or upper is not None)
         ):
-            # numbers compare the same way numeric data does
-            numeric = (
-                is_number(lower)
-                and is_number(upper)
-                and all(blk.is_numeric for blk in self._mgr.blocks)
-            )
-            in_order: np.ndarray | None = None
-            if not numeric:
-                # compare the bounds the way the data does, which can differ
-                #  from their own order, e.g. ordered categoricals (GH#49217)
-                probe = self.iloc[:1]
-                try:
-                    probe = probe.where(np.zeros(probe.shape, dtype=bool), upper)
-                    in_order = (probe >= lower).to_numpy()
-                except (TypeError, ValueError):
-                    pass
-            if in_order is None or (in_order.any() and not in_order.all()):
-                # by value, unless the data's columns all agree on an order
-                lower, upper = min(lower, upper), max(lower, upper)
-            elif not in_order.all():
-                lower, upper = upper, lower
+            # each array orders the bounds itself, swapping reversed ones
+            new_mgr = self._mgr.apply("clip", lower=lower, upper=upper, inplace=inplace)
+            result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            if inplace:
+                self._update_inplace(result)
+                return self
+            return result.__finalize__(self, method="clip")
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
