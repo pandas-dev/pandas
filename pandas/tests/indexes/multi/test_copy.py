@@ -57,13 +57,12 @@ def test_copy_and_deepcopy(func):
 
 def test_deepcopy_mutable():
 
-    df = pd.DataFrame({'a': [[1, 2, 3, 4]],
-                       'b': [[2, 3, 4, 5]]})
+    df = pd.DataFrame({"a": [[1, 2, 3, 4]], "b": [[2, 3, 4, 5]]})
     df_copy = deepcopy(df)
 
     assert df is not df_copy
-    assert df['a'][0] is not df_copy['a'][0]
-    assert df['b'][0] is not df_copy['b'][0]
+    assert df["a"][0] is not df_copy["a"][0]
+    assert df["b"][0] is not df_copy["b"][0]
 
 
 @pytest.mark.parametrize("deep", [True, False])
