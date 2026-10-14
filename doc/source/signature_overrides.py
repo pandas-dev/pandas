@@ -114,6 +114,16 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "startingMonth",
     ),
+    pd.tseries.offsets.BQuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BQuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
     pd.tseries.offsets.BusinessHour: (
         "n",
         "normalize",

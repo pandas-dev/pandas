@@ -732,15 +732,10 @@ class TestEval:
             df.query("lambda == 0")
 
     def test_true_false_logic(self):
-        # GH 25823
-        # This behavior is deprecated in Python 3.12
-        msg = "Bitwise inversion '~' on bool is deprecated"
-        with tm.maybe_produces_warning(
-            DeprecationWarning, PY312, check_stacklevel=False, match=msg
-        ):
-            assert pd.eval("not True") == -2
-            assert pd.eval("not False") == -1
-            assert pd.eval("True and not True") == 0
+        # GH 25823, GH#11367
+        assert pd.eval("not True") is np.False_
+        assert pd.eval("not False") is np.True_
+        assert pd.eval("True and not True") is np.False_
 
     def test_and_logic_string_match(self):
         # GH 25823
@@ -2298,3 +2293,54 @@ def test_eval_multi_line_resolver_path_unchanged():
     )
     expected = pd.DataFrame({"c": [1, 2], "d": [2, 4]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([True, False], [False, True]),
+        ([0, 2], [True, False]),
+        ([0.0, 1.5], [True, False]),
+    ],
+)
+def test_not_is_logical_negation(values, expected, engine):
+    # GH#11367 "not" was evaluated as bitwise "~"
+    df = pd.DataFrame({"x": values})
+    result = df.eval("not x", engine=engine)
+    tm.assert_series_equal(result, pd.Series(expected), check_names=False)
+
+
+def test_not_scalar(engine):
+    # GH#11367
+    result = pd.eval("not (1 > 2)", engine=engine)
+    assert result is np.True_
+
+
+@pytest.mark.parametrize(
+    "values, dtype, expected_dtype",
+    [
+        ([False, True, None], "boolean", "boolean"),
+        pytest.param(
+            [False, True, None],
+            "bool[pyarrow]",
+            "bool[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        ([0, 2, None], "Int64", "boolean"),
+        ([0, 2, None], "Float64", "boolean"),
+    ],
+)
+def test_not_nullable_keeps_na(values, dtype, expected_dtype):
+    # GH#11367
+    df = pd.DataFrame({"x": pd.array(values, dtype=dtype)})
+    result = df.eval("not x", engine="python")
+    expected = pd.Series(pd.array([True, False, None], dtype=expected_dtype), name="x")
+    tm.assert_series_equal(result, expected)
+
+
+def test_not_object_returns_bool():
+    # GH#11367
+    df = pd.DataFrame({"x": np.array([True, 0, None, "a"], dtype=object)})
+    result = df.eval("not x", engine="python")
+    expected = pd.Series([False, True, True, False], name="x")
+    tm.assert_series_equal(result, expected)
