@@ -156,7 +156,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
 -
 
 Numeric
