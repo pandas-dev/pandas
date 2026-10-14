@@ -510,3 +510,30 @@ class TestExpressions:
 
         assert used_numexpr, "Did not use numexpr as expected."
         tm.assert_equal(result, expected)
+
+    def test_scalar_cmp_out_of_bounds(
+        self, comparison_op, frame_or_series, monkeypatch
+    ):
+        # GH#61951 2**40 does not fit int32, so it can't be cast for numexpr;
+        # the comparison falls back to NumPy
+        obj = frame_or_series(np.array([-2, 0, 1, 3], dtype="int32"))
+        with pd.option_context("compute.use_numexpr", False):
+            expected = comparison_op(obj, 2**40)
+
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            expr.set_test_mode(True)
+            result = comparison_op(obj, 2**40)
+            used_numexpr = expr.get_test_result()
+            expr.set_test_mode(False)
+
+        assert not used_numexpr, "Used numexpr unexpectedly."
+        tm.assert_equal(result, expected)
+
+    def test_scalar_arith_out_of_bounds_raises(self, frame_or_series, monkeypatch):
+        # GH#61951 like NumPy, an int32 op with an out-of-bounds Python int raises
+        obj = frame_or_series(np.array([-2, 0, 1, 3], dtype="int32"))
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            with pytest.raises(OverflowError, match="out of bounds for int32"):
+                obj + 2**40
