@@ -2050,3 +2050,50 @@ def test_query_tz_aware_compared_to_naive_string(op, func, engine, parser):
     expected = df[func("2000-01-02", df["dt"])]
     result = df.query(f'"2000-01-02" {op} dt', engine=engine, parser=parser)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "expr, got",
+    [
+        ("cat", "dtype int64"),
+        ("cat + 1", "dtype int64"),
+        ("index", "dtype int64"),
+        ("1", "int"),
+    ],
+)
+def test_query_non_bool_result_raises(expr, got, engine, parser):
+    # GH#8560 a non-boolean result was silently used as row labels
+    df = pd.DataFrame({"cat": [0, 1], "count": [10, 20]})
+    msg = f"expr must evaluate to a boolean array, got {got}"
+    with pytest.raises(ValueError, match=msg):
+        df.query(expr, engine=engine, parser=parser)
+
+
+def test_query_label_selection_raises(engine):
+    # GH#8560 selecting rows by label through query is no longer supported; use .loc
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    labels = [0, 2]  # noqa: F841
+    with pytest.raises(ValueError, match="expr must evaluate to a boolean array"):
+        df.query("@labels", engine=engine)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "boolean",
+        "category",
+        pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_query_ea_bool_result(dtype, parser):
+    # GH#8560 boolean EA results, including NA, are still valid masks
+    df = pd.DataFrame({"a": pd.array([True, None, False], dtype=dtype), "b": [1, 2, 3]})
+    result = df.query("a", engine="python", parser=parser)
+    tm.assert_frame_equal(result, df.iloc[[0]])
+
+
+def test_query_empty_object_result():
+    # GH#8560 an emptied object column of bools is not rejected as non-boolean
+    df = pd.DataFrame({"a": pd.Series([True, False], dtype=object)}).iloc[:0]
+    result = df.query("a", engine="python")
+    tm.assert_frame_equal(result, df)
