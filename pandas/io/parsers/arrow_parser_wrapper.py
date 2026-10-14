@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import codecs
 from collections import defaultdict
 import io
 from typing import (
@@ -101,7 +102,7 @@ def _read_pyarrow_table(
 
     GH#62635 pyarrow cannot infer the number of columns when its first block
     has no complete line, e.g. a single line without a trailing newline. A
-    seekable source like that is re-read in full with a newline appended.
+    seekable source like that is re-read with a newline appended.
     """
     pa = import_optional_dependency("pyarrow")
     pyarrow_csv = import_optional_dependency("pyarrow.csv")
@@ -116,9 +117,23 @@ def _read_pyarrow_table(
         if start is None or "cannot infer number of columns" not in str(err):
             raise
         src.seek(start)
+        block_size = read_options.block_size
         # decode first: in e.g. UTF-16 a newline is not b"\n"
         try:
-            text = src.read().decode(encoding, "surrogateescape")
+            decoder = codecs.getincrementaldecoder(encoding)("surrogateescape")
+            text = ""
+            # read() may return fewer bytes than requested before EOF
+            while len(text) <= block_size and (chunk := src.read(block_size)):
+                text += decoder.decode(chunk)
+            head = text[:block_size]
+            if (
+                len(text) > block_size
+                and head.count("\n") + head.count("\r") <= read_options.skip_rows
+            ):
+                # no complete line after skip_rows in the retry's first block
+                #  (e.g. a header wider than it): the retry would fail too
+                raise
+            text += decoder.decode(src.read(), final=True)
             terminated = (text + "\n").encode(encoding, "surrogateescape")
         except UnicodeError:
             raise err from None
