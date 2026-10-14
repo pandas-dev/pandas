@@ -137,8 +137,8 @@ class TestIntervalArray(base.ExtensionTests):
 
     @pytest.mark.xfail(
         raises=AssertionError,
-        reason="IntervalArray does not support roundtrip as Interval cannot be created "
-        "from dictionary created in JSON serialization",
+        reason="IntervalArray does not support roundtrip as Intervals are serialized "
+        "to JSON as strings, which are not parsed back into Interval",
     )
     def test_json_roundtrip(self, data):
         # GH 65127
