@@ -1719,9 +1719,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -1780,9 +1780,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -2313,9 +2313,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._obj_with_exclusions.columns.is_unique
             and self._obj_with_exclusions.columns.name is None
         )
+        named_agg = func is None
         relabeling, func, columns, order = reconstruct_func(
             func, allow_skip_normalization, **kwargs
         )
+        if named_agg:
+            # kwargs held the spec; not keyed on relabeling, which
+            #  allow_skip_normalization can make False
+            kwargs = {}
         func = maybe_mangle_lambdas(func)
 
         if maybe_use_numba(engine):
@@ -3237,9 +3242,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -3312,9 +3317,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
