@@ -6941,7 +6941,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0     [1, 2]
         1     [3, 4]
         dtype: object
-
         """
         data = self._mgr.copy(deep=deep)
         return self._constructor_from_mgr(data, axes=data.axes).__finalize__(
