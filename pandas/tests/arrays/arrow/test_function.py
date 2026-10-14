@@ -374,6 +374,50 @@ def test_factorize_dictionary_with_na():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+def test_factorize_dictionary_null_encoding(null_encoding):
+    # GH#66490
+    pa_arr = pa.array(["a", "b", None, "a"]).dictionary_encode(
+        null_encoding=null_encoding
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    expected_indices = np.array([0, 1, -1, 0], dtype=np.intp)
+    expected_uniques = pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+def test_factorize_dictionary_null_encoding_no_sentinel(null_encoding):
+    # GH#66490
+    pa_arr = pa.array(["a", "b", None, "a"]).dictionary_encode(
+        null_encoding=null_encoding
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 1, 2, 0], dtype=np.intp)
+    expected_uniques = pd.array(["a", "b", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_factorize_chunked_dictionary_mixed_null_encoding():
+    # GH#66490
+    pa_arr = pa.chunked_array(
+        [
+            pa.array(["a", "b"]).dictionary_encode(),
+            pa.array(["c", None]).dictionary_encode(null_encoding="encode"),
+        ]
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    expected_indices = np.array([0, 1, 2, -1], dtype=np.intp)
+    expected_uniques = pd.array(["a", "b", "c"], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
 def test_factorize_null():
     # GH#54908
     arr = ArrowExtensionArray(pa.array([None, None], type=pa.null()))

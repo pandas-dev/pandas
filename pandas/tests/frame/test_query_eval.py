@@ -222,8 +222,7 @@ class TestDataFrameEval:
 
     def test_query_duplicate_column_name_local_not_shadowed(self, engine, parser):
         # GH#65588 the duplicate-label recorder must not capture an @local whose
-        # name matches a duplicated column: Scope.swapkey rewrites the local by
-        # writing into the first resolver that *contains* the name
+        # name matches a duplicated column
         skip_if_no_pandas_parser(parser)
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["AA", "AA", "B"])
         AA = 4  # noqa: F841
@@ -2012,3 +2011,14 @@ def test_query_timedelta_compared_to_string(op, func, engine, parser):
 
     expected = df[func(df["dt"], pd.Timedelta("4 days"))]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "expr, expected_rows",
+    [("a > 1 and not True", []), ("a > 1 or not True", [1, 2])],
+)
+def test_query_not_scalar_keeps_bool_mask(expr, expected_rows, engine):
+    # GH#11367 "not True" was -2, turning the mask into integer row labels
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    result = df.query(expr, engine=engine)
+    tm.assert_frame_equal(result, df.iloc[expected_rows])
