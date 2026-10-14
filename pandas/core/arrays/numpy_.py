@@ -338,6 +338,23 @@ class NumpyExtensionArray(
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
+    def _clip(self, lower, upper, copy: bool = True) -> Self:
+        if lower is not None and upper is not None:
+            # GH#2747 numpy values compare the same way the bounds do
+            lower, upper = min(lower, upper), max(lower, upper)
+        values = self._ndarray
+        if values.dtype.kind not in "iuf":
+            return super()._clip(lower, upper, copy=copy)
+
+        lo = None if lower is None else self._validate_setitem_value(lower)
+        hi = None if upper is None else self._validate_setitem_value(upper)
+        if (lo is None or not (values < lo).any()) and (
+            hi is None or not (values > hi).any()
+        ):
+            return self
+        res = np.clip(values, lo, hi, out=None if copy else values)
+        return self._from_backing_data(res)
+
     def _validate_scalar(self, fill_value):
         if fill_value is None:
             # Primarily for subclasses

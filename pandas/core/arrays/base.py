@@ -2854,7 +2854,7 @@ class ExtensionArray:
         result[~mask] = val
         return result
 
-    def _clip(self, lower, upper) -> Self:
+    def _clip(self, lower, upper, copy: bool = True) -> Self:
         """
         Trim values below ``lower`` and above ``upper``.
 
@@ -2864,6 +2864,8 @@ class ExtensionArray:
         ----------
         lower : scalar or None
         upper : scalar or None
+        copy : bool, default True
+            If False, ``self`` may be trimmed in place.
 
         Returns
         -------

@@ -1428,6 +1428,7 @@ class Block(PandasObject, libinternals.Block):
 
         return [self.make_block(result)]
 
+    @final
     def clip(self, lower, upper, inplace: bool = False) -> list[Block]:
         """
         Trim values below ``lower`` and above ``upper``, swapping bounds given
@@ -1443,28 +1444,21 @@ class Block(PandasObject, libinternals.Block):
         -------
         List[Block]
         """
-        # EABlocks override clip
-        values = cast("np.ndarray", self.values)
-        if lower is not None and upper is not None:
-            # GH#2747 numpy values compare the same way the bounds do
-            lower, upper = min(lower, upper), max(lower, upper)
-
-        if values.dtype.kind in "iuf":
-            try:
-                lo = None if lower is None else np_can_hold_element(values.dtype, lower)
-                hi = None if upper is None else np_can_hold_element(values.dtype, upper)
-            except (ValueError, TypeError, LossySetitemError):
-                pass
-            else:
-                if (lo is None or not (values < lo).any()) and (
-                    hi is None or not (values > hi).any()
-                ):
-                    return [self.copy(deep=False)]
-                copy, refs = self._get_refs_and_copy(inplace)
-                res = np.clip(values, lo, hi, out=None if copy else values)
-                return [self.make_block_same_class(res, refs=refs)]
-
-        return self._clip_with_where(lower, upper)
+        copy, refs = self._get_refs_and_copy(inplace)
+        values = self.array_values
+        try:
+            # the array orders the bounds, which can differ from their own
+            #  order, e.g. ordered categoricals (GH#49217)
+            res_values = values._clip(lower, upper, copy=copy)
+        except (ValueError, TypeError):
+            # a bound the dtype cannot hold; where casts to one that can
+            if lower is not None and upper is not None:
+                lower, upper = min(lower, upper), max(lower, upper)
+            return self._clip_with_where(lower, upper)
+        if res_values is values:
+            return [self.copy(deep=False)]
+        res = extract_array(res_values, extract_numpy=True)
+        return [self.make_block_same_class(res, refs=refs)]
 
     @final
     def _clip_with_where(self, lower, upper) -> list[Block]:
@@ -1988,24 +1982,6 @@ class EABackedBlock(Block):
 
         nb = self.make_block_same_class(res_values)
         return [nb]
-
-    @final
-    def clip(self, lower, upper, inplace: bool = False) -> list[Block]:
-        """
-        See Block.clip.__doc__
-        """
-        try:
-            # the array orders the bounds, which can differ from their own
-            #  order, e.g. ordered categoricals (GH#49217)
-            res_values = self.values._clip(lower, upper)
-        except (ValueError, TypeError):
-            # a bound the dtype cannot hold; where casts to one that can
-            if lower is not None and upper is not None:
-                lower, upper = min(lower, upper), max(lower, upper)
-            return self._clip_with_where(lower, upper)
-        if res_values is self.values:
-            return [self.copy(deep=False)]
-        return [self.make_block_same_class(res_values)]
 
     @final
     def putmask(self, mask, new) -> list[Block]:
