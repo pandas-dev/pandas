@@ -2953,6 +2953,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             #  keeps its NA semantics; densifying here loses them.
             return NotImplemented
 
+        if op not in {operator.eq, operator.ne} and (
+            self.dtype.kind == "c"
+            or lib.is_complex(other)
+            or getattr(getattr(other, "dtype", None), "kind", None) == "c"
+        ):
+            # GH#43770 complex has no natural ordering
+            warn_complex_unordered()
+
         return self._cmp_or_logical_op(other, op)
 
     def _cmp_or_logical_op(self, other, op) -> SparseArray:
