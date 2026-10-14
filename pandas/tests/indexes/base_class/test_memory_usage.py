@@ -105,6 +105,35 @@ def test_memory_usage_nested_arrow_index(arrow_string_dtype, deep, kind):
 
 
 @pytest.mark.parametrize("deep", [False, True])
+@pytest.mark.parametrize("state", ["constructed", "populated", "cleared"])
+def test_memory_usage_categorical_series(
+    string_storage, using_infer_string, deep, state
+):
+    # GH#66593: index=False excludes the Series index, not category lookup storage.
+    with pd.option_context("mode.string_storage", string_storage):
+        ser = pd.Series(pd.Categorical(["a", "b"]))
+
+    categories = ser.cat.categories
+    engine = categories._cache["_engine"]
+    nbytes = ser.cat.codes.nbytes + categories.values.nbytes
+    if state != "constructed":
+        categories.get_loc("b")
+        assert engine.is_mapping_populated
+    if state == "cleared":
+        engine.clear_mapping()
+
+    expected = nbytes + engine.sizeof(deep=deep)
+    if using_infer_string and string_storage == "pyarrow":
+        expected += engine.values.nbytes
+    if deep and not PYPY:
+        expected += sum(sys.getsizeof(value) for value in engine.values)
+
+    assert ser.nbytes == nbytes
+    assert ser.memory_usage(index=False, deep=deep) == expected
+    assert ser.nbytes == nbytes
+
+
+@pytest.mark.parametrize("deep", [False, True])
 @pytest.mark.parametrize(
     "dtype, values",
     [
