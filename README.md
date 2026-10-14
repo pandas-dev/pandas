@@ -80,11 +80,11 @@ Here are just a few of the things that pandas does well:
    [slicing]: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#slicing-ranges
    [fancy-indexing]: https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#advanced
    [subsetting]: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#boolean-indexing
-   [merging]: https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#database-style-dataframe-or-named-series-joining-merging
-   [joining]: https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#joining-on-index
+   [merging]: https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#merge
+   [joining]: https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#dataframe-join
    [reshape]: https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html
    [pivot-table]: https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html
-   [mi]: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#hierarchical-indexing-multiindex
+   [mi]: https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#hierarchical-indexing-multiindex
    [flat-files]: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#csv-text-files
    [excel]: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#excel-files
    [db]: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#sql-queries
@@ -117,7 +117,7 @@ details, see the commit logs at https://github.com/pandas-dev/pandas.
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
 - [tzdata - Provides an IANA time zone database](https://tzdata.python.org) (Only required on Windows/Emscripten)
 
-See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
+See the [full installation instructions](https://pandas.pydata.org/docs/getting_started/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
 To install pandas from source you need [Cython](https://cython.org/) in addition to the normal
@@ -156,7 +156,7 @@ has been under active development since then.
 ## Getting Help
 
 For usage questions, the best place to go to is [Stack Overflow](https://stackoverflow.com/questions/tagged/pandas).
-Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
+Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/g/pydata).
 
 ## Discussion and Development
 Most development discussions take place on GitHub in this repo, via the [GitHub issue tracker](https://github.com/pandas-dev/pandas/issues).
@@ -179,7 +179,7 @@ You can also triage issues which may include reproducing bug reports, or asking 
 
 Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’... you can do something about it!
 
-Feel free to ask questions on the [mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata) or on [Slack](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack).
+Feel free to ask questions on the [mailing list](https://groups.google.com/g/pydata) or on [Slack](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack).
 
 As contributors and maintainers to this project, you are expected to abide by pandas' code of conduct. More information can be found at: [Contributor Code of Conduct](https://github.com/pandas-dev/.github/blob/master/CODE_OF_CONDUCT.md)
 
