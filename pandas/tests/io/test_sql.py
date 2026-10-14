@@ -1001,28 +1001,29 @@ adbc_connectable_types = [
 ]
 
 
-def test_adbc_has_table_schema_with_no_tables():
+@pytest.mark.db
+def test_adbc_has_table_schema_with_no_tables(postgresql_adbc_conn):
     # GH 59841
-    class Column:
-        def to_pylist(self):
-            return [[{"db_schema_name": "empty_schema", "db_schema_tables": None}]]
+    conn = postgresql_adbc_conn
+    schema = "pandas_empty_schema"
+    table_name = "test_table"
 
-    class Metadata:
-        def __getitem__(self, key):
-            assert key == "catalog_db_schemas"
-            return Column()
+    with conn.cursor() as cur:
+        cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+        cur.execute(f"CREATE SCHEMA {schema}")
+    conn.commit()
 
-    class Objects:
-        def read_all(self):
-            return Metadata()
+    try:
+        pandas_sql = sql.ADBCDatabase(conn)
+        assert not pandas_sql.has_table(table_name, schema=schema)
 
-    class Connection:
-        def adbc_get_objects(self, **kwargs):
-            return Objects()
-
-    pandas_sql = sql.ADBCDatabase(Connection())
-
-    assert not pandas_sql.has_table("test_table", schema="empty_schema")
+        df = DataFrame({"a": [1]})
+        assert df.to_sql(table_name, conn, schema=schema, index=False) == 1
+        assert pandas_sql.has_table(table_name, schema=schema)
+    finally:
+        with conn.cursor() as cur:
+            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+        conn.commit()
 
 
 all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
