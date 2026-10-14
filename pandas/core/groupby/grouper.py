@@ -528,7 +528,7 @@ class Grouping:
             if grouping_vector._sort is not None:
                 self._sort = grouping_vector.sort
             newgrouper, newobj = grouping_vector._get_grouper(
-                self.obj, validate=False, sort=self._sort
+                self.obj, validate=False, observed=observed, sort=self._sort
             )
             self.obj = newobj
 
@@ -542,6 +542,7 @@ class Grouping:
                 #  If that were to occur, would we be throwing out information?
                 # error: Cannot determine type of "grouping_vector"  [has-type]
                 ng = newgrouper.groupings[0].grouping_vector  # type: ignore[has-type]
+                self._orig_cats = newgrouper.groupings[0]._orig_cats
                 # use Index instead of ndarray so we can recover the name
                 grouping_vector = Index(
                     ng, name=newgrouper.result_index.name, copy=False
@@ -574,10 +575,13 @@ class Grouping:
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 grouping_vector = Series(grouping_vector).to_numpy()
-        elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
+        elif (
+            isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype)
+            and self._orig_cats is None
+        ):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
-            grouping_vector = recode_for_groupby(grouping_vector, sort, observed)
+            grouping_vector = recode_for_groupby(grouping_vector, self._sort, observed)
 
         self.grouping_vector = grouping_vector
 

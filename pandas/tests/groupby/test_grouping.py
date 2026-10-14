@@ -1378,3 +1378,31 @@ def test_grouper_positional_freq(as_list):
     expected = df.groupby("k").sum()
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("grouper_sort", [None, True, False])
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("as_list", [True, False])
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("ordered", [True, False])
+@pytest.mark.parametrize("categories", [["a", "b", "c"], ["c", "b", "a"]])
+def test_grouper_categorical_sort_precedence(
+    grouper_sort, sort, as_list, observed, ordered, categories
+):
+    # GH#61943
+    df = pd.DataFrame(
+        {
+            "k": pd.Categorical(
+                ["b", "a", "b"], categories=categories, ordered=ordered
+            ),
+            "A": [1, 2, 3],
+        }
+    )
+    grouper = pd.Grouper(key="k", sort=grouper_sort)
+    result = df.groupby([grouper] if as_list else grouper, sort=sort, observed=observed)
+    expected = df.groupby(
+        "k", sort=sort if grouper_sort is None else grouper_sort, observed=observed
+    )
+
+    tm.assert_frame_equal(result.sum(), expected.sum())
+    tm.assert_frame_equal(result.cumsum(), expected.cumsum())
