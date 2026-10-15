@@ -55,16 +55,9 @@ def test_value_counts_with_bins(bins):
     )
     result = df.groupby("key")["score"].value_counts(bins=bins).sort_index()
     expected = pd.Series(
-        np.array(
-            [
-                [1, 0, 0, 0, 1],  # key 0
-                [0, 0, 0, 0, 2],  # key 1
-                [1, 0, 0, 0, 0],  # key 2
-                [0, 0, 0, 0, 2],  # key 3
-                [0, 0, 0, 0, 3],  # key 4
-            ],
-            dtype=np.int64,
-        ).ravel(),
+        # 5 bins per key, keys 0-4
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3],
+        dtype=np.int64,
         name="count",
         index=pd.MultiIndex.from_product([range(5), bins], names=["key", "score"]),
     )
