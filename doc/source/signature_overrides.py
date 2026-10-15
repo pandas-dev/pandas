@@ -185,6 +185,22 @@ _OFFSET_SIGNATURES = {
         "n",
         "normalize",
     ),
+    pd.tseries.offsets.CustomBusinessMonthEnd: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthBegin: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
 }
 
 
