@@ -922,6 +922,44 @@ class TestDataFrameGroupByPlots:
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
 
+    @pytest.mark.parametrize(
+        "get_by",
+        [
+            lambda df: "a",
+            lambda df: ["a"],
+            lambda df: df["a"],
+            lambda df: pd.Grouper(key="a"),
+        ],
+    )
+    def test_grouped_hist_excludes_by_column(self, get_by):
+        # GH#41188 numeric grouping column should not be plotted
+        df = pd.DataFrame(
+            {
+                "x": np.random.default_rng(2).standard_normal(10),
+                "y": np.random.default_rng(3).standard_normal(10),
+                "a": [0, 1] * 5,
+            }
+        )
+        axes = df.hist(by=get_by(df), bins=5, legend=True)
+        _check_axes_shape(axes, axes_num=2, layout=(1, 2))
+        for ax in axes.ravel():
+            assert len(ax.patches) == 2 * 5
+        _check_legend_labels(axes, ["x", "y"])
+
+    def test_grouped_hist_excludes_by_column_multiindex_columns(self):
+        # GH#41188 "a" refers to the ("a", "") column
+        df = pd.DataFrame(
+            {
+                ("a", ""): [0, 1] * 5,
+                ("g", "x"): np.random.default_rng(2).standard_normal(10),
+                ("g", "y"): np.random.default_rng(3).standard_normal(10),
+            }
+        )
+        axes = df.hist(by="a", bins=5)
+        _check_axes_shape(axes, axes_num=2, layout=(1, 2))
+        for ax in axes.ravel():
+            assert len(ax.patches) == 2 * 5
+
     def test_grouped_hist_multiple_axes_error(self, hist_df):
         # GH 6970, GH 7069
         df = hist_df

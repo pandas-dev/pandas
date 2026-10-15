@@ -18,6 +18,7 @@ from typing import (
     Literal,
     NoReturn,
     Self,
+    TypeAlias,
     cast,
     final,
     overload,
@@ -59,6 +60,7 @@ from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
     validate_inclusive,
+    validate_min_count,
 )
 
 from pandas.core.dtypes.astype import astype_is_view
@@ -215,6 +217,8 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
+
+    _StylerKwargs: TypeAlias = dict[str, Any] | list[dict[str, Any]]
 
 
 def _is_np_bool_backed(obj: NDFrame) -> bool:
@@ -523,7 +527,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def _construct_axes_dict(
         self, axes: Sequence[Axis] | None = None, **kwargs: AxisInt
-    ) -> dict:
+    ) -> dict[Any, Any]:
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
         # error: Argument 1 to "update" of "MutableMapping" has incompatible type
@@ -597,13 +601,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _get_index_resolvers(self) -> dict[Hashable, Series | MultiIndex]:
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import clean_resolvers
 
         d: dict[str, Series | MultiIndex] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
-        return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
+        return clean_resolvers((k, v) for k, v in d.items() if not isinstance(k, int))
 
     @final
     def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series | DataFrame]:
@@ -614,12 +618,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         be referred to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import (
+            clean_column_name,
+            clean_resolvers,
+        )
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
-        return {clean_column_name(k): self[k] for k in self.columns}
+        return clean_resolvers((k, self[k]) for k in self.columns)
 
     @final
     @property
@@ -760,7 +767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return obj
 
     @final
-    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list) -> None:
+    def _set_axis(self, axis: AxisInt, labels: AnyArrayLike | list[Any]) -> None:
         """
         This is called from the cython code when we set the `index` attribute
         directly, e.g. `series.index = [1, 2, 3]`.
@@ -1444,7 +1451,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.item(), a.any() or a.all()."
+            "Use a.empty, a.item(), a.any() or a.all(). "
+            "If you are combining conditions, use '&', '|' and '~' instead of "
+            "'and', 'or' and 'not'."
         )
 
     @final
@@ -1821,7 +1830,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # "object" defined the type as "Callable[[object], int]")
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Iterate over info axis.
 
@@ -2105,7 +2114,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def to_excel(
         self,
-        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         *,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
@@ -2313,31 +2322,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             * Series:
 
-                - default is 'index'
-                - allowed values are: {'split', 'records', 'index', 'table'}.
-                - the format of the JSON string:
+              - default is 'index'
+              - allowed values are: {'split', 'records', 'index', 'table'}.
+              - the format of the JSON string:
 
-                  - 'split' : dict like {'name' -> name, 'index' -> [index],
-                    'data' -> [values]}
-                  - 'records' : list like [value, ... , value]; the index
-                    labels and the Series name are not included
-                  - 'index' : dict like {index -> value}
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                - 'split' : dict like {'name' -> name, 'index' -> [index],
+                  'data' -> [values]}
+                - 'records' : list like [value, ... , value]; the index
+                  labels and the Series name are not included
+                - 'index' : dict like {index -> value}
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             * DataFrame:
 
-                - default is 'columns'
-                - allowed values are: {'split', 'records', 'index', 'columns',
-                  'values', 'table'}.
-                - the format of the JSON string:
+              - default is 'columns'
+              - allowed values are: {'split', 'records', 'index', 'columns',
+                'values', 'table'}.
+              - the format of the JSON string:
 
-                  - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                    'data' -> [values]}
-                  - 'records' : list like [{column -> value}, ... , {column -> value}]
-                  - 'index' : dict like {index -> {column -> value}}
-                  - 'columns' : dict like {column -> {index -> value}}
-                  - 'values' : just the values array
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}
+                - 'records' : list like [{column -> value}, ... , {column -> value}]
+                - 'index' : dict like {index -> {column -> value}}
+                - 'columns' : dict like {column -> {index -> value}}
+                - 'values' : just the values array
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             For ``orient='table'``, the data component is like ``orient='records'``.
 
@@ -2832,7 +2841,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index_label: IndexLabel | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -3053,6 +3062,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
 
+        >>> engine.dispose()
+
         .. versionadded:: 2.2.0
 
            pandas now supports writing via ADBC drivers
@@ -3172,9 +3183,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    3    8
         4    4    9
         """
-        from pandas.io.pickle import to_pickle
+        from pandas.io.pickle import to_pickle_internal
 
-        to_pickle(
+        to_pickle_internal(
             self,
             path,
             compression=compression,
@@ -3217,9 +3228,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         Requirements for your platform.
 
-          - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
-          - Windows : none
-          - macOS : none
+        - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
+        - Windows : none
+        - macOS : none
 
         This method uses the processes developed for the package `pyperclip`. A
         solution to render any output string format is given in the examples.
@@ -3609,7 +3620,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         column_format_: dict[str, Any] = {"axis": 1, **base_format_}
 
         if isinstance(float_format, str):
-            float_format_: Callable | None = lambda x: float_format % x
+            float_format_: Callable[..., Any] | None = lambda x: float_format % x
         else:
             float_format_ = float_format
 
@@ -3619,7 +3630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 return alt_format_(x)
 
-        formatters_: list | tuple | dict | Callable | None = None
+        formatters_: dict[Any, Any] | Callable[..., Any] | None = None
         if isinstance(formatters, list):
             formatters_ = {
                 c: partial(_wrap, alt_format_=formatters[i])
@@ -3644,8 +3655,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         format_index_names_ = [index_format_, column_format_]
 
         # Deal with hiding indexes and relabelling column names
-        hide_: list[dict] = []
-        relabel_index_: list[dict] = []
+        hide_: list[dict[str, Any]] = []
+        relabel_index_: list[dict[str, Any]] = []
         if columns:
             hide_.append(
                 {
@@ -3701,12 +3712,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf=None,
         *,
-        hide: dict | list[dict] | None = None,
-        relabel_index: dict | list[dict] | None = None,
-        format: dict | list[dict] | None = None,
-        format_index: dict | list[dict] | None = None,
-        format_index_names: dict | list[dict] | None = None,
-        render_kwargs: dict | None = None,
+        hide: _StylerKwargs | None = None,
+        relabel_index: _StylerKwargs | None = None,
+        format: _StylerKwargs | None = None,
+        format_index: _StylerKwargs | None = None,
+        format_index_names: _StylerKwargs | None = None,
+        render_kwargs: dict[str, Any] | None = None,
     ):
         """
         Render object to a LaTeX tabular, longtable, or nested table.
@@ -3778,7 +3789,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         sep: str = ...,
         na_rep: str = ...,
-        float_format: str | Callable | None = ...,
+        float_format: str | Callable[..., Any] | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
@@ -3805,7 +3816,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         sep: str = ...,
         na_rep: str = ...,
-        float_format: str | Callable | None = ...,
+        float_format: str | Callable[..., Any] | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
@@ -3832,7 +3843,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         sep: str = ",",
         na_rep: str = "",
-        float_format: str | Callable | None = None,
+        float_format: str | Callable[..., Any] | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool | list[str] = True,
         index: bool = True,
@@ -4498,6 +4509,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+
+    def _check_inplace_deprecation(
+        self, inplace: bool | lib.NoDefault, method: str
+    ) -> bool:
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                f"The inplace keyword in {type(self).__name__}.{method} is "
+                "deprecated and will be removed in a future version (PDEP-8).\n"
+                "See "
+                "https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace"
+                " for more details.",
+                Pandas4Warning,
+                stacklevel=3,
+            )
+        else:
+            inplace = False
+
+        return inplace
 
     # issue 58667
     @deprecate_kwarg(Pandas4Warning, "method", new_arg_name=None)
@@ -6968,9 +6998,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
-        This finds the smallest dtype that can hold all values, or uses
-        extension dtypes (e.g. nullable integer, string, boolean) so that
-        missing values are represented by ``pd.NA`` instead of ``np.nan``.
+        This methods converts columns using default NumPy dtypes to nullable
+        dtypes (using ``pd.NA`` as missing value indicator).
 
         Parameters
         ----------
@@ -7037,11 +7066,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
-        Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
-        ``convert_string``, ``convert_integer``, ``convert_boolean`` and
-        ``convert_floating``, it is possible to turn off individual conversions
-        to ``StringDtype``, the integer extension types, ``BooleanDtype``
-        or floating extension types, respectively.
+        Series in a DataFrame) to dtypes that support ``pd.NA``.
 
         For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
         rules as during normal Series/DataFrame construction.  Then, if possible,
@@ -7210,7 +7235,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame,
+        value: Hashable | Mapping[Any, Any] | Series | DataFrame,
         *,
         axis: Axis | None = None,
         inplace: bool = False,
@@ -7686,52 +7711,52 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             * numeric, str or regex:
 
-                - numeric: numeric values equal to `to_replace` will be
-                  replaced with `value`
-                - str: string exactly matching `to_replace` will be replaced
-                  with `value`
-                - regex: regexes matching `to_replace` will be replaced with
-                  `value`
+              - numeric: numeric values equal to `to_replace` will be
+                replaced with `value`
+              - str: string exactly matching `to_replace` will be replaced
+                with `value`
+              - regex: regexes matching `to_replace` will be replaced with
+                `value`
 
             * list of str, regex, or numeric:
 
-                - First, if `to_replace` and `value` are both lists, they
-                  **must** be the same length.
-                - Second, if ``regex=True`` then all of the strings in **both**
-                  lists will be interpreted as regexes otherwise they will match
-                  directly. This doesn't matter much for `value` since there
-                  are only a few possible substitution regexes you can use.
-                - str, regex and numeric rules apply as above.
+              - First, if `to_replace` and `value` are both lists, they
+                **must** be the same length.
+              - Second, if ``regex=True`` then all of the strings in **both**
+                lists will be interpreted as regexes otherwise they will match
+                directly. This doesn't matter much for `value` since there
+                are only a few possible substitution regexes you can use.
+              - str, regex and numeric rules apply as above.
 
             * dict:
 
-                - Dicts can be used to specify different replacement values
-                  for different existing values. For example,
-                  ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
-                  'y' with 'z'. To use a dict in this way, the optional `value`
-                  parameter should not be given.
-                - For a DataFrame a dict can specify that different values
-                  should be replaced in different columns. For example,
-                  ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
-                  and the value 'z' in column 'b' and replaces these values
-                  with whatever is specified in `value`. The `value` parameter
-                  should not be ``None`` in this case. You can treat this as a
-                  special case of passing two lists except that you are
-                  specifying the column to search in.
-                - For a DataFrame nested dictionaries, e.g.,
-                  ``{'a': {'b': np.nan}}``, are read as follows: look in column
-                  'a' for the value 'b' and replace it with NaN. The optional `value`
-                  parameter should not be specified to use a nested dict in this
-                  way. You can nest regular expressions as well. Note that
-                  column names (the top-level dictionary keys in a nested
-                  dictionary) **cannot** be regular expressions.
+              - Dicts can be used to specify different replacement values
+                for different existing values. For example,
+                ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
+                'y' with 'z'. To use a dict in this way, the optional `value`
+                parameter should not be given.
+              - For a DataFrame a dict can specify that different values
+                should be replaced in different columns. For example,
+                ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
+                and the value 'z' in column 'b' and replaces these values
+                with whatever is specified in `value`. The `value` parameter
+                should not be ``None`` in this case. You can treat this as a
+                special case of passing two lists except that you are
+                specifying the column to search in.
+              - For a DataFrame nested dictionaries, e.g.,
+                ``{'a': {'b': np.nan}}``, are read as follows: look in column
+                'a' for the value 'b' and replace it with NaN. The optional `value`
+                parameter should not be specified to use a nested dict in this
+                way. You can nest regular expressions as well. Note that
+                column names (the top-level dictionary keys in a nested
+                dictionary) **cannot** be regular expressions.
 
             * None:
 
-                - This means that the `regex` argument must be a string,
-                  compiled regular expression, or list, dict, ndarray or
-                  Series of such elements. If `value` is also ``None`` then
-                  this **must** be a nested dictionary or Series.
+              - This means that the `regex` argument must be a string,
+                compiled regular expression, or list, dict, ndarray or
+                Series of such elements. If `value` is also ``None`` then
+                this **must** be a nested dictionary or Series.
 
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
@@ -8902,6 +8927,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 threshold = self._constructor(threshold, index=self.index)
             else:
                 threshold = self._align_for_op(threshold, axis, flex=None)[1]
+                if axis is None and isinstance(threshold, ABCSeries):
+                    # _align_for_op aligned the 1D bound on self.columns;
+                    #  `where` below needs that spelled out (GH#68929)
+                    axis = 1
 
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
@@ -9402,7 +9431,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             end of `rule`.
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
-            Column must be datetime-like.
+            Column must be datetime-like. The ``on`` column is excluded from
+            the result; to keep it, resample ``df.set_index(on, drop=False)``
+            instead.
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
@@ -9793,7 +9824,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether or not the elements should be ranked in ascending order.
         pct : bool, default False
             Whether or not to display the returned rankings in percentile
-            form.
+            form, i.e. divided by the number of ranked values (the number of
+            distinct values for ``method="dense"``). With ``method="max"`` and
+            no missing values this matches SQL ``CUME_DIST``, not
+            ``PERCENT_RANK``.
 
         Returns
         -------
@@ -12043,6 +12077,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+        min_count = validate_min_count(min_count)
 
         return self._reduce(
             func,
