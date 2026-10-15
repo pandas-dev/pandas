@@ -41,7 +41,7 @@ from pandas._config import (
 )
 
 # Register options immediately, even when imports are lazy.
-pandas = __import__("pandas.core.config_init")
+__import__("pandas.core.config_init")
 
 from pandas.core.api import (
     # dtype
