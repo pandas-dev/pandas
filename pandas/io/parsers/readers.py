@@ -1515,6 +1515,11 @@ def read_csv(
         Sequence of column labels to apply. If the file contains a header row,
         then you should explicitly pass ``header=0`` to override the column names.
         Duplicates in this list are not allowed.
+
+        Note: with ``engine="pyarrow"`` the number of columns is taken from the
+        first row that is read rather than from ``names``, so a row with a
+        different number of fields is a bad line handled by ``on_bad_lines``
+        instead of being padded as with the other engines.
     index_col : Hashable, Sequence of Hashable or False, optional
         Column(s) to use as row label(s), denoted either by column labels or column
         indices.  If a sequence of labels or indices is given,
@@ -2123,6 +2128,11 @@ def read_table(
         Sequence of column labels to apply. If the file contains a header row,
         then you should explicitly pass ``header=0`` to override the column names.
         Duplicates in this list are not allowed.
+
+        Note: with ``engine="pyarrow"`` the number of columns is taken from the
+        first row that is read rather than from ``names``, so a row with a
+        different number of fields is a bad line handled by ``on_bad_lines``
+        instead of being padded as with the other engines.
     index_col : Hashable, Sequence of Hashable or False, optional
         Column(s) to use as row label(s), denoted either by column labels or column
         indices.  If a sequence of labels or indices is given,
