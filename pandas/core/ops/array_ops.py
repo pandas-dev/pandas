@@ -299,8 +299,9 @@ def maybe_warn_complex_ordering(lvalues, rvalues, op) -> None:
     """
     Warn on an ordering comparison of numpy data where either side is complex.
 
-    An ExtensionArray on the left warns from its own comparison method,
-    and an object operand already raises TypeError on complex.
+    An ExtensionArray on the left is not checked here; NumpyExtensionArray,
+    SparseArray, and masked arrays warn from their own comparison methods.
+    An object operand already raises TypeError on complex.
     """
     if op not in {operator.lt, operator.le, operator.gt, operator.ge}:
         return
