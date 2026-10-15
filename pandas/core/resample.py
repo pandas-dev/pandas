@@ -154,6 +154,13 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         "offset",
     ]
 
+    @property
+    def ndim(self) -> int:
+        """
+        Number of dimensions of the underlying object.
+        """
+        return self.obj.ndim
+
     def __init__(
         self,
         obj: NDFrame,
@@ -2121,6 +2128,9 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
 
 @set_module("pandas.api.typing")
 class DatetimeIndexResampler(Resampler):
+    """
+    Resampler for DatetimeIndex.
+    """
     ax: DatetimeIndex
 
     @property
@@ -2244,6 +2254,9 @@ class DatetimeIndexResamplerGroupBy(  # type: ignore[misc]
 
 @set_module("pandas.api.typing")
 class PeriodIndexResampler(DatetimeIndexResampler):
+    """
+    Resampler for PeriodIndex.
+    """
     # error: Incompatible types in assignment (expression has type "PeriodIndex", base
     # class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
     ax: PeriodIndex  # type: ignore[assignment]
@@ -2344,6 +2357,9 @@ class PeriodIndexResamplerGroupBy(  # type: ignore[misc]
 
 @set_module("pandas.api.typing")
 class TimedeltaIndexResampler(DatetimeIndexResampler):
+    """
+    Resampler for TimedeltaIndex.
+    """
     # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
     # base class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
     ax: TimedeltaIndex  # type: ignore[assignment]

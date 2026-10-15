@@ -304,6 +304,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     @final
     @property
     def ngroups(self) -> int:
+        """
+        Number of groups in the resampler.
+        """
         return self._grouper.ngroups
 
     @final
