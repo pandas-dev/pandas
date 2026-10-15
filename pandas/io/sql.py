@@ -1237,7 +1237,8 @@ class SQLTable(PandasObject):
         else:
             sql_select = select(self.table)
         result = self.pd_sql.execute(sql_select)
-        column_names = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        column_names = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             return self._query_iterator(
@@ -1911,7 +1912,8 @@ class SQLDatabase(PandasSQL):
 
         """
         result = self.execute(sql, params)
-        columns = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        columns = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             self.returns_generator = True
