@@ -129,8 +129,8 @@ class TestDataFrameSetItem:
     )
     @pytest.mark.parametrize("loc", [[0, 2], slice(0, 3, 2)])
     def test_isetitem_1d_value_several_positions_raises(self, value, loc):
-        # GH#71098 an extension array used to be stored once for several positions;
-        #  the numpy values already raised and are kept as controls
+        # GH#71098 a 1-D-only extension array (Int64) used to be stored once for
+        #  several positions; the other values already raised and are controls
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
         expected = df.copy()
 
