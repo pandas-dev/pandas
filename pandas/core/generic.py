@@ -2104,7 +2104,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if config["display"]["html"]["table_schema"]:
             data = self.head(config["display"]["max_rows"])
 
-            as_json = data.to_json(orient="table")
+            try:
+                as_json = data.to_json(orient="table")
+            except (TypeError, ValueError, OverflowError) as err:
+                # IPython skips a mimetype quietly only on NotImplementedError,
+                # see GH#16848
+                raise NotImplementedError(
+                    "Cannot represent this object as a table schema"
+                ) from err
             as_json = cast("str", as_json)
             return loads(as_json, object_pairs_hook=collections.OrderedDict)
 
