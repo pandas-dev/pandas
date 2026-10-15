@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -645,13 +647,17 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
     values = np.array([1 + 2j, 3 - 1j, np.nan])
     arr = SparseArray(values, dtype=pd.SparseDtype("complex128", np.nan))
 
-    result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
-    expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
+    warn = Pandas4Warning if name in ("min", "max") else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
     tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "name, kwargs",
@@ -684,7 +690,7 @@ def test_describe():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "subtype,fill_value,dense_dtype",
@@ -913,11 +919,15 @@ def test_frame_idxmin_idxmax(subtype, order, sparsify_min):
     #  sparsify_min routes _argmin_argmax through its _first_fill_value_loc branch.
     values = np.array(order).astype(subtype)
     arr = SparseArray(values, fill_value=values.min() if sparsify_min else None)
-    assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
+    # GH#43770 complex ordering is deprecated
+    warn = Pandas4Warning if subtype == "complex128" else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
 
     index = pd.Index(list("xyz"))
     df = pd.DataFrame({"a": arr}, index=index)
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(warn, match=msg):
         assert df.idxmin()["a"] == index[values.argmin()]
         assert df.idxmax()["a"] == index[values.argmax()]
 
@@ -1021,3 +1031,12 @@ def test_frame_reduction_axis_1_different_fill_values(op, performance_warning):
 
     expected = getattr(df.sparse.to_dense(), op)(axis=1)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max", "argmin", "argmax"])
+def test_complex_ordering_deprecated(func):
+    # GH#43770 complex has no natural ordering
+    arr = SparseArray([1 + 2j, 3 - 1j, 0j], fill_value=0j)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(arr, func)()

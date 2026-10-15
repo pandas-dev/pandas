@@ -1438,7 +1438,10 @@ cdef class Tick(SingleConstructorOffset):
         return self._as_pd_timedelta == other
 
     def __ne__(self, other):
-        return not (self == other)
+        if isinstance(other, str):
+            return not (self == other)
+        # __eq__ can return an array or NA, which `not` rejects
+        return self._as_pd_timedelta != other
 
     def __le__(self, other):
         return self._as_pd_timedelta.__le__(other)
