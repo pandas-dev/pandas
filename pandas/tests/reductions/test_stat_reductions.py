@@ -343,7 +343,7 @@ def test_object_stat_matches_numeric_dtype(opname, data, numeric_dtype):
     warn = (
         Pandas4Warning if numeric_dtype == "complex128" and opname == "median" else None
     )
-    with tm.assert_produces_warning(warn, match="The median of complex data"):
+    with tm.assert_produces_warning(warn, match="deprecated on complex data"):
         expected = getattr(expected_obj, opname)()
         result = getattr(obj, opname)()
 

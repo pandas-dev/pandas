@@ -13,7 +13,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core import nanops
 
-MEDIAN_MSG = "The median of complex data is deprecated"
+COMPLEX_MSG = "deprecated on complex data"
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -546,6 +546,9 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanmin, np.min), (nanops.nanmax, np.max)]
     )
@@ -564,10 +567,16 @@ class TestnanopsDataFrame:
             res = -1
         return res
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
     def test_nanargmax(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmax)
         self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
     def test_nanargmin(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmin)
         self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)
@@ -937,7 +946,7 @@ def test_object_complex_matches_native(func, scalar):
     objarr = np.empty(3, dtype=object)
     objarr[:] = vals
     warn = Pandas4Warning if func == "nanmedian" else None
-    with tm.assert_produces_warning(warn, match=MEDIAN_MSG):
+    with tm.assert_produces_warning(warn, match=COMPLEX_MSG):
         expected = getattr(nanops, func)(np.array(vals, dtype=np.complex128))
         assert getattr(nanops, func)(objarr) == expected
 
@@ -958,7 +967,7 @@ def test_object_nat_is_na(func, nat):
 def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
     # the imaginary part was silently discarded on builds without bottleneck
     values = np.array([1 + 2j, 3 + 4j, 5j, 1j])
-    with tm.assert_produces_warning(Pandas4Warning, match=MEDIAN_MSG):
+    with tm.assert_produces_warning(Pandas4Warning, match=COMPLEX_MSG):
         assert nanops.nanmedian(values) == 0.5 + 3.5j
 
 
@@ -969,11 +978,11 @@ def test_nanmedian_skipna_false_keeps_dtype(disable_bottleneck, dtype):
     values = np.array([1, np.nan, 3], dtype=dtype)
     warn = Pandas4Warning if values.dtype.kind == "c" else None
 
-    with tm.assert_produces_warning(warn, match=MEDIAN_MSG):
+    with tm.assert_produces_warning(warn, match=COMPLEX_MSG):
         result = nanops.nanmedian(values, skipna=False)
     assert result.dtype == values.dtype
 
-    with tm.assert_produces_warning(warn, match=MEDIAN_MSG):
+    with tm.assert_produces_warning(warn, match=COMPLEX_MSG):
         result = nanops.nanmedian(values.reshape(1, 3), axis=1, skipna=False)
     assert result.dtype == values.dtype
 
