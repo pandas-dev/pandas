@@ -22,11 +22,6 @@ class TestConfig:
             m.setattr(cf, "_deprecated_options", {})
             m.setattr(cf, "_registered_options", {})
 
-            # Our test fixture in conftest.py sets "chained_assignment"
-            # to "raise" only after all test methods have been setup.
-            # However, after this setup, there is no longer any
-            # "chained_assignment" option, so re-register it.
-            cf.register_option("chained_assignment", "raise")
             yield
 
     def test_api(self):
@@ -503,6 +498,17 @@ def test_no_silent_downcasting_deprecated():
         cf.get_option("future.no_silent_downcasting")
     with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
         cf.set_option("future.no_silent_downcasting", True)
+
+
+@pytest.mark.parametrize("value", [False, True])
+def test_infer_string_deprecated(value):
+    # GH#68436
+    msg = "The 'future.infer_string' option is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        cf.get_option("future.infer_string")
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with cf.option_context("future.infer_string", value):
+            pass
 
 
 def test_option_context_invalid_option():

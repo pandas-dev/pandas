@@ -41,6 +41,7 @@ class TextReader:
     leading_cols: int  # int64_t
     header: list[list[int]]  # non-negative integers
     defer_pa_wrap: bool
+    block_workers: int
     trim_after_read: bool
     warning_sink: list[tuple[str, type[Warning]]] | None
     def __init__(
@@ -54,7 +55,7 @@ class TextReader:
         names: Sequence[Hashable] | None = ...,
         tokenize_chunksize: int = ...,  # int64_t
         delim_whitespace: bool = ...,
-        converters: Mapping[Hashable, Callable] | None = ...,
+        converters: Mapping[Hashable, Callable[..., Any]] | None = ...,
         skipinitialspace: bool = ...,
         escapechar: bytes | str | None = ...,  # single-character only
         doublequote: bool = ...,
@@ -65,15 +66,15 @@ class TextReader:
         decimal: bytes | str = ...,  # single-character only
         thousands: bytes | str | None = ...,  # single-character only
         dtype: Dtype | dict[Hashable, Dtype] = ...,
-        usecols: UsecolsArgType = ...,
+        usecols: UsecolsArgType[Hashable] = ...,
         error_bad_lines: bool = ...,
         warn_bad_lines: bool = ...,
         na_filter: bool = ...,
         na_values: set[str] | Mapping[Hashable, set[str]] = ...,
         na_fvalues: set[float] | Mapping[Hashable, set[float]] = ...,
         keep_default_na: bool = ...,
-        true_values: list | None = ...,
-        false_values: list | None = ...,
+        true_values: list[str] | None = ...,
+        false_values: list[str] | None = ...,
         allow_leading_cols: bool = ...,
         skiprows: int | Iterable[int] | Callable[[Hashable], bool] | None = ...,
         skipfooter: int = ...,  # int64_t
@@ -91,6 +92,7 @@ class TextReader:
     def load_buffer(self, data: bytes | memoryview, strip_bom: bool = ...) -> None: ...
     def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
     def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...
+    def _maybe_infer_categoricals(self, data: dict[int, ArrayLike]) -> None: ...
 
 # _maybe_upcast, na_values are only exposed for testing
 na_values: dict[type | np.dtype, float | int]

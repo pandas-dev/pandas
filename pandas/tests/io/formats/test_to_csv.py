@@ -12,11 +12,18 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
 from pandas.core.indexes.base import get_values_for_csv
+
+skip_if_bare_cr_unquoted = pytest.mark.skipif(
+    sys.version_info < (3, 11, 9) or (3, 12) <= sys.version_info < (3, 12, 3),
+    reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9 and 3.12.3, "
+    "see python/cpython#67044",
+)
 
 
 class TestToCSV:
@@ -326,6 +333,25 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(date_format="%Y-%m-%d___%H:%M:%S") == expected
 
+    def test_to_csv_date_format_object_dtype(self):
+        # GH#27306 date_format applies to datetimes in object-dtype column
+        # labels, index, and values
+        ts = pd.Timestamp("2019-07-09")
+        per = pd.Period("2019-07", freq="M")
+        index = pd.Index([ts, "a", pd.NaT], dtype=object)
+        df = pd.DataFrame(
+            {ts: [1, 2, 3], "b": pd.array([per, ts, pd.NaT], dtype=object)},
+            index=index,
+        )
+        expected_rows = [
+            ",2019-07-09,b",
+            "2019-07-09,1,2019-07-31",
+            "a,2,2019-07-09",
+            "NA,3,NA",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y-%m-%d", na_rep="NA") == expected
+
     def test_to_csv_interval_columns(self):
         # GH#55426 - exercise the column path for IntervalArray
         df = pd.DataFrame(
@@ -416,6 +442,29 @@ $1$,$2$
         )
         expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float16",
+            "float32",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "quoting, expected_rows",
+        [
+            (csv.QUOTE_NONNUMERIC, ['"a","b"', "8.57,0.5", '"",1.5']),
+            (csv.QUOTE_ALL, ['"a","b"', '"8.57","0.5"', '"","1.5"']),
+        ],
+    )
+    def test_to_csv_quoting_low_precision_float(self, dtype, quoting, expected_rows):
+        # GH#60699 quoting should not write the float64 repr of the values
+        df = pd.DataFrame({"a": [8.57, None], "b": [0.5, 1.5]}, dtype=dtype)
+        result = df.to_csv(index=False, quoting=quoting)
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
 
     def test_to_csv_multi_index(self):
         # see gh-6618
@@ -508,6 +557,14 @@ $1$,$2$
         result = pd.read_csv(temp_file)
         tm.assert_frame_equal(result, df)
 
+    @skip_if_bare_cr_unquoted
+    def test_to_csv_roundtrip_with_carriage_return_in_field(self, temp_file):
+        # GH#27737 a lone trailing "\r" must not be read back as a line terminator
+        df = pd.DataFrame({"a": ["a1\r", "a2"], "b": ["b1", "b2"]})
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
+
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
@@ -541,6 +598,20 @@ $1$,$2$
         df.to_csv(temp_file, lineterminator="\r\n", index=False)
         with open(temp_file, "rb") as f:
             assert f.read() == expected_crlf
+
+    @skip_if_bare_cr_unquoted
+    def test_to_csv_string_with_cr(self, temp_file):
+        # GH#10018 - a bare "\r" must be quoted even though it is not the
+        #  lineterminator, or read_csv splits the field across rows
+        data = {"int": [1, 2, 3], "str_cr": ["abc", "d\ref", "g\rh\r\ri"]}
+        df = pd.DataFrame(data)
+
+        df.to_csv(temp_file, lineterminator="\n", index=False)
+        with open(temp_file, "rb") as f:
+            assert f.read() == b'int,str_cr\n1,abc\n2,"d\ref"\n3,"g\rh\r\ri"\n'
+
+        df.to_csv(temp_file, index=False)
+        tm.assert_frame_equal(pd.read_csv(temp_file), df)
 
     def test_to_csv_string_with_crlf(self, temp_file):
         # GH 20353

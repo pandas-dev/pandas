@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -22,6 +24,7 @@ class TestSeriesRenameAxis:
         with pytest.raises(TypeError, match="unexpected"):
             ser.rename_axis(columns="wrong")
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.rename_axis")
     def test_rename_axis_inplace(self, datetime_series):
         # GH 15704
         expected = datetime_series.rename_axis("foo")
@@ -41,3 +44,28 @@ class TestSeriesRenameAxis:
         expected_index = index.rename(None) if kwargs else index
         expected = pd.Series([1, 2, 3], index=expected_index)
         tm.assert_series_equal(result, expected)
+
+
+def test_rename_axis_inplace_depr():
+    msg = "The inplace keyword in Series.rename_axis is deprecated"
+
+    ser = pd.Series([1, 2, 3], index=pd.Index([0, 1, 2], name="idx"))
+    ser_orig = ser.copy()
+    expected = ser.rename_axis("foo")
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.rename_axis("foo")
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.rename_axis("foo", inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.rename_axis("foo", inplace=True)
+    tm.assert_series_equal(ser, expected)

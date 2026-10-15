@@ -345,3 +345,47 @@ class TestAppend:
 
         expected = pd.DataFrame({"a": [df.iloc[0, 0], other.iloc[0, 0]]}, dtype=object)
         tm.assert_frame_equal(result, expected)
+
+
+def test_append_internal_reordered_row_matches_by_label():
+    # GH#65431 the pre-cast matches positionally, so a reordered row has to be
+    #  left for concat to align by label
+    df = pd.DataFrame(
+        {"a": pd.array([1, 2], dtype="Int64"), "b": pd.array([1, 2], dtype="int64")}
+    )
+    ser = pd.Series({"b": 5, "a": 6}, name=2)
+
+    result = df._append_internal(ser)
+
+    expected = pd.DataFrame(
+        {
+            "a": pd.array([1, 2, 6], dtype="Int64"),
+            "b": pd.array([1, 2, 5], dtype="int64"),
+        },
+        index=[0, 1, 2],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_append_internal_pre_cast_retains_numpy_dtype():
+    # GH#65431 a losslessly-holdable value is pre-cast, so concat keeps int64
+    #  instead of widening the column to float64
+    df = pd.DataFrame({"a": [1, 2]})
+    ser = pd.Series([3.0], index=["a"], name=2)
+
+    result = df._append_internal(ser)
+
+    expected = pd.DataFrame({"a": [1, 2, 3]}, index=[0, 1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_append_internal_pre_cast_declines_narrowing():
+    # GH#65431 the pre-cast has to preserve the value, not just the dtype:
+    #  0.1 fits float32's dtype but not its precision, so the column widens
+    df = pd.DataFrame({"a": pd.Series([1, 2], dtype="float32")})
+    ser = pd.Series([0.1], index=["a"], name=2)
+
+    result = df._append_internal(ser)
+
+    expected = pd.DataFrame({"a": [1.0, 2.0, 0.1]}, index=[0, 1, 2])
+    tm.assert_frame_equal(result, expected)

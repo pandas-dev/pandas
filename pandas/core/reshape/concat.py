@@ -188,8 +188,11 @@ def concat(
     objs : an iterable or mapping of Series or DataFrame objects
         If a mapping is passed, the keys will be used as the `keys`
         argument, unless it is passed, in which case the values will be
-        selected (see below). Any None objects will be dropped silently unless
+        selected (see below). Any None objects will be dropped unless
         they are all None in which case a ValueError will be raised.
+
+        .. deprecated:: 3.2.0
+            Passing None objects is deprecated.
     axis : {0/'index', 1/'columns'}, default 0
         The axis to concatenate along.
     join : {'inner', 'outer'}, default 'outer'
@@ -226,7 +229,7 @@ def concat(
             pandas 3.0, this method always returns a new object using a lazy
             copy mechanism that defers copies until necessary
             (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
             for more details.
 
     union_categories : bool, default False
@@ -874,6 +877,15 @@ def _clean_keys_and_objs(
 
     if len(clean_objs) == 0:
         raise ValueError("All objects passed were None")
+    if len(clean_objs) < len(objs):
+        # GH#57846
+        warnings.warn(
+            "Passing None in the objects to concat is deprecated and will raise "
+            "in a future version. Filter out the None entries before calling "
+            "concat instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     return clean_objs, keys, ndims
 
@@ -896,7 +908,7 @@ def _get_sample_object(
                 return obj, objs
     elif keys is None and names is None and levels is None and not intersect:
         # filter out the empties if we have not multi-index possibilities
-        # note to keep empty Series as it affect to result columns / name
+        # note to keep empty Series as it affects the result columns / name
         if ndims.pop() == 2:
             non_empties = [obj for obj in objs if sum(obj.shape)]
         else:

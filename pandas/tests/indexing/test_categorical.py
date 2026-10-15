@@ -438,6 +438,9 @@ class TestCategoricalIndex:
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_ix_categorical_index_non_unique(self, infer_string):
         # non-unique
         with pd.option_context("future.infer_string", infer_string):

@@ -133,7 +133,9 @@ class TestDataFrameMissingData:
     @pytest.mark.filterwarnings(
         "ignore:The inplace keyword in (Series|DataFrame).dropna"
     )
-    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
+    @pytest.mark.filterwarnings(
+        "ignore:The inplace keyword in (Series|DataFrame).drop is"
+    )
     def test_drop_and_dropna_caching(self):
         # tst that cacher updates
         original = pd.Series([1, 2, np.nan], name="A")

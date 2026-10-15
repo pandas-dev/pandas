@@ -253,3 +253,17 @@ def test_error_both_scalar(operation):
     with pytest.raises(TypeError, match=msg):
         # masks need to be non-None, otherwise it ends up in an infinite recursion
         operation(True, True, np.zeros(1), np.zeros(1))
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_datetimelike_raises(op):
+    # GH#68452 BooleanArray cast the operand with np.asarray(other, dtype="bool"),
+    #  which silently made every datetime -- NaT included -- True
+    left = pd.array([True, False, True], dtype="boolean")
+    right = np.array(["NaT", 1, 2], dtype="datetime64[ns]")
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)

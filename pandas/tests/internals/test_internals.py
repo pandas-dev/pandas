@@ -944,6 +944,33 @@ class TestGetDtypesCache:
         tm.assert_series_equal(df.dtypes, expected)
         tm.assert_frame_equal(view, pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
 
+    def test_stale_array_not_cached_when_blocks_replaced(self):
+        # GH#68446 get_dtypes must not cache an array it built from blocks that a
+        # write has replaced meanwhile: that write's invalidation already ran.
+        df = pd.DataFrame(
+            {"a": pd.array([1], dtype="Int64"), "b": pd.array([2], dtype="Int64")}
+        )
+        mgr = df._mgr
+        blocks = mgr.blocks
+
+        class WriteWhileReadingDtypes:
+            # stands in for a write landing while get_dtypes walks mgr.blocks
+            def __init__(self, block) -> None:
+                self.block = block
+
+            @property
+            def dtype(self):
+                mgr.blocks = blocks  # the write must not see this stand-in
+                df["b"] = np.array([1.5])
+                return self.block.dtype
+
+        mgr._dtypes_cache = None
+        mgr.blocks = (WriteWhileReadingDtypes(blocks[0]), *blocks[1:])
+        mgr.get_dtypes()
+
+        expected = pd.Series([pd.Int64Dtype(), np.dtype("float64")], index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
 
 def _as_array(mgr):
     if mgr.ndim == 1:

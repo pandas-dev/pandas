@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
     overload,
 )
@@ -205,8 +206,8 @@ def array(
 
     Finally, Pandas has arrays that mostly overlap with NumPy
 
-      * :class:`arrays.DatetimeArray`
-      * :class:`arrays.TimedeltaArray`
+    * :class:`arrays.DatetimeArray`
+    * :class:`arrays.TimedeltaArray`
 
     When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
     passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``
@@ -834,7 +835,7 @@ def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
 
 
 def _try_cast(
-    arr: list | np.ndarray,
+    arr: list[Any] | np.ndarray,
     dtype: np.dtype,
     copy: bool,
 ) -> ArrayLike:

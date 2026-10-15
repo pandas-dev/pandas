@@ -249,7 +249,9 @@ def test_bad_date_parse(all_parsers, cache, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * (start_caching_at + 1))
 
-    parser.read_csv(
+    parser.read_csv_check_warnings(
+        Pandas4Warning,
+        "The 'cache_dates' argument is deprecated",
         s,
         header=None,
         names=["foo", "bar"],
@@ -264,21 +266,19 @@ def test_bad_date_parse_with_warning(all_parsers, cache):
     parser = all_parsers
     s = StringIO(("0,\n") * (start_caching_at + 1))
 
-    if parser.engine == "pyarrow":
-        # pyarrow reads "0" as 0 (of type int64), and so
-        # pandas doesn't try to guess the datetime format
-        # TODO: parse dates directly in pyarrow, see
-        # https://github.com/pandas-dev/pandas/issues/48017
-        warn = None
-    elif cache:
-        # Note: warning is not raised if 'cache_dates', because here there is only a
-        # single unique date and hence no risk of inconsistent parsing.
-        warn = None
+    depr_msg = "The 'cache_dates' argument is deprecated"
+    if parser.engine == "pyarrow" or cache:
+        # pyarrow: reads "0" as int64, so pandas doesn't try to guess the format
+        # (TODO: parse dates directly in pyarrow, see GH#48017).
+        # cache_dates=True: the UserWarning is not raised because there is only
+        # a single unique date, so there's no risk of inconsistent parsing.
+        warn, match = Pandas4Warning, depr_msg
     else:
-        warn = UserWarning
+        warn = (Pandas4Warning, UserWarning)
+        match = (depr_msg, "Could not infer format")
     parser.read_csv_check_warnings(
         warn,
-        "Could not infer format",
+        match,
         s,
         header=None,
         names=["foo", "bar"],
@@ -286,6 +286,18 @@ def test_bad_date_parse_with_warning(all_parsers, cache):
         cache_dates=cache,
         raise_on_extra_warnings=False,
     )
+
+
+@pytest.mark.parametrize("reader", [read_csv, pd.read_table, pd.read_fwf])
+def test_cache_dates_deprecated(reader, cache):
+    # GH#68705
+    msg = "The 'cache_dates' argument is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = reader(
+            StringIO("a\n2020-01-01\n"), parse_dates=["a"], cache_dates=cache
+        )
+    expected = pd.DataFrame({"a": pd.to_datetime(["2020-01-01"])})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_parse_dates_empty_string(all_parsers):
@@ -873,6 +885,19 @@ def test_parse_dates_arrow_engine(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_parse_dates_gmt_timezone(all_parsers):
+    # GH#68193 the "GMT" spelling used to survive inference as a literal, so the
+    #  column came back naive where the "UTC" spelling was tz-aware
+    parser = all_parsers
+    data = "a\n2020-01-15 08:30:00 GMT\n2020-01-15 09:30:00 GMT"
+
+    result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    expected = pd.DataFrame(
+        {"a": pd.to_datetime(["2020-01-15 08:30", "2020-01-15 09:30"], utc=True)}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 # pyarrow normalizes mixed offsets to UTC; reading as strings to preserve them
 # would change the resolution of cleanly-parsed datetimes (see
 # test_parse_dates_arrow_engine), so this divergence is left for a follow-up.
@@ -939,6 +964,10 @@ def test_parse_dates_c_fastpath_matches_python_engine(data, low_memory, dtype_ba
         "a\n2020-01-01\n2020-01-02 10:00\n",
         # second value bumps the inferred resolution mid-column
         "a\n2020-01-02\n2020-01-01 00:00:00.123456789\n",
+        # an aware value followed by a naive one stays unparsed
+        "a\n2024-04-22 17:15+05:30\n2024-02-19 12:19\n",
+        "a\n2024-04-22T17Z\n2024-02-19T12\n",
+        "a\n2024-04-22 05:46:33+05:30\n2024-02-19 21:32:05.000000\n",
     ],
 )
 @pytest.mark.parametrize("low_memory", [False, True])

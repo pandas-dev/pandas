@@ -291,6 +291,10 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 # ----------------------------------------------------------------------
 # Daylight Savings
 
+cdef datetime _UTC_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+# Smallest whole second representable as int64 nanoseconds.
+cdef int64_t _MIN_TRANS_SECONDS = -(-(NPY_NAT + 1) // 1_000_000_000)
+
 
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
@@ -350,7 +354,9 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         if trans_utc:
             last_hist_ts = trans_utc[-1]
             try:
-                last_year = datetime.fromtimestamp(last_hist_ts, timezone.utc).year
+                # NB: not fromtimestamp, which goes through the platform
+                #  time_t and overflows past 2038 on 32-bit. GH#67826
+                last_year = (_UTC_EPOCH + timedelta(seconds=last_hist_ts)).year
             except (OSError, OverflowError, ValueError):
                 last_year = 1970
         else:
@@ -382,7 +388,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         valid = True
         try:
             for future_ts, future_delta in future_trans:
-                probe = datetime.fromtimestamp(future_ts + 1, timezone.utc)
+                probe = _UTC_EPOCH + timedelta(seconds=future_ts + 1)
                 probe_offset = probe.astimezone(tz).utcoffset().total_seconds()
                 if int(probe_offset) != future_delta:
                     valid = False
@@ -395,10 +401,19 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
                 trans_utc.append(future_ts)
                 deltas_seconds.append(future_delta)
 
+    first_offset_seconds = int(tz_py._tti_before.utcoff.total_seconds())
+
+    # Certain older systems (toolchain from between 2013 and 2018f) have TZif
+    #  files that start with a "big bang" transition at -2**59 seconds, which
+    #  wraps when scaled to nanoseconds and leaves trans unsorted; the
+    #  NPY_NAT + 1 sentinel below stands in for it. GH#67066
+    if trans_utc and trans_utc[0] < _MIN_TRANS_SECONDS:
+        del trans_utc[0]
+        del deltas_seconds[0]
+
     trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
     trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
 
-    first_offset_seconds = int(tz_py._tti_before.utcoff.total_seconds())
     deltas = np.array(deltas_seconds, dtype="i8") * 1_000_000_000
     deltas = np.hstack([[first_offset_seconds * 1_000_000_000], deltas])
 
