@@ -985,14 +985,16 @@ class _LocationIndexer(_NDFrameIndexerBase):
             if not len(target) or not target.is_unique or not value_ax.is_unique:
                 continue
             dropped = target._drop_level_numbers(list(range(ndropped))[::-1])
-            positions = dropped.get_indexer(value_ax)
+            # dropped repeats labels if the key matched several, see
+            #  test_loc_setitem_partial_key_matching_several_labels
+            positions = value_ax.get_indexer(dropped)
             found = positions != -1
             if not found.any():
                 # e.g. the value is already labeled like the target
                 continue
-            # drop unmatched labels; missing ones are left to the usual alignment
-            value = value.take(found.nonzero()[0], axis=value_axis)
-            value = value.set_axis(target.take(positions[found]), axis=value_axis)
+            # labels unmatched on either side are left to the usual alignment
+            value = value.take(positions[found], axis=value_axis)
+            value = value.set_axis(target[found], axis=value_axis)
         return value
 
     @final

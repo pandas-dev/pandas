@@ -871,3 +871,19 @@ def test_loc_setitem_partial_row_key_value_extra_labels():
     ser.loc["a"] = pd.Series({"x": 10.0, "z": 30.0})
     expected = pd.Series([10.0, np.nan, 3.0], index=mi)
     tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "first_level, key",
+    [
+        (pd.to_datetime(["2020-01-01", "2020-01-02", "2021-01-01"]), "2020"),
+        (pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)]), 1.5),
+    ],
+)
+def test_loc_setitem_partial_key_matching_several_labels(first_level, key):
+    # GH#43719 the value is broadcast to each first-level label the key matches
+    mi = pd.MultiIndex.from_product([first_level, ["x", "y"]])
+    ser = pd.Series(np.arange(6.0), index=mi)
+    ser.loc[key] = pd.Series({"x": 10.0, "y": 20.0})
+    expected = pd.Series([10.0, 20.0, 10.0, 20.0, 4.0, 5.0], index=mi)
+    tm.assert_series_equal(ser, expected)
