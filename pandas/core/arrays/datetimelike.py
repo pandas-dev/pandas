@@ -2581,6 +2581,6 @@ def _box_numpy_datetimelike(val, kind: str):
                 return Timestamp(val)
             return Timedelta(val)
         except ValueError:
-            # Timedelta rejects "Y" and "M" units
+            # out of bounds, or Timedelta with "Y"/"M" units
             return val
     return val
