@@ -1046,23 +1046,72 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
-        "box",
-        [np.array, pd.Series, pd.Index, pd.array],
-        ids=["ndarray", "Series", "Index", "pd.array"],
+        "value",
+        [
+            [[1, 2], [3, 4]],
+            [np.array([1, 2]), np.array([3, 4])],
+            [pd.Series([1, 2]), pd.Series([3, 4])],
+            [pd.Index([1, 2]), pd.Index([3, 4])],
+            [pd.array([1, 2]), pd.array([3, 4])],
+            np.array([[1, 2], [3, 4]]),
+            [[1], [2]],
+            np.array([[1], [2]]),
+            np.array([[1]]),
+        ],
+        ids=[
+            "lists",
+            "ndarrays",
+            "Series",
+            "Index",
+            "pd.array",
+            "2d-ndarray",
+            "width-1-lists",
+            "width-1-2d-ndarray",
+            "1x1-ndarray",
+        ],
     )
+    # the second column's dtype decides whether the frame is single-block, and
+    #  so whether the setitem takes the split path
+    @pytest.mark.parametrize("other_dtype", ["int64", object], ids=["mixed", "object"])
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
-    def test_setitem_split_path_list_of_arrays_object_cell(self, indexer, box):
-        # GH#64230 being a 2D value takes precedence over the nested-data-into-
-        # a-single-object-cell branch, so this is a shape mismatch rather than
-        # a list stored in df.iloc[0, 0]
-        df = pd.DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
-        value = [box([1, 2]), box([3, 4])]
-        msg = "Must have equal len keys and value when setting with an ndarray"
-        with pytest.raises(ValueError, match=msg):
-            if indexer == "loc":
-                df.loc[0, "a"] = value
-            else:
-                df.iloc[0, 0] = value
+    def test_setitem_2d_value_into_object_cell(self, indexer, other_dtype, value):
+        # GH#69152 a single object cell stores a 2D value as-is, whatever the
+        #  frame's block layout; the split path used to raise or flatten it
+        df = pd.DataFrame(
+            {"a": np.zeros(2, dtype=object), "b": np.zeros(2, dtype=other_dtype)}
+        )
+        if indexer == "loc":
+            df.loc[0, "a"] = value
+        else:
+            df.iloc[0, 0] = value
+
+        assert df.iloc[0, 0] is value
+        assert df.iloc[1, 0] == 0
+        tm.assert_series_equal(
+            df["b"], pd.Series(np.zeros(2, dtype=other_dtype), name="b")
+        )
+
+    @pytest.mark.parametrize("other_dtype", ["int64", object], ids=["mixed", "object"])
+    @pytest.mark.parametrize(
+        "indexer, key",
+        [("loc", (0, "a")), ("loc", (2, "a")), ("iloc", (0, 0))],
+        ids=["loc", "loc-expand", "iloc"],
+    )
+    def test_setitem_unsized_iterable_into_object_cell(self, indexer, key, other_dtype):
+        # GH#63225 an object with __iter__ but no __len__ is stored as-is rather
+        #  than raising "has no len()"
+        class NotIterable:
+            def __iter__(self):
+                raise TypeError("not iterable")
+
+        df = pd.DataFrame(
+            {"a": np.zeros(2, dtype=object), "b": np.zeros(2, dtype=other_dtype)}
+        )
+        value = NotIterable()
+        getattr(df, indexer)[key] = value
+
+        assert df.iloc[key[0], 0] is value
+        assert df.iloc[1, 0] == 0
 
     @pytest.mark.parametrize(
         "box",
@@ -2232,6 +2281,162 @@ def test_iloc_setitem_series_boolean_index_row_key():
     ser.iloc[pd.Index([True, True, False, False])] = ["a", "b"]
 
     tm.assert_series_equal(ser, pd.Series(["a", "b", 3, 4], dtype=object))
+
+
+def _datetimelike_values(ints, dtype):
+    # ``ints`` as the i8 values of ``dtype``, keeping the shape
+    if dtype == "period[D]":
+        return pd.arrays.PeriodArray(ints.ravel(), dtype=dtype).reshape(ints.shape)
+    if dtype == "M8[ns, UTC]":
+        values = pd.array(ints.ravel().view("M8[ns]")).tz_localize("UTC")
+        return values.reshape(ints.shape)
+    return ints.view(dtype)
+
+
+_ROW_KEYS = [
+    1,
+    [2, 0],
+    slice(None, None, -1),
+    np.array([True, False, True, False]),
+    [],
+    ...,
+]
+_COL_KEYS = [0, [2, 0], slice(None, None, 2), [2, 1, 0], []]
+
+
+class TestILocSetItem2DDatetimelikeBlock:
+    @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+    def test_1d_value_broadcasts(self, dtype):
+        # GH#68521 the 2D datetimelike block stores columns first, so a 1-D value
+        #  was broadcast down rows instead of across the selected columns
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        # copy so a write-through to ``arr`` can't make the comparison vacuous
+        df = pd.DataFrame(arr.copy().view(dtype), columns=list("abc"))
+
+        df.iloc[[2, 0], ::-1] = np.array([100, 101, 102], dtype="i8").view(dtype)
+
+        arr[[2, 0], ::-1] = [100, 101, 102]
+        expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]", "M8[ns, UTC]", "period[D]"])
+    @pytest.mark.parametrize(
+        "key",
+        [
+            (row_key, col_key)
+            for row_key in _ROW_KEYS
+            for col_key in _COL_KEYS
+            if not (isinstance(row_key, int) and isinstance(col_key, int))
+        ]
+        + [
+            (range(2), range(2)),
+            ([2, 0],),
+            (None,),
+            (None, ...),
+            (np.array([[1], [2]]),),
+            (np.array([[1, 2]]),),
+            (slice(None), np.array([[0, 2]])),
+        ],
+    )
+    def test_matches_numeric(self, dtype, key):
+        # GH#68521 a 2D datetimelike block writes the cells a NumPy-backed frame
+        #  does, and raises where it raises
+        ints = np.arange(12, dtype="i8").reshape(4, 3)
+        if len(key) == 2 and all(
+            isinstance(entry, (list, np.ndarray)) for entry in key
+        ):
+            # iloc takes the outer product of two list-likes, like np.ix_
+            shape = ints[np.ix_(*key)].shape
+        else:
+            shape = ints[key].shape
+        value_shapes = {shape, shape[:1], shape[-1:], shape[::-1]}
+        if len(shape) == 2:
+            value_shapes |= {(shape[0], 1), (1, *shape)}
+
+        for value_shape in value_shapes:
+            numeric = pd.DataFrame(ints.copy())
+            df = pd.DataFrame(_datetimelike_values(ints, dtype))
+            value = np.arange(100, 100 + np.prod(value_shape), dtype="i8")
+            value = value.reshape(value_shape)
+            try:
+                numeric.iloc[key] = value
+            except (ValueError, IndexError):
+                with pytest.raises((ValueError, IndexError)):
+                    df.iloc[key] = _datetimelike_values(value, dtype)
+            else:
+                df.iloc[key] = _datetimelike_values(value, dtype)
+            expected = pd.DataFrame(_datetimelike_values(numeric.to_numpy(), dtype))
+            tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [
+            list,
+            tuple,
+            pd.Index,
+            pd.Series,
+            pd.array,
+            pd.Categorical,
+            lambda x: [str(pd.Timestamp(v)) for v in x],
+        ],
+    )
+    def test_1d_value_not_ndarray(self, box):
+        # GH#68521 these spellings of a 1-D value wrote the wrong cells silently too
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.copy().view("M8[s]"), columns=list("abc"))
+
+        df.iloc[[2, 0], ::2] = box(np.array([100, 101], dtype="i8").view("M8[s]"))
+
+        arr[[2, 0], ::2] = [100, 101]
+        expected = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+    def test_0d_row_key(self, dtype):
+        # GH#68521 a 0-d ndarray row key selects one row, like an int
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.copy().view(dtype), columns=list("abc"))
+
+        df.iloc[np.array(1)] = np.array([100, 101, 102], dtype="i8").view(dtype)
+
+        arr[1] = [100, 101, 102]
+        expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("col_key", [slice(None, None, -1), [2, 1, 0]])
+    def test_shape_mismatch_message(self, col_key):
+        # GH#68521 a value that cannot be broadcast is a shape problem; the upcast
+        #  fallback reported it as a datetime resolution one
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+        msg = (
+            r"shape mismatch: value array of shape \(2,\) could not be broadcast "
+            r"to indexing result of shape \(2,3\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.iloc[[2, 0], col_key] = np.array([100, 101], dtype="i8").view("M8[s]")
+
+    def test_row_vector_into_one_row(self):
+        # GH#68521 numpy drops the row vector's leading length-1 axis; this raised
+        #  because the value was transposed into a column vector
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.copy().view("M8[s]"), columns=list("abc"))
+
+        value = np.array([[100, 101, 102]])
+        df.iloc[1] = value.astype("i8").view("M8[s]")
+
+        arr[1] = value
+        tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message():
+    # GH#68521 the broadcast message is for 2D blocks only; a Series keeps its
+    #  dtype error
+    ser = pd.Series(np.arange(4).astype("i8").view("M8[s]"))
+
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.iloc[0] = [1, 2]
 
 
 @pytest.mark.parametrize(

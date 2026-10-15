@@ -66,6 +66,9 @@ def data_for_grouping():
     return DecimalArray([b, b, na, na, a, a, b, c])
 
 
+@pytest.mark.filterwarnings(
+    "ignore:DecimalArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestDecimalArray(base.ExtensionTests):
     def _honors_copy_keyword(self, data) -> bool:
         return False

@@ -332,17 +332,17 @@ by supplying the ``var_name`` and ``value_name`` parameters.
 
 .. ipython:: python
 
-   cheese = pd.DataFrame(
+   df3 = pd.DataFrame(
        {
            "first": ["John", "Mary"],
            "last": ["Doe", "Bo"],
-           "height": [5.5, 6.0],
-           "weight": [130, 150],
+           "math": [72, 91],
+           "english": [85, 78],
        }
    )
-   cheese
-   cheese.melt(id_vars=["first", "last"])
-   cheese.melt(id_vars=["first", "last"], var_name="quantity")
+   df3
+   df3.melt(id_vars=["first", "last"])
+   df3.melt(id_vars=["first", "last"], var_name="subject", value_name="score")
 
 When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored.
 The original index values can be kept by setting the ``ignore_index`` parameter to ``False`` (default is ``True``).
@@ -351,18 +351,18 @@ The original index values can be kept by setting the ``ignore_index`` parameter 
 .. ipython:: python
 
    index = pd.MultiIndex.from_tuples([("person", "A"), ("person", "B")])
-   cheese = pd.DataFrame(
+   df3 = pd.DataFrame(
        {
            "first": ["John", "Mary"],
            "last": ["Doe", "Bo"],
-           "height": [5.5, 6.0],
-           "weight": [130, 150],
+           "math": [72, 91],
+           "english": [85, 78],
        },
        index=index,
    )
-   cheese
-   cheese.melt(id_vars=["first", "last"])
-   cheese.melt(id_vars=["first", "last"], ignore_index=False)
+   df3
+   df3.melt(id_vars=["first", "last"])
+   df3.melt(id_vars=["first", "last"], ignore_index=False)
 
 :func:`~pandas.wide_to_long` is similar to :func:`~pandas.melt` with more customization for
 column matching.
@@ -418,6 +418,16 @@ This function is often used along with discretization functions like :func:`~pan
    bins = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
    pd.get_dummies(pd.cut(values, bins))
+
+A categorical input gets one column per category, including categories absent
+from the data. To get a consistent set of columns, e.g. between training and
+test data, set the categories first:
+
+.. ipython:: python
+
+    s = pd.Series(list("aca")).astype(pd.CategoricalDtype(["a", "b", "c"]))
+
+    pd.get_dummies(s)
 
 
 :func:`get_dummies` also accepts a :class:`DataFrame`. By default, ``object``, ``string``,

@@ -176,6 +176,8 @@ class ArrowStringArrayMixin:
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ) -> Self:
+        if width < 0:
+            width = 0
         if side == "left":
             pa_pad = pc.utf8_lpad
         elif side == "right":
