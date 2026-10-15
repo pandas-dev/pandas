@@ -34,8 +34,6 @@ if TYPE_CHECKING:
         NDFrameT,
     )
 
-    from pandas import Series
-
 
 def is_mask(key: object) -> bool:
     """
@@ -83,6 +81,14 @@ def filter_mask(
         raise ValueError(
             f"The mask passed to {type(obj).__name__}.filter must be one-dimensional"
         )
+    if isinstance(mask, ABCSeries) and not mask.index.equals(labels):
+        axis_name = obj._get_axis_name(axis)
+        raise ValueError(
+            f"A Series mask passed to {type(obj).__name__}.filter must have an "
+            f"index equal to the {axis_name} being filtered. Reindex the mask "
+            "to align it by label, or pass mask.to_numpy() to apply it by "
+            "position."
+        )
 
     values = extract_array(mask, extract_numpy=True)
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
@@ -96,10 +102,5 @@ def filter_mask(
                 raise ValueError("The mask contains missing values")
             values = values.fillna(na)
         np_mask = values.to_numpy(dtype=bool)
-    key: Series | np.ndarray
-    if isinstance(mask, ABCSeries):
-        key = mask._constructor(np_mask, index=mask.index, copy=False)
-    else:
-        key = np_mask
-    aligned_mask = check_bool_indexer(labels, key)
-    return obj.loc(axis=axis)[aligned_mask]
+    np_mask = check_bool_indexer(labels, np_mask)
+    return obj.loc(axis=axis)[np_mask]

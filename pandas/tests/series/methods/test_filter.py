@@ -71,12 +71,12 @@ def test_filter_bool_labels():
     tm.assert_series_equal(result, expected)
 
 
-def test_filter_cond_series_aligns(ser):
-    # GH#61317
+def test_filter_cond_series_index_not_equal_raises(ser):
+    # GH#61317 a Series mask is not aligned, its index must equal the axis
     mask = pd.Series([True, True, False], index=["z", "y", "x"])
-    result = ser.filter(cond=mask)
-    expected = ser.iloc[1:]
-    tm.assert_series_equal(result, expected)
+    msg = "must have an index equal to the index being filtered"
+    with pytest.raises(ValueError, match=msg):
+        ser.filter(cond=mask)
 
 
 def test_filter_expression_raises(ser):

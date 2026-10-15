@@ -5690,7 +5690,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             the equivalent for the index) otherwise.
         cond : array-like of bool, callable, or expression, optional
             A boolean mask selecting the entries to keep. A :class:`Series`
-            is aligned with the labels of the filtered axis; any other
+            must have an index equal to the filtered axis; any other
             array-like must have the same length as that axis. A callable is
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
@@ -5714,13 +5714,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             not a one-dimensional boolean mask.
         ValueError
             If a mask contains missing values and ``na="raise"``, if a
-            boolean array is not one-dimensional, or if an expression is
+            boolean array is not one-dimensional, if a Series mask has an
+            index not equal to the filtered axis, or if an expression is
             passed with ``axis=1``.
         IndexError
             If a mask that is not a Series has a different length than the
             filtered axis.
-        IndexingError
-            If a Series mask cannot be aligned with the filtered axis.
 
         Warns
         -----

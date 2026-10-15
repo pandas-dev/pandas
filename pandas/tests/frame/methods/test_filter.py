@@ -307,20 +307,22 @@ def test_filter_cond_not_mask_raises(df, cond):
         df.filter(cond=cond)
 
 
-def test_filter_cond_series_aligns(df):
-    # GH#61317
-    mask = pd.Series([True, True, False], index=["z", "y", "x"])
-    result = df.filter(cond=mask)
-    expected = df.iloc[1:]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_cond_series_unalignable(df):
-    # GH#61317
-    mask = pd.Series([True, True, False], index=["z", "y", "w"])
-    msg = "Unalignable boolean Series provided as indexer"
-    with pytest.raises(pd.errors.IndexingError, match=msg):
+@pytest.mark.parametrize(
+    "index", [["z", "y", "x"], ["x", "y", "w"], ["x", "y"], ["x", "y", "z", "w"]]
+)
+def test_filter_cond_series_index_not_equal_raises(df, index):
+    # GH#61317 a Series mask is not aligned, its index must equal the axis
+    mask = pd.Series(True, index=index)
+    msg = "must have an index equal to the index being filtered"
+    with pytest.raises(ValueError, match=msg):
         df.filter(cond=mask)
+    with pytest.raises(ValueError, match=msg):
+        df.filter(lambda df: mask)
+
+    mask = pd.Series([True, False], index=["b", "a"])
+    msg = "must have an index equal to the columns being filtered"
+    with pytest.raises(ValueError, match=msg):
+        df.filter(cond=mask, axis=1)
 
 
 def test_filter_cond_wrong_length(df):
@@ -335,6 +337,9 @@ def test_filter_cond_columns(df, axis):
     # GH#61317
     result = df.filter(cond=[False, True], axis=axis)
     expected = df[["b"]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.filter(cond=pd.Series([False, True], index=["a", "b"]), axis=axis)
     tm.assert_frame_equal(result, expected)
 
 
