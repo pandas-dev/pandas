@@ -1,12 +1,15 @@
+import re
 from typing import (
     Any,
     final,
 )
 
+import numpy as np
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.extensions import ExtensionArray
 
 
 class BaseReduceTests:
@@ -164,7 +167,6 @@ class BaseReduceTests:
             # TODO: the message being checked here isn't actually checking anything
             msg = "|".join(
                 [
-                    f"object has no attribute '{op_name}'",
                     "does not support operation",
                     "is not supported",
                     f"{op_name} is not implemented for",
@@ -179,8 +181,20 @@ class BaseReduceTests:
                     "not allowed for this dtype",
                 ]
             )
-            with pytest.raises((TypeError, AttributeError), match=msg):
+            with pytest.raises((TypeError), match=msg):
                 getattr(ser.array, op_name)(**kwargs)
+            return
+
+        if (
+            getattr(type(data), op_name) is getattr(ExtensionArray, op_name)
+        ) and op_name != "count":
+            # GH 68959 Reduction function not overwritten in subclass should raise
+            msg = re.escape(
+                f"'{type(data).__name__}' with dtype {data.dtype} does not support"
+                f" operation '{op_name}'"
+            )
+            with pytest.raises(TypeError, match=msg):
+                getattr(ser.array, op_name)()
             return
 
         res_op = getattr(ser.array, op_name)
@@ -188,3 +202,48 @@ class BaseReduceTests:
             expected = ser.array._reduce(op_name, **call_kwargs)
             result = res_op(**call_kwargs)
             tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "func",
+        [
+            np.any,
+            np.all,
+            np.max,
+            np.mean,
+            np.min,
+            np.prod,
+            np.std,
+            np.sum,
+            np.var,
+        ],
+    )
+    def test_reduce_array_np_function_dispatch(self, data, func):
+        # GH 68959 test np function dispatch to corresponding ExtensionArray
+        #  reduction function
+        # np.median converts to a numpy array before conducting the reduction
+        # np does not have statistical functions like kurt, skew, sem, the
+        #  scipy.stats functions do not dispatch to us, so not testing those here
+        op_name = func.__name__
+        if not self._supports_reduction(pd.Series(data), op_name):
+            with pytest.raises(TypeError):
+                func(data)
+            return
+
+        if getattr(type(data), op_name) is getattr(ExtensionArray, op_name):
+            # GH 68959 Reduction function not overwritten in subclass should raise
+            msg = re.escape(
+                f"'{type(data).__name__}' with dtype {data.dtype} does not support"
+                f" operation '{op_name}'"
+            )
+            with pytest.raises(TypeError, match=msg):
+                func(data)
+            return
+
+        kwargs = {}
+        # numpy defaults to ddof=0 in contrast to pandas with ddof=1
+        if op_name in ["std", "var"]:
+            kwargs["ddof"] = 1
+
+        result = func(data, **kwargs)
+        expected = data._reduce(func.__name__, **kwargs)
+        tm.assert_almost_equal(result, expected)

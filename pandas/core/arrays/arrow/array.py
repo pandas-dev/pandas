@@ -1652,12 +1652,33 @@ class ArrowExtensionArray(
         return self._pa_array.is_null().to_numpy()
 
     @overload
-    def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: Literal[True] = ...,
+        **kwargs,
+    ) -> bool: ...
 
     @overload
-    def any(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool | NAType: ...
 
-    def any(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
+    def any(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool | NAType:
         """
         Return whether any element is truthy.
 
@@ -1668,6 +1689,11 @@ class ArrowExtensionArray(
 
         Parameters
         ----------
+        axis : int or None, default None
+            The axis to reduce over; for a 1-D array this must be 0 or None.
+        keepdims : bool, default False
+            If False, a scalar is returned.
+            If True, the result has dimension with size one along the reduced axis.
         skipna : bool, default True
             Exclude NA values. If the entire array is NA and `skipna` is
             True, then the result will be False, as for an empty array.
@@ -1713,15 +1739,39 @@ class ArrowExtensionArray(
         >>> pd.array([0, 0, pd.NA], dtype="boolean[pyarrow]").any(skipna=False)
         <NA>
         """
-        return self._reduce("any", skipna=skipna, **kwargs)
+        nv.validate_any((), kwargs)
+        return self._reduce(
+            "any", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     @overload
-    def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: Literal[True] = ...,
+        **kwargs,
+    ) -> bool: ...
 
     @overload
-    def all(self, *, skipna: bool, **kwargs) -> bool | NAType: ...
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = ...,
+        keepdims: bool = ...,
+        skipna: bool = ...,
+        **kwargs,
+    ) -> bool | NAType: ...
 
-    def all(self, *, skipna: bool = True, **kwargs) -> bool | NAType:
+    def all(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool | NAType:
         """
         Return whether all elements are truthy.
 
@@ -1732,6 +1782,11 @@ class ArrowExtensionArray(
 
         Parameters
         ----------
+        axis : int or None, default None
+            The axis to reduce over; for a 1-D array this must be 0 or None.
+        keepdims : bool, default False
+            If False, a scalar is returned.
+            If True, the result has dimension with size one along the reduced axis.
         skipna : bool, default True
             Exclude NA values. If the entire array is NA and `skipna` is
             True, then the result will be True, as for an empty array.
@@ -1777,7 +1832,10 @@ class ArrowExtensionArray(
         >>> pd.array([1, 0, pd.NA], dtype="boolean[pyarrow]").all(skipna=False)
         False
         """
-        return self._reduce("all", skipna=skipna, **kwargs)
+        nv.validate_all((), kwargs)
+        return self._reduce(
+            "all", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def argsort(
         self,
@@ -2775,6 +2833,16 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
+        # GH 68959 "dtype" and "out" are not supported by pyarrow and if None are a
+        #  no-op anyways
+        for key in ["out", "dtype"]:
+            value = kwargs.pop(key, None)
+            if value is not None:
+                raise ValueError(
+                    f"The '{key}' parameter is not supported in the "
+                    f"{type(self).__name__} implementation of '{name}'"
+                )
+
         if name == "count":
             return self.count()
 
@@ -2991,122 +3059,161 @@ class ArrowExtensionArray(
     def sum(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_sum((), kwargs)
         min_count = validate_min_count(min_count)
         return self._reduce(
-            "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+            "sum",
+            skipna=skipna,
+            keepdims=keepdims,
+            min_count=min_count,
+            axis=axis,
+            **kwargs,
         )
 
     def min(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_min((), kwargs)
-        return self._reduce("min", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce(
+            "min", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def max(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_max((), kwargs)
-        return self._reduce("max", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce(
+            "max", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def mean(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_mean((), kwargs)
-        return self._reduce("mean", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce(
+            "mean", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def sem(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         ddof: int = 1,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        return self._reduce("sem", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+        return self._reduce(
+            "sem", skipna=skipna, keepdims=keepdims, ddof=ddof, axis=axis, **kwargs
+        )
 
     def skew(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="skew")
-        return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce(
+            "skew", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def kurt(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="kurt")
-        return self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce(
+            "kurt", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def median(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_median((), kwargs)
-        return self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce(
+            "median", skipna=skipna, keepdims=keepdims, axis=axis, **kwargs
+        )
 
     def var(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         ddof: int = 1,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="var")
-        return self._reduce("var", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+        return self._reduce(
+            "var", skipna=skipna, keepdims=keepdims, ddof=ddof, axis=axis, **kwargs
+        )
 
     def std(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
-        axis: AxisInt | None = 0,
         ddof: int = 1,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="std")
-        return self._reduce("std", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+        return self._reduce(
+            "std", skipna=skipna, keepdims=keepdims, ddof=ddof, axis=axis, **kwargs
+        )
 
     def prod(
         self,
         *,
+        axis: AxisInt | None = None,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
         min_count = validate_min_count(min_count)
         return self._reduce(
-            "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+            "prod",
+            skipna=skipna,
+            keepdims=keepdims,
+            axis=axis,
+            min_count=min_count,
+            **kwargs,
         )
 
     def _explode(self):
