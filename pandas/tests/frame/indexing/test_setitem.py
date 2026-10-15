@@ -1571,8 +1571,8 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
     ],
 )
 def test_setitem_key_matching_several_columns_mismatched_value(value, ncols, columns):
-    # GH#68445 the broadcast in _set_item skips these, so they used to leave a block
-    #  narrower than its placement, or drop columns of value, rather than raise
+    # GH#68445 the broadcast in _set_item_mgr skips these, so they used to leave a
+    #  block narrower than its placement, or drop columns of value, rather than raise
     df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
     expected = df.copy()
     msg = f"Got 2 positions but value has {ncols} columns"
