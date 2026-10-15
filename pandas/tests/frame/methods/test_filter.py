@@ -319,11 +319,6 @@ def test_filter_cond_series_index_not_equal_raises(df, index):
     with pytest.raises(ValueError, match=msg):
         df.filter(lambda df: mask)
 
-    mask = pd.Series([True, False], index=["b", "a"])
-    msg = "must have an index equal to the columns being filtered"
-    with pytest.raises(ValueError, match=msg):
-        df.filter(cond=mask, axis=1)
-
 
 def test_filter_cond_wrong_length(df):
     # GH#61317
@@ -341,6 +336,11 @@ def test_filter_cond_columns(df, axis):
 
     result = df.filter(cond=pd.Series([False, True], index=["a", "b"]), axis=axis)
     tm.assert_frame_equal(result, expected)
+
+    mask = pd.Series([True, False], index=["b", "a"])
+    msg = "must have an index equal to the columns being filtered"
+    with pytest.raises(ValueError, match=msg):
+        df.filter(cond=mask, axis=axis)
 
 
 @pytest.mark.parametrize("axis", [1, "columns"])

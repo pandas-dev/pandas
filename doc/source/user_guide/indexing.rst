@@ -963,8 +963,8 @@ Filtering with ``DataFrame.filter``
 
 :meth:`DataFrame.filter` and :meth:`Series.filter` also accept a boolean mask
 through the ``cond`` keyword, keeping the rows where the mask is True. A
-:class:`Series` mask is aligned on the index; any other array-like must have
-the same length as the index.
+:class:`Series` mask must have an index equal to the filtered axis (it is not
+aligned); any other array-like must have the same length as the index.
 
 .. ipython:: python
 

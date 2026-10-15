@@ -89,10 +89,11 @@ method chains (:issue:`61317`).
     0  1  4
     1  2  5
 
-A :class:`Series` mask must have an index equal to the filtered axis (it is not aligned);
-any other mask must have the same length as that axis. Missing values in the mask are treated as False by default, matching
-``obj[mask]`` for a mask with nullable boolean dtype. Pass ``na=True`` to keep the
-corresponding entries instead, or ``na="raise"`` to raise.
+A :class:`Series` mask must have an index equal to the filtered axis (it is not
+aligned); any other mask must have the same length as that axis. Missing values in
+the mask are treated as False by default, matching ``obj[mask]`` for a mask with
+nullable boolean dtype. Pass ``na=True`` to keep the corresponding entries instead,
+or ``na="raise"`` to raise.
 
 .. code-block:: ipython
 
