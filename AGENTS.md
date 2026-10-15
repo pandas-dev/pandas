@@ -15,11 +15,11 @@ defines how the user may use agent-generated work.
 
 ## Self-review before requesting review
 
-Before the user opens a pull request or re-requests review, the change must be run through
-[pandas-review](.claude/skills/pandas-review/SKILL.md) (`/pandas-review` in Claude Code) until it
-reports `LGTM` or `NITS ONLY`, or the user has explained on the pull request why its remaining
-findings don't apply. Don't change code to satisfy a finding the user disputes. Prefer a fresh
-session over the one that wrote the change.
+Run the change through [pandas-review](.claude/skills/pandas-review/SKILL.md) (`/pandas-review`
+in Claude Code) before the user opens a pull request or re-requests review. Review isn't expected
+until it reports `LGTM` or `NITS ONLY`, or the user has explained on the pull request why its
+remaining findings don't apply. Don't change code to satisfy a finding the user disputes. Prefer
+a fresh session over the one that wrote the change.
 
 ## Required tooling
 
