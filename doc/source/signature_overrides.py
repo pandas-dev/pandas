@@ -201,6 +201,11 @@ _OFFSET_SIGNATURES = {
         "calendar",
         "offset",
     ),
+    pd.tseries.offsets.YearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
 }
 
 
