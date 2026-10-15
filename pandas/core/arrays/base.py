@@ -806,13 +806,13 @@ class ExtensionArray:
         """
         The number of elements in the array.
 
-        Since ExtensionArrays are 1-dimensional, this is the same as
-        ``len(self)``. It is included for compatibility with NumPy.
+        For 1-dimensional ExtensionArrays, this is the same as ``len(self)``.
+        It is included for compatibility with NumPy.
 
         See Also
         --------
         ExtensionArray.shape : Return a tuple of the array dimensions.
-        ExtensionArray.ndim : Number of dimensions of the array, always 1.
+        ExtensionArray.ndim : Number of dimensions of the array.
 
         Examples
         --------
@@ -2311,11 +2311,11 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
-            The array itself, since a 1-dimensional array is its own transpose.
+            The transposed array. A 1-dimensional array is its own transpose.
 
         See Also
         --------
-        ExtensionArray.T : Return the transpose, which is by definition self.
+        ExtensionArray.T : Return the transpose of the array.
 
         Examples
         --------
@@ -2329,10 +2329,10 @@ class ExtensionArray:
     @property
     def T(self) -> Self:
         """
-        Return the transpose, which is by definition self.
+        Return the transpose of the array.
 
-        Because ExtensionArrays are always 1D, this is a no-op.  It is included
-        for compatibility with np.ndarray.
+        For 1-dimensional ExtensionArrays this is the array itself. It is
+        included for compatibility with np.ndarray.
 
         See Also
         --------
