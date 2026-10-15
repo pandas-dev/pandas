@@ -1856,6 +1856,42 @@ def test_comparison_same_object_nullable_dtype(values, dtype, comparison_op):
     assert result[-1] is pd.NA
 
 
+@pytest.mark.parametrize(
+    "idx",
+    [
+        pd.DatetimeIndex(["2020-01-01", pd.NaT, "2020-01-03"], tz="US/Eastern"),
+        pd.PeriodIndex(["2020-01", pd.NaT, "2020-03"], freq="M"),
+        pd.IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)]),
+        pd.CategoricalIndex(["a", np.nan, "b"], ordered=True),
+        Index(["a", np.nan, "b"], dtype="str"),
+    ],
+)
+def test_comparison_same_object_non_nullable_extension_dtype(idx, comparison_op):
+    # GH#71022 extension dtypes whose comparisons return a numpy bool array
+    # keep the fastpath and must match comparing against a copy
+    result = comparison_op(idx, idx)
+    expected = comparison_op(idx, idx.copy())
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_comparison_same_object_distinguish_nan_and_na(comparison_op):
+    # GH#71022 with NaN kept distinct from NA, NaN is not missing and must
+    # compare like any other value, as it does against a copy
+    pa = pytest.importorskip("pyarrow")
+    arr = pd.array(
+        pa.array([1.0, float("nan"), None], from_pandas=False),
+        dtype=pd.ArrowDtype(pa.float64()),
+    )
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        idx = Index(arr)
+
+        result = comparison_op(idx, idx)
+        expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333

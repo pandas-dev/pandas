@@ -35,7 +35,6 @@ from pandas._libs import (
     algos as libalgos,
     index as libindex,
     lib,
-    missing as libmissing,
     writers,
 )
 from pandas._libs.internals import BlockValuesRefs
@@ -44,7 +43,10 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    NA,
+    is_matching_na,
+)
 from pandas._libs.tslibs import (
     Period,
     Timestamp,
@@ -140,7 +142,6 @@ from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
-    BooleanArray,
     Categorical,
     DatetimeArray,
     ExtensionArray,
@@ -7740,44 +7741,23 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if isinstance(other, Index) and self.is_(other):
-            # fastpath
+        if (
+            isinstance(other, Index)
+            and self.is_(other)
+            and (isinstance(self.dtype, np.dtype) or self.dtype.na_value is not NA)
+        ):
+            # fastpath; dtypes whose comparisons propagate pd.NA (masked, ArrowDtype,
+            # string with pd.NA) take the full comparison below instead (GH#71022)
             if op in {operator.eq, operator.le, operator.ge}:
                 arr = np.ones(len(self), dtype=bool)
-                na_result = False
-            elif op is operator.ne:
-                arr = np.zeros(len(self), dtype=bool)
-                na_result = True
-            else:
-                arr = None
-
-            if arr is not None:
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
-                    mask = self.isna()
-                    if (
-                        isinstance(self.dtype, ExtensionDtype)
-                        and self.dtype.na_value is libmissing.NA
-                    ):
-                        # GH#71022 nullable dtypes propagate NA in comparisons;
-                        # match the result the array itself would give
-                        if isinstance(self._values, ArrowExtensionArray):
-                            import pyarrow as pa
-
-                            # build the bool array straight from packed
-                            # buffers; pa.array(arr, mask=mask) is ~15x slower
-                            pa_arr = pa.Array.from_buffers(
-                                pa.bool_(),
-                                len(arr),
-                                [
-                                    pa.py_buffer(np.packbits(~mask, bitorder="little")),
-                                    pa.py_buffer(np.packbits(arr, bitorder="little")),
-                                ],
-                            )
-                            return ArrowExtensionArray(pa_arr)
-                        # isna() is cached, so hand BooleanArray its own mask
-                        return BooleanArray(arr, mask.copy())
-                    arr[mask] = na_result
+                    arr[self.isna()] = False
+                return arr
+            elif op is operator.ne:
+                arr = np.zeros(len(self), dtype=bool)
+                if self._can_hold_na and not isinstance(self, ABCMultiIndex):
+                    arr[self.isna()] = True
                 return arr
 
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
