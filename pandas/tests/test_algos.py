@@ -1031,6 +1031,29 @@ class TestIsin:
         exp = np.array([True, False, False], dtype=bool)
         tm.assert_numpy_array_equal(res, exp)
 
+    @pytest.mark.parametrize(
+        "cls",
+        [
+            pd.Timestamp,
+            pd.Timedelta,
+            pd.Period,
+            pd.Interval,
+            type(pd.NaT),
+            pd.offsets.Day,
+            pd.DateOffset,
+        ],
+    )
+    def test_isin_scalar_classes(self, cls):
+        # GH#31080 the classes themselves, not instances
+        comps = np.array([cls, object], dtype=object)
+        expected = np.array([True, False])
+
+        result = np.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])

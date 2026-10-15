@@ -90,6 +90,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
+- :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:
@@ -112,8 +113,9 @@ deprecation2
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
-- Deprecated :meth:`Series.median` and :meth:`DataFrame.median` on ``complex`` data; in a future version these will raise ``TypeError``. Take the median of the real and imaginary parts separately instead (:issue:`43770`)
+- Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, and ``cummax`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 
@@ -144,6 +146,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)
 - Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
+- Bug in ``!=`` between a :class:`Tick` offset such as :class:`Hour` and an array-like of ``timedelta64`` values or ``pd.NA`` raising ``ValueError`` or ``TypeError`` (:issue:`71162`)
 - Bug in comparisons, indexing, setitem and :meth:`Series.astype` to :class:`CategoricalDtype` with datetime, timedelta or period values not parsing :class:`ArrowDtype` ``string`` and ``large_string`` values the way :class:`StringDtype` values are parsed (:issue:`62051`)
 
 Timedelta
@@ -153,7 +156,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
 -
 
 Numeric
@@ -164,6 +167,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :meth:`DataFrame.replace` with a dict or list replacing values with ``None`` casting other columns of the same dtype to ``object`` even when they contained no value to replace (:issue:`30512`)
 - Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
 - Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
 -
@@ -184,6 +188,8 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several columns and ``value`` was a timezone-aware ``datetime64`` or ``period`` scalar, or a one-dimensional :class:`Series` of either dtype; it now broadcasts across the matched columns as the other dtypes already did (:issue:`71078`)
+- Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when the key matched several columns (duplicate or :class:`MultiIndex` columns) and ``value`` was a two-dimensional array without one column per matched column; it now raises ``ValueError`` (:issue:`68445`)
+- Bug in :meth:`DataFrame.isetitem` with several positions silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when an arraylike ``value`` did not have one column per position; it now raises ``ValueError`` (:issue:`68445`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising or flattening a 2D value (e.g. a list of lists) set into a single ``object`` cell of a mixed-dtype :class:`DataFrame` (:issue:`69152`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` for a ``True`` or ``False`` label present in an object-dtype :class:`Index` or the first level of a :class:`MultiIndex` (:issue:`50165`)
@@ -203,6 +209,8 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
+- Bug in :func:`read_csv` with ``engine="c"`` and ``comment`` not skipping a line containing only whitespace before the comment character (:issue:`55916`)
 - Bug in :func:`read_csv` with ``engine="python"`` and ``index_col`` reading a date like ``"20180101"`` as nanoseconds since the epoch when ``dtype`` is a pyarrow timestamp dtype (:issue:`24542`)
 - Bug in :func:`read_csv`, :func:`read_excel`, :func:`read_fwf` and :func:`read_html` returning wrong column labels and treating header rows as data when ``header`` was a list not in increasing order, such as ``header=[1, 0]`` (:issue:`47011`)
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
@@ -249,6 +257,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` (and Series variants) on ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` data treating ``NaT`` as a regular value and losing precision when the group key contains ``NA`` (:issue:`69923`)
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` raising ``NotImplementedError``, often with no message, instead of ``TypeError`` on columns that do not support them, e.g. ``object`` columns and :class:`ArrowDtype` date, time and binary columns (:issue:`69791`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
+- Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`42617`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`.GroupBy.quantile` raising ``NotImplementedError`` with no message, instead of ``TypeError``, on :class:`ArrowDtype` columns it does not support, e.g. binary columns (:issue:`69808`)
 - Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` on ``complex`` data silently discarding the imaginary part, and :meth:`.GroupBy.var` raising; these now match :meth:`Series.std`, :meth:`Series.sem`, and :meth:`Series.var` (:issue:`43770`)
@@ -260,6 +269,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
+- Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
 
 Sparse
 ^^^^^^
@@ -272,6 +282,7 @@ ExtensionArray
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
 - Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`)
 - Bug in arithmetic and logical operations on PyArrow-backed data raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError`` instead of ``TypeError`` when the other operand contains objects PyArrow cannot convert (:issue:`62682`)
+- Bug in comparisons between PyArrow-backed data and objects PyArrow cannot convert raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError``; ``==``/``!=`` now compare elementwise, ordered comparisons raise ``TypeError``, and a missing value on either side propagates instead of answering ``False`` (:issue:`62682`)
 - Bug in item assignment and :meth:`Series.fillna` on a PyArrow-backed integer dtype silently truncating fractional values passed as a list; these now raise ``TypeError`` (:issue:`71076`)
 
 Styler
@@ -285,6 +296,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`api.interchange.from_dataframe` with ``allow_copy=False`` always raising ``RuntimeError`` for objects supporting the Arrow PyCapsule Interface, even when a zero-copy conversion is possible (:issue:`71189`)
 - Bug in :func:`eval` with a multi-line expression and a ``target`` raising ``UndefinedVariableError`` when a line after the first referenced a variable (:issue:`31952`)
 - Bug in :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where ``not`` performed a bitwise inversion instead of a logical negation, e.g. ``pd.eval("not True")`` returned ``-2`` and ``df.query("a > 1 and not True")`` could return rows (:issue:`11367`)
 - Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with ``check_dtype=False`` and ``check_exact=True`` comparing missing values against an object column differently from ``check_exact=False``; ``pd.NA`` and ``NaT`` no longer match ``np.nan`` or ``None`` (:issue:`61473`)

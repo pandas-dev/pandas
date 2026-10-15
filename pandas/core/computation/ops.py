@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
 )
@@ -470,8 +471,12 @@ class BinOp(Op):
                 encoder = pprint_thing
             return encoder(value)
 
-        def convert(term) -> None:
+        def convert(term, other) -> None:
             v = term.value
+            if isinstance(v, str) and isinstance(other.type, DatetimeTZDtype):
+                # let the comparison parse the string, which localizes naive
+                #  ones, matching comparisons outside of eval (GH#26236)
+                return
             if isinstance(v, (int, float)):
                 v = stringify(v)
             try:
@@ -489,10 +494,10 @@ class BinOp(Op):
         lhs, rhs = self.lhs, self.rhs
 
         if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.is_scalar:
-            convert(rhs)
+            convert(rhs, lhs)
 
         if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.is_scalar:
-            convert(lhs)
+            convert(lhs, rhs)
 
     def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs

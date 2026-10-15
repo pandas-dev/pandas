@@ -2274,7 +2274,7 @@ cdef class BytesValidator(Validator):
         return self.dtype.type_num == cnp.NPY_STRING
 
 
-cdef bint is_bytes_array(ndarray values, bint skipna=False):
+cpdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
         BytesValidator validator = BytesValidator(values.size, values.dtype,
                                                   skipna=skipna)

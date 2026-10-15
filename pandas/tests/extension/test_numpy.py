@@ -240,6 +240,20 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         #  adapt something like libindex._bin_search.
         super().test_searchsorted(data_for_sorting, as_series)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_empty_array(self, method, data):
+        super().test_argmin_argmax_empty_array(method, data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_all_na(self, method, data, na_value):
+        super().test_argmin_argmax_all_na(method, data, na_value)
+
     @pytest.mark.xfail(reason="NumpyExtensionArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
@@ -348,9 +362,9 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         alt = ser.astype(cmp_dtype)
         exp_op = getattr(alt, op_name)
         warn = None
-        if op_name == "median" and ser.dtype.kind == "c":
+        if op_name in ["median", "min", "max"] and ser.dtype.kind == "c":
             warn = Pandas4Warning
-        with tm.assert_produces_warning(warn, match="median of complex data"):
+        with tm.assert_produces_warning(warn, match="deprecated on complex data"):
             if op_name == "count":
                 result = res_op()
                 expected = exp_op()
@@ -360,7 +374,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.filterwarnings(
-        "ignore:The median of complex data:pandas.errors.Pandas4Warning"
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
     )
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_array(self, request, data, all_reductions, skipna):
