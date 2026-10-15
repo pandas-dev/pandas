@@ -108,7 +108,7 @@ def test_duplicate_multiindex_codes():
 
 @pytest.mark.parametrize("level", [1, [1], "y"])
 def test_set_levels_duplicates_on_selected_level_raises(level):
-    # GH#16214 - only the replaced level is verified, so it must be the right one
+    # GH#16214 - with level=, only the replaced level is checked for duplicates
     mi = pd.MultiIndex.from_tuples(
         [("a", "a1"), ("b", ""), ("c", "c1")], names=["x", "y"]
     )
