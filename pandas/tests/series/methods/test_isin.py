@@ -328,6 +328,21 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([np.datetime64("NaT", "ns"), "a"], [False, True]),
+        ([np.timedelta64("NaT", "ns"), "a"], [False, False]),
+        ([np.datetime64("2020-01-01", "ns"), "a"], [True, False]),
+    ],
+)
+def test_isin_mixed_list_numpy_datetimelike(values, expected):
+    # matches isin without "a"; a timedelta64 NaT is not a datetime NaT
+    ser = pd.Series(pd.to_datetime(["2020-01-01", None]))
+    result = ser.isin(values)
+    tm.assert_series_equal(result, pd.Series(expected))
+
+
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 @pytest.mark.parametrize(
     "values, expected",
