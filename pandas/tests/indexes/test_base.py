@@ -1856,6 +1856,23 @@ def test_comparison_same_object_nullable_dtype(values, dtype, comparison_op):
     assert result[-1] is pd.NA
 
 
+def test_comparison_same_object_distinguish_nan_and_na(comparison_op):
+    # GH#71022 with NaN kept distinct from NA, NaN is not missing and must
+    # compare like any other value, as it does against a copy
+    pa = pytest.importorskip("pyarrow")
+    arr = pd.array(
+        pa.array([1.0, float("nan"), None], from_pandas=False),
+        dtype=pd.ArrowDtype(pa.float64()),
+    )
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        idx = Index(arr)
+
+        result = comparison_op(idx, idx)
+        expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333
