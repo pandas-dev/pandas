@@ -125,11 +125,14 @@ def _read_pyarrow_table(
             # read() may return fewer bytes than requested before EOF
             while len(text) <= block_size and (chunk := src.read(block_size)):
                 text += decoder.decode(chunk)
-            head = text[:block_size]
-            if (
-                len(text) > block_size
-                and head.count("\n") + head.count("\r") <= read_options.skip_rows
-            ):
+            # pyarrow's block_size counts UTF-8 bytes
+            head = text[: block_size + 1].encode("utf-8", "surrogateescape")
+            line_breaks = (
+                head.count(b"\n", 0, block_size)
+                + head.count(b"\r", 0, block_size)
+                - head.count(b"\r\n", 0, block_size)
+            )
+            if len(head) > block_size and line_breaks <= read_options.skip_rows:
                 # no complete line after skip_rows in the retry's first block
                 #  (e.g. a header wider than it): the retry would fail too
                 raise

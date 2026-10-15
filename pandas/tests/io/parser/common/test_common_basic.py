@@ -1056,13 +1056,24 @@ def test_short_reads_larger_than_block(all_parsers):
     assert result.shape == (nrows, 3)
 
 
-@pytest.mark.parametrize("skiprows", [0, 1])
-def test_first_line_wider_than_block_not_read_to_end(pyarrow_parser_only, skiprows):
+@pytest.mark.parametrize(
+    "skiprows, newline, name",
+    [
+        (0, "\n", "col0000"),
+        (1, "\n", "col0000"),
+        (1, "\r\n", "col0000"),
+        # wider than the block in UTF-8 bytes but not in characters
+        (0, "\n", "列列列"),
+    ],
+)
+def test_first_line_wider_than_block_not_read_to_end(
+    pyarrow_parser_only, skiprows, newline, name
+):
     # GH#62635 a first line longer than pyarrow's 1 MiB block fails on the
     #  retry too, so the retry must not read the rest of the source first
     parser = pyarrow_parser_only
-    header = ",".join(f"c{i:06d}" for i in range(150_000)) + "\n"
-    data = ("x\n" * skiprows + header + "1\n" * 500_000).encode()
+    header = ",".join([name] * 150_000) + newline
+    data = (("x" + newline) * skiprows + header + ("1" + newline) * 1_000_000).encode()
     handle = BytesIO(data)
     with pytest.raises(EmptyDataError, match="No columns to parse from file"):
         parser.read_csv(handle, skiprows=skiprows)
