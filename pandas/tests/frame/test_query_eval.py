@@ -2171,10 +2171,11 @@ def test_eval_numeric_times_timedelta_scalar(dtype, delta, engine, parser):
         ("dt - dt", lambda df: df["dt"] - df["dt"]),
         ("dt + delta", lambda df: df["dt"] + df["delta"]),
         ("delta * 2", lambda df: df["delta"] * 2),
+        ("delta > delta", lambda df: df["delta"] > df["delta"]),
     ],
 )
-def test_eval_datetimelike_result(expr, func, engine, parser):
-    # GH#52559 numexpr raised "unknown type" on a datetime64/timedelta64 result
+def test_eval_datetimelike_columns(expr, func, engine, parser):
+    # GH#52559 numexpr raised "unknown type" for some of these
     df = pd.DataFrame(
         {
             "dt": pd.date_range("2020-01-01", periods=3),
