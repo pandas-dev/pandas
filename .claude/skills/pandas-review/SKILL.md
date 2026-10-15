@@ -84,7 +84,10 @@ In priority order:
 2. **Unaddressed review comments.** For each reviewer request in the thread, check whether
    the current diff addresses it or the author replied with a reason. List any that are
    neither. Don't draft replies: pandas asks that authors speak for themselves on the
-   thread (see `doc/source/development/contributing.rst`).
+   thread (see `doc/source/development/contributing.rst`). If the author has already
+   explained on the thread why one of your findings doesn't apply, say so and don't count it
+   toward the verdict, unless the explanation is factually wrong (then say what is wrong with
+   it).
 3. **Correctness.** Bugs in the diff, and above all **regressions**: inputs that worked on
    `main` and break with this PR.
    - A fix that covers some code paths but leaves sibling paths unfixed is **not** a defect.
