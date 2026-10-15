@@ -145,7 +145,7 @@ def test_groupby_resample_preserves_subclass(obj):
 
 
 def test_series_groupby_transform_uses_constructor():
-    # GH#3059 (geopandas) -- transform with a callable should go through
+    # geopandas/geopandas#3059 -- transform with a callable should go through
     # _constructor, so subclasses can fall back to Series for incompatible results
     class StrictSeries(pd.Series):
         def __init__(self, data=None, *args, **kwargs):
