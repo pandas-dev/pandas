@@ -1,3 +1,7 @@
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 from tokenize import TokenError
 
@@ -2097,3 +2101,138 @@ def test_query_empty_object_result():
     df = pd.DataFrame({"a": pd.Series([True, False], dtype=object)}).iloc[:0]
     result = df.query("a", engine="python")
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "delta", [pd.Timedelta(hours=1), timedelta(hours=1), np.timedelta64(1, "h")]
+)
+def test_eval_datetime_with_timedelta_scalar(delta, engine, parser):
+    # GH#52559 the scalar was coerced to Timestamp, raising TypeError
+    skip_if_no_pandas_parser(parser)
+    df = pd.DataFrame({"dt": pd.date_range("2020-01-01", periods=3)})
+
+    result = df.eval("dt + @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["dt"] + delta)
+
+    result = df.eval("@delta + dt", engine=engine, parser=parser)
+    tm.assert_series_equal(result, delta + df["dt"])
+
+    result = df.eval("dt - @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["dt"] - delta)
+
+
+@pytest.mark.parametrize("ts", [pd.Timestamp("2020-01-02"), datetime(2020, 1, 2)])
+def test_eval_datetime_minus_datetime_scalar(ts, engine, parser):
+    # GH#52559, GH#30729
+    skip_if_no_pandas_parser(parser)
+    df = pd.DataFrame({"dt": pd.date_range("2020-01-01", periods=3)})
+
+    result = df.eval("dt - @ts", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["dt"] - ts)
+
+    result = df.eval("@ts - dt", engine=engine, parser=parser)
+    tm.assert_series_equal(result, ts - df["dt"])
+
+
+@pytest.mark.parametrize("delta", [pd.Timedelta(hours=1), np.timedelta64(1, "h")])
+def test_eval_timedelta_with_timedelta_scalar(delta, engine, parser):
+    # GH#52559
+    skip_if_no_pandas_parser(parser)
+    df = pd.DataFrame({"td": pd.to_timedelta([1, 2, 3], unit="h")})
+
+    result = df.eval("td - @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["td"] - delta)
+
+    result = df.eval("td / @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["td"] / delta)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "float64", "float32"])
+@pytest.mark.parametrize("delta", [pd.Timedelta(hours=1), np.timedelta64(1, "h")])
+def test_eval_numeric_times_timedelta_scalar(dtype, delta, engine, parser):
+    # GH#52559 float32 also cast the scalar to float32 first
+    skip_if_no_pandas_parser(parser)
+    df = pd.DataFrame({"a": np.array([1, 2, 3], dtype=dtype)})
+
+    result = df.eval("a * @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["a"] * delta)
+
+    result = df.eval("@delta * a", engine=engine, parser=parser)
+    tm.assert_series_equal(result, delta * df["a"])
+
+    result = df.eval("a == @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["a"] == delta)
+
+
+@pytest.mark.parametrize(
+    "expr, func",
+    [
+        ("dt", lambda df: df["dt"]),
+        ("dt - dt", lambda df: df["dt"] - df["dt"]),
+        ("dt + delta", lambda df: df["dt"] + df["delta"]),
+        ("delta * 2", lambda df: df["delta"] * 2),
+    ],
+)
+def test_eval_datetimelike_result(expr, func, engine, parser):
+    # GH#52559 numexpr raised "unknown type" on a datetime64/timedelta64 result
+    df = pd.DataFrame(
+        {
+            "dt": pd.date_range("2020-01-01", periods=3),
+            "delta": pd.to_timedelta([1, 2, 3], unit="h"),
+        }
+    )
+
+    result = df.eval(expr, engine=engine, parser=parser)
+
+    tm.assert_series_equal(result, func(df), check_names=False)
+
+
+def test_eval_datetimelike_scalars(engine, parser):
+    # GH#52559
+    ts = pd.Timestamp("2020-01-02")
+    delta = pd.Timedelta(hours=1)
+
+    result = pd.eval("ts - delta", engine=engine, parser=parser)
+    assert result == ts - delta
+
+    result = pd.eval("delta * 2", engine=engine, parser=parser)
+    assert result == delta * 2
+
+
+def test_query_datetime_window(engine, parser):
+    # GH#52559
+    skip_if_no_pandas_parser(parser)
+    df = pd.DataFrame({"dt": pd.date_range("2020-01-01", periods=3, freq="h")})
+    now = pd.Timestamp("2020-01-01 02:00")  # noqa: F841
+    delta = pd.Timedelta(hours=1)  # noqa: F841
+
+    result = df.query("dt > @now - @delta", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[[2]])
+
+    result = df.query("@now - dt < @delta", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[[2]])
+
+
+def test_eval_tz_aware_datetime_arithmetic(engine, parser):
+    # GH#52559
+    skip_if_no_pandas_parser(parser)
+    df = pd.DataFrame({"dt": pd.date_range("2020-01-01", periods=3, tz="UTC")})
+    now = pd.Timestamp("2020-01-02", tz="UTC")
+    delta = pd.Timedelta(hours=1)
+
+    result = df.eval("@now - dt < @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, now - df["dt"] < delta)
+
+    # numexpr falls back to python, with a warning, for an extension dtype result
+    warn = RuntimeWarning if engine == "numexpr" else None
+    with tm.assert_produces_warning(warn, match="Engine has switched"):
+        result = df.eval("dt - @delta", engine=engine, parser=parser)
+    tm.assert_series_equal(result, df["dt"] - delta)
+
+
+def test_eval_datetime_plus_int_raises(engine, parser):
+    # GH#52559 the int was parsed as a date string, raising ValueError
+    df = pd.DataFrame({"dt": pd.date_range("2020-01-01", periods=3)})
+
+    with pytest.raises(TypeError, match="Addition/subtraction of integers"):
+        df.eval("dt + 5", engine=engine, parser=parser)
