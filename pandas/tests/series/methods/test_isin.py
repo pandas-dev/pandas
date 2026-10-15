@@ -386,9 +386,10 @@ def test_isin_list_not_coerced_by_numpy(ser, values, expected):
     [
         ([np.datetime64("NaT", "ns"), "a"], [False, True]),
         ([np.timedelta64("NaT", "ns"), "a"], [False, False]),
+        ([np.datetime64("2020-01-01", "ns"), "a"], [True, False]),
     ],
 )
-def test_isin_mixed_list_numpy_nat(values, expected):
+def test_isin_mixed_list_numpy_datetimelike(values, expected):
     # matches isin without "a"; a timedelta64 NaT is not a datetime NaT
     ser = pd.Series(pd.to_datetime(["2020-01-01", None]))
     result = ser.isin(values)

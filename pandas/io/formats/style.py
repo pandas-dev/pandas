@@ -149,6 +149,8 @@ class Styler(StylerRenderer):
     template_html_table : Jinja2 Template
     template_html_style : Jinja2 Template
     template_latex : Jinja2 Template
+    template_typst : Jinja2 Template
+    template_string : Jinja2 Template
     loader : Jinja2 Loader
 
     See Also
@@ -301,16 +303,16 @@ class Styler(StylerRenderer):
 
         The following should be noted:
 
-          - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
-            inherited from the original Styler and not ``other``.
-          - hidden columns and hidden index levels will be inherited from the
-            original Styler
-          - ``css`` will be inherited from the original Styler, and the value of
-            keys ``data``, ``row_heading`` and ``row`` will be prepended with
-            ``foot0_``. If more concats are chained, their styles will be prepended
-            with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
-            another concatenated style, the second style will be prepended with
-            ``foot{parent}_foot{child}_``.
+        - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
+          inherited from the original Styler and not ``other``.
+        - hidden columns and hidden index levels will be inherited from the
+          original Styler
+        - ``css`` will be inherited from the original Styler, and the value of
+          keys ``data``, ``row_heading`` and ``row`` will be prepended with
+          ``foot0_``. If more concats are chained, their styles will be prepended
+          with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
+          another concatenated style, the second style will be prepended with
+          ``foot{parent}_foot{child}_``.
 
         A common use case is to concatenate user defined functions with
         ``DataFrame.agg`` or with described statistics via ``DataFrame.describe``.
@@ -788,16 +790,16 @@ class Styler(StylerRenderer):
             Use to control adding \\cline commands for the index labels separation.
             Possible values are:
 
-              - `None`: no cline commands are added (default).
-              - `"all;data"`: a cline is added for every index value extending the
-                width of the table, including data entries.
-              - `"all;index"`: as above with lines extending only the width of the
-                index entries.
-              - `"skip-last;data"`: a cline is added for each index value except the
-                last level (which is never sparsified), extending the width of the
-                table.
-              - `"skip-last;index"`: as above with lines extending only the width of the
-                index entries.
+            - `None`: no cline commands are added (default).
+            - `"all;data"`: a cline is added for every index value extending the
+              width of the table, including data entries.
+            - `"all;index"`: as above with lines extending only the width of the
+              index entries.
+            - `"skip-last;data"`: a cline is added for each index value except the
+              last level (which is never sparsified), extending the width of the
+              table.
+            - `"skip-last;index"`: as above with lines extending only the width of the
+              index entries.
 
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
@@ -2403,20 +2405,20 @@ class Styler(StylerRenderer):
 
         The following items are exported since they are not generally data dependent:
 
-          - Styling functions added by the ``apply`` and ``map``
-          - Whether axes and names are hidden from the display, if unambiguous.
-          - Table attributes
-          - Table styles
+        - Styling functions added by the ``apply`` and ``map``
+        - Whether axes and names are hidden from the display, if unambiguous.
+        - Table attributes
+        - Table styles
 
         The following attributes are considered data dependent and therefore not
         exported:
 
-          - Caption
-          - UUID
-          - Tooltips
-          - Any hidden rows or columns identified by Index labels
-          - Any formatting applied using ``Styler.format``
-          - Any CSS classes added using ``Styler.set_td_classes``
+        - Caption
+        - UUID
+        - Tooltips
+        - Any hidden rows or columns identified by Index labels
+        - Any formatting applied using ``Styler.format``
+        - Any CSS classes added using ``Styler.set_td_classes``
 
         Examples
         --------
@@ -2647,8 +2649,8 @@ class Styler(StylerRenderer):
         This method uses the CSS 'position: sticky;' property to display. It is
         designed to work with visible axes, therefore both:
 
-          - `styler.set_sticky(axis="index").hide(axis="index")`
-          - `styler.set_sticky(axis="columns").hide(axis="columns")`
+        - `styler.set_sticky(axis="index").hide(axis="index")`
+        - `styler.set_sticky(axis="columns").hide(axis="columns")`
 
         may produce strange behaviour due to CSS controls with missing elements.
 
@@ -2705,9 +2707,9 @@ class Styler(StylerRenderer):
 
         else:
             # handle the MultiIndex case
-            range_idx = list(range(obj.nlevels))
-            levels_: list[int] = refactor_levels(levels, obj) if levels else range_idx
-            levels_ = sorted(levels_)
+            if isinstance(levels, list) and not levels:
+                levels = None  # an empty list sticks all levels, like None
+            levels_ = sorted(refactor_levels(levels, obj))
 
             if axis == 1:
                 styles = []
@@ -4293,11 +4295,13 @@ def _background_gradient(
     )
     # extend lower / upper bounds, compresses color range
     norm = _matplotlib.colors.Normalize(smin - (rng * low), smax + (rng * high))
+    # Normalize maps NaN to 0 when vmin == vmax; keep NaN so it gets the "bad" color
+    normed = np.where(np.isnan(gmap), np.nan, norm(gmap))
 
     if cmap is None:
-        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](norm(gmap))
+        rgbas = _matplotlib.colormaps[_matplotlib.rcParams["image.cmap"]](normed)
     else:
-        rgbas = _matplotlib.colormaps.get_cmap(cmap)(norm(gmap))
+        rgbas = _matplotlib.colormaps.get_cmap(cmap)(normed)
 
     def relative_luminance(rgba) -> float:
         """
@@ -4560,6 +4564,9 @@ def _bar(
             return ret
 
     values = data.to_numpy()
+    if values.dtype == object:
+        # pd.NA breaks np.nanmean, callable aligns and cmap, GH#56425
+        values = data.to_numpy(na_value=np.nan).astype(float)
     # A tricky way to address the issue where np.nanmin/np.nanmax fail to handle pd.NA.
     left = np.nanmin(data.min(skipna=True)) if vmin is None else vmin
     right = np.nanmax(data.max(skipna=True)) if vmax is None else vmax

@@ -49,6 +49,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -1372,7 +1373,9 @@ class ArrowExtensionArray(
             f"dtype '{self.dtype}' with {other_type}"
         )
 
-    def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+    def _evaluate_op_method(
+        self, other, op, arrow_funcs, *, wrap_box_errors: bool = True
+    ) -> Self:
         if (
             is_list_like(other)
             and not isinstance(other, (np.ndarray, ExtensionArray, list))
@@ -1390,7 +1393,14 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other_original = other
         ops.raise_if_2d(other)
-        other = self._box_pa(other)
+        try:
+            other = self._box_pa(other)
+        except (pa.ArrowInvalid, pa.ArrowTypeError) as err:
+            # GH#62682 pyarrow could not convert `other`
+            if not wrap_box_errors:
+                # _arith_method retries the operation in object dtype
+                raise
+            raise TypeError(self._op_method_error_message(other_original, op)) from err
 
         if (
             pa.types.is_string(pa_type)
@@ -1543,7 +1553,9 @@ class ArrowExtensionArray(
             self._pa_array.type
         ):
             try:
-                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+                result = self._evaluate_op_method(
+                    other, op, ARROW_ARITHMETIC_FUNCS, wrap_box_errors=False
+                )
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 result = self._str_arith_method_object_fallback(other, op)
         else:
@@ -2126,8 +2138,11 @@ class ArrowExtensionArray(
             return indices, uniques
 
         if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
+            # dictionary_encode is a no-op on already-encoded input, so cast back
+            # to the value type and re-encode when nulls must be encoded, or when
+            # a chunk stores the null as a dictionary value (GH#66490)
+            dict_has_null = any(c.dictionary.null_count > 0 for c in data.chunks)
+            if null_encoding == "encode" or dict_has_null:
                 data = data.cast(data.type.value_type)
                 encoded = data.dictionary_encode(null_encoding=null_encoding)
             else:
@@ -2405,10 +2420,9 @@ class ArrowExtensionArray(
         dtype : str or numpy.dtype, optional
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
-            another array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            Whether to ensure that the returned value is not a view on
+            another array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
@@ -2966,6 +2980,7 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         return self._reduce(
             "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
@@ -3072,6 +3087,7 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
         return self._reduce(
             "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
@@ -3866,14 +3882,22 @@ class ArrowExtensionArray(
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
     ) -> ArrayLike:
-        from pandas.core.arrays.string_ import StringDtype
-
-        if isinstance(self.dtype, StringDtype):
+        pa_type = self._pa_array.type
+        if (
+            pa.types.is_date(pa_type)
+            or pa.types.is_time(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            # Series.quantile supports these, so they are not a TypeError
+            raise NotImplementedError(
+                f"quantile is not yet implemented for dtype '{self.dtype}'"
+            )
+        try:
+            values = self._to_groupby_compatible()
+        except NotImplementedError as err:
             raise TypeError(
                 f"dtype '{self.dtype}' does not support operation 'quantile'"
-            )
-
-        values = self._to_groupby_compatible()
+            ) from err
         result = values._groupby_quantile(
             qs=qs,
             interpolation=interpolation,

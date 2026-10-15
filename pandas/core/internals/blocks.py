@@ -791,12 +791,11 @@ class Block(PandasObject, libinternals.Block):
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        if is_re(to_replace) and _regex_target_dtype(self.dtype) not in [
-            object,
-            "string",
-        ]:
-            # only object or string dtype can hold strings, and a regex object
-            # will only match strings
+        target_dtype = _regex_target_dtype(self.dtype)
+        # a regex only matches strings; is_string_dtype counts numpy bytes,
+        #  which never match
+        regex_can_match = is_string_dtype(target_dtype) and target_dtype.kind != "S"
+        if is_re(to_replace) and not regex_can_match:
             return [self.copy(deep=False)]
 
         if isinstance(self.dtype, ArrowDtype) and is_string_dtype(self.dtype):
@@ -991,6 +990,25 @@ class Block(PandasObject, libinternals.Block):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
+                    if (
+                        self.ndim == 2
+                        and self.shape[0] > 1
+                        and not self.is_object
+                        and not mask.any(axis=1).all()
+                    ):
+                        # split so we only cast columns with a match (GH#30512)
+                        blocks = []
+                        for i, nb in enumerate(self._split()):
+                            blocks.extend(
+                                nb._replace_coerce(
+                                    to_replace,
+                                    value,
+                                    mask=mask[i : i + 1],
+                                    inplace=inplace,
+                                    regex=regex,
+                                )
+                            )
+                        return blocks
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:

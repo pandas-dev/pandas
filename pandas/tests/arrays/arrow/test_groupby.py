@@ -264,9 +264,8 @@ class TestGroupbyAggPyArrowNative:
         if not dropna:
             assert result.iloc[2] == Decimal("7.0")  # 2 + 5 (NA group)
 
-    # with dropna=False the NA key sorts between the 1 and 2 groups
     @pytest.mark.parametrize(
-        "dropna, expected", [(True, ["a", "d"]), (False, ["a", "c", "d"])]
+        "dropna, expected", [(True, ["a", "d"]), (False, ["a", "d", "c"])]
     )
     @pytest.mark.parametrize(
         "dtype",
@@ -586,7 +585,22 @@ class TestGroupbyAggPyArrowNative:
 
 
 @pytest.mark.parametrize("frame", [True, False])
-@pytest.mark.parametrize("how", ["any", "all", "std", "sem", "idxmin", "idxmax"])
+@pytest.mark.parametrize(
+    "how",
+    [
+        "any",
+        "all",
+        "std",
+        "sem",
+        "idxmin",
+        "idxmax",
+        "cumsum",
+        "cumprod",
+        "cummin",
+        "cummax",
+        "rank",
+    ],
+)
 @pytest.mark.parametrize(
     "arr",
     [
@@ -606,6 +620,41 @@ def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
     msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
     with pytest.raises(TypeError, match=msg):
         getattr(obj.groupby([0, 0, 1, 1]), how)()
+
+
+@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array([b"b", b"a", None, b"c"]),
+        pa.array(["b", "a", None, "c"]),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_quantile_unsupported_raises_typeerror(arr, frame):
+    # GH#69808 used to raise NotImplementedError with no message
+    ser = pd.Series(ArrowExtensionArray(arr))
+    obj = ser.to_frame() if frame else ser
+    msg = f"dtype '{re.escape(str(ser.dtype))}' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
+        obj.groupby([0, 0, 1, 1]).quantile()
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
+        pa.array([time(2), time(1), None, time(3)]),
+        pa.array([Decimal(2), Decimal(1), None, Decimal(3)]),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_quantile_not_yet_implemented(arr):
+    # GH#69808 Series.quantile supports these, so they are not a TypeError
+    ser = pd.Series(ArrowExtensionArray(arr))
+    msg = f"quantile is not yet implemented for dtype '{re.escape(str(ser.dtype))}'"
+    with pytest.raises(NotImplementedError, match=msg):
+        ser.groupby([0, 0, 1, 1]).quantile()
 
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
