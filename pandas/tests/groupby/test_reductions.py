@@ -1844,6 +1844,8 @@ def test_mean_numeric_only_validates_bool():
         "skew",
         "kurt",
         "prod",
+        "min",
+        "max",
     ],
 )
 def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is_na):
@@ -1865,6 +1867,19 @@ def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is
             [np.nan], index=pd.Index([1], name="A"), name="B", dtype="Float64"
         )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_min_max_all_nan_group_with_mask(method):
+    # GH#59106 an all-NaN group gave inf/-inf
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([0.0, 0.0, 1.0], dtype="Float32")
+        ser = ser / ser
+        result = getattr(ser.groupby([1, 1, 2]), method)()
+        values = np.array([np.nan, 1.0], dtype="float32")
+        arr = pd.arrays.FloatingArray(values, np.zeros(2, dtype=bool))
+        expected = pd.Series(arr, index=[1, 2])
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
