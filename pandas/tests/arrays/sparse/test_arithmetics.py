@@ -1137,3 +1137,10 @@ def test_complex_ordering_cmp_deprecated(op):
 
     with tm.assert_produces_warning(None):
         arr == 1
+
+
+def test_complex_ordering_cmp_deprecated_list_operand():
+    # GH#43770
+    arr = SparseArray([1.0, 2.0])
+    with tm.assert_produces_warning(Pandas4Warning, match="deprecated on complex"):
+        arr < [1j, 2j]
