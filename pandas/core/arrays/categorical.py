@@ -1934,13 +1934,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Unable to avoid copy while creating an array as requested."
             )
 
-        ret = take_nd(self.categories._values, self._codes)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
         # ndarray.
 
-        # `take_nd` should already make a copy, so don't force again.
-        return np.asarray(ret, dtype=dtype)
+        # `to_dense` already makes a copy, so don't force again.
+        return np.asarray(self.to_dense(), dtype=dtype)
 
     def to_dense(self) -> ArrayLike:
         """

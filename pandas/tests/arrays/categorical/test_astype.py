@@ -197,3 +197,14 @@ def test_to_dense_with_missing(categories, expected):
     cat = pd.Categorical.from_codes([0, -1], categories=categories)
     result = cat.to_dense()
     tm.assert_equal(result, expected)
+
+
+def test_to_dense_with_missing_arrow():
+    # GH#26410
+    pytest.importorskip("pyarrow")
+    cat = pd.Categorical.from_codes(
+        [0, -1], categories=pd.Index([1, 2], dtype="int64[pyarrow]")
+    )
+    result = cat.to_dense()
+    expected = pd.array([1, None], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(result, expected)
