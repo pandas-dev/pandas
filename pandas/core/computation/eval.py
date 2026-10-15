@@ -445,7 +445,7 @@ def eval(
         if (
             engine == "numexpr"
             and isinstance(parsed_expr.terms, Term)
-            and is_string_dtype(getattr(parsed_expr.terms.value, "dtype", None))
+            and is_string_dtype(parsed_expr.terms.return_type)
         ):
             # numexpr can't handle a bare object or string term; see GH#27639
             eng = ENGINES["python"]

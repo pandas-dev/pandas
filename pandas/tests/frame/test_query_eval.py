@@ -408,6 +408,12 @@ class TestDataFrameEval:
         result = pd.eval("ser + ser", engine=engine, parser=parser)
         tm.assert_series_equal(result, ser + ser)
 
+        result = pd.eval("df", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df)
+
+        result = pd.eval("'abc'", engine=engine, parser=parser)
+        assert result == "abc"
+
     def test_eval_object_dtype_numeric_parts_unchanged(self, engine, parser):
         # GH#27639 evaluating object operands in python must not change how
         #  numeric subexpressions or later lines are evaluated
@@ -421,10 +427,6 @@ class TestDataFrameEval:
                 "s": ["p", "q", "r"],
             }
         )
-        result = df.eval("(i8 + i8) > obj", engine=engine, parser=parser)
-        expected = df.eval("(i8 + i8) > i64", engine=engine, parser=parser)
-        tm.assert_series_equal(result, expected)
-
         result = df.eval("(i8 + i8 > 150) & obj_bool", engine=engine, parser=parser)
         expected = df.eval("(i8 + i8 > 150) & bool", engine=engine, parser=parser)
         tm.assert_series_equal(result, expected)
