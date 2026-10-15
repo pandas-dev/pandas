@@ -377,6 +377,62 @@ class TestDataFrameEval:
         expected = pd.DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
+    @pytest.mark.parametrize(
+        "df",
+        [
+            pd.DataFrame(index=range(1), columns=list("ab")),
+            pd.DataFrame(columns=list("ab")),
+            pd.DataFrame({"a": [1, 2], "b": [3, 4]}, dtype=object),
+        ],
+    )
+    def test_eval_object_dtype_arithmetic(self, df, engine, parser):
+        # GH#27639 numexpr engine raised RecursionError
+        result = df.eval("a * b", engine=engine, parser=parser)
+        expected = df["a"] * df["b"]
+        tm.assert_series_equal(result, expected)
+
+        result = df.query("a * b == 3", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df[expected == 3])
+
+    def test_eval_string_dtype_concat(self, any_string_dtype, engine, parser):
+        # GH#27639
+        df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"]}, dtype=any_string_dtype)
+        result = df.eval("a + b", engine=engine, parser=parser)
+        expected = df["a"] + df["b"]
+        tm.assert_series_equal(result, expected)
+
+        result = df.eval("a", engine=engine, parser=parser)
+        tm.assert_series_equal(result, df["a"])
+
+        ser = df["a"]
+        result = pd.eval("ser + ser", engine=engine, parser=parser)
+        tm.assert_series_equal(result, ser + ser)
+
+    def test_eval_object_dtype_numeric_parts_unchanged(self, engine, parser):
+        # GH#27639 evaluating object operands in python must not change how
+        #  numeric subexpressions or later lines are evaluated
+        df = pd.DataFrame(
+            {
+                "i8": np.array([100, 120, -100], dtype="int8"),
+                "obj": pd.Series([1, 2, 3], dtype=object),
+                "i64": [1, 2, 3],
+                "obj_bool": pd.Series([True, True, True], dtype=object),
+                "bool": [True, True, True],
+                "s": ["p", "q", "r"],
+            }
+        )
+        result = df.eval("(i8 + i8) > obj", engine=engine, parser=parser)
+        expected = df.eval("(i8 + i8) > i64", engine=engine, parser=parser)
+        tm.assert_series_equal(result, expected)
+
+        result = df.eval("(i8 + i8 > 150) & obj_bool", engine=engine, parser=parser)
+        expected = df.eval("(i8 + i8 > 150) & bool", engine=engine, parser=parser)
+        tm.assert_series_equal(result, expected)
+
+        result = df.eval("r = s + s\nt = i8 + i8", engine=engine, parser=parser)
+        expected = df.eval("t = i8 + i8", engine=engine, parser=parser)
+        tm.assert_series_equal(result["t"], expected["t"])
+
     def test_using_numpy(self, engine, parser):
         # GH 58041
         skip_if_no_pandas_parser(parser)

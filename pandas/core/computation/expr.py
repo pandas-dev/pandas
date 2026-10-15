@@ -534,9 +534,10 @@ class BaseExprVisitor(ast.NodeVisitor):
                 or getattr(rhs, "return_type", None) == object
                 or is_string_dtype(getattr(rhs, "return_type", None))
             ):
-                # evaluate "==" and "!=" in python if either of our operands
-                # has an object or string return type
-                return self._maybe_eval(res, eval_in_python + maybe_eval_in_python)
+                # numexpr can't handle object or string operands; see GH#27639
+                return self._maybe_eval(
+                    res, eval_in_python + maybe_eval_in_python + (res.op,)
+                )
         return res
 
     def visit_BinOp(self, node, **kwargs):

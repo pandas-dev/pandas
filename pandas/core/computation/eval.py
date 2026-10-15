@@ -29,6 +29,7 @@ from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
+from pandas.core.computation.ops import Term
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 from pandas.core.generic import NDFrame
@@ -441,6 +442,13 @@ def eval(
 
         # construct the engine and evaluate the parsed expression
         eng = ENGINES[engine]
+        if (
+            engine == "numexpr"
+            and isinstance(parsed_expr.terms, Term)
+            and is_string_dtype(getattr(parsed_expr.terms.value, "dtype", None))
+        ):
+            # numexpr can't handle a bare object or string term; see GH#27639
+            eng = ENGINES["python"]
         eng_inst = eng(parsed_expr)
         ret = eng_inst.evaluate()
 
