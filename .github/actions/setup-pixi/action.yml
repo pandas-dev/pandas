@@ -4,13 +4,16 @@ inputs:
   environment:
     description: Pixi environment name in pixi.toml to use.
     required: true
+  pixi-version:
+    description: Pixi version to install.
+    default: v0.76.2
 runs:
   using: composite
   steps:
     - name: Install ${{ inputs.environment }}
       uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
       with:
-        pixi-version: v0.76.2
+        pixi-version: ${{ inputs.pixi-version }}
         log-level: vv
         manifest-path: pixi.toml
         environments: ${{ inputs.environment }}
@@ -21,7 +24,7 @@ runs:
     - name: Install ${{ inputs.environment }}
       uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
       with:
-        pixi-version: v0.76.2
+        pixi-version: ${{ inputs.pixi-version }}
         log-level: vv
         manifest-path: pixi.toml
         run-install: false

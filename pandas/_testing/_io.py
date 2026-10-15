@@ -13,6 +13,8 @@ from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
+from pandas.io.pickle import to_pickle_internal
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
@@ -42,12 +44,12 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     pandas object
         The original object that was pickled and then re-read.
     """
-    pd.to_pickle(obj, tmp_path)
+    to_pickle_internal(obj, tmp_path)
     return pd.read_pickle(tmp_path)
 
 
 def round_trip_pathlib(
-    writer: Callable, reader: Callable, tmp_path: Path
+    writer: Callable[[Path], Any], reader: Callable[[Path], Any], tmp_path: Path
 ) -> DataFrame | Series:
     """
     Write an object to file specified by a pathlib.Path and read it back
@@ -95,7 +97,7 @@ def write_to_compressed(
     args: tuple[Any, ...] = (data,)
     mode = "wb"
     method = "write"
-    compress_method: Callable
+    compress_method: Callable[..., Any]
 
     if compression == "zip":
         compress_method = zipfile.ZipFile

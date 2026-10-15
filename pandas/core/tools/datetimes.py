@@ -6,6 +6,7 @@ from functools import partial
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
+    Any,
     TypeAlias,
     TypedDict,
     Union,
@@ -53,6 +54,7 @@ from pandas._typing import (
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -111,7 +113,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible: TypeAlias = list | tuple | AnyArrayLike
+ArrayConvertible: TypeAlias = list[Any] | tuple[Any, ...] | AnyArrayLike
 Scalar: TypeAlias = float | str
 DatetimeScalar: TypeAlias = Scalar | date | np.datetime64
 
@@ -258,7 +260,7 @@ def _maybe_cache(
     arg: ArrayConvertible,
     format: str | None,
     cache: bool,
-    convert_listlike: Callable,
+    convert_listlike: Callable[..., Any],
     unit: str | None = None,
 ) -> Series:
     """
@@ -358,7 +360,10 @@ def _convert_and_box_cache(
     """
     from pandas import Series
 
+    # map can give back the input's own container, e.g. a Categorical, or object
+    # dtype, so cast to what the uncached conversion produced (GH#28629)
     result = Series(arg, dtype=cache_array.index.dtype).map(cache_array)
+    result = result.astype(cache_array.dtype)
     return _box_as_indexlike(result._values, utc=False, name=name)
 
 
@@ -470,6 +475,16 @@ def _convert_listlike_datetimes(
             npvalues = np.full(len(arg), np.datetime64("NaT", "ns"))
             return DatetimeIndex(npvalues, name=name)
         raise
+    except OutOfBoundsDatetime:
+        if errors == "raise":
+            raise
+        # GH#68926 coerce just the out-of-range entries; NaN maps to NaT
+        oob = float_outside_int64(np.asarray(arg))
+        if not oob.any():
+            # defensive
+            raise
+        arg = np.where(oob, np.nan, arg)
+        arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
 
     arg = ensure_object(arg)
 
@@ -815,7 +830,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: list | tuple | Index | ArrayLike,
+    arg: list[Any] | tuple[Any, ...] | Index | ArrayLike,
     errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -1230,7 +1245,8 @@ def to_datetime(
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
         if not cache_array.empty:
-            result = arg.map(cache_array)
+            # see _convert_and_box_cache re: astype
+            result = arg.map(cache_array).astype(cache_array.dtype)
         else:
             values = convert_listlike(arg._values, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
@@ -1249,7 +1265,9 @@ def to_datetime(
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
             argc = cast(
-                "list | tuple | ExtensionArray | np.ndarray | Series | Index", arg
+                "list[Any] | tuple[Any, ...] | ExtensionArray | np.ndarray | Series "
+                "| Index",
+                arg,
             )
             cache_array = _maybe_cache(argc, format, cache, convert_listlike, unit)
         except OutOfBoundsDatetime:

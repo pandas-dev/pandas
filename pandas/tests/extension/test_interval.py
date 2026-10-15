@@ -22,8 +22,10 @@ import pytest
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
+from pandas.tests.extension.base.methods import SLOW_DEFAULTS
 
 
 def make_data(n: int):
@@ -83,6 +85,15 @@ class TestIntervalArray(base.ExtensionTests):
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max", "count"]
+
+    @pytest.mark.parametrize("method", list(SLOW_DEFAULTS))
+    def test_slow_defaults_overridden(self, data, method, performance_warning):
+        # GH#24433 argmin/argmax use the default _values_for_argsort
+        inherited = method in ["factorize", "argmin", "argmax", "searchsorted"]
+        warn = performance_warning if inherited else False
+        msg = f"implementation of {method},"
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            super().test_slow_defaults_overridden(data, method)
 
     def test_fillna_limit_frame(self, data_missing):
         # GH#58001

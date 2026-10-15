@@ -1032,7 +1032,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     # stacked columns.
     ratio = 0 if frame.empty else len(result) // len(frame)
 
-    index_levels: list | FrozenList
+    index_levels: list[Index | np.ndarray] | FrozenList
     if isinstance(frame.index, MultiIndex):
         index_levels = frame.index.levels
         index_codes = list(np.tile(frame.index.codes, (1, ratio)))

@@ -44,19 +44,19 @@ of multi-axis indexing.
 
 * ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
 
-    * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a
-      *label* of the index. This use is **not** an integer position along the
-      index.).
-    * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
-      slices, **both** the start and the stop are included, when present in the
-      index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
-      and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
-    * A boolean array (any ``NA`` values will be treated as ``False``).
-    * A ``callable`` function with one argument (the calling Series or DataFrame) and
-      that returns valid output for indexing (one of the above).
-    * A tuple of row (and column) indices whose elements are one of the
-      above inputs.
+  * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a
+    *label* of the index. This use is **not** an integer position along the
+    index.).
+  * A list or array of labels ``['a', 'b', 'c']``.
+  * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
+    slices, **both** the start and the stop are included, when present in the
+    index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
+    and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
+  * A boolean array (any ``NA`` values will be treated as ``False``).
+  * A ``callable`` function with one argument (the calling Series or DataFrame) and
+    that returns valid output for indexing (one of the above).
+  * A tuple of row (and column) indices whose elements are one of the
+    above inputs.
 
   See more at :ref:`Selection by Label <indexing.label>`.
 
@@ -67,14 +67,14 @@ of multi-axis indexing.
   out-of-bounds indexing.  (this conforms with Python/NumPy *slice*
   semantics).  Allowed inputs are:
 
-    * An integer e.g. ``5``.
-    * A list or array of integers ``[4, 3, 0]``.
-    * A slice object with ints ``1:7``.
-    * A boolean array (any ``NA`` values will be treated as ``False``).
-    * A ``callable`` function with one argument (the calling Series or DataFrame) and
-      that returns valid output for indexing (one of the above).
-    * A tuple of row (and column) indices whose elements are one of the
-      above inputs.
+  * An integer e.g. ``5``.
+  * A list or array of integers ``[4, 3, 0]``.
+  * A slice object with ints ``1:7``.
+  * A boolean array (any ``NA`` values will be treated as ``False``).
+  * A ``callable`` function with one argument (the calling Series or DataFrame) and
+    that returns valid output for indexing (one of the above).
+  * A tuple of row (and column) indices whose elements are one of the
+    above inputs.
 
   See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
@@ -838,6 +838,11 @@ This is like an ``append`` operation on the ``DataFrame``.
    dfi.loc[3] = 5
    dfi
 
+.. note::
+
+   Enlarging by a row copies the existing data, so adding many rows one at a
+   time is slow. See :ref:`merging.append.row` for adding several rows at once.
+
 .. _indexing.basics.get_value:
 
 Fast scalar value getting and setting
@@ -948,6 +953,49 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
       df.loc[s, 'B']
 
       df.iloc[s.values, 1]
+
+.. _indexing.boolean.filter:
+
+Filtering with ``DataFrame.filter``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 3.1.0
+
+:meth:`DataFrame.filter` and :meth:`Series.filter` also accept a boolean mask
+through the ``cond`` keyword, keeping the rows where the mask is True. A
+:class:`Series` mask is aligned on the index; any other array-like must have
+the same length as the index.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, index=list('abc'))
+   df.filter(cond=df['A'] > 1)
+
+``cond`` may also be a callable that returns a boolean mask, or an expression
+created with :func:`pandas.col`. These two forms may be passed positionally,
+which is convenient in a method chain where the intermediate object has no
+name:
+
+.. ipython:: python
+
+   df.filter(pd.col('A') > 1)
+   df.assign(C=pd.col('A') + pd.col('B')).filter(lambda df: df['C'] > 5)
+
+Pass ``axis=1`` to filter columns instead of rows:
+
+.. ipython:: python
+
+   df.filter(cond=df.columns.str.startswith('A'), axis=1)
+
+Missing values in the mask are treated as False by default, matching
+``df[mask]`` for a mask with nullable boolean dtype. Pass ``na=True`` to keep
+the corresponding rows instead, or ``na="raise"`` to raise an error:
+
+.. ipython:: python
+
+   mask = pd.array([True, None, False], dtype="boolean")
+   df.filter(cond=mask)
+   df.filter(cond=mask, na=True)
 
 .. _indexing.basics.indexing_isin:
 

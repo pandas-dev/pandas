@@ -299,7 +299,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         return lib.map_infer(values, self._box_func, convert=False)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim > 1:
             return (self[n] for n in range(len(self)))
         else:
@@ -1669,8 +1669,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
@@ -1830,7 +1829,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
         raise AbstractMethodError(self)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim > 1:
             for i in range(len(self)):
                 yield self[i]
@@ -2497,6 +2496,9 @@ def ensure_arraylike_for_datetimelike(
         #  e.g. the categories are timedelta64s
         data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
+
+    if data.ndim == 0:
+        raise ValueError(f"Cannot construct {cls_name} from 0-dim input")
 
     return data, copy
 
