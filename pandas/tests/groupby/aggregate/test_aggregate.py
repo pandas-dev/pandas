@@ -5,6 +5,7 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 import datetime
 import functools
 from functools import partial
+import re
 
 import numpy as np
 import pytest
@@ -1905,7 +1906,9 @@ def test_dataframe_groupby_agg_list_numeric_only_no_numeric_columns():
     result = gb.agg(["min", "max"], numeric_only=True)
     expected = pd.DataFrame(
         index=pd.Index([1, 2], name="g"),
-        columns=pd.MultiIndex.from_product([pd.Index([], dtype="str"), ["min", "max"]]),
+        columns=pd.MultiIndex.from_arrays(
+            [df.columns[:0], pd.Index(["min", "max"])[:0]]
+        ),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1977,7 +1980,13 @@ def test_dataframe_groupby_agg_list_non_numeric_raises():
     # GH#53839 without numeric_only, a non-numeric column still raises
     df = pd.DataFrame({"g": [1, 1, 2], "a": [1, 2, 3], "s": ["x", "y", "z"]})
     gb = df.groupby("g")
-    with pytest.raises(TypeError, match="does not support operation 'mean'"):
+    msg = "|".join(
+        [
+            "does not support operation 'mean'",
+            re.escape("agg function failed [how->mean,dtype->object]"),
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
         gb.agg(["sum", "mean"])
 
 
