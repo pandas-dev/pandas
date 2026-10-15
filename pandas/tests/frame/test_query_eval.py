@@ -420,8 +420,6 @@ class TestDataFrameEval:
         df = pd.DataFrame(
             {
                 "i8": np.array([100, 120, -100], dtype="int8"),
-                "obj": pd.Series([1, 2, 3], dtype=object),
-                "i64": [1, 2, 3],
                 "obj_bool": pd.Series([True, True, True], dtype=object),
                 "bool": [True, True, True],
                 "s": ["p", "q", "r"],
