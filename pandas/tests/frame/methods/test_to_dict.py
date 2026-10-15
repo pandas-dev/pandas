@@ -197,31 +197,6 @@ class TestDataFrameToDict:
         assert isinstance(item_getter(result, "a", 0), int)
         assert isinstance(item_getter(result, "b", 0), float)
 
-    @pytest.mark.parametrize(
-        "orient,item_getter",
-        [
-            ("dict", lambda d, col, idx: d[col][idx]),
-            ("list", lambda d, col, idx: d[col][idx]),
-            ("series", lambda d, col, idx: d[col][idx]),
-            ("split", lambda d, col, idx: d["data"][idx][d["columns"].index(col)]),
-            ("tight", lambda d, col, idx: d["data"][idx][d["columns"].index(col)]),
-            ("records", lambda d, col, idx: d[idx][col]),
-            ("index", lambda d, col, idx: d[idx][col]),
-        ],
-    )
-    @pytest.mark.parametrize("mixed", [True, False])
-    def test_to_dict_object_datetime_not_boxed(self, orient, item_getter, mixed):
-        # GH#29824 object-dtype datetimes stay datetime, not Timestamp, in every
-        #  orient; mixed and all-object frames take different paths
-        data = {
-            "a": pd.Series([datetime(2018, 1, 1), datetime(2018, 1, 2)], dtype=object)
-        }
-        if mixed:
-            data["b"] = [1, 2]
-        df = pd.DataFrame(data)
-        result = df.to_dict(orient=orient)
-        assert type(item_getter(result, "a", 0)) is datetime
-
     def test_to_dict_tz(self):
         # GH#18372 When converting to dict with orient='records' columns of
         # datetime that are tz-aware were not converted to required arrays
@@ -423,6 +398,23 @@ class TestDataFrameToDict:
                     "a": [int, str, int],
                     "b": [float, str, float],
                 },
+            ),
+            (  # GH#29824
+                {
+                    "a": pd.Series(
+                        [datetime(2018, 1, 1), datetime(2018, 1, 2)], dtype=object
+                    ),
+                    "b": [1, 2],
+                },
+                {"a": [datetime, datetime], "b": [int, int]},
+            ),
+            (  # GH#29824 all-object frame
+                {
+                    "a": pd.Series(
+                        [datetime(2018, 1, 1), datetime(2018, 1, 2)], dtype=object
+                    ),
+                },
+                {"a": [datetime, datetime]},
             ),
             (  # GH#27616
                 {
