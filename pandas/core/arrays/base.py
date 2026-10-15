@@ -156,6 +156,7 @@ class ExtensionArray:
     searchsorted
     shift
     sort
+    squeeze
     take
     tolist
     unique
@@ -683,6 +684,62 @@ class ExtensionArray:
             if not is_integer(index):
                 raise TypeError(f"index must be an integer, got {type(index)}")
             return self[index]
+
+    def squeeze(self, axis: AxisInt | tuple[AxisInt, ...] | None = None):
+        """
+        Remove the length-one axis, returning a scalar for a single-element array.
+
+        Analogous to :meth:`numpy.ndarray.squeeze`. Because an ExtensionArray
+        is one-dimensional, squeezing an array of length one returns its only
+        element instead of a zero-dimensional array.
+
+        Parameters
+        ----------
+        axis : int or tuple of ints, optional
+            Axis to squeeze. Only ``0`` or ``-1`` are valid. If given, the
+            array must have exactly one element.
+
+        Returns
+        -------
+        scalar or ExtensionArray
+            The single element if the array has length one, otherwise the
+            array itself.
+
+        Raises
+        ------
+        ValueError
+            If ``axis`` is given and the array does not have exactly one
+            element.
+
+        See Also
+        --------
+        numpy.ndarray.squeeze : Remove axes of length one.
+        Series.squeeze : Squeeze 1 dimensional axis objects into scalars.
+        ExtensionArray.item : Return the array element at the specified position.
+
+        Examples
+        --------
+        >>> arr = pd.array(["foo"], dtype="str")
+        >>> arr.squeeze()
+        'foo'
+
+        >>> arr = pd.array(["foo", "bar"], dtype="str")
+        >>> arr.squeeze()
+        <ArrowStringArray>
+        ['foo', 'bar']
+        Length: 2, dtype: str
+        """
+        if axis is not None:
+            if not np.lib.array_utils.normalize_axis_tuple(axis, self.ndim):
+                return self
+            if len(self) != 1:
+                raise ValueError(
+                    "cannot select an axis to squeeze out which has size not "
+                    "equal to one"
+                )
+        elif len(self) != 1:
+            return self
+        return self[0]
 
     def to_numpy(
         self,

@@ -502,6 +502,26 @@ class BaseGetitemTests:
         with pytest.raises(TypeError, match=msg):
             data.item([0])
 
+    def test_array_squeeze(self, data):
+        # GH#71172
+        assert data[:1].squeeze() == data[0]
+        assert data[:1].squeeze(axis=0) == data[0]
+        assert data[:1].squeeze(axis=-1) == data[0]
+        assert data[:1].squeeze(axis=(0,)) == data[0]
+
+        tm.assert_extension_array_equal(data.squeeze(), data)
+        tm.assert_extension_array_equal(data[:0].squeeze(), data[:0])
+        tm.assert_extension_array_equal(data[:1].squeeze(axis=()), data[:1])
+
+        msg = "cannot select an axis to squeeze out which has size not equal to one"
+        with pytest.raises(ValueError, match=msg):
+            data.squeeze(axis=0)
+        with pytest.raises(ValueError, match=msg):
+            data[:0].squeeze(axis=0)
+
+        with tm.external_error_raised(np.exceptions.AxisError):
+            data[:1].squeeze(axis=1)
+
     def test_getitem_propagates_readonly_property(self, data):
         # ensure read-only propagates if getitem returns view
         data._readonly = True
