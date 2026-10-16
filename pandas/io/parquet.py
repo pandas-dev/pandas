@@ -551,6 +551,10 @@ class PyArrowImpl(BaseImpl):
             # the others configure reading, so they go where the data is opened.
             use_threads = kwargs.pop("use_threads", True)
             del kwargs["use_pandas_metadata"]
+            # pyarrow's default pre-buffering keeps the row groups it buffers
+            # until the file is closed, so the reader would end up holding the
+            # whole file
+            kwargs.setdefault("pre_buffer", False)
             try:
                 if isinstance(path_or_handle, str) and _is_dir(
                     path_or_handle, filesystem
@@ -582,6 +586,9 @@ class PyArrowImpl(BaseImpl):
                         schema=schema,
                         columns=columns,
                         batch_size=chunksize,
+                        # the default of 16 lets the scan run far ahead of a
+                        # slow consumer, holding most of the file in memory
+                        batch_readahead=1,
                         use_threads=use_threads,
                     )
                 else:
@@ -1025,7 +1032,9 @@ def read_parquet(
         reads and yields DataFrames of at most ``chunksize`` rows each,
         instead of loading the whole file into memory at once. Only
         supported with ``engine="pyarrow"``, and not supported together
-        with ``filters``.
+        with ``filters``. Files are read without pre-buffering unless
+        ``pre_buffer=True`` is passed, which can be faster on high-latency
+        filesystems such as S3 but keeps the data read so far in memory.
 
         .. versionadded:: 3.1.0
 
