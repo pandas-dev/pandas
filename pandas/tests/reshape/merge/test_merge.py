@@ -1426,19 +1426,34 @@ class TestMerge:
         expected = expected.set_index(expected_index)
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_right_index_right(self):
-        # Note: the expected output here is probably incorrect.
-        # See https://github.com/pandas-dev/pandas/issues/17257 for more.
-        # We include this as a regression test for GH-24897.
-        left = pd.DataFrame({"a": [1, 2, 3], "key": [0, 1, 1]})
+    @pytest.mark.parametrize("how", ["right", "outer"])
+    @pytest.mark.parametrize("mirrored", [False, True])
+    def test_merge_right_index_right(self, how, mirrored):
+        # GH#24897, GH#17257: unmatched index rows get a missing index label,
+        # not one taken from an unrelated row of the other frame
+        left = pd.DataFrame({"a": [1, 2, 3, 4], "key": [0, 1, 1, 5]})
         right = pd.DataFrame({"b": [1, 2, 3]})
 
-        expected = pd.DataFrame(
-            {"a": [1, 2, 3, None], "key": [0, 1, 1, 2], "b": [1, 2, 2, 3]},
-            columns=["a", "key", "b"],
-            index=[0, 1, 2, np.nan],
-        )
-        result = left.merge(right, left_on="key", right_index=True, how="right")
+        if how == "right":
+            expected = pd.DataFrame(
+                {"a": [1, 2, 3, None], "key": [0, 1, 1, 2], "b": [1, 2, 2, 3]},
+                index=[0, 1, 2, np.nan],
+            )
+        else:
+            expected = pd.DataFrame(
+                {
+                    "a": [1, 2, 3, None, 4],
+                    "key": [0, 1, 1, 2, 5],
+                    "b": [1, 2, 2, 3, None],
+                },
+                index=[0, 1, 2, np.nan, 3],
+            )
+        if mirrored:
+            how = "left" if how == "right" else how
+            result = right.merge(left, right_on="key", left_index=True, how=how)
+            expected = expected[["b", "a", "key"]]
+        else:
+            result = left.merge(right, left_on="key", right_index=True, how=how)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("how", ["left", "right"])

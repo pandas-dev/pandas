@@ -2573,14 +2573,14 @@ def _box_numpy_datetimelike(val, kind: str):
     """
     if isinstance(val, (np.datetime64, np.timedelta64)) and val.dtype.kind == kind:
         unit = np.datetime_data(val.dtype)[0]
-        if unit in ("generic", "ps", "fs", "as"):
-            # ambiguous, or truncated by Timestamp
+        if unit in ("ps", "fs", "as") or (unit == "generic" and not np.isnat(val)):
+            # truncated by Timestamp, or ambiguous unless NaT
             return val
         try:
             if isinstance(val, np.datetime64):
                 return Timestamp(val)
             return Timedelta(val)
         except ValueError:
-            # Timedelta rejects "Y" and "M" units
+            # out of bounds, or Timedelta with "Y"/"M" units
             return val
     return val
