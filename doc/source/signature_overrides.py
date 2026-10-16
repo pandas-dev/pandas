@@ -190,15 +190,26 @@ _OFFSET_SIGNATURES = {
         "n",
         "normalize",
     ),
-    pd.tseries.offsets.SemiMonthEnd: (
+    pd.tseries.offsets.CustomBusinessMonthEnd: (
         "n",
         "normalize",
-        "day_of_month",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
     ),
-    pd.tseries.offsets.SemiMonthBegin: (
+    pd.tseries.offsets.CustomBusinessMonthBegin: (
         "n",
         "normalize",
-        "day_of_month",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.YearEnd: (
+        "n",
+        "normalize",
+        "month",
     ),
 }
 
