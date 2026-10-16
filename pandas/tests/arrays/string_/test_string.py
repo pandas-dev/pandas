@@ -225,6 +225,20 @@ def test_constructor_string_array_na_value(na_value, copy, shape, keep, expected
     assert all(value is source_na for value in source.ravel())
 
 
+@pytest.mark.parametrize("na_value", [np.nan, pd.NA])
+@pytest.mark.parametrize("copy", [True, False])
+def test_constructor_empty_string_array_na_value(na_value, copy):
+    dtype = pd.StringDtype("python", na_value=na_value)
+    source_na = pd.NA if na_value is np.nan else np.nan
+    source = pd.array([], dtype=pd.StringDtype("python", na_value=source_na))
+    source = source.reshape(2, 0)
+
+    result = pd.arrays.StringArray(source, dtype=dtype, copy=copy)
+
+    assert result.shape == (2, 0)
+    assert result.dtype == dtype
+
+
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, dtype):
     nan_arr = np.array(["a", np.nan], dtype=object)

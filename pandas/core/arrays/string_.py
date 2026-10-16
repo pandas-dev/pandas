@@ -710,6 +710,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if (
             isinstance(values, type(self))
             and values.dtype.na_value is not dtype.na_value
+            and values.size
         ):
             values = np.where(isna(values._ndarray), dtype.na_value, values._ndarray)
             copy = False
