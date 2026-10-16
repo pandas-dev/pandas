@@ -1607,6 +1607,10 @@ def read_csv(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
+
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``. If ``dict``
@@ -2211,6 +2215,10 @@ def read_table(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
 
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
