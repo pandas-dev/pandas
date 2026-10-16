@@ -5,7 +5,6 @@ import collections
 from copy import deepcopy
 import datetime as dt
 from functools import partial
-import inspect
 from json import loads
 import operator
 import pickle
@@ -82,7 +81,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -6760,19 +6758,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # GH#63433: cast only the listed columns, grouped by target dtype, and
             #  assemble the result from those plus the untouched columns.
-            # Grouped by value, so equal dtypes built separately (such as one
-            #  f-string per column) are cast together. A CategoricalDtype is
-            #  grouped by identity: it compares equal to one with the same
-            #  categories in another order, which casts differently.
+            # Strings, numpy dtypes and types cast the same whenever they compare
+            #  equal, so they are grouped by value and equal ones built separately
+            #  (such as one f-string per column) are cast together. Other dtypes
+            #  can compare equal yet cast differently (a CategoricalDtype with its
+            #  categories in another order, DatetimeTZDtype with equivalent tz
+            #  objects), so they are grouped by identity.
             locs_by_dtype: dict[Any, tuple[Any, list[int]]] = {}
             mask = dtype_ser.notna()
             for loc, column_dtype in zip(
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
             ):
                 key = (
-                    id(column_dtype)
-                    if isinstance(column_dtype, CategoricalDtype)
-                    else column_dtype
+                    (type(column_dtype), column_dtype)
+                    if isinstance(column_dtype, (str, np.dtype, type))
+                    else id(column_dtype)
                 )
                 _, group = locs_by_dtype.setdefault(key, (column_dtype, []))
                 group.append(int(loc))
@@ -6783,7 +6783,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for column_dtype, locs in locs_by_dtype.values():
                 # A dtype class goes column by column: Series.astype rejects it,
                 #  while casting several columns at once would instantiate it.
-                is_class = inspect.isclass(column_dtype) and issubclass(
+                is_class = isinstance(column_dtype, type) and issubclass(
                     column_dtype, ExtensionDtype
                 )
                 if errors == "raise" and not is_class:

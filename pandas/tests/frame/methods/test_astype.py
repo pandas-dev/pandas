@@ -1,4 +1,6 @@
+from datetime import UTC
 import re
+import zoneinfo
 
 import numpy as np
 import pytest
@@ -335,6 +337,20 @@ class TestAstype:
         )
         assert result["x"].cat.categories.tolist() == ["a", "b"]
         assert result["y"].cat.categories.tolist() == ["b", "a"]
+
+    def test_astype_dict_equal_tz_dtypes_kept_apart(self):
+        # GH#63433 equal timezone dtypes with different tz objects each keep theirs
+        dti = pd.date_range("2020", periods=2, tz="US/Pacific", unit="ns")
+        df = pd.DataFrame({"a": dti, "b": dti})
+        result = df.astype(
+            {
+                "a": pd.DatetimeTZDtype("ns", UTC),
+                "b": pd.DatetimeTZDtype("ns", zoneinfo.ZoneInfo("UTC")),
+            }
+        )
+        assert result["a"].dt.tz is UTC
+        assert result["b"].dt.tz == zoneinfo.ZoneInfo("UTC")
+        assert isinstance(result["b"].dt.tz, zoneinfo.ZoneInfo)
 
     def test_astype_extension_dtypes(self, any_int_ea_dtype):
         # GH#22578
@@ -887,7 +903,7 @@ class Int16DtypeNoCopy(pd.Int16Dtype):
 
 
 def test_astype_dict_keeps_other_columns_blocks():
-    # GH#63433 casting some columns split every column into its own block
+    # GH#63433 casting some columns keeps the other columns' blocks
     df = pd.DataFrame(
         {
             f"c{i}": np.arange(5, dtype="float64" if i % 2 else "int64")
@@ -930,8 +946,7 @@ def test_astype_dict_equal_dtypes_built_separately_cast_together():
 
 
 def test_astype_dict_wide_interleaved():
-    # GH#63433 casting every other column of a wide frame: each column cast in
-    #  turn was quadratic in the width
+    # GH#63433 casting every other column of a wide frame
     df = pd.DataFrame(np.arange(40.0).reshape(2, 20))
     dtypes = dict.fromkeys(df.columns[::2], "float32")
 
