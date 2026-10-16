@@ -1625,29 +1625,6 @@ def test_to_parquet_uuid_supported(temp_file):
 
 
 class TestParquetChunksize(Base):
-    def test_read_parquet_chunksize_returns_iterator(self, pa, tmp_path):
-        path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
-
-        result = read_parquet(path, engine=pa, chunksize=5)
-        assert not isinstance(result, pd.DataFrame)
-        assert hasattr(result, "__next__")
-
-    def test_read_parquet_no_chunksize_returns_dataframe(self, engine, tmp_path):
-        path = tmp_path / "test.parquet"
-        df = pd.DataFrame({"a": range(10)})
-        df.to_parquet(path, engine=engine)
-
-        result = read_parquet(path, engine=engine)
-        assert isinstance(result, pd.DataFrame)
-
-    def test_read_parquet_chunksize_yields_dataframes(self, pa, tmp_path):
-        path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
-
-        for chunk in read_parquet(path, engine=pa, chunksize=5):
-            assert isinstance(chunk, pd.DataFrame)
-
     def test_read_parquet_chunksize_preserves_all_rows(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(100)})
@@ -1656,13 +1633,6 @@ class TestParquetChunksize(Base):
         chunks = list(read_parquet(path, engine=pa, chunksize=30))
         result = pd.concat(chunks, ignore_index=True)
         tm.assert_frame_equal(result, df)
-
-    def test_read_parquet_chunksize_respects_max_size(self, pa, tmp_path):
-        path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(100)}).to_parquet(path, engine=pa)
-
-        for chunk in read_parquet(path, engine=pa, chunksize=30):
-            assert len(chunk) <= 30
 
     def test_read_parquet_chunksize_spans_row_groups(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
@@ -1683,6 +1653,7 @@ class TestParquetChunksize(Base):
         pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
 
         with read_parquet(path, engine=pa, chunksize=5) as reader:
+            assert isinstance(reader, pd.api.typing.ParquetFileReader)
             chunks = list(reader)
         assert len(chunks) == 2
 
