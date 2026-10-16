@@ -338,6 +338,19 @@ class TestAstype:
         assert result["x"].cat.categories.tolist() == ["a", "b"]
         assert result["y"].cat.categories.tolist() == ["b", "a"]
 
+    def test_astype_dict_extension_dtype_instance_per_column(self):
+        # GH#63433 a separate extension dtype object for each column, as a dict
+        #  comprehension makes, casts each column like Series.astype does
+        df = pd.DataFrame({"a": [1, 2], "b": [3.5, None], "c": [5, 6]})
+        dtypes = {c: pd.Float64Dtype() for c in ["a", "b"]}
+
+        result = df.astype(dtypes)
+
+        expected = df.copy()
+        expected["a"] = df["a"].astype("Float64")
+        expected["b"] = df["b"].astype("Float64")
+        tm.assert_frame_equal(result, expected)
+
     def test_astype_dict_equal_tz_dtypes_kept_apart(self):
         # GH#63433 equal timezone dtypes with different tz objects each keep theirs
         dti = pd.date_range("2020", periods=2, tz="US/Pacific", unit="ns")
