@@ -5659,7 +5659,7 @@ documentation.
 
 Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
-Examples of such drivers are `psycopg 3 <https://www.psycopg.org/psycopg3/>`__
+Examples of such drivers are `psycopg 3 <https://www.psycopg.org/psycopg3/docs/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
