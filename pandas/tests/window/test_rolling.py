@@ -629,6 +629,17 @@ def test_rolling_prod_recovers_from_underflow():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("small", [1e-320, -1e-320])
+def test_rolling_prod_recovers_from_subnormal(small):
+    # GH 66968
+    values = Series([small, 1.2345678901, 1.0])
+    expected = Series([np.nan, small * 1.2345678901, 1.2345678901])
+
+    result = values.rolling(2).prod()
+
+    tm.assert_series_equal(result, expected, atol=0)
+
+
 def test_rolling_prod_preserves_signed_zero():
     # GH 48030
     values = Series([-2.0, 0.0, 3.0])

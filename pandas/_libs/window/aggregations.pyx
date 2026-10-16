@@ -1,5 +1,6 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
+from libc.float cimport DBL_MIN
 from libc.math cimport (
     fabs,
     isinf,
@@ -245,7 +246,7 @@ cdef void add_prod(
             zero_count[0] += 1
         else:
             prod_x[0] *= val
-            if prod_x[0] == 0 or isinf(prod_x[0]):
+            if fabs(prod_x[0]) < DBL_MIN or isinf(prod_x[0]):
                 numerically_unstable[0] = True
 
 
@@ -267,10 +268,10 @@ cdef void remove_prod(
         if val == 0:
             zero_count[0] -= 1
         else:
-            if prod_x[0] == 0 or isinf(prod_x[0]):
+            if fabs(prod_x[0]) < DBL_MIN or isinf(prod_x[0]):
                 numerically_unstable[0] = True
             prod_x[0] /= val
-            if prod_x[0] == 0 or isinf(prod_x[0]):
+            if fabs(prod_x[0]) < DBL_MIN or isinf(prod_x[0]):
                 numerically_unstable[0] = True
 
 

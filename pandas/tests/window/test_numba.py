@@ -584,14 +584,31 @@ def test_npfunc_no_warnings():
 
 
 @td.skip_if_no("numba")
-def test_rolling_prod_numba():
+@pytest.mark.parametrize(
+    "data",
+    [
+        [2.0, 3.0, 4.0, 5.0],
+        [np.nan, np.nan, 2.0, -3.0, -0.0, 0.0, np.nan, np.nan, 4.0, -5.0, 2.0],
+    ],
+)
+@pytest.mark.parametrize("window", [2, 3])
+@pytest.mark.parametrize("min_periods", [None, 0, 1])
+@pytest.mark.parametrize("method", ["single", "table"])
+def test_rolling_prod_numba(data, window, min_periods, method):
     # GH 48030
-    values = Series([2.0, 3.0, 4.0, 5.0])
+    values = Series(data)
+    if method == "table":
+        values = DataFrame({"a": data, "b": data[::-1]})
 
-    result = values.rolling(2).prod(engine="numba")
-    expected = values.rolling(2).prod(engine="cython")
+    result = values.rolling(window, min_periods=min_periods, method=method).prod(
+        engine="numba"
+    )
+    expected = values.rolling(window, min_periods=min_periods).prod(engine="cython")
 
-    tm.assert_series_equal(result, expected)
+    tm.assert_equal(result, expected)
+    result_zeros = result.to_numpy()[result.to_numpy() == 0]
+    expected_zeros = expected.to_numpy()[expected.to_numpy() == 0]
+    tm.assert_numpy_array_equal(np.signbit(result_zeros), np.signbit(expected_zeros))
 
 
 class PrescribedWindowIndexer(BaseIndexer):
