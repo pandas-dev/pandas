@@ -1686,6 +1686,16 @@ class TestParquetChunksize(Base):
             chunks = list(reader)
         assert len(chunks) == 2
 
+    def test_read_parquet_chunksize_close_closes_file(self, pa, tmp_path):
+        # pyarrow opens a local path itself, so there is no pandas handle and
+        # closing the reader has to close pyarrow's ParquetFile
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
+
+        with read_parquet(path, engine=pa, chunksize=5) as reader:
+            next(reader)
+        assert reader._source.closed
+
     @pytest.mark.parametrize(
         "index", [pd.RangeIndex(10), pd.RangeIndex(10, 30, 2, name="r")]
     )

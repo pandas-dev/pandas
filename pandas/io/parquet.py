@@ -259,17 +259,21 @@ class ParquetFileReader(abc.Iterator):
 
     A ``ParquetFileReader`` is returned by :func:`~pandas.read_parquet` when
     ``chunksize`` is passed; it is not usually instantiated directly. It
-    wraps pyarrow's ``ParquetFile.iter_batches()`` (single file) or
-    ``Dataset.to_batches()`` (partitioned directory) and converts each batch
-    to a DataFrame lazily, one at a time, closing the underlying file handle
-    once the iterator is exhausted or used as a context manager.
+    wraps pyarrow's ``ParquetFile.iter_batches()`` (single file) or a
+    dataset scanner's ``RecordBatchReader`` (partitioned directory) and
+    converts each batch to a DataFrame lazily, one at a time, closing the
+    underlying file(s) once the iterator is exhausted or used as a context
+    manager.
 
     Parameters
     ----------
     batch_iter : Iterator[pyarrow.RecordBatch]
         Iterator over pyarrow record batches, from either
-        ``pyarrow.parquet.ParquetFile.iter_batches()`` or
-        ``pyarrow.dataset.Dataset.to_batches()``.
+        ``pyarrow.parquet.ParquetFile.iter_batches()`` or a
+        ``pyarrow.RecordBatchReader`` from a ``pyarrow.dataset.Scanner``.
+    source : pyarrow.parquet.ParquetFile or pyarrow.RecordBatchReader
+        The pyarrow object ``batch_iter`` reads from, closed along with
+        ``handles``.
     dtype_backend : {'numpy_nullable', 'pyarrow'} or lib.no_default
         Back-end data type applied to each yielded DataFrame. See
         :func:`~pandas.read_parquet` for details.
@@ -308,12 +312,14 @@ class ParquetFileReader(abc.Iterator):
     def __init__(
         self,
         batch_iter,
+        source,
         dtype_backend: DtypeBackend | lib.NoDefault,
         to_pandas_kwargs: dict[str, Any] | None,
         handles: IOHandles[bytes] | None,
         index_range: tuple[int, int, Hashable],
     ) -> None:
         self._batch_iter = batch_iter
+        self._source = source
         self._dtype_backend: DtypeBackend | lib.NoDefault = dtype_backend
         self._to_pandas_kwargs = to_pandas_kwargs
         self._handles = handles
@@ -358,7 +364,7 @@ class ParquetFileReader(abc.Iterator):
 
     def close(self) -> None:
         """
-        Close the underlying file handle, if one is open.
+        Close the underlying file(s), if any are open.
 
         Called automatically when the iterator is exhausted or when the
         ``ParquetFileReader`` is used as a context manager.
@@ -372,8 +378,12 @@ class ParquetFileReader(abc.Iterator):
         >>> reader = pd.read_parquet("data.parquet", chunksize=5)  # doctest: +SKIP
         >>> reader.close()  # doctest: +SKIP
         """
-        if not self._closed and self._handles is not None:
-            self._handles.close()
+        if not self._closed:
+            # pyarrow opens local and filesystem paths itself, in which case
+            # there are no pandas handles and only this closes the file
+            self._source.close()
+            if self._handles is not None:
+                self._handles.close()
         self._closed = True
 
 
@@ -520,7 +530,7 @@ class PyArrowImpl(BaseImpl):
                         filesystem=filesystem,
                         partitioning=partitioning,
                     )
-                    # to_batches() has no use_pandas_metadata, so add the index
+                    # the scanner has no use_pandas_metadata, so add the index
                     # columns that read_table() reads along with columns=
                     kwargs.pop("use_pandas_metadata")
                     pandas_metadata = dataset.schema.pandas_metadata
@@ -531,14 +541,16 @@ class PyArrowImpl(BaseImpl):
                             # a RangeIndex is stored as a dict, not as a column
                             if isinstance(col, str) and col not in columns
                         ]
-                    batch_iter = dataset.to_batches(
-                        columns=columns,
-                        batch_size=chunksize,
-                        **kwargs,
-                    )
                     index_range = _full_read_range_index(
                         dataset.schema, dataset.count_rows, to_pandas_kwargs
                     )
+                    # unlike to_batches(), a RecordBatchReader can be closed
+                    source = dataset.scanner(
+                        columns=columns,
+                        batch_size=chunksize,
+                        **kwargs,
+                    ).to_reader()
+                    batch_iter = iter(source)
                 else:
                     parquet_file = self.api.parquet.ParquetFile(
                         path_or_handle, filesystem=filesystem
@@ -553,6 +565,7 @@ class PyArrowImpl(BaseImpl):
                         lambda: parquet_file.metadata.num_rows,
                         to_pandas_kwargs,
                     )
+                    source = parquet_file
             except Exception:
                 if handles is not None:
                     handles.close()
@@ -560,6 +573,7 @@ class PyArrowImpl(BaseImpl):
 
             return ParquetFileReader(
                 batch_iter,
+                source=source,
                 dtype_backend=dtype_backend,
                 to_pandas_kwargs=to_pandas_kwargs,
                 handles=handles,
