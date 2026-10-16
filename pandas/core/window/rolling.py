@@ -114,7 +114,7 @@ if TYPE_CHECKING:
 from pandas.core.arrays.datetimelike import dtype_to_unit
 
 
-class BaseWindow(SelectionMixin):
+class BaseWindow(SelectionMixin["NDFrame"]):
     """Provides utilities for performing windowing operations."""
 
     _attributes: list[str] = []
@@ -322,7 +322,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()
@@ -651,6 +651,8 @@ class BaseWindow(SelectionMixin):
 
     def aggregate(self, func=None, *args, **kwargs):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        if relabeling:
+            kwargs = {}
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if isinstance(result, ABCDataFrame) and relabeling:
             result = result.iloc[:, order]
@@ -3171,12 +3173,12 @@ class Rolling(RollingAndExpandingMixin):
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * fraction`, where `fraction` is the
-                  fractional part of the index surrounded by `i` and `j`.
-                * lower: `i`.
-                * higher: `j`.
-                * nearest: `i` or `j` whichever is nearest.
-                * midpoint: (`i` + `j`) / 2.
+            * linear: `i + (j - i) * fraction`, where `fraction` is the
+              fractional part of the index surrounded by `i` and `j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
 
         numeric_only : bool, default False
             Include only float, int, boolean columns.

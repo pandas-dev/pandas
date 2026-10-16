@@ -5,6 +5,7 @@ from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -267,7 +268,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         raise TypeError(f"'{type(self).__name__}' object is not iterable")
 
     def _wrap_result(
@@ -648,7 +649,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.str.cat(pd.Series(["x", "y", "z"]))
-        Index([nan, nan, nan], dtype='object')
+        Index([NaN, NaN, NaN], dtype='object')
 
         Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
 
@@ -755,7 +756,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
-        pat: str | re.Pattern | None = None,
+        pat: str | re.Pattern[str] | None = None,
         *,
         n=-1,
         expand: bool = False,
@@ -1567,7 +1568,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool | lib.NoDefault = lib.no_default,
         flags: int | lib.NoDefault = lib.no_default,
         na=lib.no_default,
@@ -1722,8 +1723,8 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern | dict,
-        repl: str | Callable | None = None,
+        pat: str | re.Pattern[str] | dict[str, str],
+        repl: str | Callable[..., Any] | None = None,
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
@@ -1892,10 +1893,13 @@ class StringMethods(NoNewAttributesMixin):
             case = True
 
         res_output = self._data
-        if not isinstance(pat, dict):
-            pat = {pat: repl}
+        pat_dict: dict[Any, Any]
+        if isinstance(pat, dict):
+            pat_dict = pat
+        else:
+            pat_dict = {pat: repl}
 
-        for key, value in pat.items():
+        for key, value in pat_dict.items():
             result = res_output.array._str_replace(
                 key, value, n=n, case=case, flags=flags, regex=regex
             )
@@ -4860,7 +4864,7 @@ def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     return result
 
 
-def cat_core(list_of_columns: list, sep: str):
+def cat_core(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -4881,7 +4885,7 @@ def cat_core(list_of_columns: list, sep: str):
         # no need to interleave sep if it is empty
         arr_of_cols = np.asarray(list_of_columns, dtype=object)
         return np.sum(arr_of_cols, axis=0)
-    list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
+    list_with_sep: list[Any] = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     arr_with_sep = np.asarray(list_with_sep, dtype=object)
     return np.sum(arr_with_sep, axis=0)
@@ -4898,14 +4902,14 @@ def _result_dtype(arr):
     return object
 
 
-def _get_single_group_name(regex: re.Pattern) -> Hashable:
+def _get_single_group_name(regex: re.Pattern[str]) -> Hashable:
     if regex.groupindex:
         return next(iter(regex.groupindex))
     else:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable] | range:
+def _get_group_names(regex: re.Pattern[str]) -> list[Hashable] | range:
     """
     Get named groups from compiled regex.
 

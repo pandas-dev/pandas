@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_python_scalars
 from pandas._config.config import _global_config as config
 
 from pandas._libs import (
@@ -35,8 +36,10 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    common_dtype_categorical_compat,
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_unbox_numpy_scalar,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -582,9 +585,9 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
-                    # Block.delete in _iset_split_block requires sorted unique
-                    # locs; inverse maps the requested column order onto the
-                    # new block (GH#65446)
+                    # np.unique dedupes locs so the placement built inside
+                    # _iset_split_block doesn't repeat a column; inverse maps
+                    # the requested column order onto the new block (GH#65446)
                     blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
@@ -677,11 +680,13 @@ class BaseBlockManager(PandasObject):
 
         return False
 
-    def _get_data_subset(self, predicate: Callable) -> Self:
+    def _get_data_subset(self, predicate: Callable[[ArrayLike], bool]) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks)
 
-    def _get_data_subset_indices(self, predicate: Callable) -> np.ndarray:
+    def _get_data_subset_indices(
+        self, predicate: Callable[[ArrayLike], bool]
+    ) -> np.ndarray:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         return indexer
@@ -1205,6 +1210,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             result = np.empty(n, dtype=dtype)
             result = ensure_wrapped_if_datetimelike(result)
 
+        # GH#13468 for an extension dtype, result is only a buffer for _from_sequence
+        unbox = using_python_scalars() and not isinstance(dtype, ExtensionDtype)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
@@ -1226,6 +1234,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     else:
                         new_dtype = np.float64
                     result = result.astype(new_dtype)
+                if unbox and result.dtype == object:
+                    item = maybe_unbox_numpy_scalar(item, object_with_dtype=blk)
                 result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
@@ -1363,6 +1373,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
+        if not value_is_extension_type and len(blklocs) and len(value) != len(blklocs):
+            # Otherwise value_getitem below silently drops value columns, or
+            #  yields a block narrower than its placement, GH#68445.  An empty
+            #  loc writes nothing, so it stays a no-op.
+            raise ValueError(
+                f"Got {len(blklocs)} positions but value has {len(value)} columns."
+            )
+
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
@@ -1472,7 +1490,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if self._blklocs is None:
             self._rebuild_blknos_and_blklocs()
 
-        nbs_tup = tuple(blk.delete(blk_locs))
+        # Block.delete requires sorted unique locs; blk_locs keeps the caller's
+        # order below, where it pairs with value.
+        nbs_tup = tuple(blk.delete(np.unique(blk_locs)))
         if value is not None:
             locs = blk.mgr_locs.as_array[blk_locs]
             first_nb = new_block_2d(value, BlockPlacement(locs), refs=refs)
@@ -1488,12 +1508,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             *nbs_tup,
         )
         self.blocks = blocks_tup
+        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb.mgr_locs))
 
         if not nbs_tup and value is not None:
-            # No need to update anything if split did not happen
+            # No need to update _blknos if split did not happen
             return
-
-        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
         for i, nb in enumerate(nbs_tup):
             self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
@@ -1673,7 +1692,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
-    def grouped_reduce(self, func: Callable) -> Self:
+    def grouped_reduce(self, func: Callable[..., Any]) -> Self:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
 
@@ -1707,7 +1726,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # TODO shallow copy columns?
         return type(self).from_blocks(result_blocks, [self.axes[0].view(), index])
 
-    def reduce(self, func: Callable) -> Self:
+    def reduce(self, func: Callable[..., Any]) -> Self:
         """
         Apply reduction function blockwise, returning a single-row BlockManager.
 
@@ -1939,6 +1958,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     [blk.dtype for blk in self.blocks]
                 )
                 self._interleaved_dtype = dtype
+            # not cached since it depends on the values, GH#38240
+            dtype = common_dtype_categorical_compat(  # type: ignore[assignment]
+                [blk.values for blk in self.blocks],
+                dtype,  # type: ignore[arg-type]
+            )
 
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
@@ -2370,7 +2394,7 @@ def create_block_manager_from_column_arrays(
     arrays: list[ArrayLike],
     axes: list[Index],
     consolidate: bool,
-    refs: list,
+    refs: list[BlockValuesRefs | None],
 ) -> BlockManager:
     # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
@@ -2422,7 +2446,9 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
+def _form_blocks(
+    arrays: list[ArrayLike], consolidate: bool, refs: list[BlockValuesRefs | None]
+) -> list[Block]:
     tuples = enumerate(arrays)
 
     if not consolidate:

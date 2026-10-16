@@ -114,11 +114,11 @@ def pr_marked_stale(gate_issue: int | None = None) -> str:
         )
     return (
         f"This pull request has had no activity from its author for "
-        f"**{PR_STALE_DAYS} days**, so I've marked it **stale**. If you're still "
-        f"on it, just push a commit, reply to a review comment, or leave a "
-        f"comment — here or on the linked issue — and the label clears itself. "
+        f"**{PR_STALE_DAYS} days**, so I've marked it **stale**. "
         f"{next_step}"
-        f"Otherwise it will be closed in "
+        f"If you're still working on it, push a commit, reply to a review "
+        f"comment, or leave a comment — here or on the linked issue — and the "
+        f"`Stale` label clears itself. Otherwise it will be closed in "
         f"**{PR_CLOSE_DAYS} days** to keep the queue manageable. Your branch "
         f"still remains, and you can ask a maintainer to reopen this PR to "
         f"continue. See the [contributing guide]({DOCS_URL}) for how the pull "

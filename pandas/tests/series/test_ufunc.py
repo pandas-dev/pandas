@@ -238,6 +238,32 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
     assert result.name is None
 
 
+def test_binary_ufunc_aligns_duplicate_labels():
+    # GH#54416
+    ser1 = pd.Series([1.0, 2.0], index=[0, 0])
+    ser2 = pd.Series([3.0, 4.0], index=[0, 1])
+    result = np.heaviside(ser1, ser2)
+    expected = pd.Series(
+        np.heaviside([1.0, 2.0, np.nan], [3.0, 3.0, 4.0]), index=[0, 0, 1]
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_binary_ufunc_aligns_index_name():
+    # GH#54416 align (not union) sets the result's index name, matching
+    #  the behavior of the equivalent binary operator (e.g. `+`).
+    ser1 = pd.Series([1.0, 2.0], index=pd.Index([1, 2], name="x"))
+    ser2 = pd.Series([1.0, 2.0], index=pd.Index([2, 3], name="y"))
+
+    result = np.heaviside(ser1, ser2)
+    expected = (ser1 + ser2).index.name
+    assert result.index.name == expected == "x"
+
+    result = np.heaviside(ser2, ser1)
+    expected = (ser2 + ser1).index.name
+    assert result.index.name == expected == "y"
+
+
 def test_binary_ufunc_out_pandas_object():
     # GH#43190 passing a Series as the ufunc `out` argument used to recurse
     #  infinitely (RecursionError / segfault) instead of writing the result.
@@ -841,3 +867,31 @@ def test_logical_ufunc_symbolic_operand(box):
 
     tm.assert_numpy_array_equal(np.logical_and(left, _SymbolicArray()), expected)
     tm.assert_numpy_array_equal(np.logical_and(_SymbolicArray(), left), expected)
+
+
+class _VecdotObject:
+    # not recognized by lib.is_scalar and has no ndim
+    def __init__(self, value) -> None:
+        self.value = value
+
+    def conjugate(self):
+        return self
+
+    def __mul__(self, other):
+        return _VecdotObject(self.value * other.value)
+
+    def __add__(self, other):
+        return _VecdotObject(self.value + getattr(other, "value", other))
+
+    __radd__ = __add__
+
+
+def test_gufunc_reducing_to_object():
+    # GH#71109 a gufunc reducing object data to a single arbitrary object
+    #  returned it to _reconstruct, which raised AttributeError on .ndim
+    ser = pd.Series([_VecdotObject(1), _VecdotObject(2), _VecdotObject(3)])
+
+    result = np.vecdot(ser, ser)
+
+    assert isinstance(result, _VecdotObject)
+    assert result.value == 14

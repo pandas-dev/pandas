@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import (
     ABCNDFrame,
 )
 from pandas.core.dtypes.inference import (
+    is_complex,
     is_float,
     is_scalar,
 )
@@ -140,12 +141,9 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
-        if is_float(item) and notna(item):
-            # GH#60503
-            from pandas.io.formats.format import _trim_zeros_single_float
-
-            precision = config["display"]["precision"]
-            item = _trim_zeros_single_float(f"{item:.{precision}f}")
+        if (is_float(item) or is_complex(item)) and notna(item):
+            # GH#60503, GH#25920
+            item = format_with_precision(item)
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
@@ -157,8 +155,34 @@ def _pprint_seq(
     return fmt.format(body=body)
 
 
+def format_with_precision(item: float | complex, sign: str = "") -> str:
+    """
+    Format a float or complex scalar using the ``display.precision`` option.
+
+    Trailing zeros after the decimal point are trimmed, leaving at least one.
+
+    Parameters
+    ----------
+    item : float or complex
+    sign : {"", " ", "+"}, default ""
+        Sign option of the format spec, applied to the real part.
+    """
+    precision = config["display"]["precision"]
+
+    def _fmt(val: float, sign: str) -> str:
+        str_float = f"{val:{sign}.{precision}f}".rstrip("0")
+        return str_float + "0" if str_float.endswith(".") else str_float
+
+    if is_float(item):
+        return _fmt(item, sign)
+    return f"({_fmt(item.real, sign)}{_fmt(item.imag, '+')}j)"
+
+
 def _pprint_dict(
-    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
+    seq: Mapping[Any, Any],
+    _nest_lvl: int = 0,
+    max_seq_items: int | None = None,
+    **kwds: Any,
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -344,7 +368,7 @@ def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
 
 def format_object_summary(
     obj: ListLike,
-    formatter: Callable,
+    formatter: Callable[..., Any],
     is_justify: bool = True,
     name: str | None = None,
     indent_for_name: bool = True,
@@ -426,10 +450,6 @@ def format_object_summary(
     elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
         summary = f"[{first}]{close}"
-    elif n == 2 and not line_break_each_value:
-        first = formatter(obj[0])
-        last = formatter(obj[-1])
-        summary = f"[{first}, {last}]{close}"
     else:
         if max_seq_items == 1:
             # If max_seq_items=1 show only last element

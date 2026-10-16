@@ -375,8 +375,8 @@ class TestCategoricalIndex2:
         )
 
         # invalid
-        msg = "cannot use inplace with CategoricalIndex"
-        with pytest.raises(ValueError, match=msg):
+        msg = "unexpected keyword argument 'inplace'"
+        with pytest.raises(TypeError, match=msg):
             ci.set_categories(list("cab"), inplace=True)
 
     def test_remove_maintains_order(self):

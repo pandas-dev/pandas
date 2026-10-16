@@ -176,9 +176,11 @@ def apply_wraps(func):
 
     def wrapper(self, other):
         if not isinstance(other, _Timestamp):
-            # BaseOffset.__add__ has already converted, but rollback and
-            #  rollforward are public and take any datetime-like.
+            # rollback and rollforward are public and take any datetime-like;
+            #  NaT also arrives here from __add__ via np.datetime64("NaT")
             other = Timestamp(other)
+            if other is NaT:
+                return NaT
 
         tz = other.tzinfo
         nano = other.nanosecond
@@ -1436,7 +1438,10 @@ cdef class Tick(SingleConstructorOffset):
         return self._as_pd_timedelta == other
 
     def __ne__(self, other):
-        return not (self == other)
+        if isinstance(other, str):
+            return not (self == other)
+        # __eq__ can return an array or NA, which `not` rejects
+        return self._as_pd_timedelta != other
 
     def __le__(self, other):
         return self._as_pd_timedelta.__le__(other)
@@ -4004,25 +4009,8 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
-# The pair of classes `_YearEnd` and `YearEnd` exist because of
-# https://github.com/cython/cython/issues/3873
 
-cdef class _YearEnd(YearOffset):
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
-
-
-class YearEnd(_YearEnd):
+cdef class YearEnd(YearOffset):
     """
     DateOffset increments between calendar year end dates.
 
@@ -4070,8 +4058,18 @@ class YearEnd(_YearEnd):
     None
     """
 
-    def __new__(cls, n=1, normalize=False, month=None):
-        return _YearEnd.__new__(cls, n, normalize, month)
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 cdef class YearBegin(YearOffset):
