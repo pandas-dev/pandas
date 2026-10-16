@@ -946,7 +946,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # of the rows in the input instead
             # GH 14776, 30667, 57906
             if ax.has_duplicates:
-                # e.g. test_category_order_transformer
+                # e.g. test_apply_with_duplicated_non_sorted_axis
                 indexer = np.argsort(self._grouper.result_ilocs)
                 result = result.take(indexer, axis=0)
             else:
