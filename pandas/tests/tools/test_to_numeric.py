@@ -143,6 +143,16 @@ def test_error_names_the_value_exactly(value, expected):
         pd.to_numeric(ser)
 
 
+def test_coerce_unhashable_nested_tuple():
+    # GH#69916 - an empty na_values set must not trigger a hash lookup.
+    ser = pd.Series([1, (1, [2])], dtype=object)
+
+    result = pd.to_numeric(ser, errors="coerce")
+
+    expected = pd.Series([1.0, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_ignore_error():
     ser = pd.Series([1, -3.14, "apple"])
     result = pd.to_numeric(ser, errors="coerce")

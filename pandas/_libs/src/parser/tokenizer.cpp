@@ -698,7 +698,8 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 static int skip_this_line(parser_t *self, int64_t rownum) {
   if (self->skipfunc != NULL) {
     PyGILState_STATE state = PyGILState_Ensure();
-    PyObject *result = PyObject_CallFunction(self->skipfunc, "i", rownum);
+    PyObject *result =
+        PyObject_CallFunction(self->skipfunc, "L", (long long)rownum);
 
     // Error occurred. It will be processed
     // and caught at the Cython level.
@@ -1398,6 +1399,9 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       } else if (IS_CARRIAGE(c)) {
         self->file_lines++;
         self->state = EAT_CRNL_NOP;
+        break;
+      } else if (IS_COMMENT_CHAR(c)) {
+        self->state = EAT_LINE_COMMENT;
         break;
       } else if (!self->delim_whitespace) {
         if (isblank(c) && c != self->delimiter) {

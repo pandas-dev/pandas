@@ -29,6 +29,7 @@ from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
+from pandas.core.computation.ops import is_datetimelike
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 from pandas.core.generic import NDFrame
@@ -250,9 +251,9 @@ def eval(
         such as floor division ``//``, in addition to built-in and user-defined
         Python functions.
 
-        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
-        :keyword:`or`, and :keyword:`not` with the same semantics as the
-        corresponding bitwise operators.
+        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`
+        and :keyword:`or` with the same semantics as the corresponding bitwise
+        operators, and :keyword:`not` as a logical negation.
     parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
@@ -399,6 +400,7 @@ def eval(
     ret = None
     first_expr = True
     target_modified = False
+    assigned: dict[str, object] = {}
 
     for expr in exprs:
         expr = _convert_expression(expr)
@@ -412,6 +414,8 @@ def eval(
             resolvers=resolvers,
             target=target,
         )
+        if assigned:
+            env.scope = env.scope.new_child(dict(assigned))
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
@@ -434,6 +438,10 @@ def eval(
                 RuntimeWarning,
                 stacklevel=find_stack_level(),
             )
+            engine = "python"
+
+        if engine == "numexpr" and is_datetimelike(parsed_expr.terms):
+            # numexpr has no datetime64/timedelta64 support
             engine = "python"
 
         # construct the engine and evaluate the parsed expression
@@ -480,7 +488,13 @@ def eval(
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
-            if not resolvers:
+            if (level == 0 or parser != "pandas") and not env.has_resolvers:
+                # GH#31952 without resolvers, bare names resolve from the scope,
+                #  so later lines must find this result there; "@" is banned at
+                #  level 0 and with the python parser, so this cannot shadow an
+                #  "@" lookup of a local
+                assigned[assigner] = ret
+            elif not resolvers:
                 resolvers = ({assigner: ret},)
             else:
                 # existing resolver needs updated to handle

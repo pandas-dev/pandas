@@ -65,6 +65,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -913,10 +914,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         from pandas.core.reshape.concat import concat
 
+        # GH#12824 apply may return None for a group to drop it
+        mask = np.array([value is not None for value in values], dtype=bool)
+        if not mask.all():
+            values = [value for value in values if value is not None]
+
         if self.group_keys and not is_transform:
             if self.as_index:
                 # possible MI return case
                 group_keys = self._grouper.result_index
+                if not mask.all():
+                    group_keys = group_keys[mask]
                 group_levels = self._grouper.levels
                 group_names = self._grouper.names
 
@@ -996,6 +1004,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
+    @property
+    def _raises_on_label_collision(self) -> bool:
+        # GH#36507 with Series.groupby(..., as_index=False), a group label that
+        #  collides with a result column raises like reset_index; df.groupby()[col]
+        #  keeps its existing behavior
+        return self.obj.ndim == 1 and self._selection is None
+
+    @final
     def _insert_inaxis_grouper(
         self, result: Series | DataFrame, qs: npt.NDArray[np.float64] | None = None
     ) -> DataFrame:
@@ -1026,12 +1042,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             if name is None:
                 # Behave the same as .reset_index() when a level is unnamed
-                name = (
-                    "index"
-                    if n_groupings == 1 and qs is None
-                    else f"level_{n_groupings - level - 1}"
-                )
+                if n_groupings == 1 and qs is None:
+                    name = "index"
+                    if self._raises_on_label_collision and name in result.columns:
+                        name = "level_0"
+                else:
+                    name = f"level_{n_groupings - level - 1}"
 
+            if self._raises_on_label_collision and name in result.columns:
+                raise ValueError(f"cannot insert {name}, already exists")
             # GH #28549
             # When using .apply(-), name will be in columns already
             if name not in result.columns:
@@ -2528,10 +2547,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             columns = com.fill_missing_names(index.names)
             if name in columns:
                 raise ValueError(f"Column label '{name}' is duplicate of result column")
+            if self._raises_on_label_collision:
+                duplicated = Index(columns).duplicated()
+                if duplicated.any():
+                    dup_name = columns[duplicated.argmax()]
+                    raise ValueError(f"cannot insert {dup_name}, already exists")
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            orig_dtype = self._grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]
+            obj = self._grouper.groupings[0].obj
+            orig_dtype = obj.columns.dtype if isinstance(obj, DataFrame) else None
             cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
             result_frame.columns = cols
             result = result_frame
@@ -2834,6 +2859,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   10   7
         2   11  17
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_sum
 
@@ -2933,6 +2959,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   16   10
         2   30   72
         """
+        min_count = validate_min_count(min_count)
 
         def prod_compat(obj: NDFrameT):
             # GH#18588: see min_compat below
@@ -2950,7 +2977,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def min(
         self,
         numeric_only: bool = False,
-        min_count: int = -1,
+        min_count: int = 0,
         skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -2971,7 +2998,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 numeric_only no longer accepts ``None``.
 
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
 
@@ -3043,6 +3070,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   2  2
         2   5  8
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_min_max
 
@@ -3074,7 +3102,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def max(
         self,
         numeric_only: bool = False,
-        min_count: int = -1,
+        min_count: int = 0,
         skipna: bool = True,
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
@@ -3095,7 +3123,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 numeric_only no longer accepts ``None``.
 
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` non-NA values are present the result will be NA.
 
@@ -3167,6 +3195,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   8  5
         2   6  9
         """
+        min_count = validate_min_count(min_count)
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import grouped_min_max
 
@@ -3194,7 +3223,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def first(
-        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
     ) -> NDFrameT:
         """
         Compute the first entry of each column within each group.
@@ -3207,7 +3236,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
@@ -3255,6 +3284,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  1
         3  6.0  3
         """
+        min_count = validate_min_count(min_count)
 
         def first_compat(obj: NDFrameT):
             def first(x: Series):
@@ -3281,7 +3311,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def last(
-        self, numeric_only: bool = False, min_count: int = -1, skipna: bool = True
+        self, numeric_only: bool = False, min_count: int = 0, skipna: bool = True
     ) -> NDFrameT:
         """
         Compute the last entry of each column within each group.
@@ -3295,7 +3325,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default False
             Include only float, int, boolean columns. If None, will attempt to use
             everything, then use only numeric data.
-        min_count : int, default -1
+        min_count : int, default 0
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
@@ -3325,6 +3355,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  5.0  2
         3  6.0  3
         """
+        min_count = validate_min_count(min_count)
 
         def last_compat(obj: NDFrameT):
             def last(x: Series):
@@ -4486,7 +4517,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             # ndarray path
-            if is_object_dtype(values.dtype):
+            if is_object_dtype(values.dtype) or values.dtype.kind == "c":
+                # GH#43770 complex has no ordering, so no quantile
                 raise TypeError(
                     f"dtype '{values.dtype}' does not support operation 'quantile'"
                 )
@@ -4689,6 +4721,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ascending: bool = True,
         na_option: RankNaOption = "keep",
         pct: bool = False,
+        numeric_only: bool = False,
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
@@ -4712,6 +4745,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * bottom: smallest rank if descending.
         pct : bool, default False
             Compute percentage rank of data within each group.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -4761,6 +4798,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
+            # GH#44438 match Series.rank
+            raise TypeError(
+                f"Cannot use numeric_only=True with {type(self).__name__}.rank "
+                "and non-numeric dtypes."
+            )
 
         kwargs = {
             "ties_method": method,
@@ -4771,7 +4814,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return self._cython_transform(
             "rank",
-            numeric_only=False,
+            numeric_only=numeric_only,
             **kwargs,
         )
 
@@ -5466,11 +5509,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        # fill_method is None (validated above); GH30463
-        filled = self.ffill(limit=0)
-        fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
-        return (filled / shifted) - 1
+        shifted = self.shift(periods=periods)
+        return (self._obj_with_exclusions / shifted) - 1
 
     @final
     def head(self, n: int = 5) -> NDFrameT:

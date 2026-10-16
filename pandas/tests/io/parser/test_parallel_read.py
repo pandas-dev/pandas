@@ -18,6 +18,7 @@ import itertools
 import mmap
 import os
 import re
+import sqlite3
 from typing import TYPE_CHECKING
 import warnings
 
@@ -194,8 +195,8 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(encoding="utf-8-sig"))
 
     def test_rejects_python_engine_seps(self, tmp_path, monkeypatch):
-        # Multi-char/regex seps (other than r"\s+") and sep=None force the
-        # python engine inside TextFileReader (GH#64347).
+        # Multi-char/regex seps (other than r"\s+") force the python engine
+        # and sep=None is sniffed inside TextFileReader (GH#64347).
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -1947,6 +1948,30 @@ def test_parallel_worker_exception_falls_back_to_serial(tmp_path, monkeypatch):
     ]
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
+def test_parallel_thread_affine_converter_falls_back_to_serial(tmp_path, monkeypatch):
+    # A converter using a SQLite connection fails on a worker thread; the
+    # serial read on the caller's thread succeeds (GH#68505).
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(1000))
+    path = tmp_path / "sqlite.csv"
+    path.write_bytes(raw)
+
+    connection = sqlite3.connect(":memory:")
+
+    def lookup(value):
+        return connection.execute("SELECT ?", (int(value),)).fetchone()[0]
+
+    outcomes = _track_parallel(monkeypatch)
+    try:
+        result = _read_forced_parallel(path, monkeypatch, converters={"col1": lookup})
+    finally:
+        connection.close()
+
+    assert outcomes == ["declined"]
+    expected = pd.read_csv(io.BytesIO(raw))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_parallel_bad_value_raises_like_serial(tmp_path, monkeypatch):
     # the bad value is in the second chunk, whose own error would report its
     # position relative to the chunk start
@@ -2048,9 +2073,12 @@ def test_parallel_fallback_does_not_repeat_python_layer_warning(tmp_path, monkey
     ]
 
 
-@pytest.mark.parametrize("kwargs", [{"quotechar": "»"}, {"sep": "§"}])
-def test_multibyte_sep_or_quotechar_warns_once(tmp_path, monkeypatch, kwargs):
-    # Both force TextFileReader onto the python engine, which warns while
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"quotechar": "»"}, {"sep": "§"}, {"thousands": "\u202f"}, {"decimal": "\u066b"}],
+)
+def test_multibyte_parser_options_warn_once(tmp_path, monkeypatch, kwargs):
+    # These force TextFileReader onto the python engine, which warns while
     # falling back.  The parallel path has to decline them up front: its
     # name-inference read would raise that warning before it can notice the
     # engine it got, and the serial read then raises it again (GH#66259).

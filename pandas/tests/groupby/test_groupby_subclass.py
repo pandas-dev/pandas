@@ -188,3 +188,28 @@ def test_groupby_apply_subclass_name_override_no_warning():
         result = ser.groupby([1, 1, 2]).apply(lambda x: x.name)
     expected = MySeries([1, 2], index=pd.Index([1, 2], dtype=np.intp), name="b")
     tm.assert_series_equal(result, expected)
+
+
+def test_series_groupby_transform_uses_constructor():
+    # geopandas/geopandas#3059 -- transform with a callable should go through
+    # _constructor, so subclasses can fall back to Series for incompatible results
+    class StrictSeries(pd.Series):
+        def __init__(self, data=None, *args, **kwargs):
+            super().__init__(data, *args, **kwargs)
+            if self.dtype != object:
+                raise TypeError("StrictSeries only holds object data")
+
+        @property
+        def _constructor(self):
+            def _constructor_with_fallback(*args, **kwargs):
+                result = pd.Series(*args, **kwargs)
+                if result.dtype == object:
+                    return StrictSeries(result)
+                return result
+
+            return _constructor_with_fallback
+
+    ser = StrictSeries(["a", "b", "c"], dtype=object)
+    result = ser.groupby([1, 1, 2]).transform(lambda x: 1.0)
+    expected = pd.Series([1.0, 1.0, 1.0])
+    tm.assert_series_equal(result, expected)
