@@ -29,6 +29,7 @@ from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
+from pandas.core.computation.ops import is_datetimelike
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 from pandas.core.generic import NDFrame
@@ -437,6 +438,10 @@ def eval(
                 RuntimeWarning,
                 stacklevel=find_stack_level(),
             )
+            engine = "python"
+
+        if engine == "numexpr" and is_datetimelike(parsed_expr.terms):
+            # numexpr has no datetime64/timedelta64 support
             engine = "python"
 
         # construct the engine and evaluate the parsed expression
