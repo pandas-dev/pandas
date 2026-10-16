@@ -235,6 +235,25 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
 
 
+def _batchable_dtype(dtype: Any) -> np.dtype | None:
+    """
+    The numeric or bool numpy dtype ``dtype`` names, or None.
+
+    Several columns going to such a dtype can be cast as one block with the same
+    result as casting each column on its own. A spec that warns or fails to
+    resolve is left to Series.astype, so it warns or raises there, once.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        try:
+            resolved = pandas_dtype(dtype)
+        except TypeError:
+            return None
+    if caught or not isinstance(resolved, np.dtype) or resolved.kind not in "biufc":
+        return None
+    return resolved
+
+
 class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -6767,64 +6786,60 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise
 
             # GH#63433: cast only the listed columns and assemble the result from
-            #  those plus the untouched columns. Strings, numpy dtypes and types
-            #  cast the same whenever they compare equal, so columns going to an
-            #  equal one are cast together. Any other dtype is applied column by
-            #  column with its own object: such dtypes can compare equal yet cast
+            #  those plus the untouched columns. Columns going to the same numeric
+            #  or bool numpy dtype are cast together, where casting a block is the
+            #  same as casting each of its columns and much faster. Every other
+            #  target is applied column by column with the object it was given, as
+            #  Series.astype does: other dtypes can compare equal yet cast
             #  differently (CategoricalDtype with its categories in another order,
-            #  DatetimeTZDtype with equivalent tz objects), and extension arrays
-            #  are cast one column at a time anyway.
-            locs_by_dtype: dict[Any, tuple[Any, list[int]]] = {}
+            #  DatetimeTZDtype with equivalent tz objects), string targets format
+            #  each column on its own, and extension arrays are cast one column at
+            #  a time anyway.
+            batches: dict[np.dtype, list[tuple[int, Any]]] = {}
             one_by_one: list[tuple[int, Any]] = []
+            resolved: dict[tuple[type, Any], np.dtype | None] = {}
             mask = dtype_ser.notna()
             for loc, column_dtype in zip(
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
             ):
-                # An ExtensionDtype class goes column by column, where Series.astype
-                #  rejects it; casting several columns at once would instantiate it.
-                if isinstance(column_dtype, (str, np.dtype)) or (
-                    isinstance(column_dtype, type)
-                    and not issubclass(column_dtype, ExtensionDtype)
+                target = None
+                # An ExtensionDtype class is left to Series.astype, which rejects it
+                if errors == "raise" and (
+                    isinstance(column_dtype, (str, np.dtype))
+                    or (
+                        isinstance(column_dtype, type)
+                        and not issubclass(column_dtype, ExtensionDtype)
+                    )
                 ):
-                    key = (type(column_dtype), column_dtype)
-                    _, group = locs_by_dtype.setdefault(key, (column_dtype, []))
-                    group.append(int(loc))
-                else:
+                    spec = (type(column_dtype), column_dtype)
+                    if spec not in resolved:
+                        resolved[spec] = _batchable_dtype(column_dtype)
+                    target = resolved[spec]
+                if target is None:
                     one_by_one.append((int(loc), column_dtype))
-            if not locs_by_dtype and not one_by_one:
+                else:
+                    batches.setdefault(target, []).append((int(loc), column_dtype))
+            if not batches and not one_by_one:
                 return self.copy(deep=False)
 
             pieces = []
-            try:
-                for column_dtype, locs in locs_by_dtype.values():
-                    if errors == "raise":
-                        casted = self.iloc[:, locs].astype(column_dtype)
-                    else:
-                        casted = concat(
-                            [cast_column(i, column_dtype) for i in locs], axis=1
-                        )
-                    pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))
-            except (ValueError, TypeError):
-                # Some casts work column by column but not on several columns at
-                #  once (e.g. period to datetime64), and a failure should name the
-                #  first failing column: cast every listed column on its own, in
-                #  column order, as Series.astype would.
-                items = sorted(
-                    [(i, d) for d, locs in locs_by_dtype.values() for i in locs]
-                    + one_by_one,
-                    key=lambda item: item[0],
-                )
+            groups = list(batches.items())
+            for k, (target, items) in enumerate(groups):
+                locs = [i for i, _ in items]
                 try:
-                    casted = concat([cast_column(i, d) for i, d in items], axis=1)
-                except (ValueError, TypeError) as ex:
-                    raise ex from None
-                locs_arr = np.array([i for i, _ in items], dtype=np.intp)
-                pieces = [(locs_arr, casted._mgr)]
-            else:
-                if one_by_one:
-                    casted = concat([cast_column(i, d) for i, d in one_by_one], axis=1)
-                    locs_arr = np.array([i for i, _ in one_by_one], dtype=np.intp)
-                    pieces.append((locs_arr, casted._mgr))
+                    casted = self.iloc[:, locs].astype(target)
+                except (ValueError, TypeError, OverflowError):
+                    # Cast this batch and the ones not tried yet column by column
+                    #  below, so a failure names the first failing column and a cast
+                    #  only Series.astype supports still works.
+                    one_by_one += [item for _, rest in groups[k:] for item in rest]
+                    break
+                pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))
+            if one_by_one:
+                one_by_one.sort(key=lambda item: item[0])
+                casted = concat([cast_column(i, d) for i, d in one_by_one], axis=1)
+                locs_arr = np.array([i for i, _ in one_by_one], dtype=np.intp)
+                pieces.append((locs_arr, casted._mgr))
 
             mgr = self._mgr
             assert isinstance(mgr, BlockManager)  # Series case is handled above

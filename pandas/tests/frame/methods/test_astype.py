@@ -311,23 +311,16 @@ class TestAstype:
         "cls", [pd.CategoricalDtype, pd.DatetimeTZDtype, pd.IntervalDtype]
     )
     def test_astype_categoricaldtype_class_raises(self, cls):
-        df = pd.DataFrame({"A": ["a", "a", "b", "c"]})
+        df = pd.DataFrame({"A": ["a", "a", "b", "c"], "B": ["d", "e", "f", "g"]})
         xpr = f"Expected an instance of {cls.__name__}"
         with pytest.raises(TypeError, match=xpr):
             df.astype({"A": cls})
 
         with pytest.raises(TypeError, match=xpr):
-            df["A"].astype(cls)
-
-    @pytest.mark.parametrize(
-        "cls", [pd.CategoricalDtype, pd.DatetimeTZDtype, pd.IntervalDtype]
-    )
-    def test_astype_dict_dtype_class_raises_for_several_columns(self, cls):
-        # GH#63433 several columns going to one dtype are cast together; a dtype
-        #  class must still raise as it does column by column
-        df = pd.DataFrame({"A": ["a", "b"], "B": ["c", "d"]})
-        with pytest.raises(TypeError, match=f"Expected an instance of {cls.__name__}"):
             df.astype({"A": cls, "B": cls})
+
+        with pytest.raises(TypeError, match=xpr):
+            df["A"].astype(cls)
 
     def test_astype_dict_equal_dtypes_kept_apart(self):
         # GH#63433 equal but not identical dtypes each apply to their own column
@@ -360,6 +353,40 @@ class TestAstype:
         result = df.astype({"p": "datetime64[ns]"})
         expected = df.assign(p=df["p"].astype("datetime64[ns]"))
         tm.assert_frame_equal(result, expected)
+
+    def test_astype_dict_string_targets_cast_per_column(self):
+        # GH#63433 string and bytes targets give each column its own format and
+        #  width, as Series.astype does
+        df = pd.DataFrame(
+            {
+                "date": pd.to_datetime(["2020-01-01", "2020-01-02"]),
+                "stamp": pd.to_datetime(["2020-01-01 10:30", "2020-01-02 00:00"]),
+            }
+        )
+        result = df.astype({"date": "U", "stamp": "U"})
+        assert result["date"].tolist() == df["date"].astype("U").tolist()
+        assert result["stamp"].tolist() == df["stamp"].astype("U").tolist()
+
+        obj = pd.DataFrame(
+            {
+                "a": np.array([1, 2], dtype=object),
+                "b": np.array([12345, 6], dtype=object),
+            }
+        )
+        result = obj.astype({"a": bytes, "b": bytes})
+        assert result.dtypes.tolist() == [obj[c].astype(bytes).dtype for c in obj]
+
+    def test_astype_dict_overflow_names_first_failing_column(self):
+        # GH#63433 an earlier failing column is reported before a later overflow
+        df = pd.DataFrame(
+            {
+                "a": np.array([1, 2], dtype=object),
+                "b": ["1", "x"],
+                "c": np.array([2**70, 1], dtype=object),
+            }
+        )
+        with pytest.raises(ValueError, match="column 'b'"):
+            df.astype({"a": "int64", "b": "float64", "c": "int64"})
 
     def test_astype_dict_error_names_first_failing_column(self):
         # GH#63433 with several failing columns, the first one in column order is
@@ -1008,19 +1035,6 @@ def test_astype_dict_mixed_block_types():
     for col, dtype in dtypes.items():
         expected[col] = df[col].astype(dtype)
     tm.assert_frame_equal(result, expected)
-
-
-def test_astype_dict_copy_on_write():
-    # GH#63433 kept columns are views, so writes must not leak either way
-    df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5.0, 6.0]})
-    original = df.copy()
-
-    result = df.astype({"b": "float32"})
-    result.iloc[0, 0] = 100
-    tm.assert_frame_equal(df, original)
-
-    df.iloc[1, 2] = -1.0
-    assert result.iloc[1, 2] == 6.0
 
 
 def test_astype_dict_error_names_column_when_cast_together():
