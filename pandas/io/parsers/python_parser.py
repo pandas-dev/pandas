@@ -1540,8 +1540,29 @@ class FixedWidthReader(abc.Iterator[list[str]]):
                 line = next(self.f)  # type: ignore[arg-type]
         else:
             line = next(self.f)  # type: ignore[arg-type]
+        if self.comment is not None:
+            idx = self._find_comment_outside_colspecs(line, self.comment)
+            if idx is not None:
+                if not line[:idx].strip(self.delimiter):
+                    # fully commented line: pass the comment on as a field so
+                    #  _check_comments drops it like a comment inside a column,
+                    #  rather than it being read as a blank line
+                    return [line[idx:].strip(self.delimiter)]
+                line = line[:idx]
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]
+
+    def _find_comment_outside_colspecs(self, line: str, comment: str) -> int | None:
+        # GH#53922 comments inside a column are handled per field by
+        #  _check_comments, but a comment starting outside every column would
+        #  be sliced away and the rest of the line read as data
+        positions = range(len(line))
+        idx = line.find(comment)
+        while idx != -1:
+            if not any(idx in positions[from_:to] for from_, to in self.colspecs):
+                return idx
+            idx = line.find(comment, idx + 1)
+        return None
 
 
 class FixedWidthFieldParser(PythonParser):
