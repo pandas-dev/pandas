@@ -8639,6 +8639,11 @@ class DataFrame(NDFrame, OpsMixin):
             * 'any' : If any NA values are present, drop that row or column.
             * 'all' : If all values are NA, drop that row or column.
 
+            The effective default is ``'any'``. The Python implementation
+            uses an internal sentinel to distinguish an omitted ``how`` from
+            an explicitly supplied value, since ``how`` and ``thresh`` cannot
+            be specified together.
+
         thresh : int, optional
             Require that many non-NA values. Cannot be combined with how.
         subset : column label or iterable of labels, optional

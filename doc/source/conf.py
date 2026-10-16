@@ -1076,11 +1076,33 @@ def resolve_pandas_toplevel_xref(app, env, node, contnode):
     )
 
 
+def document_dropna_how_default(
+    app, what, name, obj, options, signature, return_annotation
+):
+    """Show the effective default for ``DataFrame.dropna(how=...)`` in docs.
+
+    ``dropna`` uses an internal sentinel at runtime to reject specifying
+    ``how`` and ``thresh`` together; omitting ``how`` still means ``'any'``.
+    This affects only the Sphinx-rendered signature, not Python's API.
+    """
+    if name not in {"pandas.DataFrame.dropna", "pandas.core.frame.DataFrame.dropna"}:
+        return signature, return_annotation
+
+    if signature:
+        signature = re.sub(
+            r"(\bhow\s*=\s*)(?:_NoDefault\.no_default|lib\.no_default|<no_default>)",
+            r"\g<1>'any'",
+            signature,
+        )
+    return signature, return_annotation
+
+
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
+    app.connect("autodoc-process-signature", document_dropna_how_default)
     app.connect("missing-reference", resolve_pandas_toplevel_xref)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
