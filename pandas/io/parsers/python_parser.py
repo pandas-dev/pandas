@@ -667,10 +667,36 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns:
-                    this_columns = cast(
-                        "list[Scalar | None]",
-                        mangle_dupe_names(this_columns, this_unnamed_cols, self.dtype),
-                    )
+                    if (
+                        names is None
+                        and isinstance(self.data, list)
+                        and self.usecols is not None
+                        and not callable(self.usecols)
+                        and all(is_integer(u) for u in self.usecols)
+                    ):
+                        # Excel's positional usecols should not let unselected
+                        # column names influence the selected names (GH#64198).
+                        selected = [
+                            i for i in range(len(this_columns)) if i in self.usecols
+                        ]
+                        unnamed = [
+                            j for j, i in enumerate(selected) if i in this_unnamed_cols
+                        ]
+                        selected_names = cast(
+                            "list[Scalar | None]",
+                            mangle_dupe_names(
+                                [this_columns[i] for i in selected], unnamed, self.dtype
+                            ),
+                        )
+                        for i, col in zip(selected, selected_names, strict=True):
+                            this_columns[i] = col
+                    else:
+                        this_columns = cast(
+                            "list[Scalar | None]",
+                            mangle_dupe_names(
+                                this_columns, this_unnamed_cols, self.dtype
+                            ),
+                        )
                 elif have_mi_columns:
                     # if we have grabbed an extra line, but it's not in our
                     # format so save in the buffer, and create a blank extra
