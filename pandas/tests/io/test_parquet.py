@@ -1760,3 +1760,36 @@ class TestParquetChunksize(Base):
 
         chunks = list(read_parquet(tmp_path, engine=pa, chunksize=5, use_threads=False))
         assert sum(len(chunk) for chunk in chunks) == 20
+
+    @pytest.mark.parametrize("partition_cols", [None, ["part"]])
+    def test_read_parquet_chunksize_read_table_kwargs(
+        self, pa, tmp_path, partition_cols
+    ):
+        # read_table()'s options for how to read the data, such as
+        # read_dictionary, apply with chunksize too
+        path = tmp_path if partition_cols else tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": list("xyzx"), "part": ["p", "p", "q", "q"]})
+        df.to_parquet(path, engine=pa, partition_cols=partition_cols)
+
+        reader = read_parquet(path, engine=pa, chunksize=2, read_dictionary=["a"])
+        for chunk in reader:
+            assert isinstance(chunk["a"].dtype, pd.CategoricalDtype)
+
+    @pytest.mark.skipif(pa_version_under19p0, reason="pyarrow.json_ is new in 19.0")
+    def test_read_parquet_chunksize_directory_extension_types(self, pa, tmp_path):
+        # Without a stored Arrow schema, as non-Arrow writers produce, a Parquet
+        # JSON column is read as arrow.json only with read_table()'s default
+        # arrow_extensions_enabled=True (pyarrow >= 21)
+        pq = pytest.importorskip("pyarrow.parquet")
+        table = pyarrow.table(
+            {"j": pyarrow.array(['{"k": 1}', '{"k": 2}'], type=pyarrow.json_())}
+        )
+        for part in ["x", "y"]:
+            (tmp_path / f"part={part}").mkdir()
+            pq.write_table(
+                table, tmp_path / f"part={part}" / "0.parquet", store_schema=False
+            )
+
+        reader = read_parquet(tmp_path, engine=pa, dtype_backend="pyarrow", chunksize=2)
+        expected = read_parquet(tmp_path, engine=pa, dtype_backend="pyarrow")
+        tm.assert_frame_equal(pd.concat(reader), expected)

@@ -53,7 +53,9 @@ from pandas.io.parsers.readers import validate_integer
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
+        Iterable,
     )
 
     import pyarrow
@@ -216,6 +218,21 @@ def _is_dir(path: str, fs: Any) -> bool:
     return fs.isdir(path)
 
 
+def _fragment_batches(
+    fragments: Iterable[Any], **scanner_kwargs: Any
+) -> Generator[pyarrow.RecordBatch]:
+    """
+    Record batches of each dataset fragment in turn.
+
+    Each fragment is read through a ``RecordBatchReader`` that is closed when
+    it is exhausted or when this generator is closed, which releases its file
+    right away rather than once the scan is garbage collected.
+    """
+    for fragment in fragments:
+        with fragment.scanner(**scanner_kwargs).to_reader() as reader:
+            yield from reader
+
+
 def _full_read_range_index(
     schema: pyarrow.Schema,
     num_rows: Callable[[], int],
@@ -287,8 +304,8 @@ class ParquetFileReader(abc.Iterator):
 
     A ``ParquetFileReader`` is returned by :func:`~pandas.read_parquet` when
     ``chunksize`` is passed; it is not usually instantiated directly. It
-    wraps pyarrow's ``ParquetFile.iter_batches()`` (single file) or a
-    dataset scanner's ``RecordBatchReader`` (partitioned directory) and
+    wraps pyarrow's ``ParquetFile.iter_batches()`` (single file) or the
+    fragments of a ``ParquetDataset`` (partitioned directory) and
     converts each batch to a DataFrame lazily, one at a time, closing the
     underlying file(s) once the iterator is exhausted or used as a context
     manager.
@@ -297,11 +314,10 @@ class ParquetFileReader(abc.Iterator):
     ----------
     batch_iter : Iterator[pyarrow.RecordBatch]
         Iterator over pyarrow record batches, from either
-        ``pyarrow.parquet.ParquetFile.iter_batches()`` or a
-        ``pyarrow.RecordBatchReader`` from a ``pyarrow.dataset.Scanner``.
-    source : pyarrow.parquet.ParquetFile or pyarrow.RecordBatchReader
-        The pyarrow object ``batch_iter`` reads from, closed along with
-        ``handles``.
+        ``pyarrow.parquet.ParquetFile.iter_batches()`` or the fragments of a
+        ``pyarrow.parquet.ParquetDataset``.
+    source : pyarrow.parquet.ParquetFile or generator
+        The object ``batch_iter`` reads from, closed along with ``handles``.
     dtype_backend : {'numpy_nullable', 'pyarrow'} or lib.no_default
         Back-end data type applied to each yielded DataFrame. See
         :func:`~pandas.read_parquet` for details.
@@ -532,24 +548,23 @@ class PyArrowImpl(BaseImpl):
                 raise NotImplementedError(
                     "filters is not supported when chunksize is set"
                 )
+            # Of read_table()'s keywords only use_threads is about iterating;
+            # the others configure reading, so they go where the data is opened.
+            use_threads = kwargs.pop("use_threads", True)
+            del kwargs["use_pandas_metadata"]
             try:
                 if isinstance(path_or_handle, str) and _is_dir(
                     path_or_handle, filesystem
                 ):
-                    # read_table() defaults to partitioning="hive", which reads
-                    # partition keys as dictionary (categorical) columns
-                    partitioning = self.api.dataset.HivePartitioning.discover(
-                        infer_dictionary=True
+                    # unlike pyarrow.dataset.dataset(), ParquetDataset takes the
+                    # keywords and defaults of read_table(), e.g. hive partitions
+                    dataset = self.api.parquet.ParquetDataset(
+                        path_or_handle, filesystem=filesystem, **kwargs
                     )
-                    dataset = self.api.dataset.dataset(
-                        path_or_handle,
-                        filesystem=filesystem,
-                        partitioning=partitioning,
-                    )
-                    # the scanner has no use_pandas_metadata, so add the index
+                    schema = dataset.schema
+                    # to_batches() has no use_pandas_metadata, so add the index
                     # columns that read_table() reads along with columns=
-                    kwargs.pop("use_pandas_metadata")
-                    pandas_metadata = dataset.schema.pandas_metadata
+                    pandas_metadata = schema.pandas_metadata
                     if columns is not None and pandas_metadata:
                         columns = list(columns) + [
                             col
@@ -557,24 +572,28 @@ class PyArrowImpl(BaseImpl):
                             # a RangeIndex is stored as a dict, not as a column
                             if isinstance(col, str) and col not in columns
                         ]
+                    fragments = dataset.fragments
                     index_range = _full_read_range_index(
-                        dataset.schema, dataset.count_rows, to_pandas_kwargs
+                        schema,
+                        lambda: sum(fragment.count_rows() for fragment in fragments),
+                        to_pandas_kwargs,
                     )
-                    # unlike to_batches(), a RecordBatchReader can be closed
-                    source = dataset.scanner(
+                    source = batch_iter = _fragment_batches(
+                        fragments,
+                        schema=schema,
                         columns=columns,
                         batch_size=chunksize,
-                        **kwargs,
-                    ).to_reader()
-                    batch_iter = iter(source)
+                        use_threads=use_threads,
+                    )
                 else:
                     parquet_file = self.api.parquet.ParquetFile(
-                        path_or_handle, filesystem=filesystem
+                        path_or_handle, filesystem=filesystem, **kwargs
                     )
                     batch_iter = parquet_file.iter_batches(
                         batch_size=chunksize,
                         columns=columns,
-                        **kwargs,
+                        use_threads=use_threads,
+                        use_pandas_metadata=True,
                     )
                     index_range = _full_read_range_index(
                         parquet_file.schema_arrow,
@@ -1014,7 +1033,10 @@ def read_parquet(
     **kwargs
         Additional keyword arguments passed to the engine:
 
-        * For ``engine="pyarrow"``: passed to :func:`pyarrow.parquet.read_table`
+        * For ``engine="pyarrow"``: passed to :func:`pyarrow.parquet.read_table`.
+          With ``chunksize``, ``use_threads`` is used for iterating and the
+          others are passed to :class:`pyarrow.parquet.ParquetFile` for a file
+          or :class:`pyarrow.parquet.ParquetDataset` for a directory.
         * For ``engine="fastparquet"``: passed to
           :meth:`fastparquet.ParquetFile.to_pandas`
 
