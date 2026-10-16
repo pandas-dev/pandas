@@ -167,6 +167,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :func:`to_numeric` raising ``ValueError`` for data with a pyarrow decimal :class:`ArrowDtype` containing missing values; such data is now returned unchanged, or converted to a float or integer :class:`ArrowDtype` when ``downcast`` is specified (:issue:`61641`)
 - Bug in :meth:`DataFrame.replace` with a dict or list replacing values with ``None`` casting other columns of the same dtype to ``object`` even when they contained no value to replace (:issue:`30512`)
 - Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
 - Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
