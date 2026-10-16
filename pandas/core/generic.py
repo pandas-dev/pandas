@@ -6740,8 +6740,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_type = dtype[self.name]
                 return self.astype(new_type, errors=errors)
 
-            # GH#44417 cast to Series so we can use .iat below, which will be
-            #  robust in case we
+            # GH#44417 a Series of target dtypes, reindexed to the columns below,
+            #  copes with duplicated column names
             from pandas import Series
 
             dtype_ser = Series(dtype, dtype=object)
@@ -6756,27 +6756,37 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
-            # GH#63433: cast only the listed columns, grouped by target dtype, and
-            #  assemble the result from those plus the untouched columns.
-            # Strings, numpy dtypes and types cast the same whenever they compare
-            #  equal, so they are grouped by value and equal ones built separately
-            #  (such as one f-string per column) are cast together. Other dtypes
-            #  can compare equal yet cast differently (a CategoricalDtype with its
-            #  categories in another order, DatetimeTZDtype with equivalent tz
-            #  objects), so they are grouped by identity.
+            def cast_column(loc: int, column_dtype) -> Series:
+                try:
+                    return self._ixs(loc, axis=1).astype(column_dtype, errors=errors)
+                except ValueError as ex:
+                    ex.args = (
+                        f"{ex}: Error while type casting for column "
+                        f"'{self.columns[loc]}'",
+                    )
+                    raise
+
+            # GH#63433: cast only the listed columns and assemble the result from
+            #  those plus the untouched columns. Strings, numpy dtypes and types
+            #  cast the same whenever they compare equal, so columns going to an
+            #  equal one are cast together. Any other dtype is applied column by
+            #  column with its own object: such dtypes can compare equal yet cast
+            #  differently (CategoricalDtype with its categories in another order,
+            #  DatetimeTZDtype with equivalent tz objects), and extension arrays
+            #  are cast one column at a time anyway.
             locs_by_dtype: dict[Any, tuple[Any, list[int]]] = {}
+            one_by_one: list[tuple[int, Any]] = []
             mask = dtype_ser.notna()
             for loc, column_dtype in zip(
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
             ):
-                key = (
-                    (type(column_dtype), column_dtype)
-                    if isinstance(column_dtype, (str, np.dtype, type))
-                    else id(column_dtype)
-                )
-                _, group = locs_by_dtype.setdefault(key, (column_dtype, []))
-                group.append(int(loc))
-            if not locs_by_dtype:
+                if isinstance(column_dtype, (str, np.dtype, type)):
+                    key = (type(column_dtype), column_dtype)
+                    _, group = locs_by_dtype.setdefault(key, (column_dtype, []))
+                    group.append(int(loc))
+                else:
+                    one_by_one.append((int(loc), column_dtype))
+            if not locs_by_dtype and not one_by_one:
                 return self.copy(deep=False)
 
             pieces = []
@@ -6793,24 +6803,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         # Find the column that fails so the error can name it.
                         for i in locs:
                             try:
-                                self._ixs(i, axis=1).astype(column_dtype)
+                                cast_column(i, column_dtype)
                             except (ValueError, TypeError) as ex:
-                                if isinstance(ex, ValueError):
-                                    ex.args = (
-                                        f"{ex}: Error while type casting for "
-                                        f"column '{self.columns[i]}'",
-                                    )
                                 raise ex from None
                         raise
                 else:
                     casted = concat(
-                        [
-                            self._ixs(i, axis=1).astype(column_dtype, errors=errors)
-                            for i in locs
-                        ],
-                        axis=1,
+                        [cast_column(i, column_dtype) for i in locs], axis=1
                     )
                 pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))
+            if one_by_one:
+                casted = concat([cast_column(i, d) for i, d in one_by_one], axis=1)
+                locs_arr = np.array([i for i, _ in one_by_one], dtype=np.intp)
+                pieces.append((locs_arr, casted._mgr))
 
             mgr = self._mgr
             assert isinstance(mgr, BlockManager)  # Series case is handled above
