@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import Series
+import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum])
+@pytest.mark.parametrize("f", [lambda v: pd.Series(v).sum(), np.nansum])
 def test_expanding_apply_consistency_sum_nans(all_data, min_periods, f):
     expanding_f_result = all_data.expanding(min_periods=min_periods).sum()
     expanding_apply_f_result = all_data.expanding(min_periods=min_periods).apply(
@@ -105,7 +105,7 @@ def test_expanding_consistency_constant(consistent_data, min_periods):
 
     exp = (
         consistent_data.max()
-        if isinstance(consistent_data, Series)
+        if isinstance(consistent_data, pd.Series)
         else consistent_data.max().max()
     )
 

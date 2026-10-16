@@ -1,17 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 def test_doc_string():
-    df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
+    df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.ewm(com=0.5).mean()
 
@@ -62,33 +57,33 @@ def test_constructor(frame_or_series):
 def test_ewma_times_not_datetime_type():
     msg = r"times must be datetime64 dtype."
     with pytest.raises(ValueError, match=msg):
-        Series(range(5)).ewm(times=np.arange(5))
+        pd.Series(range(5)).ewm(times=np.arange(5))
 
 
 def test_ewma_times_not_same_length():
     msg = "times must be the same length as the object."
     with pytest.raises(ValueError, match=msg):
-        Series(range(5)).ewm(times=np.arange(4).astype("datetime64[ns]"))
+        pd.Series(range(5)).ewm(times=np.arange(4).astype("datetime64[ns]"))
 
 
 def test_ewma_halflife_not_correct_type():
     msg = "halflife must be a timedelta convertible object"
     with pytest.raises(ValueError, match=msg):
-        Series(range(5)).ewm(halflife=1, times=np.arange(5).astype("datetime64[ns]"))
+        pd.Series(range(5)).ewm(halflife=1, times=np.arange(5).astype("datetime64[ns]"))
 
 
 def test_ewma_halflife_without_times(halflife_with_times):
     msg = "halflife can only be a timedelta convertible argument if times is not None."
     with pytest.raises(ValueError, match=msg):
-        Series(range(5)).ewm(halflife=halflife_with_times)
+        pd.Series(range(5)).ewm(halflife=halflife_with_times)
 
 
 @pytest.mark.parametrize(
     "times",
     [
         np.arange(10).astype("datetime64[D]").astype("datetime64[ns]"),
-        date_range("2000", freq="D", periods=10),
-        date_range("2000", freq="D", periods=10).tz_localize("UTC"),
+        pd.date_range("2000", freq="D", periods=10),
+        pd.date_range("2000", freq="D", periods=10).tz_localize("UTC"),
     ],
 )
 @pytest.mark.parametrize("min_periods", [0, 2])
@@ -96,7 +91,7 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
-    df = DataFrame({"A": data})
+    df = pd.DataFrame({"A": data})
     result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
     expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
     tm.assert_frame_equal(result, expected)
@@ -107,24 +102,24 @@ def test_ewma_with_times_variable_spacing(tz_aware_fixture, unit, adjust):
     tz = tz_aware_fixture
     halflife = "23 days"
     times = (
-        DatetimeIndex(["2020-01-01", "2020-01-10T00:04:05", "2020-02-23T05:00:23"])
+        pd.DatetimeIndex(["2020-01-01", "2020-01-10T00:04:05", "2020-02-23T05:00:23"])
         .tz_localize(tz)
         .as_unit(unit)
     )
     data = np.arange(3)
-    df = DataFrame(data)
+    df = pd.DataFrame(data)
     result = df.ewm(halflife=halflife, times=times, adjust=adjust).mean()
     if adjust:
-        expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
+        expected = pd.DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
     else:
-        expected = DataFrame([0.0, 0.23762518642226227, 1.534926369128742])
+        expected = pd.DataFrame([0.0, 0.23762518642226227, 1.534926369128742])
     tm.assert_frame_equal(result, expected)
 
 
 def test_ewm_with_nat_raises(halflife_with_times):
     # GH#38535
-    ser = Series(range(1))
-    times = DatetimeIndex(["NaT"])
+    ser = pd.Series(range(1))
+    times = pd.DatetimeIndex(["NaT"])
     with pytest.raises(ValueError, match="Cannot convert NaT values to integer"):
         ser.ewm(com=0.1, halflife=halflife_with_times, times=times)
 
@@ -134,8 +129,8 @@ def test_ewm_with_times_getitem(halflife_with_times):
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
-    times = date_range("2000", freq="D", periods=10)
-    df = DataFrame({"A": data, "B": data})
+    times = pd.date_range("2000", freq="D", periods=10)
+    df = pd.DataFrame({"A": data, "B": data})
     result = df.ewm(halflife=halflife, times=times)["A"].mean()
     expected = df.ewm(halflife=1.0)["A"].mean()
     tm.assert_series_equal(result, expected)
@@ -145,7 +140,7 @@ def test_ewm_with_times_getitem(halflife_with_times):
 def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
     # GH 40164
     kwargs = {arg: 1, "adjust": adjust, "ignore_na": ignore_na}
-    ewm = DataFrame({"A": range(1), "B": range(1)}).ewm(**kwargs)
+    ewm = pd.DataFrame({"A": range(1), "B": range(1)}).ewm(**kwargs)
     expected = {attr: getattr(ewm, attr) for attr in ewm._attributes}
     ewm_slice = ewm["A"]
     result = {attr: getattr(ewm, attr) for attr in ewm_slice._attributes}
@@ -161,10 +156,10 @@ def test_ewma_times_adjust_false_with_disallowed_com():
             "if times is provided and adjust=False"
         ),
     ):
-        Series(range(1)).ewm(
+        pd.Series(range(1)).ewm(
             0.1,
             adjust=False,
-            times=date_range("2000", freq="D", periods=1),
+            times=pd.date_range("2000", freq="D", periods=1),
             halflife="1D",
         )
 
@@ -178,10 +173,10 @@ def test_ewma_times_adjust_false_with_disallowed_alpha():
             "if times is provided and adjust=False"
         ),
     ):
-        Series(range(1)).ewm(
+        pd.Series(range(1)).ewm(
             0.1,
             adjust=False,
-            times=date_range("2000", freq="D", periods=1),
+            times=pd.date_range("2000", freq="D", periods=1),
             alpha=0.5,
             halflife="1D",
         )
@@ -196,10 +191,10 @@ def test_ewma_times_adjust_false_with_disallowed_span():
             "if times is provided and adjust=False"
         ),
     ):
-        Series(range(1)).ewm(
+        pd.Series(range(1)).ewm(
             0.1,
             adjust=False,
-            times=date_range("2000", freq="D", periods=1),
+            times=pd.date_range("2000", freq="D", periods=1),
             span=10,
             halflife="1D",
         )
@@ -207,15 +202,15 @@ def test_ewma_times_adjust_false_with_disallowed_span():
 
 def test_times_string_col_raises():
     # GH 43265
-    df = DataFrame(
-        {"A": np.arange(10.0), "time_col": date_range("2000", freq="D", periods=10)}
+    df = pd.DataFrame(
+        {"A": np.arange(10.0), "time_col": pd.date_range("2000", freq="D", periods=10)}
     )
     with pytest.raises(ValueError, match="times must be datetime64"):
         df.ewm(halflife="1 day", min_periods=0, times="time_col")
 
 
 def test_ewm_sum_adjust_false_notimplemented():
-    data = Series(range(1)).ewm(com=1, adjust=False)
+    data = pd.Series(range(1)).ewm(com=1, adjust=False)
     with pytest.raises(NotImplementedError, match="sum is not"):
         data.sum()
 
@@ -236,7 +231,7 @@ def test_ewm_aggregate_callable_gh41700(frame_or_series):
 def test_times_only_mean_implemented(frame_or_series, method):
     # GH 51695
     halflife = "1 day"
-    times = date_range("2000", freq="D", periods=10)
+    times = pd.date_range("2000", freq="D", periods=10)
     ewm = frame_or_series(range(10)).ewm(halflife=halflife, times=times)
     with pytest.raises(
         NotImplementedError, match=f"{method} is not implemented with times"
@@ -251,14 +246,14 @@ def test_times_only_mean_implemented(frame_or_series, method):
 def test_ewm_sum(expected_data, ignore):
     # xref from Numbagg tests
     # https://github.com/numbagg/numbagg/blob/v0.2.1/numbagg/test/test_moving.py#L50
-    data = Series([10, 0, np.nan, 10])
+    data = pd.Series([10, 0, np.nan, 10])
     result = data.ewm(alpha=0.5, ignore_na=ignore).sum()
-    expected = Series(expected_data)
+    expected = pd.Series(expected_data)
     tm.assert_series_equal(result, expected)
 
 
 def test_ewma_adjust():
-    vals = Series(np.zeros(1000))
+    vals = pd.Series(np.zeros(1000))
     vals[5] = 1
     result = vals.ewm(span=100, adjust=False).mean().sum()
     assert np.abs(result - 1) < 1e-2
@@ -267,25 +262,25 @@ def test_ewma_adjust():
 def test_ewma_cases(adjust, ignore_na):
     # try adjust/ignore_na args matrix
 
-    s = Series([1.0, 2.0, 4.0, 8.0])
+    s = pd.Series([1.0, 2.0, 4.0, 8.0])
 
     if adjust:
-        expected = Series([1.0, 1.6, 2.736842, 4.923077])
+        expected = pd.Series([1.0, 1.6, 2.736842, 4.923077])
     else:
-        expected = Series([1.0, 1.333333, 2.222222, 4.148148])
+        expected = pd.Series([1.0, 1.333333, 2.222222, 4.148148])
 
     result = s.ewm(com=2.0, adjust=adjust, ignore_na=ignore_na).mean()
     tm.assert_series_equal(result, expected)
 
 
 def test_ewma_nan_handling():
-    s = Series([1.0] + [np.nan] * 5 + [1.0])
+    s = pd.Series([1.0] + [np.nan] * 5 + [1.0])
     result = s.ewm(com=5).mean()
-    tm.assert_series_equal(result, Series([1.0] * len(s)))
+    tm.assert_series_equal(result, pd.Series([1.0] * len(s)))
 
-    s = Series([np.nan] * 2 + [1.0] + [np.nan] * 2 + [1.0])
+    s = pd.Series([np.nan] * 2 + [1.0] + [np.nan] * 2 + [1.0])
     result = s.ewm(com=5).mean()
-    tm.assert_series_equal(result, Series([np.nan] * 2 + [1.0] * 4))
+    tm.assert_series_equal(result, pd.Series([np.nan] * 2 + [1.0] * 4))
 
 
 @pytest.mark.parametrize(
@@ -426,8 +421,8 @@ def test_ewma_nan_handling():
 )
 def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
     # GH 7603
-    s = Series(s)
-    expected = (s.multiply(w).cumsum() / Series(w).cumsum()).ffill()
+    s = pd.Series(s)
+    expected = (s.multiply(w).cumsum() / pd.Series(w).cumsum()).ffill()
     result = s.ewm(com=2.0, adjust=adjust, ignore_na=ignore_na).mean()
 
     tm.assert_series_equal(result, expected)
@@ -443,7 +438,7 @@ def test_ewm_alpha():
     locs = np.arange(20, 40)
     arr[locs] = np.nan
 
-    s = Series(arr)
+    s = pd.Series(arr)
     a = s.ewm(alpha=0.61722699889169674).mean()
     b = s.ewm(com=0.62014947789973052).mean()
     c = s.ewm(span=2.240298955799461).mean()
@@ -459,7 +454,7 @@ def test_ewm_domain_checks():
     locs = np.arange(20, 40)
     arr[locs] = np.nan
 
-    s = Series(arr)
+    s = pd.Series(arr)
     msg = "comass must satisfy: comass >= 0"
     with pytest.raises(ValueError, match=msg):
         s.ewm(com=-0.1)
@@ -496,7 +491,7 @@ def test_ewm_domain_checks():
 
 @pytest.mark.parametrize("method", ["mean", "std", "var"])
 def test_ew_empty_series(method):
-    vals = Series([], dtype=np.float64)
+    vals = pd.Series([], dtype=np.float64)
 
     ewm = vals.ewm(3)
     result = getattr(ewm, method)()
@@ -510,7 +505,7 @@ def test_ew_min_periods(min_periods, name):
     arr = np.random.default_rng(2).standard_normal(50)
     arr[:10] = np.nan
     arr[-10:] = np.nan
-    s = Series(arr)
+    s = pd.Series(arr)
 
     # check min_periods
     # GH 7898
@@ -529,26 +524,28 @@ def test_ew_min_periods(min_periods, name):
         assert not result[11:].isna().any()
 
     # check series of length 0
-    result = getattr(Series(dtype=object).ewm(com=50, min_periods=min_periods), name)()
-    tm.assert_series_equal(result, Series(dtype="float64"))
+    result = getattr(
+        pd.Series(dtype=object).ewm(com=50, min_periods=min_periods), name
+    )()
+    tm.assert_series_equal(result, pd.Series(dtype="float64"))
 
     # check series of length 1
-    result = getattr(Series([1.0]).ewm(50, min_periods=min_periods), name)()
+    result = getattr(pd.Series([1.0]).ewm(50, min_periods=min_periods), name)()
     if name == "mean":
-        tm.assert_series_equal(result, Series([1.0]))
+        tm.assert_series_equal(result, pd.Series([1.0]))
     else:
         # ewm.std, ewm.var with bias=False require at least
         # two values
-        tm.assert_series_equal(result, Series([np.nan]))
+        tm.assert_series_equal(result, pd.Series([np.nan]))
 
     # pass in ints
-    result2 = getattr(Series(np.arange(50)).ewm(span=10), name)()
+    result2 = getattr(pd.Series(np.arange(50)).ewm(span=10), name)()
     assert result2.dtype == np.float64
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_ewm_corr_cov(name):
-    A = Series(np.random.default_rng(2).standard_normal(50), index=range(50))
+    A = pd.Series(np.random.default_rng(2).standard_normal(50), index=range(50))
     B = A[2:] + np.random.default_rng(2).standard_normal(48)
 
     A[:10] = np.nan
@@ -563,7 +560,7 @@ def test_ewm_corr_cov(name):
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_ewm_corr_cov_min_periods(name, min_periods):
     # GH 7898
-    A = Series(np.random.default_rng(2).standard_normal(50), index=range(50))
+    A = pd.Series(np.random.default_rng(2).standard_normal(50), index=range(50))
     B = A[2:] + np.random.default_rng(2).standard_normal(48)
 
     A[:10] = np.nan
@@ -576,20 +573,20 @@ def test_ewm_corr_cov_min_periods(name, min_periods):
     assert not np.isnan(result.values[11:]).any()
 
     # check series of length 0
-    empty = Series([], dtype=np.float64)
+    empty = pd.Series([], dtype=np.float64)
     result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
     tm.assert_series_equal(result, empty)
 
     # check series of length 1
-    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
-        Series([1.0])
+    result = getattr(pd.Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
+        pd.Series([1.0])
     )
-    tm.assert_series_equal(result, Series([np.nan]))
+    tm.assert_series_equal(result, pd.Series([np.nan]))
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_different_input_array_raise_exception(name):
-    A = Series(np.random.default_rng(2).standard_normal(50), index=range(50))
+    A = pd.Series(np.random.default_rng(2).standard_normal(50), index=range(50))
     A[:10] = np.nan
 
     msg = "other must be a DataFrame or Series"
@@ -603,13 +600,13 @@ def test_different_input_array_raise_exception(name):
 @pytest.mark.parametrize("name", ["var", "std", "mean"])
 def test_ewma_series(series, name):
     series_result = getattr(series.ewm(com=10), name)()
-    assert isinstance(series_result, Series)
+    assert isinstance(series_result, pd.Series)
 
 
 @pytest.mark.parametrize("name", ["var", "std", "mean"])
 def test_ewma_frame(frame, name):
     frame_result = getattr(frame.ewm(com=10), name)()
-    assert isinstance(frame_result, DataFrame)
+    assert isinstance(frame_result, pd.DataFrame)
 
 
 def test_ewma_span_com_args(series):
@@ -669,7 +666,7 @@ def test_ewm_pairwise_cov_corr(func, frame):
 def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
     # GH#46560
     kernel = arithmetic_win_operators
-    df = DataFrame({"a": [1], "b": 2, "c": 3})
+    df = pd.DataFrame({"a": [1], "b": 2, "c": 3})
     df["c"] = df["c"].astype(object)
     ewm = df.ewm(span=2, min_periods=1)
     op = getattr(ewm, kernel, None)
@@ -687,7 +684,7 @@ def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
 @pytest.mark.parametrize("use_arg", [True, False])
 def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     # GH#46560
-    df = DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 2, "c": 3})
     df["c"] = df["c"].astype(object)
     arg = (df,) if use_arg else ()
     ewm = df.ewm(span=2, min_periods=1)
@@ -709,7 +706,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
 def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     # GH#46560
     kernel = arithmetic_win_operators
-    ser = Series([1], dtype=dtype)
+    ser = pd.Series([1], dtype=dtype)
     ewm = ser.ewm(span=2, min_periods=1)
     op = getattr(ewm, kernel, None)
     if op is None:
@@ -730,7 +727,7 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
 @pytest.mark.parametrize("dtype", [int, object])
 def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
     # GH#46560
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = pd.Series([1, 2, 3], dtype=dtype)
     arg = (ser,) if use_arg else ()
     ewm = ser.ewm(span=2, min_periods=1)
     op = getattr(ewm, kernel)

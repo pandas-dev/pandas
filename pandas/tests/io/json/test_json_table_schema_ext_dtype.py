@@ -8,13 +8,7 @@ import json
 
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-    array,
-    read_json,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.string_ import StringDtype
@@ -36,12 +30,12 @@ from pandas.io.json._table_schema import (
 
 class TestBuildSchema:
     def test_build_table_schema(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": DateArray([dt.date(2021, 10, 10)]),
                 "B": DecimalArray([decimal.Decimal(10)]),
-                "C": array(["pandas"], dtype="string"),
-                "D": array([10], dtype="Int64"),
+                "C": pd.array(["pandas"], dtype="string"),
+                "D": pd.array([10], dtype="Int64"),
             }
         )
         result = build_table_schema(df, version=False)
@@ -79,7 +73,7 @@ class TestTableSchemaType:
 
     @pytest.mark.parametrize("box", [lambda x: x, Series])
     def test_as_json_table_type_ext_string_array_dtype(self, box):
-        string_data = box(array(["pandas"], dtype="string"))
+        string_data = box(pd.array(["pandas"], dtype="string"))
         assert as_json_table_type(string_data.dtype) == "string"
 
     def test_as_json_table_type_ext_string_dtype(self):
@@ -87,7 +81,7 @@ class TestTableSchemaType:
 
     @pytest.mark.parametrize("box", [lambda x: x, Series])
     def test_as_json_table_type_ext_integer_array_dtype(self, box):
-        integer_data = box(array([10], dtype="Int64"))
+        integer_data = box(pd.array([10], dtype="Int64"))
         assert as_json_table_type(integer_data.dtype) == "integer"
 
     def test_as_json_table_type_ext_integer_dtype(self):
@@ -108,12 +102,12 @@ class TestTableOrient:
     @pytest.fixture
     def sa(self):
         """Fixture for creating a StringDtype array."""
-        return array(["pandas"], dtype="string")
+        return pd.array(["pandas"], dtype="string")
 
     @pytest.fixture
     def ia(self):
         """Fixture for creating an Int64Dtype array."""
-        return array([10], dtype="Int64")
+        return pd.array([10], dtype="Int64")
 
     def test_build_date_series(self, da):
         s = Series(da, name="a")
@@ -216,7 +210,7 @@ class TestTableOrient:
         assert result == expected
 
     def test_to_json(self, da, dc, sa, ia):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": da,
                 "B": dc,
@@ -257,17 +251,17 @@ class TestTableOrient:
 
     def test_json_ext_dtype_reading_roundtrip(self):
         # GH#40255
-        df = DataFrame(
+        df = pd.DataFrame(
             {
-                "a": Series([2, NA], dtype="Int64"),
-                "b": Series([1.5, NA], dtype="Float64"),
-                "c": Series([True, NA], dtype="boolean"),
+                "a": Series([2, pd.NA], dtype="Int64"),
+                "b": Series([1.5, pd.NA], dtype="Float64"),
+                "c": Series([True, pd.NA], dtype="boolean"),
             },
-            index=Index([1, NA], dtype="Int64"),
+            index=pd.Index([1, pd.NA], dtype="Int64"),
         )
         expected = df.copy()
         data_json = df.to_json(orient="table", indent=4)
-        result = read_json(StringIO(data_json), orient="table")
+        result = pd.read_json(StringIO(data_json), orient="table")
         tm.assert_frame_equal(result, expected)
 
     def test_json_ext_dtype_reading(self):
@@ -291,6 +285,6 @@ class TestTableOrient:
                 }
             ]
         }"""
-        result = read_json(StringIO(data_json), orient="table")
-        expected = DataFrame({"a": Series([2, NA], dtype="Int64")})
+        result = pd.read_json(StringIO(data_json), orient="table")
+        expected = pd.DataFrame({"a": Series([2, pd.NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)

@@ -5,10 +5,6 @@ from pandas.compat import is_platform_arm
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-)
 import pandas._testing as tm
 from pandas.util.version import Version
 
@@ -37,10 +33,10 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
 
 def test_numba_vs_python_string_index():
     # GH#56189
-    df = DataFrame(
+    df = pd.DataFrame(
         1,
-        index=Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
-        columns=Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+        index=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=pd.Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     func = lambda x: x
     result = df.apply(func, engine="numba", axis=0)
@@ -51,9 +47,9 @@ def test_numba_vs_python_string_index():
 
 
 def test_numba_vs_python_indexing():
-    frame = DataFrame(
+    frame = pd.DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7.0, 8.0, 9.0]},
-        index=Index(["A", "B", "C"]),
+        index=pd.Index(["A", "B", "C"]),
     )
     row_func = lambda x: x["c"]
     result = frame.apply(row_func, engine="numba", axis=1)
@@ -71,7 +67,7 @@ def test_numba_vs_python_indexing():
     [lambda x: x.mean(), lambda x: x.min(), lambda x: x.max(), lambda x: x.sum()],
 )
 def test_numba_vs_python_reductions(reduction, apply_axis):
-    df = DataFrame(np.ones((4, 4), dtype=np.float64))
+    df = pd.DataFrame(np.ones((4, 4), dtype=np.float64))
     result = df.apply(reduction, engine="numba", axis=apply_axis)
     expected = df.apply(reduction, engine="python", axis=apply_axis)
     tm.assert_series_equal(result, expected)
@@ -80,7 +76,7 @@ def test_numba_vs_python_reductions(reduction, apply_axis):
 @pytest.mark.parametrize("colnames", [[1, 2, 3], [1.0, 2.0, 3.0]])
 def test_numba_numeric_colnames(colnames):
     # Check that numeric column names lower properly and can be indexed on
-    df = DataFrame(
+    df = pd.DataFrame(
         np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.int64), columns=colnames
     )
     first_col = colnames[0]
@@ -101,7 +97,7 @@ def test_numba_parallel_unsupported(float_frame):
 
 def test_numba_nonunique_unsupported(apply_axis):
     f = lambda x: x
-    df = DataFrame({"a": [1, 2]}, index=Index(["a", "a"]))
+    df = pd.DataFrame({"a": [1, 2]}, index=pd.Index(["a", "a"]))
     with pytest.raises(
         NotImplementedError,
         match="The index/columns must be unique when raw=False and engine='numba'",
@@ -112,7 +108,7 @@ def test_numba_nonunique_unsupported(apply_axis):
 def test_numba_unsupported_dtypes(apply_axis):
     pytest.importorskip("pyarrow")
     f = lambda x: x
-    df = DataFrame({"a": [1, 2], "b": ["a", "b"], "c": [4, 5]})
+    df = pd.DataFrame({"a": [1, 2], "b": ["a", "b"], "c": [4, 5]})
     df["c"] = df["c"].astype("double[pyarrow]")
 
     with pytest.raises(

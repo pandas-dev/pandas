@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
 )
 
@@ -28,11 +29,11 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import extract_array
+from pandas.core.nanops import warn_complex_unordered
 
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
-        Hashable,
         Iterable,
         Sequence,
     )
@@ -310,7 +311,7 @@ def lexsort_indexer(
     keys: Sequence[ArrayLike | Index | Series],
     orders: bool | Sequence[bool] | None = None,
     na_position: str = "last",
-    key: Callable | None = None,
+    key: Callable[..., Any] | None = None,
     codes_given: bool = False,
 ) -> npt.NDArray[np.intp]:
     """
@@ -406,7 +407,7 @@ def nargsort(
     kind: SortKind = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
-    key: Callable | None = None,
+    key: Callable[..., Any] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.intp]:
     """
@@ -507,6 +508,8 @@ def nargminmax(
 
     mask = np.asarray(isna(values))
     arr_values = values._values_for_argsort()
+    if arr_values.dtype.kind == "c":
+        warn_complex_unordered()
 
     if arr_values.ndim > 1:
         if mask.any():
@@ -521,11 +524,16 @@ def nargminmax(
 
 
 def _nanargminmax(
-    values: np.ndarray, mask: npt.NDArray[np.bool_], func: Callable
+    values: np.ndarray, mask: npt.NDArray[np.bool_], func: Callable[..., Any]
 ) -> int:
     """
     See nanargminmax.__doc__.
     """
+    if mask.size and mask.all():
+        # func would raise "empty sequence" for an array that is not empty;
+        # match the message nanops raises for the numpy-backed dtypes
+        raise ValueError("Encountered all NA values")
+
     idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
@@ -535,7 +543,7 @@ def _nanargminmax(
 
 def _ensure_key_mapped_multiindex(
     index: MultiIndex,
-    key: Callable,
+    key: Callable[..., Any],
     level: Level | list[Level] | None = None,
 ) -> MultiIndex:
     """
@@ -570,7 +578,9 @@ def _ensure_key_mapped_multiindex(
         else:
             level_iter = cast("list[Level]", level)
 
-        sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
+        sort_levels: range | set[int] = {
+            index._get_level_number(lev) for lev in level_iter
+        }
     else:
         sort_levels = range(index.nlevels)
 
@@ -583,12 +593,14 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    return type(index).from_arrays(mapped)
+    # key may return an array without a name, keep the level names so
+    # that levels can still be referred to by name
+    return type(index).from_arrays(mapped, names=index.names)
 
 
 def ensure_key_mapped(
     values: ArrayLike | Index | Series,
-    key: Callable | None,
+    key: Callable[..., Any] | None,
     levels: Level | list[Level] | None = None,
 ) -> ArrayLike | Index | Series:
     """
@@ -634,35 +646,6 @@ def ensure_key_mapped(
         ) from err
 
     return result
-
-
-def get_indexer_dict(
-    label_list: list[np.ndarray], keys: list[Index]
-) -> dict[Hashable, npt.NDArray[np.intp]]:
-    """
-    Returns
-    -------
-    dict:
-        Labels mapped to indexers.
-    """
-    shape = tuple(len(x) for x in keys)
-
-    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-    if np.all(group_index == -1):
-        # Short-circuit, lib.indices_fast will return the same
-        return {}
-    ngroups = (
-        ((group_index.size and group_index.max()) + 1)
-        if is_int64_overflow_possible(shape)
-        else np.prod(shape, dtype="i8")
-    )
-
-    sorter = get_group_index_sorter(group_index, ngroups)  # type: ignore[arg-type]
-
-    sorted_labels = [lab.take(sorter) for lab in label_list]
-    group_index = group_index.take(sorter)
-
-    return lib.indices_fast(sorter, group_index, keys, sorted_labels)
 
 
 # ----------------------------------------------------------------------

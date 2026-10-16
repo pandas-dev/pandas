@@ -23,10 +23,10 @@ from pandas._libs import (
 import pandas._libs.algos as libalgos
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    ensure_float64,
-    is_complex,
     is_float,
     is_float_dtype,
     is_integer,
@@ -128,16 +128,14 @@ class bottleneck_switch:
                     if k not in kwds:
                         kwds[k] = v
 
-            if values.size == 0 and kwds.get("min_count") is None:
-                # We are empty, returning NA for our type
-                # Only applies for the default `min_count` of None
-                # since that affects how empty arrays are handled.
-                # TODO(GH-18976) update all the nanops methods to
-                # correctly handle empty inputs and remove this check.
-                # It *may* just be `var`
-                return _na_for_min_count(values, axis)
-
-            if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype, bn_name):
+            # GH#18976 bottleneck's nanmin/nanmax raise on empty input; skip it
+            #  and let each nanops function return the NA for its own dtype.
+            if (
+                _USE_BOTTLENECK
+                and skipna
+                and values.size > 0
+                and _bn_ok_dtype(values.dtype, bn_name)
+            ):
                 if kwds.get("mask", None) is None:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
@@ -174,7 +172,15 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        return name not in ["nansum", "nanprod", "nanmean"]
+        # GH#41277 bottleneck has no float16 kernels; its numpy fallback
+        #  squares in float16 and overflows in nanvar/nanstd
+        if name in ["nansum", "nanprod", "nanmean"] or dtype == np.float16:
+            return False
+
+        # GH#70945 bottleneck accumulates float32 nanvar/nanstd in float32,
+        #  losing nearly all precision for large inputs
+        # crossref: https://github.com/pydata/bottleneck/issues/462
+        return not (name in ["nanvar", "nanstd"] and dtype == np.float32)
     return False
 
 
@@ -229,19 +235,14 @@ def _maybe_get_mask(
     """
     Compute a mask if and only if necessary.
 
-    This function will compute a mask iff it is necessary. Otherwise,
-    return the provided mask (potentially None) when a mask does not need to be
-    computed.
+    An explicit `mask` is returned unchanged; the values it marks need not be
+    NaN (a masked array stores fill values there).  Otherwise one is computed
+    with isna(), but only where it is needed: never for boolean or integer
+    values, which cannot store NaN, and under skipna=False only for
+    datetime64/timedelta64, whose NaT stops being detectable once `_get_values`
+    views it as i8 (GH#37392).
 
-    A mask is never necessary if the values array is of boolean or integer
-    dtypes, as these are incapable of storing NaNs. If passing a NaN-capable
-    dtype that is interpretable as either boolean or integer data (eg,
-    timedelta64), a mask must be provided.
-
-    If the skipna parameter is False, a new mask will not be computed.
-
-    The mask is computed using isna() by default. Setting invert=True selects
-    notna() as the masking function.
+    A caller that already holds that i8 view must pass its own mask.
 
     Parameters
     ----------
@@ -431,6 +432,12 @@ def _datetimelike_compat(func: F) -> F:
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
+            if getattr(result, "dtype", None) == orig_values.dtype:
+                # GH#18976 empty input short-circuits to NA of the original
+                #  dtype; _wrap_results expects an i8 result and would compare
+                #  this against iNaT.
+                return result
+
             result_mask = None
             if not skipna:
                 assert mask is not None  # checked above
@@ -516,6 +523,149 @@ def maybe_operate_rowwise(func: F) -> F:
     return cast("F", newfunc)
 
 
+def _ensure_numeric(values: np.ndarray) -> np.ndarray:
+    """
+    Convert an object-dtype ndarray to the numeric dtype it represents.
+
+    Object-dtype input is normalized once, up front, so that every statistic
+    below can treat it exactly as it treats the equivalent float64/complex128
+    array.  Whatever a reduction does for ``np.float64`` input it now also does
+    for an object array of floats, and any object array that does not hold
+    numbers raises ``TypeError`` from here instead of from whichever ufunc
+    happened to touch it first.
+
+    Parameters
+    ----------
+    values : np.ndarray
+
+    Returns
+    -------
+    np.ndarray
+        `values` unchanged if it is not object-dtype, else the equivalent
+        float64 or complex128 array.
+
+    Raises
+    ------
+    TypeError
+        If the values are not numbers.
+    """
+    if values.dtype.kind in "SUT":
+        raise TypeError(f"Could not convert {values.dtype} values to numeric")
+    if values.dtype != object:
+        return values
+
+    # GH#44008, GH#36703 strings (and datetime64s) convert to a number without
+    #  complaint, so reject them before numpy gets the chance
+    non_numeric, has_nat = lib.first_non_numeric(values)
+    if non_numeric is not None:
+        raise TypeError(f"Could not convert {non_numeric!r} to numeric")
+
+    if has_nat:
+        # A datetime64/timedelta64 NaT is an NA, but numpy casts it to the
+        #  int64 sentinel rather than to NaN.  Swap in None, which every cast
+        #  below maps to the same NaN it maps pd.NaT to.  Any *non*-NaT
+        #  datetime64 was already rejected above, so every one left is an NA.
+        nat_mask = np.array(
+            [isinstance(val, (np.datetime64, np.timedelta64)) for val in values.ravel()]
+        )
+        values = values.copy()
+        values[nat_mask.reshape(values.shape)] = None
+
+    try:
+        with warnings.catch_warnings():
+            # numpy *scalars* have __float__ and so cast to float64 while
+            #  discarding the imaginary part; only Python complex refuses
+            #  outright.  Treat the warning as a failed cast either way, so a
+            #  complex payload falls through to complex128 below (GH#34671).
+            warnings.simplefilter("error", np.exceptions.ComplexWarning)
+            return values.astype(np.float64)
+    except (TypeError, ValueError, np.exceptions.ComplexWarning):
+        pass
+
+    mask = isna(values)
+    filled = values
+    if mask.any():
+        # None/NaT/pd.NA have no float(); retry with the NaN sentinel
+        filled = values.copy()
+        filled[mask] = np.nan
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", np.exceptions.ComplexWarning)
+                return filled.astype(np.float64)
+        except (TypeError, ValueError, np.exceptions.ComplexWarning):
+            pass
+
+    if mask.any():
+        # e.g. complex, which has no __float__.  Convert each NA on its own so
+        #  it lands where an object->complex128 cast would have put it: None
+        #  and the NAs numpy refuses outright on nan+nanj, np.nan on nan+0j.
+        filled[mask] = [_to_complex(val) for val in values[mask]]
+
+    try:
+        return filled.astype(np.complex128)
+    except (TypeError, ValueError) as err:
+        # GH#29941 e.g. Timestamps, or elements that are themselves list-like
+        raise TypeError(
+            f"Could not convert {_first_unconvertible(filled)!r} to numeric"
+        ) from err
+
+
+def _to_complex(val: Any) -> complex:
+    """
+    Convert `val` to a complex, mapping an NA that has no complex() to nan+nanj.
+    """
+    try:
+        return complex(val)
+    except (TypeError, ValueError):
+        return complex(np.nan, np.nan)
+
+
+def _complex_castable(val: Any) -> bool:
+    """
+    Whether numpy's object->complex128 cast can handle `val` on its own.
+    """
+    try:
+        complex(val)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _first_unconvertible(values: np.ndarray) -> object:
+    """
+    Return the element responsible for a failed `_ensure_numeric` conversion.
+    """
+    for val in values.ravel():
+        if not _complex_castable(val):
+            return val
+    # numpy balked at something complex() accepts; report the values as a whole
+    return values
+
+
+def _ensure_numeric_input(func: F) -> F:
+    """
+    Normalize object-dtype values before the wrapped reduction sees them.
+    """
+
+    @functools.wraps(func)
+    def new_func(values: np.ndarray, **kwargs):
+        return func(_ensure_numeric(values), **kwargs)
+
+    return cast("F", new_func)
+
+
+def dt64_any_all_msg(how: str) -> str:
+    """
+    Message for the GH#34479 removal of any/all on datetime64 data.
+
+    Shared so that the reduction, groupby and sparse paths cannot drift apart.
+    """
+    return (
+        f"'{how}' with datetime64 dtypes is not supported. "
+        f"Use (obj != pd.Timestamp(0)).{how}() instead."
+    )
+
+
 def nanany(
     values: np.ndarray,
     *,
@@ -558,7 +708,7 @@ def nanany(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation 'any'")
+        raise TypeError(dt64_any_all_msg("any"))
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
@@ -614,7 +764,7 @@ def nanall(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation 'all'")
+        raise TypeError(dt64_any_all_msg("all"))
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
@@ -805,6 +955,7 @@ def _mask_datetimelike_result(
     return result
 
 
+@_ensure_numeric_input
 @bottleneck_switch()
 @_datetimelike_compat
 def nanmean(
@@ -838,9 +989,9 @@ def nanmean(
     >>> nanops.nanmean(s.values)
     np.float64(1.5)
     """
-    if values.dtype == object and len(values) > 1_000 and mask is None:
-        # GH#54754 if we are going to fail, try to fail-fast
-        nanmean(values[:1000], axis=axis, skipna=skipna)
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
 
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
@@ -853,13 +1004,12 @@ def nanmean(
     elif dtype.kind in "iu":
         dtype_sum = np.dtype(np.float64)
     elif dtype.kind == "f":
-        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        # GH#43929 upcast float16 sum and count, which lose precision or overflow
         dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
-        dtype_count = dtype
+        dtype_count = dtype_sum
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _ensure_numeric(the_sum)
 
     if axis is not None and getattr(the_sum, "ndim", False):
         count = cast("np.ndarray", count)
@@ -875,6 +1025,31 @@ def nanmean(
     return the_mean
 
 
+def warn_complex_unordered() -> None:
+    # GH#43770 complex has no natural ordering; each caller raises TypeError
+    #  instead when this deprecation is enforced
+    warnings.warn(
+        "min, max, median, idxmin, and similar methods are deprecated on complex "
+        "data and will raise a TypeError in a future version, as complex numbers "
+        "have no natural ordering. Use the real and imaginary parts, or the "
+        "absolute value, instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
+def _deprecate_complex(func: F) -> F:
+    @functools.wraps(func)
+    def wrapper(values: np.ndarray, *args, **kwargs):
+        if values.dtype.kind == "c":
+            warn_complex_unordered()
+        return func(values, *args, **kwargs)
+
+    return cast("F", wrapper)
+
+
+@_ensure_numeric_input
+@_deprecate_complex
 @bottleneck_switch()
 def nanmedian(
     values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
@@ -891,7 +1066,7 @@ def nanmedian(
     Returns
     -------
     result : float | ndarray
-        Unless input is a float array, in which case use the same
+        Unless input is a float or complex array, in which case use the same
         precision as the input array.
 
     Examples
@@ -916,7 +1091,10 @@ def nanmedian(
         else:
             _mask = ~_mask
         if not skipna and not _mask.all():
-            return np.nan
+            # x's own NaN: np.apply_along_axis below takes the result dtype
+            #  from the first slice, so a bare float would cast a later
+            #  complex slice to real
+            return x.dtype.type(np.nan)
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
             warnings.filterwarnings(
@@ -928,17 +1106,10 @@ def nanmedian(
 
     dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask, fill_value=None)
-    if values.dtype.kind != "f":
-        if values.dtype == object:
-            # GH#34671 avoid casting strings to numeric
-            inferred = lib.infer_dtype(values)
-            if inferred in ["string", "mixed"]:
-                raise TypeError(f"Cannot convert {values} to numeric")
-        try:
-            values = values.astype("f8")
-        except ValueError as err:
-            # e.g. "could not convert string to float: 'a'"
-            raise TypeError(str(err)) from err
+    if values.dtype.kind not in "fc":
+        # complex is left alone; np.nanmedian handles it, and casting it to f8
+        #  would silently drop the imaginary part
+        values = values.astype("f8")
     if not using_nan_sentinel and mask is not None:
         if not values.flags.writeable:
             values = values.copy()
@@ -966,7 +1137,10 @@ def nanmedian(
                         values.shape[0] == 1 and axis == 1
                     ):
                         # GH52788: fastpath when squeezable, nanmedian for 2D array slow
-                        res = np.nanmedian(np.squeeze(values), keepdims=True)
+                        # atleast_1d: see test_nanmedian_2d_matches_numpy (GH#68191)
+                        res = np.nanmedian(
+                            np.atleast_1d(np.squeeze(values)), keepdims=True
+                        )
                     else:
                         res = np.nanmedian(values, axis=axis)
 
@@ -1032,8 +1206,8 @@ def _get_counts_nanvar(
 
     Returns
     -------
-    count : int, np.nan or np.ndarray
-    d : int, np.nan or np.ndarray
+    count : np.floating or np.ndarray
+    d : np.floating or np.ndarray
     """
     count = _get_counts(values_shape, mask, axis, dtype=dtype)
     d = count - dtype.type(ddof)
@@ -1041,11 +1215,9 @@ def _get_counts_nanvar(
     # always return NaN, never inf
     if is_float(count):
         if count <= ddof:
-            # error: Incompatible types in assignment (expression has type
-            # "float", variable has type "Union[floating[Any], ndarray[Any,
-            # dtype[floating[Any]]]]")
-            count = np.nan  # type: ignore[assignment]
-            d = np.nan
+            # dtype's own NaN, not a bare float: nansem divides by sqrt(count),
+            #  which would widen a float32 result to float64
+            count = d = dtype.type(np.nan)
     else:
         # count is not narrowed by is_float check
         count = cast("np.ndarray", count)
@@ -1056,6 +1228,7 @@ def _get_counts_nanvar(
     return count, d
 
 
+@_ensure_numeric_input
 @bottleneck_switch(ddof=1)
 def nanstd(
     values,
@@ -1077,13 +1250,13 @@ def nanstd(
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
         where N represents the number of elements.
     mask : ndarray[bool], optional
-        nan-mask if known
+        NA-mask if known
 
     Returns
     -------
     result : float
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1096,6 +1269,10 @@ def nanstd(
         unit = np.datetime_data(values.dtype)[0]
         values = values.view(f"m8[{unit}]")
 
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
+
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)
 
@@ -1103,6 +1280,7 @@ def nanstd(
     return _wrap_results(result, orig_dtype)
 
 
+@_ensure_numeric_input
 @disallow("M8", "m8")
 @bottleneck_switch(ddof=1)
 def nanvar(
@@ -1125,13 +1303,13 @@ def nanvar(
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
         where N represents the number of elements.
     mask : ndarray[bool], optional
-        nan-mask if known
+        NA-mask if known
 
     Returns
     -------
     result : float
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1140,12 +1318,14 @@ def nanvar(
     >>> nanops.nanvar(s.values)
     1.0
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
-    if dtype.kind in "iu":
+    if dtype.kind in "biu":
+        # bool: the np.nan putmask below would write True into a bool array
         values = values.astype("f8")
-        if mask is not None:
-            values[mask] = np.nan
     elif dtype.kind == "c":
         # https://en.wikipedia.org/wiki/Complex_random_variable#Variance_and_pseudo-variance
         # The variance is equal to the sum of
@@ -1154,14 +1334,17 @@ def nanvar(
             values.real, axis=axis, skipna=skipna, ddof=ddof, mask=mask
         ) + nanvar(values.imag, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
-    if values.dtype.kind == "f":
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    # GH#41277 float16 counts overflow, and float16 variances easily do too
+    keep_dtype = dtype.kind == "f" and dtype != np.float16
+    if keep_dtype:
+        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype)
     else:
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
 
-    if skipna and mask is not None:
+    if mask is not None:
         values = values.copy()
-        np.putmask(values, mask, 0)
+        # GH#65373 an explicit mask marks NA, so skipna=False propagates
+        np.putmask(values, mask, 0 if skipna else np.nan)
 
     # xref GH10242
     # Compute variance via two-pass algorithm, which is stable against
@@ -1169,23 +1352,26 @@ def nanvar(
     # observations.
     #
     # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
+    avg = values.sum(axis=axis, dtype=np.float64) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
 
-    sqr = _ensure_numeric((avg - values) ** 2)
+    sqr = (avg - values) ** 2
     if mask is not None:
         np.putmask(sqr, mask, 0)
-    result = sqr.sum(axis=axis, dtype=np.float64) / d
+    # numpy's stubs allow the division to produce a plain float, which it never
+    #  does here; d is an ndarray or an np.float64 and so is the sum
+    result: np.ndarray | np.float64 = cast(
+        "np.ndarray | np.float64", sqr.sum(axis=axis, dtype=np.float64) / d
+    )
 
-    # Return variance as np.float64 (the datatype used in the accumulator),
-    # unless we were dealing with a float array, in which case use the same
-    # precision as the original values array.
-    if dtype.kind == "f":
+    # Return float64 (the accumulator dtype) unless input is a non-float16 float
+    if keep_dtype:
         result = result.astype(dtype, copy=False)
     return result
 
 
+@_ensure_numeric_input
 @disallow("M8", "m8")
 def nansem(
     values: np.ndarray,
@@ -1207,13 +1393,13 @@ def nansem(
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
         where N represents the number of elements.
     mask : ndarray[bool], optional
-        nan-mask if known
+        NA-mask if known
 
     Returns
     -------
     result : float64
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1231,11 +1417,9 @@ def nansem(
     if values.dtype.kind not in "fc":
         values = values.astype("f8")
 
-    if not skipna and mask is not None and mask.any():
-        return np.nan
-
     dtype_count = np.dtype(np.float64)
-    if values.dtype.kind == "f":
+    if values.dtype.kind == "f" and values.dtype != np.float16:
+        # GH#41277 float16 counts overflow and nanvar returns float64 for them
         dtype_count = values.dtype
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
@@ -1340,6 +1524,7 @@ def _get_arg_values(
 
 
 def _nanminmax(meth, fill_value_typ):
+    @_deprecate_complex
     @bottleneck_switch(name=f"nan{meth}")
     @_datetimelike_compat
     def reduction(
@@ -1393,6 +1578,7 @@ nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 
+@_deprecate_complex
 def nanargmax(
     values: np.ndarray,
     *,
@@ -1442,6 +1628,7 @@ def nanargmax(
     return result
 
 
+@_deprecate_complex
 def nanargmin(
     values: np.ndarray,
     *,
@@ -1491,7 +1678,8 @@ def nanargmin(
     return result
 
 
-@disallow("M8", "m8")
+@_ensure_numeric_input
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nanskew(
     values: np.ndarray,
@@ -1528,8 +1716,10 @@ def nanskew(
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
@@ -1549,7 +1739,8 @@ def nanskew(
     return result
 
 
-@disallow("M8", "m8")
+@_ensure_numeric_input
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nankurt(
     values: np.ndarray,
@@ -1586,8 +1777,10 @@ def nankurt(
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
@@ -1969,42 +2162,6 @@ def nancov(
     return np.cov(a, b, ddof=ddof)[0, 1]
 
 
-def _ensure_numeric(x):
-    if isinstance(x, np.ndarray):
-        if x.dtype.kind in "biu":
-            x = x.astype(np.float64)
-        elif x.dtype == object:
-            inferred = lib.infer_dtype(x)
-            if inferred in ["string", "mixed"]:
-                # GH#44008, GH#36703 avoid casting e.g. strings to numeric
-                raise TypeError(f"Could not convert {x} to numeric")
-            try:
-                x = x.astype(np.complex128)
-            except (TypeError, ValueError):
-                try:
-                    x = x.astype(np.float64)
-                except ValueError as err:
-                    # GH#29941 we get here with object arrays containing strs
-                    raise TypeError(f"Could not convert {x} to numeric") from err
-            else:
-                if not np.any(np.imag(x)):
-                    x = x.real
-    elif not (is_float(x) or is_integer(x) or is_complex(x)):
-        if isinstance(x, str):
-            # GH#44008, GH#36703 avoid casting e.g. strings to numeric
-            raise TypeError(f"Could not convert string '{x}' to numeric")
-        try:
-            x = float(x)
-        except (TypeError, ValueError):
-            # e.g. "1+1j" or "foo"
-            try:
-                x = complex(x)
-            except ValueError as err:
-                # e.g. "foo"
-                raise TypeError(f"Could not convert {x} to numeric") from err
-    return x
-
-
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
     """
     Cumulative function with skipna support.
@@ -2028,6 +2185,12 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
 
     # This should go through ea interface
     assert values.dtype.kind not in "mM"
+
+    if values.dtype.kind == "c" and accum_func in [
+        np.minimum.accumulate,
+        np.maximum.accumulate,
+    ]:
+        warn_complex_unordered()
 
     # We will be applying this function to block values
     if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):

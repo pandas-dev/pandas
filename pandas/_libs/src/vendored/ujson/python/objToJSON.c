@@ -472,6 +472,9 @@ static const char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
   const int utc = ((PyObjectEncoder *)tc->encoder)->datetimeIsUTC;
   GET_TC(tc)->cStr =
       int64ToIso(GET_TC(tc)->longValue, valueUnit, base, utc, len);
+  if (GET_TC(tc)->cStr == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+  }
   return GET_TC(tc)->cStr;
 }
 
@@ -480,6 +483,9 @@ static const char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
                                              JSONTypeContext *tc, size_t *len) {
   NPY_DATETIMEUNIT valueUnit = ((PyObjectEncoder *)tc->encoder)->valueUnit;
   GET_TC(tc)->cStr = int64ToIsoDuration(GET_TC(tc)->longValue, valueUnit, len);
+  if (GET_TC(tc)->cStr == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+  }
   return GET_TC(tc)->cStr;
 }
 
@@ -494,6 +500,12 @@ static const char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
 
   NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
   GET_TC(tc)->cStr = PyDateTimeToIso(obj, base, len);
+  if (GET_TC(tc)->cStr == NULL) {
+    /* PyDateTimeToIso already set a Python exception; tell the
+       encoder to stop instead of letting the caller dereference a
+       NULL string. */
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+  }
   return GET_TC(tc)->cStr;
 }
 
@@ -1565,6 +1577,12 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else {
           // datetime.* objects don't follow above rules
           i8date = PyDateTimeToEpoch(item, NPY_FR_ns);
+          if (i8date == -1 && PyErr_Occurred()) {
+            Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+          }
         }
       }
     }
@@ -1829,9 +1847,13 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
       return;
     }
     PyArray_Descr *dtype = PyArray_DescrFromScalar(obj);
+    if (dtype == NULL) {
+      goto INVALID;
+    }
     if (!PyTypeNum_ISDATETIME(dtype->type_num)) {
       PyErr_Format(PyExc_ValueError, "Could not get resolution of datetime");
-      return;
+      Py_DECREF(dtype);
+      goto INVALID;
     }
 
     PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
@@ -1851,6 +1873,7 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
       pc->longValue = PyDateTimeToEpoch(obj, base);
       tc->type = JT_LONG;
     }
+    Py_DECREF(dtype);
     return;
   } else if (PyDelta_Check(obj)) {
     // pd.Timedelta object or pd.NaT should evaluate true here

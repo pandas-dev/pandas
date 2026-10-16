@@ -30,10 +30,11 @@ Logical reductions over entire DataFrame
 
 :meth:`DataFrame.all` and :meth:`DataFrame.any` now accept ``axis=None`` to reduce over all axes to a scalar (:issue:`19976`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({"A": [1, 2], "B": [True, False]})
-   df.all(axis=None)
+   >>> df = pd.DataFrame({"A": [1, 2], "B": [True, False]})
+   >>> df.all(axis=None)
+   False
 
 
 This also provides compatibility with NumPy 1.15, which now dispatches to ``DataFrame.all``.
@@ -49,9 +50,10 @@ With NumPy 1.15 and pandas 0.23.1 or earlier, :func:`numpy.all` will no longer r
 
 With pandas 0.23.2, that will correctly return False, as it did with NumPy < 1.15.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   np.any(pd.DataFrame({"A": [False], "B": [False]}))
+   >>> np.any(pd.DataFrame({"A": [False], "B": [False]}))
+   False
 
 
 .. _whatsnew_0232.fixed_regressions:

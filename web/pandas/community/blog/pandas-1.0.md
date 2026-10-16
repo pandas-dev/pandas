@@ -11,7 +11,7 @@ The world of scientific Python has changed a lot since pandas was started.  In 2
 
 Over the subsequent years, pandas emerged as a *de facto* standard. It’s used by data scientists and analysts and as a data structure for other libraries to build on top of. StackOverflow [cited pandas](https://stackoverflow.blog/2017/09/14/python-growing-quickly/) as one of the reasons for Python being the fastest growing major programming language.
 
-![Growth of pandas](https://149351115.v2.pressablecdn.com/wp-content/uploads/2017/09/related_tags_over_time-1-1000x1000.png)
+![Growth of pandas]({{ base_url }}/static/img/blog/pandas-1.0/related_tags_over_time-1-1000x1000.png)
 
 Today, the ecosystem is in another phase of exploration.
 Several new DataFrame implementations are cropping up to fill needs not met by pandas.

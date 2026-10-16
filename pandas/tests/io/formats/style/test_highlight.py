@@ -1,23 +1,19 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    IndexSlice,
-)
+import pandas as pd
 
 pytest.importorskip("jinja2")
 
 from pandas.io.formats.style import Styler
 
 
-@pytest.fixture(params=[(None, "float64"), (NA, "Int64")])
+@pytest.fixture(params=[(None, "float64"), (pd.NA, "Int64")])
 def df(request):
     # GH 45804
     dtype = request.param[1]
-    item = np.nan if dtype == "float64" else NA
-    return DataFrame(
+    item = np.nan if dtype == "float64" else pd.NA
+    return pd.DataFrame(
         {"A": [0, item, 10], "B": [1, request.param[0], 2]}, dtype=request.param[1]
     )
 
@@ -93,9 +89,9 @@ def test_highlight_minmax_nulls(f, axis):
         expected.update({(2, 1): [("background-color", "yellow")]})
 
     if f == "highlight_max":
-        df = DataFrame({"a": [NA, 1, None], "b": [np.nan, 1, -1]})
+        df = pd.DataFrame({"a": [pd.NA, 1, None], "b": [np.nan, 1, -1]})
     else:
-        df = DataFrame({"a": [NA, -1, None], "b": [np.nan, -1, 1]})
+        df = pd.DataFrame({"a": [pd.NA, -1, None], "b": [np.nan, -1, 1]})
 
     result = getattr(df.style, f)(axis=axis)._compute().ctx
     assert result == expected
@@ -106,11 +102,14 @@ def test_highlight_minmax_nulls(f, axis):
     [
         {"left": 0, "right": 1},  # test basic range
         {"left": 0, "right": 1, "props": "background-color: yellow"},  # test props
-        {"left": -100, "right": 100, "subset": IndexSlice[[0, 1], :]},  # test subset
-        {"left": 0, "subset": IndexSlice[[0, 1], :]},  # test no right
+        {"left": -100, "right": 100, "subset": pd.IndexSlice[[0, 1], :]},  # test subset
+        {"left": 0, "subset": pd.IndexSlice[[0, 1], :]},  # test no right
         {"right": 1},  # test no left
         {"left": [0, 0, 11], "axis": 0},  # test left as sequence
-        {"left": DataFrame({"A": [0, 0, 11], "B": [1, 1, 11]}), "axis": None},  # axis
+        {
+            "left": pd.DataFrame({"A": [0, 0, 11], "B": [1, 1, 11]}),
+            "axis": None,
+        },  # axis
         {"left": 0, "right": [0, 1], "axis": 1},  # test sequence right
     ],
 )
@@ -165,7 +164,7 @@ def test_highlight_between_raises2(styler):
     ],
 )
 def test_highlight_between_inclusive(styler, inclusive, expected):
-    kwargs = {"left": 0, "right": 1, "subset": IndexSlice[[0, 1], :]}
+    kwargs = {"left": 0, "right": 1, "subset": pd.IndexSlice[[0, 1], :]}
     result = styler.highlight_between(**kwargs, inclusive=inclusive)._compute()
     assert result.ctx == expected
 
@@ -175,9 +174,9 @@ def test_highlight_between_inclusive(styler, inclusive, expected):
     [
         {"q_left": 0.5, "q_right": 1, "axis": 0},  # base case
         {"q_left": 0.5, "q_right": 1, "axis": None},  # test axis
-        {"q_left": 0, "q_right": 1, "subset": IndexSlice[2, :]},  # test subset
+        {"q_left": 0, "q_right": 1, "subset": pd.IndexSlice[2, :]},  # test subset
         {"q_left": 0.5, "axis": 0},  # test no high
-        {"q_right": 1, "subset": IndexSlice[2, :], "axis": 1},  # test no low
+        {"q_right": 1, "subset": pd.IndexSlice[2, :], "axis": 1},  # test no low
         {"q_left": 0.5, "axis": 0, "props": "background-color: yellow"},  # tst prop
     ],
 )
@@ -193,7 +192,7 @@ def test_highlight_quantile(styler, kwargs):
 @pytest.mark.parametrize(
     "f,kwargs",
     [
-        ("highlight_min", {"axis": 1, "subset": IndexSlice[1, :]}),
+        ("highlight_min", {"axis": 1, "subset": pd.IndexSlice[1, :]}),
         ("highlight_max", {"axis": 0, "subset": [0]}),
         ("highlight_quantile", {"axis": None, "q_left": 0.6, "q_right": 0.8}),
         ("highlight_between", {"subset": [0]}),
@@ -210,7 +209,7 @@ def test_highlight_quantile(styler, kwargs):
     ],
 )
 def test_all_highlight_dtypes(f, kwargs, dtype):
-    df = DataFrame([[0, 10], [20, 30]], dtype=dtype)
+    df = pd.DataFrame([[0, 10], [20, 30]], dtype=dtype)
     if f == "highlight_quantile" and isinstance(df.iloc[0, 0], (str)):
         return None  # quantile incompatible with str
     if f == "highlight_between":

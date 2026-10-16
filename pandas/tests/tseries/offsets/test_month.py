@@ -21,11 +21,8 @@ from pandas._libs.tslibs.offsets import (
     SemiMonthEnd,
 )
 
-from pandas import (
-    DatetimeIndex,
-    Series,
-    _testing as tm,
-)
+import pandas as pd
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
@@ -66,13 +63,13 @@ class TestSemiMonthEnd:
             assert_offset_equal(SemiMonthEnd(), base, exp_date)
 
         # ensure .apply_index works as expected
-        shift = DatetimeIndex(dates[:-1])
+        shift = pd.DatetimeIndex(dates[:-1])
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
             result = SemiMonthEnd() + shift
 
-        exp = DatetimeIndex(dates[1:])
+        exp = pd.DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
@@ -210,8 +207,8 @@ class TestSemiMonthEnd:
     def test_apply_index(self, case):
         # https://github.com/pandas-dev/pandas/issues/34580
         offset, cases = case
-        shift = DatetimeIndex(cases.keys())
-        exp = DatetimeIndex(cases.values())
+        shift = pd.DatetimeIndex(cases.keys())
+        exp = pd.DatetimeIndex(cases.values())
 
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
@@ -232,7 +229,7 @@ class TestSemiMonthEnd:
         dt, expected = case
         assert_is_on_offset(SemiMonthEnd(), dt, expected)
 
-    @pytest.mark.parametrize("klass", [Series, DatetimeIndex])
+    @pytest.mark.parametrize("klass", [pd.Series, pd.DatetimeIndex])
     def test_vectorized_offset_addition(self, klass):
         shift = klass(
             [
@@ -317,13 +314,13 @@ class TestSemiMonthBegin:
             assert_offset_equal(SemiMonthBegin(), base, exp_date)
 
         # ensure .apply_index works as expected
-        shift = DatetimeIndex(dates[:-1])
+        shift = pd.DatetimeIndex(dates[:-1])
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
             result = SemiMonthBegin() + shift
 
-        exp = DatetimeIndex(dates[1:])
+        exp = pd.DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
 
     offset_cases = [
@@ -442,14 +439,14 @@ class TestSemiMonthBegin:
     @pytest.mark.parametrize("case", offset_cases)
     def test_apply_index(self, case):
         offset, cases = case
-        shift = DatetimeIndex(cases.keys())
+        shift = pd.DatetimeIndex(cases.keys())
 
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
             result = offset + shift
 
-        exp = DatetimeIndex(cases.values())
+        exp = pd.DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
 
     on_offset_cases = [
@@ -465,7 +462,7 @@ class TestSemiMonthBegin:
         dt, expected = case
         assert_is_on_offset(SemiMonthBegin(), dt, expected)
 
-    @pytest.mark.parametrize("klass", [Series, DatetimeIndex])
+    @pytest.mark.parametrize("klass", [pd.Series, pd.DatetimeIndex])
     def test_vectorized_offset_addition(self, klass):
         shift = klass(
             [

@@ -7,7 +7,10 @@ from pandas.util._decorators import set_module
 
 from pandas import DataFrame
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 
 
 @set_module("pandas")
@@ -141,7 +144,8 @@ def to_iceberg(
     if catalog_properties is None:
         catalog_properties = {}
     catalog = pyiceberg_catalog.load_catalog(catalog_name, **catalog_properties)
-    arrow_table = pa.Table.from_pandas(df)
+    with suppress_pyarrow_values_warning():
+        arrow_table = pa.Table.from_pandas(df)
     table = catalog.create_table_if_not_exists(
         identifier=table_identifier,
         schema=arrow_table.schema,

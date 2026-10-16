@@ -5,7 +5,10 @@ for missing values.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -45,7 +48,7 @@ def _get_max_value(dtype: np.dtype) -> int | float:
 
 
 def _reductions(
-    func: Callable,
+    func: Callable[..., Any],
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     *,
@@ -131,7 +134,7 @@ def prod(
 
 
 def _minmax(
-    func: Callable,
+    func: Callable[..., Any],
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     *,

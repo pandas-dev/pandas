@@ -20,7 +20,6 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.json._table_schema import (
@@ -34,7 +33,7 @@ from pandas.io.json._table_schema import (
 
 @pytest.fixture
 def df_schema():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
@@ -47,7 +46,7 @@ def df_schema():
 
 @pytest.fixture
 def df_table():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
@@ -260,7 +259,7 @@ class TestTableOrient:
 
     def test_read_json_from_to_json_results(self):
         # GH32383
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "_id": {"row_0": 0},
                 "category": {"row_0": "Goods"},
@@ -273,7 +272,7 @@ class TestTableOrient:
         )
 
         result1 = pd.read_json(StringIO(df.to_json()))
-        result2 = DataFrame.from_dict(json.loads(df.to_json()))
+        result2 = pd.DataFrame.from_dict(json.loads(df.to_json()))
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
@@ -660,13 +659,13 @@ class TestTableOrient:
     )
     def test_warns_non_roundtrippable_names(self, idx):
         # GH 19130
-        df = DataFrame(index=idx)
+        df = pd.DataFrame(index=idx)
         df.index.name = "index"
         with tm.assert_produces_warning(UserWarning, match="not round-trippable"):
             set_default_names(df)
 
     def test_timestamp_in_columns(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2]], columns=[pd.Timestamp("2016"), pd.Timedelta(10, unit="s")]
         )
         result = df.to_json(orient="table")
@@ -678,8 +677,8 @@ class TestTableOrient:
         "case",
         [
             pd.Series([1], index=pd.Index([1], name="a"), name="a"),
-            DataFrame({"A": [1]}, index=pd.Index([1], name="A")),
-            DataFrame(
+            pd.DataFrame({"A": [1]}, index=pd.Index([1], name="A")),
+            pd.DataFrame(
                 {"A": [1]},
                 index=pd.MultiIndex.from_arrays([["a"], [1]], names=["A", "a"]),
             ),
@@ -691,12 +690,31 @@ class TestTableOrient:
 
     def test_mi_falsey_name(self):
         # GH 16203
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=pd.MultiIndex.from_product([("A", "B"), ("a", "b")]),
         )
         result = [x["name"] for x in build_table_schema(df)["fields"]]
         assert result == ["level_0", "level_1", 0, 1, 2, 3]
+
+    @pytest.mark.parametrize("name", [0, False, ""])
+    def test_falsy_series_name(self, name):
+        # GH#19129 only an unnamed Series gets the "values" placeholder
+        ser = pd.Series([1.0, 2.0], name=name)
+        result = json.loads(ser.to_json(orient="table"))
+        assert result["schema"]["fields"][1]["name"] == name
+
+    def test_mi_non_string_level_names(self):
+        # GH#19129
+        mi = pd.MultiIndex.from_tuples([(1, 2), (3, 4)], names=[0, "y"])
+        df = pd.DataFrame({"a": [1, 2]}, index=mi)
+        result = build_table_schema(df, version=False)
+        assert [x["name"] for x in result["fields"]] == [0, "y", "a"]
+        assert result["primaryKey"] == [0, "y"]
+
+        for obj in [df, df["a"]]:
+            result = json.loads(obj.to_json(orient="table"))
+            assert result["schema"]["primaryKey"] == [0, "y"]
 
 
 class TestTableOrientReader:
@@ -741,7 +759,7 @@ class TestTableOrientReader:
         ],
     )
     def test_read_json_table_orient(self, index_nm, vals):
-        df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
+        df = pd.DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
@@ -759,7 +777,7 @@ class TestTableOrientReader:
     )
     def test_read_json_table_orient_raises(self, index_nm):
         vals = {"timedeltas": pd.timedelta_range("1h", periods=4, freq="min")}
-        df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
+        df = pd.DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = StringIO(df.to_json(orient="table"))
         with pytest.raises(NotImplementedError, match="can not yet read "):
             pd.read_json(out, orient="table")
@@ -796,7 +814,7 @@ class TestTableOrientReader:
         ],
     )
     def test_read_json_table_period_orient(self, index_nm, vals):
-        df = DataFrame(
+        df = pd.DataFrame(
             vals,
             index=pd.Index(
                 (pd.Period(f"2022Q{q}") for q in range(1, 5)), name=index_nm
@@ -843,13 +861,13 @@ class TestTableOrientReader:
     )
     def test_read_json_table_timezones_orient(self, idx, vals):
         # GH 35973
-        df = DataFrame(vals, index=idx)
+        df = pd.DataFrame(vals, index=idx)
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
     def test_comprehensive(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2, 3, 4],
                 "B": ["a", "b", "c", "c"],
@@ -876,7 +894,7 @@ class TestTableOrientReader:
     )
     def test_multiindex(self, index_names):
         # GH 18912
-        df = DataFrame(
+        df = pd.DataFrame(
             [["Arr", "alpha", [1, 2, 3, 4]], ["Bee", "Beta", [10, 20, 30, 40]]],
             index=[["A", "B"], ["Null", "Eins"]],
             columns=["Aussprache", "Griechisch", "Args"],
@@ -888,11 +906,23 @@ class TestTableOrientReader:
 
     def test_empty_frame_roundtrip(self):
         # GH 21287
-        df = DataFrame(columns=["a", "b", "c"])
+        df = pd.DataFrame(columns=["a", "b", "c"])
         expected = df.copy()
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize("null", [pd.NA, None, np.nan])
+    def test_all_null_object_column_roundtrip(self, null):
+        # GH#51375
+        df = pd.DataFrame({"x": [null, null], "y": [1.0, 2.0]})
+        df["x"] = df["x"].astype(object)
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        expected = pd.DataFrame(
+            {"x": pd.Series([np.nan, np.nan], dtype=object), "y": [1.0, 2.0]}
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_read_json_orient_table_old_schema_version(self):
         df_json = """
@@ -912,14 +942,14 @@ class TestTableOrientReader:
             ]
         }
         """
-        expected = DataFrame({"a": [1, 2.0, "s"]})
+        expected = pd.DataFrame({"a": [1, 2.0, "s"]})
         result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize("freq", ["M", "2M", "Q", "2Q", "Y", "2Y"])
     def test_read_json_table_orient_period_depr_freq(self, freq):
         # GH#9586
-        df = DataFrame(
+        df = pd.DataFrame(
             {"ints": [1, 2]},
             index=pd.PeriodIndex(["2020-01", "2021-06"], freq=freq),
         )

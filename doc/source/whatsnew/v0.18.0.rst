@@ -56,11 +56,22 @@ Window functions are now methods
 Window functions have been refactored to be methods on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <window.overview>` (:issue:`11603`, :issue:`12373`)
 
 
-.. ipython:: python
+.. code-block:: pycon
 
-   np.random.seed(1234)
-   df = pd.DataFrame({'A': range(10), 'B': np.random.randn(10)})
-   df
+   >>> np.random.seed(1234)
+   >>> df = pd.DataFrame({'A' : range(10), 'B' : np.random.randn(10)})
+   >>> df
+      A         B
+   0  0  0.471435
+   1  1 -1.190976
+   2  2  1.432707
+   3  3 -0.312652
+   4  4 -0.720589
+   5  5  0.887163
+   6  6  0.859588
+   7  7 -0.636524
+   8  8  0.015696
+   9  9 -2.242685
 
 Previous behavior:
 
@@ -84,15 +95,17 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r = df.rolling(window=3)
+   >>> r = df.rolling(window=3)
 
 These show a descriptive repr
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r
+   >>> r
+   Rolling [window=3,center=False,axis=0]
+
 with tab-completion of available methods and properties.
 
 .. code-block:: ipython
@@ -103,22 +116,56 @@ with tab-completion of available methods and properties.
 
 The methods operate on the ``Rolling`` object itself
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r.mean()
+   >>> r.mean()
+        A         B
+   0  NaN       NaN
+   1  NaN       NaN
+   2  1.0  0.237722
+   3  2.0 -0.023640
+   4  3.0  0.133155
+   5  4.0 -0.048693
+   6  5.0  0.342054
+   7  6.0  0.370076
+   8  7.0  0.079587
+   9  8.0 -0.954504
 
 They provide getitem accessors
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r['A'].mean()
+   >>> r['A'].mean()
+   0    NaN
+   1    NaN
+   2    1.0
+   3    2.0
+   4    3.0
+   5    4.0
+   6    5.0
+   7    6.0
+   8    7.0
+   9    8.0
+   Name: A, dtype: float64
 
 And multiple aggregations
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r.agg({'A': ['mean', 'std'],
-          'B': ['mean', 'std']})
+   >>> r.agg({'A' : ['mean','std'],
+   ...        'B' : ['mean','std']})
+             B              A
+          mean       std mean  std
+   0       NaN       NaN  NaN  NaN
+   1       NaN       NaN  NaN  NaN
+   2  0.237722  1.327364  1.0  1.0
+   3 -0.023640  1.335505  2.0  1.0
+   4  0.133155  1.143778  3.0  1.0
+   5 -0.048693  0.835747  4.0  1.0
+   6  0.342054  0.920379  5.0  1.0
+   7  0.370076  0.871850  6.0  1.0
+   8  0.079587  0.750099  7.0  1.0
+   9 -0.954504  1.162285  8.0  1.0
 
 .. _whatsnew_0180.enhancements.rename:
 
@@ -128,16 +175,29 @@ Changes to rename
 ``Series.rename`` and ``NDFrame.rename_axis`` can now take a scalar or list-like
 argument for altering the Series or axis *name*, in addition to their old behaviors of altering labels. (:issue:`9494`, :issue:`11965`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(np.random.randn(5))
-   s.rename('newname')
+   >>> s = pd.Series(np.random.randn(5))
+   >>> s.rename('newname')
+   0    1.150036
+   1    0.991946
+   2    0.953324
+   3   -2.021255
+   4   -0.334077
+   Name: newname, dtype: float64
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(np.random.randn(5, 2))
-   (df.rename_axis("indexname")
-      .rename_axis("columns_name", axis="columns"))
+   >>> df = pd.DataFrame(np.random.randn(5, 2))
+   >>> (df.rename_axis("indexname")
+   ...    .rename_axis("columns_name", axis="columns"))
+   columns_name         0         1
+   indexname
+   0             0.002118  0.405453
+   1             0.289092  1.321158
+   2            -1.546906 -0.202646
+   3            -0.655969  0.193421
+   4             0.553439  1.318152
 
 The new functionality works well in method chains. Previously these methods only accepted functions or dicts mapping a *label* to a new label.
 This continues to work as before for function or dict-like values.
@@ -170,11 +230,13 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(range(1000))
-   s.index
-   s.index.nbytes
+   >>> s = pd.Series(range(1000))
+   >>> s.index
+   RangeIndex(start=0, stop=1000, step=1)
+   >>> s.index.nbytes
+   80
 
 .. _whatsnew_0180.enhancements.extract:
 
@@ -209,30 +271,44 @@ Currently the default is ``expand=None`` which gives a ``FutureWarning`` and use
 Extracting a regular expression with one group returns a Series if
 ``expand=False``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=False)
+   >>> pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
+   0      1
+   1      2
+   2    NaN
+   dtype: object
 
 It returns a ``DataFrame`` with one column if ``expand=True``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=True)
+   >>> pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
+        0
+   0    1
+   1    2
+   2  NaN
 
 Calling on an ``Index`` with a regex with exactly one capture group
 returns an ``Index`` if ``expand=False``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"])
-   s.index
-   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=False)
+   >>> s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"])
+   >>> s.index
+   Index(['A11', 'B22', 'C33'], dtype='object')
+   >>> s.index.str.extract("(?P<letter>[a-zA-Z])", expand=False)
+   Index(['A', 'B', 'C'], dtype='object', name='letter')
 
 It returns a ``DataFrame`` with one column if ``expand=True``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.index.str.extract("(?P<letter>[a-zA-Z])", expand=True)
+   >>> s.index.str.extract("(?P<letter>[a-zA-Z])", expand=True)
+     letter
+   0      A
+   1      B
+   2      C
 
 Calling on an ``Index`` with a regex with more than one capture group
 raises ``ValueError`` if ``expand=False``.
@@ -244,9 +320,13 @@ raises ``ValueError`` if ``expand=False``.
 
 It returns a ``DataFrame`` if ``expand=True``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=True)
+   >>> s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=True)
+     letter   1
+   0      A  11
+   1      B  22
+   2      C  33
 
 In summary, ``extract(expand=True)`` always returns a ``DataFrame``
 with a row for every subject string, and a column for every capture
@@ -261,17 +341,30 @@ The :ref:`.str.extractall <text.extractall>` method was added
 (:issue:`11386`).  Unlike ``extract``, which returns only the first
 match.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
-   s
-   s.str.extract(r"(?P<letter>[ab])(?P<digit>\d)", expand=False)
+   >>> s = pd.Series(["a1a2", "b1", "c1"], ["A", "B", "C"])
+   >>> s
+   A    a1a2
+   B      b1
+   C      c1
+   dtype: object
+   >>> s.str.extract("(?P<letter>[ab])(?P<digit>\d)", expand=False)
+     letter digit
+   A      a     1
+   B      b     1
+   C    NaN   NaN
 
 The ``extractall`` method returns all matches.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.str.extractall(r"(?P<letter>[ab])(?P<digit>\d)")
+   >>> s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+           letter digit
+     match
+   A 0          a     1
+     1          a     2
+   B 0          b     1
 
 .. _whatsnew_0180.enhancements.strcat:
 
@@ -282,10 +375,12 @@ The method ``.str.cat()`` concatenates the members of a ``Series``. Before, if `
 
 A new, friendlier ``ValueError`` is added to protect against the mistake of supplying the ``sep`` as an arg, rather than as a kwarg. (:issue:`11334`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ')
-    pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ', na_rep='?')
+   >>> pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+   'a b c'
+   >>> pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+   'a b ? c'
 
 .. code-block:: ipython
 
@@ -302,23 +397,38 @@ Datetimelike rounding
 
 Naive datetimes
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dr = pd.date_range('20130101 09:12:56.1234', periods=3)
-   dr
-   dr.round('s')
+   >>> dr = pd.date_range('20130101 09:12:56.1234', periods=3)
+   >>> dr
+   DatetimeIndex(['2013-01-01 09:12:56.123400', '2013-01-02 09:12:56.123400',
+                  '2013-01-03 09:12:56.123400'],
+                 dtype='datetime64[ns]', freq='D')
+   >>> dr.round('s')
+   DatetimeIndex(['2013-01-01 09:12:56', '2013-01-02 09:12:56',
+                  '2013-01-03 09:12:56'],
+                 dtype='datetime64[ns]', freq=None)
 
    # Timestamp scalar
-   dr[0]
-   dr[0].round('10s')
+   >>> dr[0]
+   Timestamp('2013-01-01 09:12:56.123400', offset='D')
+   >>> dr[0].round('10s')
+   Timestamp('2013-01-01 09:13:00')
 
 Tz-aware are rounded, floored and ceiled in local times
 
-.. ipython:: python
+.. code-block:: pycon
 
-   dr = dr.tz_localize('US/Eastern')
-   dr
-   dr.round('s')
+   >>> dr = dr.tz_localize('US/Eastern')
+   >>> dr
+   DatetimeIndex(['2013-01-01 09:12:56.123400-05:00',
+                  '2013-01-02 09:12:56.123400-05:00',
+                  '2013-01-03 09:12:56.123400-05:00'],
+                 dtype='datetime64[ns, US/Eastern]', freq='D')
+   >>> dr.round('s')
+   DatetimeIndex(['2013-01-01 09:12:56-05:00', '2013-01-02 09:12:56-05:00',
+                  '2013-01-03 09:12:56-05:00'],
+                 dtype='datetime64[ns, US/Eastern]', freq=None)
 
 Timedeltas
 
@@ -348,11 +458,19 @@ Timedeltas
 
 In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available through the ``.dt`` accessor of ``Series``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series(dr)
-   s
-   s.dt.round('D')
+   >>> s = pd.Series(dr)
+   >>> s
+   0   2013-01-01 09:12:56.123400-05:00
+   1   2013-01-02 09:12:56.123400-05:00
+   2   2013-01-03 09:12:56.123400-05:00
+   dtype: datetime64[ns, US/Eastern]
+   >>> s.dt.round('D')
+   0   2013-01-01 00:00:00-05:00
+   1   2013-01-02 00:00:00-05:00
+   2   2013-01-03 00:00:00-05:00
+   dtype: datetime64[ns, US/Eastern]
 
 Formatting of integers in FloatIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -384,12 +502,20 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([1, 2, 3], index=np.arange(3.))
-   s
-   s.index
-   print(s.to_csv(path_or_buf=None, header=False))
+   >>> s = pd.Series([1,2,3], index=np.arange(3.))
+   >>> s
+   0.0    1
+   1.0    2
+   2.0    3
+   dtype: int64
+   >>> s.index
+   Float64Index([0.0, 1.0, 2.0], dtype='float64')
+   >>> print(s.to_csv(path=None))
+   0.0,1
+   1.0,2
+   2.0,3
 
 Changes to dtype assignment behaviors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -421,14 +547,20 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'a': [0, 1, 1],
-                      'b': pd.Series([100, 200, 300], dtype='uint32')})
-   df.dtypes
-   ix = df['a'] == 1
-   df.loc[ix, 'b'] = df.loc[ix, 'b']
-   df.dtypes
+   >>> df = pd.DataFrame({'a': [0, 1, 1],
+   ...                    'b': pd.Series([100, 200, 300], dtype='uint32')})
+   >>> df.dtypes
+   a     int64
+   b    uint32
+   dtype: object
+   >>> ix = df['a'] == 1
+   >>> df.loc[ix, 'b'] = df.loc[ix, 'b']
+   >>> df.dtypes
+   a     int64
+   b    uint32
+   dtype: object
 
 When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be down-casted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
 
@@ -458,14 +590,22 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
-                     columns=list('abc'),
-                     index=[[4,4,8], [8,10,12]])
-   df
-   df.loc[4, 'c'] = np.array([0., 1.])
-   df
+   >>> df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
+   ...                   columns=list('abc'),
+   ...                   index=[[4,4,8], [8,10,12]])
+   >>> df
+         a  b  c
+   4 8   1  2  3
+     10  4  5  6
+   8 12  7  8  9
+   >>> df.ix[4, 'c'] = np.array([0., 1.])
+   >>> df
+         a  b    c
+   4 8   1  2  0.0
+     10  4  5  1.0
+   8 12  7  8  9.0
 
 .. _whatsnew_0180.enhancements.xarray:
 
@@ -563,30 +703,38 @@ are now also defined for ``NaT`` (:issue:`11564`).
 
 ``NaT`` now supports arithmetic operations with integers and floats.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.NaT * 1
-   pd.NaT * 1.5
-   pd.NaT / 2
-   pd.NaT * np.nan
+   >>> pd.NaT * 1
+   NaT
+   >>> pd.NaT * 1.5
+   NaT
+   >>> pd.NaT / 2
+   NaT
+   >>> pd.NaT * np.nan
+   NaT
 
 ``NaT`` defines more arithmetic operations with ``datetime64[ns]`` and ``timedelta64[ns]``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.NaT / pd.NaT
-   pd.Timedelta('1s') / pd.NaT
+   >>> pd.NaT / pd.NaT
+   nan
+   >>> pd.Timedelta('1s') / pd.NaT
+   nan
 
 ``NaT`` may represent either a ``datetime64[ns]`` null or a ``timedelta64[ns]`` null.
 Given the ambiguity, it is treated as a ``timedelta64[ns]``, which allows more operations
 to succeed.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.NaT + pd.NaT
+   >>> pd.NaT + pd.NaT
+   NaT
 
    # same as
-   pd.Timedelta('1s') + pd.Timedelta('1s')
+   >>> pd.Timedelta('1s') + pd.Timedelta('1s')
+   Timedelta('0 days 00:00:02')
 
 as opposed to
 
@@ -604,23 +752,34 @@ the ``dtype`` information is respected.
    TypeError: can only operate on a datetimes for subtraction,
               but the operator [__add__] was passed
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Series([pd.NaT], dtype='<m8[ns]') + pd.Series([pd.NaT], dtype='<m8[ns]')
+   >>> pd.Series([pd.NaT], dtype='<m8[ns]') + pd.Series([pd.NaT], dtype='<m8[ns]')
+   0   NaT
+   dtype: timedelta64[ns]
 
 ``Timedelta`` division by ``floats`` now works.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Timedelta('1s') / 2.0
+   >>> pd.Timedelta('1s') / 2.0
+   Timedelta('0 days 00:00:00.500000')
 
 Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`11925`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series(pd.timedelta_range('1 day', periods=3))
-   ser
-   pd.Timestamp('2012-01-01') - ser
+   >>> ser = pd.Series(pd.timedelta_range('1 day', periods=3))
+   >>> ser
+   0   1 days
+   1   2 days
+   2   3 days
+   dtype: timedelta64[ns]
+   >>> pd.Timestamp('2012-01-01') - ser
+   0   2011-12-31
+   1   2011-12-30
+   2   2011-12-29
+   dtype: datetime64[ns]
 
 
 ``NaT.isoformat()`` now returns ``'NaT'``. This change allows
@@ -680,12 +839,18 @@ Previous signature
 
 New signature
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.Series([0,1]).rank(axis=0, method='average', numeric_only=False,
-                         na_option='keep', ascending=True, pct=False)
-   pd.DataFrame([0,1]).rank(axis=0, method='average', numeric_only=False,
-                            na_option='keep', ascending=True, pct=False)
+   >>> pd.Series([0,1]).rank(axis=0, method='average', numeric_only=None,
+   ...                       na_option='keep', ascending=True, pct=False)
+   0    1.0
+   1    2.0
+   dtype: float64
+   >>> pd.DataFrame([0,1]).rank(axis=0, method='average', numeric_only=None,
+   ...                          na_option='keep', ascending=True, pct=False)
+        0
+   0  1.0
+   1  2.0
 
 
 Bug in QuarterBegin with n=0
@@ -698,12 +863,15 @@ The general semantics of anchored offsets for ``n=0`` is to not move the date
 when it is an anchor point (e.g., a quarter start date), and otherwise roll
 forward to the next anchor point.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   d = pd.Timestamp('2014-02-01')
-   d
-   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
-   d + pd.offsets.QuarterBegin(n=0, startingMonth=1)
+   >>> d = pd.Timestamp('2014-02-01')
+   >>> d
+   Timestamp('2014-02-01 00:00:00')
+   >>> d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   Timestamp('2014-02-01 00:00:00')
+   >>> d + pd.offsets.QuarterBegin(n=0, startingMonth=1)
+   Timestamp('2014-04-01 00:00:00')
 
 For the ``QuarterBegin`` offset in previous versions, the date would be rolled
 *backwards* if date was in the same month as the quarter start date.
@@ -718,10 +886,11 @@ For the ``QuarterBegin`` offset in previous versions, the date would be rolled
 This behavior has been corrected in version 0.18.0, which is consistent with
 other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   d = pd.Timestamp('2014-02-15')
-   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   >>> d = pd.Timestamp('2014-02-15')
+   >>> d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   Timestamp('2014-05-01 00:00:00')
 
 .. _whatsnew_0180.breaking.resample:
 
@@ -730,14 +899,24 @@ Resample API
 
 Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`, :issue:`12202`, :issue:`12332`, :issue:`12334`, :issue:`12348`, :issue:`12448`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   np.random.seed(1234)
-   df = pd.DataFrame(np.random.rand(10,4),
-                     columns=list('ABCD'),
-                     index=pd.date_range('2010-01-01 09:00:00',
-                                         periods=10, freq='s'))
-   df
+   >>> np.random.seed(1234)
+   >>> df = pd.DataFrame(np.random.rand(10,4),
+   ...                   columns=list('ABCD'),
+   ...                   index=pd.date_range('2010-01-01 09:00:00', periods=10, freq='s'))
+   >>> df
+                               A         B         C         D
+   2010-01-01 09:00:00  0.191519  0.622109  0.437728  0.785359
+   2010-01-01 09:00:01  0.779976  0.272593  0.276464  0.801872
+   2010-01-01 09:00:02  0.958139  0.875933  0.357817  0.500995
+   2010-01-01 09:00:03  0.683463  0.712702  0.370251  0.561196
+   2010-01-01 09:00:04  0.503083  0.013768  0.772827  0.882641
+   2010-01-01 09:00:05  0.364886  0.615396  0.075381  0.368824
+   2010-01-01 09:00:06  0.933140  0.651378  0.397203  0.788730
+   2010-01-01 09:00:07  0.316836  0.568099  0.869127  0.436173
+   2010-01-01 09:00:08  0.802148  0.143767  0.704261  0.704581
+   2010-01-01 09:00:09  0.218792  0.924868  0.442141  0.909316
 
 
 **Previous API**:
@@ -774,11 +953,11 @@ You could also specify a ``how`` directly
 Now, you can write ``.resample(..)`` as a 2-stage operation like ``.groupby(...)``, which
 yields a ``Resampler``.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   r = df.resample('2s')
-   r
+   >>> r = df.resample('2s')
+   >>> r
+   DatetimeIndexResampler [freq=<2 * Seconds>, axis=0, closed=left, label=left, convention=start, base=0]
 
 Downsampling
 """"""""""""
@@ -786,31 +965,62 @@ Downsampling
 You can then use this object to perform operations.
 These are downsampling operations (going from a higher frequency to a lower one).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r.mean()
+   >>> r.mean()
+                               A         B         C         D
+   2010-01-01 09:00:00  0.485748  0.447351  0.357096  0.793615
+   2010-01-01 09:00:02  0.820801  0.794317  0.364034  0.531096
+   2010-01-01 09:00:04  0.433985  0.314582  0.424104  0.625733
+   2010-01-01 09:00:06  0.624988  0.609738  0.633165  0.612452
+   2010-01-01 09:00:08  0.510470  0.534317  0.573201  0.806949
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r.sum()
+   >>> r.sum()
+                               A         B         C         D
+   2010-01-01 09:00:00  0.971495  0.894701  0.714192  1.587231
+   2010-01-01 09:00:02  1.641602  1.588635  0.728068  1.062191
+   2010-01-01 09:00:04  0.867969  0.629165  0.848208  1.251465
+   2010-01-01 09:00:06  1.249976  1.219477  1.266330  1.224904
+   2010-01-01 09:00:08  1.020940  1.068634  1.146402  1.613897
 
 Furthermore, resample now supports ``getitem`` operations to perform the resample on specific columns.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r[['A','C']].mean()
+   >>> r[['A','C']].mean()
+                               A         C
+   2010-01-01 09:00:00  0.485748  0.357096
+   2010-01-01 09:00:02  0.820801  0.364034
+   2010-01-01 09:00:04  0.433985  0.424104
+   2010-01-01 09:00:06  0.624988  0.633165
+   2010-01-01 09:00:08  0.510470  0.573201
 
 and ``.aggregate`` type operations.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r.agg({'A' : 'mean', 'B' : 'sum'})
+   >>> r.agg({'A' : 'mean', 'B' : 'sum'})
+                               B         A
+   2010-01-01 09:00:00  0.894701  0.485748
+   2010-01-01 09:00:02  1.588635  0.820801
+   2010-01-01 09:00:04  0.629165  0.433985
+   2010-01-01 09:00:06  1.219477  0.624988
+   2010-01-01 09:00:08  1.068634  0.510470
 
 These accessors can of course, be combined
 
-.. ipython:: python
+.. code-block:: pycon
 
-   r[['A','B']].agg(['mean','sum'])
+   >>> r[['A','B']].agg(['mean','sum'])
+                               A                   B
+                            mean       sum      mean       sum
+   2010-01-01 09:00:00  0.485748  0.971495  0.447351  0.894701
+   2010-01-01 09:00:02  0.820801  1.641602  0.794317  1.588635
+   2010-01-01 09:00:04  0.433985  0.867969  0.314582  0.629165
+   2010-01-01 09:00:06  0.624988  1.249976  0.609738  1.219477
+   2010-01-01 09:00:08  0.510470  1.020940  0.534317  1.068634
 
 Upsampling
 """"""""""
@@ -927,18 +1137,29 @@ Previous API will work but with deprecations
 
    The new API will:
 
-   .. ipython:: python
+   .. code-block:: pycon
 
-      df.resample('2s').min()
+      >>> df.resample('2s').min()
+                                  A         B         C         D
+      2010-01-01 09:00:00  0.191519  0.272593  0.276464  0.785359
+      2010-01-01 09:00:02  0.683463  0.712702  0.357817  0.500995
+      2010-01-01 09:00:04  0.364886  0.013768  0.075381  0.368824
+      2010-01-01 09:00:06  0.316836  0.568099  0.397203  0.436173
+      2010-01-01 09:00:08  0.218792  0.143767  0.442141  0.704581
 
    The good news is the return dimensions will differ between the new API and the old API, so this should loudly raise
    an exception.
 
    To replicate the original operation
 
-   .. ipython:: python
+   .. code-block:: pycon
 
-      df.resample('2s').mean().min()
+      >>> df.resample('2s').mean().min()
+      A    0.433985
+      B    0.314582
+      C    0.357096
+      D    0.531096
+      dtype: float64
 
 Changes to eval
 ^^^^^^^^^^^^^^^
@@ -946,15 +1167,16 @@ Changes to eval
 In prior versions, new columns assignments in an ``eval`` expression resulted
 in an inplace change to the ``DataFrame``. (:issue:`9297`, :issue:`8664`, :issue:`10486`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'a': np.linspace(0, 10, 5), 'b': range(5)})
-   df
-
-.. ipython:: python
-   :suppress:
-
-   df.eval('c = a + b', inplace=True)
+   >>> df = pd.DataFrame({'a': np.linspace(0, 10, 5), 'b': range(5)})
+   >>> df
+         a  b
+   0   0.0  0
+   1   2.5  1
+   2   5.0  2
+   3   7.5  3
+   4  10.0  4
 
 .. code-block:: ipython
 
@@ -974,13 +1196,37 @@ in an inplace change to the ``DataFrame``. (:issue:`9297`, :issue:`8664`, :issue
 In version 0.18.0, a new ``inplace`` keyword was added to choose whether the
 assignment should be done inplace or return a copy.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df
-   df.eval('d = c - b', inplace=False)
-   df
-   df.eval('d = c - b', inplace=True)
-   df
+   >>> df
+         a  b     c
+   0   0.0  0   0.0
+   1   2.5  1   3.5
+   2   5.0  2   7.0
+   3   7.5  3  10.5
+   4  10.0  4  14.0
+   >>> df.eval('d = c - b', inplace=False)
+         a  b     c     d
+   0   0.0  0   0.0   0.0
+   1   2.5  1   3.5   2.5
+   2   5.0  2   7.0   5.0
+   3   7.5  3  10.5   7.5
+   4  10.0  4  14.0  10.0
+   >>> df
+         a  b     c
+   0   0.0  0   0.0
+   1   2.5  1   3.5
+   2   5.0  2   7.0
+   3   7.5  3  10.5
+   4  10.0  4  14.0
+   >>> df.eval('d = c - b', inplace=True)
+   >>> df
+         a  b     c     d
+   0   0.0  0   0.0   0.0
+   1   2.5  1   3.5   2.5
+   2   5.0  2   7.0   5.0
+   3   7.5  3  10.5   7.5
+   4  10.0  4  14.0  10.0
 
 .. warning::
 
@@ -990,11 +1236,17 @@ assignment should be done inplace or return a copy.
 
 The ``inplace`` keyword parameter was also added the ``query`` method.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.query('a > 5')
-   df.query('a > 5', inplace=True)
-   df
+   >>> df.query('a > 5')
+         a  b     c     d
+   3   7.5  3  10.5   7.5
+   4  10.0  4  14.0  10.0
+   >>> df.query('a > 5', inplace=True)
+   >>> df
+         a  b     c     d
+   3   7.5  3  10.5   7.5
+   4  10.0  4  14.0  10.0
 
 .. warning::
 
@@ -1005,14 +1257,20 @@ The ``inplace`` keyword parameter was also added the ``query`` method.
 assignments.  These expressions will be evaluated one at a time in order.  Only
 assignments are valid for multi-line expressions.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df
-   df.eval("""
-   e = d + a
-   f = e - 22
-   g = f / 2.0""", inplace=True)
-   df
+   >>> df
+         a  b     c     d
+   3   7.5  3  10.5   7.5
+   4  10.0  4  14.0  10.0
+   >>> df.eval("""
+   ... e = d + a
+   ... f = e - 22
+   ... g = f / 2.0""", inplace=True)
+   >>> df
+         a  b     c     d     e    f    g
+   3   7.5  3  10.5   7.5  15.0 -7.0 -3.5
+   4  10.0  4  14.0  10.0  20.0 -2.0 -1.0
 
 
 .. _whatsnew_0180.api:
@@ -1109,12 +1367,20 @@ Removal of deprecated float indexers
 In :issue:`4892` indexing with floating point numbers on a non-``Float64Index`` was deprecated (in version 0.14.0).
 In 0.18.0, this deprecation warning is removed and these will now raise a ``TypeError``. (:issue:`12165`, :issue:`12333`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([1, 2, 3], index=[4, 5, 6])
-   s
-   s2 = pd.Series([1, 2, 3], index=list('abc'))
-   s2
+   >>> s = pd.Series([1, 2, 3], index=[4, 5, 6])
+   >>> s
+   4    1
+   5    2
+   6    3
+   dtype: int64
+   >>> s2 = pd.Series([1, 2, 3], index=list('abc'))
+   >>> s2
+   a    1
+   b    2
+   c    3
+   dtype: int64
 
 Previous behavior:
 
@@ -1157,21 +1423,40 @@ For iloc, getting & setting via a float scalar will always raise.
 
 Other indexers will coerce to a like integer for both getting and setting. The ``FutureWarning`` has been dropped for ``.loc``, ``.ix`` and ``[]``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s[5.0]
-   s.loc[5.0]
+   >>> s[5.0]
+   2
+   >>> s.loc[5.0]
+   2
+   >>> s.ix[5.0]
+   2
 
 and setting
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s_copy = s.copy()
-   s_copy[5.0] = 10
-   s_copy
-   s_copy = s.copy()
-   s_copy.loc[5.0] = 10
-   s_copy
+   >>> s_copy = s.copy()
+   >>> s_copy[5.0] = 10
+   >>> s_copy
+   4     1
+   5    10
+   6     3
+   dtype: int64
+   >>> s_copy = s.copy()
+   >>> s_copy.loc[5.0] = 10
+   >>> s_copy
+   4     1
+   5    10
+   6     3
+   dtype: int64
+   >>> s_copy = s.copy()
+   >>> s_copy.ix[5.0] = 10
+   >>> s_copy
+   4     1
+   5    10
+   6     3
+   dtype: int64
 
 Positional setting with ``.ix`` and a float indexer will ADD this value to the index, rather than previously setting the value by position.
 
@@ -1188,23 +1473,39 @@ Positional setting with ``.ix`` and a float indexer will ADD this value to the i
 
 Slicing will also coerce integer-like floats to integers for a non-``Float64Index``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.loc[5.0:6]
+   >>> s.loc[5.0:6]
+   5    2
+   6    3
+   dtype: int64
+   >>> s.ix[5.0:6]
+   5    2
+   6    3
+   dtype: int64
 
 Note that for floats that are NOT coercible to ints, the label based bounds will be excluded
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s.loc[5.1:6]
+   >>> s.loc[5.1:6]
+   6    3
+   dtype: int64
+   >>> s.ix[5.1:6]
+   6    3
+   dtype: int64
 
 Float indexing on a ``Float64Index`` is unchanged.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([1, 2, 3], index=np.arange(3.))
-   s[1.0]
-   s[1.0:2.5]
+   >>> s = pd.Series([1, 2, 3], index=np.arange(3.))
+   >>> s[1.0]
+   2
+   >>> s[1.0:2.5]
+   1.0    2
+   2.0    3
+   dtype: int64
 
 .. _whatsnew_0180.prior_deprecations:
 

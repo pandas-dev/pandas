@@ -4,11 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Index,
-    Series,
-)
 import pandas._testing as tm
 
 
@@ -22,41 +17,41 @@ import pandas._testing as tm
 )
 def test_map_str(data, categories, ordered, na_action):
     # GH 31202 - override base class since we want to maintain categorical/ordered
-    cat = Categorical(data, categories=categories, ordered=ordered)
+    cat = pd.Categorical(data, categories=categories, ordered=ordered)
     result = cat.map(str, na_action=na_action)
-    expected = Categorical(
+    expected = pd.Categorical(
         map(str, data), categories=map(str, categories), ordered=ordered
     )
     tm.assert_categorical_equal(result, expected)
 
 
 def test_map(na_action):
-    cat = Categorical(list("ABABC"), categories=list("CBA"), ordered=True)
+    cat = pd.Categorical(list("ABABC"), categories=list("CBA"), ordered=True)
     result = cat.map(lambda x: x.lower(), na_action=na_action)
-    exp = Categorical(list("ababc"), categories=list("cba"), ordered=True)
+    exp = pd.Categorical(list("ababc"), categories=list("cba"), ordered=True)
     tm.assert_categorical_equal(result, exp)
 
-    cat = Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
+    cat = pd.Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
     result = cat.map(lambda x: x.lower(), na_action=na_action)
-    exp = Categorical(list("ababc"), categories=list("bac"), ordered=False)
+    exp = pd.Categorical(list("ababc"), categories=list("bac"), ordered=False)
     tm.assert_categorical_equal(result, exp)
 
     # GH 12766: Return an index not an array
     result = cat.map(lambda x: 1, na_action=na_action)
-    exp = Index(np.array([1] * 5, dtype=np.int64))
+    exp = pd.Index(np.array([1] * 5, dtype=np.int64))
     tm.assert_index_equal(result, exp)
 
     # change categories dtype
-    cat = Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
+    cat = pd.Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
 
     def f(x):
         return {"A": 10, "B": 20, "C": 30}.get(x)
 
     result = cat.map(f, na_action=na_action)
-    exp = Categorical([10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False)
+    exp = pd.Categorical([10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False)
     tm.assert_categorical_equal(result, exp)
 
-    mapper = Series([10, 20, 30], index=["A", "B", "C"])
+    mapper = pd.Series([10, 20, 30], index=["A", "B", "C"])
     result = cat.map(mapper, na_action=na_action)
     tm.assert_categorical_equal(result, exp)
 
@@ -67,26 +62,26 @@ def test_map(na_action):
 @pytest.mark.parametrize(
     ("data", "f", "expected"),
     (
-        ([1, 1, np.nan], pd.isna, Index([False, False, True])),
-        ([1, 2, np.nan], pd.isna, Index([False, False, True])),
-        ([1, 1, np.nan], {1: False}, Categorical([False, False, np.nan])),
-        ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
+        ([1, 1, np.nan], pd.isna, pd.Index([False, False, True])),
+        ([1, 2, np.nan], pd.isna, pd.Index([False, False, True])),
+        ([1, 1, np.nan], {1: False}, pd.Categorical([False, False, np.nan])),
+        ([1, 2, np.nan], {1: False, 2: False}, pd.Index([False, False, np.nan])),
         (
             [1, 1, np.nan],
-            Series([False, False]),
-            Categorical([False, False, np.nan]),
+            pd.Series([False, False]),
+            pd.Categorical([False, False, np.nan]),
         ),
         (
             [1, 2, np.nan],
-            Series([False] * 3),
-            Index([False, False, np.nan]),
+            pd.Series([False] * 3),
+            pd.Index([False, False, np.nan]),
         ),
     ),
 )
 def test_map_with_nan_none(data, f, expected):  # GH 24241
-    values = Categorical(data)
+    values = pd.Categorical(data)
     result = values.map(f, na_action=None)
-    if isinstance(expected, Categorical):
+    if isinstance(expected, pd.Categorical):
         tm.assert_categorical_equal(result, expected)
     else:
         tm.assert_index_equal(result, expected)
@@ -95,24 +90,24 @@ def test_map_with_nan_none(data, f, expected):  # GH 24241
 @pytest.mark.parametrize(
     ("data", "f", "expected"),
     (
-        ([1, 1, np.nan], pd.isna, Categorical([False, False, np.nan])),
-        ([1, 2, np.nan], pd.isna, Index([False, False, np.nan])),
-        ([1, 1, np.nan], {1: False}, Categorical([False, False, np.nan])),
-        ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
+        ([1, 1, np.nan], pd.isna, pd.Categorical([False, False, np.nan])),
+        ([1, 2, np.nan], pd.isna, pd.Index([False, False, np.nan])),
+        ([1, 1, np.nan], {1: False}, pd.Categorical([False, False, np.nan])),
+        ([1, 2, np.nan], {1: False, 2: False}, pd.Index([False, False, np.nan])),
         (
             [1, 1, np.nan],
-            Series([False, False]),
-            Categorical([False, False, np.nan]),
+            pd.Series([False, False]),
+            pd.Categorical([False, False, np.nan]),
         ),
         (
             [1, 2, np.nan],
-            Series([False, False, False]),
-            Index([False, False, np.nan]),
+            pd.Series([False, False, False]),
+            pd.Index([False, False, np.nan]),
         ),
     ),
 )
 def test_map_with_nan_ignore(data, f, expected):  # GH 24241
-    values = Categorical(data)
+    values = pd.Categorical(data)
     result = values.map(f, na_action="ignore")
     if data[1] == 1:
         tm.assert_categorical_equal(result, expected)
@@ -123,13 +118,13 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
 def test_map_with_dict_or_series(na_action):
     orig_values = ["a", "B", 1, "a"]
     new_values = ["one", 2, 3.0, "one"]
-    cat = Categorical(orig_values)
+    cat = pd.Categorical(orig_values)
 
-    mapper = Series(new_values[:-1], index=orig_values[:-1])
+    mapper = pd.Series(new_values[:-1], index=orig_values[:-1])
     result = cat.map(mapper, na_action=na_action)
 
     # Order of categories in result can be different
-    expected = Categorical(new_values, categories=[3.0, 2, "one"])
+    expected = pd.Categorical(new_values, categories=[3.0, 2, "one"])
     tm.assert_categorical_equal(result, expected)
 
     mapper = dict(zip(orig_values[:-1], new_values[:-1], strict=True))
@@ -140,43 +135,43 @@ def test_map_with_dict_or_series(na_action):
 
 def test_map_defaultdict_na_action_none():
     # GH#62710
-    cat = Categorical(["one", "two", None])
+    cat = pd.Categorical(["one", "two", None])
     mapper = defaultdict(lambda: True)
     result = cat.map(mapper, na_action=None)
-    expected = Index([True, True, True])
+    expected = pd.Index([True, True, True])
     tm.assert_index_equal(result, expected)
 
 
 def test_map_defaultdict_na_action_ignore():
     # GH#62710
-    cat = Categorical(["one", "two", None])
+    cat = pd.Categorical(["one", "two", None])
     mapper = defaultdict(lambda: True)
     result = cat.map(mapper, na_action="ignore")
-    expected = Index([True, True, np.nan])
+    expected = pd.Index([True, True, np.nan])
     tm.assert_index_equal(result, expected)
 
 
 def test_map_to_tuples(na_action):
     # mapping categories to tuples used to raise NotImplementedError because
     # the mapped categories formed a MultiIndex.
-    cat = Categorical(["a", "a", "b", "c"])
+    cat = pd.Categorical(["a", "a", "b", "c"])
     mapper = {"a": ("x",), "b": ("y",), "c": ("z",)}
     result = cat.map(mapper, na_action=na_action)
-    expected = Index([("x",), ("x",), ("y",), ("z",)], tupleize_cols=False)
+    expected = pd.Index([("x",), ("x",), ("y",), ("z",)], tupleize_cols=False)
     tm.assert_index_equal(result, expected)
 
 
 def test_map_to_tuples_with_na(na_action):
-    cat = Categorical(["a", "a", None, "b"])
+    cat = pd.Categorical(["a", "a", None, "b"])
     mapper = {"a": ("x",), "b": ("y",)}
     result = cat.map(mapper, na_action=na_action)
-    expected = Index([("x",), ("x",), np.nan, ("y",)], tupleize_cols=False)
+    expected = pd.Index([("x",), ("x",), np.nan, ("y",)], tupleize_cols=False)
     tm.assert_index_equal(result, expected)
 
 
 def test_map_to_multi_element_tuples(na_action):
-    cat = Categorical(["a", "b"])
+    cat = pd.Categorical(["a", "b"])
     mapper = {"a": ("x", 1), "b": ("y", 2)}
     result = cat.map(mapper, na_action=na_action)
-    expected = Index([("x", 1), ("y", 2)], tupleize_cols=False)
+    expected = pd.Index([("x", 1), ("y", 2)], tupleize_cols=False)
     tm.assert_index_equal(result, expected)

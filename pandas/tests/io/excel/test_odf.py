@@ -1,4 +1,5 @@
 import functools
+import uuid
 
 import numpy as np
 import pytest
@@ -7,6 +8,27 @@ import pandas as pd
 import pandas._testing as tm
 
 pytest.importorskip("odf")
+
+
+@pytest.fixture
+def ext():
+    return ".ods"
+
+
+@pytest.fixture
+def tmp_excel(ext, tmp_path):
+    tmp = tmp_path / f"{uuid.uuid4()}{ext}"
+    tmp.touch()
+    return str(tmp)
+
+
+from odf.opendocument import OpenDocumentSpreadsheet
+from odf.table import (
+    CoveredTableCell,
+    Table,
+    TableCell,
+    TableRow,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -69,4 +91,100 @@ def test_read_cell_annotation():
 
     result = pd.read_excel("test_cell_annotation.ods")
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_covered_table_cell_value(tmp_excel):
+    # GH#66579
+    doc = OpenDocumentSpreadsheet()
+    sheet = Table(name="Sheet1")
+    doc.spreadsheet.addElement(sheet)
+
+    row0 = TableRow()
+    sheet.addElement(row0)
+    row0.addElement(TableCell(valuetype="float", value="1"))
+    row0.addElement(TableCell(valuetype="float", value="100"))
+
+    row1 = TableRow()
+    sheet.addElement(row1)
+    row1.addElement(CoveredTableCell(valuetype="float", value="42"))
+    row1.addElement(TableCell(valuetype="float", value="200"))
+
+    row2 = TableRow()
+    sheet.addElement(row2)
+    row2.addElement(CoveredTableCell(valuetype="float"))
+    row2.addElement(TableCell(valuetype="float", value="300"))
+
+    row3 = TableRow()
+    sheet.addElement(row3)
+    row3.addElement(CoveredTableCell(valuetype="void"))
+    row3.addElement(TableCell(valuetype="float", value="400"))
+
+    row4 = TableRow()
+    sheet.addElement(row4)
+    row4.addElement(CoveredTableCell(valuetype="boolean", booleanvalue="true"))
+    row4.addElement(TableCell(valuetype="float", value="500"))
+
+    doc.save(tmp_excel)
+
+    result = pd.read_excel(tmp_excel, header=None)
+
+    expected = pd.DataFrame(
+        [
+            [1, 100],
+            [42, 200],
+            [np.nan, 300],
+            [np.nan, 400],
+            [np.nan, 500],
+        ]
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_cell_line_breaks(tmp_excel):
+    # GH#55728, GH#53924 a line break inside a cell is stored either as a
+    # <text:line-break/> element or as a further <text:p> paragraph
+    from odf.opendocument import OpenDocumentSpreadsheet
+    from odf.table import (
+        Table,
+        TableCell,
+        TableRow,
+    )
+    from odf.text import (
+        LineBreak,
+        P,
+    )
+
+    def _row(cell: TableCell) -> TableRow:
+        row = TableRow()
+        row.addElement(cell)
+        return row
+
+    doc = OpenDocumentSpreadsheet()
+    table = Table(name="Sheet1")
+
+    header = TableCell(valuetype="string")
+    header.addElement(P(text="Column 1"))
+    table.addElement(_row(header))
+
+    line_break = TableCell(valuetype="string")
+    paragraph = P()
+    paragraph.addText("break1")
+    paragraph.addElement(LineBreak())
+    paragraph.addText("break2")
+    line_break.addElement(paragraph)
+    table.addElement(_row(line_break))
+
+    paragraphs = TableCell(valuetype="string")
+    paragraphs.addElement(P(text="para1"))
+    paragraphs.addElement(P(text="para2"))
+    table.addElement(_row(paragraphs))
+
+    doc.spreadsheet.addElement(table)
+    doc.save(tmp_excel)
+
+    result = pd.read_excel(tmp_excel)
+
+    expected = pd.DataFrame({"Column 1": ["break1\nbreak2", "para1\npara2"]})
     tm.assert_frame_equal(result, expected)

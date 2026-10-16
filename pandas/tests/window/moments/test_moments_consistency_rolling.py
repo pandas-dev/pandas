@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Series
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -11,7 +11,7 @@ def rolling_consistency_cases(request):
     return request.param
 
 
-@pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum])
+@pytest.mark.parametrize("f", [lambda v: pd.Series(v).sum(), np.nansum])
 def test_rolling_apply_consistency_sum(all_data, rolling_consistency_cases, center, f):
     window, min_periods = rolling_consistency_cases
 
@@ -186,7 +186,7 @@ def test_rolling_consistency_constant(
 
     exp = (
         consistent_data.max()
-        if isinstance(consistent_data, Series)
+        if isinstance(consistent_data, pd.Series)
         else consistent_data.max().max()
     )
 

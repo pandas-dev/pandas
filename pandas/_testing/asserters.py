@@ -24,6 +24,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_bool,
     is_float_dtype,
@@ -100,9 +101,11 @@ def assert_almost_equal(
         then `RangeIndex` and `Index` with int64 dtype are also considered
         equivalent when doing type checking.
     rtol : float, default 1e-5
-        Relative tolerance.
+        Relative tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance.
+        Absolute tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     """
     if isinstance(left, Index):
         assert_index_equal(
@@ -187,9 +190,29 @@ def _check_isinstance(left: Any, right: Any, cls: type) -> None:
         )
 
 
-def assert_dict_equal(left: dict, right: dict, compare_keys: bool = True) -> None:
+def assert_dict_equal(
+    left: dict[Any, Any], right: dict[Any, Any], compare_keys: bool = True
+) -> None:
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
+
+
+def _resolve_check_freq(
+    index: Index, check_freq: bool | lib.NoDefault
+) -> bool | lib.NoDefault:
+    """
+    Resolve an unspecified check_freq for a Series/DataFrame axis.
+
+    The hard freq check has long applied only to a flat DatetimeIndex or
+    TimedeltaIndex, so preserve that. Freqs nested inside a MultiIndex level or
+    inside Categorical categories were not checked before, so those go through
+    the deprecation warning in assert_index_equal. GH#51920, GH#66761
+    """
+    if check_freq is lib.no_default and isinstance(
+        index, (DatetimeIndex, TimedeltaIndex)
+    ):
+        return True
+    return check_freq
 
 
 @set_module("pandas.testing")
@@ -240,9 +263,13 @@ def assert_index_equal(
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'Index' or 'MultiIndex'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -351,6 +378,13 @@ def assert_index_equal(
     if isinstance(left, MultiIndex):
         right = cast("MultiIndex", right)
 
+        # A freq mismatch in the levels is retried below on get_level_values,
+        #  which usually drops freq, so the levels comparison must not be what
+        #  emits the check_freq deprecation warning: it would warn in cases the
+        #  eventual check_freq=True default accepts. Resolve the sentinel to a
+        #  hard check here and let the retry decide. GH#66761
+        levels_check_freq = True if check_freq is lib.no_default else check_freq
+
         for level in range(left.nlevels):
             lobj = f"{obj} level [{level}]"
             try:
@@ -362,7 +396,7 @@ def assert_index_equal(
                     check_names=check_names,
                     check_exact=check_exact,
                     check_categorical=check_categorical,
-                    check_freq=check_freq,
+                    check_freq=levels_check_freq,
                     rtol=rtol,
                     atol=atol,
                     obj=lobj,
@@ -534,6 +568,22 @@ def assert_attr_equal(
     elif not isinstance(result, bool):
         result = result.all()
 
+    if (
+        not result
+        and isinstance(left_attr, (tuple, list))
+        and type(left_attr) is type(right_attr)
+    ):
+        # MultiIndex labels (tuples) and Index.names (FrozenList) can contain
+        # NA values that == does not treat as equal.
+        try:
+            result = array_equivalent(
+                construct_1d_object_array_from_listlike(left_attr),
+                construct_1d_object_array_from_listlike(right_attr),
+                strict_nan=True,
+            )
+        except TypeError:
+            result = False
+
     if not result:
         msg = f'Attribute "{attr}" are different'
         raise_assert_detail(obj, msg, left_attr, right_attr)
@@ -624,12 +674,14 @@ def assert_categorical_equal(
             exact=exact,
             check_freq=check_freq,
         )
-        assert_index_equal(
-            left.categories.take(left.codes),
-            right.categories.take(right.codes),
+        # GH#62008 Compare the values as objects.  Taking the categories with
+        #  the raw codes would treat the -1 code used for NA as a positional
+        #  indexer for the last category, and filling instead would cast
+        #  integer categories to float64.
+        assert_numpy_array_equal(
+            left.astype(object),
+            right.astype(object),
             obj=f"{obj}.values",
-            exact=exact,
-            check_freq=check_freq,
         )
 
     assert_attr_equal("ordered", left, right, obj=obj)
@@ -638,7 +690,6 @@ def assert_categorical_equal(
 def assert_interval_array_equal(
     left: IntervalArray,
     right: IntervalArray,
-    exact: bool | Literal["equiv"] = "equiv",
     obj: str = "IntervalArray",
 ) -> None:
     """
@@ -648,10 +699,6 @@ def assert_interval_array_equal(
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool or {'equiv'}, default 'equiv'
-        Whether to check the Index class, dtype and inferred_type
-        are identical. If 'equiv', then RangeIndex can be substituted for
-        Index with an int64 dtype as well.
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -800,9 +847,10 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0.0
-            for left_arr, right_arr in zip(left, right, strict=True):
+            # ravel so the count is over values, matching the `left.size` total
+            for left_val, right_val in zip(left.ravel(), right.ravel(), strict=True):
                 # count up differences
-                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
+                if not array_equivalent(left_val, right_val, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size
@@ -854,9 +902,13 @@ def assert_extension_array_equal(
             Defaults to True for integer dtypes if none of
             ``check_exact``, ``rtol`` and ``atol`` are specified.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'ExtensionArray'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -989,7 +1041,7 @@ def assert_series_equal(
     check_datetimelike_compat: bool = False,
     check_categorical: bool = True,
     check_category_order: bool = True,
-    check_freq: bool = True,
+    check_freq: bool | lib.NoDefault = lib.no_default,
     check_flags: bool = True,
     rtol: float | lib.NoDefault = lib.no_default,
     atol: float | lib.NoDefault = lib.no_default,
@@ -1053,13 +1105,24 @@ def assert_series_equal(
         Whether to compare category order of internal Categoricals.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-        This check is skipped if ``check_index=False`` or ``check_like=True``.
+        The index check is skipped if ``check_index=False`` or ``check_like=True``.
+
+        .. deprecated:: 3.1.0
+            The ``freq`` attribute of a :class:`DatetimeIndex`/
+            :class:`TimedeltaIndex` MultiIndex level or Categorical categories is
+            not yet checked by default; a mismatch currently only warns and will
+            raise in a future version. Pass ``check_freq`` explicitly to silence
+            the warning.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1140,7 +1203,7 @@ def assert_series_equal(
             check_exact=check_exact_index,
             check_categorical=check_categorical,
             check_order=not check_like,
-            check_freq=check_freq,
+            check_freq=_resolve_check_freq(left.index, check_freq),
             rtol=rtol,
             atol=atol,
             obj=f"{obj}.index",
@@ -1178,10 +1241,15 @@ def assert_series_equal(
         else:
             # convert both to NumPy if not, check_dtype would raise earlier
             lv, rv = left_values, right_values
+            # GH#61473 match object dtype so pd.NA is not cast to nan
             if isinstance(left_values, ExtensionArray):
-                lv = left_values.to_numpy()
+                lv = left_values.to_numpy(
+                    dtype=object if right_values.dtype == object else None
+                )
             if isinstance(right_values, ExtensionArray):
-                rv = right_values.to_numpy()
+                rv = right_values.to_numpy(
+                    dtype=object if left_values.dtype == object else None
+                )
             assert_numpy_array_equal(
                 lv,
                 rv,
@@ -1278,6 +1346,7 @@ def assert_series_equal(
                 right._values,
                 obj=f"{obj} category",
                 check_category_order=check_category_order,
+                check_freq=check_freq,
             )
 
 
@@ -1372,19 +1441,25 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex
-        index or columns. These checks are skipped if ``check_like=True``.
+        index or columns. The index and columns checks are skipped if
+        ``check_like=True``.
 
         .. deprecated:: 3.1.0
             The ``freq`` attribute of :class:`DatetimeIndex`/:class:`TimedeltaIndex`
-            columns is not yet checked by default; a mismatch currently only warns
-            and will raise in a future version. Pass ``check_freq`` explicitly to
-            silence the warning.
+            columns, MultiIndex levels, and Categorical categories is not yet
+            checked by default; a mismatch currently only warns and will raise in
+            a future version. Pass ``check_freq`` explicitly to silence the
+            warning.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1426,13 +1501,14 @@ def assert_frame_equal(
     _rtol = rtol if rtol is not lib.no_default else 1.0e-5
     _atol = atol if atol is not lib.no_default else 1.0e-8
     _check_exact = check_exact if check_exact is not lib.no_default else False
-    # The index freq has long been checked by default, so preserve that hard
-    # check; the columns freq check is new and goes through the deprecation
-    # warning in assert_index_equal (passing check_freq unresolved). GH#51920
-    _check_freq = True if check_freq is lib.no_default else check_freq
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
+
+    # The flat-index freq has long been checked by default, so preserve that
+    # hard check; the columns freq check is new and goes through the deprecation
+    # warning in assert_index_equal (passing check_freq unresolved). GH#51920
+    _check_freq = _resolve_check_freq(left.index, check_freq)
 
     if check_frame_type:
         assert isinstance(left, type(right))
@@ -1488,7 +1564,11 @@ def assert_frame_equal(
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(
-                lblocks[dtype], rblocks[dtype], check_dtype=check_dtype, obj=obj
+                lblocks[dtype],
+                rblocks[dtype],
+                check_dtype=check_dtype,
+                check_freq=check_freq,
+                obj=obj,
             )
 
     # compare by columns
@@ -1518,7 +1598,10 @@ def assert_frame_equal(
                     check_names=check_names,
                     check_datetimelike_compat=check_datetimelike_compat,
                     check_categorical=check_categorical,
-                    check_freq=_check_freq,
+                    # check_index=False above, so this governs only the
+                    #  categorical categories, whose freq goes through the
+                    #  deprecation rather than the index's hard check
+                    check_freq=check_freq,
                     obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
                     rtol=rtol,
                     atol=atol,
@@ -1544,7 +1627,8 @@ def assert_equal(left: Any, right: Any, **kwargs: Any) -> None:
         # retain the long-standing hard freq check for datetimelike Index;
         #  the check_freq deprecation in assert_index_equal only warns by
         #  default. GH#51920
-        kwargs.setdefault("check_freq", True)
+        if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
+            kwargs.setdefault("check_freq", True)
         assert_index_equal(left, right, **kwargs)
     elif isinstance(left, Series):
         assert_series_equal(left, right, **kwargs)
@@ -1603,12 +1687,12 @@ def assert_sp_array_equal(left: Any, right: Any) -> None:
     assert_numpy_array_equal(left.to_dense(), right.to_dense())
 
 
-def assert_contains_all(iterable: Iterable, dic: Container) -> None:
+def assert_contains_all(iterable: Iterable[Any], dic: Container[Any]) -> None:
     for k in iterable:
         assert k in dic, f"Did not contain item: {k!r}"
 
 
-def assert_copy(iter1: Iterable, iter2: Iterable, **eql_kwargs: Any) -> None:
+def assert_copy(iter1: Iterable[Any], iter2: Iterable[Any], **eql_kwargs: Any) -> None:
     """
     iter1, iter2: iterables that produce elements
     comparable with assert_almost_equal

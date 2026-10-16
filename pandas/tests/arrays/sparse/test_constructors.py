@@ -1,13 +1,12 @@
+import re
+
 import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    SparseDtype,
-    isna,
-)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -15,32 +14,32 @@ from pandas.core.arrays.sparse import SparseArray
 class TestConstructors:
     def test_constructor_dtype(self):
         arr = SparseArray([np.nan, 1, 2, np.nan])
-        assert arr.dtype == SparseDtype(np.float64, np.nan)
+        assert arr.dtype == pd.SparseDtype(np.float64, np.nan)
         assert arr.dtype.subtype == np.float64
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray([np.nan, 1, 2, np.nan], fill_value=0)
-        assert arr.dtype == SparseDtype(np.float64, 0)
+        assert arr.dtype == pd.SparseDtype(np.float64, 0)
         assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], dtype=np.float64)
-        assert arr.dtype == SparseDtype(np.float64, np.nan)
+        assert arr.dtype == pd.SparseDtype(np.float64, np.nan)
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray([0, 1, 2, 4], dtype=np.int64)
-        assert arr.dtype == SparseDtype(np.int64, 0)
+        assert arr.dtype == pd.SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], fill_value=0, dtype=np.int64)
-        assert arr.dtype == SparseDtype(np.int64, 0)
+        assert arr.dtype == pd.SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], dtype=None)
-        assert arr.dtype == SparseDtype(np.int64, 0)
+        assert arr.dtype == pd.SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], fill_value=0, dtype=None)
-        assert arr.dtype == SparseDtype(np.int64, 0)
+        assert arr.dtype == pd.SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
     def test_constructor_dtype_str(self):
@@ -49,7 +48,7 @@ class TestConstructors:
         tm.assert_sp_array_equal(result, expected)
 
     def test_constructor_sparse_dtype(self):
-        result = SparseArray([1, 0, 0, 1], dtype=SparseDtype("int64", -1))
+        result = SparseArray([1, 0, 0, 1], dtype=pd.SparseDtype("int64", -1))
         expected = SparseArray([1, 0, 0, 1], fill_value=-1, dtype=np.int64)
         tm.assert_sp_array_equal(result, expected)
         assert result.sp_values.dtype == np.dtype("int64")
@@ -63,18 +62,18 @@ class TestConstructors:
     def test_constructor_object_dtype(self):
         # GH#11856
         arr = SparseArray(["A", "A", np.nan, "B"], dtype=object)
-        assert arr.dtype == SparseDtype(object)
+        assert arr.dtype == pd.SparseDtype(object)
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray(["A", "A", np.nan, "B"], dtype=object, fill_value="A")
-        assert arr.dtype == SparseDtype(object, "A")
+        assert arr.dtype == pd.SparseDtype(object, "A")
         assert arr.fill_value == "A"
 
     def test_constructor_object_dtype_bool_fill(self):
         # GH#17574
         data = [False, 0, 100.0, 0.0]
         arr = SparseArray(data, dtype=object, fill_value=False)
-        assert arr.dtype == SparseDtype(object, False)
+        assert arr.dtype == pd.SparseDtype(object, False)
         assert arr.fill_value is False
         arr_expected = np.array(data, dtype=object)
         it = (
@@ -83,7 +82,7 @@ class TestConstructors:
         )
         assert np.fromiter(it, dtype=np.bool_).all()
 
-    @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])
+    @pytest.mark.parametrize("dtype", [pd.SparseDtype(int, 0), int])
     def test_constructor_na_dtype(self, dtype):
         with pytest.raises(ValueError, match="Cannot convert"):
             SparseArray([0, 1, np.nan], dtype=dtype)
@@ -105,62 +104,78 @@ class TestConstructors:
         tm.assert_sp_array_equal(result, expected)
 
     def test_constructor_spindex_dtype(self):
-        arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
+        depr_msg = "The 'sparse_index' parameter of SparseArray.__init__ is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # TODO: actionable?
         # Note: Behavior change: specifying SparseIndex no longer changes
         # the fill_value
         expected = SparseArray([0, 1, 2, 0], kind="integer")
         tm.assert_sp_array_equal(arr, expected)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == pd.SparseDtype(np.int64)
         assert arr.fill_value == 0
 
-        arr = SparseArray(
-            data=[1, 2, 3],
-            sparse_index=IntIndex(4, [1, 2, 3]),
-            dtype=np.int64,
-            fill_value=0,
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            arr = SparseArray(
+                data=[1, 2, 3],
+                sparse_index=IntIndex(4, [1, 2, 3]),
+                dtype=np.int64,
+                fill_value=0,
+            )
         exp = SparseArray([0, 1, 2, 3], dtype=np.int64, fill_value=0)
         tm.assert_sp_array_equal(arr, exp)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == pd.SparseDtype(np.int64)
         assert arr.fill_value == 0
 
-        arr = SparseArray(
-            data=[1, 2], sparse_index=IntIndex(4, [1, 2]), fill_value=0, dtype=np.int64
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            arr = SparseArray(
+                data=[1, 2],
+                sparse_index=IntIndex(4, [1, 2]),
+                fill_value=0,
+                dtype=np.int64,
+            )
         exp = SparseArray([0, 1, 2, 0], fill_value=0, dtype=np.int64)
         tm.assert_sp_array_equal(arr, exp)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == pd.SparseDtype(np.int64)
         assert arr.fill_value == 0
 
-        arr = SparseArray(
-            data=[1, 2, 3],
-            sparse_index=IntIndex(4, [1, 2, 3]),
-            dtype=None,
-            fill_value=0,
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            arr = SparseArray(
+                data=[1, 2, 3],
+                sparse_index=IntIndex(4, [1, 2, 3]),
+                dtype=None,
+                fill_value=0,
+            )
         exp = SparseArray([0, 1, 2, 3], dtype=None)
         tm.assert_sp_array_equal(arr, exp)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == pd.SparseDtype(np.int64)
         assert arr.fill_value == 0
 
-    @pytest.mark.parametrize("sparse_index", [None, IntIndex(1, [0])])
-    def test_constructor_spindex_dtype_scalar(self, sparse_index):
+    def test_constructor_spindex_dtype_scalar(self):
         # scalar input
+        depr_msg = "The 'sparse_index' parameter of SparseArray.__init__ is deprecated"
         msg = "Cannot construct SparseArray from scalar data. Pass a sequence instead"
-        with pytest.raises(TypeError, match=msg):
-            SparseArray(data=1, sparse_index=sparse_index, dtype=None)
 
-        with pytest.raises(TypeError, match=msg):
-            SparseArray(data=1, sparse_index=IntIndex(1, [0]), dtype=None)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(TypeError, match=msg):
+                SparseArray(data=1, sparse_index=None, dtype=None)
+
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(TypeError, match=msg):
+                SparseArray(data=1, sparse_index=IntIndex(1, [0]), dtype=None)
 
     def test_constructor_spindex_dtype_scalar_broadcasts(self):
-        arr = SparseArray(
-            data=[1, 2], sparse_index=IntIndex(4, [1, 2]), fill_value=0, dtype=None
-        )
+        depr_msg = "The 'sparse_index' parameter of SparseArray.__init__ is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            arr = SparseArray(
+                data=[1, 2],
+                sparse_index=IntIndex(4, [1, 2]),
+                fill_value=0,
+                dtype=None,
+            )
         exp = SparseArray([0, 1, 2, 0], fill_value=0, dtype=None)
         tm.assert_sp_array_equal(arr, exp)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == pd.SparseDtype(np.int64)
         assert arr.fill_value == 0
 
     @pytest.mark.parametrize(
@@ -175,8 +190,8 @@ class TestConstructors:
     def test_constructor_inferred_fill_value(self, data, fill_value):
         result = SparseArray(data).fill_value
 
-        if isna(fill_value):
-            assert isna(result)
+        if pd.isna(fill_value):
+            assert pd.isna(result)
         else:
             assert result == fill_value
 
@@ -239,7 +254,7 @@ class TestConstructors:
         data = np.array([False, False, True, True, False, False])
         arr = SparseArray(data, fill_value=False, dtype=bool)
 
-        assert arr.dtype == SparseDtype(bool)
+        assert arr.dtype == pd.SparseDtype(bool)
         tm.assert_numpy_array_equal(arr.sp_values, np.array([True, True]))
         # Behavior change: np.asarray densifies.
         # tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
@@ -249,17 +264,31 @@ class TestConstructors:
         assert dense.dtype == bool
         tm.assert_numpy_array_equal(dense, data)
 
+    @pytest.mark.parametrize("fill_value", [0, "A", False])
+    def test_constructor_object_dtype_na_stored(self, fill_value):
+        # GH#68439 gap detection compared pd.NA against the fill value and took
+        # the truth of the result, raising "boolean value of NA is ambiguous"
+        data = np.array([1, pd.NA], dtype=object)
+
+        arr = SparseArray(data, fill_value=fill_value)
+        assert arr.dtype == pd.SparseDtype(object, fill_value)
+        tm.assert_numpy_array_equal(
+            arr.sp_index.indices, np.array([0, 1], dtype=np.int32)
+        )
+        tm.assert_numpy_array_equal(np.asarray(arr), data)
+        tm.assert_numpy_array_equal(np.asarray(arr.isna()), np.array([False, True]))
+
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
-        assert arr.dtype == SparseDtype(np.bool_)
+        assert arr.dtype == pd.SparseDtype(np.bool_)
         assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool_)
-        assert arr.dtype == SparseDtype(np.bool_)
+        assert arr.dtype == pd.SparseDtype(np.bool_)
         assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool_, fill_value=True)
-        assert arr.dtype == SparseDtype(np.bool_, True)
+        assert arr.dtype == pd.SparseDtype(np.bool_, True)
         assert arr.fill_value
 
     def test_constructor_float32(self):
@@ -267,7 +296,7 @@ class TestConstructors:
         data = np.array([1.0, np.nan, 3], dtype=np.float32)
         arr = SparseArray(data, dtype=np.float32)
 
-        assert arr.dtype == SparseDtype(np.float32)
+        assert arr.dtype == pd.SparseDtype(np.float32)
         tm.assert_numpy_array_equal(arr.sp_values, np.array([1, 3], dtype=np.float32))
         # Behavior change: np.asarray densifies.
         # tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
@@ -278,3 +307,121 @@ class TestConstructors:
         dense = arr.to_dense()
         assert dense.dtype == np.float32
         tm.assert_numpy_array_equal(dense, data)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_constructor_unit_multiplier_raises(kind):
+    # GH#68522 constructing succeeded but the result could not be displayed
+    data = np.array([1, 2], dtype=f"{kind}8[10s]")
+    name = "datetime64" if kind == "M" else "timedelta64"
+    msg = f"units containing a multiplier are not supported, got dtype {name}\\[10s\\]"
+
+    with pytest.raises(ValueError, match=msg):
+        SparseArray(data)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize(
+    "unit, expected_unit",
+    [
+        ("Y", "s"),
+        ("M", "s"),
+        ("W", "s"),
+        ("D", "s"),
+        ("h", "s"),
+        ("m", "s"),
+        ("ps", "ns"),
+    ],
+)
+def test_constructor_casts_unsupported_resolution(kind, unit, expected_unit):
+    # GH#68522 the resolution an unsupported unit lands on, and the values it
+    #  lands with, both follow pd.Series
+    data = np.array([1, 2], dtype=f"{kind}8[{unit}]")
+
+    result = SparseArray(data)
+    expected = pd.Series(data)
+
+    assert result.dtype.subtype == np.dtype(f"{kind}8[{expected_unit}]")
+    assert result.dtype.subtype == expected.dtype
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+    repr(result)  # m8[Y], m8[M] and m8[ps] raised here before GH#68522
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_constructor_unitless_data_raises(kind):
+    # GH#68522 only an empty array can carry a unitless dtype; numpy rejects
+    #  the rest, so this is the whole case
+    name = "datetime64" if kind == "M" else "timedelta64"
+    data = np.array([], dtype=name)
+
+    with pytest.raises(TypeError, match=f"{name} values must have a unit specified"):
+        SparseArray(data)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize("unit", ["10s", "Y", "D"])
+def test_constructor_unsupported_dtype_argument_raises(kind, unit):
+    # GH#68522 asking for the unit is rejected rather than silently kept
+    dtype = f"{kind}8[{unit}]"
+    msg = f"dtype={np.dtype(dtype)} is not supported. Supported resolutions are"
+
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        SparseArray([1, 2], dtype=dtype)
+
+
+class TestFromIndices:
+    def test_basic_integer(self):
+        result = SparseArray.from_indices(
+            [1, 2, 3], indices=[1, 3, 5], length=7, fill_value=0
+        )
+        expected = SparseArray([0, 1, 0, 2, 0, 3, 0], fill_value=0)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_float_default_fill_value(self):
+        result = SparseArray.from_indices([1.0, 2.0], indices=[0, 2], length=4)
+        expected = SparseArray([1.0, np.nan, 2.0, np.nan])
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_bool_dtype(self):
+        result = SparseArray.from_indices(
+            [True, True], indices=[0, 2], length=4, fill_value=False
+        )
+        expected = SparseArray([True, False, True, False], fill_value=False)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_block_kind(self):
+        result = SparseArray.from_indices(
+            [1, 2], indices=[1, 2], length=5, fill_value=0, kind="block"
+        )
+        assert result.kind == "block"
+        expected = SparseArray([0, 1, 2, 0, 0], fill_value=0, kind="block")
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_empty(self):
+        result = SparseArray.from_indices(
+            [], indices=[], length=5, fill_value=0, dtype=np.int64
+        )
+        expected = SparseArray([0, 0, 0, 0, 0], fill_value=0)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_explicit_dtype(self):
+        result = SparseArray.from_indices(
+            [1, 2], indices=[0, 1], length=3, fill_value=0, dtype=np.float64
+        )
+        assert result.dtype.subtype == np.float64
+
+    def test_length_mismatch_raises(self):
+        msg = "Length of data .* must match length of indices"
+        with pytest.raises(ValueError, match=msg):
+            SparseArray.from_indices([1, 2, 3], indices=[0, 1], length=5)
+
+    def test_invalid_indices_raises(self):
+        with pytest.raises(
+            ValueError, match="All indices must be less than the length"
+        ):
+            SparseArray.from_indices([1], indices=[10], length=5)
+
+    def test_deprecation_sparse_index_parameter(self):
+        msg = "The 'sparse_index' parameter of SparseArray.__init__ is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))

@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -33,4 +33,4 @@ class TestSwaplevel:
 
         msg = "Can only swap levels on a hierarchical axis."
         with pytest.raises(TypeError, match=msg):
-            DataFrame(range(3)).swaplevel()
+            pd.DataFrame(range(3)).swaplevel()
