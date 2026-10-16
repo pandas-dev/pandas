@@ -527,7 +527,7 @@ class AbstractMethodError(NotImplementedError):
 
     >>> test2 = Foo().method()
     Traceback (most recent call last):
-    AbstractMethodError: This classmethod must be defined in the concrete class Foo
+    AbstractMethodError: This method must be defined in the concrete class Foo
     """
 
     def __init__(
@@ -853,7 +853,7 @@ class CSSWarning(UserWarning):
     >>> df.style.map(lambda x: "border: 1px solid red red;").to_excel(
     ...     "styled.xlsx"
     ... )  # doctest: +SKIP
-    CSSWarning: Unhandled color format: 'blueGreenRed'
+    CSSWarning: Too many tokens provided to "border" (expected 1-3)
     """
 
 
