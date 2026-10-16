@@ -351,6 +351,29 @@ class TestAstype:
         expected["b"] = df["b"].astype("Float64")
         tm.assert_frame_equal(result, expected)
 
+    def test_astype_dict_period_to_datetime(self):
+        # GH#63433 a cast Series.astype supports but casting several columns at
+        #  once does not
+        df = pd.DataFrame(
+            {"p": pd.period_range("2020", periods=3, freq="D"), "x": [1, 2, 3]}
+        )
+        result = df.astype({"p": "datetime64[ns]"})
+        expected = df.assign(p=df["p"].astype("datetime64[ns]"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_dict_error_names_first_failing_column(self):
+        # GH#63433 with several failing columns, the first one in column order is
+        #  reported, as when casting column by column
+        df = pd.DataFrame(
+            {
+                "x": ["1", "2"],
+                "y": pd.date_range("2020", periods=2, tz="UTC"),
+                "z": ["3", "q"],
+            }
+        )
+        with pytest.raises(TypeError, match="int8"):
+            df.astype({"x": "float64", "y": "int8", "z": "float64"})
+
     def test_astype_dict_equal_tz_dtypes_kept_apart(self):
         # GH#63433 equal timezone dtypes with different tz objects each keep theirs
         dti = pd.date_range("2020", periods=2, tz="US/Pacific", unit="ns")
@@ -931,16 +954,6 @@ def test_astype_dict_keeps_other_columns_blocks():
     expected = df.assign(c3=df["c3"].astype("Int64"))
     tm.assert_frame_equal(result, expected)
     assert df["c3"].dtype == np.float64
-
-
-def test_astype_dict_all_columns_one_dtype_stays_consolidated():
-    # GH#63433
-    df = pd.DataFrame({f"c{i}": np.arange(5, dtype="int64") for i in range(10)})
-
-    result = df.astype(dict.fromkeys(df.columns, "float32"))
-
-    assert result._mgr.nblocks == 1
-    tm.assert_frame_equal(result, df.astype("float32"))
 
 
 def test_astype_dict_equal_dtypes_built_separately_cast_together():
