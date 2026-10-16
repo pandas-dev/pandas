@@ -51,6 +51,13 @@ from pandas.io.common import (
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
+
+    import pyarrow
+
     from pandas._typing import (
         DtypeBackend,
         FilePath,
@@ -198,6 +205,29 @@ def _get_path_or_handle(
     return path_or_handle, handles, fs
 
 
+def _full_read_range_index(
+    schema: pyarrow.Schema,
+    num_rows: Callable[[], int],
+    to_pandas_kwargs: dict[str, Any] | None,
+) -> tuple[int, int, Hashable]:
+    """
+    Start, step and name of the RangeIndex a non-chunked read would restore.
+
+    ``to_pandas`` applies a RangeIndex stored in the pandas metadata only when
+    it is as long as the table being converted, so a single batch gets a
+    default 0-based RangeIndex instead.
+    """
+    metadata = schema.pandas_metadata
+    if metadata and not (to_pandas_kwargs or {}).get("ignore_metadata"):
+        index_columns = metadata["index_columns"]
+        if len(index_columns) == 1 and isinstance(index_columns[0], dict):
+            descr = index_columns[0]
+            stored = range(descr["start"], descr["stop"], descr["step"])
+            if descr["kind"] == "range" and len(stored) == num_rows():
+                return descr["start"], descr["step"], descr["name"]
+    return 0, 1, None
+
+
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
@@ -238,6 +268,9 @@ class ParquetFileReader(abc.Iterator):
     handles : IOHandles or None
         Open file handle(s) to close once the iterator is exhausted or
         used as a context manager.
+    index_range : tuple of (int, int, Hashable)
+        Start, step and name of the RangeIndex a non-chunked read would
+        restore; chunks with a RangeIndex continue it.
 
     See Also
     --------
@@ -267,13 +300,15 @@ class ParquetFileReader(abc.Iterator):
         dtype_backend: DtypeBackend | lib.NoDefault,
         to_pandas_kwargs: dict[str, Any] | None,
         handles: IOHandles[bytes] | None,
+        index_range: tuple[int, int, Hashable],
     ) -> None:
         self._batch_iter = batch_iter
         self._dtype_backend: DtypeBackend | lib.NoDefault = dtype_backend
         self._to_pandas_kwargs = to_pandas_kwargs
         self._handles = handles
+        self._index_range = index_range
         self._closed = False
-        self._next_start: int | None = None
+        self._rows_read = 0
 
     def __next__(self) -> DataFrame:
         try:
@@ -294,17 +329,14 @@ class ParquetFileReader(abc.Iterator):
             )
         if df_metadata is not None:
             df.attrs = json.loads(df_metadata)
-        # Each batch's default RangeIndex is reconstructed independently from
-        # the file's pandas index metadata, so it restarts at the metadata's
-        # original start for every chunk. Chain it into a running position
-        # across chunks instead, matching read_csv(chunksize=...) semantics.
-        index = df.index
-        if isinstance(index, RangeIndex):
-            step = index.step
-            start = index.start if self._next_start is None else self._next_start
-            stop = start + len(df) * step
-            df.index = RangeIndex(start, stop, step)
-            self._next_start = stop
+        # A batch gets a RangeIndex starting at 0 rather than its part of the
+        # stored one (see _full_read_range_index), so continue the full read's
+        # RangeIndex across chunks, like read_csv(chunksize=...) does.
+        if isinstance(df.index, RangeIndex):
+            start, step, name = self._index_range
+            first = start + self._rows_read * step
+            df.index = RangeIndex(first, first + len(df) * step, step, name=name)
+        self._rows_read += len(df)
         return df
 
     def __enter__(self) -> Self:
@@ -491,6 +523,9 @@ class PyArrowImpl(BaseImpl):
                         batch_size=chunksize,
                         **kwargs,
                     )
+                    index_range = _full_read_range_index(
+                        dataset.schema, dataset.count_rows, to_pandas_kwargs
+                    )
                 else:
                     parquet_file = self.api.parquet.ParquetFile(
                         path_or_handle, filesystem=filesystem
@@ -499,6 +534,11 @@ class PyArrowImpl(BaseImpl):
                         batch_size=chunksize,
                         columns=columns,
                         **kwargs,
+                    )
+                    index_range = _full_read_range_index(
+                        parquet_file.schema_arrow,
+                        lambda: parquet_file.metadata.num_rows,
+                        to_pandas_kwargs,
                     )
             except Exception:
                 if handles is not None:
@@ -510,6 +550,7 @@ class PyArrowImpl(BaseImpl):
                 dtype_backend=dtype_backend,
                 to_pandas_kwargs=to_pandas_kwargs,
                 handles=handles,
+                index_range=index_range,
             )
 
         try:

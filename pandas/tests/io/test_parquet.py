@@ -1686,14 +1686,20 @@ class TestParquetChunksize(Base):
             chunks = list(reader)
         assert len(chunks) == 2
 
-    def test_read_parquet_chunksize_continues_index(self, pa, tmp_path):
+    @pytest.mark.parametrize(
+        "index", [pd.RangeIndex(10), pd.RangeIndex(10, 30, 2, name="r")]
+    )
+    @pytest.mark.parametrize("chunksize", [3, 10])
+    def test_read_parquet_chunksize_continues_index(
+        self, pa, tmp_path, index, chunksize
+    ):
         # Chunked readers (read_csv, read_json, ...) yield a running row
         # position across chunks rather than restarting at 0 each time.
         path = tmp_path / "test.parquet"
-        df = pd.DataFrame({"a": range(10)})
+        df = pd.DataFrame({"a": range(10)}, index=index)
         df.to_parquet(path, engine=pa)
 
-        chunks = list(read_parquet(path, engine=pa, chunksize=5))
+        chunks = list(read_parquet(path, engine=pa, chunksize=chunksize))
         result = pd.concat(chunks)
         tm.assert_index_equal(result.index, df.index, exact=True)
 
