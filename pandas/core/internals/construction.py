@@ -21,11 +21,15 @@ from pandas._libs import lib
 from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_is_view,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
     dict_compat,
+    find_common_type,
     maybe_cast_to_datetime,
 )
 from pandas.core.dtypes.common import (
@@ -36,6 +40,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     ExtensionDtype,
@@ -892,7 +897,8 @@ def _list_of_series_to_arrays(
 
     indexer_cache: dict[int, np.ndarray] = {}
 
-    aligned_values = []
+    values_list = []
+    indexers = []
     for s in data:
         index = getattr(s, "index", None)
         if index is None:
@@ -903,21 +909,19 @@ def _list_of_series_to_arrays(
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = extract_array(s, extract_numpy=True)
-        aligned_values.append(algorithms.take_nd(values, indexer))
+        values_list.append(extract_array(s, extract_numpy=True))
+        indexers.append(indexer)
 
-    first = aligned_values[0]
-    if (
-        dtype is None
-        and isinstance(first, ExtensionArray)
-        and all(
-            isinstance(arr, ExtensionArray) and arr.dtype == first.dtype
-            for arr in aligned_values
-        )
-    ):
-        # GH#56231 preserve a uniform EA dtype, which np.vstack would lose.
+    common_dtype = find_common_type([values.dtype for values in values_list])
+    if dtype is None and isinstance(common_dtype, ExtensionDtype):
+        # GH#56231 keep an EA common dtype, which np.vstack would lose.
+        #  Cast before the take so missing keys don't upcast int rows to float.
         #  With a dtype, keep the constructor's casting (EA.astype can be lossy)
-        flat = type(first)._concat_same_type(aligned_values)
+        aligned_values = [
+            algorithms.take_nd(astype_array(values, common_dtype), indexer)
+            for values, indexer in zip(values_list, indexers, strict=True)
+        ]
+        flat = concat_compat(aligned_values)
         nrows, ncols = len(aligned_values), len(columns)
         # one take rather than one per column, which is slow for wide input
         indexer = np.arange(nrows * ncols).reshape(nrows, ncols).T.ravel()
@@ -927,7 +931,12 @@ def _list_of_series_to_arrays(
         ]
         return arrays, columns
 
-    content = np.vstack(aligned_values)
+    content = np.vstack(
+        [
+            algorithms.take_nd(values, indexer)
+            for values, indexer in zip(values_list, indexers, strict=True)
+        ]
+    )
     return _finalize_columns_and_data(content, columns, dtype)
 
 

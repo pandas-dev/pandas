@@ -1598,6 +1598,43 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype1, dtype2, expected_dtype",
+        [
+            ("Int64", "Float64", "Float64"),
+            ("Int8", "Int64", "Int64"),
+            ("Int64", "int64", "Int64"),
+            (
+                "Sparse[int64]",
+                pd.SparseDtype("float64", 0),
+                pd.SparseDtype("float64", 0),
+            ),
+        ],
+    )
+    def test_constructor_list_of_mixed_ea_series(self, dtype1, dtype2, expected_dtype):
+        # GH#56231 columns get the rows' common dtype, as in concat
+        rows = [
+            pd.Series([1, 0], index=["a", "b"], dtype=dtype1),
+            pd.Series([2, 0], index=["a", "b"], dtype=dtype2),
+        ]
+        result = pd.DataFrame(rows)
+        expected = pd.DataFrame({"a": [1, 2], "b": [0, 0]}, dtype=expected_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_mixed_ea_series_missing_key(self):
+        # GH#56231 the int64 row lacks "b"; casting it via float64 would lose
+        #  precision and make the common dtype Float64
+        big = 2**60 + 1
+        rows = [
+            pd.Series([1, 2], index=["a", "b"], dtype="Int64"),
+            pd.Series([big], index=["a"]),
+        ]
+        result = pd.DataFrame(rows)
+        expected = pd.DataFrame(
+            {"a": [1, big], "b": pd.array([2, pd.NA], dtype="Int64")}, dtype="Int64"
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_ea_series_lossy_dtype_raises(self):
         # GH#56231 dtype casts EA rows like numpy rows, not via a lossy astype
         ser = pd.Series([300, -1], dtype="Int64")
