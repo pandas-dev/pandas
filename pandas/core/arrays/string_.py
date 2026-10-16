@@ -712,7 +712,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             and values.dtype.na_value is not dtype.na_value
             and values.size
         ):
-            values = np.where(isna(values._ndarray), dtype.na_value, values._ndarray)
+            values = values._ndarray.copy()
+            values[isna(values)] = dtype.na_value
             copy = False
 
         super().__init__(values, copy=copy)
