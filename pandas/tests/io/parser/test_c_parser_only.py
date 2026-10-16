@@ -1863,6 +1863,13 @@ def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatc
             "x",
         ),
         (
+            # GH#41117
+            "a;b\na;1.234\nb;1,234.00\nc;:\n",
+            {"thousands": ","},
+            "float64",
+            ":",
+        ),
+        (
             # overflowing-but-valid token before the offender
             "a;b\na;18446744073709551615\nb;x\n",
             {},
