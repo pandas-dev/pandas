@@ -5,6 +5,7 @@ from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
+import sys
 import uuid
 
 import numpy as np
@@ -1793,3 +1794,14 @@ class TestParquetChunksize(Base):
         reader = read_parquet(tmp_path, engine=pa, dtype_backend="pyarrow", chunksize=2)
         expected = read_parquet(tmp_path, engine=pa, dtype_backend="pyarrow")
         tm.assert_frame_equal(pd.concat(reader), expected)
+
+    def test_read_parquet_without_pyarrow_dataset(self, pa, tmp_path, monkeypatch):
+        # pyarrow.dataset is an optional part of pyarrow, which reading a file
+        # doesn't need, with or without chunksize
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.to_parquet(path, engine=pa)
+        monkeypatch.setitem(sys.modules, "pyarrow.dataset", None)
+
+        tm.assert_frame_equal(read_parquet(path, engine=pa), df)
+        tm.assert_frame_equal(pd.concat(read_parquet(path, engine=pa, chunksize=5)), df)

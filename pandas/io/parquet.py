@@ -424,7 +424,6 @@ class PyArrowImpl(BaseImpl):
         import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
-        import pyarrow.dataset
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
