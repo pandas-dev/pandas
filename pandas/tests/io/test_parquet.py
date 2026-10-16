@@ -1717,6 +1717,22 @@ class TestParquetChunksize(Base):
         expected = read_parquet(tmp_path, engine=pa, columns=columns)
         tm.assert_frame_equal(pd.concat(chunks), expected)
 
+    @pytest.mark.parametrize("partition_cols", [None, ["part"]])
+    def test_read_parquet_chunksize_columns_keeps_index(
+        self, pa, tmp_path, partition_cols
+    ):
+        path = tmp_path if partition_cols else tmp_path / "test.parquet"
+        df = pd.DataFrame(
+            {"a": range(4), "part": ["x", "x", "y", "y"]},
+            index=pd.Index(list("wxyz"), name="key"),
+        )
+        df.to_parquet(path, engine=pa, partition_cols=partition_cols)
+
+        chunks = list(read_parquet(path, engine=pa, columns=["a"], chunksize=2))
+        expected = read_parquet(path, engine=pa, columns=["a"])
+        tm.assert_index_equal(expected.index, df.index)
+        tm.assert_frame_equal(pd.concat(chunks), expected)
+
     def test_read_parquet_chunksize_filters_not_implemented(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(10), "b": ["x"] * 5 + ["y"] * 5})

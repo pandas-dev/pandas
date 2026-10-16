@@ -463,11 +463,6 @@ class PyArrowImpl(BaseImpl):
                 raise NotImplementedError(
                     "filters is not supported when chunksize is set"
                 )
-            # use_pandas_metadata is a read_table()-only option; Table.to_pandas()
-            # already restores the index from the batch's schema regardless, and
-            # dataset.to_batches() doesn't accept it. df.attrs is restored
-            # separately below since it isn't part of that standard metadata.
-            kwargs.pop("use_pandas_metadata", None)
             try:
                 if isinstance(path_or_handle, str) and os.path.isdir(path_or_handle):
                     # read_table() defaults to partitioning="hive", which reads
@@ -480,6 +475,17 @@ class PyArrowImpl(BaseImpl):
                         filesystem=filesystem,
                         partitioning=partitioning,
                     )
+                    # to_batches() has no use_pandas_metadata, so add the index
+                    # columns that read_table() reads along with columns=
+                    kwargs.pop("use_pandas_metadata")
+                    pandas_metadata = dataset.schema.pandas_metadata
+                    if columns is not None and pandas_metadata:
+                        columns = list(columns) + [
+                            col
+                            for col in pandas_metadata["index_columns"]
+                            # a RangeIndex is stored as a dict, not as a column
+                            if isinstance(col, str) and col not in columns
+                        ]
                     batch_iter = dataset.to_batches(
                         columns=columns,
                         batch_size=chunksize,
