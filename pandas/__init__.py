@@ -40,8 +40,8 @@ from pandas._config import (
     options,
 )
 
-# let init-time option registration happen
-import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
+# Register options immediately, even when imports are lazy.
+__import__("pandas.core.config_init")
 
 from pandas.core.api import (
     # dtype

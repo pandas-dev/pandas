@@ -4,6 +4,7 @@ import operator
 import string
 import subprocess
 import sys
+import textwrap
 
 import numpy as np
 import pytest
@@ -280,6 +281,36 @@ def test_str_size():
     ]
     result = subprocess.check_output(call).decode()[-4:-1].strip("\n")
     assert int(result) == int(expected)
+
+
+@pytest.mark.skipif(WASM, reason="Can't start subprocesses in WASM")
+@pytest.mark.parametrize("lazy_imports", ["normal", "all"])
+def test_import_initializes_c_apis_and_options(lazy_imports):
+    # GH#71173
+    if lazy_imports == "all" and not hasattr(sys, "set_lazy_imports"):
+        pytest.skip("Python does not support lazy imports")
+
+    code = textwrap.dedent(
+        """
+        import importlib
+        import pandas as pd
+
+        importlib.import_module("pandas._libs")
+        assert "pandas" not in vars(pd)
+        assert "pandas" not in vars(pd._libs)
+        assert type(pd._pandas_datetime_CAPI).__name__ == "PyCapsule"
+        assert type(pd._pandas_parser_CAPI).__name__ == "PyCapsule"
+        assert isinstance(pd.get_option("display.max_rows"), int)
+        """
+    )
+    result = subprocess.run(
+        [sys.executable, "-X", f"lazy_imports={lazy_imports}", "-c", code],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_is_setitem_syntax_in_caller_frame():
