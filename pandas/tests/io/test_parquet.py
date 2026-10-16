@@ -1821,3 +1821,16 @@ class TestParquetChunksize(Base):
         for _ in read_parquet(path, engine=pa, chunksize=2_000):
             peak = max(peak, pyarrow.total_allocated_bytes() - before)
         assert peak < n * 8 / 4
+
+    @pytest.mark.parametrize("partition_cols", [None, ["part"]])
+    def test_read_parquet_chunksize_missing_column_raises(
+        self, pa, tmp_path, partition_cols
+    ):
+        # like read_table(), raise for a column that isn't in the data rather
+        # than leaving it out of the chunks
+        path = tmp_path if partition_cols else tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(4), "part": ["x", "x", "y", "y"]})
+        df.to_parquet(path, engine=pa, partition_cols=partition_cols)
+
+        with pytest.raises(ValueError, match="typo"):
+            list(read_parquet(path, engine=pa, columns=["a", "typo"], chunksize=2))

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import abc
 import io
+import itertools
 import json
 import os
 from typing import (
@@ -595,6 +596,23 @@ class PyArrowImpl(BaseImpl):
                     parquet_file = self.api.parquet.ParquetFile(
                         path_or_handle, filesystem=filesystem, **kwargs
                     )
+                    if columns is not None:
+                        # iter_batches() leaves out names it doesn't know where
+                        # read_table() raises; it takes a column name or the
+                        # dotted path to a field inside a nested column
+                        known = {
+                            prefix
+                            for column in parquet_file.schema
+                            for prefix in itertools.accumulate(
+                                column.path.split("."), lambda a, b: f"{a}.{b}"
+                            )
+                        }
+                        missing = [col for col in columns if col not in known]
+                        if missing:
+                            parquet_file.close()
+                            raise ValueError(
+                                f"Columns not found in the parquet file: {missing}"
+                            )
                     batch_iter = parquet_file.iter_batches(
                         batch_size=chunksize,
                         columns=columns,
