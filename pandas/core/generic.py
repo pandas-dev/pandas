@@ -6803,13 +6803,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
             ):
                 target = None
-                # An ExtensionDtype class is left to Series.astype, which rejects it
-                if errors == "raise" and (
-                    isinstance(column_dtype, (str, np.dtype))
-                    or (
-                        isinstance(column_dtype, type)
-                        and not issubclass(column_dtype, ExtensionDtype)
-                    )
+                if errors == "raise" and isinstance(
+                    column_dtype, (str, np.dtype, type)
                 ):
                     spec = (type(column_dtype), column_dtype)
                     if spec not in resolved:
@@ -6830,8 +6825,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     casted = self.iloc[:, locs].astype(target)
                 except (ValueError, TypeError, OverflowError):
                     # Cast this batch and the ones not tried yet column by column
-                    #  below, so a failure names the first failing column and a cast
-                    #  only Series.astype supports still works.
+                    #  below, so the error names the first failing column.
                     one_by_one += [item for _, rest in groups[k:] for item in rest]
                     break
                 pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))

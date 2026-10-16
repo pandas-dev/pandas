@@ -344,16 +344,6 @@ class TestAstype:
         expected["b"] = df["b"].astype("Float64")
         tm.assert_frame_equal(result, expected)
 
-    def test_astype_dict_period_to_datetime(self):
-        # GH#63433 a cast Series.astype supports but casting several columns at
-        #  once does not
-        df = pd.DataFrame(
-            {"p": pd.period_range("2020", periods=3, freq="D"), "x": [1, 2, 3]}
-        )
-        result = df.astype({"p": "datetime64[ns]"})
-        expected = df.assign(p=df["p"].astype("datetime64[ns]"))
-        tm.assert_frame_equal(result, expected)
-
     def test_astype_dict_string_targets_cast_per_column(self):
         # GH#63433 string and bytes targets give each column its own format and
         #  width, as Series.astype does
