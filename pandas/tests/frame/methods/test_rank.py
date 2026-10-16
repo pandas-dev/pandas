@@ -496,3 +496,11 @@ class TestRank:
             exp_dtype = "float64"
         expected = pd.Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
+
+
+def test_rank_complex_raises(frame_or_series):
+    # GH#43770 complex has no natural ordering
+    obj = frame_or_series([1 + 2j, 3j])
+    msg = "dtype 'complex128' does not support operation 'rank'"
+    with pytest.raises(TypeError, match=msg):
+        obj.rank()
