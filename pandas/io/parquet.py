@@ -470,8 +470,15 @@ class PyArrowImpl(BaseImpl):
             kwargs.pop("use_pandas_metadata", None)
             try:
                 if isinstance(path_or_handle, str) and os.path.isdir(path_or_handle):
+                    # read_table() defaults to partitioning="hive", which reads
+                    # partition keys as dictionary (categorical) columns
+                    partitioning = self.api.dataset.HivePartitioning.discover(
+                        infer_dictionary=True
+                    )
                     dataset = self.api.dataset.dataset(
-                        path_or_handle, filesystem=filesystem
+                        path_or_handle,
+                        filesystem=filesystem,
+                        partitioning=partitioning,
                     )
                     batch_iter = dataset.to_batches(
                         columns=columns,

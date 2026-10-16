@@ -1706,14 +1706,16 @@ class TestParquetChunksize(Base):
         chunk = next(read_parquet(path, engine=pa, chunksize=5))
         assert chunk.attrs == {"foo": "bar"}
 
-    def test_read_parquet_chunksize_partitioned_directory(self, pa, tmp_path):
+    @pytest.mark.parametrize("columns", [None, ["a", "part"]])
+    def test_read_parquet_chunksize_partitioned_directory(self, pa, tmp_path, columns):
         df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
         df.to_parquet(tmp_path, engine=pa, partition_cols=["part"])
 
-        chunks = list(read_parquet(tmp_path, engine=pa, chunksize=5))
-        assert sum(len(chunk) for chunk in chunks) == 20
+        chunks = list(read_parquet(tmp_path, engine=pa, columns=columns, chunksize=5))
         for chunk in chunks:
             assert len(chunk) <= 5
+        expected = read_parquet(tmp_path, engine=pa, columns=columns)
+        tm.assert_frame_equal(pd.concat(chunks), expected)
 
     def test_read_parquet_chunksize_filters_not_implemented(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
