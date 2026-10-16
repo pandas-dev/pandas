@@ -38,6 +38,7 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
+    is_datetimelike,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -470,6 +471,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if (
             left.is_scalar
             and hasattr(left, "value")
+            and not is_datetimelike(left)
             and not right.is_scalar
             and right.return_type == f32
         ):
@@ -479,6 +481,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if (
             right.is_scalar
             and hasattr(right, "value")
+            and not is_datetimelike(right)
             and not left.is_scalar
             and left.return_type == f32
         ):
@@ -510,19 +513,15 @@ class BaseExprVisitor(ast.NodeVisitor):
     ):
         res = op(lhs, rhs)
 
+        if self.engine != "pytables" and (is_datetimelike(lhs) or is_datetimelike(rhs)):
+            # numexpr has no datetime64/timedelta64 support
+            return self._maybe_eval(res, self.binary_ops)
+
         if res.has_invalid_return_type:
             raise TypeError(
                 f"unsupported operand type(s) for {res.op}: "
                 f"'{lhs.type}' and '{rhs.type}'"
             )
-
-        if self.engine != "pytables" and (
-            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
-            or getattr(rhs, "is_datetime", False)
-        ):
-            # all date ops must be done in python bc numexpr doesn't work
-            # well with NaT
-            return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
