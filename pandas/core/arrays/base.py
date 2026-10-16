@@ -2299,14 +2299,16 @@ class ExtensionArray:
         """
         Return a transposed view on this array.
 
-        Because ExtensionArrays are always 1D, this is a no-op.  It is included
-        for compatibility with np.ndarray.
+        The base implementation supports only 1-dimensional arrays, for which
+        the transpose is the array itself. It is included for compatibility
+        with np.ndarray.
 
         Parameters
         ----------
         *axes : int
-            Ignored. Accepted for compatibility with
-            :meth:`numpy.ndarray.transpose`.
+            Ignored by the base implementation. Subclasses that support
+            2-dimensional arrays interpret them as
+            :meth:`numpy.ndarray.transpose` does.
 
         Returns
         -------
