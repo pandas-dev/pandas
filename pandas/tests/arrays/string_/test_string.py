@@ -202,6 +202,29 @@ def test_constructor_nan_like(na):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_value", [np.nan, pd.NA])
+@pytest.mark.parametrize("copy", [True, False])
+@pytest.mark.parametrize("shape", [(2,), (1, 2), (1, 1, 2)])
+@pytest.mark.parametrize(
+    "keep, expected",
+    [("first", [False, True]), ("last", [True, False]), (False, [True, True])],
+)
+def test_constructor_string_array_na_value(na_value, copy, shape, keep, expected):
+    dtype = pd.StringDtype("python", na_value=na_value)
+    source_na = pd.NA if na_value is np.nan else np.nan
+    source = pd.array([None, None], dtype=pd.StringDtype("python", na_value=source_na))
+    source = source.reshape(shape)
+
+    result = pd.arrays.StringArray(source, dtype=dtype, copy=copy)
+    assert result.shape == shape
+    result = result.ravel()
+    assert result[1] is na_value
+    result[0] = na_value
+
+    tm.assert_numpy_array_equal(result.duplicated(keep=keep), np.array(expected))
+    assert all(value is source_na for value in source.ravel())
+
+
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, dtype):
     nan_arr = np.array(["a", np.nan], dtype=object)

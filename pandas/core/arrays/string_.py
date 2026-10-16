@@ -707,6 +707,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if dtype is None:
             dtype = StringDtype()
         values = extract_array(values)
+        if (
+            isinstance(values, type(self))
+            and values.dtype.na_value is not dtype.na_value
+        ):
+            values = np.where(isna(values._ndarray), dtype.na_value, values._ndarray)
+            copy = False
 
         super().__init__(values, copy=copy)
         if not isinstance(values, type(self)):
