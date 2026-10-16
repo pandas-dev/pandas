@@ -239,6 +239,34 @@ def _full_read_range_index(
     return 0, 1, None
 
 
+def _arrow_to_frame(
+    table: pyarrow.Table | pyarrow.RecordBatch,
+    dtype_backend: DtypeBackend | lib.NoDefault,
+    to_pandas_kwargs: dict[str, Any] | None,
+) -> DataFrame:
+    """Convert a pyarrow table or batch to a DataFrame, restoring ``attrs``."""
+    df_metadata = None
+    if table.schema.metadata:
+        if b"PANDAS_ATTRS" in table.schema.metadata:
+            df_metadata = table.schema.metadata[b"PANDAS_ATTRS"]
+
+    with catch_warnings():
+        filterwarnings(
+            "ignore",
+            "make_block is deprecated",
+            Pandas4Warning,
+        )
+        result = arrow_table_to_pandas(
+            table,
+            dtype_backend=dtype_backend,
+            to_pandas_kwargs=to_pandas_kwargs,
+        )
+
+    if df_metadata is not None:
+        result.attrs = json.loads(df_metadata)
+    return result
+
+
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
@@ -333,19 +361,7 @@ class ParquetFileReader(abc.Iterator):
         except StopIteration:
             self.close()
             raise
-        df_metadata = None
-        if batch.schema.metadata:
-            if b"PANDAS_ATTRS" in batch.schema.metadata:
-                df_metadata = batch.schema.metadata[b"PANDAS_ATTRS"]
-        with catch_warnings():
-            filterwarnings("ignore", "make_block is deprecated", Pandas4Warning)
-            df = arrow_table_to_pandas(
-                batch,
-                dtype_backend=self._dtype_backend,
-                to_pandas_kwargs=self._to_pandas_kwargs,
-            )
-        if df_metadata is not None:
-            df.attrs = json.loads(df_metadata)
+        df = _arrow_to_frame(batch, self._dtype_backend, self._to_pandas_kwargs)
         # A batch gets a RangeIndex starting at 0 rather than its part of the
         # stored one (see _full_read_range_index), so continue the full read's
         # RangeIndex across chunks, like read_csv(chunksize=...) does.
@@ -588,27 +604,7 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
-
-            df_metadata = None
-            if pa_table.schema.metadata:
-                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
-                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
-
-            with catch_warnings():
-                filterwarnings(
-                    "ignore",
-                    "make_block is deprecated",
-                    Pandas4Warning,
-                )
-                result = arrow_table_to_pandas(
-                    pa_table,
-                    dtype_backend=dtype_backend,
-                    to_pandas_kwargs=to_pandas_kwargs,
-                )
-
-            if df_metadata is not None:
-                result.attrs = json.loads(df_metadata)
-            return result
+            return _arrow_to_frame(pa_table, dtype_backend, to_pandas_kwargs)
         finally:
             if handles is not None:
                 handles.close()
