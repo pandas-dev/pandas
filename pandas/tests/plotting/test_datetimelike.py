@@ -999,6 +999,27 @@ class TestTSPlot:
         assert left <= expected1[0]
         assert right >= expected1[-1]
 
+    @pytest.mark.parametrize("freq", ["h", "D"])
+    def test_mixed_freq_regular_first_irregular_off_grid(self, freq, frame_or_series):
+        # GH#29705 irregular timestamps off the regular series' grid were
+        # plotted as matplotlib date numbers on an axis of period ordinals
+        idx = date_range("2016-03-01", "2016-03-31", freq=freq)
+        s1 = pd.Series(np.arange(len(idx), dtype=np.float64), index=idx)
+        irreg_idx = DatetimeIndex(
+            ["2016-03-09 09:15", "2016-03-11 13:15", "2016-03-15 12:45"]
+        )
+        s2 = frame_or_series([1.0, 2.0, 3.0], index=irreg_idx)
+
+        _, ax = mpl.pyplot.subplots()
+        s1.plot(ax=ax)
+        s2.plot(ax=ax, style="o")
+        ax.plot(irreg_idx.to_pydatetime(), [1.0, 2.0, 3.0])
+
+        expected = irreg_idx.to_period(freq).asi8.astype(np.float64)
+        lines = ax.get_lines()
+        tm.assert_numpy_array_equal(lines[1].get_xdata(orig=False), expected)
+        tm.assert_numpy_array_equal(lines[2].get_xdata(orig=False), expected)
+
     def test_mixed_freq_irregular_first(self):
         s1 = pd.Series(
             np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
