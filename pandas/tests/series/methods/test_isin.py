@@ -328,6 +328,53 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([np.datetime64("NaT", "ns"), "a"], [False, True]),
+        ([np.timedelta64("NaT", "ns"), "a"], [False, False]),
+        ([np.datetime64("2020-01-01", "ns"), "a"], [True, False]),
+    ],
+)
+def test_isin_mixed_list_numpy_datetimelike(values, expected):
+    # matches isin without "a"; a timedelta64 NaT is not a datetime NaT
+    ser = pd.Series(pd.to_datetime(["2020-01-01", None]))
+    result = ser.isin(values)
+    tm.assert_series_equal(result, pd.Series(expected))
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([np.timedelta64("NaT", "ns"), "a"], [False, True]),
+        ([np.timedelta64(1, "D"), "a"], [True, False]),
+        # Timedelta rejects the "M" unit; left unboxed, it matches nothing
+        ([np.timedelta64(1, "M"), "a"], [False, False]),
+    ],
+)
+def test_isin_mixed_list_numpy_timedelta(values, expected):
+    ser = pd.Series(pd.to_timedelta(["1D", None]))
+    result = ser.isin(values)
+    tm.assert_series_equal(result, pd.Series(expected))
+
+
+@pytest.mark.filterwarnings(
+    "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+)
+@pytest.mark.parametrize(
+    "scalar_type, data",
+    [
+        (np.datetime64, pd.to_datetime(["2020-01-01", None])),
+        (np.timedelta64, pd.to_timedelta(["1D", None])),
+    ],
+)
+def test_isin_mixed_list_numpy_generic_nat(scalar_type, data):
+    # unitless NaT, deprecated in numpy 2.5
+    ser = pd.Series(data)
+    result = ser.isin([scalar_type("NaT"), "a"])
+    tm.assert_series_equal(result, pd.Series([False, True]))
+
+
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 @pytest.mark.parametrize(
     "values, expected",

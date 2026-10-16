@@ -818,7 +818,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
         assert callable(func)
-        klass = type(self.obj)
+        klass = self.obj._constructor
 
         results = []
         for name, group in self._grouper.get_iterator(

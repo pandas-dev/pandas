@@ -1100,6 +1100,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
+        ops.maybe_warn_complex_ordering(self._data, other, op)
+
         if other is libmissing.NA:
             # numpy does not handle pd.NA well as "other" scalar (it returns
             # a scalar False instead of an array)
