@@ -48,7 +48,9 @@ def test_read_excel_usecols_callable_unchanged():
     original.to_excel(file, index=False, engine="openpyxl")
     file.seek(0)
 
-    result = pd.read_excel(file, usecols=lambda col: col in ("B", "C"), engine="openpyxl")
+    result = pd.read_excel(
+        file, usecols=lambda col: col in ("B", "C"), engine="openpyxl"
+    )
     expected = pd.DataFrame({"B": [2], "C": [3]})
     tm.assert_frame_equal(result, expected)
 
