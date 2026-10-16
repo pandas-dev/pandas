@@ -156,6 +156,7 @@ class TestLoc:
                 slice(1, 3),
                 [
                     pd.Index(list("abcd"), dtype=object),
+                    pd.Index([2, 4, "null", 8], dtype=object),
                     None,
                     pd.date_range("20130101", periods=4),
                     pd.Index(range(0, 12, 3), dtype=np.float64),
@@ -163,7 +164,6 @@ class TestLoc:
                 None,
                 TypeError,
             ],
-            [slice(1, 3), [pd.Index([2, 4, "null", 8], dtype=object)], None, KeyError],
             [
                 slice("20130102", "20130104"),
                 [pd.date_range("20130101", periods=4)],

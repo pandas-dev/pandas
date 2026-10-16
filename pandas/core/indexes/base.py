@@ -7293,15 +7293,16 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
-                if isinstance(self.dtype, CategoricalDtype):
-                    values = self.dtype.categories
-                else:
-                    values = self
-                if (
-                    is_integer(original_label) or is_float(original_label)
-                ) and lib.infer_dtype(values, skipna=True) == "string":
-                    # sorting would not make a numeric bound comparable to strings
-                    self._raise_invalid_indexer("slice", original_label, None)
+                if is_integer(original_label) or is_float(original_label):
+                    if isinstance(self.dtype, CategoricalDtype):
+                        values = self.dtype.categories
+                    else:
+                        values = self
+                    try:
+                        values < original_label
+                    except TypeError as err:
+                        # sorting would not make the bound comparable
+                        self._raise_invalid_indexer("slice", original_label, err)
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-monotonic index "
                     f"with a missing label {original_label!r}. "
