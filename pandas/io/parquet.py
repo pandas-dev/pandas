@@ -205,6 +205,17 @@ def _get_path_or_handle(
     return path_or_handle, handles, fs
 
 
+def _is_dir(path: str, fs: Any) -> bool:
+    """Whether ``path`` is a directory on ``fs``, or locally if ``fs`` is None."""
+    if fs is None:
+        return os.path.isdir(path)
+    pa_fs = import_optional_dependency("pyarrow.fs")
+    if isinstance(fs, pa_fs.FileSystem):
+        return fs.get_file_info(path).type == pa_fs.FileType.Directory
+    # otherwise an fsspec filesystem, as checked in _get_path_or_handle
+    return fs.isdir(path)
+
+
 def _full_read_range_index(
     schema: pyarrow.Schema,
     num_rows: Callable[[], int],
@@ -496,7 +507,9 @@ class PyArrowImpl(BaseImpl):
                     "filters is not supported when chunksize is set"
                 )
             try:
-                if isinstance(path_or_handle, str) and os.path.isdir(path_or_handle):
+                if isinstance(path_or_handle, str) and _is_dir(
+                    path_or_handle, filesystem
+                ):
                     # read_table() defaults to partitioning="hive", which reads
                     # partition keys as dictionary (categorical) columns
                     partitioning = self.api.dataset.HivePartitioning.discover(
