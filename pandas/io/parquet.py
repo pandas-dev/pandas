@@ -532,6 +532,8 @@ class PyArrowImpl(BaseImpl):
         chunksize: int | None = None,
         **kwargs,
     ) -> DataFrame | ParquetFileReader:
+        if chunksize is not None and filters is not None:
+            raise NotImplementedError("filters is not supported when chunksize is set")
         kwargs["use_pandas_metadata"] = True
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
@@ -542,12 +544,6 @@ class PyArrowImpl(BaseImpl):
         )
 
         if chunksize is not None:
-            if filters is not None:
-                if handles is not None:
-                    handles.close()
-                raise NotImplementedError(
-                    "filters is not supported when chunksize is set"
-                )
             # Of read_table()'s keywords only use_threads is about iterating;
             # the others configure reading, so they go where the data is opened.
             use_threads = kwargs.pop("use_threads", True)
