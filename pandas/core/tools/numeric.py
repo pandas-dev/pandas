@@ -38,6 +38,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -246,6 +247,18 @@ def to_numeric(
 
     values_dtype = getattr(values, "dtype", None)
     if isinstance(values_dtype, ArrowDtype):
+        import pyarrow as pa
+
+        if pa.types.is_decimal(values_dtype.pyarrow_dtype):
+            # GH#61641: decimal is already numeric, return it unchanged
+            if downcast is None:
+                if is_series:
+                    return arg._constructor(values, index=arg.index, name=arg.name)
+                elif is_index:
+                    return Index(values, name=arg.name)
+                return values
+            # decimal has no numeric NumPy equivalent, downcast from float64
+            values = values.astype(ArrowDtype(pa.float64()))
         mask = values.isna()
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
@@ -342,8 +355,6 @@ def to_numeric(
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy
-        from pandas import Index
-
         return Index(values, name=arg.name)
     elif is_scalars:
         return values[0]

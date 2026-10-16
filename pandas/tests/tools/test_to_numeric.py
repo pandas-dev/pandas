@@ -1013,3 +1013,43 @@ def test_leading_plus_fractional_leading_zeros(value):
     # check_exact: the default atol=1e-8 compares the pre-fix 0.0 equal to the
     # 5e-25 it should be, so without this the test passes either way
     tm.assert_series_equal(result, pd.Series([float(value)]), check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        "Float64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("double[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("decimal", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("errors", ["raise", "coerce"])
+def test_to_numeric_EA_is_numeric(dtype, errors):
+    # GH#61641: numeric extension dtypes with missing values are returned unchanged
+    if dtype == "decimal":
+        import pyarrow as pa
+
+        dtype = pd.ArrowDtype(pa.decimal128(3, 2))
+    ser = pd.Series([1, None], dtype=dtype, name="a")
+    result = pd.to_numeric(ser, errors=errors)
+    tm.assert_series_equal(result, ser)
+
+    idx = pd.Index(ser)
+    tm.assert_index_equal(pd.to_numeric(idx, errors=errors), idx)
+
+    tm.assert_extension_array_equal(pd.to_numeric(ser.array, errors=errors), ser.array)
+
+
+@pytest.mark.parametrize(
+    "downcast, expected_dtype",
+    [("integer", "int8[pyarrow]"), ("float", "float[pyarrow]")],
+)
+def test_to_numeric_arrow_decimal_downcast(downcast, expected_dtype):
+    # GH#61641
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series([1, None], dtype=pd.ArrowDtype(pa.decimal128(3, 2)))
+    result = pd.to_numeric(ser, downcast=downcast)
+    expected = pd.Series([1, None], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
