@@ -207,6 +207,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.ffill` and :meth:`DataFrame.bfill` with ``axis=1`` and ``inplace=True`` not modifying the :class:`DataFrame` and returning a new object instead of ``self`` (:issue:`71159`)
+- Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with ``method="index"``, ``"values"``, ``"time"`` or a SciPy method giving incorrect results for a nanosecond-resolution :class:`DatetimeIndex` or :class:`TimedeltaIndex` spanning less than about 104 days, or an integer index with values beyond ``2**53`` spanning less than ``2**53`` (:issue:`34601`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with a large ``limit`` raising on 32-bit platforms and being very slow on long runs of missing values (:issue:`34936`)
 - Bug in :meth:`DataFrame.mask`, :meth:`DataFrame.where`, :meth:`Series.mask`, and :meth:`Series.where` handling missing values in a nullable boolean ``cond`` inconsistently between the two methods and depending on ``inplace``; missing values are now treated as ``False``, as in boolean indexing (:issue:`35429`, :issue:`52955`, :issue:`56844`, :issue:`60729`)
 
@@ -276,6 +277,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` (and Series variants) on ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` data treating ``NaT`` as a regular value and losing precision when the group key contains ``NA`` (:issue:`69923`)
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` raising ``NotImplementedError``, often with no message, instead of ``TypeError`` on columns that do not support them, e.g. ``object`` columns and :class:`ArrowDtype` date, time and binary columns (:issue:`69791`)
 - Bug in :meth:`.DataFrameGroupBy.max`, :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.cummin` (and Series variants) on nullable float data with the ``future.distinguish_nan_and_na`` option enabled returning ``inf`` or ``-inf`` for all-``NaN`` groups and ignoring ``NaN`` in other groups; ``NaN`` now propagates as in :meth:`.DataFrameGroupBy.sum`; under the default option, :class:`ArrowDtype` float data containing ``NaN`` now gives ``NA`` instead of ignoring the ``NaN`` (:issue:`59106`)
+- Bug in :meth:`.DataFrameGroupBy.resample` followed by :meth:`.Resampler.aggregate` with a list of functions aggregating the grouping and ``on`` columns, raising ``TypeError`` or returning them as extra result columns (:issue:`32162`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
 - Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`42617`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
@@ -294,6 +296,7 @@ Reshaping
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
+- Bug in :meth:`DataFrame.pivot` and :func:`pivot` with a list of ``values`` casting the pivoted columns to a common dtype, e.g. integers to ``float64`` or ``object`` (:issue:`43547`)
 - Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
 
 Sparse
@@ -332,6 +335,8 @@ Other
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` with ``engine="numexpr"`` raising ``AttributeError`` for some comparisons and ``in``/``not in`` checks whose operand is a math function or unary operator, e.g. ``abs(a) in [1, 2]`` (:issue:`31848`)
 - Bug in calling a generalized ufunc on a :class:`Series` raising ``AttributeError`` when it reduced ``object`` data to a single object pandas does not recognize as a scalar, e.g. ``shapely.geometrycollections`` returning a geometry (:issue:`71109`)
 - Bug in :func:`eval`, :meth:`DataFrame.eval`, and :meth:`DataFrame.query` raising on some ``datetime64`` and ``timedelta64`` operations, e.g. ``df.query("time > @now - @delta")``, and returning ``float32`` for a ``float32`` column times a ``np.timedelta64`` (:issue:`30729`, :issue:`52559`)
+
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
 
 .. ***DO NOT USE THIS SECTION***
 
