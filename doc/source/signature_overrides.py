@@ -63,6 +63,11 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default="17:00",
     ),
+    "day_of_month": inspect.Parameter(
+        "day_of_month",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=15,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
