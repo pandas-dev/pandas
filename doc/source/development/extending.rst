@@ -68,6 +68,16 @@ raising an ``AttributeError`` when the validation fails.
 For a ``Series`` accessor, you should validate the ``dtype`` if the accessor
 applies only to certain dtypes.
 
+The ``register_*_accessor`` decorators add the accessor to every ``DataFrame``,
+``Series`` or ``Index``. To add or override an accessor on a single class, such
+as a ``DataFrame`` subclass, assign a :class:`pandas.api.extensions.Accessor`
+as a class attribute instead:
+
+.. code-block:: python
+
+   class GeoDataFrame(pd.DataFrame):
+       plot = pd.api.extensions.Accessor("plot", GeoPlotAccessor)
+
 
 .. _extending.extension-types:
 
