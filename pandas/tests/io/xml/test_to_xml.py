@@ -1035,6 +1035,25 @@ def test_stylesheet_io(xsl_row_field_output, mode, geom_df):
     assert output == xsl_expected
 
 
+def test_stylesheet_external_entity_not_resolved(geom_df, tmp_path):
+    lxml_etree = pytest.importorskip("lxml.etree")
+    secret = tmp_path / "secret.txt"
+    secret.write_text("secret", encoding="utf-8")
+    xsl = f"""\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xsl:stylesheet [
+    <!ENTITY xxe SYSTEM "{secret.as_uri()}">
+]>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:template match="/">
+        <data>&xxe;</data>
+    </xsl:template>
+</xsl:stylesheet>"""
+
+    with pytest.raises(lxml_etree.XMLSyntaxError, match="Entity 'xxe' not defined"):
+        geom_df.to_xml(stylesheet=StringIO(xsl))
+
+
 def test_stylesheet_buffered_reader(xsl_row_field_output, mode, geom_df):
     pytest.importorskip("lxml")
     with open(
