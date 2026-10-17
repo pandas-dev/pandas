@@ -695,6 +695,11 @@ class TestAstype:
         with pytest.raises(ValueError, match=re.escape(msg)):
             df.astype(np.float64, errors=True)
 
+        # GH#63433 also when a dict casts several columns of one block together
+        two = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            two.astype({"a": "float32", "b": "float32"}, errors=True)
+
         df.astype(np.int8, errors="ignore")
 
     def test_astype_invalid_conversion(self):
