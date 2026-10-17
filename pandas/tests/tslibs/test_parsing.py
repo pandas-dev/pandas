@@ -259,6 +259,56 @@ def test_parsers_quarter_invalid(date_str):
 
 
 @pytest.mark.parametrize(
+    "date_str",
+    [
+        "2013,11,04",
+        "2013,11, 04",
+        "2013, 11,04",
+        "2013,11",
+        "Nov 14,2013",
+        "20131104,5",
+        "12,30",
+        # the "." is its own token here, so the comma is still folded in
+        "Nov .14,2013",
+        ".11,04",
+    ],
+)
+def test_parsers_decimal_comma_in_date(date_str):
+    # GH#17265 a comma between digits is read as a decimal point, so the
+    #  fraction used to be dropped silently, e.g. "2013,11,04" -> 2013-04-01
+    msg = re.escape(f'Unable to parse "{date_str}"')
+    with pytest.raises(ValueError, match=msg):
+        parsing.py_parse_datetime_string(date_str)
+
+
+@pytest.mark.parametrize(
+    "date_str,expected",
+    [
+        # the comma stays punctuation: too few digits before it, or a space after
+        ("Nov 4,2013", datetime(2013, 11, 4)),
+        ("2013, 11, 04", datetime(2013, 11, 4)),
+        ("14 Nov,2013", datetime(2013, 11, 14)),
+        # ISO 8601 decimal comma, extended and basic format
+        ("2013-11-04 01:02:03,456", datetime(2013, 11, 4, 1, 2, 3, 456000)),
+        ("20131104T010203,456", datetime(2013, 11, 4, 1, 2, 3, 456000)),
+        ("2013-11-04 01:02,5", datetime(2013, 11, 4, 1, 2, 30)),
+        # the digits continue a "Sep.12" token, so the comma ends it
+        ("Sep.12,2013", datetime(2013, 9, 12)),
+        # a unit label spends the fraction on the unit below it, whether the
+        #  label follows the number or precedes it
+        ("2013-11-04 12,5h", datetime(2013, 11, 4, 12, 30)),
+        ("2013-11-04 10h36,5s", datetime(2013, 11, 4, 10, 0, 36, 500000)),
+        ("2013-11-04 10h36,5", datetime(2013, 11, 4, 10, 36, 30)),
+        # the trailing "." splits the token, leaving the comma as punctuation
+        ("Nov 14,2013.", datetime(2013, 11, 14)),
+    ],
+)
+def test_parsers_comma_not_decimal_in_date(date_str, expected):
+    # GH#17265
+    assert parsing.py_parse_datetime_string(date_str) == expected
+
+
+@pytest.mark.parametrize(
     "date_str,expected",
     [("201101", datetime(2011, 1, 1, 0, 0)), ("200005", datetime(2000, 5, 1, 0, 0))],
 )
