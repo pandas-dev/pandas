@@ -180,6 +180,7 @@ Strings
 - Bug in :class:`StringDtype` with PyArrow storage rejecting a PyArrow string scalar in item assignment and :meth:`Series.fillna`, and :meth:`Series.where` with one storing a character code (:issue:`71075`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` silently ignoring a compiled ``re.Pattern`` for :class:`ArrowDtype` ``string`` and ``large_string`` dtypes, including a :class:`Categorical` of them (:issue:`69026`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``regex=True`` on :class:`ArrowDtype` ``string`` and ``large_string`` dtypes raising or silently coercing a replacement the column cannot hold instead of casting to ``object`` (:issue:`70458`)
+- Bug in :meth:`Series.str.get_dummies` returning incorrect columns and indicator values for separators containing regular expression metacharacters with ``object``, Python-backed string, or categorical data (:issue:`70811`)
 -
 
 Interval
