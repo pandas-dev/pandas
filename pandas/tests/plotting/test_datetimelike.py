@@ -999,6 +999,27 @@ class TestTSPlot:
         assert left <= expected1[0]
         assert right >= expected1[-1]
 
+    @pytest.mark.parametrize("freq", ["h", "D"])
+    def test_mixed_freq_regular_first_irregular_off_grid(self, freq, frame_or_series):
+        # GH#29705 irregular timestamps off the regular series' grid were
+        # plotted as matplotlib date numbers on an axis of period ordinals
+        idx = date_range("2016-03-01", "2016-03-31", freq=freq)
+        s1 = pd.Series(np.arange(len(idx), dtype=np.float64), index=idx)
+        irreg_idx = DatetimeIndex(
+            ["2016-03-09 09:15", "2016-03-11 13:15", "2016-03-15 12:45"]
+        )
+        s2 = frame_or_series([1.0, 2.0, 3.0], index=irreg_idx)
+
+        _, ax = mpl.pyplot.subplots()
+        s1.plot(ax=ax)
+        s2.plot(ax=ax, style="o")
+        ax.plot(irreg_idx.to_pydatetime(), [1.0, 2.0, 3.0])
+
+        expected = irreg_idx.to_period(freq).asi8.astype(np.float64)
+        lines = ax.get_lines()
+        tm.assert_numpy_array_equal(lines[1].get_xdata(orig=False), expected)
+        tm.assert_numpy_array_equal(lines[2].get_xdata(orig=False), expected)
+
     def test_mixed_freq_irregular_first(self):
         s1 = pd.Series(
             np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
@@ -2505,3 +2526,34 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     kwargs["ax"] = ax
     ret = f(*args, **kwargs)
     assert ret is not None  # TODO: do something more intelligent
+
+
+@pytest.mark.parametrize("start", ["2025-10-26T00:00", "2025-10-26T01:00"])
+def test_ts_plot_tz_aware_dst_fall_back(start):
+    # GH#62936 the index starts at the first or the repeated 02:00 of the
+    #  fall-back day; localizing its tz-naive period back to the timezone raised
+    index = date_range(start, "2025-10-26T03:00", freq="5min", tz="UTC").tz_convert(
+        "MET"
+    )
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.tz_localize(None).to_period("5min").asi8
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ts_plot_tz_aware_period_start_nonexistent():
+    # GH#62936 Lord Howe Island springs forward 02:00 -> 02:30, so the hourly
+    #  period of the first timestamp (02:30) starts at a nonexistent 02:00
+    utc = date_range("2025-10-04T15:30", periods=5, freq="h", tz="UTC")
+    index = utc.tz_convert("Australia/Lord_Howe")
+    assert index[0] == pd.Timestamp("2025-10-05 02:30+11:00", tz="Australia/Lord_Howe")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.astype(object).to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
