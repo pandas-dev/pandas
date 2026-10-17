@@ -14536,7 +14536,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         df = self.reset_index(drop=True)
         if len(columns) == 1:
-            result = df[columns[0]].explode()
+            result = df[columns[0]].explode().to_frame()
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             counts0 = self[columns[0]].apply(mylen)
@@ -14544,6 +14544,9 @@ class DataFrame(NDFrame, OpsMixin):
                 if not all(counts0 == self[c].apply(mylen)):
                     raise ValueError("columns must have matching element counts")
             result = DataFrame({c: df[c].explode() for c in columns})
+        # Tuple labels can turn into a MultiIndex above even if self.columns
+        # is a flat Index, so reuse the labels from self.columns (GH#55142)
+        result.columns = df.columns[df.columns.get_indexer(columns)]
         result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))

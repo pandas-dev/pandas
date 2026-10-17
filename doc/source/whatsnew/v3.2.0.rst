@@ -278,6 +278,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
+- Bug in :meth:`DataFrame.explode` raising ``MergeError`` when exploding a column whose label is a tuple and the columns are not a :class:`MultiIndex` (:issue:`55142`)
 
 Sparse
 ^^^^^^
