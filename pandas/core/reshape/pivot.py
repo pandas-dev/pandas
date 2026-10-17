@@ -400,10 +400,11 @@ def __internal_pivot_table(
     if margins:
         if dropna:
             data = data[data.notna().all(axis=1)]
+        margins_values = [] if aggfunc == "size" else values
         table = _add_margins(
             table,
             data,
-            values,
+            margins_values,
             rows=index,
             cols=columns,
             aggfunc=aggfunc,

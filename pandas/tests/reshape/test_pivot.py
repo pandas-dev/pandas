@@ -1415,6 +1415,27 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("values", [None, "C", ["C"]])
+    def test_margins_with_aggfunc_size(self, values):
+        # GH#27799 "size" drops the values level, so the margins have to be
+        #  built the way they are when no values are passed at all
+        df = pd.DataFrame(
+            {
+                "A": ["a", "a", "b", "b", "b"],
+                "B": ["x", "y", "x", "x", "y"],
+                "C": range(5),
+            }
+        )
+        result = df.pivot_table(
+            index="A", columns="B", values=values, aggfunc="size", margins=True
+        )
+        expected = pd.DataFrame(
+            {"x": [1, 2, 3], "y": [1, 1, 2], "All": [2, 3, 5]},
+            index=pd.Index(["a", "b", "All"], name="A"),
+        )
+        expected.columns.name = "B"
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
     def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):
         # see gh-3335
