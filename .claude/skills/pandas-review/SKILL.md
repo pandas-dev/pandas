@@ -2,67 +2,49 @@
 name: pandas-review
 description: Self-review your own pandas PR (or your local branch before opening one) the way a pandas maintainer would. Prints findings and a verdict in the terminal; never posts to GitHub or edits files.
 disable-model-invocation: true
-argument-hint: "[PR number]"
-allowed-tools: Bash(gh pr view *), Bash(gh pr diff *), Bash(gh pr list *), Bash(gh api -X GET *), Bash(git diff *), Bash(git merge-base *), Bash(git rev-parse *), Bash(git branch --show-current), Bash(git remote -v), Bash(git show *), Bash(git log *), Bash(git status *), Bash(pytest *), Bash(python -m pytest *), Read, Grep, Glob
+argument-hint: "[PR number, URL, or branch]"
+allowed-tools: Bash(python .claude/skills/pandas-review/scripts/fetch_context.py), Bash(python .claude/skills/pandas-review/scripts/fetch_context.py *), Bash(gh pr view *), Bash(gh api -X GET *), Bash(git diff *), Bash(git rev-parse *), Bash(git show *), Bash(git log *), Bash(git status *), Bash(pytest *), Bash(python -m pytest *), Read, Grep, Glob
 ---
 
 Review a pandas pull request the way a pandas maintainer would, and report to its author.
 
 Target: $ARGUMENTS
 
-If the target above is a PR number (or the user gave you one), use PR mode. Otherwise
-(including when the line above reads literally `$ARGUMENTS`), use local mode.
+The target is a PR number or URL, a branch name, or nothing (including when the line above
+reads literally `$ARGUMENTS`) to review the current branch with its uncommitted changes.
 
 **Review as a maintainer who did not write this code**, even if you did. Verify what the PR
 description, commit messages, and code comments claim instead of taking them on trust.
 Report only: don't edit files, and don't fix anything during the review. The author decides
 what to change afterwards.
 
-## 1. Find what to review
+## 1. Gather the change and its thread
 
-- **PR mode** (strip any leading `#`): get metadata with
-  `gh pr view <n> --repo pandas-dev/pandas --json title,author,state,isDraft,headRefOid,files,body`
-  and the diff with `gh pr diff <n> --repo pandas-dev/pandas`. If that fails, stop and say
-  the number isn't a pandas PR.
-- **Local mode**: review the current branch including uncommitted changes. Find the remote
-  whose URL contains `pandas-dev/pandas` (`git remote -v`), then diff with
-  `git diff $(git merge-base HEAD <remote>/main)`. That diff omits untracked files, so also
-  Read every `??` file in `git status --porcelain -uall`. If the branch already has a PR
-  (`gh pr list --repo pandas-dev/pandas --head "$(git branch --show-current)" --author "@me" --json number`),
-  also read its thread as in step 2. `--head` matches the branch name in any fork, so treat
-  a detached HEAD or anything other than exactly one result as no PR yet.
-
-The code under review is the working tree in local mode, or in PR mode when
-`git rev-parse HEAD` equals `headRefOid`. Otherwise read files at the head with
-`gh api -X GET "repos/pandas-dev/pandas/contents/<path>?ref=<headRefOid>" -H "Accept: application/vnd.github.raw"`.
-
-If the code under review is local and `git log --oneline HEAD..<remote>/main` is non-empty
-(`<remote>` being the one whose URL contains `pandas-dev/pandas`), say how many commits behind
-`main` the branch is (as of the last fetch). CI tests the PR merged into `main`, so a recent change
-on `main` can break it there even when it passes locally.
-
-## 2. Read the whole thread (PR mode, or local mode with an existing PR)
-
-Fetch all three comment surfaces; each holds things the others don't:
+From the repo root, run
 
 ```
-gh api -X GET --paginate repos/pandas-dev/pandas/pulls/<n>/reviews    # review verdicts
-gh api -X GET --paginate repos/pandas-dev/pandas/pulls/<n>/comments   # inline comments
-gh api -X GET --paginate repos/pandas-dev/pandas/issues/<n>/comments  # conversation
+python .claude/skills/pandas-review/scripts/fetch_context.py <target>
 ```
 
-Also read the linked issue's comments and its reactions
-(`gh api -X GET repos/pandas-dev/pandas/issues/<issue>/reactions`).
+with no argument for the current branch, and `owner:branch` for a branch in a fork. It
+prints the PR it found (if any), where the code under review is, and the files it wrote.
+Read all of them in full, never truncated: `diff.patch`, any untracked files it lists, and
+`context.md` (the PR description, reviews, inline comments, conversation, linked issues with
+their reactions, and failing CI jobs with log excerpts).
 
-- **Never truncate.** No `head`/`tail`, always `--paginate`. A dropped comment is invisible.
-  If output is too long, write it to a file and read that.
-- **A failed fetch is unknown, not empty.** Retry it; never review as if the thread were silent.
-- Review verdicts (`pulls/<n>/reviews`) matter most: a maintainer's approval, requested
-  changes, or "I don't think this is worth doing" usually lives there, not inline.
+- **If the script fails, stop and report its error.** A failed fetch is unknown, not empty;
+  never review as if the thread were silent.
+- When the code under review is the PR head on GitHub, its changed files are saved under
+  `head/`. Read any other file at the head with
+  `gh api -X GET "repos/pandas-dev/pandas/contents/<path>?ref=<head sha>" -H "Accept: application/vnd.github.raw"`.
+- If it reports the branch is behind `main`, say so. CI tests the PR merged into `main`, so
+  a recent change on `main` can break it there even when it passes locally.
+- Review verdicts matter most: a maintainer's approval, requested changes, or "I don't
+  think this is worth doing" usually lives there, not inline.
 - **The thread outranks this file.** Where a maintainer on the thread has asked for something
   that conflicts with the guidance below, follow the maintainer.
 
-## 3. Investigate
+## 2. Investigate
 
 Read `AGENTS.md` at the repo root. Consult `doc/source/development/contributing_codebase.rst`
 when a question about tests, typing, or backward compatibility comes up. Use Grep/Glob/Read
@@ -71,14 +53,16 @@ on the surrounding code to check the change against how the codebase already doe
 **Run code when the local build is the code under review.** Run the PR's new and changed
 tests, the existing test files covering the code it touches, and every repro you report,
 and show real output. If pandas fails to import or build, say so and review from reading
-alone; don't try to repair the environment. Never commit, stash, check out, or modify files.
+alone; don't try to repair the environment.
 
-## 4. What to look for
+## 3. What to look for
 
 In priority order:
 
-1. **Maintainer position.** If a maintainer has said the PR shouldn't proceed, wants a
-   different approach, or that it's blocked on a decision, that outranks everything below.
+1. **Maintainer position.** If a maintainer has said the PR shouldn't proceed, the verdict
+   is `CLOSE`; if they want a different approach, `WRONG APPROACH`. Skip to section 4 and
+   report only that. If they've said it's blocked on a decision, the verdict is `BLOCKED`,
+   but review the rest to give the verdict it would get once unblocked.
    A core maintainer's 👍 reaction on the linked issue counts as buy-in. A `/take` with no
    activity for several days doesn't block anyone.
 2. **Unaddressed review comments.** For each reviewer request in the thread, check whether
@@ -93,6 +77,7 @@ In priority order:
    - A fix that covers some code paths but leaves sibling paths unfixed is **not** a defect.
      At most mention it as an optional follow-up. Only regressions and wrong results on the
      paths the PR claims to fix drive `NEEDS WORK`.
+   - A failing CI job the diff causes is a correctness finding; quote the log line.
 4. **Necessity, simplicity, brevity.** Flag only concrete excess you can point at:
    - code, parameters, or tests the fix doesn't need (a guard no input reaches, with the
      reason; a refactor riding along; a test duplicating an existing one);
@@ -106,16 +91,17 @@ In priority order:
    - A whatsnew entry describes the user-visible change, not the implementation, and names
      only public API. A pure refactor gets no entry.
    - Tests: module-level functions or an existing class are both fine; so is a new class
-     with a reasonable scope. Any reasonable issue-reference spelling in comments is fine.
+     with a reasonable scope.
 
 Do **not** report:
 - things that are fine ("tests look good", "no whatsnew needed"); silence means no concern;
-- PR process or hygiene: template checkboxes, labels, CI status, merge readiness;
+- PR process or hygiene: template checkboxes, labels, merge readiness;
+- CI failures the diff didn't cause (infrastructure, flaky tests, a break already on `main`);
 - drift between the PR description and the diff; review the diff;
-- anything a pre-commit hook or CI will catch on its own (the author should run
+- predictions of what a pre-commit hook or CI will catch (the author should run
   `pre-commit` separately).
 
-## 5. Output
+## 4. Output
 
 Open with one or two sentences on what the PR does, then the findings, most important first.
 

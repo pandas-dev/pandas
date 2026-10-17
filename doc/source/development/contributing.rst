@@ -65,13 +65,14 @@ review until it reports ``LGTM`` or ``NITS ONLY``, or you have explained on the 
 findings don't apply. Pull requests at ``LGTM`` get reviewed sooner.
 
 * **Claude Code:** from your pandas clone, run ``/pandas-review`` to review the current branch, or
-  ``/pandas-review 12345`` for an open pull request.
+  ``/pandas-review 12345`` for an open pull request (a branch name also works).
 * **Other tools:** ask the agent to follow ``.claude/skills/pandas-review/SKILL.md``, giving it the pull request
-  number if there is one.
+  number or branch if it isn't the current branch.
 
 It needs an authenticated `GitHub CLI <https://cli.github.com/>`_ (``gh``), and works best in a built development
 environment with the branch checked out, so it can run the tests. Use the strongest model your tool offers at a high
-effort setting, in a fresh session rather than the one that wrote the change; weaker settings produce more noise.
+effort setting, in a fresh subagent or session rather than the one that wrote the change; weaker settings produce
+more noise.
 
 At ``NITS ONLY``, fix the nits you agree with and rerun once to aim for ``LGTM``. Stop after that: further reruns
 turn up new optional nits, not blockers.

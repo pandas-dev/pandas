@@ -20,7 +20,7 @@ in Claude Code) before the user opens a pull request or re-requests review. Revi
 until it reports `LGTM` or `NITS ONLY`, or the user has explained on the pull request why its
 remaining findings don't apply. `LGTM` gets reviewed sooner, so after `NITS ONLY`, fix the
 nits the user agrees with and rerun once. Don't change code to satisfy a finding the user
-disputes. Prefer a fresh session over the one that wrote the change.
+disputes. Use a fresh subagent or session rather than the one that wrote the change.
 
 ## Required tooling
 
