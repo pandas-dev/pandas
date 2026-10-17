@@ -41,7 +41,7 @@ navbar:
       - name: "Citing and logo"
         target: about/citing.html
   - name: "Getting started"
-    target: getting_started.html
+    target: docs/getting_started/index.html
   - name: "Documentation"
     target: docs/
   - name: "Community"
