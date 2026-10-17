@@ -1418,6 +1418,13 @@ class PlotAccessor(PandasObject):
 
                 data = data[y]
 
+                if label_kw:
+                    kwargs["_errorbar_labels"] = (
+                        [data.name]
+                        if isinstance(data, ABCSeries)
+                        else list(data.columns)
+                    )
+
                 if isinstance(data, ABCSeries):
                     label_name = label_kw or y
                     data.name = label_name

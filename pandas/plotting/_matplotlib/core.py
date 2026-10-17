@@ -271,10 +271,18 @@ class MPLPlot(ABC):
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
         yerr = kwds.pop("yerr", None)
+        errorbar_labels = kwds.pop("_errorbar_labels", None)
         nseries = self._get_nseries(data)
         xerr, data = type(self)._parse_errorbars("xerr", xerr, data, nseries)
         yerr, data = type(self)._parse_errorbars("yerr", yerr, data, nseries)
         self.errors = {"xerr": xerr, "yerr": yerr}
+        self._errorbar_labels: dict[str, list[Hashable]] = {}
+        if errorbar_labels is not None:
+            for key, err in self.errors.items():
+                if isinstance(err, (ABCDataFrame, dict)) and any(
+                    label in err for label in errorbar_labels
+                ):
+                    self._errorbar_labels[key] = errorbar_labels
         self.data = data
 
         if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndex)):
@@ -755,6 +763,13 @@ class MPLPlot(ABC):
         # no non-numeric frames or series allowed
         if is_empty:
             raise TypeError("no numeric data to plot")
+
+        if self._errorbar_labels:
+            indices = data._mgr._get_data_subset_indices(predicate_for_plottability)
+            self._errorbar_labels = {
+                key: [labels[i] for i in indices]
+                for key, labels in self._errorbar_labels.items()
+            }
 
         self.data = numeric_data.apply(type(self)._convert_to_ndarray)
 
@@ -1265,8 +1280,11 @@ class MPLPlot(ABC):
                 err = self.errors[kw]
                 # user provided label-matched dataframe of errors
                 if isinstance(err, (ABCDataFrame, dict)):
-                    if label is not None and label in err.keys():
-                        err = err[label]
+                    error_label = label
+                    if index is not None and kw in self._errorbar_labels:
+                        error_label = self._errorbar_labels[kw][index]
+                    if error_label is not None and error_label in err.keys():
+                        err = err[error_label]
                     else:
                         err = None
                 elif index is not None and err is not None:
