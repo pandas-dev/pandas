@@ -153,7 +153,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in floor division (``//``), modulo (``%``) and ``divmod`` of :class:`TimedeltaIndex`, :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype by a numeric scalar or array rounding toward zero instead of flooring for negative results, inconsistent with :class:`Timedelta` (:issue:`71264`)
 -
 
 Timezones
