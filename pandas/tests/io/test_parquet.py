@@ -1785,9 +1785,14 @@ class TestParquetChunksize(Base):
         df = pd.DataFrame({"a": list("xyzx"), "part": ["p", "p", "q", "q"]})
         df.to_parquet(path, engine=pa, partition_cols=partition_cols)
 
+        # whether the dictionary becomes a categorical depends on the pyarrow
+        # version, so compare with a read without chunksize (categories differ
+        # between chunks, so only the type of dtype)
+        full = read_parquet(path, engine=pa, read_dictionary=["a"])
+        expected = type(full["a"].dtype)
         reader = read_parquet(path, engine=pa, chunksize=2, read_dictionary=["a"])
         for chunk in reader:
-            assert isinstance(chunk["a"].dtype, pd.CategoricalDtype)
+            assert type(chunk["a"].dtype) is expected
 
     @pytest.mark.skipif(pa_version_under19p0, reason="pyarrow.json_ is new in 19.0")
     def test_read_parquet_chunksize_directory_extension_types(self, pa, tmp_path):
