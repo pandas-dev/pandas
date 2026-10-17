@@ -344,6 +344,167 @@ def test_arith_dataframe_of_unconvertible_objects(unconvertible_object, dtype, v
         arr + df
 
 
+def test_cmp_unconvertible_object(unconvertible_object):
+    # GH#62682 comparisons fall back to elementwise ops rather than raising
+    # an ArrowInvalid/ArrowTypeError
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(unconvertible_object)
+
+    result = arr == other
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    msg = "|".join(
+        ["not supported between", "Unordered Categoricals can only compare equality"]
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr < other
+
+
+@pytest.mark.parametrize("other", [pd.offsets.Minute(3), pd.Interval(0, 1)])
+def test_cmp_unconvertible_scalar(other):
+    # GH#62682 pyarrow raises ArrowTypeError boxing a DateOffset and ArrowInvalid
+    #  for an Interval
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.int64()))
+
+    result = arr == other
+    expected = pd.array([False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = arr != other
+    expected = pd.array([True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        arr < other
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.ge])
+def test_cmp_duration_offset_scalar(op):
+    # GH#62682 pyarrow raises ArrowTypeError on a Tick; match the numpy-backed result
+    arr = pd.array([pd.Timedelta("1h"), pd.Timedelta("2h")])
+
+    result = op(arr.astype("duration[ns][pyarrow]"), pd.offsets.Hour(1))
+    tm.assert_numpy_array_equal(
+        np.asarray(result, dtype=bool), np.asarray(op(arr, pd.offsets.Hour(1)))
+    )
+
+
+def test_cmp_partly_unconvertible_object(unconvertible_object):
+    # GH#62682 the pointwise fallback still gives a convertible entry a real answer
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(unconvertible_object)
+    other[0] = 1
+
+    result = arr == other
+    expected = pd.array([True, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = arr != other
+    expected = pd.array([False, True], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_array_valued_pointwise_result():
+    # GH#62682 a scalar compared to a length-1 Categorical gives a length-1 bool
+    #  array holding a real answer, which must not be discarded; a longer one is
+    #  genuinely ambiguous and raises, both matching Int64
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+
+    result = arr == object_array_of(pd.Categorical([1]))
+    expected = pd.array([True, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    msg = "truth value of an array with more than one element is ambiguous"
+    with pytest.raises(ValueError, match=msg):
+        arr == object_array_of(pd.Categorical([1, 2]))
+
+
+def test_cmp_list_of_array_likes():
+    # GH#62682 isna on a LIST of array-likes returns a 2-D mask, which the
+    #  object_array_of spelling above never produces
+    other = [pd.Categorical(["a"]), pd.Categorical(["b"])]
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+
+    result = arr == other
+
+    # Int64 gives the same answer
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, pa_type",
+    [
+        ([[1], [2]], pa.list_(pa.int64())),
+        ([{"a": 1}, {"a": 2}], pa.struct([("a", pa.int64())])),
+    ],
+)
+def test_cmp_nested_dtype_unconvertible(values, pa_type):
+    # GH#62682 nested dtypes give the invalid-comparison answer
+    arr = pd.array(values, dtype=ArrowDtype(pa_type))
+
+    result = arr == [1, "a"]
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_list_dtype_numpy_scalar_elements():
+    # GH#62682 numpy broadcasts [1] == np.int64(1) to array([True]); treat it
+    #  like the other invalid list-likes
+    arr = pd.array([[1], [2]], dtype=ArrowDtype(pa.list_(pa.int64())))
+    other = pd.arrays.SparseArray([1, 2])
+
+    result = arr == other
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = arr != other
+    expected = pd.array([True, True], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        arr < other
+
+
+# pyarrow inferring the type of the offsets deadlocks under coverage when this
+#  warning is an error, see GH-69154
+@pytest.mark.filterwarnings("ignore::pandas.errors.Pandas4Warning")
+def test_cmp_ne_offset_array_with_na():
+    # GH#62682 an NA entry stays NA when the offsets are compared pointwise
+    arr = pd.array([pd.Timedelta("1h"), None], dtype="duration[ns][pyarrow]")
+    other = object_array_of(pd.offsets.Hour(1))
+
+    result = arr != other
+    expected = pd.array([False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_unconvertible_object_keeps_na():
+    # GH#62682 an NA entry stays NA rather than becoming a concrete bool,
+    #  on whichever side it appears
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(pd.Categorical(["test"]))
+
+    result = arr == other
+    expected = pd.array([False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    other[0] = np.nan
+    result = pd.array([1, 2], dtype=ArrowDtype(pa.int64())) == other
+    expected = pd.array([None, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_mixed_object_keeps_na():
+    # GH#60228 / GH#62682 the pointwise fallback must not turn an NA entry into
+    #  a concrete bool
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.int64()))
+    result = arr == np.array([1, "b"], dtype=object)
+    expected = pd.array([True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "other", [np.array([1]), [1], pd.array([1], dtype="int64[pyarrow]")]
 )

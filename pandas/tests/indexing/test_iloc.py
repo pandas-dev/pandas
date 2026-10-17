@@ -1091,6 +1091,28 @@ class TestiLocBaseIndependent:
             df["b"], pd.Series(np.zeros(2, dtype=other_dtype), name="b")
         )
 
+    @pytest.mark.parametrize("other_dtype", ["int64", object], ids=["mixed", "object"])
+    @pytest.mark.parametrize(
+        "indexer, key",
+        [("loc", (0, "a")), ("loc", (2, "a")), ("iloc", (0, 0))],
+        ids=["loc", "loc-expand", "iloc"],
+    )
+    def test_setitem_unsized_iterable_into_object_cell(self, indexer, key, other_dtype):
+        # GH#63225 an object with __iter__ but no __len__ is stored as-is rather
+        #  than raising "has no len()"
+        class NotIterable:
+            def __iter__(self):
+                raise TypeError("not iterable")
+
+        df = pd.DataFrame(
+            {"a": np.zeros(2, dtype=object), "b": np.zeros(2, dtype=other_dtype)}
+        )
+        value = NotIterable()
+        getattr(df, indexer)[key] = value
+
+        assert df.iloc[key[0], 0] is value
+        assert df.iloc[1, 0] == 0
+
     @pytest.mark.parametrize(
         "box",
         [deque, lambda data: std_array("q", data), DuckSequence],

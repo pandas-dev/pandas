@@ -7743,6 +7743,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(other, Index) and self.is_(other):
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
+                if op is not operator.eq and self.dtype.kind == "c":
+                    # GH#43770 this fastpath skips the comparison_op warning
+                    nanops.warn_complex_unordered()
                 arr = np.ones(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
@@ -8120,6 +8123,9 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not len(self):
+            if self.dtype.kind == "c":
+                # GH#43770 the early returns skip the nanops warning
+                nanops.warn_complex_unordered()
             return self._na_value
 
         if len(self) and self.is_monotonic_increasing:
@@ -8132,6 +8138,8 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                if self.dtype.kind == "c":
+                    nanops.warn_complex_unordered()
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
@@ -8195,6 +8203,9 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not len(self):
+            if self.dtype.kind == "c":
+                # GH#43770 the early returns skip the nanops warning
+                nanops.warn_complex_unordered()
             return self._na_value
 
         if len(self) and self.is_monotonic_increasing:
@@ -8207,6 +8218,8 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                if self.dtype.kind == "c":
+                    nanops.warn_complex_unordered()
                 return maybe_unbox_numpy_scalar(self._na_value)
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
