@@ -243,6 +243,12 @@ def check_partition_names(path, expected):
     assert dataset.partitioning.schema.names == expected
 
 
+def test_read_parquet_list_path_raises():
+    msg = "path must be a string, path object, or file-like object, not a list"
+    with pytest.raises(ValueError, match=msg):
+        read_parquet(["file1.parquet", "file2.parquet"])
+
+
 def test_invalid_engine(df_compat, temp_file):
     msg = "engine must be one of 'pyarrow', 'fastparquet'"
     with pytest.raises(ValueError, match=msg):

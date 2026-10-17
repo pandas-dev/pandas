@@ -767,6 +767,10 @@ def read_parquet(
         )
     if engine is lib.no_default:
         engine = "auto"
+    if isinstance(path, list):
+        raise ValueError(
+            "path must be a string, path object, or file-like object, not a list"
+        )
     impl = get_engine(engine)
     check_dtype_backend(dtype_backend)
 
