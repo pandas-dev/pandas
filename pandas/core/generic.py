@@ -2857,10 +2857,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         newly created, appended to, or overwritten.
 
         .. warning::
-            The pandas library does not attempt to sanitize inputs provided via a to_sql call.
-            Please refer to the documentation for the underlying database driver to see if it
-            will properly prevent injection, or alternatively be advised of a security risk when
-            executing arbitrary commands in a to_sql call.
+            ``to_sql`` does not insert values from the DataFrame into SQL text. Values
+            are sent to the database as bound parameters or, for ADBC connections,
+            through the driver's bulk ingestion. Table, schema, column, and index names
+            are quoted as SQL identifiers by SQLAlchemy, by pandas, or by the ADBC
+            driver. This does not apply to a callable passed as ``method``, which builds
+            its own SQL, or to SQL type strings passed as ``dtype`` with a sqlite3
+            connection, which are included in the ``CREATE TABLE`` statement as given.
 
         Parameters
         ----------
