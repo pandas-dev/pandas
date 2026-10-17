@@ -1864,6 +1864,23 @@ class TestParquetChunksize(Base):
         with pytest.raises(NotImplementedError, match="nested"):
             read_parquet(path, engine=pa, columns=["s.x"], chunksize=1)
 
+    @pytest.mark.parametrize("keyword", ["schema", "partitioning", "ignore_prefixes"])
+    def test_read_parquet_chunksize_dataset_kwargs_not_implemented(
+        self, pa, tmp_path, keyword
+    ):
+        # read_table() reads a file through a ParquetDataset, which takes these,
+        # but ParquetFile doesn't
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(4)}).to_parquet(path, engine=pa)
+        value = {
+            "schema": pyarrow.schema([("a", pyarrow.int32())]),
+            "partitioning": "hive",
+            "ignore_prefixes": ["_"],
+        }[keyword]
+
+        with pytest.raises(NotImplementedError, match=keyword):
+            read_parquet(path, engine=pa, chunksize=2, **{keyword: value})
+
     @pytest.mark.parametrize("directory", [False, True])
     def test_read_parquet_chunksize_empty(self, pa, tmp_path, directory):
         # like read_csv(chunksize=...), yield one empty chunk with the columns

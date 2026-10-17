@@ -388,8 +388,9 @@ class ParquetFileReader(abc.Iterator[DataFrame]):
     -----
     Only returned when ``engine="pyarrow"``; :func:`~pandas.read_parquet`
     raises ``NotImplementedError`` for ``chunksize`` with
-    ``engine="fastparquet"``, together with ``filters``, or with ``columns``
-    selecting a field inside a nested column of a single file.
+    ``engine="fastparquet"``, together with ``filters``, or for a single file
+    with ``columns`` selecting a field inside a nested column or with the
+    ``schema``, ``partitioning`` or ``ignore_prefixes`` keywords.
 
     Examples
     --------
@@ -638,6 +639,18 @@ class PyArrowImpl(BaseImpl):
                         lambda: dataset.read(columns=columns, use_pandas_metadata=True),
                     )
                 else:
+                    # read_table() reads a file through a ParquetDataset, which
+                    # takes these, but ParquetFile doesn't
+                    dataset_only = [
+                        key
+                        for key in ("schema", "partitioning", "ignore_prefixes")
+                        if key in kwargs
+                    ]
+                    if dataset_only:
+                        raise NotImplementedError(
+                            "keyword arguments are not supported when chunksize "
+                            f"is set for a file: {dataset_only}"
+                        )
                     parquet_file = self.api.parquet.ParquetFile(
                         path_or_handle, filesystem=filesystem, **kwargs
                     )
@@ -1124,7 +1137,9 @@ def read_parquet(
         * For ``engine="pyarrow"``: passed to :func:`pyarrow.parquet.read_table`.
           With ``chunksize``, ``use_threads`` is used for iterating and the
           others are passed to :class:`pyarrow.parquet.ParquetFile` for a file
-          or :class:`pyarrow.parquet.ParquetDataset` for a directory.
+          or :class:`pyarrow.parquet.ParquetDataset` for a directory;
+          ``schema``, ``partitioning`` and ``ignore_prefixes`` are not
+          supported for a file.
         * For ``engine="fastparquet"``: passed to
           :meth:`fastparquet.ParquetFile.to_pandas`
 
