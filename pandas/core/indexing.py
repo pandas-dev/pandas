@@ -932,6 +932,71 @@ class _LocationIndexer(_NDFrameIndexerBase):
         return indexer, value
 
     @final
+    def _maybe_restore_dropped_levels(self, key, indexer, value):
+        """
+        Relabel a Series/DataFrame value whose axis lacks the MultiIndex levels
+        matched by the leading scalars of that axis's key.
+
+        ``obj.loc[partial_key]`` drops those levels, so without this
+        ``obj.loc[partial_key] = obj.loc[partial_key] * 2`` aligns to all-NaN.
+        """
+        if not isinstance(value, (ABCSeries, ABCDataFrame)):
+            return value
+
+        if self.axis is not None:
+            key = _tupleize_axis_indexer(self.ndim, self.axis, key)
+        # mirror how _get_setitem_indexer split the key between the axes
+        if isinstance(indexer, tuple):
+            keys = key
+        else:
+            keys, indexer = (key,), (indexer,)
+
+        if value.ndim == 2:
+            axes = list(range(len(indexer)))
+        elif self.ndim == 1 or not (
+            # a dict is a missing scalar key, see convert_missing_indexer
+            is_scalar(indexer[0]) or isinstance(indexer[0], dict)
+        ):
+            # a Series value aligns on the rows unless they are selected by a scalar
+            axes = [0]
+        elif len(indexer) > 1:
+            axes = [1]
+        else:
+            return value
+
+        for axis in axes:
+            ax = self.obj._get_axis(axis)
+            idx = indexer[axis]
+            value_axis = axis if value.ndim == 2 else 0
+            value_ax = value._get_axis(value_axis)
+            ndropped = ax.nlevels - value_ax.nlevels
+            if (
+                not isinstance(ax, MultiIndex)
+                or not 0 < ndropped <= _count_leading_scalars(keys[axis])
+                or not (
+                    isinstance(idx, slice)
+                    or (is_list_like_indexer(idx) and getattr(idx, "ndim", 1) == 1)
+                )
+                or isinstance(idx, dict)
+            ):
+                continue
+            target = ax[idx]
+            if not len(target) or not target.is_unique or not value_ax.is_unique:
+                continue
+            dropped = target._drop_level_numbers(list(range(ndropped))[::-1])
+            # dropped repeats labels if the key matched several, see
+            #  test_loc_setitem_partial_key_matching_several_labels
+            positions = value_ax.get_indexer(dropped)
+            found = positions != -1
+            if not found.any():
+                # e.g. the value is already labeled like the target
+                continue
+            # labels unmatched on either side are left to the usual alignment
+            value = value.take(positions[found], axis=value_axis)
+            value = value.set_axis(target[found], axis=value_axis)
+        return value
+
+    @final
     def _ensure_listlike_indexer(self, key, axis=None) -> None:
         """
         Ensure that a list-like of column labels are all present by adding them if
@@ -1003,6 +1068,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
         orig_nrows = self.obj.shape[0]
         indexer = self._get_setitem_indexer(key)  # may alter self.obj
         self._has_valid_setitem_indexer(key)
+        if self.name == "loc":
+            value = self._maybe_restore_dropped_levels(key, indexer, value)
 
         # Capture dtype info cheaply between potential column expansion
         # (above) and potential row expansion (below).
@@ -3645,6 +3712,20 @@ def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     _tup = [slice(None, None) for _ in range(ndim)]
     _tup[0] = loc
     return tuple(_tup)
+
+
+def _count_leading_scalars(key) -> int:
+    """
+    Number of leading MultiIndex levels pinned to a single label by ``key``.
+    """
+    if not isinstance(key, tuple):
+        return int(is_scalar(key))
+    count = 0
+    for item in key:
+        if not is_scalar(item):
+            break
+        count += 1
+    return count
 
 
 def _tupleize_axis_indexer(ndim: int, axis: AxisInt, key) -> tuple[Any, ...]:
