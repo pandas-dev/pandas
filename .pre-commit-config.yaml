@@ -312,6 +312,7 @@ repos:
         files: ^(pixi\.toml|\.github/workflows/unit-tests\.yml|pandas/tests/.*\.py|pandas/conftest\.py)$
         additional_dependencies: [pyyaml]
         pass_filenames: false
+        verbose: true
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.
