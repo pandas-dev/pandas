@@ -5,6 +5,7 @@ import collections
 from copy import deepcopy
 import datetime as dt
 from functools import partial
+from itertools import pairwise
 from json import loads
 import operator
 import pickle
@@ -31,6 +32,7 @@ import pandas._config.config as cf
 from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
+from pandas._libs.internals import BlockPlacement
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
@@ -63,7 +65,10 @@ from pandas.util._validators import (
     validate_min_count,
 )
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_is_view,
+    block_cast_dtype,
+)
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -216,6 +221,7 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.indexers.objects import BaseIndexer
+    from pandas.core.internals.blocks import Block
     from pandas.core.resample import Resampler
 
     _StylerKwargs: TypeAlias = dict[str, Any] | list[dict[str, Any]]
@@ -6772,8 +6778,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_type = dtype[self.name]
                 return self.astype(new_type, errors=errors)
 
-            # GH#44417 cast to Series so we can use .iat below, which will be
-            #  robust in case we
+            # GH#44417 a Series of target dtypes, reindexed to the columns below,
+            #  copes with duplicated column names
             from pandas import Series
 
             dtype_ser = Series(dtype, dtype=object)
@@ -6788,20 +6794,99 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
-            results = []
-            for i, (col_name, col) in enumerate(self.items()):
-                cdt = dtype_ser.iat[i]
-                if isna(cdt):
-                    res_col = col.copy(deep=False)
-                else:
-                    try:
-                        res_col = col.astype(dtype=cdt, errors=errors)
-                    except ValueError as ex:
-                        ex.args = (
-                            f"{ex}: Error while type casting for column '{col_name}'",
-                        )
-                        raise
-                results.append(res_col)
+            def cast_column(loc: int, column_dtype) -> Series:
+                try:
+                    return self._ixs(loc, axis=1).astype(column_dtype, errors=errors)
+                except ValueError as ex:
+                    ex.args = (
+                        f"{ex}: Error while type casting for column "
+                        f"'{self.columns[loc]}'",
+                    )
+                    raise
+
+            # GH#63433: cast columns going to the same numeric/bool numpy dtype
+            #  together, and every other column on its own as Series.astype does.
+            batches: dict[np.dtype, list[tuple[int, Any]]] = {}
+            one_by_one: list[tuple[int, Any]] = []
+            resolved: dict[tuple[type, Any], np.dtype | None] = {}
+            mgr = self._mgr
+            assert isinstance(mgr, BlockManager)  # Series case is handled above
+            current = mgr.get_dtypes()
+            mask = dtype_ser.notna()
+            for loc, column_dtype in zip(
+                np.flatnonzero(mask), dtype_ser[mask], strict=True
+            ):
+                target = None
+                if isinstance(column_dtype, (str, np.dtype, type)):
+                    spec = (type(column_dtype), column_dtype)
+                    if spec not in resolved:
+                        resolved[spec] = block_cast_dtype(column_dtype)
+                    target = resolved[spec]
+                if target is None:
+                    one_by_one.append((int(loc), column_dtype))
+                elif current[loc] != target:
+                    # a column already of the target dtype stays as it is, a view
+                    batches.setdefault(target, []).append((int(loc), column_dtype))
+            pieces: list[tuple[npt.NDArray[np.intp], Sequence[Block]]] = []
+            groups = list(batches.items())
+            for k, (target, items) in enumerate(groups):
+                by_loc = dict(items)
+                failed = False
+                # Per source block: cast each run of adjacent columns straight from
+                #  the block, or take the columns first when they are scattered in
+                #  many small runs (one cast instead of many tiny ones).
+                locs = np.array([i for i, _ in items], dtype=np.intp)
+                order = np.lexsort((mgr.blklocs[locs], mgr.blknos[locs]))
+                locs = locs[order]
+                blknos, blklocs = mgr.blknos[locs], mgr.blklocs[locs]
+                bounds = np.flatnonzero(np.diff(blknos, prepend=-1, append=-1))
+                for g0, g1 in pairwise(bounds):
+                    pos, bl = locs[g0:g1], blklocs[g0:g1]
+                    starts = np.flatnonzero(np.diff(bl, prepend=-2) != 1)
+                    ends = np.append(starts[1:], len(bl))
+                    src = mgr.blocks[blknos[g0]]
+                    if len(starts) <= 8:
+                        parts = [
+                            (
+                                pos[a:b],
+                                src.getitem_block_columns(
+                                    slice(bl[a], bl[a] + b - a),
+                                    BlockPlacement(slice(0, b - a)),
+                                ),
+                            )
+                            for a, b in zip(starts, ends, strict=True)
+                        ]
+                    else:
+                        parts = [(pos, blk) for blk in self.iloc[:, pos]._mgr.blocks]
+                    for part_locs, blk in parts:
+                        # A one-column block casts exactly as its column would,
+                        #  errors included, so it is never cast a second time.
+                        multi = len(blk.mgr_locs) > 1
+                        blk_errors = "raise" if multi and errors == "ignore" else errors
+                        try:
+                            nb = blk.astype(target, errors=blk_errors)
+                        except Exception:
+                            # Cast these columns one by one below, so the error
+                            #  names the first failing column; with errors="raise"
+                            #  the batches not tried yet go there too.
+                            one_by_one += [
+                                (j, by_loc[j]) for j in part_locs[blk.mgr_locs.as_array]
+                            ]
+                            failed = True
+                            continue
+                        pieces.append((part_locs, [nb]))
+                if failed and errors == "raise":
+                    one_by_one += [item for _, rest in groups[k + 1 :] for item in rest]
+                    break
+            if one_by_one:
+                one_by_one.sort(key=lambda item: item[0])
+                casted = concat([cast_column(i, d) for i, d in one_by_one], axis=1)
+                locs_arr = np.array([i for i, _ in one_by_one], dtype=np.intp)
+                pieces.append((locs_arr, casted._mgr.blocks))
+
+            new_mgr = mgr.replace_columns(pieces)
+            new = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            return new.__finalize__(self, method="astype")
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs

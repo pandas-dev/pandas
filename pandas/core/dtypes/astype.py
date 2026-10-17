@@ -8,6 +8,7 @@ from __future__ import annotations
 import inspect
 from typing import (
     TYPE_CHECKING,
+    Any,
     overload,
 )
 import warnings
@@ -378,3 +379,23 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
 
     # Assume this is a view since we don't know for sure if a copy was made
     return True
+
+
+def block_cast_dtype(dtype: Any) -> np.dtype | None:
+    """
+    The numeric or bool numpy dtype ``dtype`` names, or None.
+
+    Several columns going to such a dtype can be cast as one block with the same
+    result as casting each column on its own.
+    """
+    if isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+        # Series.astype rejects a class; pandas_dtype would instantiate it
+        return None
+    try:
+        resolved = pandas_dtype(dtype)
+    except Exception:
+        # Series.astype raises it, in column order
+        return None
+    if not isinstance(resolved, np.dtype) or resolved.kind not in "biufc":
+        return None
+    return resolved
