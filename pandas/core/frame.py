@@ -15730,10 +15730,12 @@ class DataFrame(NDFrame, OpsMixin):
             used as the column name in the resulting joined DataFrame.
         on : str, list of str, or array-like, optional
             Column or index level name(s) in the caller to join on the index
-            in `other`, otherwise joins index-on-index. If multiple
-            values given, the `other` DataFrame must have a MultiIndex. Can
-            pass an array as the join key if it is not already contained in
-            the calling DataFrame. Like an Excel VLOOKUP operation.
+            in `other`; otherwise joins index-on-index. A single label, or a
+            list or tuple of labels, refers to Column or index level name(s)
+            to join on in the left DataFrame.
+            An array-like other than a list or tuple with the same length
+            as the left DataFrame, or a list of these, is used as the join key
+            values directly instead of being looked up as a label.
         how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
             default 'left'
             How to handle the operation of the two objects.
@@ -16055,11 +16057,15 @@ class DataFrame(NDFrame, OpsMixin):
         left_on : Hashable or a sequence of the previous, or array-like
             Column or index level names to join on in the left DataFrame. Can also
             be an array or list of arrays of the length of the left DataFrame.
-            These arrays are treated as if they are columns.
+            These arrays are treated as if they are columns. A list or tuple of
+            labels selects existing columns or index levels; an array-like of
+            key values supplies the join keys directly.
         right_on : Hashable or a sequence of the previous, or array-like
             Column or index level names to join on in the right DataFrame. Can also
             be an array or list of arrays of the length of the right DataFrame.
-            These arrays are treated as if they are columns.
+            These arrays are treated as if they are columns. A list or tuple of
+            labels selects existing columns or index levels; an array-like of
+            key values supplies the join keys directly.
         left_index : bool, default False
             Use the index from the left DataFrame as the join key(s). If it is a
             MultiIndex, the number of keys in the other DataFrame (either the index
