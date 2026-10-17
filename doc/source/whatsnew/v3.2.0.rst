@@ -271,6 +271,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.agg`, :meth:`.DataFrameGroupBy.agg`, and resample/rolling ``agg`` with a dict, list, or named aggregation over more than 100 columns emitting a spurious ``PerformanceWarning`` with ``as_index=False`` or on a later :meth:`DataFrame.reset_index` (:issue:`61628`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``sort=True`` and ``dropna=False`` placing the ``NaN`` group in the middle of the result instead of last for object-dtype keys; :meth:`Index.union` had the same misordering (:issue:`70216`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` and ``closed="right"`` returning shifted labels or incorrect aggregations (:issue:`44363`)
+- Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a timezone-aware index and a ``Day`` or anchored frequency (e.g. ``"D"``, ``"W-FRI"``) raising when a bin edge fell on a midnight that does not exist or is ambiguous due to a daylight saving time transition (:issue:`62601`)
 -
 
 Reshaping

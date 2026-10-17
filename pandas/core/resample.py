@@ -2749,6 +2749,9 @@ class TimeGrouper(Grouper):
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
+                # GH#62601: a label on a nonexistent midnight was shifted forward
+                # (e.g. to 01:00); the bin still ends at the end of that day
+                edges_dti = edges_dti.normalize()
                 edges_dti = (
                     edges_dti
                     + Timedelta(days=1).as_unit(edges_dti.unit)
@@ -2982,7 +2985,9 @@ def _get_timestamp_range_edges(
 
     Returns
     -------
-    A tuple of length 2, containing the adjusted pd.Timestamp objects.
+    A tuple of length 2, containing the adjusted pd.Timestamp objects. For a
+    non-Tick ``freq`` and timezone-aware inputs, the edges are returned as
+    timezone-naive wall-clock times (GH#62601).
     """
     if isinstance(freq, Tick) or (isinstance(freq, Day) and first.tz is None):
         index_tz = first.tz
@@ -3008,6 +3013,17 @@ def _get_timestamp_range_edges(
             unit=unit,
         )
     else:
+        if first.tz is not None:
+            # GH#62601: an anchored edge is a wall-clock time (e.g. midnight)
+            # that may not exist, or exist twice, in the index timezone around
+            # a DST transition.  Do the arithmetic on tz-naive wall times and
+            # leave the edges naive; the caller localizes them along with the
+            # bins (see the ``ambiguous``/``nonexistent`` handling in
+            # ``TimeGrouper._get_time_bins``).  Localizing here would shift a
+            # nonexistent midnight to 01:00 and move every later bin with it.
+            first = first.tz_localize(None)
+            last = last.tz_localize(None)
+
         first = first.normalize()
         last = last.normalize()
 
