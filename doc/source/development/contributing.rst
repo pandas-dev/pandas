@@ -62,7 +62,7 @@ Self-review with pandas-review
 is an agent skill that reviews your change the way a maintainer would and ends with a verdict. If you used an
 automated tool, run it before you open a pull request and again before you re-request review, and don't expect a
 review until it reports ``LGTM`` or ``NITS ONLY``, or you have explained on the pull request why its remaining
-findings don't apply.
+findings don't apply. Pull requests at ``LGTM`` get reviewed sooner.
 
 * **Claude Code:** from your pandas clone, run ``/pandas-review`` to review the current branch, or
   ``/pandas-review 12345`` for an open pull request.
@@ -73,7 +73,8 @@ It needs an authenticated `GitHub CLI <https://cli.github.com/>`_ (``gh``), and 
 environment with the branch checked out, so it can run the tests. Use the strongest model your tool offers at a high
 effort setting, in a fresh session rather than the one that wrote the change; weaker settings produce more noise.
 
-``LGTM`` and ``NITS ONLY`` both mean stop: rerunning on an unchanged diff turns up new optional nits, not blockers.
+At ``NITS ONLY``, fix the nits you agree with and rerun once to aim for ``LGTM``. Stop after that: further reruns
+turn up new optional nits, not blockers.
 If you disagree with a finding, explain why on the pull request in your own words. Comments from maintainers take
 precedence over anything the tool says.
 

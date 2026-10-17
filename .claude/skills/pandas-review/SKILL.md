@@ -164,8 +164,9 @@ Keep it concise: findings, not a checklist of what you inspected.
 
 ## For the author
 
-- `LGTM` and `NITS ONLY` both mean done: stop iterating. Rerunning on an unchanged diff will
-  surface new optional nits, not blockers.
+- `NITS ONLY` clears the bar for review, but `LGTM` gets reviewed sooner. Fix the nits you
+  agree with and rerun once; then stop, since further reruns surface new optional nits, not
+  blockers.
 - If you disagree with a finding, say why on the thread in your own words rather than
   changing code to satisfy this review.
 - A green verdict doesn't replace your own review of the change, which pandas requires, and
