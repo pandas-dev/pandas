@@ -575,6 +575,23 @@ class TestFromRecords:
         expected = pd.DataFrame([], columns=["a", "c"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("label", [0, "", False])
+    def test_from_records_exclude_falsy_label(self, label):
+        # GH#18679
+        data = [[1, 2, 3], [4, 5, 6]]
+        columns = [label, "b", "c"]
+        result = pd.DataFrame.from_records(data, columns=columns, exclude=[label])
+        expected = pd.DataFrame(data, columns=columns).drop(columns=[label])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [0, [0]])
+    def test_from_records_index_falsy_label(self, index):
+        # GH#18679
+        data = [[1, 2, 3], [4, 5, 6]]
+        result = pd.DataFrame.from_records(data, index=index)
+        expected = pd.DataFrame({1: [2, 5], 2: [3, 6]}, index=pd.Index([1, 4], name=0))
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
     def test_from_records_missing_value_key(self, missing_value, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/63889
