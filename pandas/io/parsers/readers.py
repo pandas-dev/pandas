@@ -589,16 +589,17 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
     if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
         return False
 
-    # A separator or quotechar wider than one byte forces the python engine
-    # too, and warns on the way.  The eligibility check has to catch these
+    # A separator, quotechar or numeric marker wider than one byte forces
+    # the python engine too, and warns on the way. Catch these options
     # here: by the time the name-inference read reports the python engine, it
     # has already raised that warning, which the serial read then raises
     # again.  GH#66259
     if len(delimiter) == 1 and ord(delimiter) > 127:
         return False
-    quotechar = kwds.get("quotechar")
-    if isinstance(quotechar, str) and len(quotechar) == 1 and ord(quotechar) > 127:
-        return False
+    for option in ("quotechar", "thousands", "decimal"):
+        marker = kwds.get(option)
+        if isinstance(marker, str) and len(marker) == 1 and ord(marker) > 127:
+            return False
 
     # Full-line comments before/inside the preamble shift the header location
     # in ways _find_data_start_offset cannot see.
@@ -1593,6 +1594,10 @@ def read_csv(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
+
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``. If ``dict``
@@ -2197,6 +2202,10 @@ def read_table(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
 
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
@@ -2947,6 +2956,22 @@ class TextFileReader(abc.Iterator[DataFrame]):
                     f"and the '{engine}' engine does not support such quotechars"
                 )
                 engine = "python"
+
+        if engine == "c":
+            for option in ("thousands", "decimal"):
+                marker = options[option]
+                if (
+                    isinstance(marker, (str, bytes))
+                    and len(marker) == 1
+                    and ord(marker) > 127
+                ):
+                    # The C parser consumes UTF-8 bytes, so even a code point
+                    # below 256 cannot be represented by its single char.
+                    fallback_reason = (
+                        f"the 'c' engine does not support non-ASCII {option} markers"
+                    )
+                    engine = "python"
+                    break
 
         if fallback_reason and self._engine_specified:
             raise ValueError(fallback_reason)

@@ -405,12 +405,10 @@ class NAType(C_NAType):
     """
     NA ("not available") missing value indicator.
 
-    .. warning::
-
-       Experimental: the behaviour of NA can still change without warning.
-
     The NA singleton is a missing value indicator defined by pandas. It is
-    used in certain new extension dtypes (currently the "string" dtype).
+    used by the nullable extension dtypes, such as the nullable integer,
+    floating, boolean and ``"string"`` dtypes (the default ``str`` dtype
+    uses NaN instead).
 
     See Also
     --------

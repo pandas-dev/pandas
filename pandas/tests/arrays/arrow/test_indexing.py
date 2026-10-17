@@ -615,3 +615,34 @@ def test_setitem_float_nan_is_na(using_nan_is_na):
         ser[2] = np.nan
         assert isinstance(ser[2], float)
         assert np.isnan(ser[2])
+
+
+def test_arrow_string_accepts_pyarrow_string_scalar():
+    # GH#71075 Series.where stored a character code of the string
+    arr = pd.array(["a", None], dtype="string[pyarrow]")
+    assert list(arr.fillna(pa.scalar("x"))) == ["a", "x"]
+    ser = pd.Series(["a", "b"], dtype="string[pyarrow]")
+    result = ser.where([True, False], pa.scalar("xy"))
+    tm.assert_series_equal(result, pd.Series(["a", "xy"], dtype="string[pyarrow]"))
+    arr[1] = pa.scalar("y")
+    assert list(arr) == ["a", "y"]
+
+
+@pytest.mark.parametrize(
+    "value", [pa.scalar(1, type=pa.int64()), pa.scalar(1.5), pa.scalar(True)]
+)
+def test_arrow_string_rejects_non_string_pyarrow_scalar(value):
+    # GH#71075 pyarrow would cast a number or a bool to its string form
+    arr = pd.array(["a", None], dtype="string[pyarrow]")
+    with pytest.raises(TypeError, match="Value should be a string"):
+        arr[0] = value
+    with pytest.raises(TypeError, match="Value should be a string"):
+        arr.fillna(value)
+
+
+def test_arrow_string_accepts_typed_null_scalar():
+    # GH#71075 a typed null pa.Scalar means "assign NA", matching
+    #  int64[pyarrow]'s test_setitem_typed_null_scalar_not_rejected
+    arr = pd.array(["a", "b"], dtype="string[pyarrow]")
+    arr[0] = pa.scalar(None, type=pa.int64())
+    assert arr[0] is pd.NA

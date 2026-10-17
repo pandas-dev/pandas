@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_python_scalars
 from pandas._config.config import _global_config as config
 
 from pandas._libs import (
@@ -35,8 +36,10 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    common_dtype_categorical_compat,
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_unbox_numpy_scalar,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -1207,6 +1210,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             result = np.empty(n, dtype=dtype)
             result = ensure_wrapped_if_datetimelike(result)
 
+        # GH#13468 for an extension dtype, result is only a buffer for _from_sequence
+        unbox = using_python_scalars() and not isinstance(dtype, ExtensionDtype)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
@@ -1228,6 +1234,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     else:
                         new_dtype = np.float64
                     result = result.astype(new_dtype)
+                if unbox and result.dtype == object:
+                    item = maybe_unbox_numpy_scalar(item, object_with_dtype=blk)
                 result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
@@ -1364,6 +1372,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Accessing public blknos ensures the public versions are initialized
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
+
+        if not value_is_extension_type and len(blklocs) and len(value) != len(blklocs):
+            # Otherwise value_getitem below silently drops value columns, or
+            #  yields a block narrower than its placement, GH#68445.  An empty
+            #  loc writes nothing, so it stays a no-op.
+            raise ValueError(
+                f"Got {len(blklocs)} positions but value has {len(value)} columns."
+            )
 
         unfit_mgr_locs = []
         unfit_val_locs = []
@@ -1942,6 +1958,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     [blk.dtype for blk in self.blocks]
                 )
                 self._interleaved_dtype = dtype
+            # not cached since it depends on the values, GH#38240
+            dtype = common_dtype_categorical_compat(  # type: ignore[assignment]
+                [blk.values for blk in self.blocks],
+                dtype,  # type: ignore[arg-type]
+            )
 
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"

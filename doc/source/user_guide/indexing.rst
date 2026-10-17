@@ -44,19 +44,19 @@ of multi-axis indexing.
 
 * ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
 
-    * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a
-      *label* of the index. This use is **not** an integer position along the
-      index.).
-    * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
-      slices, **both** the start and the stop are included, when present in the
-      index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
-      and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
-    * A boolean array (any ``NA`` values will be treated as ``False``).
-    * A ``callable`` function with one argument (the calling Series or DataFrame) and
-      that returns valid output for indexing (one of the above).
-    * A tuple of row (and column) indices whose elements are one of the
-      above inputs.
+  * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a
+    *label* of the index. This use is **not** an integer position along the
+    index.).
+  * A list or array of labels ``['a', 'b', 'c']``.
+  * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
+    slices, **both** the start and the stop are included, when present in the
+    index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
+    and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
+  * A boolean array (any ``NA`` values will be treated as ``False``).
+  * A ``callable`` function with one argument (the calling Series or DataFrame) and
+    that returns valid output for indexing (one of the above).
+  * A tuple of row (and column) indices whose elements are one of the
+    above inputs.
 
   See more at :ref:`Selection by Label <indexing.label>`.
 
@@ -67,14 +67,14 @@ of multi-axis indexing.
   out-of-bounds indexing.  (this conforms with Python/NumPy *slice*
   semantics).  Allowed inputs are:
 
-    * An integer e.g. ``5``.
-    * A list or array of integers ``[4, 3, 0]``.
-    * A slice object with ints ``1:7``.
-    * A boolean array (any ``NA`` values will be treated as ``False``).
-    * A ``callable`` function with one argument (the calling Series or DataFrame) and
-      that returns valid output for indexing (one of the above).
-    * A tuple of row (and column) indices whose elements are one of the
-      above inputs.
+  * An integer e.g. ``5``.
+  * A list or array of integers ``[4, 3, 0]``.
+  * A slice object with ints ``1:7``.
+  * A boolean array (any ``NA`` values will be treated as ``False``).
+  * A ``callable`` function with one argument (the calling Series or DataFrame) and
+    that returns valid output for indexing (one of the above).
+  * A tuple of row (and column) indices whose elements are one of the
+    above inputs.
 
   See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced

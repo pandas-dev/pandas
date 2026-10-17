@@ -2086,9 +2086,12 @@ def test_parallel_fallback_does_not_repeat_python_layer_warning(tmp_path, monkey
     ]
 
 
-@pytest.mark.parametrize("kwargs", [{"quotechar": "»"}, {"sep": "§"}])
-def test_multibyte_sep_or_quotechar_warns_once(tmp_path, monkeypatch, kwargs):
-    # Both force TextFileReader onto the python engine, which warns while
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"quotechar": "»"}, {"sep": "§"}, {"thousands": "\u202f"}, {"decimal": "\u066b"}],
+)
+def test_multibyte_parser_options_warn_once(tmp_path, monkeypatch, kwargs):
+    # These force TextFileReader onto the python engine, which warns while
     # falling back.  The parallel path has to decline them up front: its
     # name-inference read would raise that warning before it can notice the
     # engine it got, and the serial read then raises it again (GH#66259).

@@ -186,6 +186,22 @@ def test_append_mixed_date_tzaware_timestamp():
     tm.assert_index_equal(result, expected)
 
 
+def test_append_unorderable_levels_no_warning():
+    # GH#61477
+    mi1 = pd.MultiIndex.from_tuples([("a", "A"), ("a", "B"), ("b", ("x", "y"))])
+    mi2 = pd.MultiIndex.from_tuples([("c", 1), ("c", 2)])
+    with tm.assert_produces_warning(False):
+        result = mi1.append(mi2)
+    expected = pd.MultiIndex.from_tuples([*mi1, *mi2])
+    tm.assert_index_equal(result, expected)
+
+    df1 = pd.DataFrame([[0, 0, 0]], columns=mi1)
+    df2 = pd.DataFrame([[1, 1]], columns=mi2)
+    with tm.assert_produces_warning(False):
+        result = pd.concat([df1, df2], axis=1)
+    tm.assert_index_equal(result.columns, expected)
+
+
 def test_append_overlapping_interval_levels():
     # GH 54934
     ivl1 = pd.IntervalIndex.from_breaks([0.0, 1.0, 2.0])

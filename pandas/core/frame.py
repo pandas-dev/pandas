@@ -2276,7 +2276,7 @@ class DataFrame(NDFrame, OpsMixin):
                     result_index = ensure_index_from_sequences(index_data, names=index)
                     exclude.update(index)
 
-        if any(exclude):
+        if exclude:
             arr_exclude = (x for x in exclude if x in arr_columns)
             to_remove = {
                 arr_columns.get_loc(col)
@@ -3496,6 +3496,12 @@ class DataFrame(NDFrame, OpsMixin):
         an XML element. Column values can be mapped to either XML element text
         or attributes, and the output supports namespaces, XSLT stylesheets,
         and custom root/row element names.
+
+        .. warning::
+
+           XSLT is a programming language, and a ``stylesheet`` is run without
+           restrictions: it can read and write local files. Only use stylesheets
+           from trusted sources.
 
         Parameters
         ----------
@@ -4897,13 +4903,18 @@ class DataFrame(NDFrame, OpsMixin):
         if (
             key in self.columns
             and value.ndim == 1
-            and not isinstance(value.dtype, ExtensionDtype)
+            and not is_1d_only_ea_dtype(value.dtype)
         ):
             # broadcast across multiple columns if necessary
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1)).T
+                    # GH#71078 reshape/repeat rather than np.tile, which would
+                    #  degrade a 2-D-capable EA (tz-aware datetime64, period)
+                    #  to object. repeat(axis=) is not in the _supports_2d
+                    #  contract, only NDArrayBacked honours it; see GH#69153
+                    ncols = len(existing_piece.columns)
+                    value = value.reshape(1, -1).repeat(ncols, axis=0).T
                     refs = None
 
         self._set_item_mgr(key, value, refs)
@@ -5111,6 +5122,9 @@ class DataFrame(NDFrame, OpsMixin):
             with. Reducing those columns back to one dimension, as in
             ``df.query("a.max(axis=1) > 4")``, is fine.
 
+            If ``expr`` evaluates to anything other than a boolean array or a
+            DataFrame.
+
         See Also
         --------
         eval : Evaluate a string describing operations on
@@ -5246,6 +5260,17 @@ class DataFrame(NDFrame, OpsMixin):
                 "a row mask. Rename or drop the duplicate labels, or reduce "
                 "the result to one dimension with e.g. .any(axis=1)."
             )
+
+        # GH#8560 a non-boolean result would otherwise be silently used as labels;
+        #  a non-boolean DataFrame already raises in __getitem__
+        if not isinstance(res, DataFrame) and not com.is_bool_indexer(res):
+            msg = "expr must evaluate to a boolean array, got"
+            dtype = getattr(res, "dtype", None) if is_list_like(res) else None
+            if dtype is None:
+                raise ValueError(f"{msg} {type(res).__name__}")
+            # an empty object column may still be a bool column once it has rows
+            if not (dtype == object and len(res) == 0):
+                raise ValueError(f"{msg} dtype {dtype}")
 
         try:
             result = self.loc[res]
@@ -9040,7 +9065,10 @@ class DataFrame(NDFrame, OpsMixin):
         if diff:
             raise KeyError(Index(diff))
 
-        if len(subset) == 1 and self.columns.is_unique:
+        if len(subset) == 0:
+            # GH#12869 match self[[]].duplicated()
+            result = self._constructor_sliced(False, dtype=bool, index=self.index)
+        elif len(subset) == 1 and self.columns.is_unique:
             # GH#45236 This is faster than get_group_index below
             result = self[next(iter(subset))].duplicated(keep)
             result.name = None
@@ -13608,6 +13636,8 @@ class DataFrame(NDFrame, OpsMixin):
             <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
+            Raises if the group keys cannot be sorted; use ``sort=False`` for
+            such keys.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
             the groups will appear in the same order as they did in the original
@@ -17194,6 +17224,11 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise NotImplementedError(name)
 
+        if name in ("min", "max") and any(
+            block.dtype.kind == "c" for block in self._mgr.blocks
+        ):
+            nanops.warn_complex_unordered()
+
         for block in self._mgr.blocks:
             vals = block.values
             if acc_dtype is not None and vals.dtype != acc_dtype:
@@ -20344,11 +20379,7 @@ class _DuplicateColumnRecorder(dict[Any, Any]):
     this only takes note and ``query`` decides once it can see the result.
 
     Lookups always raise ``KeyError`` so that the column resolvers behind this
-    one still supply the value. The names live in an attribute rather than in
-    the dict itself because the scope machinery rewrites an ``@local``
-    reference by writing it into the first resolver that *contains* that name
-    (``Scope.swapkey``), so anything stored here would capture locals sharing a
-    name with a duplicated column.
+    one still supply the value.
     """
 
     def __init__(self, names: set[Hashable]) -> None:

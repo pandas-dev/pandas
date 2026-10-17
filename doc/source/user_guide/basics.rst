@@ -1332,10 +1332,10 @@ Aligning objects with each other with ``align``
 The :meth:`~Series.align` method is the fastest way to simultaneously align two objects. It
 supports a ``join`` argument (related to :ref:`joining and merging <merging>`):
 
-  - ``join='outer'``: take the union of the indexes (default)
-  - ``join='left'``: use the calling object's index
-  - ``join='right'``: use the passed object's index
-  - ``join='inner'``: intersect the indexes
+- ``join='outer'``: take the union of the indexes (default)
+- ``join='left'``: use the calling object's index
+- ``join='right'``: use the passed object's index
+- ``join='inner'``: intersect the indexes
 
 It returns a tuple with both of the reindexed Series:
 

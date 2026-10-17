@@ -990,6 +990,25 @@ class Block(PandasObject, libinternals.Block):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
+                    if (
+                        self.ndim == 2
+                        and self.shape[0] > 1
+                        and not self.is_object
+                        and not mask.any(axis=1).all()
+                    ):
+                        # split so we only cast columns with a match (GH#30512)
+                        blocks = []
+                        for i, nb in enumerate(self._split()):
+                            blocks.extend(
+                                nb._replace_coerce(
+                                    to_replace,
+                                    value,
+                                    mask=mask[i : i + 1],
+                                    inplace=inplace,
+                                    regex=regex,
+                                )
+                            )
+                        return blocks
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:
