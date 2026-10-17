@@ -3330,8 +3330,18 @@ class MultiIndex(Index):
             codes.extend(
                 [self.codes[lev] for lev in range(len(self.levels)) if lev not in level]
             )
-        else:
+        elif len(level) != 0:
+            # ``level`` is already a list of level numbers. An empty list
+            # sorts nothing; do not treat that like the falsy ``level=0``.
             sortorder = level[0]
+
+        if len(codes) == 0:
+            # GH#25831: nothing to sort (empty ``level`` and no remaining
+            # levels). ``np.lexsort`` of an empty key list returns a length-0
+            # indexer, so keep the original order instead.
+            if na_position not in ["first", "last"]:
+                raise ValueError(f"invalid na_position: {na_position}")
+            return self.copy(), np.arange(len(self), dtype=np.intp)
 
         indexer = lexsort_indexer(
             codes, orders=ascending, na_position=na_position, codes_given=True

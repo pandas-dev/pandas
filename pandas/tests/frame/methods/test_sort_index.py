@@ -984,6 +984,68 @@ class TestDataFrameSortIndexKey:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("level", [[], ()])
+@pytest.mark.parametrize("sort_remaining", [True, False])
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sort_index_empty_level(level, sort_remaining, axis, ascending):
+    # GH#25831
+    df = pd.DataFrame(
+        {"c": [0, 0, 1]},
+        index=pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)], names=["a", "b"]),
+    )
+    if sort_remaining:
+        positions = [0, 2, 1] if ascending else [1, 2, 0]
+        expected = df.iloc[positions]
+    else:
+        expected = df.copy()
+    if axis == 1:
+        df = df.T
+        expected = expected.T
+
+    result = df.sort_index(
+        level=level,
+        axis=axis,
+        ascending=ascending,
+        sort_remaining=sort_remaining,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sort_index_empty_level_not_level_zero():
+    # GH#25831: level=0 is falsy but still selects the first level.
+    df = pd.DataFrame(
+        {"c": [1, 2, 3]},
+        index=pd.MultiIndex.from_tuples([(1, 2), (1, 0), (0, 1)], names=["a", "b"]),
+    )
+    result = df.sort_index(level=0, sort_remaining=False)
+    expected = df.iloc[[2, 0, 1]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.sort_index(level=[], sort_remaining=False)
+    tm.assert_frame_equal(result, df)
+
+
+def test_sort_index_empty_level_ignore_index():
+    # GH#25831
+    df = pd.DataFrame(
+        {"c": [0, 0, 1]},
+        index=pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)], names=["a", "b"]),
+    )
+    result = df.sort_index(level=[], sort_remaining=False, ignore_index=True)
+    expected = pd.DataFrame({"c": [0, 0, 1]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sort_index_empty_level_empty_frame():
+    # GH#25831
+    df = pd.DataFrame(
+        {"c": [0, 0, 1]},
+        index=pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)], names=["a", "b"]),
+    ).iloc[:0]
+    result = df.sort_index(level=[], sort_remaining=False)
+    tm.assert_frame_equal(result, df)
+
+
 def test_sort_index_with_sliced_multiindex():
     # GH 55379
     mi = pd.MultiIndex.from_tuples(
