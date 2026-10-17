@@ -301,8 +301,7 @@ the Core Team either through public or private channels as deemed appropriate.
 
 ## Changing the Governance
 
-Changes to the governance are submitted via a GitHub pull request to The Project's
-[governance page](https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md).
+Changes to the governance are submitted via a GitHub pull request to [the source of this page](https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md).
 The pull request is then refined in response to public comment and review, with
 the goal being consensus in the community.  After this open period, a Core Team
 Member proposes to the Core Team that the changes be ratified and the pull
