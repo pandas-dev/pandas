@@ -11,6 +11,11 @@ labeling information
 
 from __future__ import annotations
 
+__lazy_modules__ = (
+    "pandas.io.common",
+    "pandas.io.formats.info",
+)
+
 import collections
 from collections import abc
 import functools

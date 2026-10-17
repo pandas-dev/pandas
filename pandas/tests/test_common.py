@@ -196,7 +196,10 @@ def test_version_tag():
         ) from err
 
 
-@pytest.mark.parametrize("obj", [obj for obj in pd.__dict__.values() if callable(obj)])
+# getattr, not pd.__dict__.values(): PEP 810 lazy imports leave non-callable proxies
+@pytest.mark.parametrize(
+    "obj", [obj for obj in (getattr(pd, name) for name in dir(pd)) if callable(obj)]
+)
 def test_serializable(obj, temp_file):
     # GH 35611
     unpickled = tm.round_trip_pickle(obj, temp_file)

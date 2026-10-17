@@ -6,6 +6,8 @@ Name `localization` is chosen to avoid overlap with builtin `locale` module.
 
 from __future__ import annotations
 
+__lazy_modules__ = ("subprocess",)
+
 from contextlib import contextmanager
 import functools
 import locale
