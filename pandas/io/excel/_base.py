@@ -249,9 +249,9 @@ def read_excel(
         Row (0-indexed) to use for the column labels of the parsed
         DataFrame. If a list of integers is passed those row positions will
         be combined into a ``MultiIndex``, with levels in the order given.
-        Rows above the first listed row (``min(header)``), as well as rows
-        between the listed positions, are skipped and do not appear in the
-        result. Use None if there is no header.
+        Rows before the first header row are skipped and do not appear in
+        the result; when a list is passed, rows between the listed positions
+        are skipped as well. Use None if there is no header.
     names : array-like, default None
         List of column names to use. If file contains no header row,
         then you should explicitly pass header=None.
@@ -1777,9 +1777,9 @@ class ExcelFile:
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
             be combined into a ``MultiIndex``, with levels in the order given.
-            Rows above the first listed row (``min(header)``), as well as rows
-            between the listed positions, are skipped and do not appear in the
-            result. Use None if there is no header.
+            Rows before the first header row are skipped and do not appear in
+            the result; when a list is passed, rows between the listed positions
+            are skipped as well. Use None if there is no header.
         names : array-like, default None
             List of column names to use. If file contains no header row,
             then you should explicitly pass header=None.
