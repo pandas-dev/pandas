@@ -113,11 +113,12 @@ deprecation2
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
-- Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, and ``cummax`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`)
+- Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, ``cummax``, ``clip``, and the comparisons ``<``, ``<=``, ``>``, ``>=`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`, :issue:`70087`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
+- Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
@@ -128,6 +129,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
+- Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.bug_fixes:
@@ -167,6 +169,9 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
+- Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting integer and boolean columns when the equal values were only in rows dropped from the result (:issue:`39899`)
+- Bug in :meth:`DataFrame.from_records` not dropping the ``exclude`` and ``index`` columns when all of their labels were falsy, such as ``0`` (:issue:`18679`)
 - Bug in :meth:`DataFrame.replace` with a dict or list replacing values with ``None`` casting other columns of the same dtype to ``object`` even when they contained no value to replace (:issue:`30512`)
 - Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
 - Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
@@ -190,6 +195,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several columns and ``value`` was a timezone-aware ``datetime64`` or ``period`` scalar, or a one-dimensional :class:`Series` of either dtype; it now broadcasts across the matched columns as the other dtypes already did (:issue:`71078`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when the key matched several columns (duplicate or :class:`MultiIndex` columns) and ``value`` was a two-dimensional array without one column per matched column; it now raises ``ValueError`` (:issue:`68445`)
 - Bug in :meth:`DataFrame.isetitem` with several positions silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when an arraylike ``value`` did not have one column per position; it now raises ``ValueError`` (:issue:`68445`)
+- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.at` setitem with a single row label adding a new column from a list-like value raising or setting the wrong value (:issue:`30649`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising or flattening a 2D value (e.g. a list of lists) set into a single ``object`` cell of a mixed-dtype :class:`DataFrame` (:issue:`69152`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` for a ``True`` or ``False`` label present in an object-dtype :class:`Index` or the first level of a :class:`MultiIndex` (:issue:`50165`)
@@ -198,6 +204,7 @@ Indexing
 
 Missing
 ^^^^^^^
+- Bug in :meth:`DataFrame.ffill` and :meth:`DataFrame.bfill` with ``axis=1`` and ``inplace=True`` not modifying the :class:`DataFrame` and returning a new object instead of ``self`` (:issue:`71159`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with a large ``limit`` raising on 32-bit platforms and being very slow on long runs of missing values (:issue:`34936`)
 -
 
@@ -211,6 +218,7 @@ I/O
 ^^^
 - Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
 - Bug in :func:`read_csv` silently misparsing non-ASCII ``thousands`` and ``decimal`` markers with the C engine; these now fall back to the Python engine with a :class:`errors.ParserWarning`, or raise ``ValueError`` if ``engine="c"`` is explicitly specified (:issue:`71158`)
+- Bug in :func:`read_csv` where a ``dtype`` given for a ``parse_dates`` column undid the date parsing, returning strings, objects, integers or categories instead of datetimes (:issue:`57512`)
 - Bug in :func:`read_csv` with ``engine="c"`` and ``comment`` not skipping a line containing only whitespace before the comment character (:issue:`55916`)
 - Bug in :func:`read_csv` with ``engine="python"`` and ``index_col`` reading a date like ``"20180101"`` as nanoseconds since the epoch when ``dtype`` is a pyarrow timestamp dtype (:issue:`24542`)
 - Bug in :func:`read_csv`, :func:`read_excel`, :func:`read_fwf` and :func:`read_html` returning wrong column labels and treating header rows as data when ``header`` was a list not in increasing order, such as ``header=[1, 0]`` (:issue:`47011`)
@@ -226,6 +234,7 @@ I/O
 - Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
 - Bug in :meth:`DataFrame.to_sql` creating MySQL and MariaDB datetime and time columns that silently dropped fractional seconds (:issue:`48435`)
 - Bug in :meth:`DataFrame.to_sql` not rolling back a partial write when an error was raised partway, including the ``DROP TABLE`` from ``if_exists="replace"``, which ``sqlite3`` also committed before writing the new table; on an ADBC connection the rollback also discards earlier uncommitted statements (:issue:`32933`)
+- Bug in :meth:`DataFrame.to_stata` raising ``ValueError`` for an empty DataFrame with a categorical column, and :func:`read_stata` not converting the column back to a categorical (:issue:`71126`)
 - Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and :meth:`DataFrame.to_html` ignoring ``na_rep`` for ``None``, ``pd.NA``, and ``NaT`` values in object-dtype columns and an explicit ``na_rep="NaN"`` for any missing value, and in :meth:`DataFrame.to_xml` raising for ``na_rep`` with nullable, pyarrow-backed, or categorical columns containing missing values (:issue:`54872`)
 - Bug in displaying a :class:`Series` or :class:`DataFrame` in IPython with ``display.html.table_schema`` enabled printing a traceback when the data cannot be converted to JSON, such as non-UTF-8 ``bytes`` (:issue:`16848`)
 - Bug in the repr of a :class:`Series` or :class:`DataFrame` with ``longdouble`` (e.g. ``float128``) dtype showing values outside the ``float64`` range as ``0`` or ``inf`` (:issue:`17809`)
@@ -260,6 +269,7 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` (and Series variants) on ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` data treating ``NaT`` as a regular value and losing precision when the group key contains ``NA`` (:issue:`69923`)
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` raising ``NotImplementedError``, often with no message, instead of ``TypeError`` on columns that do not support them, e.g. ``object`` columns and :class:`ArrowDtype` date, time and binary columns (:issue:`69791`)
+- Bug in :meth:`.DataFrameGroupBy.max`, :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.cummin` (and Series variants) on nullable float data with the ``future.distinguish_nan_and_na`` option enabled returning ``inf`` or ``-inf`` for all-``NaN`` groups and ignoring ``NaN`` in other groups; ``NaN`` now propagates as in :meth:`.DataFrameGroupBy.sum`; under the default option, :class:`ArrowDtype` float data containing ``NaN`` now gives ``NA`` instead of ignoring the ``NaN`` (:issue:`59106`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
 - Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`42617`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
@@ -269,17 +279,19 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.agg`, :meth:`.DataFrameGroupBy.agg`, and resample/rolling ``agg`` with a dict, list, or named aggregation over more than 100 columns emitting a spurious ``PerformanceWarning`` with ``as_index=False`` or on a later :meth:`DataFrame.reset_index` (:issue:`61628`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``sort=True`` and ``dropna=False`` placing the ``NaN`` group in the middle of the result instead of last for object-dtype keys; :meth:`Index.union` had the same misordering (:issue:`70216`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` and ``closed="right"`` returning shifted labels or incorrect aggregations (:issue:`44363`)
+- Bug in time-based :meth:`.Rolling.cov` and :meth:`.Rolling.corr` raising ``ValueError`` or silently returning wrong results when ``other`` has a different index; the result is now computed on the aligned index, as with integer windows. With ``on``, a mismatched index now raises ``ValueError`` (:issue:`62937`)
 -
 
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
+- Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
+- Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
 
 Sparse
 ^^^^^^
--
--
+- Bug in setting integer :class:`SparseDtype` values into an integer :class:`Series` or :class:`Index` (``__setitem__``, ``.loc``, ``.iloc``, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.update`, :meth:`Index.putmask`) raising ``AttributeError: 'SparseDtype' object has no attribute 'itemsize'`` (:issue:`68457`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
@@ -307,6 +319,7 @@ Other
 - Bug in :meth:`DataFrame.agg`, :meth:`Series.agg` and the ``agg`` methods of groupby, resample and window objects silently ignoring ``*args`` and ``**kwargs`` when ``func`` is a dict, e.g. ``df.agg({"a": "sum"}, min_count=1)``; they are now passed to each function, as with a list of functions, so a function that does not accept them now raises ``TypeError`` (:issue:`23889`)
 - Bug in :meth:`DataFrame.duplicated` and :meth:`DataFrame.drop_duplicates` raising ``ValueError`` when ``subset`` is an empty list; no rows are now marked as duplicates, matching a :class:`DataFrame` with no columns (:issue:`12869`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` with ``engine="numexpr"`` where a column used again in a later line of a multi-line expression, or after a subscript such as ``a[a > 0]``, was treated as a NumPy array, raising ``TypeError`` or silently giving wrong results; :func:`eval` also no longer replaces the values of a passed ``resolvers`` mapping with NumPy arrays (:issue:`59062`)
+- Bug in :meth:`DataFrame.eval`, :meth:`DataFrame.query`, and :func:`eval` with the default ``engine="numexpr"`` raising ``RecursionError`` for arithmetic between object or string columns (e.g. ``"a + b"`` on two string columns) and ``ValueError`` for an expression that is a single object or string column (:issue:`21088`, :issue:`27639`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where ``==`` and ``!=`` against a string gave different results than the same comparison outside of ``query``, e.g. returning no rows for a ``datetime64``, ``timedelta64``, or :class:`PeriodDtype` column, or raising ``NotImplementedError`` with ``parser="python"`` (:issue:`54199`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where a column named ``inf`` or ``Inf`` was ignored in favor of ``np.inf``, raising ``KeyError`` or silently returning wrong results (:issue:`47859`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` with ``engine="numexpr"`` raising ``AttributeError`` for some comparisons and ``in``/``not in`` checks whose operand is a math function or unary operator, e.g. ``abs(a) in [1, 2]`` (:issue:`31848`)
