@@ -962,8 +962,7 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            # GH#43547 relabel rather than take ._values, which casts the
-            #  columns to a common dtype
+            # GH#43547
             indexed = data[values].set_axis(multiindex, axis=0).set_axis(values, axis=1)
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
