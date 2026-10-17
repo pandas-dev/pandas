@@ -3153,6 +3153,92 @@ def test_mean_nullable_int_axis_1():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["sum", "prod", "min", "max", "mean", "any", "all"])
+@pytest.mark.parametrize("dtype", ["int64", "uint64", "float32", "float64"])
+@pytest.mark.parametrize("readonly", [True, False])
+@pytest.mark.parametrize("strided", [True, False])
+def test_reduce_axis1_preserves_input(method, dtype, readonly, strided, skipna):
+    # GH#68424: reusing the accumulator must not modify the input blocks.
+    values = np.array([[0, 2, 3, 4], [5, 0, 7, 8], [9, 10, 11, 0]], dtype=dtype)
+    if values.dtype.kind == "f":
+        values[0, 1] = np.nan
+        values[:, 2] = np.nan
+    if readonly:
+        values.flags.writeable = False
+    df = pd.DataFrame(dict(enumerate(values)), copy=False)
+    if strided:
+        df = df.iloc[::2]
+    assert len(df._mgr.blocks) == 3
+    original = df.copy(deep=True)
+
+    expected = getattr(df.T, method)(skipna=skipna)
+    result = getattr(df, method)(axis=1, skipna=skipna)
+
+    tm.assert_series_equal(result, expected, check_exact=True)
+    tm.assert_frame_equal(df, original, check_exact=True)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize(
+    "dtypes",
+    [("float32", "float64"), ("float64", "float32"), ("int64", "uint64")],
+)
+def test_reduce_axis1_accumulator_promotion(method, dtypes):
+    # GH#68424: an in-place combine must not prevent dtype promotion.
+    left, right = dtypes
+    df = pd.DataFrame({"a": np.array([1, 2], dtype=left)})
+    df["b"] = np.array([3, 4], dtype=right)
+    df["c"] = np.array([5, 6], dtype=right)
+    assert len(df._mgr.blocks) == 3
+
+    result = getattr(df, method)(axis=1)
+    expected = getattr(df.T, method)()
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("ncols", [8, 128])
+@pytest.mark.parametrize("has_na", [False, True])
+def test_reduce_axis1_float_sum_pairwise(dtype, ncols, has_na, skipna):
+    # GH#68424: preserve NumPy's pairwise sum along a contiguous reduction axis.
+    large = 1e8 if dtype == "float32" else 1e16
+    values = np.array([large, 1, -large, 1] * (ncols // 4), dtype=dtype)
+    if has_na:
+        values = np.append(values, np.array([np.nan], dtype=dtype))
+    df = pd.DataFrame(values.reshape(1, -1))
+    df["extra"] = np.zeros(1, dtype=dtype)
+    assert len(df._mgr.blocks) == 2
+
+    result = df.sum(axis=1, skipna=skipna)
+    expected = pd.Series([np.nan if has_na and not skipna else 0.0], dtype=dtype)
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "dtype, values",
+    [
+        ("complex64", [0.11492689 - 0.47085008j, -0.0045576026 + 1.0177972j]),
+        (
+            "complex128",
+            [
+                -1.8382592074004205 - 0.0316023160288298j,
+                0.01586268946121923 + 0.09788517609395306j,
+            ],
+        ),
+    ],
+)
+def test_reduce_axis1_complex_prod_rounding(dtype, values, skipna):
+    # GH#68424: in-place complex multiplication can change rounding.
+    values = np.array(values, dtype=dtype)
+    df = pd.DataFrame({"a": values[:1]})
+    df["b"] = values[1:]
+    assert len(df._mgr.blocks) == 2
+
+    result = df.prod(axis=1, skipna=skipna)
+    expected = pd.Series(values[:1] * values[1:])
+    tm.assert_series_equal(result, expected, check_exact=True)
+
+
 def test_numeric_only_validates_bool():
     # GH#53098
     df = pd.DataFrame({"A": [1, 2, 3], "B": [1.0, 2.0, 3.0], "C": ["x", "y", "z"]})
