@@ -18,6 +18,8 @@ import numpy as np
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import (
+    is_bool,
+    is_bool_array,
     is_np_dtype,
     item_from_zerodim,
 )
@@ -77,6 +79,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import algorithms as algos
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -1256,7 +1259,16 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 if com.is_null_slice(new_key):
                     return section
                 # This is an elided recursive call to iloc/loc
-                return getattr(section, self.name)[new_key]
+                result = getattr(section, self.name)[new_key]
+                if (
+                    isinstance(result, (ABCDataFrame, ABCSeries))
+                    and 2 * result.size <= section.size
+                    and _is_view_of_new_data(result, section)
+                ):
+                    # don't let a small view keep the whole temporary alive, GH#69477;
+                    #  a copy isn't worth it for a view of most of the temporary
+                    return result.copy()
+                return result
 
         raise IndexingError("not applicable")
 
@@ -1738,14 +1750,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
         ax = self.obj._get_axis(axis)
-        if isinstance(key, bool) and not (
-            is_bool_dtype(ax.dtype)
-            or ax.dtype.name == "boolean"
-            or (
-                isinstance(ax, MultiIndex)
-                and is_bool_dtype(ax.get_level_values(0).dtype)
-            )
-        ):
+        if isinstance(key, bool) and not _holds_bool_label(ax, key):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
             )
@@ -2572,9 +2577,23 @@ class _iLocIndexer(_LocationIndexer):
             # GH#42099 list-like (non-array-like): convert to an array first
             #  so we can preserve dtype the same way as the is_array_like path
             arr = sanitize_array(value, Index(range(len(value))), copy=False)
+            if is_integer(indexer[0]) and (
+                is_object_dtype(arr.dtype) or isinstance(arr.dtype, StringDtype)
+            ):
+                # GH#30649 the single cell holds the list-like itself, as in an
+                #  existing object column
+                empty_value = np.full(len(self.obj), np.nan, dtype=object)
+                empty_value[indexer[0]] = value
+                self.obj[key] = empty_value
+                return
             taker = -1 * np.ones(len(self.obj), dtype=np.intp)
             empty_value = algos.take_nd(arr, taker)
-            if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
+            if (
+                arr.ndim == 1
+                and len(arr) == 1
+                and (isinstance(arr, np.ndarray) or is_integer(indexer[0]))
+            ):
+                # GH#46268 a length-1 value is unpacked
                 arr = arr[0]
             empty_value[indexer[0]] = arr
             self.obj[key] = empty_value
@@ -2692,18 +2711,19 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes._values[ilocs[0]]
+            ):
+                # We are setting nested data into a single cell, only possible
+                #  for object dtype. Bypasses length checks, and precedes the
+                #  2-D check to match the single-block path. GH#69152
+                self._setitem_single_column(ilocs[0], value, pi)
+
             elif _is_2d_value_for_columns(value, len(ilocs)):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
-                self._setitem_single_column(ilocs[0], value, pi)
-
-            elif self._is_scalar_access(indexer) and is_object_dtype(
-                self.obj.dtypes._values[ilocs[0]]
-            ):
-                # We are setting nested data into a single cell,
-                # only possible for object dtype. Bypasses length checks.
                 self._setitem_single_column(ilocs[0], value, pi)
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
@@ -3584,6 +3604,21 @@ def _is_2d_value_for_columns(value, ncols: int) -> bool:
     )
 
 
+def _is_view_of_new_data(obj: DataFrame | Series, section: DataFrame | Series) -> bool:
+    """
+    Check if ``obj`` views data first allocated by ``section``, i.e. a temporary
+    copy made while indexing rather than the data of the object being indexed.
+    """
+    section_blocks = {id(blk) for blk in section._mgr.blocks}
+    for blk in obj._mgr.blocks:
+        # the first reference is the block the data was created for; checking
+        #  only that one keeps this O(1), unlike has_reference
+        refs = blk.refs.referenced_blocks
+        if refs and id(refs[0]()) in section_blocks:
+            return True
+    return False
+
+
 def _is_2d_value(value) -> bool:
     """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
     if isinstance(value, list):
@@ -3686,6 +3721,30 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         # key may contain nan elements, check_array_indexer needs bool array
         result = pd_array(result, dtype=bool)
     return check_array_indexer(index, result)
+
+
+def _holds_bool_label(index: Index, key: bool) -> bool:
+    """
+    Check whether a bool ``key`` can be looked up as a label in ``index``.
+
+    For a MultiIndex, the key is matched against the first level.
+    """
+    if isinstance(index, MultiIndex):
+        index = index.levels[0]
+    if is_bool_dtype(index.dtype):
+        return True
+    if index.dtype != object:
+        return False
+    # object-dtype lookups match False to 0 and True to 1, so require that the
+    # matched labels are actually bools, see GH#20432, GH#50165
+    try:
+        loc = index.get_loc(key)
+    except KeyError:
+        return False
+    values = index._values[loc]
+    if isinstance(values, np.ndarray):
+        return is_bool_array(values)
+    return is_bool(values)
 
 
 def convert_missing_indexer(indexer):

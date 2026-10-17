@@ -128,6 +128,38 @@ def test_groupby_resample_on_api_with_getitem():
     tm.assert_series_equal(result, exp)
 
 
+def test_groupby_resample_on_non_monotonic_across_groups():
+    # GH#27343 group "b" has dates earlier than group "a"
+    df = pd.DataFrame(
+        {
+            "ref": list("aaabb"),
+            "time": pd.to_datetime(
+                ["2014-12-31", "2015-12-31", "2016-12-31", "2012-12-31", "2014-12-31"]
+            ),
+            "value": 1,
+        }
+    )
+    result = df.groupby("ref").resample("YE", on="time")["value"].sum()
+    exp_mi = pd.MultiIndex.from_arrays(
+        [
+            list("aaabbb"),
+            pd.to_datetime(
+                [
+                    "2014-12-31",
+                    "2015-12-31",
+                    "2016-12-31",
+                    "2012-12-31",
+                    "2013-12-31",
+                    "2014-12-31",
+                ]
+            ),
+        ],
+        names=["ref", "time"],
+    )
+    expected = pd.Series([1, 1, 1, 1, 0, 1], index=exp_mi, name="value")
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_with_origin():
     # GH 31809
 
@@ -389,6 +421,36 @@ def test_apply_to_one_column_of_df():
     # access "col" via _getitem__ -> make sure we handle KeyErrpr
     result = df.resample("h").apply(lambda group: group["col"].sum())
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [lambda x: x["col"] < "a", lambda x: x.col < "a"],
+    ids=["getitem", "getattr"],
+)
+def test_apply_error_not_chained(func):
+    # GH#50980 an error raised by the apply retry should not be chained onto the
+    #  KeyError/AttributeError that triggered the retry
+    df = pd.DataFrame(
+        {"col": range(3)}, index=date_range("2012-01-01", periods=3, freq="h")
+    )
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        df.resample("h").apply(func)
+    assert err.value.__context__ is None
+
+
+def test_apply_error_not_chained_non_reducing():
+    # GH#50980 same as above, for the retry after a non-reducing function raises
+    #  "Must produce aggregated value"
+    def func(x):
+        if x.iloc[0] >= 3:
+            return x < "a"
+        return x.cumsum()
+
+    ser = pd.Series([1, 2, 3, 4], index=date_range("2012-01-01", periods=4, freq="h"))
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        ser.resample("2h").apply(func)
+    assert err.value.__context__ is None
 
 
 def test_resample_groupby_agg():

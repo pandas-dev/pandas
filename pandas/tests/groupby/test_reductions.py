@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -432,6 +433,22 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     expected = df.iloc[ilocs].set_index("a")
     if sort:
         expected = expected.sort_index()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["sum", "prod", "min", "max", "first", "last"])
+def test_negative_min_count_deprecated(how):
+    # GH#50022
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [2.0, np.nan, np.nan]})
+    gb = df.groupby("a")
+    expected = getattr(gb, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(gb, how)(min_count=-1)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = gb.agg(how, min_count=-1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1827,6 +1844,8 @@ def test_mean_numeric_only_validates_bool():
         "skew",
         "kurt",
         "prod",
+        "min",
+        "max",
     ],
 )
 def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is_na):
@@ -1847,6 +1866,33 @@ def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is
         expected = pd.Series(
             [np.nan], index=pd.Index([1], name="A"), name="B", dtype="Float64"
         )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_min_max_all_nan_group_with_mask(method):
+    # GH#59106 an all-NaN group gave inf/-inf
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([0.0, 0.0, 1.0], dtype="Float32")
+        ser = ser / ser
+        result = getattr(ser.groupby([1, 1, 2]), method)()
+        values = np.array([np.nan, 1.0], dtype="float32")
+        arr = pd.arrays.FloatingArray(values, np.zeros(2, dtype=bool))
+        expected = pd.Series(arr, index=np.array([1, 2]))
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_min_max_arrow_float_nan_not_skipped(method, using_nan_is_na):
+    # GH#59106 a non-null NaN in arrow float data was skipped
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(pa.float64())
+    values = pa.array([1.0, np.nan, 2.0], from_pandas=False)
+    ser = pd.Series(values, dtype=dtype)
+    result = getattr(ser.groupby([1, 1, 2]), method)()
+    item = None if using_nan_is_na else np.nan
+    expected_values = pa.array([item, 2.0], from_pandas=False)
+    expected = pd.Series(expected_values, index=np.array([1, 2]), dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
