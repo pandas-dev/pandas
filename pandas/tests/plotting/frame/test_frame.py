@@ -1813,6 +1813,84 @@ class TestDataFramePlots:
         )
         _check_has_errorbars(ax, xerr=2, yerr=2)
 
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
+    @pytest.mark.parametrize("error_type", ["frame", "dict"])
+    @pytest.mark.parametrize("error_labels", ["source", "legend"])
+    @pytest.mark.parametrize("y", ["a", ["a"], ["b", "a"]])
+    def test_errorbar_plot_custom_labels(
+        self, kind: str, error_type: str, error_labels: str, y: str | list[str]
+    ) -> None:
+        # GH 33369
+        df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+        error_values = {"a": [0.1, 0.2], "b": [0.3, 0.4]}
+        errors: pd.DataFrame | dict[str, list[float]] = (
+            pd.DataFrame(error_values) if error_type == "frame" else error_values
+        )
+        labels = "Label a" if isinstance(y, str) else [f"Label {col}" for col in y]
+        expected = [labels] if isinstance(labels, str) else labels
+
+        expected_ax = df.plot(y=y, kind=kind, xerr=errors, yerr=errors)
+        if error_labels == "legend":
+            columns = [y] if isinstance(y, str) else y
+            names = dict(zip(columns, expected, strict=True))
+            if isinstance(errors, pd.DataFrame):
+                errors = errors.rename(columns=names)
+            else:
+                errors = {names.get(key, key): value for key, value in errors.items()}
+        ax = df.plot(y=y, kind=kind, label=labels, xerr=errors, yerr=errors)
+
+        _check_has_errorbars(ax, xerr=len(expected), yerr=len(expected))
+        _check_legend_labels(ax, expected)
+        for result, expected_collection in zip(
+            ax.collections, expected_ax.collections, strict=True
+        ):
+            tm.assert_numpy_array_equal(
+                np.asarray(result.get_segments()),
+                np.asarray(expected_collection.get_segments()),
+            )
+
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
+    @pytest.mark.parametrize("labels", [["Text", "Value"], ["Value", "Value"]])
+    def test_errorbar_plot_custom_labels_non_numeric(
+        self, kind: str, labels: list[str]
+    ) -> None:
+        # GH 33369
+        df = pd.DataFrame({"text": ["x", "y"], "a": [1.0, 2.0]})
+        errors = pd.DataFrame({"a": [0.1, 0.2]})
+
+        ax = df.plot(y=["text", "a"], kind=kind, label=labels, yerr=errors)
+
+        _check_has_errorbars(ax, yerr=1)
+        _check_legend_labels(ax, ["Value"])
+
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
+    @pytest.mark.parametrize("error_type", ["frame", "dict"])
+    @pytest.mark.parametrize("labels", [["unused", "a"], ["Value", "Value"]])
+    def test_errorbar_plot_custom_labels_partial(
+        self, kind: str, error_type: str, labels: list[str]
+    ) -> None:
+        # GH 33369
+        df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+        error_values = {"a": [0.1, 0.2], "unused": [100.0, 200.0]}
+        errors: pd.DataFrame | dict[str, list[float]] = (
+            pd.DataFrame(error_values, index=[1, 0])
+            if error_type == "frame"
+            else error_values
+        )
+
+        expected_ax = df.plot(y=["a", "b"], kind=kind, yerr=errors)
+        ax = df.plot(y=["a", "b"], kind=kind, label=labels, yerr=errors)
+
+        _check_has_errorbars(ax, yerr=1)
+        _check_legend_labels(ax, labels)
+        for result, expected_collection in zip(
+            ax.collections, expected_ax.collections, strict=True
+        ):
+            tm.assert_numpy_array_equal(
+                np.asarray(result.get_segments()),
+                np.asarray(expected_collection.get_segments()),
+            )
+
     @pytest.mark.slow
     def test_errorbar_plot_yerr_array(self):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
