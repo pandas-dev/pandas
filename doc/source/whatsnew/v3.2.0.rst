@@ -215,7 +215,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
-- Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` raising ``TypeError`` instead of returning ``pd.NA`` for :class:`ArrowDtype` columns containing missing values. :meth:`DataFrame.any` and :meth:`DataFrame.all` on a frame with :class:`ArrowDtype` columns now return ``bool[pyarrow]`` dtype instead of ``bool``, also when the frame mixes :class:`ArrowDtype` and numpy ``bool`` columns, and ``object`` dtype when the frame mixes :class:`ArrowDtype` and nullable columns (:issue:`70685`)
+- Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` raising ``TypeError`` instead of returning ``pd.NA`` for :class:`ArrowDtype` columns containing missing values. :meth:`DataFrame.any` and :meth:`DataFrame.all` on a frame with :class:`ArrowDtype` columns now return ``bool[pyarrow]`` instead of ``bool``, including when mixed with numpy columns, and ``object`` when mixed with nullable columns (:issue:`70685`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
 
 Styler
