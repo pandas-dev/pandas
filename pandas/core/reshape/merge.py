@@ -1135,14 +1135,14 @@ class _MergeOperation:
         Execute the merge.
         """
         if self.indicator:
-            self.left, self.right = self._indicator_pre_merge(self.left, self.right)
+            self._validate_indicator_name()
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
 
         if self.indicator:
-            result = self._indicator_post_merge(result)
+            self._add_indicator(result, left_indexer, right_indexer)
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -1168,61 +1168,40 @@ class _MergeOperation:
             )
 
     @final
-    def _indicator_pre_merge(
-        self, left: DataFrame, right: DataFrame
-    ) -> tuple[DataFrame, DataFrame]:
-        """
-        Add one indicator column to each of the left and right inputs.
-
-        These columns are used to produce another column in the output of the
-        merge, indicating for each row of the output whether it was produced
-        using the left, right or both inputs.
-        """
-        columns = left.columns.union(right.columns)
-
-        for i in ["_left_indicator", "_right_indicator"]:
-            if i in columns:
-                raise ValueError(
-                    "Cannot use `indicator=True` option when "
-                    f"data contains a column named {i}"
-                )
-        if self._indicator_name in columns:
+    def _validate_indicator_name(self) -> None:
+        if self._indicator_name in self.left.columns.union(self.right.columns):
             raise ValueError(
                 "Cannot use name of an existing column for indicator column"
             )
 
-        left = left.copy(deep=False)
-        right = right.copy(deep=False)
-
-        left["_left_indicator"] = 1
-        left["_left_indicator"] = left["_left_indicator"].astype("int8")
-
-        right["_right_indicator"] = 2
-        right["_right_indicator"] = right["_right_indicator"].astype("int8")
-
-        return left, right
-
     @final
-    def _indicator_post_merge(self, result: DataFrame) -> DataFrame:
+    def _add_indicator(
+        self,
+        result: DataFrame,
+        left_indexer: npt.NDArray[np.intp] | None,
+        right_indexer: npt.NDArray[np.intp] | None,
+    ) -> None:
         """
-        Add an indicator column to the merge result.
+        Add a column to the merge result indicating for each row whether it was
+        produced using the left, right or both inputs.
 
-        This column indicates for each row of the output whether it was produced using
-        the left, right or both inputs.
+        A -1 in an indexer marks a row missing from that input; None means no
+        rows are missing.
         """
-        result["_left_indicator"] = result["_left_indicator"].fillna(0)
-        result["_right_indicator"] = result["_right_indicator"].fillna(0)
-
-        result[self._indicator_name] = Categorical(
-            (result["_left_indicator"] + result["_right_indicator"]),
-            categories=[1, 2, 3],
+        codes = np.full(len(result), 2, dtype=np.int8)
+        if left_indexer is not None:
+            codes[left_indexer == -1] = 1
+        if right_indexer is not None:
+            codes[right_indexer == -1] = 0
+        indicator = Categorical.from_codes(
+            codes, categories=["left_only", "right_only", "both"]
         )
-        result[self._indicator_name] = result[
-            self._indicator_name
-        ].cat.rename_categories(["left_only", "right_only", "both"])
 
-        result = result.drop(labels=["_left_indicator", "_right_indicator"], axis=1)
-        return result
+        name: Hashable = self._indicator_name
+        if isinstance(result.columns, MultiIndex):
+            # a key that is not a full-length tuple is deprecated, see GH#17024
+            name = (name,) + ("",) * (result.columns.nlevels - 1)
+        result[name] = indicator
 
     @final
     def _maybe_restore_index_levels(self, result: DataFrame) -> None:
