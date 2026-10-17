@@ -1416,15 +1416,14 @@ class PythonParser(ParserBase):
                     self.dtype
                 ):
                     no_thousands_columns.add(i)
-                if (
-                    isinstance(self.dtype, dict)
-                    and col in self.dtype
-                    and (
-                        not is_numeric_dtype(self.dtype[col])
-                        or is_bool_dtype(self.dtype[col])
-                    )
-                ):
-                    no_thousands_columns.add(i)
+                if isinstance(self.dtype, dict):
+                    # label first, then position, matching the C parser
+                    key = col if col in self.dtype else i
+                    if key in self.dtype and (
+                        not is_numeric_dtype(self.dtype[key])
+                        or is_bool_dtype(self.dtype[key])
+                    ):
+                        no_thousands_columns.add(i)
         return no_thousands_columns
 
 
