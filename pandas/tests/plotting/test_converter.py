@@ -305,7 +305,8 @@ class TestPeriodConverter:
         rs = pc.convert("2012-01-01", None, axis)
         assert rs == xp
 
-        rs = pc.convert("2012-01-01 00:00:00+0000", None, axis)
+        with tm.assert_produces_warning(UserWarning, match="drop timezone"):
+            rs = pc.convert("2012-01-01 00:00:00+0000", None, axis)
         assert rs == xp
 
         rs = pc.convert(
