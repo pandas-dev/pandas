@@ -16,7 +16,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_bool,
+    is_bool_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.missing import isna
@@ -222,6 +222,10 @@ class _BaseXMLFormatter:
         if self.index:
             df = df.reset_index()
 
+        self._bool_cols: set[Any] = {
+            col for col, dt in df.dtypes.items() if is_bool_dtype(dt)
+        }
+
         if self.na_rep is not None:
             # cast so a string fill value works for any dtype, GH#54872
             df = df.astype(object).fillna(self.na_rep)
@@ -300,16 +304,15 @@ class _BaseXMLFormatter:
             attr_name = self._get_flat_col_name(col)
             try:
                 if not isna(d[col]):
-                    elem_row.attrib[attr_name] = self._get_xml_value(d[col])
+                    val = d[col]
+                    elem_row.attrib[attr_name] = (
+                        ("true" if val else "false")
+                        if col in self._bool_cols
+                        else str(val)
+                    )
             except KeyError as err:
                 raise KeyError(f"no valid column, {col}") from err
         return elem_row
-
-    @final
-    def _get_xml_value(self, val: Any) -> str:
-        if is_bool(val):
-            return "true" if val else "false"
-        return str(val)
 
     @final
     def _get_flat_col_name(self, col: str | tuple[Hashable, ...]) -> str:
@@ -342,11 +345,12 @@ class _BaseXMLFormatter:
         for col in self.elem_cols:
             elem_name = self._get_flat_col_name(col)
             try:
-                val = (
-                    None
-                    if isna(d[col]) or d[col] == ""
-                    else self._get_xml_value(d[col])
-                )
+                if isna(d[col]) or d[col] == "":
+                    val = None
+                elif col in self._bool_cols:
+                    val = "true" if d[col] else "false"
+                else:
+                    val = str(d[col])
                 sub_element_cls(elem_row, elem_name).text = val
             except KeyError as err:
                 raise KeyError(f"no valid column, {col}") from err
