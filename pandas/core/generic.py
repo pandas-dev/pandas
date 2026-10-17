@@ -5,6 +5,7 @@ import collections
 from copy import deepcopy
 import datetime as dt
 from functools import partial
+from itertools import pairwise
 from json import loads
 import operator
 import pickle
@@ -6807,7 +6808,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 locs = locs[order]
                 blknos, blklocs = mgr.blknos[locs], mgr.blklocs[locs]
                 bounds = np.flatnonzero(np.diff(blknos, prepend=-1, append=-1))
-                for g0, g1 in zip(bounds[:-1], bounds[1:], strict=True):
+                for g0, g1 in pairwise(bounds):
                     pos, bl = locs[g0:g1], blklocs[g0:g1]
                     starts = np.flatnonzero(np.diff(bl, prepend=-2) != 1)
                     ends = np.append(starts[1:], len(bl))
