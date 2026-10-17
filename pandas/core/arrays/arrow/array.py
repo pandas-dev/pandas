@@ -4214,11 +4214,11 @@ class ArrowExtensionArray(
         expand: bool = False,
         regex: bool | None = None,
     ) -> Self:
+        if pat is None:
+            return self._str_split_whitespace(n, reverse=False)
         if n in {-1, 0}:
             n = None
-        if pat is None:
-            split_func = pc.utf8_split_whitespace
-        elif regex is True:
+        if regex is True:
             split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
         elif regex is False:
             split_func = functools.partial(pc.split_pattern, pattern=pat)
@@ -4233,14 +4233,28 @@ class ArrowExtensionArray(
         if pat is not None and not isinstance(pat, str):
             msg = f"expected a string object, not {type(pat).__name__}"
             raise TypeError(msg)
+        if pat is None:
+            return self._str_split_whitespace(n, reverse=True)
         if n in {-1, 0}:
             n = None
-        if pat is None:
-            return self._from_pyarrow_array(
-                pc.utf8_split_whitespace(self._pa_array, max_splits=n, reverse=True)
-            )
         return self._from_pyarrow_array(
             pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
+        )
+
+    def _str_split_whitespace(self, n: int | None, *, reverse: bool) -> Self:
+        # pc.utf8_split_whitespace splits at every whitespace run, so leading,
+        # trailing and repeated whitespace yield empty tokens. str.split(None)
+        # drops those, which is the behavior documented for pat=None, so split
+        # elementwise in Python instead.
+        if n is None or n == 0:
+            n = -1
+        if reverse:
+            predicate = lambda val: val.rsplit(None, n)
+        else:
+            predicate = lambda val: val.split(None, n)
+        result = self._apply_elementwise(predicate)
+        return self._from_pyarrow_array(
+            pa.chunked_array(result, type=pa.list_(self._pa_array.type))
         )
 
     def _str_translate(self, table: dict[int, str]) -> Self:
