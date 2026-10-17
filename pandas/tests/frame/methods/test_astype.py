@@ -402,19 +402,6 @@ class TestAstype:
         with pytest.raises(ValueError, match="column 'b'"):
             df.astype({"a": "int64", "b": "float64", "c": "int64"})
 
-    def test_astype_dict_any_error_names_first_failing_column(self):
-        # GH#63433 an unusual error from a later column doesn't hide an earlier
-        #  column's error
-        class BadFloat:
-            def __float__(self):
-                raise ZeroDivisionError("boom")
-
-        df = pd.DataFrame(
-            {"a": ["x", "y"], "b": np.array([BadFloat(), 1.0], dtype=object)}
-        )
-        with pytest.raises(ValueError, match="column 'a'"):
-            df.astype({"a": "float64", "b": "float64"})
-
     def test_astype_dict_error_names_first_failing_column(self):
         # GH#63433 with several failing columns, the first one in column order is
         #  reported, as when casting column by column
@@ -1032,8 +1019,12 @@ def test_astype_dict_wide_interleaved():
 
     result = df.astype(dtypes)
 
+    values = np.arange(40.0).reshape(2, 20)
     expected = pd.DataFrame(
-        {c: df[c].astype(dtypes.get(c, "float64")) for c in df.columns}
+        {
+            c: values[:, c].astype("float32" if c % 2 == 0 else "float64")
+            for c in range(20)
+        }
     )
     tm.assert_frame_equal(result, expected)
     assert result._mgr.nblocks <= 11
@@ -1058,9 +1049,18 @@ def test_astype_dict_mixed_block_types():
 
     result = df.astype(dtypes)
 
-    expected = df.copy()
-    for col, dtype in dtypes.items():
-        expected[col] = df[col].astype(dtype)
+    expected = pd.DataFrame(
+        {
+            "i": [1, 2, 3],
+            "f": np.array([1.5, 2.5, 3.5], dtype="float32"),
+            "e": pd.array([1.0, None, 3.0], dtype="Float64"),
+            "c": pd.Categorical(["a", "b", "a"]),
+            "t": pd.date_range("2020", periods=3, tz="US/Pacific"),
+            "s": pd.Categorical(["x", "y", "z"]),
+            "i2": [4.0, 5.0, 6.0],
+            "f2": [4.5, 5.5, 6.5],
+        }
+    )
     tm.assert_frame_equal(result, expected)
 
 

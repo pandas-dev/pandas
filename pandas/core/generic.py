@@ -6795,17 +6795,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 locs = np.array([i for i, _ in items], dtype=np.intp)
                 taken = self.iloc[:, locs]._mgr
                 failed = False
+                new_blocks = []
                 for blk in taken.blocks:
                     try:
-                        nb = blk.astype(target)
+                        new_blocks.append(blk.astype(target))
                     except Exception:
                         # Cast these columns one by one below, so the error names
                         #  the first failing column; with errors="raise" the
                         #  batches not tried yet go there too.
                         one_by_one += [items[j] for j in blk.mgr_locs.as_array]
                         failed = True
-                        continue
-                    pieces.append((locs, [nb]))
+                pieces.append((locs, new_blocks))
                 if failed and errors == "raise":
                     one_by_one += [item for _, rest in groups[k + 1 :] for item in rest]
                     break
