@@ -219,6 +219,7 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.indexers.objects import BaseIndexer
+    from pandas.core.internals.blocks import Block
     from pandas.core.resample import Resampler
 
     _StylerKwargs: TypeAlias = dict[str, Any] | list[dict[str, Any]]
@@ -6788,7 +6789,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     one_by_one.append((int(loc), column_dtype))
                 else:
                     batches.setdefault(target, []).append((int(loc), column_dtype))
-            pieces = []
+            pieces: list[tuple[npt.NDArray[np.intp], Sequence[Block]]] = []
             groups = list(batches.items())
             for k, (target, items) in enumerate(groups):
                 locs = np.array([i for i, _ in items], dtype=np.intp)
