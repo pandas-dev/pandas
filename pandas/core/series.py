@@ -197,6 +197,7 @@ if TYPE_CHECKING:
         SortKind,
         StorageOptions,
         Suffixes,
+        ToTimestampHow,
         ValueKeyFunc,
         WriteBuffer,
         npt,
@@ -482,6 +483,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, ExtensionArray):
             pass
         else:
+            if isinstance(data, ABCDataFrame):
+                raise ValueError(
+                    "Cannot construct a Series from a DataFrame. To select a "
+                    "single column, use df.iloc[:, 0]."
+                )
             data = com.maybe_iterable_to_list(data)
             if is_list_like(data) and not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
@@ -511,7 +517,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self._set_axis(0, index)
 
     def _init_dict(
-        self, data: Mapping, index: Index | None = None, dtype: DtypeObj | None = None
+        self,
+        data: Mapping[Hashable, Any],
+        index: Index | None = None,
+        dtype: DtypeObj | None = None,
     ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
@@ -845,8 +854,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "Series.values returning an ndarray that drops timezone "
                 "information for DatetimeTZDtype is deprecated. "
                 "In a future version, this will return the underlying "
-                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
-                "NumPy array, or 'Series.array' to get the ExtensionArray.",
+                "DatetimeArray instead. Use 'Series.dt.tz_convert(None).to_numpy()' "
+                "to get a NumPy array of UTC values, or 'Series.array' to get the "
+                "ExtensionArray.\n"
+                "See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#whatsnew-310-deprecations-values"
+                " for more details.",
                 Pandas4Warning,
                 # TODO bump this to stacklevel=2 in a future version
                 stacklevel=1,
@@ -1138,7 +1150,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return self.loc[key]
 
-    def _get_values_tuple(self, key: tuple):
+    def _get_values_tuple(self, key: tuple[Any, ...]):
         # mpl hackaround
         if com.any_none(*key):
             # mpl compat if we look up e.g. ser[:, np.newaxis];
@@ -1472,8 +1484,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         allow_duplicates : bool, default False
@@ -1559,19 +1571,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2  baz  one    2
         3  baz  two    3
         """
-        if inplace is not lib.no_default:
-            # GH#63207
-            warnings.warn(
-                "The inplace keyword in Series.reset_index is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
-
+        inplace = self._check_inplace_deprecation(inplace, "reset_index")
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
             new_index = default_index(len(self))
@@ -1625,7 +1625,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         buf: None = ...,
         *,
-        na_rep: str = ...,
+        na_rep: str | lib.NoDefault = ...,
         float_format: str | None = ...,
         header: bool = ...,
         index: bool = ...,
@@ -1641,7 +1641,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         buf: FilePath | WriteBuffer[str],
         *,
-        na_rep: str = ...,
+        na_rep: str | lib.NoDefault = ...,
         float_format: str | None = ...,
         header: bool = ...,
         index: bool = ...,
@@ -1652,13 +1652,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_rows: int | None = ...,
     ) -> None: ...
 
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "buf"], name="to_string"
-    )
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self", "buf"])
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,
@@ -1679,8 +1677,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         buf : StringIO-like, optional
             Buffer to write to.
-        na_rep : str, default 'NaN'
-            String representation of NaN to use.
+        na_rep : str, optional
+            String representation of missing values. By default ``NaN``,
+            ``NaT``, ``None`` and ``NA`` are each shown as themselves.
         float_format : one-parameter function, optional
             Formatter function to apply to columns' elements if they are
             floats, default None.
@@ -1782,9 +1781,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         **kwargs,
     ) -> str | None: ...
 
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "buf"], name="to_markdown"
-    )
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self", "buf"])
     def to_markdown(
         self,
         buf: IO[str] | None = None,
@@ -1931,7 +1928,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> MutableMappingT: ...
 
     @overload
-    def to_dict(self, *, into: type[dict] = ...) -> dict: ...
+    def to_dict(self, *, into: type[dict[Any, Any]] = ...) -> dict[Any, Any]: ...
 
     # error: Incompatible default for argument "into" (default has type "type[
     # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
@@ -2122,7 +2119,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return ser
 
     @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+        Pandas4Warning, allowed_args=["self", "by", "level"]
     )
     def groupby(
         self,
@@ -2159,11 +2156,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels. Do not specify both ``by`` and ``level``.
         as_index : bool, default True
-            Return object with group labels as the index. This argument is
-            retained for compatibility with :meth:`DataFrame.groupby` and has
-            no effect on Series.
+            Return object with group labels as the index. If False, aggregations
+            return a DataFrame with the group labels as columns, similar to
+            calling ``reset_index`` on the result.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
+            Raises if the group keys cannot be sorted; use ``sort=False`` for
+            such keys.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
             the groups will appear in the same order as they did in the original
@@ -2207,7 +2206,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        pandas.api.typing.SeriesGroupBy
+        :class:`pandas.api.typing.SeriesGroupBy`
             Returns a groupby object that contains information about the groups.
 
         See Also
@@ -2337,13 +2336,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         b    350.0
         NaN   20.0
         Name: Max Speed, dtype: float64
+
+        Use ``as_index=False`` to return the group labels as a column:
+
+        >>> ser.groupby(["a", "b", "a", np.nan], as_index=False).mean()
+          index  Max Speed
+        0     a      210.0
+        1     b      350.0
         """
         from pandas.core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
-        if not as_index:
-            raise TypeError("as_index=False only valid with DataFrame")
 
         return SeriesGroupBy(
             obj=self,
@@ -2479,15 +2483,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         :class:`~api.extensions.ExtensionArray` of that type with just
         the unique values is returned. This includes
 
-            * Categorical
-            * Period
-            * Datetime with Timezone
-            * Datetime without Timezone
-            * Timedelta
-            * Interval
-            * Sparse
-            * IntegerNA
-            * String
+        * Categorical
+        * Period
+        * Datetime with Timezone
+        * Datetime without Timezone
+        * Timedelta
+        * Interval
+        * Sparse
+        * IntegerNA
+        * String
 
         See Examples section.
 
@@ -2570,8 +2574,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         ignore_index : bool, default ``False``
@@ -2651,19 +2655,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         d     hippo
         Name: animal, dtype: str
         """
-        if inplace is not lib.no_default:
-            # GH#63207
-            warnings.warn(
-                "The inplace keyword in Series.drop_duplicates is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
-
+        inplace = self._check_inplace_deprecation(inplace, "drop_duplicates")
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
 
@@ -2982,12 +2974,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
-                  the fractional part of the index surrounded by `i > j`.
-                * lower: `i`.
-                * higher: `j`.
-                * nearest: `i` or `j` whichever is nearest.
-                * midpoint: (`i` + `j`) / 2.
+            * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
+              the fractional part of the index surrounded by `i > j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
 
         Returns
         -------
@@ -3394,10 +3386,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         DataFrame.corr : Compute pairwise correlation of columns.
         DataFrame.corrwith : Compute pairwise correlation between rows or
             columns of two DataFrame objects.
+        plotting.autocorrelation_plot : Autocorrelation plot for time series.
 
         Notes
         -----
         If the Pearson correlation is not well defined return 'NaN'.
+
+        Values can differ from :func:`pandas.plotting.autocorrelation_plot`,
+        which uses the mean and variance of the whole Series rather than of the
+        overlapping portions.
 
         Examples
         --------
@@ -3932,7 +3929,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
 
-    def update(self, other: Series | Sequence | Mapping) -> None:
+    def update(self, other: Series | Sequence[Any] | Mapping[Any, Any]) -> None:
         """
         Modify Series in place using values from passed Series.
 
@@ -4095,8 +4092,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
@@ -4229,19 +4226,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    0
         dtype: int64
         """
-        if inplace is not lib.no_default:
-            # GH#63207
-            warnings.warn(
-                "The inplace keyword in Series.sort_values is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
-
+        inplace = self._check_inplace_deprecation(inplace, "sort_values")
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
@@ -4365,8 +4350,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
@@ -4472,18 +4457,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         d    4
         dtype: int64
         """
-        if inplace is not lib.no_default:
-            # GH#63207
-            warnings.warn(
-                "The inplace keyword in Series.sort_index is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
+        inplace = self._check_inplace_deprecation(inplace, "sort_index")
 
         return super().sort_index(
             axis=axis,
@@ -5057,9 +5031,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def map(
         self,
-        func: Callable | Mapping | Series | None = None,
+        func: Callable[..., Any] | Mapping[Any, Any] | Series | None = None,
         na_action: Literal["ignore"] | None = None,
-        engine: Callable | None = None,
+        engine: Callable[..., Any] | None = None,
         **kwargs,
     ) -> Series:
         """
@@ -5330,6 +5304,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # if func is None, will switch to user-provided "named aggregation" kwargs
         if func is None:
             func = dict(kwargs.items())
+            kwargs = {}
 
         op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
@@ -5711,8 +5686,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         level : int or level name, default None
@@ -5757,18 +5732,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5    3
         dtype: int64
         """
-        if inplace is not lib.no_default:
-            warnings.warn(
-                "The inplace keyword in Series.rename is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=2,
-            )
-        else:
-            inplace = False
-
+        inplace = self._check_inplace_deprecation(inplace, "rename")
         self._check_copy_deprecation(copy)
         if axis is not None:
             # Make sure we raise if an invalid 'axis' is passed.
@@ -6175,8 +6139,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         Returns
@@ -6206,17 +6170,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    monkey
         dtype: str
         """
-        if inplace is not lib.no_default:
-            warnings.warn(
-                "The inplace keyword in Series.rename_axis is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
+        inplace = self._check_inplace_deprecation(inplace, "rename_axis")
 
         return super().rename_axis(
             mapper=mapper,
@@ -6293,7 +6247,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
         columns : single label or list-like
-            No change is made to the Series; use 'index' or 'labels' instead.
+            Ignored; use 'index' or 'labels' instead.
+
+            .. deprecated:: 3.2.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
@@ -6302,8 +6258,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         errors : {'ignore', 'raise'}, default 'raise'
@@ -6369,19 +6325,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 length      0.3
         dtype: float64
         """
-        if inplace is not lib.no_default:
-            warnings.warn(
-                "The inplace keyword in Series.drop is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=2,
-            )
-        else:
-            inplace = False
+        inplace = self._check_inplace_deprecation(inplace, "drop")
 
-        return super().drop(
+        result = super().drop(
             labels=labels,
             axis=axis,
             index=index,
@@ -6390,6 +6336,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             inplace=inplace,
             errors=errors,
         )
+        if columns is not None:
+            # GH#39509; warn after super().drop so calls it rejects don't warn
+            warnings.warn(
+                "Series.drop ignores the 'columns' keyword. Passing it is "
+                "deprecated and will raise in a future version. Use 'index' "
+                "or 'labels' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     def pop(self, item: Hashable) -> Any:
         """
@@ -7133,8 +7089,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. deprecated:: 3.1.0
 
                 This keyword is deprecated and will be removed in pandas 4.0.
-                See `PDEP-8 In-place methods in pandas
-                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
                 for more details.
 
         how : str, optional
@@ -7191,19 +7147,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5    I stay
         dtype: object
         """
-        if inplace is not lib.no_default:
-            # GH#63207
-            warnings.warn(
-                "The inplace keyword in Series.dropna is "
-                "deprecated and will be removed in a future version. "
-                "See PDEP-8 for more details:"
-                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            inplace = False
-
+        inplace = self._check_inplace_deprecation(inplace, "dropna")
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
         # Validate the axis parameter
@@ -7230,7 +7174,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_timestamp(
         self,
         freq: Frequency | None = None,
-        how: Literal["s", "e", "start", "end"] = "start",
+        how: ToTimestampHow = "start",
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
@@ -7242,9 +7186,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         freq : str, default frequency of PeriodIndex
             Desired frequency.
-        how : {'s', 'e', 'start', 'end'}
+        how : {'start', 'end', 's', 'e'}, default 'start'
             Convention for converting period to timestamp; start of period
-            vs. end.
+            vs. end. Case-insensitive.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
@@ -7521,6 +7465,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             this, other = self.align(other, level=level, join="outer")
 
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
+        # GH#43770 func is the bare operator, so comparison_op does not warn
+        ops.maybe_warn_complex_ordering(this_vals, other_vals, func)
 
         with np.errstate(all="ignore"):
             result = func(this_vals, other_vals)
@@ -9279,7 +9225,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def all(
         self,
         axis: Axis = 0,
@@ -9385,7 +9331,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def min(
         self,
         axis: Axis | None = 0,
@@ -9457,7 +9403,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def max(
         self,
         axis: Axis | None = 0,
@@ -9529,7 +9475,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def sum(
         self,
         axis: Axis | None = None,
@@ -9631,7 +9577,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def prod(
         self,
         axis: Axis | None = None,
@@ -9717,7 +9663,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def mean(
         self,
         axis: Axis | None = 0,
@@ -9775,9 +9721,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self"], name="median"
-    )
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def median(
         self,
         axis: Axis | None = 0,
@@ -9862,7 +9806,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def sem(
         self,
         axis: Axis | None = None,
@@ -9921,7 +9865,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def var(
         self,
         axis: Axis | None = None,
@@ -10008,7 +9952,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def std(
         self,
         axis: Axis | None = None,
@@ -10077,7 +10021,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def skew(
         self,
         axis: Axis | None = 0,
@@ -10123,7 +10067,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def kurt(
         self,
         axis: Axis | None = 0,

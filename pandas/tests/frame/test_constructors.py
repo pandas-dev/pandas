@@ -530,6 +530,20 @@ class TestDataFrameConstructors:
         frame = pd.DataFrame({"A": {"1": 1, "2": 2}})
         tm.assert_index_equal(frame.index, pd.Index(["1", "2"]))
 
+    def test_constructor_dict_of_series_datetimeindex_freq(self):
+        # GH#64253 - the union of the series indexes should keep a freq that
+        # cannot be inferred from the values, whatever the column order
+        freq = pd.offsets.CustomBusinessDay(holidays=["2020-01-10"])
+        d1 = pd.Series(1, index=pd.date_range("2020-01-01", periods=5, freq=freq))
+        d2 = pd.Series(1, index=pd.date_range(d1.index[3], periods=5, freq=freq))
+        d3 = pd.Series(1, index=pd.date_range(d2.index[3], periods=5, freq=freq))
+
+        result = pd.DataFrame({"a": d1, "c": d3, "b": d2}).index
+        expected = pd.date_range(d1.index[0], d3.index[-1], freq=freq)
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == expected.freq
+
     def test_constructor_dict_with_index(self):
         # empty dict plus index
         idx = pd.Index([0, 1, 2])

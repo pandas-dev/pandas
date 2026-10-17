@@ -142,6 +142,26 @@ def test_csv_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+def test_sftp_url_uses_fsspec(monkeypatch):
+    # GH#46765 urllib cannot open sftp urls, so they must go to fsspec
+    pytest.importorskip("fsspec")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    class SFTPMemoryFS(MemoryFileSystem):
+        protocol = "sftp"
+        store = {}
+        pseudo_dirs = [""]
+
+    monkeypatch.setitem(registry, "sftp", SFTPMemoryFS)
+    df = pd.DataFrame({"a": [0, 1]})
+    storage_options = {"username": "user", "password": "pass"}
+    path = "sftp://host/test.csv"
+    df.to_csv(path, storage_options=storage_options, index=False)
+    result = pd.read_csv(path, storage_options=storage_options)
+    tm.assert_frame_equal(result, df)
+
+
 def test_read_table_options(fsspectest):
     # GH #39167
     df = pd.DataFrame({"a": [0]})
@@ -208,6 +228,90 @@ def test_arrowparquet_options(fsspectest):
         storage_options={"test": "parquet_read"},
     )
     assert fsspectest.test[0] == "parquet_read"
+
+
+def test_arrowparquet_falls_back_to_fsspec(cleared_fs, df1, monkeypatch):
+    # GH#58078 pyarrow cannot build a filesystem for "hdfs:///" but fsspec can
+    pytest.importorskip("pyarrow")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    monkeypatch.setitem(registry, "hdfs", MemoryFileSystem)
+    path = "hdfs:///test/test.parquet"
+    df1.to_parquet(path, engine="pyarrow")
+    result = pd.read_parquet(path, engine="pyarrow")
+    tm.assert_frame_equal(result, df1)
+
+
+def test_arrowparquet_falls_back_to_fsspec_on_arrow_exception(
+    cleared_fs, df1, monkeypatch
+):
+    # GH#58078 the fallback also covers non-ArrowInvalid subclasses of ArrowException,
+    # e.g. a pyarrow build without HDFS support raises ArrowNotImplementedError
+    pa = pytest.importorskip("pyarrow")
+    pa_fs = pytest.importorskip("pyarrow.fs")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    real_file_system = pa_fs.FileSystem
+
+    class FailingFileSystem:
+        @staticmethod
+        def from_uri(uri):
+            # restore the real FileSystem before pyarrow's own isinstance
+            # checks run on the fsspec-fallback filesystem later in this call
+            pa_fs.FileSystem = real_file_system
+            raise pa.ArrowNotImplementedError("HDFS support not built")
+
+    monkeypatch.setitem(registry, "hdfs", MemoryFileSystem)
+    path = "hdfs:///test/test.parquet"
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    df1.to_parquet(path, engine="pyarrow")
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    result = pd.read_parquet(path, engine="pyarrow")
+    tm.assert_frame_equal(result, df1)
+
+
+@pytest.mark.parametrize(
+    "path", ["s3://missing/test.parquet", "hdfs://namenode:8020/test.parquet"]
+)
+def test_arrowparquet_oserror_raises(monkeypatch, path):
+    # GH#58078 only "hdfs:///" falls back to fsspec on OSError
+    pa_fs = pytest.importorskip("pyarrow.fs")
+
+    class FailingFileSystem:
+        @staticmethod
+        def from_uri(uri):
+            raise OSError("pyarrow error")
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    with pytest.raises(OSError, match="pyarrow error"):
+        pd.read_parquet(path, engine="pyarrow")
+
+
+def test_arrowparquet_fsspec_fallback_fails_keeps_pyarrow_error(monkeypatch):
+    # GH#58078 if the fsspec fallback also fails, chain pyarrow's error
+    pa_fs = pytest.importorskip("pyarrow.fs")
+    pytest.importorskip("fsspec")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    class FailingFileSystem:
+        @staticmethod
+        def from_uri(uri):
+            raise OSError("Unable to load libjvm")
+
+    class FailingHadoopFileSystem(MemoryFileSystem):
+        def __init__(self, *args, **kwargs) -> None:
+            raise OSError("Prior attempt to load libhdfs failed")
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    monkeypatch.setitem(registry, "hdfs", FailingHadoopFileSystem)
+    with pytest.raises(OSError, match="Prior attempt") as excinfo:
+        pd.read_parquet("hdfs:///test.parquet", engine="pyarrow")
+    assert "Unable to load libjvm" in str(excinfo.value.__cause__)
 
 
 @pytest.mark.filterwarnings(

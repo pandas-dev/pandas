@@ -13,6 +13,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -26,7 +27,7 @@ class TestDataFrameToStringFormatters:
     def test_keyword_deprecation(self):
         # GH 57280
         msg = (
-            "Starting with pandas version 4.0 all arguments of to_string "
+            "Starting with pandas version 4.0 all arguments of Series.to_string "
             "except for the argument 'buf' will be keyword-only."
         )
         s = pd.Series(["a", "b"])
@@ -44,9 +45,9 @@ class TestDataFrameToStringFormatters:
         result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
         expected = dedent(
             """\
-                  a     b
-            0  0.12  1.00
-            1  1.12  2.00"""
+                 a    b
+            0 0.12 1.00
+            1 1.12 2.00"""
         )
         assert result == expected
 
@@ -81,11 +82,12 @@ class TestDataFrameToStringFormatters:
         ]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=list(zip(*formatters, strict=True))[1])
+        # GH#26002 no extra leading space for the object column
         assert result == (
-            "  int  float    object\n"
-            "0 0x1 [ 1.0]  -(1, 2)-\n"
-            "1 0x2 [ 2.0]    -True-\n"
-            "2 0x3 [ 3.0]   -False-"
+            "  int  float   object\n"
+            "0 0x1 [ 1.0] -(1, 2)-\n"
+            "1 0x2 [ 2.0]   -True-\n"
+            "2 0x3 [ 3.0]  -False-"
         )
         assert result == result2
 
@@ -541,6 +543,15 @@ class TestDataFrameToString:
         expected = "     A\n0  6,0\n1  3,1\n2  2,2"
         assert df.to_string(decimal=",") == expected
 
+    def test_to_string_column_names_formatted_like_index_names(self):
+        # GH#14286
+        df = pd.DataFrame({"a": [1]}, index=pd.Index(["x"], name=("s", "t")))
+        assert df.T.to_string() == "(s, t)  x\na       1"
+
+        df = pd.DataFrame({"a": [1]})
+        df.columns.name = "c\nd"
+        assert df.to_string() == "c\\nd  a\n0     1"
+
     def test_to_string_left_justify_cols(self):
         df = pd.DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")
@@ -599,6 +610,32 @@ class TestDataFrameToString:
         df_cat_cols = pd.DataFrame(data, columns=pd.CategoricalIndex(cols))
 
         assert df.to_string() == df_cat_cols.to_string()
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64", "float64", "object"])
+    def test_to_string_numeric_columns_alignment(self, dtype):
+        # GH#8300 labels of differing widths should not be padded
+        data = [[0, 1], [2, 3]]
+        columns = pd.Index([0, 10], dtype=dtype)
+        if dtype == "float64":
+            str_columns = ["0.0", "10.0"]
+        else:
+            str_columns = ["0", "10"]
+        df = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=str_columns)
+
+        assert df.to_string() == expected.to_string()
+
+    @pytest.mark.parametrize("sparsify", [True, False])
+    def test_to_string_numeric_multiindex_columns_alignment(self, sparsify):
+        # GH#8300
+        data = [[1, 2]]
+        columns = pd.MultiIndex.from_arrays([[0, 0], [0, 100]])
+        str_columns = pd.MultiIndex.from_arrays([["0", "0"], ["0", "100"]])
+        df = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=str_columns)
+
+        result = df.to_string(sparsify=sparsify)
+        assert result == expected.to_string(sparsify=sparsify)
 
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[("err", object)])
@@ -690,35 +727,35 @@ class TestDataFrameToString:
             (
                 10,
                 None,
-                " 0   1   2   3   4   ...  6   7   8   9   10\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0",
+                " 0  1  2  3  4  ...  6  7  8  9  10\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0",
             ),
             (
                 None,
                 2,
-                " 0   1   2   3   4   5   6   7   8   9   10\n"
-                "  0   0   0   0   0   0   0   0   0   0   0\n"
-                " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
-                "  0   0   0   0   0   0   0   0   0   0   0",
+                " 0  1  2  3  4  5  6  7  8  9  10\n"
+                " 0  0  0  0  0  0  0  0  0  0   0\n"
+                ".. .. .. .. .. .. .. .. .. ..  ..\n"
+                " 0  0  0  0  0  0  0  0  0  0   0",
             ),
             (
                 10,
                 2,
-                " 0   1   2   3   4   ...  6   7   8   9   10\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                " ..  ..  ..  ..  ..  ...  ..  ..  ..  ..  ..\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0",
+                " 0  1  2  3  4  ...  6  7  8  9  10\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                ".. .. .. .. ..  ... .. .. .. ..  ..\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0",
             ),
             (
                 9,
                 2,
-                " 0   1   2   3   ...  7   8   9   10\n"
-                "  0   0   0   0  ...   0   0   0   0\n"
-                " ..  ..  ..  ..  ...  ..  ..  ..  ..\n"
-                "  0   0   0   0  ...   0   0   0   0",
+                " 0  1  2  3  ...  7  8  9  10\n"
+                " 0  0  0  0  ...  0  0  0   0\n"
+                ".. .. .. ..  ... .. .. ..  ..\n"
+                " 0  0  0  0  ...  0  0  0   0",
             ),
             (
                 1,
@@ -788,6 +825,40 @@ class TestDataFrameToString:
         result = df.to_string(na_rep="MISSING")
         assert "NaT" not in result
         assert result.count("MISSING") == 3
+
+    @pytest.mark.parametrize(
+        "values, dtype",
+        [
+            ([1, None], "Int64"),
+            ([1.5, None], "Float64"),
+            ([True, None], "boolean"),
+            (["a", None], "string"),
+            pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+            ([1, None], object),
+            ([1, pd.NA], object),
+            ([1, pd.NaT], object),
+        ],
+    )
+    def test_to_string_na_rep_none_and_na(self, values, dtype, frame_or_series):
+        # GH#54872
+        obj = frame_or_series(pd.array(values, dtype=dtype))
+        result = obj.to_string(na_rep="foo")
+        assert "<NA>" not in result
+        assert "None" not in result
+        assert result.count("foo") == 1
+
+    def test_to_string_na_rep_explicit_nan(self, frame_or_series):
+        # GH#54872 an explicit "NaN" applies to every missing value, while the
+        #  default shows each one as itself
+        obj = frame_or_series(pd.array([None, pd.NA, pd.NaT, np.nan], dtype=object))
+        assert obj.to_string(na_rep="NaN").count("NaN") == 4
+        result = obj.to_string()
+        for missing in ["None", "<NA>", "NaT", "NaN"]:
+            assert result.count(missing) == 1
+
+        obj = frame_or_series(pd.to_datetime(["2020-01-01", None]))
+        assert "NaT" in obj.to_string()
+        assert "NaN" in obj.to_string(na_rep="NaN")
 
     def test_to_string_string_dtype(self):
         # GH#50099
@@ -990,6 +1061,19 @@ class TestDataFrameToString:
         df2 = pd.DataFrame({"level3": [{"level2": df1}]})
         result = df2.to_string()
         expected = "                   level3\n0  {'level2': ['level1']}"
+        assert result == expected
+
+    def test_to_string_multiindex_sparsify_by_value(self):
+        # GH#10796 distinct values that format identically are not sparsified
+        mi = pd.MultiIndex.from_arrays([[1, "1"], ["a", "a"]])
+        df = pd.DataFrame({"C": [3, 4]}, index=mi)
+
+        result = df.to_string()
+        expected = "     C\n1 a  3\n1 a  4"
+        assert result == expected
+
+        result = df.T.to_string()
+        expected = "   1  1\n   a  a\nC  3  4"
         assert result == expected
 
 

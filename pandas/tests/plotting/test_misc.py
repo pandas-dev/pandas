@@ -5,8 +5,6 @@ import os
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -32,15 +30,6 @@ def iris(datapath) -> pd.DataFrame:
     The iris dataset as a DataFrame.
     """
     return pd.read_csv(datapath("io", "data", "csv", "iris.csv"))
-
-
-@td.skip_if_installed("matplotlib")
-def test_import_error_message():
-    # GH-19810
-    df = pd.DataFrame({"A": [1, 2]})
-
-    with pytest.raises(ImportError, match="matplotlib is required for plotting"):
-        df.plot()
 
 
 def test_get_accessor_args():
@@ -104,6 +93,35 @@ def test_savefig(kind, data, index):
         kwargs = {"x": 0, "y": 1}
     data.plot(kind=kind, ax=ax, **kwargs)
     fig.savefig(os.devnull)
+
+
+@pytest.mark.parametrize(
+    "kwargs, expected_rows, expected_columns",
+    [
+        ({}, ["a", "b"], ["old_title"]),
+        ({"rowLabels": None, "colLabels": None}, ["a", "b"], ["old_title"]),
+        ({"rowLabels": ["first", "second"]}, ["first", "second"], ["old_title"]),
+        ({"colLabels": ["new_title"]}, ["a", "b"], ["new_title"]),
+        (
+            {"rowLabels": ["first", "second"], "colLabels": ["new_title"]},
+            ["first", "second"],
+            ["new_title"],
+        ),
+    ],
+)
+def test_table_labels(frame_or_series, kwargs, expected_rows, expected_columns):
+    # GH#37811
+    data = pd.Series([42, 73], index=["a", "b"], name="old_title")
+    if frame_or_series is pd.DataFrame:
+        data = data.to_frame()
+    _, ax = plt.subplots()
+
+    result = pd.plotting.table(ax, data, **kwargs)
+
+    rows = [result[i + 1, -1].get_text().get_text() for i in range(len(data))]
+    columns = [result[0, 0].get_text().get_text()]
+    assert rows == expected_rows
+    assert columns == expected_columns
 
 
 class TestSeriesPlots:

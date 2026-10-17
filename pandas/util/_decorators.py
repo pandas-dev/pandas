@@ -288,9 +288,9 @@ def deprecate_nonkeyword_arguments(
         defaults to list of all arguments not having the
         default value.
     name : str, optional
-        The specific name of the function to show in the warning
-        message. If None, then the Qualified name of the function
-        is used.
+        Name to show in the warning message. Defaults to the function's
+        ``__qualname__``, or ``__name__`` for methods. For methods, the
+        class of ``self`` is always prepended.
     """
 
     def decorate(func: Callable[P, T]) -> Callable[P, T]:
@@ -319,16 +319,23 @@ def deprecate_nonkeyword_arguments(
         new_sig = old_sig.replace(parameters=new_params)
 
         num_allow_args = len(allow_args)
-        msg = (
-            f"{future_version_msg(klass.version())} all arguments of "
-            f"{name or func.__qualname__}{{arguments}} will be keyword-only."
-        )
+        is_method = next(iter(old_sig.parameters), None) == "self"
+        func_name = name or (func.__name__ if is_method else func.__qualname__)
 
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             if len(args) > num_allow_args:
+                # name the class of self, not the defining class, GH#48650
+                qualname = (
+                    f"{type(args[0]).__name__}.{func_name}" if is_method else func_name
+                )
+                msg = (
+                    f"{future_version_msg(klass.version())} all arguments of "
+                    f"{qualname}{_format_argument_list(allow_args)} "
+                    "will be keyword-only."
+                )
                 warnings.warn(
-                    msg.format(arguments=_format_argument_list(allow_args)),
+                    msg,
                     klass,
                     stacklevel=find_stack_level(),
                 )

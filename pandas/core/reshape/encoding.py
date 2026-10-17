@@ -157,6 +157,14 @@ def get_dummies(
     0  1.0  0.0  0.0
     1  0.0  1.0  0.0
     2  0.0  0.0  1.0
+
+    Unobserved categories of a categorical input are included:
+
+    >>> pd.get_dummies(pd.Categorical(list("aca"), categories=["a", "b", "c"]))
+           a      b      c
+    0   True  False  False
+    1  False  False   True
+    2   True  False  False
     """
     from pandas.core.reshape.concat import concat
 
@@ -358,7 +366,7 @@ def _get_dummies_1d(
 
         sparse_series = []
         N = len(data)
-        sp_indices: list[list] = [[] for _ in range(len(dummy_cols))]
+        sp_indices: list[list[int]] = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
         codes = codes[mask]
         n_idx = np.arange(N)[mask]

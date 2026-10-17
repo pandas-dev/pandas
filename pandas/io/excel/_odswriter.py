@@ -28,13 +28,13 @@ if TYPE_CHECKING:
     from pandas.io.formats.excel import ExcelCell
 
 
-class ODSWriter(ExcelWriter):
+class ODSWriter(ExcelWriter["OpenDocumentSpreadsheet"]):
     _engine = "odf"
     _supported_extensions = (".ods",)
 
     def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
@@ -131,8 +131,8 @@ class ODSWriter(ExcelWriter):
         for _ in range(startrow):
             wks.addElement(TableRow())
 
-        rows: defaultdict = defaultdict(TableRow)
-        col_count: defaultdict = defaultdict(int)
+        rows: defaultdict[int, TableRow] = defaultdict(TableRow)
+        col_count: defaultdict[int, int] = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
             # only add empty cells if the row is still empty
