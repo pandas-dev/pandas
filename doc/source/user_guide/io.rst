@@ -6142,6 +6142,14 @@ connecting to.
    # or absolute, starting with a slash:
    engine = create_engine("sqlite:////absolute/path/to/foo.db")
 
+.. note::
+
+   The ``postgresql`` pip extra (``pip install "pandas[postgresql]"``) installs
+   psycopg2, not psycopg 3. To use the ``postgresql+psycopg`` dialect with
+   SQLAlchemy, install psycopg 3 separately, e.g.
+   ``pip install "psycopg[binary]"``. See
+   :ref:`install.optional_dependencies` for the full list of SQL dependencies.
+
 For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 
