@@ -585,7 +585,7 @@ class PrettyDict(dict[_KT, _VT]):
 
 
 # CSI escape sequences (e.g. terminal colors) take up no space on screen
-_ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_ANSI_ESCAPE = r"\x1b\[[0-?]*[ -/]*[@-~]"
 
 
 class _TextAdjustment:
@@ -597,7 +597,7 @@ class _TextAdjustment:
         Calculate display width, ignoring CSI escape sequences
         """
         if "\x1b" in text:
-            return len(_ANSI_ESCAPE.sub("", text))
+            return len(re.sub(_ANSI_ESCAPE, "", text))
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
@@ -647,7 +647,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
             return len(text)
 
         if "\x1b" in text:
-            text = _ANSI_ESCAPE.sub("", text)
+            text = re.sub(_ANSI_ESCAPE, "", text)
         return sum(
             self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
         )
