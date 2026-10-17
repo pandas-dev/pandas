@@ -350,6 +350,7 @@ class ParserBase:
             names = itertools.cycle([None])
             zip_strict = False
         for i, (arr, name) in enumerate(zip(index, names, strict=zip_strict)):
+            parsed_dates = False
             if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,
@@ -358,6 +359,7 @@ class ParserBase:
                     cache_dates=self.cache_dates,
                     date_format=self.date_format,
                 )
+                parsed_dates = arr.dtype.kind == "M"
 
             if self.na_filter:
                 col_na_values = self.na_values
@@ -381,6 +383,13 @@ class ParserBase:
             if self.index_names is not None:
                 if isinstance(clean_dtypes, dict):
                     cast_type = clean_dtypes.get(self.index_names[i], None)
+                if (
+                    parsed_dates
+                    and cast_type is not None
+                    and pandas_dtype(cast_type).kind != "M"
+                ):
+                    # GH#57512 don't undo a parse_dates conversion
+                    cast_type = None
 
                 if isinstance(converters, dict):
                     index_converter = converters.get(self.index_names[i]) is not None
@@ -817,10 +826,12 @@ def date_converter(
         # test_multi_index_parse_dates
         return str_objs
 
-    if isinstance(result, DatetimeIndex):
+    if isinstance(result, DatetimeIndex) and result.tz is None:
         arr = result.to_numpy()
         arr.flags.writeable = True
         return arr
+    # GH#57512 tz-aware stays a DatetimeArray, not object, so callers can
+    #  tell the column was parsed
     return result._values
 
 

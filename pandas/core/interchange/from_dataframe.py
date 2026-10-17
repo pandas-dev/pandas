@@ -118,7 +118,10 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
             )
         else:
             try:
-                return pa.table(df).to_pandas(zero_copy_only=not allow_copy)
+                # zero-copy is only possible without block consolidation
+                return pa.table(df).to_pandas(
+                    zero_copy_only=not allow_copy, split_blocks=not allow_copy
+                )
             except pa.ArrowInvalid as e:
                 raise RuntimeError(e) from e
 

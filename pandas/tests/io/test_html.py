@@ -98,6 +98,19 @@ def flavor_read_html(request):
     return partial(pd.read_html, flavor=request.param)
 
 
+def test_duplicate_tables_are_returned(flavor_read_html):
+    # GH#49934 identical tables are distinct tables and should all be returned
+    html = (
+        "<html><body>"
+        "<table><tr><td>a</td></tr></table>"
+        "<table><tr><td>a</td></tr></table>"
+        "</body></html>"
+    )
+    result = flavor_read_html(StringIO(html))
+    assert len(result) == 2
+    tm.assert_frame_equal(result[0], result[1])
+
+
 class TestReadHtml:
     def test_literal_html_deprecation(self, flavor_read_html):
         # GH 53785

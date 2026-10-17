@@ -2086,7 +2086,12 @@ cdef group_min_max(
 
                 if not isna_entry:
                     nobs[lab, j] += 1
-                    if compute_max:
+                    if (
+                        numeric_t is float32_t or numeric_t is float64_t
+                    ) and val != val:
+                        # unmasked NaN propagates like numpy, GH#59106
+                        group_min_or_max[lab, j] = val
+                    elif compute_max:
                         if val > group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                     else:
@@ -2385,7 +2390,12 @@ cdef group_cummin_max(
 
                     if not isna_entry:
                         mval = accum[lab, j]
-                        if compute_max:
+                        if (
+                            numeric_t is float32_t or numeric_t is float64_t
+                        ) and val != val:
+                            # unmasked NaN propagates like numpy, GH#59106
+                            accum[lab, j] = mval = val
+                        elif compute_max:
                             if val > mval:
                                 accum[lab, j] = mval = val
                         else:

@@ -3458,6 +3458,9 @@ def tuples_to_object_array(ndarray[object] tuples):
     result = np.empty((n, k), dtype=object)
     for i in range(n):
         tup = tuples[i]
+        if len(tup) != k:
+            # GH#50293
+            raise ValueError("All tuples must have the same length")
         for j in range(k):
             result[i, j] = tup[j]
 
