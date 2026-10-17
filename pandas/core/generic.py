@@ -6803,14 +6803,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 #  the block, or take the columns first when they are scattered in
                 #  many small runs (one cast instead of many tiny ones).
                 locs = np.array([i for i, _ in items], dtype=np.intp)
+                order = np.lexsort((mgr.blklocs[locs], mgr.blknos[locs]))
+                locs = locs[order]
                 blknos, blklocs = mgr.blknos[locs], mgr.blklocs[locs]
-                for blkno in np.unique(blknos):
-                    sel = blknos == blkno
-                    order = np.argsort(blklocs[sel], kind="stable")
-                    pos, bl = locs[sel][order], blklocs[sel][order]
+                bounds = np.flatnonzero(np.diff(blknos, prepend=-1, append=-1))
+                for g0, g1 in zip(bounds[:-1], bounds[1:], strict=True):
+                    pos, bl = locs[g0:g1], blklocs[g0:g1]
                     starts = np.flatnonzero(np.diff(bl, prepend=-2) != 1)
                     ends = np.append(starts[1:], len(bl))
-                    src = mgr.blocks[blkno]
+                    src = mgr.blocks[blknos[g0]]
                     if len(starts) <= 8:
                         parts = [
                             (
