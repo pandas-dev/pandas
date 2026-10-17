@@ -2400,6 +2400,48 @@ def test_resample_D_closed_right_not_on_boundary():
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_D_closed_right_tz_aware_no_extra_bin():
+    # GH#71263: the GH#62200 fix for the tz-naive Day freq did not cover a
+    # tz-aware index, which still added an empty leading bin when the first
+    # value was not on a Day boundary, and an empty trailing bin when the last
+    # value was exactly on one.
+    index = date_range("2000-05-13", "2000-05-15", freq="h", tz="UTC")
+    ser = pd.Series(range(len(index)), index=index)
+
+    result_d = ser.resample("D", closed="right").count()
+    result_24h = ser.resample("24h", closed="right").count()
+
+    expected = pd.Series(
+        [1, 24, 24],
+        index=date_range("2000-05-12", periods=3, freq="D", tz="UTC"),
+    )
+    tm.assert_series_equal(result_d, expected)
+    tm.assert_series_equal(result_24h, expected, check_freq=False)
+
+
+def test_resample_D_closed_right_tz_aware_not_on_boundary():
+    # GH#71263: with a tz-aware index and values not aligned to a Day boundary
+    # the leading/trailing edges should not step past the data.
+    index = date_range("2024-02-05 10:00", "2024-02-07 10:00", freq="12h", tz="UTC")
+    ser = pd.Series(range(len(index)), index=index)
+
+    result = ser.resample("D", closed="right").sum()
+    expected = pd.Series(
+        [1, 5, 4],
+        index=date_range("2024-02-05", periods=3, freq="D", tz="UTC"),
+    )
+    tm.assert_series_equal(result, expected)
+
+    # the trailing edge stays consistent with the equivalent Hour freq
+    index = date_range("2000-01-01", "2000-02-15", freq="h", tz="UTC").union(
+        date_range("2000-04-15", "2000-05-15", freq="h", tz="UTC")
+    )
+    ser = pd.Series(range(len(index)), index=index)
+    result_d = ser.resample("D", label="right", closed="right").count()
+    result_24h = ser.resample("24h", label="right", closed="right").count()
+    tm.assert_series_equal(result_d, result_24h, check_freq=False)
+
+
 def test_groupby_multiday_grouper_closed_right_intraday():
     # GH#43896 intraday values with a multi-day Grouper and closed="right"
     #  used to raise "Values falls before first bin".
