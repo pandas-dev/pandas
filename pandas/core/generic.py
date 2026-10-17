@@ -246,12 +246,14 @@ def _fill_bool_ea_na(cond):
         return isinstance(dtype, ExtensionDtype) and dtype.kind == "b"
 
     if isinstance(cond, ABCDataFrame):
-        positions = [loc for loc, dtype in enumerate(cond.dtypes) if is_bool_ea(dtype)]
-        if positions:
-            cond = cond.copy(deep=False)
-            for loc in positions:
+        if not any(is_bool_ea(dtype) for dtype in cond._blk_dtypes):
+            return cond
+        cond = cond.copy(deep=False)
+        for loc, dtype in enumerate(cond._mgr.get_dtypes()):
+            if is_bool_ea(dtype):
                 cond.isetitem(loc, cond.iloc[:, loc].fillna(False))
         return cond
+    # cond may also be an ndarray or list, which pass through unchanged
     if is_bool_ea(getattr(cond, "dtype", None)):
         return cond.fillna(False)
     return cond
