@@ -1495,9 +1495,11 @@ def read_csv(
         * ``int``: line index at which column labels are read.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above the first listed index
+          (``min(header)``), as well as intervening rows that are not
+          specified, will be skipped and do not appear in the result (e.g.
+          ``[1, 2, 4]`` skips rows 0 and 3). The levels follow the order of
+          the sequence, so ``[1, 0]`` puts row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -2107,9 +2109,11 @@ def read_table(
         * ``int``: line index at which column labels are read.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above the first listed index
+          (``min(header)``), as well as intervening rows that are not
+          specified, will be skipped and do not appear in the result (e.g.
+          ``[1, 2, 4]`` skips rows 0 and 3). The levels follow the order of
+          the sequence, so ``[1, 0]`` puts row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
