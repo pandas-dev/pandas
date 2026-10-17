@@ -6102,9 +6102,8 @@ Specifying this will return an iterator through chunks of the query result:
    usage. Most database drivers fetch the complete result set into client
    memory before the first chunk is produced. Actually streaming the result
    requires a server-side cursor, which with SQLAlchemy is requested with the
-   ``stream_results`` execution option (supported by, e.g., the psycopg2,
-   psycopg 3 and pymysql drivers; drivers without server-side cursor support
-   ignore it):
+   ``stream_results`` execution option (supported by, e.g., the psycopg and
+   pymysql drivers; drivers without server-side cursor support ignore it):
 
    .. code-block:: python
 
