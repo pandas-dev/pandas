@@ -31,6 +31,7 @@ import pandas._config.config as cf
 from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
+from pandas._libs.internals import BlockPlacement
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
@@ -6775,6 +6776,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             batches: dict[np.dtype, list[tuple[int, Any]]] = {}
             one_by_one: list[tuple[int, Any]] = []
             resolved: dict[tuple[type, Any], np.dtype | None] = {}
+            mgr = self._mgr
+            assert isinstance(mgr, BlockManager)  # Series case is handled above
+            current = mgr.get_dtypes()
             mask = dtype_ser.notna()
             for loc, column_dtype in zip(
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
@@ -6787,29 +6791,56 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     target = resolved[spec]
                 if target is None:
                     one_by_one.append((int(loc), column_dtype))
-                else:
+                elif current[loc] != target:
+                    # a column already of the target dtype stays as it is, a view
                     batches.setdefault(target, []).append((int(loc), column_dtype))
             pieces: list[tuple[npt.NDArray[np.intp], Sequence[Block]]] = []
             groups = list(batches.items())
             for k, (target, items) in enumerate(groups):
-                locs = np.array([i for i, _ in items], dtype=np.intp)
-                taken = self.iloc[:, locs]._mgr
+                by_loc = dict(items)
                 failed = False
-                new_blocks = []
-                for blk in taken.blocks:
-                    # A one-column block casts exactly as its column would, errors
-                    #  included, so it is never cast a second time.
-                    multi = len(blk.mgr_locs) > 1
-                    blk_errors = "raise" if multi and errors == "ignore" else errors
-                    try:
-                        new_blocks.append(blk.astype(target, errors=blk_errors))
-                    except Exception:
-                        # Cast these columns one by one below, so the error names
-                        #  the first failing column; with errors="raise" the
-                        #  batches not tried yet go there too.
-                        one_by_one += [items[j] for j in blk.mgr_locs.as_array]
-                        failed = True
-                pieces.append((locs, new_blocks))
+                # Per source block: cast each run of adjacent columns straight from
+                #  the block, or take the columns first when they are scattered in
+                #  many small runs (one cast instead of many tiny ones).
+                locs = np.array([i for i, _ in items], dtype=np.intp)
+                blknos, blklocs = mgr.blknos[locs], mgr.blklocs[locs]
+                for blkno in np.unique(blknos):
+                    sel = blknos == blkno
+                    order = np.argsort(blklocs[sel], kind="stable")
+                    pos, bl = locs[sel][order], blklocs[sel][order]
+                    starts = np.flatnonzero(np.diff(bl, prepend=-2) != 1)
+                    ends = np.append(starts[1:], len(bl))
+                    src = mgr.blocks[blkno]
+                    if len(starts) <= 8:
+                        parts = [
+                            (
+                                pos[a:b],
+                                src.getitem_block_columns(
+                                    slice(bl[a], bl[a] + b - a),
+                                    BlockPlacement(slice(0, b - a)),
+                                ),
+                            )
+                            for a, b in zip(starts, ends, strict=True)
+                        ]
+                    else:
+                        parts = [(pos, blk) for blk in self.iloc[:, pos]._mgr.blocks]
+                    for part_locs, blk in parts:
+                        # A one-column block casts exactly as its column would,
+                        #  errors included, so it is never cast a second time.
+                        multi = len(blk.mgr_locs) > 1
+                        blk_errors = "raise" if multi and errors == "ignore" else errors
+                        try:
+                            nb = blk.astype(target, errors=blk_errors)
+                        except Exception:
+                            # Cast these columns one by one below, so the error
+                            #  names the first failing column; with errors="raise"
+                            #  the batches not tried yet go there too.
+                            one_by_one += [
+                                (j, by_loc[j]) for j in part_locs[blk.mgr_locs.as_array]
+                            ]
+                            failed = True
+                            continue
+                        pieces.append((part_locs, [nb]))
                 if failed and errors == "raise":
                     one_by_one += [item for _, rest in groups[k + 1 :] for item in rest]
                     break
@@ -6819,8 +6850,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 locs_arr = np.array([i for i, _ in one_by_one], dtype=np.intp)
                 pieces.append((locs_arr, casted._mgr.blocks))
 
-            mgr = self._mgr
-            assert isinstance(mgr, BlockManager)  # Series case is handled above
             new_mgr = mgr.replace_columns(pieces)
             new = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
             return new.__finalize__(self, method="astype")
