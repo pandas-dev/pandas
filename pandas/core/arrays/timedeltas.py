@@ -640,6 +640,27 @@ class TimedeltaArray(dtl.TimelikeOps):
         if np.max(np.abs(f_quot), initial=0.0, where=~exclude_mask) >= 2.0**63:
             raise OutOfBoundsTimedelta("Overflow in timedelta division")
 
+    def _floordiv_numeric(self, other) -> np.ndarray:
+        """
+        Floor-divide the underlying int64 values by a numeric scalar or array.
+
+        numpy's ``timedelta64 // numeric`` rounds toward zero, while
+        ``Timedelta // numeric`` floors like ``datetime.timedelta`` does, so
+        the two disagreed by one unit for negative, non-exact quotients
+        (GH#71264). Dividing the int64 view floors on both paths. NaT, a zero
+        divisor and a NaN divisor give NaT, as numpy does.
+        """
+        i8 = self._ndarray.view("i8")
+        other_arr = np.asarray(other)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            result = np.floor_divide(i8, other_arr)
+            mask = (i8 == iNaT) | (other_arr == 0) | np.isnan(other_arr)
+        if result.dtype.kind == "f":
+            mask |= ~np.isfinite(result)
+            result = np.where(mask, 0, result).astype(np.int64)
+        result = np.where(mask, iNaT, result)
+        return result.view(self._ndarray.dtype)
+
     def _scalar_divlike_op(self, other, op):
         """
         Shared logic for __truediv__, __rtruediv__, __floordiv__, __rfloordiv__
@@ -671,7 +692,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             if lib.is_float(other):
                 # GH#43178: raise instead of silently saturating on overflow
                 self._check_float_div_overflow(other)
-            result = op(self._ndarray, other)
+            if op is operator.floordiv:
+                result = self._floordiv_numeric(other)
+            else:
+                result = op(self._ndarray, other)
             return type(self)._simple_new(result, dtype=result.dtype)
 
     def _cast_divlike_op(self, other):
@@ -693,14 +717,18 @@ class TimedeltaArray(dtl.TimelikeOps):
             # GH#43178: raise instead of silently saturating on overflow
             self._check_float_div_overflow(other_arr)
 
-        # Let numpy handle it
-        result = op(self._ndarray, other_arr)
-
         if (is_integer_dtype(other.dtype) or is_float_dtype(other.dtype)) and op in [
             operator.truediv,
             operator.floordiv,
         ]:
+            if op is operator.floordiv:
+                result = self._floordiv_numeric(other_arr)
+            else:
+                result = op(self._ndarray, other_arr)
             return type(self)._simple_new(result, dtype=result.dtype)
+
+        # Let numpy handle it
+        result = op(self._ndarray, other_arr)
 
         if op in [operator.floordiv, roperator.rfloordiv]:
             mask = self.isna() | isna(other)
