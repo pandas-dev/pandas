@@ -273,6 +273,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.agg`, :meth:`.DataFrameGroupBy.agg`, and resample/rolling ``agg`` with a dict, list, or named aggregation over more than 100 columns emitting a spurious ``PerformanceWarning`` with ``as_index=False`` or on a later :meth:`DataFrame.reset_index` (:issue:`61628`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``sort=True`` and ``dropna=False`` placing the ``NaN`` group in the middle of the result instead of last for object-dtype keys; :meth:`Index.union` had the same misordering (:issue:`70216`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` and ``closed="right"`` returning shifted labels or incorrect aggregations (:issue:`44363`)
+- Bug in time-based :meth:`.Rolling.cov` and :meth:`.Rolling.corr` raising ``ValueError`` or silently returning wrong results when ``other`` has a different index; the result is now computed on the aligned index, as with integer windows. With ``on``, a mismatched index now raises ``ValueError`` (:issue:`62937`)
 -
 
 Reshaping
