@@ -1373,12 +1373,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
-        if not value_is_extension_type and len(blklocs) and len(value) != len(blklocs):
-            # Otherwise value_getitem below silently drops value columns, or
-            #  yields a block narrower than its placement, GH#68445.  An empty
-            #  loc writes nothing, so it stays a no-op.
+        # GH#68445, GH#71098 value needs one column per position; callers do any
+        #  broadcasting. An empty loc writes nothing, so it stays a no-op.
+        ncols = 1 if value_is_extension_type else len(value)
+        if len(blknos) and ncols != len(blknos):
             raise ValueError(
-                f"Got {len(blklocs)} positions but value has {len(value)} columns."
+                f"Got {len(blknos)} positions but value has {ncols} columns."
             )
 
         unfit_mgr_locs = []

@@ -1571,8 +1571,8 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
     ],
 )
 def test_setitem_key_matching_several_columns_mismatched_value(value, ncols, columns):
-    # GH#68445 the broadcast in _set_item skips these, so they used to leave a block
-    #  narrower than its placement, or drop columns of value, rather than raise
+    # GH#68445 the broadcast in _set_item_mgr skips these, so they used to leave a
+    #  block narrower than its placement, or drop columns of value, rather than raise
     df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
     expected = df.copy()
     msg = f"Got 2 positions but value has {ncols} columns"
@@ -1665,3 +1665,48 @@ def test_setitem_key_matching_several_columns_2d_capable_ea_scalar(value, column
             tm.assert_series_equal(df.iloc[:, pos], expected_col, check_names=False)
         else:
             tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
+
+
+@pytest.mark.parametrize(
+    "columns, key",
+    [
+        (["a", "a", "b"], "a"),
+        (["a", "b", "a"], "a"),
+        (pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]), "a"),
+        (pd.DatetimeIndex(["2020-01-01", "2020-01-02", "2021-01-01"]), "2020"),
+        (pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (5, 6)]), 1.5),
+    ],
+)
+def test_setitem_key_matching_several_columns_1d_only_ea(columns, key):
+    # GH#71098 the matched columns used to share one array
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    value = pd.array([10, 20, 30], dtype="Int64")
+
+    df[key] = value
+
+    positions = np.arange(len(df.columns))[df.columns.get_loc(key)]
+    expected = pd.Series(value)
+    for pos in positions:
+        tm.assert_series_equal(df.iloc[:, pos], expected, check_names=False)
+    df.iloc[0, positions[0]] = 99
+    tm.assert_series_equal(df.iloc[:, positions[1]], expected, check_names=False)
+
+
+@pytest.mark.parametrize("value", [5, np.array([10, 20, 30], dtype=np.int64)])
+@pytest.mark.parametrize(
+    "columns, key",
+    [
+        (pd.DatetimeIndex(["2020-01-01", "2020-01-02", "2021-01-01"]), "2020"),
+        (pd.PeriodIndex(["2020-01-01", "2020-01-02", "2021-01-01"], freq="D"), "2020"),
+        (pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (5, 6)]), 1.5),
+    ],
+)
+def test_setitem_key_matching_several_unique_columns(columns, key, value):
+    # GH#71098 a key matching several unique columns used to corrupt the frame
+    df = pd.DataFrame(np.arange(9, dtype=np.int64).reshape(3, 3), columns=columns)
+
+    df[key] = value
+
+    expected = np.arange(9, dtype=np.int64).reshape(3, 3)
+    expected[:, :2] = np.asarray(value).reshape(-1, 1)
+    tm.assert_frame_equal(df, pd.DataFrame(expected, columns=columns))
