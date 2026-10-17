@@ -7,8 +7,8 @@ vulnerabilities.
 
 pandas is a data analysis library. It reads, transforms, and writes data on
 behalf of the user, with the permissions of the Python process that runs it.
-pandas does not provide a sandbox: code that calls pandas is trusted, and
-arguments passed to pandas functions (file paths, URLs, expressions, SQL
+pandas does not provide a sandbox: we assume code that calls pandas is trusted,
+and arguments passed to pandas functions (file paths, URLs, expressions, SQL
 queries, options) are trusted.
 
 Functions that read data are intended to be usable with data from an
@@ -19,6 +19,11 @@ vulnerability** if an attacker who controls the data could exploit it to:
 
 - Execute arbitrary code (Remote Code Execution); or
 - Read sensitive information from process memory (Information Disclosure).
+
+Where the pandas documentation explicitly states that a function escapes,
+quotes, or sanitizes data, we also consider it a **security vulnerability** if
+an attacker who controls the data can bypass that protection. This applies to
+functions that write data as well as functions that read it.
 
 Other unexpected behavior caused by malformed or malicious data is generally
 considered a **bug**, not a security vulnerability. This includes:
@@ -31,9 +36,10 @@ privately as described in [Reporting a Vulnerability](#reporting-a-vulnerability
 
 ## Areas Outside the Security Model
 
-We occasionally receive vulnerability reports for the areas below. pandas does
-not provide a security boundary in these areas, so we are unlikely to consider
-such reports security vulnerabilities. If you are unsure whether an issue
+We occasionally receive vulnerability reports for the areas below. Except where
+the pandas documentation explicitly states otherwise, pandas does not provide a
+security boundary in these areas, so we are unlikely to consider such reports
+security vulnerabilities. If you are unsure whether an issue
 in one of these areas is a security vulnerability, report it privately and we
 will discuss it.
 
@@ -62,17 +68,16 @@ Do not use stylesheets from untrusted sources.
 
 `DataFrame.to_html` escapes HTML characters by default (`escape=True`), and
 `Styler` can escape HTML when `escape="html"` is set (it does not by default).
-These options exist for convenience and are not a security boundary. pandas
-does not guarantee that the HTML it generates is safe to serve to a browser
-when the data or the formatting options come from an untrusted source.
+These options replace only the characters listed in their documentation. pandas
+does not otherwise guarantee that the HTML it generates is safe to serve to a
+browser when the data or the formatting options come from an untrusted source.
 
 ### Injection into other formats
 
 Several methods read or write formats where values can be interpreted as code
-or commands, such as SQL (`read_sql`) and spreadsheet formulas (`to_csv`,
-`to_excel`). pandas does not escape or sanitize values for these formats.
-Use the parameter binding or escaping options of the underlying library
-(for example, `params` in `read_sql`) for untrusted values.
+or commands, such as SQL (`read_sql`, `to_sql`) and spreadsheet formulas
+(`to_csv`, `to_excel`). Unless explicitly documented, do not rely on pandas to
+escape or sanitize values for these formats.
 
 ### File paths and URLs
 
@@ -90,8 +95,9 @@ validate them first.
 
 pandas uses many third-party libraries, such as NumPy, PyArrow, lxml,
 openpyxl, and SQLAlchemy. Please report vulnerabilities in those libraries to
-their maintainers. A report is in scope for pandas only if pandas itself uses
-the library in an unsafe way.
+their maintainers. If a vulnerability in one of these libraries can be
+exploited through pandas, please also report it to pandas, even if pandas uses
+the library as intended.
 
 ## Supported Versions
 
@@ -109,9 +115,8 @@ report it in the [public issue tracker](https://github.com/pandas-dev/pandas/iss
 **Do not report security vulnerabilities in a public issue, pull request, or
 discussion.**
 
-Report security vulnerabilities privately through
-[GitHub private vulnerability reporting](https://github.com/pandas-dev/pandas/security/advisories/new).
-This allows the maintainers to investigate and release a fix before the
+Report security vulnerabilities privately through Tidelift by following the
+instructions at <https://tidelift.com/security>. This allows the maintainers to investigate and release a fix before the
 vulnerability is made public.
 
 Please include in your report:
