@@ -6,6 +6,7 @@ from io import BytesIO
 import os
 import pathlib
 import sys
+import time
 import uuid
 
 import numpy as np
@@ -1806,19 +1807,23 @@ class TestParquetChunksize(Base):
         tm.assert_frame_equal(read_parquet(path, engine=pa), df)
         tm.assert_frame_equal(pd.concat(read_parquet(path, engine=pa, chunksize=5)), df)
 
-    def test_read_parquet_chunksize_bounded_memory(self, pa, tmp_path):
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_bounded_memory(self, pa, tmp_path, directory):
         # pyarrow's default pre-buffering keeps the row groups it buffers until
-        # the file is closed, so a chunked read would end up holding the whole
-        # file in memory
+        # the file is closed, and a dataset scan reads ahead of a slow
+        # consumer, so a chunked read could end up holding the whole file
         path = tmp_path / "test.parquet"
         n = 200_000
         pd.DataFrame({"a": np.arange(n)}).to_parquet(
             path, engine=pa, row_group_size=2_000, compression=None
         )
+        source = tmp_path if directory else path
 
         before = pyarrow.total_allocated_bytes()
         peak = 0
-        for _ in read_parquet(path, engine=pa, chunksize=2_000):
+        for _ in read_parquet(source, engine=pa, chunksize=2_000):
+            # give a scan that reads ahead time to do so
+            time.sleep(0.001)
             peak = max(peak, pyarrow.total_allocated_bytes() - before)
         assert peak < n * 8 / 4
 

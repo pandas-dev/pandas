@@ -223,15 +223,21 @@ def _fragment_batches(
     fragments: Iterable[Any], **scanner_kwargs: Any
 ) -> Generator[pyarrow.RecordBatch]:
     """
-    Record batches of each dataset fragment in turn.
+    Record batches of each row group of each dataset fragment in turn.
 
-    Each fragment is read through a ``RecordBatchReader`` that is closed when
+    A fragment's scan reads row groups ahead of its consumer, with or without
+    threads and however small ``batch_readahead`` is, so a slow consumer would
+    end up holding most of the file. Scanning each row group on its own holds
+    about one at a time, like ``ParquetFile.iter_batches()``.
+
+    Each row group is read through a ``RecordBatchReader`` that is closed when
     it is exhausted or when this generator is closed, which releases its file
     right away rather than once the scan is garbage collected.
     """
     for fragment in fragments:
-        with fragment.scanner(**scanner_kwargs).to_reader() as reader:
-            yield from reader
+        for row_group in fragment.split_by_row_group():
+            with row_group.scanner(**scanner_kwargs).to_reader() as reader:
+                yield from reader
 
 
 def _full_read_range_index(
@@ -583,9 +589,6 @@ class PyArrowImpl(BaseImpl):
                         schema=schema,
                         columns=columns,
                         batch_size=chunksize,
-                        # the default of 16 lets the scan run far ahead of a
-                        # slow consumer, holding most of the file in memory
-                        batch_readahead=1,
                         use_threads=use_threads,
                     )
                 else:
