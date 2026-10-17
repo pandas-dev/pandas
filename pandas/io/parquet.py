@@ -346,7 +346,8 @@ class ParquetFileReader(abc.Iterator):
     -----
     Only returned when ``engine="pyarrow"``; :func:`~pandas.read_parquet`
     raises ``NotImplementedError`` for ``chunksize`` with
-    ``engine="fastparquet"`` or together with ``filters``.
+    ``engine="fastparquet"``, together with ``filters``, or with ``columns``
+    selecting a field inside a nested column of a single file.
 
     Examples
     --------
@@ -597,8 +598,9 @@ class PyArrowImpl(BaseImpl):
                     )
                     if columns is not None:
                         # iter_batches() leaves out names it doesn't know where
-                        # read_table() raises; it takes a column name or the
-                        # dotted path to a field inside a nested column
+                        # read_table() raises, and gives the dotted path to a
+                        # field inside a nested column as that column cut down
+                        # to the field, where read_table() gives the field
                         known = {
                             prefix
                             for column in parquet_file.schema
@@ -606,11 +608,22 @@ class PyArrowImpl(BaseImpl):
                                 column.path.split("."), lambda a, b: f"{a}.{b}"
                             )
                         }
+                        top_level = parquet_file.schema_arrow.names
                         missing = [col for col in columns if col not in known]
-                        if missing:
+                        nested = [
+                            col
+                            for col in columns
+                            if col in known and col not in top_level
+                        ]
+                        if missing or nested:
                             parquet_file.close()
-                            raise ValueError(
-                                f"Columns not found in the parquet file: {missing}"
+                            if missing:
+                                raise ValueError(
+                                    f"Columns not found in the parquet file: {missing}"
+                                )
+                            raise NotImplementedError(
+                                "selecting fields inside nested columns is not "
+                                f"supported when chunksize is set for a file: {nested}"
                             )
                     batch_iter = parquet_file.iter_batches(
                         batch_size=chunksize,

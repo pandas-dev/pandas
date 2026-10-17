@@ -1839,3 +1839,15 @@ class TestParquetChunksize(Base):
 
         with pytest.raises(ValueError, match="typo"):
             list(read_parquet(path, engine=pa, columns=["a", "typo"], chunksize=2))
+
+    def test_read_parquet_chunksize_nested_field_not_implemented(self, pa, tmp_path):
+        # iter_batches() gives the dotted path to a field inside a nested column
+        # as that column cut down to the field, where read_table() gives the
+        # field itself
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"s": [{"x": 1, "y": 2}, {"x": 3, "y": 4}]}).to_parquet(
+            path, engine=pa
+        )
+
+        with pytest.raises(NotImplementedError, match="nested"):
+            read_parquet(path, engine=pa, columns=["s.x"], chunksize=1)
