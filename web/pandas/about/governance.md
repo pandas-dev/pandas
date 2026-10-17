@@ -1,11 +1,5 @@
 # Project governance
 
-The official version of this document, along with a list of
-individuals and institutions in the roles defined in the governance
-section below, is contained in the
-[Project governance]({{ base_url }}about/governance.html)
-page of the pandas website.
-
 ## The Project
 
 The pandas Project (The Project) is an open source software project affiliated
