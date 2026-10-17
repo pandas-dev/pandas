@@ -2,8 +2,7 @@ from __future__ import annotations
 
 __docformat__ = "restructuredtext"
 
-# PEP 810: defer I/O backends, test helpers and the eval/resample/interchange/
-# api re-export stacks until used (no-op < 3.15)
+# PEP 810: defer rarely used subsystems until first use (no-op < 3.15)
 __lazy_modules__ = (
     "pandas.io.api",
     "pandas.io.json._normalize",

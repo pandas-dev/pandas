@@ -620,7 +620,7 @@ def test_lazy_imports():
         "assert 'pandas.io.excel' not in sys.modules; "
         "assert 'pandas.testing' not in sys.modules"
     )
-    subprocess.check_call([sys.executable, "-c", code])
+    subprocess.check_call([sys.executable, "-X", "lazy_imports=normal", "-c", code])
 
 
 @pytest.mark.skipif(
@@ -633,14 +633,16 @@ def test_lazy_imports_read_csv():
         "from io import StringIO\n"
         "pd.read_csv(StringIO('a,b\\n1,2'))\n"
         "assert 'pandas.io.parsers' in sys.modules\n"
-        "siblings = ('pandas.io.excel', 'pandas.io.parquet', 'pandas.io.sql',\n"
-        "            'pandas.io.pytables', 'pandas.io.stata', 'pandas.io.sas',\n"
-        "            'pandas.io.xml')\n"
+        "import pandas.io.api\n"
+        "siblings = set(pandas.io.api.__lazy_modules__) - {'pandas.io.parsers'}\n"
         "loaded = [m for m in siblings if m in sys.modules]\n"
         "assert not loaded, f'unexpectedly loaded: {loaded}'\n"
     )
     result = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+        [sys.executable, "-X", "lazy_imports=normal", "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
 
@@ -660,6 +662,9 @@ def test_lazy_imports_io_namespace():
         "assert 'pandas.io.stata' in sys.modules\n"
     )
     result = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+        [sys.executable, "-X", "lazy_imports=normal", "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
