@@ -335,4 +335,25 @@ class Explode:
         self.series.explode()
 
 
+class ExplodeDataFrame:
+    param_names = ["n_rows", "n_columns", "storage"]
+    params = [[100, 10000], [2, 8], ["object", "arrow"]]
+
+    def setup(self, n_rows, n_columns, storage):
+        rng = np.random.default_rng(2)
+        data = [list(range(n)) for n in rng.integers(0, 5, n_rows)]
+        if storage == "arrow":
+            import pyarrow as pa
+
+            values = pd.array(data, dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        else:
+            values = pd.Series(data, dtype=object)
+        self.columns = list(range(n_columns))
+        self.df = DataFrame({c: values.copy() for c in self.columns})
+        self.df["id"] = np.arange(n_rows)
+
+    def time_explode(self, n_rows, n_columns, storage):
+        self.df.explode(self.columns)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

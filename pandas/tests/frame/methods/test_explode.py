@@ -305,3 +305,84 @@ def test_str_dtype():
     result = df.explode(column="a")
     assert result is not df
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("ignore_index", [True, False])
+@pytest.mark.parametrize("multiindex", [True, False])
+@pytest.mark.parametrize("storage", ["object", "arrow", "mixed"])
+def test_multi_columns_lengths_and_index(ignore_index, multiindex, storage):
+    # GH 53967: reuse the lengths from each column's explode operation.
+    data = [[1, 2], [], None, [3], [4, 5, 6]]
+    left = pd.Series(data, dtype=object)
+    right = pd.Series(data, dtype=object)
+    if storage != "object":
+        pa = pytest.importorskip("pyarrow")
+        left = pd.Series(data, dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        if storage == "arrow":
+            right = pd.Series(data, dtype=pd.ArrowDtype(pa.large_list(pa.int64())))
+    df = pd.DataFrame({"left": left, "id": range(5), "right": right})
+    if multiindex:
+        df.index = pd.MultiIndex.from_arrays(
+            [[1, 1, 2, 2, 2], ["a", "a", "b", "b", "c"]], names=["first", "second"]
+        )
+    else:
+        df.index = pd.Index([4, 4, 2, 2, 0], name="row")
+
+    positions = [0, 0, 1, 2, 3, 4, 4, 4]
+    expected = pd.DataFrame(
+        {
+            "left": left.explode(ignore_index=True),
+            "id": positions,
+            "right": right.explode(ignore_index=True),
+        }
+    )
+    if not ignore_index:
+        expected.index = df.index.take(positions)
+
+    result = df.explode(["right", "left"], ignore_index=ignore_index)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "float64", "Int64", "string", "category"])
+@pytest.mark.parametrize("empty", [True, False])
+def test_multi_columns_scalar_dtype(dtype, empty):
+    # Scalar columns still contribute one element per row and keep their dtype.
+    df = pd.DataFrame(
+        {
+            "lists": pd.Series([[1], [], None], dtype=object),
+            "scalar": pd.Series([1, 2, 3], dtype=dtype),
+        }
+    )
+    if empty:
+        df = df.iloc[:0]
+    expected = pd.DataFrame(
+        {"lists": df["lists"].explode(), "scalar": df["scalar"].copy()}
+    )
+    result = df.explode(["lists", "scalar"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("storage", ["object", "arrow", "mixed"])
+def test_multi_columns_same_total_different_lengths(storage):
+    # Equal total output sizes are not enough: every row's lengths must match.
+    left = pd.Series([[1, 2], [3]], dtype=object)
+    right = pd.Series([[4], [5, 6]], dtype=object)
+    if storage != "object":
+        pa = pytest.importorskip("pyarrow")
+        left = left.astype(pd.ArrowDtype(pa.list_(pa.int64())))
+        if storage == "arrow":
+            right = right.astype(pd.ArrowDtype(pa.list_(pa.int64())))
+    df = pd.DataFrame({"left": left, "right": right})
+    with pytest.raises(ValueError, match="columns must have matching element counts"):
+        df.explode(["left", "right"])
+
+
+@pytest.mark.parametrize("reverse", [True, False])
+def test_multi_columns_categorical_tuple_lengths(reverse):
+    # Categorical tuples still participate in the element-count validation.
+    df = pd.DataFrame({"tuples": pd.Categorical([(1, 2)]), "scalar": [1]})
+    columns = ["tuples", "scalar"]
+    if reverse:
+        columns.reverse()
+    with pytest.raises(ValueError, match="columns must have matching element counts"):
+        df.explode(columns)
