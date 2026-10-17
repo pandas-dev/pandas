@@ -177,6 +177,7 @@ numpydoc = "*"
 pandoc = "*"
 seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
+sphinx-autobuild = "*" # live preview of the docs
 sphinx-design = "*"
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "==0.20.0"
@@ -410,4 +411,13 @@ cmd = [
   "build",
 ]
 cwd = "web/interactive_terminal/"
+default-environment = "docs-and-web"
+
+[tasks.preview-docs]
+# Extra arguments are passed to doc/make.py, e.g. --no-api
+cmd = [
+  "python",
+  "doc/make.py",
+  "livehtml",
+]
 default-environment = "docs-and-web"

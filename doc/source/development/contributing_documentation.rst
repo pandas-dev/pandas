@@ -196,6 +196,19 @@ just built ``doc/build/html/index.html``.
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 
+Live preview
+~~~~~~~~~~~~
+
+With :ref:`pixi <contributing.pixi>`, you can build the documentation, serve it
+at http://127.0.0.1:8000, and rebuild it whenever a file under ``doc/source``
+changes. The browser reloads automatically after each rebuild::
+
+    pixi run -e docs-and-web build-pandas --editable
+    pixi run preview-docs
+
+Extra arguments are passed to ``make.py``, e.g. ``pixi run preview-docs --no-api``.
+Without pixi, run ``python make.py livehtml`` from the ``doc/`` directory.
+
 .. _contributing.dev_docs:
 
 Building main branch documentation
