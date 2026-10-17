@@ -2479,6 +2479,23 @@ class TestDataFrameConstructors:
         with tm.assert_produces_warning(None):
             pd.DataFrame([[1, 2], [3, 4]])
 
+    @pytest.mark.parametrize(
+        "first_row",
+        [
+            ["A1", "A2"],
+            ("A1", "A2"),
+            np.array(["A1", "A2"], dtype=object),
+            np.array(["A1", "A2"]),
+            np.array([b"A1", b"A2"]),
+        ],
+    )
+    @pytest.mark.parametrize("str_row", ["BC", np.str_("BC"), b"BC", np.bytes_(b"BC")])
+    def test_construct_listlike_then_str_row_deprecated(self, first_row, str_row):
+        # GH#50461 a str or bytes row is split into its elements
+        msg = "a str or bytes row after a list-like row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([first_row, str_row])
+
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]
         exp = pd.Series(items).astype("category")

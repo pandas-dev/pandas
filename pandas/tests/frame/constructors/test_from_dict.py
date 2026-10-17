@@ -225,6 +225,19 @@ class TestFromDict:
         with pytest.raises(ValueError, match=msg):
             pd.DataFrame.from_dict({"b": 8, "a": 6})
 
+    @pytest.mark.parametrize("value, row", [("BC", ["B", "C"]), ("B", ["B", None])])
+    def test_from_dict_orient_index_list_then_str_deprecated(self, value, row):
+        # GH#50461 the str value is split into characters; a length mismatch
+        #  does not also issue the mismatched-lengths warning
+        msg = "a str or bytes row after a list-like row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg) as record:
+            result = pd.DataFrame.from_dict(
+                {"a": ["A1", "A2"], "b": value}, orient="index"
+            )
+        assert len(record) == 1
+        expected = pd.DataFrame([["A1", "A2"], row], index=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
     def test_from_dict_orient_invalid(self):
         msg = (
             "Expected 'index', 'columns' or 'tight' for orient parameter. "
