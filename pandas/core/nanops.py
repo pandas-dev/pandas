@@ -2109,7 +2109,8 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     if a_scale == 0 or b_scale == 0:
         return np.nan
 
-    # rescale only when ssq_a * ssq_b could overflow or underflow
+    # rescale only when ssq_a * ssq_b could overflow or underflow; the hard
+    # limit is ~1e77 (float64 max ** 0.25), 1e50 leaves headroom for nobs**2
     if not 1e-50 < a_scale < 1e50:
         a = a / a_scale
     if not 1e-50 < b_scale < 1e50:
