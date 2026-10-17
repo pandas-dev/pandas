@@ -56,6 +56,10 @@ if TYPE_CHECKING:
 _DEFAULT_CHUNKSIZE_CELLS = 100_000
 
 
+def _is_blank(val: object) -> bool:
+    return val is None or (isinstance(val, str) and not val)
+
+
 class CSVFormatter:
     cols: npt.NDArray[np.object_]
 
@@ -316,16 +320,13 @@ class CSVFormatter:
         if len(self.obj) == 0:
             return False
         res = self.obj.iloc[:1]._get_values_for_csv(**self._number_format)
-        values = [arr[0] for arr in res._iter_column_arrays()]
+        num_blank = sum(_is_blank(arr[0]) for arr in res._iter_column_arrays())
         index_values = self.data_index[:1]._get_values_for_csv(**self._number_format)
         if self.nlevels > 1:
-            values += list(index_values[0])
+            num_blank += sum(_is_blank(val) for val in index_values[0])
         else:
-            values.append(index_values[0])
-        num_blank = sum(
-            val is None or (isinstance(val, str) and not val) for val in values
-        )
-        return len(values) - self.nlevels <= num_blank
+            num_blank += _is_blank(index_values[0])
+        return len(res.columns) <= num_blank
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
