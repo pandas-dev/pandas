@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -114,6 +115,7 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.base import get_values_for_csv
+from pandas.core.ops.array_ops import comparison_op
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -1425,6 +1427,63 @@ class Block(PandasObject, libinternals.Block):
             result = result.T
 
         return [self.make_block(result)]
+
+    @final
+    def clip(self, lower, upper, inplace: bool = False) -> list[Block]:
+        """
+        Trim values below ``lower`` and above ``upper``, swapping bounds given
+        in reverse order.
+
+        Parameters
+        ----------
+        lower : scalar or None
+        upper : scalar or None
+        inplace : bool, default False
+
+        Returns
+        -------
+        List[Block]
+        """
+        copy, refs = self._get_refs_and_copy(inplace)
+        values = self.array_values
+        try:
+            # the array orders the bounds, which can differ from their own
+            #  order, e.g. ordered categoricals (GH#49217)
+            res_values = values._clip(lower, upper, copy=copy)
+        except (ValueError, TypeError):
+            # a bound the dtype cannot hold; where casts to one that can
+            if lower is not None and upper is not None:
+                lower, upper = min(lower, upper), max(lower, upper)
+            return self._clip_with_where(lower, upper, inplace)
+        if res_values is values:
+            return [self.copy(deep=False)]
+        res = extract_array(res_values, extract_numpy=True)
+        return [self.make_block_same_class(res, refs=refs)]
+
+    @final
+    def _clip_with_where(self, lower, upper, inplace: bool) -> list[Block]:
+        # where casts to a dtype that can hold the bounds when needed, and
+        #  putmask raises instead, as where(inplace=True) does
+        blocks: list[Block] = [self]
+        for bound, op in ((lower, operator.ge), (upper, operator.le)):
+            if bound is None:
+                continue
+            res_blocks = []
+            # the first bound can split the block, so compare each piece
+            for blk in blocks:
+                values = blk.values
+                keep = isna(values) | extract_bool_array(
+                    comparison_op(values, bound, op)
+                )
+                if keep.ndim == 2:
+                    # where and putmask take the mask in the DataFrame's orientation
+                    keep = keep.T
+                if inplace:
+                    res_blocks.extend(blk.putmask(~keep, bound))
+                else:
+                    res_blocks.extend(blk.where(bound, keep))
+            blocks = res_blocks
+        return blocks
 
     def fillna(
         self,

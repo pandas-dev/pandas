@@ -2758,6 +2758,21 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         res = self._from_backing_data(res_codes)
         return res
 
+    def _clip(self, lower, upper, copy: bool = True) -> Self:
+        if not self.ordered:
+            # raise the same error as comparisons do
+            return super()._clip(lower, upper, copy=copy)
+        # bounds and values are ordered by category position
+        lo = 0 if lower is None else self._validate_scalar(lower)
+        hi = len(self.categories) - 1 if upper is None else self._validate_scalar(upper)
+        lo, hi = min(lo, hi), max(lo, hi)
+        codes = self._codes
+        notna = codes != -1
+        if not (((codes < lo) & notna).any() or (codes > hi).any()):
+            return self
+        res_codes = np.where(notna, np.clip(codes, lo, hi), codes)
+        return self._from_backing_data(res_codes)
+
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 

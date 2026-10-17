@@ -171,3 +171,48 @@ class TestSeriesClip:
         tm.assert_series_equal(result, expected)
         # the np.clip ufunc dispatches to Series.clip
         tm.assert_series_equal(np.clip(ser, bound, 1), expected)
+
+    @pytest.mark.parametrize(
+        "categories, lower, upper, expected",
+        [
+            (["a", "c", "b"], "c", "b", ["c", "c", "b"]),
+            (["a", "c", "b"], "b", "c", ["c", "c", "b"]),
+            ([3, 1, 2], 3, 1, [3, 1, 1]),
+            ([3, 1, 2], 1, 3, [3, 1, 1]),
+            (
+                list(pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-02"])),
+                pd.Timestamp("2020-01-03"),
+                "2020-01-01",
+                list(pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-01"])),
+            ),
+        ],
+    )
+    def test_clip_ordered_categorical(self, categories, lower, upper, expected):
+        # GH#49217 the bounds are ordered by category position, not by value
+        dtype = pd.CategoricalDtype(categories, ordered=True)
+        ser = pd.Series(categories, dtype=dtype)
+        result = ser.clip(lower, upper)
+        tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
+
+    @pytest.mark.parametrize(
+        "lower, upper", [("Jan 10 2020", "Feb 1 2020"), ("Feb 1 2020", "Jan 10 2020")]
+    )
+    def test_clip_datetime_string_bounds(self, lower, upper):
+        # GH#49217 the bounds are ordered as dates, not as strings
+        ser = pd.Series(pd.date_range("2020-01-01", periods=3, freq="20D"))
+        result = ser.clip(lower, upper)
+        expected = pd.Series(
+            pd.to_datetime(["2020-01-10", "2020-01-21", "2020-02-01"]), dtype=ser.dtype
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, lower, upper", [([1, 5, 9], 2.5, 7), ([True, False], 0.5, None)]
+    )
+    def test_clip_inplace_upcast_raises(self, data, lower, upper):
+        # GH#49217 inplace does not upcast, as with where(inplace=True)
+        ser = pd.Series(data)
+        expected = ser.copy()
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser.clip(lower, upper, inplace=True)
+        tm.assert_series_equal(ser, expected)

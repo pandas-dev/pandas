@@ -2854,6 +2854,46 @@ class ExtensionArray:
         result[~mask] = val
         return result
 
+    def _clip(self, lower, upper, copy: bool = True) -> Self:
+        """
+        Trim values below ``lower`` and above ``upper``.
+
+        Bounds given in reverse order, as this array orders them, are swapped.
+
+        Parameters
+        ----------
+        lower : scalar or None
+        upper : scalar or None
+        copy : bool, default True
+            If False, ``self`` may be trimmed in place.
+
+        Returns
+        -------
+        same type as self
+            ``self`` itself if no values are trimmed.
+
+        Raises
+        ------
+        TypeError or ValueError
+            If a bound cannot be compared with or stored in this array.
+        """
+        if lower is not None and upper is not None:
+            bounds = type(self)._from_sequence([lower, upper], dtype=self.dtype)
+            if bool((bounds[:1] > bounds[1:])[0]):  # type: ignore[operator]
+                lower, upper = upper, lower
+
+        result = self
+        mask = np.asarray(self.isna())
+        for bound, op in ((lower, operator.ge), (upper, operator.le)):
+            if bound is not None:
+                keep = op(self, bound)  # type: ignore[arg-type]
+                if isinstance(keep, ExtensionArray):
+                    keep = keep.to_numpy(dtype=bool, na_value=True)
+                keep = mask | np.asarray(keep, dtype=bool)
+                if not keep.all():
+                    result = result._where(keep, bound)
+        return result
+
     @property
     def _is_monotonic_increasing(self) -> bool:
         """

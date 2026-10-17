@@ -197,6 +197,28 @@ class TestDataFrameClip:
         expected = pd.DataFrame({"a": [bound, 1.0, bound, 1.0]})
         tm.assert_frame_equal(result, expected)
 
+    def test_clip_int_data_with_float_bound_inplace_raises(self):
+        # GH#49217 inplace does not upcast, as with where(inplace=True)
+        df = pd.DataFrame({"a": [1, 5, 9], "b": [2, 3, 4]})
+        expected = df.copy()
+        with pytest.raises(TypeError, match="Invalid value '2.5' for dtype 'int64'"):
+            df.clip(2.5, 7, inplace=True)
+        tm.assert_frame_equal(df, expected)
+
+    def test_clip_int_data_with_unused_float_bound_keeps_block(self):
+        # GH#49217 a float bound that clips nothing does not split the block
+        df = pd.DataFrame({"a": [1, 5], "b": [9, 3]})
+        result = df.clip(0.5, 10)
+        tm.assert_frame_equal(result, df)
+        assert len(result._mgr.blocks) == 1
+
+    def test_clip_with_scalar_array_bound(self):
+        # GH#59053
+        df = pd.DataFrame([[10, 20], [30, 40]])
+        result = df.clip(np.array(15))
+        expected = pd.DataFrame([[15, 20], [30, 40]])
+        tm.assert_frame_equal(result, expected)
+
     def test_clip_with_list_bound(self):
         # GH#54817
         df = pd.DataFrame([1, 5])
@@ -228,6 +250,27 @@ class TestDataFrameClip:
         if inplace:
             result = df
         tm.assert_frame_equal(result, pd.DataFrame(expected))
+
+    def test_clip_ordered_categorical(self):
+        # GH#49217 the bounds are ordered by category position, not by value
+        dtype = pd.CategoricalDtype(["a", "c", "b"], ordered=True)
+        df = pd.DataFrame({"x": ["a", "c", "b"], "y": ["b", "a", "c"]}, dtype=dtype)
+        result = df.clip("c", "b")
+        expected = pd.DataFrame(
+            {"x": ["c", "c", "b"], "y": ["b", "c", "c"]}, dtype=dtype
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_clip_ordered_categorical_mixed_dtypes(self):
+        # GH#49217 each column orders the bounds the way it compares them
+        dtype = pd.CategoricalDtype([3, 1, 2], ordered=True)
+        df = pd.DataFrame({"a": [0, 2, 5], "b": pd.Series([3, 1, 2], dtype=dtype)})
+        result = df.clip(1, 3)
+        expected = pd.DataFrame(
+            {"a": [1, 2, 3], "b": pd.Series([3, 1, 1], dtype=dtype)}
+        )
+        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result["b"], df["b"].clip(1, 3))
 
 
 @pytest.mark.parametrize(
