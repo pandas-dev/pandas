@@ -220,28 +220,47 @@ def _is_dir(path: str, fs: Any) -> bool:
 
 
 def _fragment_batches(
-    fragments: Iterable[Any], **scanner_kwargs: Any
-) -> Generator[pyarrow.RecordBatch]:
+    fragments: Iterable[Any], batch_size: int, **scanner_kwargs: Any
+) -> Generator[pyarrow.Table]:
     """
-    Record batches of each row group of each dataset fragment in turn.
+    Tables of ``batch_size`` rows, the last possibly shorter, read from each
+    row group of each dataset fragment in turn.
 
     A fragment's scan reads row groups ahead of its consumer, with or without
     threads and however small ``batch_readahead`` is, so a slow consumer would
     end up holding most of the file. Scanning each row group on its own holds
-    about one at a time, like ``ParquetFile.iter_batches()``.
+    about one at a time, like ``ParquetFile.iter_batches()``. A scan's batches
+    end with its row group, so they are joined across row groups and
+    fragments into tables of ``batch_size`` rows, as ``iter_batches()`` joins
+    them across the row groups of a file.
 
     Each row group is read through a ``RecordBatchReader`` that is closed when
     it is exhausted or when this generator is closed, which releases its file
     right away rather than once the scan is garbage collected.
     """
+    pa = import_optional_dependency("pyarrow")
+    pending: list[pyarrow.RecordBatch] = []
+    pending_rows = 0
     for fragment in fragments:
         for row_group in fragment.split_by_row_group():
-            with row_group.scanner(**scanner_kwargs).to_reader() as reader:
-                yield from reader
+            scanner = row_group.scanner(batch_size=batch_size, **scanner_kwargs)
+            with scanner.to_reader() as reader:
+                for batch in reader:
+                    while pending_rows + batch.num_rows >= batch_size:
+                        split = batch_size - pending_rows
+                        yield pa.Table.from_batches([*pending, batch.slice(0, split)])
+                        batch = batch.slice(split)
+                        pending, pending_rows = [], 0
+                    # an empty slice would still hold on to its row group
+                    if batch.num_rows:
+                        pending.append(batch)
+                        pending_rows += batch.num_rows
+    if pending_rows:
+        yield pa.Table.from_batches(pending)
 
 
 def _batches_or_empty(
-    batches: Generator[pyarrow.RecordBatch],
+    batches: Generator[pyarrow.RecordBatch | pyarrow.Table],
     read_empty: Callable[[], pyarrow.Table],
 ) -> Generator[pyarrow.RecordBatch | pyarrow.Table]:
     """
@@ -342,8 +361,8 @@ class ParquetFileReader(abc.Iterator[DataFrame]):
     Parameters
     ----------
     batch_iter : Iterator[pyarrow.RecordBatch | pyarrow.Table]
-        Iterator over pyarrow record batches, or an empty table for empty
-        data, from either
+        Iterator over pyarrow record batches or tables, or an empty table for
+        empty data, from either
         ``pyarrow.parquet.ParquetFile.iter_batches()`` or the fragments of a
         ``pyarrow.parquet.ParquetDataset``.
     source : pyarrow.parquet.ParquetFile or generator

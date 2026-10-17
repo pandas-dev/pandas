@@ -1636,12 +1636,24 @@ class TestParquetChunksize(Base):
         result = pd.concat(chunks, ignore_index=True)
         tm.assert_frame_equal(result, df)
 
-    def test_read_parquet_chunksize_spans_row_groups(self, pa, tmp_path):
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_spans_row_groups(self, pa, tmp_path, directory):
         path = tmp_path / "test.parquet"
         pd.DataFrame({"a": range(500)}).to_parquet(path, engine=pa, row_group_size=200)
+        source = tmp_path if directory else path
 
-        chunks = list(read_parquet(path, engine=pa, chunksize=300))
+        chunks = list(read_parquet(source, engine=pa, chunksize=300))
         assert [len(c) for c in chunks] == [300, 200]
+
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_no_columns(self, pa, tmp_path, directory):
+        # chunks without columns still count their rows
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(5)}).to_parquet(path, engine=pa)
+        source = tmp_path if directory else path
+
+        chunks = list(read_parquet(source, engine=pa, columns=[], chunksize=2))
+        assert [chunk.shape for chunk in chunks] == [(2, 0), (2, 0), (1, 0)]
 
     def test_read_parquet_chunksize_fastparquet_not_implemented(self, fp, tmp_path):
         path = tmp_path / "test.parquet"
@@ -1700,9 +1712,9 @@ class TestParquetChunksize(Base):
         df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
         df.to_parquet(tmp_path, engine=pa, partition_cols=["part"])
 
-        chunks = list(read_parquet(tmp_path, engine=pa, columns=columns, chunksize=5))
-        for chunk in chunks:
-            assert len(chunk) <= 5
+        chunks = list(read_parquet(tmp_path, engine=pa, columns=columns, chunksize=3))
+        # chunks run across the files of the partitions
+        assert [len(chunk) for chunk in chunks] == [3] * 6 + [2]
         expected = read_parquet(tmp_path, engine=pa, columns=columns)
         tm.assert_frame_equal(pd.concat(chunks), expected)
 
