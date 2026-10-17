@@ -1643,33 +1643,45 @@ class TestDataFrameAnalytics:
         else:
             assert result == expected_value
 
+    @pytest.mark.parametrize("op, expected_value", [("any", True), ("all", False)])
     @pytest.mark.parametrize("dtype", ["bool[pyarrow]", "int64[pyarrow]"])
-    def test_any_all_pyarrow_without_missing_keeps_dtype(self, dtype):
+    def test_any_all_pyarrow_without_missing_keeps_dtype(
+        self, dtype, op, expected_value
+    ):
         # GH#70685 matches nullable dtypes, which return "boolean" regardless of NA
         pytest.importorskip("pyarrow")
         data = [True, False] if dtype == "bool[pyarrow]" else [1, 0]
         df = pd.DataFrame({"a": pd.array(data, dtype=dtype)})
 
-        expected = pd.Series([True], index=["a"], dtype="bool[pyarrow]")
-        tm.assert_series_equal(df.any(skipna=False), expected)
-        tm.assert_series_equal(df.any(), expected)
+        expected = pd.Series([expected_value], index=["a"], dtype="bool[pyarrow]")
+        tm.assert_series_equal(getattr(df, op)(skipna=False), expected)
+        tm.assert_series_equal(getattr(df, op)(), expected)
 
-    def test_any_all_skipna_false_mixed_pyarrow_and_nullable(self):
-        # GH#70685
+        df["b"] = np.array([True, False])
+        expected = pd.Series(
+            [expected_value] * 2, index=["a", "b"], dtype="bool[pyarrow]"
+        )
+        tm.assert_series_equal(getattr(df, op)(), expected)
+
+    @pytest.mark.parametrize(
+        "data, expected_any", [([False, None], pd.NA), ([False, True], True)]
+    )
+    def test_any_all_skipna_false_mixed_pyarrow_and_nullable(self, data, expected_any):
+        # GH#70685 object result whether or not values are missing, like df.sum()
         pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
-                "a": pd.array([False, None], dtype="bool[pyarrow]"),
-                "b": pd.array([False, None], dtype="boolean"),
+                "a": pd.array(data, dtype="bool[pyarrow]"),
+                "b": pd.array(data, dtype="boolean"),
             }
         )
 
         result = df.any(skipna=False)
-        expected = pd.Series([pd.NA, pd.NA], index=["a", "b"], dtype=object)
+        expected = pd.Series([expected_any] * 2, index=["a", "b"], dtype=object)
         tm.assert_series_equal(result, expected)
 
         result = df.all(skipna=False)
-        expected = pd.Series([False, False], index=["a", "b"])
+        expected = pd.Series([False, False], index=["a", "b"], dtype=object)
         tm.assert_series_equal(result, expected)
 
     # ---------------------------------------------------------------------
