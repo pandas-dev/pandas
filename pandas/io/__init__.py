@@ -14,10 +14,12 @@ if TYPE_CHECKING:
 
 
 def _lazy_submodules() -> set[str]:
-    # submodules pandas.io.api defers under PEP 810 and no longer imports
-    # eagerly, so pd.io.<name> would otherwise disappear on Python 3.15+
+    # submodules that PEP 810 lazy imports keep out of a plain `import pandas`
+    # on Python 3.15+, so pd.io.<name> would otherwise disappear: the backends
+    # pandas.io.api defers, and pandas.io.common (deferred by core.frame and
+    # io.formats.format)
     api = import_module("pandas.io.api")
-    return {name.rsplit(".", 1)[1] for name in api.__lazy_modules__}
+    return {"common", *(name.rsplit(".", 1)[1] for name in api.__lazy_modules__)}
 
 
 def __getattr__(name: str) -> object:
@@ -27,4 +29,4 @@ def __getattr__(name: str) -> object:
 
 
 def __dir__() -> list[str]:
-    return [*globals(), *_lazy_submodules()]
+    return sorted({*globals(), *_lazy_submodules()})

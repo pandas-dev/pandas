@@ -660,6 +660,10 @@ def test_lazy_imports_io_namespace():
         "assert 'pandas.io.stata' not in sys.modules\n"
         "_ = pd.io.stata\n"
         "assert 'pandas.io.stata' in sys.modules\n"
+        "assert 'pandas.io.common' not in sys.modules\n"
+        "assert pd.io.common.get_handle is not None\n"
+        "assert 'common' in dir(pd.io)\n"
+        "assert len(set(dir(pd.io))) == len(dir(pd.io))\n"
     )
     result = subprocess.run(
         [sys.executable, "-X", "lazy_imports=normal", "-c", code],
