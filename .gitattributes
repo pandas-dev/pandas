@@ -63,6 +63,7 @@
 .github export-ignore
 .pre-commit-config.yaml export-ignore
 AGENTS.md export-ignore
+.claude export-ignore
 asv_bench export-ignore
 ci export-ignore
 doc export-ignore
