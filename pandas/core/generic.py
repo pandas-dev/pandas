@@ -6797,8 +6797,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 failed = False
                 new_blocks = []
                 for blk in taken.blocks:
+                    # A one-column block casts exactly as its column would, errors
+                    #  included, so it is never cast a second time.
+                    blk_errors = errors if len(blk.mgr_locs) == 1 else "raise"
                     try:
-                        new_blocks.append(blk.astype(target))
+                        new_blocks.append(blk.astype(target, errors=blk_errors))
                     except Exception:
                         # Cast these columns one by one below, so the error names
                         #  the first failing column; with errors="raise" the

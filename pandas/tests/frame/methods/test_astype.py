@@ -384,10 +384,19 @@ class TestAstype:
         assert result["b"].tolist() == [b"12345", b"6"]
 
     def test_astype_dict_errors_ignore_per_column(self):
-        # GH#63433 with errors="ignore", only a column that fails keeps its values
-        df = pd.DataFrame({"a": ["1", "2"], "b": ["x", "y"], "c": ["3", "4"]})
+        # GH#63433 with errors="ignore", only a column that fails keeps its values,
+        #  also when it shares a block with columns that cast
+        df = pd.DataFrame(
+            {"a": ["1", "2"], "b": ["x", "y"], "c": ["3", "4"]}, dtype=object
+        )
         result = df.astype({"a": "float64", "b": "float64"}, errors="ignore")
-        expected = pd.DataFrame({"a": [1.0, 2.0], "b": ["x", "y"], "c": ["3", "4"]})
+        expected = pd.DataFrame(
+            {
+                "a": [1.0, 2.0],
+                "b": pd.Series(["x", "y"], dtype=object),
+                "c": pd.Series(["3", "4"], dtype=object),
+            }
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_astype_dict_overflow_names_first_failing_column(self):
@@ -992,7 +1001,13 @@ def test_astype_dict_keeps_other_columns_blocks():
     result = df.astype({"c3": "Int64"})
 
     assert result._mgr.nblocks <= 4
-    expected = df.assign(c3=df["c3"].astype("Int64"))
+    expected = pd.DataFrame(
+        {
+            f"c{i}": np.arange(5, dtype="float64" if i % 2 else "int64")
+            for i in range(10)
+        }
+    )
+    expected["c3"] = pd.array(range(5), dtype="Int64")
     tm.assert_frame_equal(result, expected)
     assert df["c3"].dtype == np.float64
 
@@ -1009,7 +1024,8 @@ def test_astype_dict_equal_dtypes_built_separately_cast_together():
     result = df.astype(dtypes)
 
     assert result._mgr.nblocks == 1
-    tm.assert_frame_equal(result, df.astype("float32"))
+    expected = pd.DataFrame({f"c{i}": np.arange(5, dtype="float32") for i in range(10)})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_astype_dict_wide_interleaved():
@@ -1067,7 +1083,7 @@ def test_astype_dict_mixed_block_types():
 def test_astype_dict_error_names_column_when_cast_together():
     # GH#63433 columns cast to the same dtype are cast together; a failure
     #  still names the column that could not be cast
-    df = pd.DataFrame({"a": ["1", "2"], "b": ["3", "x"], "c": ["5", "6"]})
+    df = pd.DataFrame({"a": ["1", "2"], "b": ["3", "x"], "c": ["5", "6"]}, dtype=object)
 
     msg = "Error while type casting for column 'b'"
     with pytest.raises(ValueError, match=msg):
