@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`Index` now supports the reductions :meth:`~Index.sum`, :meth:`~Index.prod`, :meth:`~Index.mean`, :meth:`~Index.median`, :meth:`~Index.std`, :meth:`~Index.var`, :meth:`~Index.sem`, :meth:`~Index.skew`, and :meth:`~Index.kurt`, matching :class:`Series` (:issue:`50021`)
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
@@ -91,6 +92,7 @@ Other API changes
 - :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
+- NumPy reductions such as ``np.sum`` and ``np.mean`` on an :class:`Index` now dispatch to the new :class:`Index` reduction methods, so they skip missing values and no longer accept ``dtype``, ``keepdims``, ``initial`` or ``where`` arguments, matching :class:`Series` (:issue:`50021`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:
