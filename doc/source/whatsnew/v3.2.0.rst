@@ -170,6 +170,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
+- Bug in :meth:`DataFrame.astype` and :meth:`Series.astype` silently accepting a NumPy structured (compound) dtype and producing an unusable object; this now raises ``NotImplementedError``, matching the constructors (:issue:`4464`)
 - Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting integer and boolean columns when the equal values were only in rows dropped from the result (:issue:`39899`)
 - Bug in :meth:`DataFrame.from_records` not dropping the ``exclude`` and ``index`` columns when all of their labels were falsy, such as ``0`` (:issue:`18679`)
 - Bug in :meth:`DataFrame.replace` with a dict or list replacing values with ``None`` casting other columns of the same dtype to ``object`` even when they contained no value to replace (:issue:`30512`)
