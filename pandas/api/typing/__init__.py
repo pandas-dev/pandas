@@ -20,6 +20,9 @@ from pandas.core.resample import (
     Resampler,
     TimedeltaIndexResamplerGroupBy,
     TimeGrouper,
+    DatetimeIndexResampler,
+    PeriodIndexResampler,
+    TimedeltaIndexResampler,
 )
 from pandas.core.window import (
     Expanding,
@@ -39,6 +42,8 @@ from pandas.io.stata import StataReader
 
 __all__ = [
     "DataFrameGroupBy",
+    "DatetimeIndexResampler",
+    "DatetimeIndexResamplerGroupby",
     "DatetimeIndexResamplerGroupBy",
     "Expanding",
     "ExpandingGroupBy",
@@ -50,13 +55,14 @@ __all__ = [
     "NAType",
     "NaTType",
     "NoDefault",
+    "PeriodIndexResampler",
+    "PeriodIndexResamplerGroupby",
     "PeriodIndexResamplerGroupBy",
-    "Resampler",
     "Rolling",
-    "RollingGroupBy",
     "SASReader",
     "SeriesGroupBy",
     "StataReader",
+    "TimedeltaIndexResampler",
     "TimeGrouper",
     "TimedeltaIndexResamplerGroupBy",
     "Window",
