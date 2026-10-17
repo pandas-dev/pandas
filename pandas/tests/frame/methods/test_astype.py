@@ -328,8 +328,13 @@ class TestAstype:
         result = df.astype(
             {"x": pd.CategoricalDtype(["a", "b"]), "y": pd.CategoricalDtype(["b", "a"])}
         )
-        assert result["x"].cat.categories.tolist() == ["a", "b"]
-        assert result["y"].cat.categories.tolist() == ["b", "a"]
+        expected = pd.DataFrame(
+            {
+                "x": pd.Categorical(["a", "b"], categories=["a", "b"]),
+                "y": pd.Categorical(["a", "b"], categories=["b", "a"]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_astype_dict_extension_dtype_instance_per_column(self):
         # GH#63433 a separate extension dtype object for each column, as a dict
@@ -339,9 +344,13 @@ class TestAstype:
 
         result = df.astype(dtypes)
 
-        expected = df.copy()
-        expected["a"] = df["a"].astype("Float64")
-        expected["b"] = df["b"].astype("Float64")
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1.0, 2.0], dtype="Float64"),
+                "b": pd.array([3.5, pd.NA], dtype="Float64"),
+                "c": [5, 6],
+            }
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_astype_dict_string_targets_cast_per_column(self):
@@ -354,8 +363,14 @@ class TestAstype:
             }
         )
         result = df.astype({"date": "U", "stamp": "U"})
-        assert result["date"].tolist() == df["date"].astype("U").tolist()
-        assert result["stamp"].tolist() == df["stamp"].astype("U").tolist()
+        expected = pd.DataFrame(
+            {
+                "date": ["2020-01-01", "2020-01-02"],
+                "stamp": ["2020-01-01 10:30:00", "2020-01-02 00:00:00"],
+            },
+            dtype=object,
+        )
+        tm.assert_frame_equal(result, expected)
 
         obj = pd.DataFrame(
             {
@@ -364,7 +379,16 @@ class TestAstype:
             }
         )
         result = obj.astype({"a": bytes, "b": bytes})
-        assert result.dtypes.tolist() == [obj[c].astype(bytes).dtype for c in obj]
+        assert result.dtypes.tolist() == [np.dtype("S1"), np.dtype("S5")]
+        assert result["a"].tolist() == [b"1", b"2"]
+        assert result["b"].tolist() == [b"12345", b"6"]
+
+    def test_astype_dict_errors_ignore_per_column(self):
+        # GH#63433 with errors="ignore", only a column that fails keeps its values
+        df = pd.DataFrame({"a": ["1", "2"], "b": ["x", "y"], "c": ["3", "4"]})
+        result = df.astype({"a": "float64", "b": "float64"}, errors="ignore")
+        expected = pd.DataFrame({"a": [1.0, 2.0], "b": ["x", "y"], "c": ["3", "4"]})
+        tm.assert_frame_equal(result, expected)
 
     def test_astype_dict_overflow_names_first_failing_column(self):
         # GH#63433 an earlier failing column is reported before a later overflow

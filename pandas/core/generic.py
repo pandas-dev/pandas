@@ -63,7 +63,10 @@ from pandas.util._validators import (
     validate_min_count,
 )
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_is_view,
+    block_cast_dtype,
+)
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -233,25 +236,6 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
-
-
-def _batchable_dtype(dtype: Any) -> np.dtype | None:
-    """
-    The numeric or bool numpy dtype ``dtype`` names, or None.
-
-    Several columns going to such a dtype can be cast as one block with the same
-    result as casting each column on its own. A spec that warns or fails to
-    resolve is left to Series.astype, so it warns or raises there, once.
-    """
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        try:
-            resolved = pandas_dtype(dtype)
-        except TypeError:
-            return None
-    if caught or not isinstance(resolved, np.dtype) or resolved.kind not in "biufc":
-        return None
-    return resolved
 
 
 class NDFrame(PandasObject, indexing.IndexingMixin):
@@ -6785,16 +6769,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
                     raise
 
-            # GH#63433: cast only the listed columns and assemble the result from
-            #  those plus the untouched columns. Columns going to the same numeric
-            #  or bool numpy dtype are cast together, where casting a block is the
-            #  same as casting each of its columns and much faster. Every other
-            #  target is applied column by column with the object it was given, as
-            #  Series.astype does: other dtypes can compare equal yet cast
-            #  differently (CategoricalDtype with its categories in another order,
-            #  DatetimeTZDtype with equivalent tz objects), string targets format
-            #  each column on its own, and extension arrays are cast one column at
-            #  a time anyway.
+            # GH#63433: cast columns going to the same numeric/bool numpy dtype
+            #  together, and every other column on its own as Series.astype does.
             batches: dict[np.dtype, list[tuple[int, Any]]] = {}
             one_by_one: list[tuple[int, Any]] = []
             resolved: dict[tuple[type, Any], np.dtype | None] = {}
@@ -6803,12 +6779,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 np.flatnonzero(mask), dtype_ser[mask], strict=True
             ):
                 target = None
-                if errors == "raise" and isinstance(
-                    column_dtype, (str, np.dtype, type)
-                ):
+                if isinstance(column_dtype, (str, np.dtype, type)):
                     spec = (type(column_dtype), column_dtype)
                     if spec not in resolved:
-                        resolved[spec] = _batchable_dtype(column_dtype)
+                        resolved[spec] = block_cast_dtype(column_dtype)
                     target = resolved[spec]
                 if target is None:
                     one_by_one.append((int(loc), column_dtype))
