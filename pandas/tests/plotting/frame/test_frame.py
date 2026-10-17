@@ -1822,9 +1822,10 @@ class TestDataFramePlots:
     ) -> None:
         # GH 33369
         df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
-        errors = pd.DataFrame({"a": [0.1, 0.2], "b": [0.3, 0.4]})
-        if error_type == "dict":
-            errors = errors.to_dict("list")
+        error_values = {"a": [0.1, 0.2], "b": [0.3, 0.4]}
+        errors: pd.DataFrame | dict[str, list[float]] = (
+            pd.DataFrame(error_values) if error_type == "frame" else error_values
+        )
         labels = "Label a" if isinstance(y, str) else [f"Label {col}" for col in y]
         expected = [labels] if isinstance(labels, str) else labels
 
@@ -1832,7 +1833,7 @@ class TestDataFramePlots:
         if error_labels == "legend":
             columns = [y] if isinstance(y, str) else y
             names = dict(zip(columns, expected, strict=True))
-            if error_type == "frame":
+            if isinstance(errors, pd.DataFrame):
                 errors = errors.rename(columns=names)
             else:
                 errors = {names.get(key, key): value for key, value in errors.items()}
@@ -1870,9 +1871,12 @@ class TestDataFramePlots:
     ) -> None:
         # GH 33369
         df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
-        errors = pd.DataFrame({"a": [0.1, 0.2], "unused": [100.0, 200.0]}, index=[1, 0])
-        if error_type == "dict":
-            errors = errors.to_dict("list")
+        error_values = {"a": [0.1, 0.2], "unused": [100.0, 200.0]}
+        errors: pd.DataFrame | dict[str, list[float]] = (
+            pd.DataFrame(error_values, index=[1, 0])
+            if error_type == "frame"
+            else error_values
+        )
 
         expected_ax = df.plot(y=["a", "b"], kind=kind, yerr=errors)
         ax = df.plot(y=["a", "b"], kind=kind, label=labels, yerr=errors)
