@@ -606,7 +606,7 @@ def groupby_sum_stored(
     fill_value : Any
         Fill value, 0 or NA, from ``groupby_sum_dense_fill``.
     min_count, ngroups, has_dropped_na, **kwargs
-        As for ``SparseArray._groupby_op``.
+        Passed on to the cython groupby ``sum``.
 
     Returns
     -------
@@ -623,13 +623,16 @@ def groupby_sum_stored(
         n_fill = np.minimum(n_gaps, 1)
     else:
         n_fill = np.minimum(n_gaps, max(min_count, 0))
-    values = np.concatenate(
-        [
-            sp_values.astype(npdtype, copy=False),
-            np.full(n_fill.sum(), fill_value, dtype=npdtype),
-        ]
-    )
-    ids = np.concatenate([sp_ids, np.repeat(np.arange(ngroups, dtype=np.intp), n_fill)])
+    values = sp_values.astype(npdtype, copy=False)
+    ids = sp_ids
+    total_fill = n_fill.sum()
+    if total_fill:
+        values = np.concatenate(
+            [values, np.full(total_fill, fill_value, dtype=npdtype)]
+        )
+        ids = np.concatenate(
+            [ids, np.repeat(np.arange(ngroups, dtype=np.intp), n_fill)]
+        )
 
     from pandas.core.groupby.ops import WrappedCythonOp
 
@@ -2042,26 +2045,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 ngroups=ngroups,
                 ids=ids,
                 skipna=kwargs.get("skipna", True),
-            )
-
-        dense_fill = None
-        if how == "sum":
-            dense_fill = groupby_sum_dense_fill(self.dtype, self.sp_index.ngaps > 0)
-        if dense_fill is not None:
-            # GH#28487: sum the stored values only, without densifying
-            sp_ids = ids[self.sp_index.indices]
-            n_gaps = np.bincount(ids[ids >= 0], minlength=ngroups) - np.bincount(
-                sp_ids[sp_ids >= 0], minlength=ngroups
-            )
-            return groupby_sum_stored(
-                self.sp_values,
-                sp_ids,
-                n_gaps,
-                *dense_fill,
-                min_count=min_count,
-                ngroups=ngroups,
-                has_dropped_na=has_dropped_na,
-                **kwargs,
             )
 
         npvalues = self._densify()

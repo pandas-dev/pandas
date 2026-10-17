@@ -40,8 +40,7 @@ class TestSparseGroupby:
     @pytest.mark.parametrize("min_count", [0, 1, 2, 3, 4])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_sparse_groupby_sum_min_count(self, sparse_df, min_count, skipna):
-        # GH#28487 the sum does not materialize all fill values, the ones it
-        #  keeps must still count towards min_count
+        # GH#28487 the fill values count towards min_count
         dense, sparse = sparse_df
         result = sparse.groupby("key").sum(min_count=min_count, skipna=skipna)
         expected = dense.groupby("key").sum(min_count=min_count, skipna=skipna)
@@ -51,7 +50,7 @@ class TestSparseGroupby:
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("dropna", [True, False])
     def test_sparse_groupby_sum_nan_fill_value(self, min_count, skipna, dropna):
-        # GH#28487
+        # GH#28487 NaN fill values follow skipna and min_count like stored NaNs
         keys = ["a", "a", "a", "b", "b", None, "c"]
         dense_ser = pd.Series([1.0, np.nan, np.nan, 2.0, 0.0, 3.0, np.nan])
         sparse_ser = dense_ser.astype(pd.SparseDtype(float, np.nan))
