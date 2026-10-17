@@ -4,6 +4,11 @@ Printing tools.
 
 from __future__ import annotations
 
+from collections import (
+    Counter,
+    OrderedDict,
+    defaultdict,
+)
 from collections.abc import (
     Callable,
     Iterable,
@@ -42,6 +47,23 @@ if TYPE_CHECKING:
 EscapeChars: TypeAlias = Mapping[str, str] | Iterable[str]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
+
+# Containers whose __repr__ is one of these get pandas' element-wise formatting;
+# a subclass that overrides __repr__ is printed with str() instead, see GH#18843
+_CONTAINER_REPRS = frozenset(
+    typ.__repr__
+    for typ in (
+        object,
+        dict,
+        list,
+        tuple,
+        set,
+        frozenset,
+        Counter,
+        OrderedDict,
+        defaultdict,
+    )
+)
 
 
 def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
@@ -254,6 +276,7 @@ def pprint_thing(
     elif (
         isinstance(thing, Mapping)
         and _nest_lvl < config["display"]["pprint_nest_depth"]
+        and type(thing).__repr__ in _CONTAINER_REPRS
     ):
         result = _pprint_dict(
             thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
@@ -280,6 +303,10 @@ def pprint_thing(
         # GH#64638 0-d arrays are not iterable; fall through to str()
         and not (isinstance(thing, np.ndarray) and thing.ndim == 0)
         and _nest_lvl < config["display"]["pprint_nest_depth"]
+        and (
+            type(thing).__repr__ in _CONTAINER_REPRS
+            or not isinstance(thing, (list, tuple, set, frozenset))
+        )
     ):
         result = _pprint_seq(
             # error: Argument 1 to "_pprint_seq" has incompatible type "object";
@@ -580,7 +607,7 @@ class PrettyDict(dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
     def __repr__(self) -> str:
-        return pprint_thing(self)
+        return _pprint_dict(self, quote_strings=True)
 
 
 class _TextAdjustment:
