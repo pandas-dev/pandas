@@ -7740,8 +7740,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if isinstance(other, Index) and self.is_(other):
-            # fastpath
+        if (
+            isinstance(other, Index)
+            and self.is_(other)
+            and isinstance(self.dtype, np.dtype)
+        ):
+            # fastpath; extension dtypes take the full comparison below so
+            # their NA semantics are preserved (GH#71022)
             if op in {operator.eq, operator.le, operator.ge}:
                 if op is not operator.eq and self.dtype.kind == "c":
                     # GH#43770 this fastpath skips the comparison_op warning
