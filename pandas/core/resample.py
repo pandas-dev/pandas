@@ -3008,15 +3008,26 @@ def _get_timestamp_range_edges(
             unit=unit,
         )
     else:
+        first_orig = first
+        last_orig = last
         first = first.normalize()
         last = last.normalize()
 
         if closed == "left":
             first = Timestamp(freq.rollback(first))
+            last = Timestamp(last + freq)
+        elif isinstance(freq, Day) and freq.n == 1:
+            # GH#71263: for a tz-aware Day freq, a value exactly on midnight
+            # belongs to the right-closed bin ending there, while a value inside
+            # a day belongs to that day's bin. Only step the edge past the data
+            # at the boundary, otherwise an empty leading/trailing bin is added.
+            if first_orig == first:
+                first = Timestamp(first - freq)
+            if last_orig != last:
+                last = Timestamp(last + freq)
         else:
             first = Timestamp(first - freq)
-
-        last = Timestamp(last + freq)
+            last = Timestamp(last + freq)
 
     return first, last
 
