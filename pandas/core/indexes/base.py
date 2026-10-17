@@ -174,6 +174,7 @@ from pandas.core.sorting import (
 )
 from pandas.core.strings.accessor import StringMethods
 
+from pandas.io.formats.console import get_console_size
 from pandas.io.formats.printing import (
     PrettyDict,
     default_pprint,
@@ -1451,7 +1452,8 @@ class Index(IndexOpsMixin, PandasObject):
         data = self._format_data()
         attrs = self._format_attrs()
 
-        display_width = config["display"]["width"] or 80
+        # match the width format_object_summary() uses for the data section
+        display_width = get_console_size()[0] or 80
         indent = len(klass_name) + 1  # length of "ClassName("
         indent_str = " " * indent
 
