@@ -6897,9 +6897,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         b    2
         dtype: int64
 
-        When the data has object dtype, even a deep copy does not copy the
-        underlying Python objects. Updating a nested data object will be
-        reflected in the deep copy.
+        Deep copy should recursively copy all underlying Python objects.
 
         >>> s = pd.Series([[1, 2], [3, 4]])
         >>> deep = s.copy()
@@ -6909,7 +6907,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
         >>> deep
-        0    [10, 2]
+        0     [1, 2]
         1     [3, 4]
         dtype: object
         """
