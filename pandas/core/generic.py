@@ -7223,6 +7223,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area
             ).T
+            if inplace:
+                self._update_inplace(result)
+                return self
 
             return result
 
