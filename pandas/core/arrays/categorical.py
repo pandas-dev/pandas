@@ -31,6 +31,7 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
     find_common_type,
@@ -44,6 +45,8 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     needs_i8_conversion,
     pandas_dtype,
@@ -3267,8 +3270,44 @@ def _get_codes_for_values(
 
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
+    values = extract_array(values)
+    null_mask = np.asarray(isna(values))
+    if null_mask.any():
+        values = values[~null_mask]
+
+    def is_numeric_or_temporal(values) -> tuple[bool, bool]:
+        dtype = values.dtype
+        inferred = None
+        if is_object_dtype(dtype) or isinstance(dtype, ArrowDtype):
+            inferred = lib.infer_dtype(values, skipna=True)
+
+        numeric = is_numeric_dtype(dtype) or inferred in {
+            "boolean",
+            "complex",
+            "decimal",
+            "floating",
+            "integer",
+            "mixed-integer-float",
+        }
+        temporal = needs_i8_conversion(dtype) or inferred in {
+            "date",
+            "datetime",
+            "datetime64",
+            "timedelta",
+            "timedelta64",
+        }
+        return numeric, temporal
+
+    values_numeric, values_temporal = is_numeric_or_temporal(values)
+    categories_numeric, categories_temporal = is_numeric_or_temporal(categories)
+    if len(values) and not (
+        (values_numeric and (categories_numeric or categories_temporal))
+        or (values_temporal and categories_numeric)
+    ):
+        values = astype_array(values, categories.dtype, copy=False)
+
     codes = categories.get_indexer_for(values)
-    wrong = (codes == -1) & ~isna(values)
+    wrong = codes == -1
     if wrong.any():
         warnings.warn(
             "Constructing a Categorical with a dtype and values containing "
@@ -3277,6 +3316,10 @@ def _get_codes_for_values(
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
+    if null_mask.any():
+        full_codes = -np.ones(null_mask.shape, dtype=codes.dtype)
+        full_codes[~null_mask] = codes
+        codes = full_codes
     return coerce_indexer_dtype(codes, categories)
 
 
