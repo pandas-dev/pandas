@@ -1689,8 +1689,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         Each piece is ``(positions, manager)``: the manager's columns, in order, take
         the place of the columns at ``positions``. The other columns keep their
-        existing blocks as views, so this is linear in the number of columns rather
-        than setting each replaced column in turn.
+        existing blocks as views, so this is linear in the number of columns.
         """
         is_replaced = np.zeros(self.shape[0], dtype=bool)
         for locs, _ in pieces:

@@ -6788,9 +6788,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     one_by_one.append((int(loc), column_dtype))
                 else:
                     batches.setdefault(target, []).append((int(loc), column_dtype))
-            if not batches and not one_by_one:
-                return self.copy(deep=False)
-
             pieces = []
             groups = list(batches.items())
             for k, (target, items) in enumerate(groups):

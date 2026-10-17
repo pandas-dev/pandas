@@ -393,7 +393,8 @@ def block_cast_dtype(dtype: Any) -> np.dtype | None:
         return None
     try:
         resolved = pandas_dtype(dtype)
-    except TypeError:
+    except Exception:
+        # Series.astype raises it, in column order
         return None
     if not isinstance(resolved, np.dtype) or resolved.kind not in "biufc":
         return None
