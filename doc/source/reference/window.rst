@@ -27,6 +27,7 @@ Rolling window functions
 
    Rolling.count
    Rolling.sum
+   Rolling.prod
    Rolling.mean
    Rolling.median
    Rolling.var

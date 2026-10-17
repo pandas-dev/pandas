@@ -80,6 +80,7 @@ class TestRolling:
         "f",
         [
             "sum",
+            "prod",
             "mean",
             "min",
             "max",
