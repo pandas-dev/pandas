@@ -327,7 +327,7 @@ class BaseImpl:
 
 
 @set_module("pandas.api.typing")
-class ParquetFileReader(abc.Iterator):
+class ParquetFileReader(abc.Iterator[DataFrame]):
     """
     Iterator over DataFrame chunks read from a parquet file or dataset.
 
