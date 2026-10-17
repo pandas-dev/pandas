@@ -551,3 +551,17 @@ def test_uniformly_short_rows_with_longer_names_pyarrow(pyarrow_parser_only):
     )
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=None, names=["a", "b", "c"])
+
+
+def test_single_name_mismatch_message_is_singular(pyarrow_parser_only):
+    # GH#71034 a single name must read "1 name was passed", not "1 names
+    #  were passed"
+    parser = pyarrow_parser_only
+    data = "1,2\n3,4,5,6\n"
+
+    msg = re.escape(
+        "The 'pyarrow' engine read 2 columns from the first row of the file "
+        "but 1 name was passed."
+    )
+    with pytest.raises(ParserError, match=msg):
+        parser.read_csv(StringIO(data), header=None, names=["w"])

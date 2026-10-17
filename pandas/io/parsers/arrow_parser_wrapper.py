@@ -59,11 +59,13 @@ def _names_mismatch_message(read_columns: int, n_names: int) -> str:
     other engines, which take the width from ``names`` and pad the shorter
     rows, so point the user at those engines.
     """
+    columns_word = "column" if read_columns == 1 else "columns"
+    names_word = "name was" if n_names == 1 else "names were"
     return (
-        f"The 'pyarrow' engine read {read_columns} columns from the first row "
-        f"of the file but {n_names} names were passed. The number of columns "
-        "is taken from the first row, not from 'names', and rows with a "
-        "different number of fields are handled by 'on_bad_lines'. Use "
+        f"The 'pyarrow' engine read {read_columns} {columns_word} from the "
+        f"first row of the file but {n_names} {names_word} passed. The number "
+        "of columns is taken from the first row, not from 'names', and rows "
+        "with a different number of fields are handled by 'on_bad_lines'. Use "
         "engine='c' or engine='python' to read files with ragged rows."
     )
 
