@@ -412,7 +412,8 @@ class ArrowParserWrapper(ParserBase):
                 # parse_dates for index columns: the other engines parse these
                 # while building the index, but the pyarrow path sets the index
                 # after reading, so do the conversion here.
-                if self._index_col_should_parse_dates(col_name, position):
+                parse_as_dates = self._index_col_should_parse_dates(col_name, position)
+                if parse_as_dates:
                     frame[col_name] = date_converter(
                         frame[col_name],
                         col=col_name,
@@ -429,7 +430,13 @@ class ArrowParserWrapper(ParserBase):
                         else (frame.columns[item], self.dtype.get(frame.columns[item]))
                     )
                     if new_dtype is not None:
-                        frame[key] = frame[key].astype(new_dtype)
+                        # GH#57512 don't undo a parse_dates conversion
+                        if not (
+                            frame[key].dtype.kind == "M"
+                            and pandas_dtype(new_dtype).kind != "M"
+                            and parse_as_dates
+                        ):
+                            frame[key] = frame[key].astype(new_dtype)
                         del self.dtype[key]
 
             if self.dtype is not None and not isinstance(self.dtype, dict):
@@ -460,25 +467,28 @@ class ArrowParserWrapper(ParserBase):
 
         return frame
 
-    def _finalize_dtype(self, frame: DataFrame) -> DataFrame:
+    def _finalize_dtype(
+        self, frame: DataFrame, parse_dates_cols: set[Hashable]
+    ) -> DataFrame:
         if self.dtype is not None:
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
             if isinstance(self.dtype, dict):
+                # GH#57512 don't undo a parse_dates conversion
                 self.dtype = {
                     k: pandas_dtype(v)
                     for k, v in self.dtype.items()
                     if k in frame.columns
+                    and not (
+                        k in parse_dates_cols
+                        and frame[k].dtype.kind == "M"
+                        and pandas_dtype(v).kind != "M"
+                    )
                 }
             else:
                 # GH#34066 a scalar dtype must not clobber the dtype produced by
                 # date parsing, so exclude parse_dates columns from the cast.
                 scalar_dtype = pandas_dtype(self.dtype)
-                parse_dates_cols = (
-                    set(self.parse_dates)
-                    if isinstance(self.parse_dates, list)
-                    else set()
-                )
                 self.dtype = {
                     col: scalar_dtype
                     for col in frame.columns
@@ -508,10 +518,19 @@ class ArrowParserWrapper(ParserBase):
         DataFrame
             The processed DataFrame.
         """
+        parse_dates_cols: set[Hashable] = set()
+        if isinstance(self.parse_dates, list):
+            # resolve positions before index columns are removed
+            parse_dates_cols = {
+                frame.columns[col]
+                if isinstance(col, int) and col not in frame.columns
+                else col
+                for col in self.parse_dates
+            }
         frame = self._do_date_conversions(frame.columns, frame)
         frame = self._maybe_restore_string_dtype(frame)
         frame = self._finalize_index(frame, multi_index_named)
-        frame = self._finalize_dtype(frame)
+        frame = self._finalize_dtype(frame, parse_dates_cols)
         # GH#65862 tuples passed via names imply MultiIndex columns,
         # as with other engines
         frame.columns = self._maybe_make_multi_index_columns(
