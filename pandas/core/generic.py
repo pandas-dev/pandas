@@ -5673,6 +5673,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             also selects labels, but since it is likely intended as a mask a
             warning is issued; pass ``items`` or ``cond`` instead to be
             explicit.
+
+            .. versionadded:: 3.1.0
+
         like : str
             Keep labels from axis for which "like in label == True". This
             will be deprecated in a future version; use
@@ -5702,11 +5705,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
             DataFrame and is only supported with ``axis=0``.
+
+            .. versionadded:: 3.1.0
+
         na : {"raise", True, False}, default False
             How to treat missing values in a boolean mask. ``True`` or
             ``False`` treats missing values as that value, matching
             ``obj[mask]`` for a mask with nullable boolean dtype; ``"raise"``
             raises a ``ValueError``. Ignored when selecting labels.
+
+            .. versionadded:: 3.1.0
 
         Returns
         -------
