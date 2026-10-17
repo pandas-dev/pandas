@@ -726,9 +726,11 @@ class TestHelpFunctions:
         mask = np.zeros((5,), dtype=np.bool_)
         mask[1] = True
         mask[4] = True
-        keys, counts, na_counter = ht.value_count(values, False, mask=mask)
+        keys, counts, na_pos = ht.value_count(values, False, mask=mask)
         assert len(keys) == 2
-        assert na_counter == 2
+        # NA is first seen after one distinct value, GH#23074
+        assert na_pos == 1
+        tm.assert_numpy_array_equal(counts, np.array([3, 2], dtype=np.int64))
 
     def test_value_count_stable(self, dtype, writable):
         # GH12679
