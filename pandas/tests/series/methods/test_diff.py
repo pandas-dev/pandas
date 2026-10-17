@@ -80,6 +80,25 @@ class TestSeriesDiff:
         expected = pd.Series(output)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["uint8", "uint16", "uint32", "uint64"])
+    def test_diff_unsigned_int_no_overflow(self, dtype):
+        # GH#4899 unsigned subtraction used to wrap around instead of
+        # producing a negative difference, e.g. uint32(0) - uint32(3)
+        # silently became 4294967293 instead of -3.
+        ser = pd.Series(np.array([3, 2, 0], dtype=dtype))
+        result = ser.diff()
+        expected = pd.Series([np.nan, -1, -2])
+        tm.assert_series_equal(result, expected, check_dtype=False)
+        assert (result.dropna() < 0).all()
+
+    def test_diff_uint64_overflows_int64(self):
+        # GH#4899 uint64 values that don't fit in int64 must not be
+        # silently truncated; diff exactly using arbitrary-precision ints.
+        ser = pd.Series(np.array([2**63 + 10, 2**63 + 5, 5], dtype="uint64"))
+        result = ser.diff()
+        expected = pd.Series([np.nan, -5, 5 - (2**63 + 5)], dtype=object)
+        tm.assert_series_equal(result, expected)
+
     def test_diff_object_dtype(self):
         # object series
         ser = pd.Series([False, True, 5.0, np.nan, True, False])
