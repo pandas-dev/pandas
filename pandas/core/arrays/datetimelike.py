@@ -615,6 +615,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return msg
 
     def _validate_listlike(self, value, allow_object: bool = False):
+        if isinstance(value, np.ndarray) and value.ndim == 2:
+            # the 1-D path below parses strings, which pd_array cannot do in 2-D
+            result = self._validate_listlike(value.ravel(), allow_object)
+            return result.reshape(value.shape)
+
         if isinstance(value, type(self)):
             if self.dtype.kind in "mM" and not allow_object and self.unit != value.unit:  # type: ignore[attr-defined]
                 # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
