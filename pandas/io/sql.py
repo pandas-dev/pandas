@@ -86,6 +86,7 @@ if TYPE_CHECKING:
         Iterator,
         Mapping,
     )
+    import sqlite3
 
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
@@ -1592,6 +1593,18 @@ class PandasSQL(PandasObject, ABC):
         pass
 
 
+def _begin_sqlite3_transaction(con: sqlite3.Connection) -> None:
+    # sqlite3 runs DDL outside a transaction unless one is open, so the DROP
+    # from if_exists="replace" would be committed on its own, GH#32933.
+    # Connections in autocommit mode are left alone.
+    if (
+        not con.in_transaction
+        and con.isolation_level is not None
+        and getattr(con, "autocommit", None) is not True
+    ):
+        con.execute(f"BEGIN {con.isolation_level}")
+
+
 class BaseEngine:
     def insert_records(
         self,
@@ -1714,6 +1727,8 @@ class SQLDatabase(PandasSQL):
             con = self.exit_stack.enter_context(con.connect())
         if need_transaction and not con.in_transaction():
             self.exit_stack.enter_context(con.begin())
+            if con.dialect.driver == "pysqlite":
+                _begin_sqlite3_transaction(con.connection.dbapi_connection)
         self.con = con
         self.meta = MetaData(schema=schema)
         self.returns_generator = False
@@ -2793,17 +2808,27 @@ class SQLiteDatabase(PandasSQL):
 
     def __init__(self, con) -> None:
         self.con = con
+        self._transaction_depth = 0
 
     @contextmanager
     def run_transaction(self):
+        # only the outermost call commits or rolls back, so that to_sql's
+        # drop, create and insert form one transaction
+        outermost = self._transaction_depth == 0
+        if outermost:
+            _begin_sqlite3_transaction(self.con)
+        self._transaction_depth += 1
         cur = self.con.cursor()
         try:
             yield cur
-            self.con.commit()
+            if outermost:
+                self.con.commit()
         except Exception:
-            self.con.rollback()
+            if outermost:
+                self.con.rollback()
             raise
         finally:
+            self._transaction_depth -= 1
             cur.close()
 
     def execute(self, sql: str | Select[Any] | TextClause, params=None):
@@ -3007,8 +3032,9 @@ class SQLiteDatabase(PandasSQL):
             index_label=index_label,
             dtype=dtype,
         )
-        table.create()
-        return table.insert(chunksize, method)
+        with self.run_transaction():
+            table.create()
+            return table.insert(chunksize, method)
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         wld = "?"
