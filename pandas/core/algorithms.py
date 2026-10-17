@@ -616,8 +616,14 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
+        values = _ensure_arraylike(orig_values, func_name="isin-targets")
 
-        if (
+        if values.dtype.kind == "f" and any(
+            lib.is_integer(v) and not lib.is_bool(v) and abs(int(v)) > 2**53
+            for v in orig_values
+        ):
+            values = construct_1d_object_array_from_listlike(orig_values)
+        elif (
             len(values) > 0
             and values.dtype.kind in "iufcb"
             and not is_signed_integer_dtype(comps)
@@ -1485,6 +1491,111 @@ def take(
     return result
 
 
+# ------------------- #
+# searchsorted helper #
+# ------------------- #
+
+
+def _is_py_int(x) -> bool:
+    return isinstance(x, (int, np.integer)) and not isinstance(x, (bool, np.bool_))
+
+
+def _exact_int_values(values):
+    """
+    Convert list/tuple/scalar/ndarray to an array without silently
+    promoting mixed int64/uint64 (or huge) Python ints to float64.
+    """
+    if isinstance(values, (list, tuple)):
+        # check python int
+        if len(values) and all(_is_py_int(v) for v in values):
+            # if values not out of range of int64 use numpy saftely with int64
+            lo, hi = min(values), max(values)
+            if -(2**63) <= lo and hi <= 2**63 - 1:
+                return np.asarray(values, dtype=np.int64)
+            # if values not out of range of uint64 use numpy saftely with uint64
+            if 0 <= lo and hi <= 2**64 - 1:
+                return np.asarray(values, dtype=np.uint64)
+            # value not in range of int64 or uint64
+            # create object list to keep values and
+            #   then later call _searchsorted_object_ints to sort
+            out = np.empty(len(values), dtype=object)
+            out[:] = list(values)
+            return out
+        return np.asarray(values)
+    return np.asarray(values)
+
+
+def _searchsorted_object_ints(data, values, side, sorter):
+    """values: object array of Python ints. Resolve out of range."""
+    info = np.iinfo(data.dtype)
+    flat = values.ravel()
+    # list mask for above or below range
+    below = np.fromiter((v < info.min for v in flat), dtype=bool, count=flat.size)
+    above = np.fromiter((v > info.max for v in flat), dtype=bool, count=flat.size)
+    # replace out of range values with safe values, using list masks
+    safe = np.array(
+        [
+            info.min if b else info.max if a else v
+            for v, b, a in zip(flat, below, above, strict=True)
+        ],
+        dtype=data.dtype,
+    )
+    res = data.searchsorted(safe, side=side, sorter=sorter)
+    # after search replace all small values bottom end
+    res[below] = 0
+    # after search replace all largest values top end
+    res[above] = len(data)
+    return res.reshape(values.shape)
+
+
+def int_searchsorted(
+    data: np.ndarray,
+    values,
+    side: Literal["left", "right"] = "left",
+    sorter: NumpySorter | None = None,
+):
+    """searchsorted that avoids the uint64, int64, float64 promotion."""
+    # check if dtype is iu and is real int or nump int
+    if data.dtype.kind in "iu":
+        values = _exact_int_values(values)
+    else:
+        values = np.asarray(values)
+    # if list/tuple has below int64 and greater than uint64 and Object
+    if (
+        data.dtype.kind in "iu"
+        and values.dtype.kind == "O"
+        and all(_is_py_int(v) for v in values.ravel())
+    ):
+        scalar = values.ndim == 0
+        res = _searchsorted_object_ints(data, np.atleast_1d(values), side, sorter)
+        return res[0] if scalar else res
+    # replace ndarry for either greater than u or below int64
+    if (
+        data.dtype.kind in "iu"
+        and values.dtype.kind in "iu"
+        and data.dtype != values.dtype
+        # float check with numpy as only greater than 2**53 turn to floats
+        and np.result_type(data.dtype, values.dtype).kind == "f"
+    ):
+        scalar = values.ndim == 0
+        values = np.atleast_1d(values)
+        if data.dtype.kind == "u":  # unsigned data, signed values
+            neg = values < 0
+            # replace all neg values to avoid uint failure as not needed
+            safe = np.where(neg, 0, values).astype(data.dtype)
+            res = data.searchsorted(safe, side=side, sorter=sorter)
+            res[neg] = 0
+        else:  # signed data, uint64 values
+            info = np.iinfo(data.dtype)
+            big = values > info.max
+            # replace all large values to stop rounding issue
+            safe = np.where(big, info.max, values).astype(data.dtype)
+            res = data.searchsorted(safe, side=side, sorter=sorter)
+            res[big] = len(data)
+        return res[0] if scalar else res
+    return data.searchsorted(values, side=side, sorter=sorter)
+
+
 # ------------ #
 # searchsorted #
 # ------------ #
@@ -1538,8 +1649,26 @@ def searchsorted(
     --------
     numpy.searchsorted : Similar method from NumPy.
     """
+    from pandas.core.arrays.masked import BaseMaskedArray
+
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
+
+    value = extract_array(value, extract_numpy=True)
+
+    if (
+        isinstance(arr, np.ndarray)
+        and arr.dtype.kind in "iu"
+        and isinstance(value, BaseMaskedArray)
+        and value.dtype.kind in "iu"
+    ):
+        na_mask = value._mask
+        clean_vals = value._data.copy()
+        # hide na's
+        clean_vals[na_mask] = 0
+        res = int_searchsorted(arr, clean_vals, side, sorter)
+        res[na_mask] = len(arr)
+        return res
 
     if (
         isinstance(arr, np.ndarray)
@@ -1568,7 +1697,8 @@ def searchsorted(
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
-
+    if isinstance(arr, np.ndarray) and arr.dtype.kind in "iu":
+        return int_searchsorted(arr, value, side, sorter)
     # Argument 1 to "searchsorted" of "ndarray" has incompatible type
     # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
     return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
