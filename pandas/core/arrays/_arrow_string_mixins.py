@@ -25,6 +25,7 @@ if HAS_PYARROW:
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from types import ModuleType
 
     from pandas._typing import Scalar
 
@@ -50,6 +51,18 @@ class ArrowStringArrayMixin:
         raise NotImplementedError
 
     @staticmethod
+    def _re_parser() -> ModuleType:
+        try:
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
+        except Exception as err:
+            raise type(err)(
+                "Incompatible version for regex; you will need to upgrade pandas "
+                "or downgrade Python"
+            ) from err
+        return _parser
+
+    @staticmethod
     def _regex_nodes(pat: str | re.Pattern[str]) -> list[tuple[Any, Any]]:
         """
         Parse a regex pattern into a flat list of its (op, arg) nodes.
@@ -68,17 +81,7 @@ class ArrowStringArrayMixin:
             The nodes of `pat`, or an empty list if Python's ``re`` cannot
             parse it.
         """
-        try:
-            # error: Module "re" has no attribute "_parser"
-            from re import _parser  # type: ignore[attr-defined]
-
-            regex_parser = _parser.parse
-        except Exception as err:
-            raise type(err)(
-                "Incompatible version for regex; you will need to upgrade pandas "
-                "or downgrade Python"
-            ) from err
-
+        _parser = ArrowStringArrayMixin._re_parser()
         repeats = {_parser.MAX_REPEAT, _parser.MIN_REPEAT, _parser.POSSESSIVE_REPEAT}
 
         def walk(tokens):
@@ -96,7 +99,7 @@ class ArrowStringArrayMixin:
 
         str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
         try:
-            tokens = regex_parser(str_pat)
+            tokens = _parser.parse(str_pat)
         except re.error:
             # Pattern not valid for Python's re (e.g. RE2 syntax like \x{...} or \p)
             # Let the pyarrow backend handle it.
@@ -112,9 +115,7 @@ class ArrowStringArrayMixin:
         ``\\b`` (or their negations) on non-ASCII data, since RE2 only matches
         them against ASCII characters while Python's ``re`` is Unicode-aware.
         """
-        # error: Module "re" has no attribute "_parser"
-        from re import _parser  # type: ignore[attr-defined]
-
+        _parser = self._re_parser()
         unsupported = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
         unicode_sensitive = {
             (_parser.CATEGORY, _parser.CATEGORY_WORD),
@@ -136,8 +137,11 @@ class ArrowStringArrayMixin:
             if op_code in (_parser.CATEGORY, _parser.AT)
         ):
             return False
-        # all-ASCII data keeps the faster pyarrow path; min_count=0 so that an
-        #  empty or all-null array also reports True
+        # all-ASCII data keeps the faster pyarrow path
+        return self._has_non_ascii()
+
+    def _has_non_ascii(self) -> bool:
+        # min_count=0 so that an empty or all-null array reports False
         return not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py()
 
     @staticmethod
@@ -527,9 +531,7 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        # min_count=0 so that an empty or all-null array reports True instead of
-        #  null, keeping it on the pyarrow path below
-        if not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py():
+        if self._has_non_ascii():
             # GH#64123 - pc.find_substring returns byte offsets instead of
             # character offsets for multi-byte UTF-8 characters, so we fall back
             # to Python str.find which correctly returns character offsets.
