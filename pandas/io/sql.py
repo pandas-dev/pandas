@@ -86,6 +86,7 @@ if TYPE_CHECKING:
         Iterator,
         Mapping,
     )
+    import sqlite3
 
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
@@ -1592,6 +1593,18 @@ class PandasSQL(PandasObject, ABC):
         pass
 
 
+def _begin_sqlite3_transaction(con: sqlite3.Connection) -> None:
+    # sqlite3 runs DDL outside a transaction unless one is open, so the DROP
+    # from if_exists="replace" would be committed on its own, GH#32933.
+    # Connections in autocommit mode are left alone.
+    if (
+        not con.in_transaction
+        and con.isolation_level is not None
+        and getattr(con, "autocommit", None) is not True
+    ):
+        con.execute(f"BEGIN {con.isolation_level}")
+
+
 class BaseEngine:
     def insert_records(
         self,
@@ -1701,8 +1714,9 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.engine import Engine
         from sqlalchemy.schema import MetaData
 
-        # self.exit_stack cleans up the Engine and Connection and commits the
-        # transaction if any of those objects was created below.
+        # self.exit_stack cleans up the Engine and Connection and commits (or, on
+        # an exception, rolls back) the transaction if any of those objects was
+        # created below.
         # Cleanup happens either in self.__exit__ or at the end of the iterator
         # returned by read_sql when chunksize is not None.
         self.exit_stack = ExitStack()
@@ -1713,13 +1727,15 @@ class SQLDatabase(PandasSQL):
             con = self.exit_stack.enter_context(con.connect())
         if need_transaction and not con.in_transaction():
             self.exit_stack.enter_context(con.begin())
+            if con.dialect.driver == "pysqlite":
+                _begin_sqlite3_transaction(con.connection.dbapi_connection)
         self.con = con
         self.meta = MetaData(schema=schema)
         self.returns_generator = False
 
     def __exit__(self, *args) -> None:
         if not self.returns_generator:
-            self.exit_stack.close()
+            self.exit_stack.__exit__(*args)
 
     @contextmanager
     def run_transaction(self):
@@ -2459,15 +2475,24 @@ class ADBCDatabase(PandasSQL):
         else:
             quoted_table_name = quoted_name
 
+        table_exists = self.has_table(name, schema)
+        if table_exists and if_exists == "fail":
+            raise ValueError(f"Table '{name}' already exists.")
+
+        # convert before dropping/deleting so a failure leaves the table intact
+        try:
+            with suppress_pyarrow_values_warning():
+                tbl = pa.Table.from_pandas(frame, preserve_index=index)
+        except pa.ArrowNotImplementedError as exc:
+            raise ValueError("datatypes not supported") from exc
+
         # pandas if_exists="append" will still create the
         # table if it does not exist; ADBC is more explicit with append/create
         # as applicable modes, so the semantics get blurred across
         # the libraries
         mode = "create"
-        if self.has_table(name, schema):
-            if if_exists == "fail":
-                raise ValueError(f"Table '{name}' already exists.")
-            elif if_exists == "replace":
+        if table_exists:
+            if if_exists == "replace":
                 sql_statement = f"DROP TABLE {quoted_table_name}"
                 self.execute(sql_statement).close()
             elif if_exists == "append":
@@ -2476,13 +2501,8 @@ class ADBCDatabase(PandasSQL):
                 mode = "append"
                 self.delete_rows(name, schema)
 
-        try:
-            with suppress_pyarrow_values_warning():
-                tbl = pa.Table.from_pandas(frame, preserve_index=index)
-        except pa.ArrowNotImplementedError as exc:
-            raise ValueError("datatypes not supported") from exc
-
-        with self.con.cursor() as cur:
+        # on failure, rolls back the uncommitted DROP/DELETE too, GH#32933
+        with self.run_transaction() as cur:
             try:
                 total_inserted = cur.adbc_ingest(
                     table_name=name, data=tbl, mode=mode, db_schema_name=schema
@@ -2492,7 +2512,6 @@ class ADBCDatabase(PandasSQL):
                     f"Failed to insert records on table={name} with {mode=}"
                 ) from exc
 
-        self.con.commit()
         return total_inserted
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
@@ -2789,17 +2808,27 @@ class SQLiteDatabase(PandasSQL):
 
     def __init__(self, con) -> None:
         self.con = con
+        self._transaction_depth = 0
 
     @contextmanager
     def run_transaction(self):
+        # only the outermost call commits or rolls back, so that to_sql's
+        # drop, create and insert form one transaction
+        outermost = self._transaction_depth == 0
+        if outermost:
+            _begin_sqlite3_transaction(self.con)
+        self._transaction_depth += 1
         cur = self.con.cursor()
         try:
             yield cur
-            self.con.commit()
+            if outermost:
+                self.con.commit()
         except Exception:
-            self.con.rollback()
+            if outermost:
+                self.con.rollback()
             raise
         finally:
+            self._transaction_depth -= 1
             cur.close()
 
     def execute(self, sql: str | Select[Any] | TextClause, params=None):
@@ -3003,8 +3032,9 @@ class SQLiteDatabase(PandasSQL):
             index_label=index_label,
             dtype=dtype,
         )
-        table.create()
-        return table.insert(chunksize, method)
+        with self.run_transaction():
+            table.create()
+            return table.insert(chunksize, method)
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         wld = "?"

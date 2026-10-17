@@ -28,6 +28,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.compat import PY312
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
@@ -2895,6 +2896,91 @@ def test_delete_rows_is_atomic(conn_name, request):
                 f"SELECT * FROM {table_name}", dtype="int32"
             )
             tm.assert_frame_equal(result_df, original_df)
+
+
+@pytest.mark.parametrize("conn_name", all_connectable)
+@pytest.mark.parametrize("if_exists", ["append", "delete_rows"])
+def test_to_sql_failure_is_rolled_back(conn_name, if_exists, request):
+    # GH#32933
+    table_name = "temp_to_sql_rollback_frame"
+    table_stmt = f"CREATE TABLE {table_name} (a INTEGER, b INTEGER UNIQUE NOT NULL)"
+
+    if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
+        sqlalchemy = pytest.importorskip("sqlalchemy")
+        table_stmt = sqlalchemy.text(table_stmt)
+
+    original_df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, dtype="int32")
+    # the last row violates the UNIQUE constraint
+    new_df = pd.DataFrame({"a": [5, 6, 7], "b": [8, 9, 8]}, dtype="int32")
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(table_stmt)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(original_df, table_name, if_exists="append", index=False)
+
+    with pytest.raises(pd.errors.DatabaseError):
+        new_df.to_sql(table_name, conn, if_exists=if_exists, index=False)
+
+    result = sql.read_sql_query(f"SELECT * FROM {table_name}", conn, dtype="int32")
+    tm.assert_frame_equal(result, original_df)
+
+
+@pytest.mark.parametrize("conn_name", all_connectable)
+def test_to_sql_replace_failure_keeps_table(conn_name, request):
+    # GH#32933
+    if "mysql" in conn_name:
+        request.applymarker(pytest.mark.xfail(reason="MySQL autocommits DDL"))
+
+    table_name = "temp_to_sql_replace_rollback_frame"
+    original_df = pd.DataFrame({"a": [1, 2]})
+    bad_df = pd.DataFrame({"a": pd.Series([3, {"x": 1}], dtype=object)})
+
+    conn = request.getfixturevalue(conn_name)
+    original_df.to_sql(table_name, conn, index=False)
+
+    with pytest.raises((pd.errors.DatabaseError, ValueError)):
+        bad_df.to_sql(table_name, conn, if_exists="replace", index=False)
+
+    result = sql.read_sql_query(f"SELECT * FROM {table_name}", conn)
+    tm.assert_frame_equal(result, original_df)
+
+
+def test_to_sql_replace_ingest_failure_keeps_table_adbc(sqlite_adbc_conn):
+    # GH#32933 a list column converts to arrow but fails at ingest, after the DROP
+    conn = sqlite_adbc_conn
+    original_df = pd.DataFrame({"a": [1, 2]})
+    original_df.to_sql("test_frame", conn, index=False)
+
+    bad_df = pd.DataFrame({"a": [[3], [4]]})
+    with pytest.raises(pd.errors.DatabaseError, match="Failed to insert records"):
+        bad_df.to_sql("test_frame", conn, if_exists="replace", index=False)
+
+    result = sql.read_sql_query("SELECT * FROM test_frame", conn)
+    tm.assert_frame_equal(result, original_df)
+
+
+@pytest.mark.parametrize(
+    "connect_kwargs",
+    [
+        {"isolation_level": None},
+        pytest.param(
+            {"autocommit": True},
+            marks=pytest.mark.skipif(not PY312, reason="autocommit added in 3.12"),
+        ),
+    ],
+)
+def test_to_sql_replace_sqlite3_autocommit(connect_kwargs):
+    # GH#32933 an autocommit connection is not left inside an explicit BEGIN
+    with contextlib.closing(sqlite3.connect(":memory:", **connect_kwargs)) as conn:
+        pd.DataFrame({"a": [1, 2]}).to_sql("test_frame", conn, index=False)
+        new_df = pd.DataFrame({"a": [3]})
+        new_df.to_sql("test_frame", conn, if_exists="replace", index=False)
+        assert not conn.in_transaction
+
+        result = sql.read_sql_query("SELECT * FROM test_frame", conn)
+        tm.assert_frame_equal(result, new_df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
