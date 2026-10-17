@@ -196,8 +196,7 @@ def test_version_tag():
         ) from err
 
 
-# getattr, not pd.__dict__.values(): under PEP 810 lazy imports the dict holds
-# non-callable proxies until the name is accessed
+# getattr, not pd.__dict__.values(): PEP 810 lazy imports leave non-callable proxies
 @pytest.mark.parametrize(
     "obj", [obj for obj in (getattr(pd, name) for name in dir(pd)) if callable(obj)]
 )
