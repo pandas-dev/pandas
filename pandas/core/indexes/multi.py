@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
+from copy import deepcopy
 from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
@@ -1377,6 +1378,31 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
+    def _validate_names(
+        self,
+        name: Hashable = None,
+        names: Sequence[Hashable] | None = None,
+    ) -> list[Hashable]:
+        """
+        Validate the ``name`` or ``names`` passed to ``copy``.
+        """
+        if names is not None and name is not None:
+            raise TypeError("Can only provide one of `names` and `name`")
+        if names is not None:
+            if not is_list_like(names):
+                raise TypeError("Must pass list-like as `names`.")
+            new_names = list(names)
+        elif not is_list_like(name):
+            new_names = [name]
+        else:
+            new_names = list(cast("Iterable[Hashable]", name))
+
+        if len(new_names) != self.nlevels:
+            raise ValueError(
+                f"Length of new names must be {self.nlevels}, got {len(new_names)}"
+            )
+        return new_names
+
     # error: Signature of "copy" incompatible with supertype "Index"
     def copy(  # type: ignore[override]
         self,
@@ -1433,13 +1459,14 @@ class MultiIndex(Index):
         MultiIndex([('a', 'b', 'c')],
                    )
         """
-        names = self._validate_names(name=name, names=names, deep=deep)
+        if names is None and name is None:
+            names = deepcopy(self.names) if deep else self.names
+        else:
+            names = self._validate_names(name=name, names=names)
         keep_id = not deep
         levels, codes = None, None
 
         if deep:
-            from copy import deepcopy
-
             levels = deepcopy(self.levels)
             codes = deepcopy(self.codes)
 
