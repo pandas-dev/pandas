@@ -6525,6 +6525,15 @@ easy conversion to and from pandas.
 
 .. _xarray: https://xarray.pydata.org/en/stable/
 
+R data files
+''''''''''''
+
+rdata_ and pyreadr_ read and write R's ``.rds`` and ``.RData``/``.rda``
+formats, converting R data frames to and from pandas ``DataFrame`` objects.
+
+.. _rdata: https://rdata.readthedocs.io/en/stable/
+.. _pyreadr: https://github.com/ofajardo/pyreadr
+
 .. _io.perf:
 
 Performance considerations

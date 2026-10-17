@@ -79,6 +79,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import algorithms as algos
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -1258,7 +1259,16 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 if com.is_null_slice(new_key):
                     return section
                 # This is an elided recursive call to iloc/loc
-                return getattr(section, self.name)[new_key]
+                result = getattr(section, self.name)[new_key]
+                if (
+                    isinstance(result, (ABCDataFrame, ABCSeries))
+                    and 2 * result.size <= section.size
+                    and _is_view_of_new_data(result, section)
+                ):
+                    # don't let a small view keep the whole temporary alive, GH#69477;
+                    #  a copy isn't worth it for a view of most of the temporary
+                    return result.copy()
+                return result
 
         raise IndexingError("not applicable")
 
@@ -2567,9 +2577,23 @@ class _iLocIndexer(_LocationIndexer):
             # GH#42099 list-like (non-array-like): convert to an array first
             #  so we can preserve dtype the same way as the is_array_like path
             arr = sanitize_array(value, Index(range(len(value))), copy=False)
+            if is_integer(indexer[0]) and (
+                is_object_dtype(arr.dtype) or isinstance(arr.dtype, StringDtype)
+            ):
+                # GH#30649 the single cell holds the list-like itself, as in an
+                #  existing object column
+                empty_value = np.full(len(self.obj), np.nan, dtype=object)
+                empty_value[indexer[0]] = value
+                self.obj[key] = empty_value
+                return
             taker = -1 * np.ones(len(self.obj), dtype=np.intp)
             empty_value = algos.take_nd(arr, taker)
-            if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
+            if (
+                arr.ndim == 1
+                and len(arr) == 1
+                and (isinstance(arr, np.ndarray) or is_integer(indexer[0]))
+            ):
+                # GH#46268 a length-1 value is unpacked
                 arr = arr[0]
             empty_value[indexer[0]] = arr
             self.obj[key] = empty_value
@@ -3578,6 +3602,21 @@ def _is_2d_value_for_columns(value, ncols: int) -> bool:
         and isinstance(value[0], tuple)
         and len(value[0]) != 1
     )
+
+
+def _is_view_of_new_data(obj: DataFrame | Series, section: DataFrame | Series) -> bool:
+    """
+    Check if ``obj`` views data first allocated by ``section``, i.e. a temporary
+    copy made while indexing rather than the data of the object being indexed.
+    """
+    section_blocks = {id(blk) for blk in section._mgr.blocks}
+    for blk in obj._mgr.blocks:
+        # the first reference is the block the data was created for; checking
+        #  only that one keeps this O(1), unlike has_reference
+        refs = blk.refs.referenced_blocks
+        if refs and id(refs[0]()) in section_blocks:
+            return True
+    return False
 
 
 def _is_2d_value(value) -> bool:
