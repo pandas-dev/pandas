@@ -2415,6 +2415,101 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match="Cannot divide"):
             two // tdser
 
+    @pytest.mark.parametrize("two", [2, -2, 2.0, 2.5, -2.5, np.array(2), np.array(2.5)])
+    def test_td64arr_floordiv_numeric_scalar_negative(self, box_with_array, two):
+        # GH#71264: numpy's timedelta64 // numeric rounds toward zero;
+        #  match Timedelta // numeric, which floors like datetime.timedelta
+        tds = [pd.Timedelta(v, unit="s").as_unit("s") for v in [-7, 7, -6]]
+        tdser = pd.Series([*tds, pd.NaT], dtype="m8[s]")
+        expected = pd.Series([*(td // two for td in tds), pd.NaT], dtype="m8[s]")
+
+        tdser = tm.box_expected(tdser, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = tdser // two
+        tm.assert_equal(result, expected)
+
+    def test_td64arr_mod_divmod_int_negative(self, box_with_array):
+        # GH#71264
+        tds = [pd.Timedelta(v, unit="s").as_unit("s") for v in [-7, 7, -6]]
+        tdser = pd.Series([*tds, pd.NaT], dtype="m8[s]")
+        expected_div = pd.Series([*(td // 2 for td in tds), pd.NaT], dtype="m8[s]")
+        expected_mod = pd.Series([*(td % 2 for td in tds), pd.NaT], dtype="m8[s]")
+
+        tdser = tm.box_expected(tdser, box_with_array)
+        expected_div = tm.box_expected(expected_div, box_with_array)
+        expected_mod = tm.box_expected(expected_mod, box_with_array)
+
+        result = tdser % 2
+        tm.assert_equal(result, expected_mod)
+
+        result = divmod(tdser, 2)
+        tm.assert_equal(result[0], expected_div)
+        tm.assert_equal(result[1], expected_mod)
+
+    @pytest.mark.parametrize(
+        "klass",
+        [np.array, pd.Index, pd.Series],
+        ids=lambda x: x.__name__,
+    )
+    @pytest.mark.parametrize("dtype", ["int64", "float64"])
+    def test_td64arr_floordiv_numeric_array_negative(
+        self, box_with_array, klass, dtype
+    ):
+        # GH#71264
+        vector = klass([2, -2, 3]).astype(dtype)
+        tds = [pd.Timedelta(v, unit="s").as_unit("s") for v in [-7, -7, 7]]
+        tdser = pd.Series(tds, dtype="m8[s]")
+        expected = pd.Series(
+            [td // div for td, div in zip(tds, vector, strict=True)], dtype="m8[s]"
+        )
+
+        tdser = tm.box_expected(tdser, box_with_array)
+        xbox = get_upcast_box(tdser, vector)
+        expected = tm.box_expected(expected, xbox)
+
+        result = tdser // vector
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "two", [np.uint64(2), np.array([2], dtype=np.uint64)], ids=["scalar", "array"]
+    )
+    def test_td64arr_floordiv_uint_exact(self, box_with_array, two):
+        # GH#71264: int64 // uint64 promotes to float64, which cannot hold
+        #  2**62 + 3; the quotient has to stay exact
+        tdi = pd.TimedeltaIndex(np.array([2**62 + 3], dtype="m8[ns]"))
+        expected = pd.TimedeltaIndex(np.array([2**61 + 1], dtype="m8[ns]"))
+
+        tdi = tm.box_expected(tdi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = tdi // two
+        tm.assert_equal(result, expected)
+
+    def test_td64arr_floordiv_uint_beyond_int64(self):
+        # GH#71264: a uint64 divisor beyond int64 exceeds every value, so its
+        #  floor is 0 or -1, and it must not drag the others through float64
+        tdi = pd.TimedeltaIndex(np.array([2**62 + 3, -5, 5], dtype="m8[ns]"))
+        other = np.array([2, 2**64 - 1, 2**63], dtype=np.uint64)
+
+        result = tdi // other
+        expected = pd.TimedeltaIndex(np.array([2**61 + 1, -1, 0], dtype="m8[ns]"))
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("minus_one", [-1, -1.0, np.array([-1, -1])])
+    def test_td64arr_floordiv_nat_by_minus_one(self, box_with_array, minus_one):
+        # GH#71264: NaT // -1 overflows int64 before the NaT mask applies;
+        #  that must not warn
+        tdi = pd.TimedeltaIndex([pd.NaT, "7s"])
+        expected = pd.TimedeltaIndex([pd.NaT, "-7s"])
+
+        tdi = tm.box_expected(tdi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        with tm.assert_produces_warning(None):
+            result = tdi // minus_one
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize(
         "klass",
         [np.array, pd.Index, pd.Series],
