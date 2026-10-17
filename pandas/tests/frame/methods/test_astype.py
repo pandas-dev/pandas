@@ -402,6 +402,19 @@ class TestAstype:
         with pytest.raises(ValueError, match="column 'b'"):
             df.astype({"a": "int64", "b": "float64", "c": "int64"})
 
+    def test_astype_dict_any_error_names_first_failing_column(self):
+        # GH#63433 an unusual error from a later column doesn't hide an earlier
+        #  column's error
+        class BadFloat:
+            def __float__(self):
+                raise ZeroDivisionError("boom")
+
+        df = pd.DataFrame(
+            {"a": ["x", "y"], "b": np.array([BadFloat(), 1.0], dtype=object)}
+        )
+        with pytest.raises(ValueError, match="column 'a'"):
+            df.astype({"a": "float64", "b": "float64"})
+
     def test_astype_dict_error_names_first_failing_column(self):
         # GH#63433 with several failing columns, the first one in column order is
         #  reported, as when casting column by column

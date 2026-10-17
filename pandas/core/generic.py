@@ -6791,20 +6791,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             pieces = []
             groups = list(batches.items())
             for k, (target, items) in enumerate(groups):
-                locs = [i for i, _ in items]
-                try:
-                    casted = self.iloc[:, locs].astype(target)
-                except (ValueError, TypeError, OverflowError):
-                    # Cast this batch and the ones not tried yet column by column
-                    #  below, so the error names the first failing column.
-                    one_by_one += [item for _, rest in groups[k:] for item in rest]
+                locs = np.array([i for i, _ in items], dtype=np.intp)
+                taken = self.iloc[:, locs]._mgr
+                failed = False
+                for blk in taken.blocks:
+                    try:
+                        nb = blk.astype(target)
+                    except Exception:
+                        # Cast these columns one by one below, so the error names
+                        #  the first failing column; with errors="raise" the
+                        #  batches not tried yet go there too.
+                        one_by_one += [items[j] for j in blk.mgr_locs.as_array]
+                        failed = True
+                        continue
+                    pieces.append((locs, [nb]))
+                if failed and errors == "raise":
+                    one_by_one += [item for _, rest in groups[k + 1 :] for item in rest]
                     break
-                pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))
             if one_by_one:
                 one_by_one.sort(key=lambda item: item[0])
                 casted = concat([cast_column(i, d) for i, d in one_by_one], axis=1)
                 locs_arr = np.array([i for i, _ in one_by_one], dtype=np.intp)
-                pieces.append((locs_arr, casted._mgr))
+                pieces.append((locs_arr, casted._mgr.blocks))
 
             mgr = self._mgr
             assert isinstance(mgr, BlockManager)  # Series case is handled above
