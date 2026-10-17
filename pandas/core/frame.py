@@ -2276,7 +2276,7 @@ class DataFrame(NDFrame, OpsMixin):
                     result_index = ensure_index_from_sequences(index_data, names=index)
                     exclude.update(index)
 
-        if any(exclude):
+        if exclude:
             arr_exclude = (x for x in exclude if x in arr_columns)
             to_remove = {
                 arr_columns.get_loc(col)
@@ -3496,6 +3496,12 @@ class DataFrame(NDFrame, OpsMixin):
         an XML element. Column values can be mapped to either XML element text
         or attributes, and the output supports namespaces, XSLT stylesheets,
         and custom root/row element names.
+
+        .. warning::
+
+           XSLT is a programming language, and a ``stylesheet`` is run without
+           restrictions: it can read and write local files. Only use stylesheets
+           from trusted sources.
 
         Parameters
         ----------

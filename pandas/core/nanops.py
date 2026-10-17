@@ -1029,10 +1029,10 @@ def warn_complex_unordered() -> None:
     # GH#43770 complex has no natural ordering; each caller raises TypeError
     #  instead when this deprecation is enforced
     warnings.warn(
-        "min, max, median, idxmin, and similar methods are deprecated on complex "
-        "data and will raise a TypeError in a future version, as complex numbers "
-        "have no natural ordering. Use the real and imaginary parts, or the "
-        "absolute value, instead.",
+        "min, max, median, idxmin, clip, '<', and similar ordering operations are "
+        "deprecated on complex data and will raise a TypeError in a future "
+        "version, as complex numbers have no natural ordering. Use the real and "
+        "imaginary parts, or the absolute value, instead.",
         Pandas4Warning,
         stacklevel=find_stack_level(),
     )

@@ -2104,7 +2104,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if config["display"]["html"]["table_schema"]:
             data = self.head(config["display"]["max_rows"])
 
-            as_json = data.to_json(orient="table")
+            try:
+                as_json = data.to_json(orient="table")
+            except (TypeError, ValueError, OverflowError) as err:
+                # IPython skips a mimetype quietly only on NotImplementedError,
+                # see GH#16848
+                raise NotImplementedError(
+                    "Cannot represent this object as a table schema"
+                ) from err
             as_json = cast("str", as_json)
             return loads(as_json, object_pairs_hook=collections.OrderedDict)
 
@@ -7216,6 +7223,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area
             ).T
+            if inplace:
+                self._update_inplace(result)
+                return self
 
             return result
 
@@ -9985,19 +9995,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mask = ~((self == other) | (self.isna() & other.isna()))  # type: ignore[operator]
         mask.fillna(True, inplace=True)
 
-        if not keep_equal:
-            self = self.where(mask)
-            other = other.where(mask)
-
+        # drop rows/columns before masking so that values in dropped
+        # positions do not force an upcast, see GH#39899
         if not keep_shape:
             if isinstance(self, ABCDataFrame):
                 cmask = mask.any()
                 rmask = mask.any(axis=1)
                 self = self.loc[rmask, cmask]
                 other = other.loc[rmask, cmask]
+                mask = mask.loc[rmask, cmask]
             else:
                 self = self[mask]
                 other = other[mask]
+                mask = mask[mask]
+
+        if not keep_equal:
+            self = self.where(mask)
+            other = other.where(mask)
+
         if not isinstance(result_names, tuple):
             raise TypeError(
                 f"Passing 'result_names' as a {type(result_names)} is not "

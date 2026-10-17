@@ -690,7 +690,8 @@ class BaseWindowGroupBy(BaseWindow):
         # GH 32262: It's convention to keep the grouping column in
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
-        obj = obj.drop(columns=self._grouper.names, errors="ignore")
+        if obj.ndim == 2:
+            obj = obj.drop(columns=self._grouper.names, errors="ignore")
         # GH 15354
         if kwargs.get("step") is not None:
             raise NotImplementedError("step not implemented for groupby")
@@ -725,7 +726,7 @@ class BaseWindowGroupBy(BaseWindow):
             if key not in self.obj.index.names or key is None
         ]
 
-        if len(drop_columns) != len(groupby_keys):
+        if len(drop_columns) != len(groupby_keys) and result.ndim == 2:
             # Our result will have still kept the column in the result
             result = result.drop(columns=drop_columns, errors="ignore")
 
@@ -768,8 +769,9 @@ class BaseWindowGroupBy(BaseWindow):
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
-        # Manually drop the grouping column first
-        target = target.drop(columns=self._grouper.names, errors="ignore")
+        if target.ndim == 2:
+            # Manually drop the grouping column first
+            target = target.drop(columns=self._grouper.names, errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func, numeric_only)
         # 1) Determine the levels + codes of the groupby levels
         if other is not None and not all(
@@ -1880,6 +1882,32 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(window_func, name="nunique", numeric_only=numeric_only)
 
+    def _get_pairwise_window_indexer(self, x: Series) -> BaseIndexer:
+        """
+        Return the window indexer for ``x``, the result of aligning with 'other'.
+        """
+        window_indexer = self._get_window_indexer()
+        if type(window_indexer) is not VariableWindowIndexer or x.index.equals(
+            self._selected_obj.index
+        ):
+            return window_indexer
+        # GH#62937 aligning with 'other' changed the rows, so the time-based
+        # window bounds must come from the aligned index
+        if self.on is not None:
+            raise ValueError(
+                "'other' must have the same index as the rolling object "
+                f"when rolling on column '{self.on}'."
+            )
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        try:
+            aligned = type(self)(x, **kwargs)
+        except ValueError as err:
+            raise ValueError(
+                "Aligning 'other' with the rolling object must give a monotonic "
+                "datetimelike index without NaT."
+            ) from err
+        return aligned._get_window_indexer()
+
     def cov(
         self,
         other: DataFrame | Series | None = None,
@@ -1896,7 +1924,7 @@ class RollingAndExpandingMixin(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
-            window_indexer = self._get_window_indexer()
+            window_indexer = self._get_pairwise_window_indexer(x)
             min_periods = (
                 self.min_periods
                 if self.min_periods is not None
@@ -1936,7 +1964,7 @@ class RollingAndExpandingMixin(BaseWindow):
         def corr_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
-            window_indexer = self._get_window_indexer()
+            window_indexer = self._get_pairwise_window_indexer(x)
             min_periods = (
                 self.min_periods
                 if self.min_periods is not None
