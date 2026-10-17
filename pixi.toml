@@ -167,31 +167,28 @@ asv = ">=0.6.6"
 py-rattler = "*"  # for environment_type in asv.conf.json
 
 [feature.documentation.dependencies]
+feedparser = "*" # website pages, see doc/sphinxext/pandas_website.py
 gitpython = "*" # obtain contributors from git for whatsnew
 ipykernel = "*" # used in doc/source/user_guide/style.ipynb
 ipywidgets = "*" # used in doc/source/user_guide/style.ipynb
+jinja2 = "*"
+jupyterlite-core = "*" # interactive terminal, see doc/interactive_terminal
+jupyterlite-pyodide-kernel = "*" # interactive terminal
+myst-parser = "*" # website pages
 nbconvert = ">=7.11.0"
 nbformat = "*" # used in doc/source/user_guide/style.ipynb
 nbsphinx = "*"
 numpydoc = "*"
+packaging = "*" # website pages
 pandoc = "*"
+pytest = "*" # doc/sphinxext/tests
+pyyaml = "*" # website pages
+requests = "*" # website pages
 seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
 sphinx-design = "*"
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "==0.20.0"
-
-[feature.website.dependencies]
-feedparser = "*"
-jinja2 = "*"
-jupyterlite-core = "*"
-jupyterlite-pyodide-kernel = "*"
-markdown = "*"
-packaging = "*"
-pygments = "*" # Code highlighting
-pytest = "*"
-pyyaml = "*"
-requests = "*"
 
 [feature.doctests.dependencies]
 pytest-cython = ">=0.4.0"
@@ -224,7 +221,7 @@ downstream = { features = ["py313", "numpy", "test-base", "downstream", "default
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks", "default-compiler"] }
 doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests", "default-compiler"] }
 typing = { features = ["py313", "numpy", "test-base", "pyarrow25", "optional-dependencies", "typing", "default-compiler"] }
-docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website", "default-compiler"] }
+docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "default-compiler"] }
 mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
 sanitizers = { features = ["py313", "numpy", "test-base", "optional-dependencies", "sanitizers"] }
 
@@ -388,16 +385,7 @@ cmd = [
   "python",
   "-m",
   "pytest",
-  "web",
-]
-default-environment = "docs-and-web"
-
-[tasks.ci-build-website]
-cmd = [
-  "python",
-  "web/pandas_web.py",
-  "web/pandas",
-  "--target-path=web/build",
+  "doc/sphinxext/tests",
 ]
 default-environment = "docs-and-web"
 
@@ -409,5 +397,5 @@ cmd = [
   "lite",
   "build",
 ]
-cwd = "web/interactive_terminal/"
+cwd = "doc/interactive_terminal/"
 default-environment = "docs-and-web"

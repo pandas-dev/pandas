@@ -77,11 +77,10 @@ ipywidgets
 nbformat
 notebook>=7.0.6
 ipykernel
-markdown
+myst-parser
 feedparser
 pyyaml
 requests
-pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
 tzdata>=2023.3

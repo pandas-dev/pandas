@@ -15,6 +15,7 @@ Usage
 import argparse
 import csv
 import importlib
+import json
 import os
 import shutil
 import subprocess
@@ -28,6 +29,8 @@ DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, "source")
 BUILD_PATH = os.path.join(DOC_PATH, "build")
 REDIRECTS_FILE = os.path.join(DOC_PATH, "redirects.csv")
+# Files published at the root of https://pandas.pydata.org/, outside the docs
+ROOT_PATH = os.path.join(DOC_PATH, "root")
 
 
 class DocBuilder:
@@ -235,6 +238,86 @@ class DocBuilder:
 
                     moved_page_fd.write(html)
 
+    @staticmethod
+    def _build_site_root() -> None:
+        """
+        Create the files published at the root of https://pandas.pydata.org/.
+
+        The pages of the website are part of the documentation, which is
+        published at /docs/. The root of the site contains the files that need
+        to be there (e.g. ``versions.json``, used by the version switcher of all
+        documentation versions), written to ``build/root``, where the
+        interactive terminal (``doc/interactive_terminal``) is also built. It
+        also contains redirects from the previous location of the website
+        pages, written to ``build/redirects``, since they're only published
+        with a release (when /docs/ contains the pages).
+        """
+        # an invalid versions.json breaks the version switcher of all the
+        # published versions of the documentation (GH#61573)
+        versions_fname = os.path.join(ROOT_PATH, "versions.json")
+        with open(versions_fname, encoding="utf-8") as f:
+            try:
+                json.load(f)
+            except json.JSONDecodeError as err:
+                raise RuntimeError(
+                    f"Invalid {versions_fname}: {err}. Ensure it is valid JSON."
+                ) from err
+
+        root_build_path = os.path.join(BUILD_PATH, "root")
+        redirects_build_path = os.path.join(BUILD_PATH, "redirects")
+        shutil.rmtree(root_build_path, ignore_errors=True)
+        shutil.rmtree(redirects_build_path, ignore_errors=True)
+        shutil.copytree(ROOT_PATH, root_build_path)
+        # data fetched from GitHub for the website pages, used by later builds if
+        # the GitHub API can't be used (see sphinxext/pandas_website.py)
+        for fname in ("maintainers.json", "releases.json", "pdeps.json"):
+            shutil.copy(os.path.join(BUILD_PATH, "html", fname), root_build_path)
+        # static files (e.g. the pandas logo) are also linked from other sites
+        shutil.copytree(
+            os.path.join(SOURCE_PATH, "static"),
+            os.path.join(root_build_path, "static"),
+        )
+
+        # the website pages are the Markdown files of the documentation
+        pages = {"index": ""}
+        for dirname, _, fnames in os.walk(SOURCE_PATH):
+            for fname in fnames:
+                if fname.endswith(".md"):
+                    rel_fname = os.path.relpath(
+                        os.path.join(dirname, fname), SOURCE_PATH
+                    ).replace(os.sep, "/")
+                    page = rel_fname.removesuffix(".md")
+                    target = (
+                        page.removesuffix("index")
+                        if page.endswith("/index")
+                        else f"{page}.html"
+                    )
+                    pages[page] = target
+
+        for page, target in pages.items():
+            path = os.path.join(redirects_build_path, *page.split("/")) + ".html"
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            url = f"/docs/{target}"
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(
+                    f"""\
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- keep the query and the fragment, e.g. links to a section -->
+        <script>
+            location.replace("{url}" + location.search + location.hash);
+        </script>
+        <noscript><meta http-equiv="refresh" content="0;URL={url}"/></noscript>
+        <link rel="canonical" href="https://pandas.pydata.org{url}"/>
+    </head>
+    <body>
+        <p>The page has been moved to <a href="{url}">{url}</a>.</p>
+    </body>
+</html>
+"""
+                )
+
     def html(self):
         """
         Build HTML documentation.
@@ -250,6 +333,8 @@ class DocBuilder:
                     self._open_browser(self.single_doc_html)
             else:
                 self._add_redirects()
+                if not self.whatsnew:
+                    self._build_site_root()
                 if self.whatsnew and not self.no_browser:
                     self._open_browser(os.path.join("whatsnew", "index.html"))
 
