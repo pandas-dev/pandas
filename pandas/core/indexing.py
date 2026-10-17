@@ -79,6 +79,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import algorithms as algos
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -2576,9 +2577,23 @@ class _iLocIndexer(_LocationIndexer):
             # GH#42099 list-like (non-array-like): convert to an array first
             #  so we can preserve dtype the same way as the is_array_like path
             arr = sanitize_array(value, Index(range(len(value))), copy=False)
+            if is_integer(indexer[0]) and (
+                is_object_dtype(arr.dtype) or isinstance(arr.dtype, StringDtype)
+            ):
+                # GH#30649 the single cell holds the list-like itself, as in an
+                #  existing object column
+                empty_value = np.full(len(self.obj), np.nan, dtype=object)
+                empty_value[indexer[0]] = value
+                self.obj[key] = empty_value
+                return
             taker = -1 * np.ones(len(self.obj), dtype=np.intp)
             empty_value = algos.take_nd(arr, taker)
-            if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
+            if (
+                arr.ndim == 1
+                and len(arr) == 1
+                and (isinstance(arr, np.ndarray) or is_integer(indexer[0]))
+            ):
+                # GH#46268 a length-1 value is unpacked
                 arr = arr[0]
             empty_value[indexer[0]] = arr
             self.obj[key] = empty_value
