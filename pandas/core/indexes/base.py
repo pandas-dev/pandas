@@ -73,6 +73,7 @@ from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
     common_dtype_categorical_compat,
+    construct_1d_object_array_from_listlike,
     find_result_type,
     infer_dtype_from,
     maybe_unbox_numpy_scalar,
@@ -3129,7 +3130,9 @@ class Index(IndexOpsMixin, PandasObject):
     def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.item(), a.any() or a.all()."
+            "Use a.empty, a.item(), a.any() or a.all(). "
+            "If you are combining conditions, use '&', '|' and '~' instead of "
+            "'and', 'or' and 'not'."
         )
 
     # --------------------------------------------------------------------
@@ -7740,6 +7743,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(other, Index) and self.is_(other):
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
+                if op is not operator.eq and self.dtype.kind == "c":
+                    # GH#43770 this fastpath skips the comparison_op warning
+                    nanops.warn_complex_unordered()
                 arr = np.ones(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
@@ -8117,6 +8123,9 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not len(self):
+            if self.dtype.kind == "c":
+                # GH#43770 the early returns skip the nanops warning
+                nanops.warn_complex_unordered()
             return self._na_value
 
         if len(self) and self.is_monotonic_increasing:
@@ -8129,6 +8138,8 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                if self.dtype.kind == "c":
+                    nanops.warn_complex_unordered()
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
@@ -8192,6 +8203,9 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_minmax_axis(axis)
 
         if not len(self):
+            if self.dtype.kind == "c":
+                # GH#43770 the early returns skip the nanops warning
+                nanops.warn_complex_unordered()
             return self._na_value
 
         if len(self) and self.is_monotonic_increasing:
@@ -8204,6 +8218,8 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                if self.dtype.kind == "c":
+                    nanops.warn_complex_unordered()
                 return maybe_unbox_numpy_scalar(self._na_value)
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
@@ -8257,12 +8273,18 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
     -------
     Any : input or range
     """
-    if isinstance(sequence, (range, ExtensionArray)):
+    if isinstance(sequence, (range, ExtensionArray)) or len(sequence) == 1:
         return sequence
-    elif len(sequence) == 1 or lib.infer_dtype(sequence, skipna=False) != "integer":
-        return sequence
-    elif isinstance(sequence, (ABCSeries, Index)) and not (
-        isinstance(sequence.dtype, np.dtype) and sequence.dtype.kind == "i"
+    elif isinstance(sequence, (ABCSeries, Index)):
+        if not lib.is_np_dtype(sequence.dtype, "i"):
+            return sequence
+    elif isinstance(sequence, np.ndarray):
+        if not (
+            sequence.dtype.kind in "iu" or lib.is_integer_array(sequence, skipna=False)
+        ):
+            return sequence
+    elif not lib.is_integer_array(
+        construct_1d_object_array_from_listlike(sequence), skipna=False
     ):
         return sequence
     if len(sequence) == 0:
