@@ -1851,3 +1851,15 @@ class TestParquetChunksize(Base):
 
         with pytest.raises(NotImplementedError, match="nested"):
             read_parquet(path, engine=pa, columns=["s.x"], chunksize=1)
+
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_empty(self, pa, tmp_path, directory):
+        # like read_csv(chunksize=...), yield one empty chunk with the columns
+        # rather than none
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": pd.Series([], dtype="int64")}).to_parquet(path, engine=pa)
+        source = tmp_path if directory else path
+
+        chunks = list(read_parquet(source, engine=pa, chunksize=5))
+        assert len(chunks) == 1
+        tm.assert_frame_equal(chunks[0], read_parquet(source, engine=pa))

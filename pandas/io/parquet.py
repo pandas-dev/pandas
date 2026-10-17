@@ -240,6 +240,28 @@ def _fragment_batches(
                 yield from reader
 
 
+def _batches_or_empty(
+    batches: Generator[pyarrow.RecordBatch],
+    read_empty: Callable[[], pyarrow.Table],
+) -> Generator[pyarrow.RecordBatch | pyarrow.Table]:
+    """
+    ``batches``, or if there are none the empty table ``read_empty()`` reads.
+
+    Like ``read_csv(chunksize=...)``, empty data then gives one empty chunk
+    with the columns of a non-chunked read rather than no chunks at all.
+    Closing this generator closes ``batches``.
+    """
+    empty = True
+    try:
+        for batch in batches:
+            empty = False
+            yield batch
+    finally:
+        batches.close()
+    if empty:
+        yield read_empty()
+
+
 def _full_read_range_index(
     schema: pyarrow.Schema,
     num_rows: Callable[[], int],
@@ -319,8 +341,9 @@ class ParquetFileReader(abc.Iterator):
 
     Parameters
     ----------
-    batch_iter : Iterator[pyarrow.RecordBatch]
-        Iterator over pyarrow record batches, from either
+    batch_iter : Iterator[pyarrow.RecordBatch | pyarrow.Table]
+        Iterator over pyarrow record batches, or an empty table for empty
+        data, from either
         ``pyarrow.parquet.ParquetFile.iter_batches()`` or the fragments of a
         ``pyarrow.parquet.ParquetDataset``.
     source : pyarrow.parquet.ParquetFile or generator
@@ -585,12 +608,15 @@ class PyArrowImpl(BaseImpl):
                         lambda: sum(fragment.count_rows() for fragment in fragments),
                         to_pandas_kwargs,
                     )
-                    source = batch_iter = _fragment_batches(
-                        fragments,
-                        schema=schema,
-                        columns=columns,
-                        batch_size=chunksize,
-                        use_threads=use_threads,
+                    source = batch_iter = _batches_or_empty(
+                        _fragment_batches(
+                            fragments,
+                            schema=schema,
+                            columns=columns,
+                            batch_size=chunksize,
+                            use_threads=use_threads,
+                        ),
+                        lambda: dataset.read(columns=columns, use_pandas_metadata=True),
                     )
                 else:
                     parquet_file = self.api.parquet.ParquetFile(
@@ -625,11 +651,16 @@ class PyArrowImpl(BaseImpl):
                                 "selecting fields inside nested columns is not "
                                 f"supported when chunksize is set for a file: {nested}"
                             )
-                    batch_iter = parquet_file.iter_batches(
-                        batch_size=chunksize,
-                        columns=columns,
-                        use_threads=use_threads,
-                        use_pandas_metadata=True,
+                    batch_iter = _batches_or_empty(
+                        parquet_file.iter_batches(
+                            batch_size=chunksize,
+                            columns=columns,
+                            use_threads=use_threads,
+                            use_pandas_metadata=True,
+                        ),
+                        lambda: parquet_file.read(
+                            columns=columns, use_pandas_metadata=True
+                        ),
                     )
                     index_range = _full_read_range_index(
                         parquet_file.schema_arrow,
