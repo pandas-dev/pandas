@@ -2454,6 +2454,14 @@ class ArrowExtensionArray(
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):
             data = self
         else:
+            if (
+                pa.types.is_boolean(pa_type)
+                and dtype is not None
+                and dtype.kind == "b"
+                and lib.is_integer(na_value)
+            ):
+                # pyarrow won't fill a bool array with an int (e.g. sentinel 1)
+                na_value = dtype.type(na_value)
             data = self.fillna(na_value)
             copy = False
 
@@ -2681,6 +2689,12 @@ class ArrowExtensionArray(
                 data_to_accum = data_to_accum.cast(pa.int32())
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
+        elif pa.types.is_boolean(pa_dtype):
+            # no bool cumulative kernels; cummin/cummax are cast back below
+            convert_to_int = name in ["cummax", "cummin"]
+            data_to_accum = data_to_accum.cast(
+                pa.int8() if convert_to_int else pa.int64()
+            )
 
         if name in ("cummax", "cummin") and pa.types.is_floating(data_to_accum.type):
             kwargs["start"] = float("-inf") if name == "cummax" else float("inf")
@@ -2808,6 +2822,19 @@ class ArrowExtensionArray(
                 data_to_reduce = self._pa_array.cast(pa.int32())
             else:
                 data_to_reduce = self._pa_array.cast(pa.int64())
+
+        elif name in [
+            "sum",
+            "prod",
+            "median",
+            "std",
+            "var",
+            "sem",
+            "skew",
+            "kurt",
+        ] and pa.types.is_boolean(pa_type):
+            # pyarrow sums bool to uint64 and rejects it for std/var/etc.
+            data_to_reduce = self._pa_array.cast(pa.int8())
 
         if name == "sem":
 
@@ -3356,6 +3383,12 @@ class ArrowExtensionArray(
         same type as self
         """
         pa_dtype = self._pa_array.type
+        if pa.types.is_boolean(pa_dtype):
+            # like numpy bool and BooleanDtype
+            raise TypeError(
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                "does not support operation 'quantile'"
+            )
 
         data = self._pa_array
         if pa.types.is_temporal(pa_dtype):

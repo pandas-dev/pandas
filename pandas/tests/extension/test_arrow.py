@@ -327,9 +327,6 @@ class TestArrowArray(base.ExtensionTests):
         elif pa.types.is_string(pa_type):
             if op_name == "cumprod":
                 return False
-        elif pa.types.is_boolean(pa_type):
-            if op_name in ["cumprod", "cummax", "cummin"]:
-                return False
         elif pa.types.is_temporal(pa_type):
             if op_name == "cumsum" and not pa.types.is_duration(pa_type):
                 return False
@@ -355,9 +352,7 @@ class TestArrowArray(base.ExtensionTests):
                 data, all_numeric_accumulations, skipna
             )
 
-        if all_numeric_accumulations == "cumsum" and (
-            pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
-        ):
+        if all_numeric_accumulations == "cumsum" and pa.types.is_decimal(pa_type):
             request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{all_numeric_accumulations} not implemented for {pa_type}",
@@ -421,16 +416,6 @@ class TestArrowArray(base.ExtensionTests):
             #  behavior which does not support this.
             return False
 
-        if pa.types.is_boolean(pa_dtype) and op_name in [
-            "median",
-            "std",
-            "var",
-            "skew",
-            "kurt",
-            "sem",
-        ]:
-            return False
-
         return True
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
@@ -439,6 +424,8 @@ class TestArrowArray(base.ExtensionTests):
         pa_dtype = ser.dtype.pyarrow_dtype  # type: ignore[union-attr]
         if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
             alt = ser.astype("Float64")
+        elif pa.types.is_boolean(pa_dtype):
+            alt = ser.astype("boolean")
         else:
             # TODO: in the opposite case, aren't we testing... nothing? For
             # e.g. date/time dtypes trying to calculate 'expected' by converting
@@ -484,7 +471,7 @@ class TestArrowArray(base.ExtensionTests):
         elif op_name in ["median", "var", "std", "mean", "skew", "kurt", "sem"]:
             cmp_dtype = "float64[pyarrow]"
         elif op_name in ["sum", "prod"] and pa.types.is_boolean(pa_type):
-            cmp_dtype = "uint64[pyarrow]"
+            cmp_dtype = "int64[pyarrow]"
         elif op_name == "sum" and pa.types.is_string(pa_type):
             cmp_dtype = arr.dtype
         else:

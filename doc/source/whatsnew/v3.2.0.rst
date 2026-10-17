@@ -162,6 +162,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :class:`ArrowDtype` boolean data being treated as non-numeric, so it was silently dropped from ``numeric_only=True`` reductions (e.g. :meth:`DataFrame.mean`, :meth:`DataFrame.sum`, :meth:`DataFrame.corr`), and :meth:`Series.std`, :meth:`Series.var`, :meth:`Series.median`, :meth:`Series.sem`, :meth:`Series.skew`, :meth:`Series.kurt`, :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin`, and :meth:`Series.cummax` raised ``TypeError``; booleans are now treated as numeric and reduce and accumulate as ``0``/``1``, matching the NumPy ``bool`` and :class:`BooleanDtype` backends; like those backends, :meth:`DataFrame.quantile` with ``numeric_only=True`` now raises ``TypeError`` for such a column instead of dropping it, and ``sum`` and ``prod`` return ``int64[pyarrow]`` instead of ``uint64[pyarrow]`` (:issue:`71106`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in integer exponentiation (``**``, :meth:`Series.pow`, :meth:`DataFrame.pow`) on large inputs returning imprecise results, ``0`` for negative exponents, or an upcast dtype when numexpr is installed (:issue:`54546`)
@@ -174,6 +175,7 @@ Conversion
 - Bug in :meth:`DataFrame.replace` with a dict or list replacing values with ``None`` casting other columns of the same dtype to ``object`` even when they contained no value to replace (:issue:`30512`)
 - Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
 - Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
+- Bug in :meth:`arrays.BooleanArray.to_numpy` returning ``object`` dtype when missing values were present and a non-missing ``na_value`` was given; it now returns ``bool``, matching :class:`ArrowDtype` boolean data (:issue:`71106`)
 -
 
 Strings
