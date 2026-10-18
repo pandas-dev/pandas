@@ -1384,3 +1384,113 @@ def test_rolling_corr_with_tuples_in_index():
         {"a": [np.nan, np.nan, np.nan], "b": [np.nan, 1.0, 1.0]}, index=index
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "window,kwargs", [("rolling", {"window": 2}), ("expanding", {})]
+)
+@pytest.mark.parametrize("columns", [["group"], ["group", "other"]])
+@pytest.mark.parametrize("func", ["count", "sum", "mean", "cov", "corr"])
+def test_groupby_window_selected_grouping_column(window, kwargs, columns, func):
+    # GH#56705
+    df = pd.DataFrame({"group": [1, 2, 2, 3, 3, 3], "other": [1, 2, 3, 4, 5, 6]})
+    grouped = df.groupby("group")[columns]
+    result = getattr(getattr(grouped, window)(min_periods=1, **kwargs), func)()
+    expected = pd.concat(
+        [
+            getattr(getattr(group[columns], window)(min_periods=1, **kwargs), func)()
+            for _, group in df.groupby("group")
+        ],
+        keys=[1, 2, 3],
+        names=["group"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["sum", "mean", "cov", "corr"])
+def test_groupby_ewm_selected_grouping_column(func):
+    # GH#56705
+    df = pd.DataFrame({"group": [1, 2, 2, 3, 3, 3], "other": [1, 2, 3, 4, 5, 6]})
+    result = getattr(df.groupby("group")[["group", "other"]].ewm(com=1), func)()
+    expected = pd.concat(
+        [getattr(group.ewm(com=1), func)() for _, group in df.groupby("group")],
+        keys=[1, 2, 3],
+        names=["group"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", [["group"], ["group", "key"], ["key", "group"]])
+def test_groupby_rolling_selected_grouping_column_as_index_false(keys):
+    # GH#56705
+    df = pd.DataFrame(
+        {"group": [1, 2, 2, 3, 3, 3], "key": [0] * 6, "other": [1, 2, 3, 4, 5, 6]}
+    )
+    result = (
+        df.groupby(keys, as_index=False)[["group", "other"]]
+        .rolling(2, min_periods=1)
+        .sum()
+    )
+    expected = pd.DataFrame(
+        {
+            "group": [1.0, 2.0, 4.0, 3.0, 6.0, 6.0],
+            "other": [1.0, 2.0, 5.0, 4.0, 9.0, 11.0],
+        }
+    )
+    if "key" in keys:
+        expected.insert(0, "key", 0)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "window,kwargs",
+    [("rolling", {"window": 2}), ("expanding", {}), ("ewm", {"com": 1})],
+)
+def test_groupby_window_subset_after_selecting_grouping_column(window, kwargs):
+    # GH#56705
+    df = pd.DataFrame({"group": [1, 2, 2], "other": [3, 4, 5]})
+    result = getattr(df.groupby("group")[["group", "other"]], window)(**kwargs)[
+        ["group"]
+    ].sum()
+    expected = pd.concat(
+        [
+            getattr(group[["group"]], window)(**kwargs).sum()
+            for _, group in df.groupby("group")
+        ],
+        keys=[1, 2],
+        names=["group"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+def test_groupby_rolling_selected_grouping_column_multiindex_columns(as_index):
+    # GH#56705
+    columns = pd.MultiIndex.from_tuples([("group", "a"), ("value", "b")])
+    df = pd.DataFrame([[1, 2], [1, 3], [2, 4]], columns=columns)
+    result = (
+        df.groupby(("group", "a"), as_index=as_index)[list(columns)].rolling(2).sum()
+    )
+    expected = pd.DataFrame(
+        [[np.nan, np.nan], [2.0, 5.0], [np.nan, np.nan]], columns=columns
+    )
+    if as_index:
+        expected.index = pd.MultiIndex.from_arrays(
+            [[1, 1, 2], [0, 1, 2]], names=[("group", "a"), None]
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_rolling_selected_grouping_column_and_index_level():
+    # GH#56705
+    df = pd.DataFrame(
+        {"group": [1, 1, 2], "value": [3, 4, 5]}, index=pd.Index([0, 0, 0], name="key")
+    )
+    result = df.groupby(["key", "group"])[["group", "value"]].rolling(2).sum()
+    expected = pd.DataFrame(
+        {"group": [np.nan, 2.0, np.nan], "value": [np.nan, 7.0, np.nan]},
+        index=pd.MultiIndex.from_arrays(
+            [[0, 0, 0], [1, 1, 2], [0, 0, 0]], names=["key", "group", "key"]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
