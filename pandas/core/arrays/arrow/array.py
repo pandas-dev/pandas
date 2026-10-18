@@ -2030,8 +2030,14 @@ class ArrowExtensionArray(
         try:
             value_set = self._box_pa(values)
             result = pc.is_in(*uuid_to_storage(self._pa_array, value_set))
-        except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
-            # pyarrow cannot box e.g. [1, 2**63], ["a", 1] or [2**53 + 1, 1.5];
+        except (
+            pa.ArrowInvalid,
+            pa.ArrowTypeError,
+            pa.ArrowNotImplementedError,
+            OverflowError,
+        ):
+            # pyarrow cannot box e.g. [1, 2**63], ["a", 1] or [2**53 + 1, 1.5],
+            # or has no is_in kernel for the type pair;
             # compare the non-null entries as a numpy array instead
             values = np.asarray(values, dtype=object)
             mask = self.isna()

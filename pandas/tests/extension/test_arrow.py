@@ -1200,6 +1200,7 @@ def test_uuid_hashing_and_sorting(uuid_array: pa.Array):
     assert ser.value_counts().to_dict() == {UUIDS[1]: 2, UUIDS[0]: 1}
     tm.assert_series_equal(ser.mode(), pd.Series([UUIDS[1]], dtype=dtype))
     tm.assert_series_equal(ser.isin([UUIDS[1]]), pd.Series([False, True, False, True]))
+    tm.assert_series_equal(ser.isin(["foo"]), pd.Series([False] * 4))
     tm.assert_numpy_array_equal(
         ser.sort_values(ascending=False).index.to_numpy(),
         np.array([1, 3, 0, 2]),
