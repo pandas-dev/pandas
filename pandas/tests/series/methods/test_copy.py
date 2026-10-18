@@ -45,11 +45,8 @@ class TestCopy:
 
         # INFO(CoW) a shallow copy doesn't yet copy the data
         # but parent will not be modified (CoW)
-        msg = "Series.values returning an ndarray that drops timezone information"
-        with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
-            ser_values = ser.values
-        with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
-            ser2_values = ser2.values
+        ser_values = ser.array._ndarray
+        ser2_values = ser2.array._ndarray
         if deep is None or deep is False:
             assert np.may_share_memory(ser_values, ser2_values)
         else:

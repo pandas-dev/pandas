@@ -149,9 +149,8 @@ zstandard = ">=0.23.0"
 solve-strategy = "lowest-direct"
 
 [feature.minimum-versions.dependencies]
-# Avoid 3.11.0, which segfaults formatting tracebacks for unraisable
-# exceptions under PYTHONDEVMODE (CPython gh-99729, fixed in 3.11.1).
-python = ">=3.11.1,<3.12"
+# Avoid <3.11.5, soupsieve>=3.0 (for bs4) uses regex pattern supported by Python 3.11.5
+python = ">=3.11.5,<3.12"
 
 [feature.downstream.dependencies]
 cftime = "*"
@@ -278,6 +277,7 @@ cmd = [
   "--ignore=pandas/tests",
   "pandas",
 ]
+default-environment = "doctests"
 
 [tasks.ci-check-import]
 cmd = [
@@ -305,6 +305,7 @@ cmd = [
   "pytest",
   "scripts",
 ]
+default-environment = "doctests"
 
 [tasks.ci-asv]
 cmd = [

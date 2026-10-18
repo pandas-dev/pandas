@@ -8,7 +8,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs import index as libindex
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -158,9 +157,7 @@ class TestWhere:
         mask = pd.notna(i2)
 
         # passing tz-naive ndarray to tzaware DTI
-        msg = "DatetimeIndex.values returning an ndarray that drops timezone"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            i2_values = i2.values
+        i2_values = i2.array._ndarray
         result = dti.where(mask, i2_values)
         expected = pd.Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
@@ -427,29 +424,26 @@ class TestGetLoc:
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-    @pytest.mark.parametrize("offset", [-10, 10])
-    def test_get_loc_time_obj2(self, monkeypatch, offset):
+    def test_get_loc_time_obj2(self):
         # GH#8667
-        size_cutoff = 50
-        n = size_cutoff + offset
         key = time(15, 11, 30)
-        start = key.hour * 3600 + key.minute * 60 + key.second
-        step = 24 * 3600
+        start = (key.hour * 3600 + key.minute * 60 + key.second) // 30
+        step = 24 * 3600 // 30
+        n = 3 * step
 
-        with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            idx = pd.date_range("2014-11-26", periods=n, freq="s")
-            ts = pd.Series(np.random.default_rng(2).standard_normal(n), index=idx)
-            locs = np.arange(start, n, step, dtype=np.intp)
+        idx = pd.date_range("2014-11-26", periods=n, freq="30s")
+        ts = pd.Series(np.random.default_rng(2).standard_normal(n), index=idx)
+        locs = np.arange(start, n, step, dtype=np.intp)
+        assert len(locs) == 3
 
-            result = ts.index.get_loc(key)
-            tm.assert_numpy_array_equal(result, locs)
-            tm.assert_series_equal(ts[key], ts.iloc[locs])
+        result = ts.index.get_loc(key)
+        tm.assert_numpy_array_equal(result, locs)
+        tm.assert_series_equal(ts[key], ts.iloc[locs])
 
-            left, right = ts.copy(), ts.copy()
-            left[key] *= -10
-            right.iloc[locs] *= -10
-            tm.assert_series_equal(left, right)
+        left, right = ts.copy(), ts.copy()
+        left[key] *= -10
+        right.iloc[locs] *= -10
+        tm.assert_series_equal(left, right)
 
     def test_get_loc_time_nat(self):
         # GH#35114

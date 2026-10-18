@@ -206,8 +206,16 @@ pc_show_dimensions_doc = """
 pc_east_asian_width_doc = """
 : boolean
     Whether to use the Unicode East Asian Width to calculate the display text
-    width.
+    width, so that double-width characters such as CJK characters and most
+    emoji are aligned correctly.
     Enabling this may affect performance (default: False)
+"""
+
+pc_ambiguous_as_wide_doc = """
+: boolean
+    Whether to treat characters whose Unicode East Asian Width is ambiguous
+    as double-width. Only used when ``display.unicode.east_asian_width`` is
+    True (default: False)
 """
 
 
@@ -382,7 +390,7 @@ with cf.config_prefix("display"):
         "unicode.east_asian_width", False, pc_east_asian_width_doc, validator=is_bool
     )
     cf.register_option(
-        "unicode.ambiguous_as_wide", False, pc_east_asian_width_doc, validator=is_bool
+        "unicode.ambiguous_as_wide", False, pc_ambiguous_as_wide_doc, validator=is_bool
     )
     cf.register_option(
         "html.table_schema",
@@ -461,7 +469,7 @@ with cf.config_prefix("mode"):
 max_threads_doc = """
 : int or None
     Maximum number of worker threads for parallel operations (e.g. ``read_csv``
-    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``,
+    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 6)``,
     further limited to the CPUs available to the process (CPU affinity and cgroup
     limits).  Set to ``1`` to disable parallel execution, or to a fixed number to
     raise the cap or to limit thread usage when pandas is embedded in a larger
@@ -718,19 +726,19 @@ styler_render_repr = """
 styler_max_elements = """
 : int
     The maximum number of data-cell (<td>) elements that will be rendered before
-    trimming will occur over columns, rows or both if needed.
+    trimming will occur over columns, rows or both if needed. Not applied to LaTeX.
 """
 
 styler_max_rows = """
 : int, optional
     The maximum number of rows that will be rendered. May still be reduced to
-    satisfy ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence. Not applied to LaTeX.
 """
 
 styler_max_columns = """
 : int, optional
     The maximum number of columns that will be rendered. May still be reduced to
-    satisfy ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence. Not applied to LaTeX.
 """
 
 styler_precision = """

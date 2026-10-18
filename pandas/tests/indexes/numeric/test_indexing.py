@@ -418,13 +418,13 @@ class TestGetIndexer:
         idx = pd.Index([1])
 
         result = idx.get_indexer(target)
-        expected = np.array([0, -1], dtype=np.int64)
+        expected = np.array([0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
         result_1, result_2 = idx.get_indexer_non_unique(target)
         expected_1, expected_2 = (
-            np.array([0, -1], dtype=np.int64),
-            np.array([1], dtype=np.int64),
+            np.array([0, -1], dtype=np.intp),
+            np.array([1], dtype=np.intp),
         )
         tm.assert_numpy_array_equal(result_1, expected_1)
         tm.assert_numpy_array_equal(result_2, expected_2)

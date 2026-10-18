@@ -613,6 +613,18 @@ class TestIndex:
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
+    def test_map_with_tuples_of_different_lengths(self):
+        # GH#50293
+        index = Index([1, 2], name="n")
+        result = index.map(lambda x: (x,) * x)
+        expected = Index([(1,), (2, 2)], name="n", tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
+        mi = MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+        result = mi.map(lambda tup: (*tup, "z") if tup[0] == "a" else tup)
+        expected = Index([("a", "b", "z"), ("c", "d")], tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "index",
         [
@@ -1960,3 +1972,37 @@ def test_slice_locs_quarterly_string_bound_utc_offset_check(wrap):
     with tm.assert_produces_warning(None):
         with pytest.raises(ValueError, match="Both dates must"):
             idx.slice_locs(wrap("2000Q1"), "2000-06-01 00:00:00+06:00")
+
+
+@pytest.mark.parametrize(
+    "left, right, expected, exp_lidx, exp_ridx",
+    [
+        (
+            Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            Index(["x", "x", 1], dtype=object),
+            Index(["x", "x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            np.array([0, 0, 1], dtype=np.intp),
+            np.array([0, 1, -1], dtype=np.intp),
+        ),
+        (
+            Index([3, 1, 2], dtype=np.int64),
+            Index(["a", 1], dtype=object),
+            Index([3, 1, 2], dtype=np.int64),
+            None,
+            np.array([-1, 1, -1], dtype=np.intp),
+        ),
+    ],
+)
+def test_join_mismatched_dtypes_keeps_dtype_of_kept_side(
+    left, right, expected, exp_lidx, exp_ridx
+):
+    # GH#63371
+    result, lidx, ridx = left.join(right, how="left", return_indexers=True)
+    tm.assert_index_equal(result, expected)
+    tm.assert_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+    result, ridx, lidx = right.join(left, how="right", return_indexers=True)
+    tm.assert_index_equal(result, expected)
+    tm.assert_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)

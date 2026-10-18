@@ -9,6 +9,11 @@ on:
     branches:
       - main
       - 3.0.x
+    paths-ignore:
+      # code-scanning workflows; checked by zizmor in security.yml
+      - ".github/workflows/codeql.yml"
+      - ".github/workflows/scorecard.yml"
+      - ".github/workflows/security.yml"
 
 defaults:
   run:

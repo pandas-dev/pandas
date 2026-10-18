@@ -7,9 +7,11 @@ from operator import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Self,
     TypeAlias,
+    cast,
     overload,
 )
 import warnings
@@ -56,6 +58,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     IntervalDtype,
@@ -112,7 +115,7 @@ if TYPE_CHECKING:
 
 
 IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
-IntervalOrNA: TypeAlias = Interval | float
+IntervalOrNA: TypeAlias = "Interval[Any] | float"
 
 # Fixed salts for the four VALID_CLOSED values, used in _hash_pandas_object so
 # the result is deterministic across processes (unlike the builtin str hash).
@@ -214,7 +217,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ) -> Self:
-        data = extract_array(data, extract_numpy=True)
+        data = extract_array(data, extract_numpy=True, extract_range=True)
 
         if isinstance(data, cls):
             left: IntervalSide = data._left
@@ -232,6 +235,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # might need to convert empty or purely na data
             data = _maybe_convert_platform_interval(data)
+            if isinstance(data, ExtensionArray):
+                # GH#68343 non-interval EA, e.g. from astype
+                data = np.asarray(data)
             left, right, infer_closed = intervals_to_interval_bounds(
                 data, validate_closed=closed is None
             )
@@ -669,7 +675,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # EA Interface
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         return iter(np.asarray(self))
 
     def __len__(self) -> int:
@@ -1010,8 +1016,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
 
-        left: IntervalSide = np.concatenate([interval.left for interval in to_concat])
-        right: IntervalSide = np.concatenate([interval.right for interval in to_concat])
+        # concat_compat instead of np.concatenate to retain an ExtensionDtype
+        #  subtype GH#64297
+        left = concat_compat([interval._left for interval in to_concat])
+        right = concat_compat([interval._right for interval in to_concat])
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 
@@ -1067,29 +1075,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         self._validate_scalar(fill_value)
 
-        # ExtensionArray.shift doesn't work for two reasons
-        # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
-        # 2. IntervalArray._from_sequence only accepts NaN for missing values,
-        #    not other values like NaT
-
-        empty_len = min(abs(periods), len(self))
         if isna(fill_value):
-            from pandas import Index
+            # ExtensionArray.shift would build the NA fill with _from_sequence,
+            #  which raises on a numpy integer subtype instead of upcasting.
+            #  take keeps the subtype unless it must upcast to hold NA.
+            indexer = np.arange(len(self)) - periods
+            indexer[(indexer < 0) | (indexer >= len(self))] = -1
+            return self.take(indexer, allow_fill=True)
 
-            fill_value = Index(self._left, copy=False)._na_value
-            empty = IntervalArray.from_breaks(
-                [fill_value] * (empty_len + 1), closed=self.closed
-            )
-        else:
-            empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
-
-        if periods > 0:
-            a = empty
-            b = self[:-periods]
-        else:
-            a = self[abs(periods) :]
-            b = empty
-        return self._concat_same_type([a, b])
+        return cast("IntervalArray", super().shift(periods, fill_value))
 
     def take(
         self,
@@ -1611,21 +1605,31 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
         try:
-            subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
-        except TypeError as err:
+            subtype = to_pyarrow_type(self.dtype.subtype)
+        except (TypeError, pyarrow.ArrowNotImplementedError) as err:
             raise TypeError(
                 f"Conversion to arrow with subtype '{self.dtype.subtype}' "
                 "is not supported"
             ) from err
+        if subtype is None:
+            raise TypeError(
+                f"Conversion to arrow with subtype '{self.dtype.subtype}' "
+                "is not supported"
+            )
         interval_type = ArrowIntervalType(subtype, self.closed)
+
+        def _to_arrow(values) -> pyarrow.Array:
+            if isinstance(self.dtype.subtype, np.dtype):
+                return pyarrow.array(values, type=subtype, from_pandas=True)
+            # pyarrow would fall back on `.values`, dropping the tz; _ndarray is UTC
+            return pyarrow.array(values._ndarray, from_pandas=True).cast(subtype)
+
         storage_array = pyarrow.StructArray.from_arrays(
-            [
-                pyarrow.array(self._left, type=subtype, from_pandas=True),
-                pyarrow.array(self._right, type=subtype, from_pandas=True),
-            ],
+            [_to_arrow(self._left), _to_arrow(self._right)],
             names=["left", "right"],
         )
         mask = self.isna()
@@ -1728,7 +1732,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             assert not isinstance(self._right, np.ndarray)
             self._right._putmask(mask, value_right)
 
-    def insert(self, loc: int, item: Interval) -> Self:
+    def insert(self, loc: int, item: Interval[Any]) -> Self:
         """
         Return a new IntervalArray inserting new item at location. Follows
         Python numpy.insert semantics for negative values.  Only Interval
