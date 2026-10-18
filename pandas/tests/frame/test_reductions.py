@@ -1667,6 +1667,10 @@ class TestDataFrameAnalytics:
         expected = pd.Series([expected_value], index=["a"])
         tm.assert_series_equal(getattr(sparse, op)(), expected)
 
+        sparse["b"] = pd.array([True, False], dtype="boolean")
+        expected = pd.Series([expected_value] * 2, index=["a", "b"])
+        tm.assert_series_equal(getattr(sparse, op)(), expected)
+
     @pytest.mark.parametrize(
         "data, expected_any", [([False, None], pd.NA), ([False, True], True)]
     )

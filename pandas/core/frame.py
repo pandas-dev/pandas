@@ -17137,11 +17137,11 @@ class DataFrame(NDFrame, OpsMixin):
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
         out.name = None
-        if out_dtype is not None and not any(
-            isinstance(dtype, (BaseMaskedDtype, ArrowDtype)) for dtype in df._blk_dtypes
+        if (
+            out_dtype is not None
+            and out.dtype != "boolean"
+            and not any(isinstance(dtype, ArrowDtype) for dtype in df._blk_dtypes)
         ):
-            # Mixing nullable and pyarrow dtypes gives an object result that
-            # can hold NA, keep it so the dtype doesn't depend on the values
             out = out.astype(out_dtype)
         elif name not in ["any", "all"] and any(
             dtype == object for dtype in df._blk_dtypes
