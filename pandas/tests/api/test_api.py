@@ -653,6 +653,12 @@ def test_lazy_imports_read_csv():
 def test_lazy_imports_io_namespace():
     code = (
         "import pandas as pd, sys\n"
+        # common is deferred by core.frame / io.formats.format, not by io.api;
+        # check it before touching the backends, which import it eagerly
+        "assert 'pandas.io.common' not in sys.modules\n"
+        "assert pd.io.common.get_handle is not None\n"
+        "assert 'common' in dir(pd.io)\n"
+        "assert len(set(dir(pd.io))) == len(dir(pd.io))\n"
         "assert 'pandas.io.json' not in sys.modules\n"
         "assert 'pandas.io.stata' not in sys.modules\n"
         "_ = pd.io.json\n"
@@ -660,10 +666,6 @@ def test_lazy_imports_io_namespace():
         "assert 'pandas.io.stata' not in sys.modules\n"
         "_ = pd.io.stata\n"
         "assert 'pandas.io.stata' in sys.modules\n"
-        "assert 'pandas.io.common' not in sys.modules\n"
-        "assert pd.io.common.get_handle is not None\n"
-        "assert 'common' in dir(pd.io)\n"
-        "assert len(set(dir(pd.io))) == len(dir(pd.io))\n"
     )
     result = subprocess.run(
         [sys.executable, "-X", "lazy_imports=normal", "-c", code],
