@@ -771,7 +771,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         --------
         DatetimeIndex.freq : Return the frequency object if it is set.
         DatetimeIndex.inferred_freq : Return the frequency inferred from the values.
-        Series.asfreq : Conform a Series to a new frequency, changing its values.
 
         Examples
         --------
