@@ -1663,13 +1663,16 @@ class TestDataFrameAnalytics:
         )
         tm.assert_series_equal(getattr(df, op)(), expected)
 
-        sparse = pd.DataFrame({"a": pd.arrays.SparseArray([True, False])})
+    @pytest.mark.parametrize("op, expected_value", [("any", True), ("all", False)])
+    def test_any_all_sparse_keeps_numpy_bool(self, op, expected_value):
+        # GH#70685 the result is only left uncast for frames with ArrowDtype columns
+        df = pd.DataFrame({"a": pd.arrays.SparseArray([True, False])})
         expected = pd.Series([expected_value], index=["a"])
-        tm.assert_series_equal(getattr(sparse, op)(), expected)
+        tm.assert_series_equal(getattr(df, op)(), expected)
 
-        sparse["b"] = pd.array([True, False], dtype="boolean")
+        df["b"] = pd.array([True, False], dtype="boolean")
         expected = pd.Series([expected_value] * 2, index=["a", "b"])
-        tm.assert_series_equal(getattr(sparse, op)(), expected)
+        tm.assert_series_equal(getattr(df, op)(), expected)
 
     @pytest.mark.parametrize(
         "data, expected_any", [([False, None], pd.NA), ([False, True], True)]
