@@ -14,6 +14,13 @@ GroupBy
 instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
 :func:`pandas.Series.groupby` respectively.
 
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   DataFrameGroupBy
+   SeriesGroupBy
+
 Indexing, iteration
 -------------------
 .. autosummary::

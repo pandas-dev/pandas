@@ -195,8 +195,8 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(encoding="utf-8-sig"))
 
     def test_rejects_python_engine_seps(self, tmp_path, monkeypatch):
-        # Multi-char/regex seps (other than r"\s+") and sep=None force the
-        # python engine inside TextFileReader (GH#64347).
+        # Multi-char/regex seps (other than r"\s+") force the python engine
+        # and sep=None is sniffed inside TextFileReader (GH#64347).
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -1029,6 +1029,19 @@ def test_parallel_dup_names_dict_dtype_matches_serial(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
     # the dtype reaches BOTH duplicated columns, not just the first
     assert result.dtypes["a"] == result.dtypes["a.1"]
+
+
+def test_parallel_object_dtype_dict_matches_serial(tmp_path, monkeypatch):
+    # an object dtype must survive DataFrame construction, see GH#56047
+    raw = b"a,b,c\n" + b"".join(f"x{i},y{i},{i}\n".encode() for i in range(500))
+    path = tmp_path / "obj.csv"
+    path.write_bytes(raw)
+
+    dtype = {"a": object, "c": "float32"}
+    result = _read_forced_parallel(path, monkeypatch, dtype=dtype)
+    expected = pd.read_csv(io.BytesIO(raw), dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+    assert result.dtypes["a"] == object
 
 
 def test_parallel_comment_before_header_matches_serial(tmp_path, monkeypatch):
@@ -2073,9 +2086,12 @@ def test_parallel_fallback_does_not_repeat_python_layer_warning(tmp_path, monkey
     ]
 
 
-@pytest.mark.parametrize("kwargs", [{"quotechar": "»"}, {"sep": "§"}])
-def test_multibyte_sep_or_quotechar_warns_once(tmp_path, monkeypatch, kwargs):
-    # Both force TextFileReader onto the python engine, which warns while
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"quotechar": "»"}, {"sep": "§"}, {"thousands": "\u202f"}, {"decimal": "\u066b"}],
+)
+def test_multibyte_parser_options_warn_once(tmp_path, monkeypatch, kwargs):
+    # These force TextFileReader onto the python engine, which warns while
     # falling back.  The parallel path has to decline them up front: its
     # name-inference read would raise that warning before it can notice the
     # engine it got, and the serial read then raises it again (GH#66259).

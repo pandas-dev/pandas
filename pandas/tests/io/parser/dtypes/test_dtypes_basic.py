@@ -22,6 +22,8 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
 
+from pandas.io.parsers.base_parser import wrap_object_columns
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
@@ -572,6 +574,43 @@ def test_explicit_arrow_temporal_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_datetimetz_dtype(all_parsers):
+    # GH#24542 offsets span a DST change, which parse_dates leaves as strings
+    parser = all_parsers
+    dtype = pd.DatetimeTZDtype("ns", "US/Eastern")
+    data = "a,b\n2018-01-01 00:00:00-05:00,1\n,2\n2018-07-01 00:00:00-04:00,3\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                ["2018-01-01 00:00:00-05:00", None, "2018-07-01 00:00:00-04:00"],
+                dtype=dtype,
+            ),
+            "b": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # reads "20180101" as int64, then as epoch nanoseconds
+@pytest.mark.parametrize("dtype_name", ["datetimetz", "arrow_timestamp"])
+def test_datetime_dtype_index_col(all_parsers, dtype_name):
+    # GH#24542
+    parser = all_parsers
+    if dtype_name == "arrow_timestamp":
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.timestamp("ns", tz="UTC"))
+    else:
+        dtype = pd.DatetimeTZDtype("ns", "US/Eastern")
+    data = "a,b\n20180101,1\n,2\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype}, index_col="a")
+    expected = pd.DataFrame(
+        {"b": [1, 2]},
+        index=pd.Index(["2018-01-01", None], dtype=dtype, name="a"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @xfail_pyarrow  # true_values/false_values not supported by the pyarrow engine
 def test_nullable_boolean_dtype_with_true_false_values(all_parsers):
     # User-supplied true_values/false_values augment the default token set.
@@ -1054,3 +1093,13 @@ def test_unsafe_integer_dtype_raises_for_non_int64_source(all_parsers, data, dty
     parser = all_parsers
     with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
         parser.read_csv(StringIO(data), dtype={"x": dtype})
+
+
+def test_wrap_object_columns_only_wraps_object():
+    # wrapping every column would be correct but slow on wide frames
+    ints = np.array([1, 2])
+    strings = np.array(["x", "y"], dtype=object)
+    dtype = {"a": "int64", "b": object}
+    result = wrap_object_columns({"a": ints, "b": strings}, dtype, pd.RangeIndex(2))
+    assert result["a"] is ints
+    tm.assert_series_equal(result["b"], pd.Series(strings, dtype=object))

@@ -9,7 +9,7 @@ from __future__ import annotations
 import codecs
 from collections import (
     abc,
-    defaultdict,
+    deque,
 )
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
@@ -18,6 +18,7 @@ import io
 import mmap
 import os
 import queue
+import re
 import sys
 import threading
 from typing import (
@@ -93,6 +94,7 @@ from pandas.io.parsers.base_parser import (
     evaluate_callable_usecols,
     is_index_col,
     parser_defaults,
+    wrap_object_columns,
 )
 from pandas.io.parsers.c_parser_wrapper import (
     CParserWrapper,
@@ -108,6 +110,7 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Iterable,
+        Iterator,
         Mapping,
         Sequence,
     )
@@ -261,6 +264,10 @@ _PARALLEL_TAPER_RATIO = 0.2
 # avoids oversubscribing the machine.  mode.max_threads overrides it in either
 # direction.
 _MAX_DEFAULT_WORKERS = 6
+
+# bytes read per call while looking for the row to sniff for sep=None
+_SNIFF_CHUNK_SIZE = 64 * 1024
+
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -575,23 +582,24 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
         if codec_name not in ("utf-8", "utf-8-sig"):
             return False
 
-    # Separators that force the python-engine fallback inside TextFileReader
-    # (sep=None sniffing, or multi-char/regex seps other than r"\s+") cannot
-    # use the C-engine buffer-loading fast path.
+    # sep=None is only resolved once TextFileReader opens the file, and
+    # multi-char/regex seps other than r"\s+" force the python engine, so
+    # neither can use the C-engine buffer-loading fast path.
     delimiter = kwds.get("delimiter", ",")
     if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
         return False
 
-    # A separator or quotechar wider than one byte forces the python engine
-    # too, and warns on the way.  The eligibility check has to catch these
+    # A separator, quotechar or numeric marker wider than one byte forces
+    # the python engine too, and warns on the way. Catch these options
     # here: by the time the name-inference read reports the python engine, it
     # has already raised that warning, which the serial read then raises
     # again.  GH#66259
     if len(delimiter) == 1 and ord(delimiter) > 127:
         return False
-    quotechar = kwds.get("quotechar")
-    if isinstance(quotechar, str) and len(quotechar) == 1 and ord(quotechar) > 127:
-        return False
+    for option in ("quotechar", "thousands", "decimal"):
+        marker = kwds.get(option)
+        if isinstance(marker, str) and len(marker) == 1 and ord(marker) > 127:
+            return False
 
     # Full-line comments before/inside the preamble shift the header location
     # in ways _find_data_start_offset cannot see.
@@ -1097,7 +1105,7 @@ def _read_csv_chunks(
             try:
                 # Raw column arrays, not DataFrames: per-chunk frame assembly
                 # holds the GIL and the concat would redo the block machinery.
-                _, chunk_columns, col_dict = reader._engine.read()
+                _, chunk_columns, col_dict = reader._engine._read_arrays()
             except Exception:
                 chunk_failed.set()
                 return
@@ -1125,8 +1133,8 @@ def _read_csv_chunks(
         return None
 
     dtype_arg = kwds.get("dtype")
-    # Mirror TextFileReader.read: a dict or str/object dtype needs a
-    # Series-per-column wrap, so it skips direct block assembly.
+    # A dict or str/object dtype may need object columns wrapped (see
+    # wrap_object_columns), so it skips direct block assembly.
     needs_series_wrap = isinstance(dtype_arg, dict) or (
         dtype_arg is not None and pandas_dtype(dtype_arg) in (np.str_, np.object_)
     )
@@ -1301,25 +1309,12 @@ def _read_csv_chunks(
 
     if needs_series_wrap:
         data = _concatenate_chunks(chunk_dicts, columns, warn_mixed=False)
-        if isinstance(dtype_arg, dict):
-            dtype: defaultdict[Hashable, Any] = defaultdict(lambda: None)
-            dtype.update(dtype_arg)
-        else:
-            dtype = defaultdict(lambda: dtype_arg)
-        new_col_dict = {
-            k: Series(
-                v,
-                index=index,
-                dtype=(
-                    dtype[k]
-                    if pandas_dtype(dtype[k]) in (np.str_, np.object_)
-                    else None
-                ),
-                copy=False,
-            )
-            for k, v in data.items()
-        }
-        return DataFrame(new_col_dict, columns=columns, index=index, copy=False)
+        return DataFrame(
+            wrap_object_columns(data, dtype_arg, index),
+            columns=columns,
+            index=index,
+            copy=False,
+        )
 
     if leftover_pos:
         leftover_names = [col_list[pos] for pos in leftover_pos]
@@ -1470,8 +1465,7 @@ def read_csv(
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine, which will be used automatically.
+        sniffer tool, ``csv.Sniffer``; the pyarrow engine does not support it.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -1489,7 +1483,8 @@ def read_csv(
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example).
+          be skipped (e.g. row 2 in this example). The levels follow the
+          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -1598,6 +1593,10 @@ def read_csv(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
 
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
@@ -2078,8 +2077,7 @@ def read_table(
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
-        sniffer tool, ``csv.Sniffer``; it is supported only by the Python parsing
-        engine, which will be used automatically.
+        sniffer tool, ``csv.Sniffer``; the pyarrow engine does not support it.
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will force
         the use of the Python parsing engine. Note that regex delimiters are prone
@@ -2097,7 +2095,8 @@ def read_table(
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example).
+          be skipped (e.g. row 2 in this example). The levels follow the
+          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -2203,6 +2202,10 @@ def read_table(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
 
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
@@ -2904,8 +2907,8 @@ class TextFileReader(abc.Iterator[DataFrame]):
         sep = options["delimiter"]
 
         if sep is None:
-            # sniffing the separator with csv.Sniffer is python-engine only
-            if engine in ("c", "pyarrow"):
+            # the c engine sniffs the separator in _make_engine
+            if engine == "pyarrow":
                 fallback_reason = f"the '{engine}' engine does not support sep=None"
                 engine = "python"
         elif len(sep) > 1:
@@ -2953,6 +2956,22 @@ class TextFileReader(abc.Iterator[DataFrame]):
                     f"and the '{engine}' engine does not support such quotechars"
                 )
                 engine = "python"
+
+        if engine == "c":
+            for option in ("thousands", "decimal"):
+                marker = options[option]
+                if (
+                    isinstance(marker, (str, bytes))
+                    and len(marker) == 1
+                    and ord(marker) > 127
+                ):
+                    # The C parser consumes UTF-8 bytes, so even a code point
+                    # below 256 cannot be represented by its single char.
+                    fallback_reason = (
+                        f"the 'c' engine does not support non-ASCII {option} markers"
+                    )
+                    engine = "python"
+                    break
 
         if fallback_reason and self._engine_specified:
             raise ValueError(fallback_reason)
@@ -3092,11 +3111,52 @@ class TextFileReader(abc.Iterator[DataFrame]):
             raise ValueError(msg)
 
         try:
+            if engine == "c" and self.options.get("delimiter", ",") is None:
+                assert not isinstance(f, list)  # rejected above for the c engine
+                return mapping[engine](self._sniff_delimiter(f), **self.options)
             return mapping[engine](f, **self.options)
         except Exception:
             if self.handles is not None:
                 self.handles.close()
             raise
+
+    def _sniff_delimiter(self, f: IO[Any]) -> _ReplayHandle:
+        """
+        Set the delimiter for ``sep=None`` by sniffing the first row that is not
+        in ``skiprows``, blank or a full-line comment.
+
+        Returns a handle that replays the data read here and then the rest of ``f``.
+        """
+        skiprows = self.options["skiprows"]
+        skipfunc = skiprows if callable(skiprows) else skiprows.__contains__
+        comment = self.options["comment"]
+        chunks: list[bytes | str] = []
+        delimiter = None
+        for pos, raw in enumerate(
+            _iter_physical_lines(f, chunks, self.options["lineterminator"])
+        ):
+            if skipfunc(pos) or not raw:
+                continue
+            line = raw.decode("utf-8-sig", "replace") if isinstance(raw, bytes) else raw
+            line += "\n"
+            if comment is not None and comment in line:
+                line = line[: line.find(comment)]
+                if not line:
+                    continue
+            delimiter = csv.Sniffer().sniff(line).delimiter
+            break
+
+        if delimiter is None:
+            # nothing to sniff; the c engine reports the empty file
+            delimiter = ","
+        elif len(delimiter.encode("utf-8", "surrogatepass")) > 1:
+            raise ValueError(
+                f"sep=None detected the separator {delimiter!r}, which the 'c' "
+                "engine does not support as it is more than one byte in utf-8; "
+                "specify engine='python'."
+            )
+        self.options["delimiter"] = delimiter
+        return _ReplayHandle(chunks, f)
 
     def _failover_to_python(self) -> None:
         raise AbstractMethodError(self)
@@ -3132,74 +3192,15 @@ class TextFileReader(abc.Iterator[DataFrame]):
         >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
         ...     df = reader.read()
         """
-        if self.engine == "pyarrow":
-            try:
-                # error: "ParserBase" has no attribute "read"
-                df = self._engine.read()  # type: ignore[attr-defined]
-            except Exception:
-                self.close()
-                raise
-        else:
+        if self.engine != "pyarrow":
+            # the pyarrow engine ignores nrows
             nrows = validate_integer("nrows", nrows)
-            try:
-                # error: "ParserBase" has no attribute "read"
-                (
-                    index,
-                    columns,
-                    col_dict,
-                ) = self._engine.read(  # type: ignore[attr-defined]
-                    nrows
-                )
-            except Exception:
-                self.close()
-                raise
-
-            if index is None:
-                if col_dict:
-                    # Any column is actually fine:
-                    new_rows = len(next(iter(col_dict.values())))
-                    index = RangeIndex(self._currow, self._currow + new_rows)
-                else:
-                    new_rows = 0
-            else:
-                new_rows = len(index)
-
-            if hasattr(self, "orig_options"):
-                dtype_arg = self.orig_options.get("dtype", None)
-            else:
-                dtype_arg = None
-
-            if isinstance(dtype_arg, dict):
-                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
-                dtype.update(dtype_arg)
-            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
-                np.str_,
-                np.object_,
-            ):
-                dtype = defaultdict(lambda: dtype_arg)
-            else:
-                dtype = None
-
-            if dtype is not None:
-                new_col_dict = {}
-                for k, v in col_dict.items():
-                    d = (
-                        dtype[k]
-                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
-                        else None
-                    )
-                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
-            else:
-                new_col_dict = col_dict
-
-            df = DataFrame(
-                new_col_dict,
-                columns=columns,
-                index=index,
-                copy=False,
-            )
-
-            self._currow += new_rows
+        try:
+            df = self._engine.read(nrows, row_offset=self._currow)
+        except Exception:
+            self.close()
+            raise
+        self._currow += len(df)
         return df
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
@@ -3643,3 +3644,53 @@ def _validate_skipfooter(kwds: dict[str, Any]) -> None:
             raise ValueError("'skipfooter' not supported for iteration")
         if kwds.get("nrows"):
             raise ValueError("'skipfooter' not supported with 'nrows'")
+
+
+def _iter_physical_lines(
+    handle: IO[Any], chunks: list[bytes | str], lineterminator: str | None
+) -> Iterator[bytes | str]:
+    """
+    Yield each line of ``handle`` without its terminator, appending every chunk
+    read to ``chunks``.
+    """
+    eol: re.Pattern[Any] | None = None
+    partial: list[Any] = []
+    skip_lf = False
+    while True:
+        chunk = handle.read(_SNIFF_CHUNK_SIZE)
+        if not chunk:
+            tail = partial[0][:0].join(partial) if partial else ""
+            if tail:
+                yield tail
+            return
+        chunks.append(chunk)
+        if eol is None:
+            pattern = re.escape(lineterminator) if lineterminator else r"\r\n|\r|\n"
+            eol = re.compile(pattern.encode() if isinstance(chunk, bytes) else pattern)
+        start = 0
+        if skip_lf and chunk[:1] in (b"\n", "\n"):
+            # the second half of a "\r\n" split across chunks
+            start = 1
+        for match in eol.finditer(chunk, start):
+            partial.append(chunk[start : match.start()])
+            yield chunk[:0].join(partial)
+            partial = []
+            start = match.end()
+        partial.append(chunk[start:])
+        skip_lf = not lineterminator and chunk[-1:] in (b"\r", "\r")
+
+
+class _ReplayHandle:
+    """
+    Serve ``chunks`` and then the rest of ``handle`` through ``read``, the only
+    method the c engine calls on its source; it accepts reads of any length.
+    """
+
+    def __init__(self, chunks: list[bytes | str], handle: IO[Any]) -> None:
+        self._chunks = deque(chunks)
+        self._handle = handle
+
+    def read(self, size: int) -> bytes | str:
+        if self._chunks:
+            return self._chunks.popleft()
+        return self._handle.read(size)

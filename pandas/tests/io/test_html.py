@@ -118,6 +118,19 @@ def flavor_read_html(request):
     return partial(pd.read_html, flavor=request.param)
 
 
+def test_duplicate_tables_are_returned(flavor_read_html):
+    # GH#49934 identical tables are distinct tables and should all be returned
+    html = (
+        "<html><body>"
+        "<table><tr><td>a</td></tr></table>"
+        "<table><tr><td>a</td></tr></table>"
+        "</body></html>"
+    )
+    result = flavor_read_html(StringIO(html))
+    assert len(result) == 2
+    tm.assert_frame_equal(result[0], result[1])
+
+
 class TestReadHtml:
     def test_literal_html_deprecation(self, flavor_read_html):
         # GH 53785
@@ -504,6 +517,25 @@ class TestReadHtml:
         )[0]
         assert isinstance(df.index, pd.MultiIndex)
         assert isinstance(df.columns, pd.MultiIndex)
+
+    def test_multiindex_header_not_increasing(self, flavor_read_html):
+        # GH#47011
+        data = """<table>
+            <thead>
+                <tr><th>a</th><th>b</th></tr>
+                <tr><th>c</th><th>d</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>2</td></tr>
+                <tr><td>3</td><td>4</td></tr>
+            </tbody>
+        </table>"""
+        result = flavor_read_html(StringIO(data), header=[1, 0])[0]
+        expected = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays([["c", "d"], ["a", "b"]]),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
     def test_regex_idempotency(self, banklist_data, flavor_read_html):

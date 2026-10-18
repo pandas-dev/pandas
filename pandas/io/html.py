@@ -602,7 +602,6 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError("No tables found")
 
         result = []
-        unique_tables = set()
         tables = self._handle_hidden_tables(tables, "attrs")
 
         for table in tables:
@@ -613,9 +612,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                 for elem in table.find_all(style=re.compile(r"display:\s*none")):
                     elem.decompose()
 
-            if table not in unique_tables and table.find(string=match) is not None:
+            if table.find(string=match) is not None:
                 result.append(table)
-            unique_tables.add(table)
         if not result:
             raise ValueError(f"No tables found matching pattern {match.pattern!r}")
         return result

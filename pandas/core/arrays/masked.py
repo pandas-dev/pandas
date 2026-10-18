@@ -33,6 +33,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.astype import (
     astype_is_view,
@@ -1099,6 +1100,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
+        ops.maybe_warn_complex_ordering(self._data, other, op)
+
         if other is libmissing.NA:
             # numpy does not handle pd.NA well as "other" scalar (it returns
             # a scalar False instead of an array)
@@ -1799,6 +1802,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         **kwargs,
     ):
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
 
         result = masked_reductions.sum(
             self._data,
@@ -1820,6 +1824,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
 
         result = masked_reductions.prod(
             self._data,

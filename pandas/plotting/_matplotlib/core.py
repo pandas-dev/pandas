@@ -56,6 +56,7 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -65,6 +66,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import (
     PeriodConverter,
+    TimeSeries_TimedeltaFormatter,
     plottable_types,
     register_pandas_matplotlib_converters,
 )
@@ -1002,6 +1004,10 @@ class MPLPlot(ABC):
                 x = index._mpl_repr()
             elif isinstance(index, ABCDatetimeIndex) or is_datetype:
                 x = index._mpl_repr()
+            elif isinstance(index, ABCTimedeltaIndex) and not self._is_ts_plot():
+                # GH#19965 plot at the actual offsets rather than positionally,
+                # in the index's unit as the dynamic path does
+                x = np.where(index.isna(), np.nan, index.asi8.astype(np.float64))
             else:
                 self._need_to_set_index = True
                 x = list(range(len(index)))
@@ -1809,6 +1815,13 @@ class LinePlot(MPLPlot):
             # Any]"; expected "Sequence[float]"
             ax.xaxis.set_major_locator(mpl.ticker.FixedLocator(xticks))  # type: ignore[arg-type]
             ax.set_xticklabels(xticklabels)
+        elif (
+            self.use_index
+            and isinstance(data.index, ABCTimedeltaIndex)
+            and not self._is_ts_plot()
+        ):
+            # GH#19965 the dynamic path sets this in format_dateaxis
+            ax.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(data.index.unit))
 
         # If the index is an irregular time series, then by default
         # we rotate the tick labels. The exception is if there are

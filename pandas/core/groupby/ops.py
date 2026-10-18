@@ -22,6 +22,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    iNaT,
     lib,
 )
 import pandas._libs.groupby as libgroupby
@@ -190,6 +191,12 @@ class WrappedCythonOp:
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
 
+        if dtype.kind == "c" and how not in ["sum", "mean"]:
+            # GH#43770 only sum and mean have complex kernels (var/std/sem are
+            #  split into parts in _call_cython_op); the rest would raise an
+            #  opaque error or silently discard the imaginary part
+            raise TypeError(f"dtype '{dtype_str}' does not support operation '{how}'")
+
         # see if there is a fused-type version of function
         # only valid for numeric
         if callable(ftype):
@@ -226,7 +233,10 @@ class WrappedCythonOp:
             )
 
     def _get_cython_vals(
-        self, values: np.ndarray, uses_mask: bool = False
+        self,
+        values: np.ndarray,
+        uses_mask: bool = False,
+        is_datetimelike: bool = False,
     ) -> np.ndarray:
         """
         Cast numeric dtypes to float64 for functions that only support that.
@@ -243,16 +253,20 @@ class WrappedCythonOp:
 
         if how in ["median", "std", "sem", "skew", "kurt"]:
             # median only has a float64 implementation
-            # We should only get here with is_numeric, as non-numeric cases
-            #  should raise in _get_cython_function
+            # non-numeric and complex cases are handled before we get here
             values = ensure_float64(values)
 
         elif values.dtype.kind in "iu":
             if how in ["var", "mean"] or (
-                self.kind == "transform" and self.has_dropped_na and not uses_mask
+                self.kind == "transform"
+                and self.has_dropped_na
+                and not uses_mask
+                and not is_datetimelike
             ):
                 # has_dropped_na check need for test_null_group_str_transformer
                 # result may still include NaN, so we have to cast
+                # datetimelike values stay int64 so that NaT is still
+                #  recognized and precision is kept, see _call_cython_op
                 values = ensure_float64(values)
 
             elif how in ["sum", "ohlc", "prod", "cumsum", "cumprod"]:
@@ -387,6 +401,28 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
+
+        if dtype.kind == "c" and self.how in ["var", "std", "sem"]:
+            # GH#43770 var(z) = var(z.real) + var(z.imag), matching numpy.
+            #  A value is NA if either part is NaN, so both parts share counts.
+            nan_mask = np.isnan(values)
+            res_real, res_imag = (
+                self._call_cython_op(
+                    np.where(nan_mask, np.nan, part),
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    comp_ids=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    initial=initial,
+                    **kwargs,
+                )
+                for part in [values.real, values.imag]
+            )
+            if self.how == "var":
+                return res_real + res_imag
+            return np.hypot(res_real, res_imag)
+
         is_numeric = dtype.kind in "iufcb"
 
         is_datetimelike = dtype.kind in "mM"
@@ -422,10 +458,21 @@ class WrappedCythonOp:
 
         out_shape = self._get_output_shape(ngroups, values)
         func = self._get_cython_function(self.kind, self.how, values.dtype, is_numeric)
-        values = self._get_cython_vals(values, uses_mask=mask is not None)
+        values = self._get_cython_vals(
+            values, uses_mask=mask is not None, is_datetimelike=is_datetimelike
+        )
         out_dtype = self._get_out_dtype(values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
+        if (
+            self.kind == "transform"
+            and self.has_dropped_na
+            and is_datetimelike
+            and result.dtype.kind == "i"
+        ):
+            # GH#69923 The kernels skip rows with a dropped (NA) key, so they
+            #  need to be set to NaT beforehand
+            result.fill(iNaT)
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
             if self.how in [

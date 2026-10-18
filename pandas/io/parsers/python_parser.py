@@ -276,15 +276,15 @@ class PythonParser(ParserBase):
 
         return reader
 
-    def read(
-        self, rows: int | None = None
+    def _read_arrays(
+        self, nrows: int | None = None
     ) -> tuple[
         Index | None,
         Sequence[Hashable] | MultiIndex,
         Mapping[Hashable, ArrayLike | Series],
     ]:
         try:
-            content = self._get_lines(rows)
+            content = self._get_lines(nrows)
         except StopIteration:
             if self._first_chunk:
                 content = []
@@ -355,19 +355,6 @@ class PythonParser(ParserBase):
         return {
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
-
-    # legacy
-    def get_chunk(
-        self, size: int | None = None
-    ) -> tuple[
-        Index | None,
-        Sequence[Hashable] | MultiIndex,
-        Mapping[Hashable, ArrayLike | Series],
-    ]:
-        if size is None:
-            # error: "PythonParser" has no attribute "chunksize"
-            size = self.chunksize  # type: ignore[attr-defined]
-        return self.read(rows=size)
 
     def _convert_data(
         self,
@@ -612,17 +599,18 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = [*list(header), header[-1] + 1]
+                    header = [*list(header), max(header) + 1]
             else:
                 header = [header]
 
             columns: list[list[Scalar | None]] = []
             for level, hr in enumerate(header):
                 try:
-                    line = self._buffered_line()
-
                     while self.line_pos <= hr:
-                        line = self._next_line()
+                        self._next_line()
+                    # header rows may be out of order (GH#47011); self.buf
+                    # holds every line read so far
+                    line = self.buf[hr]
 
                 except StopIteration as err:
                     if 0 < self.line_pos <= hr and (

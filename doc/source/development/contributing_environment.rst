@@ -47,7 +47,7 @@ To use the :ref:`conda <contributing.conda>`-based compilers, you will need to i
 Developer Tools using ``xcode-select --install``.
 
 If you prefer to use a different compiler, general information can be found in the
-`Python Developer's Guide <https://devguide.python.org/setup/#macos>`_.
+`Python Developer's Guide <https://devguide.python.org/getting-started/setup-building/#macos>`_.
 
 Linux
 ~~~~~
