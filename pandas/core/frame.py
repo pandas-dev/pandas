@@ -15820,7 +15820,7 @@ class DataFrame(NDFrame, OpsMixin):
         on : str, list of str, or array-like, optional
             Column or index level name(s) in the caller to join on the index
             in `other`; otherwise joins index-on-index. A single label, or a
-            list or tuple of labels, refers to Column or index level name(s)
+            list or tuple of labels, refers to column or index level name(s)
             to join on in the left DataFrame.
             An array-like other than a list or tuple with the same length
             as the left DataFrame, or a list of these, is used as the join key
