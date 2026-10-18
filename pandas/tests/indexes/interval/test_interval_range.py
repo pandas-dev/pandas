@@ -390,3 +390,19 @@ class TestIntervalRange:
             [(0.0, 1.0), (1.0, 2.0)], dtype="interval[float64, right]"
         )
         tm.assert_index_equal(result, expected)
+
+    def test_interval_range_large_int_no_float_rounding(self):
+        # GH 71288
+        start = 2**53
+        result = pd.interval_range(start=start, end=start + 4, freq=1)
+        expected = pd.IntervalIndex.from_breaks(
+            [start + i for i in range(5)], dtype="interval[int64, right]"
+        )
+        tm.assert_index_equal(result, expected)
+
+        # end not hit exactly by the step
+        result = pd.interval_range(start=start + 1, end=start + 8, freq=3)
+        expected = pd.IntervalIndex.from_breaks(
+            [start + 1, start + 4, start + 7], dtype="interval[int64, right]"
+        )
+        tm.assert_index_equal(result, expected)

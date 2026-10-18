@@ -1831,8 +1831,14 @@ def interval_range(
                 or isinstance(freq, (float, np.floating))
             ):
                 dtype = np.dtype("float64")
-            # 0.1 ensures we capture end
-            breaks = np.arange(start, end + (freq * 0.1), freq)
+            if is_integer(start) and is_integer(end) and is_integer(freq):
+                # stay in integer arithmetic; a float64 intermediate would
+                # round values above 2**53
+                start, end, freq = int(start), int(end), int(freq)
+                breaks = np.arange(start, end + 1, freq)
+            else:
+                # 0.1 ensures we capture end
+                breaks = np.arange(start, end + (freq * 0.1), freq)
             breaks = maybe_downcast_numeric(breaks, dtype)
         else:
             # compute the period/start/end if unspecified (at most one)
