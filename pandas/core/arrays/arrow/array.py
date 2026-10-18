@@ -149,15 +149,16 @@ if HAS_PYARROW:
         # pa.uuid() was introduced in pyarrow 18.0
         return not pa_version_under18p0 and isinstance(pa_type, pa.UuidType)
 
+    def uuid_storage(arr: pa.ChunkedArray) -> pa.ChunkedArray:
+        # GH#63511 pyarrow has no kernels for pa.uuid(), but its
+        #  fixed_size_binary storage hashes, sorts, and compares identically
+        return arr.cast(arr.type.storage_type) if is_uuid_type(arr.type) else arr
+
     def uuid_to_storage(
         left: pa.ChunkedArray, right: pa.Array | pa.ChunkedArray | pa.Scalar
     ) -> tuple[pa.ChunkedArray, pa.Array | pa.ChunkedArray | pa.Scalar]:
-        # GH#63511 pyarrow has no comparison kernels for pa.uuid(),
-        #  but its fixed_size_binary storage compares identically
         if is_uuid_type(left.type) and is_uuid_type(right.type):
-            return left.cast(left.type.storage_type), right.cast(
-                right.type.storage_type
-            )
+            return uuid_storage(left), right.cast(right.type.storage_type)
         return left, right
 
     def cast_for_truediv(
@@ -1819,7 +1820,7 @@ class ArrowExtensionArray(
             raise ValueError(f"invalid na_position: {na_position}")
 
         result = pc.array_sort_indices(
-            self._pa_array, order=order, null_placement=null_placement
+            uuid_storage(self._pa_array), order=order, null_placement=null_placement
         )
         np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
@@ -2028,7 +2029,7 @@ class ArrowExtensionArray(
 
         try:
             value_set = self._box_pa(values)
-            result = pc.is_in(self._pa_array, value_set=value_set)
+            result = pc.is_in(*uuid_to_storage(self._pa_array, value_set))
         except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
             # pyarrow cannot box e.g. [1, 2**63], ["a", 1] or [2**53 + 1, 1.5];
             # compare the non-null entries as a numpy array instead
@@ -2169,7 +2170,7 @@ class ArrowExtensionArray(
         """
         null_encoding = "mask" if use_na_sentinel else "encode"
 
-        data = self._pa_array
+        data = uuid_storage(self._pa_array)
 
         if pa.types.is_null(data.type):
             if use_na_sentinel or len(self) == 0:
@@ -2208,6 +2209,10 @@ class ArrowExtensionArray(
             )
             uniques = self._from_pyarrow_array(combined.dictionary)
 
+        if is_uuid_type(self._pa_array.type):
+            uniques = self._from_pyarrow_array(
+                uniques._pa_array.cast(self._pa_array.type)
+            )
         return indices, uniques
 
     def reshape(self, *args, **kwargs):
@@ -2594,8 +2599,8 @@ class ArrowExtensionArray(
         -------
         ArrowExtensionArray
         """
-        pa_result = pc.unique(self._pa_array)
-        return self._from_pyarrow_array(pa_result)
+        pa_result = pc.unique(uuid_storage(self._pa_array))
+        return self._from_pyarrow_array(pa_result.cast(self._pa_array.type))
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
@@ -2620,9 +2625,9 @@ class ArrowExtensionArray(
         )
 
         data = self._pa_array
-        vc = data.value_counts()
+        vc = uuid_storage(data).value_counts()
 
-        values = vc.field(0)
+        values = vc.field(0).cast(data.type)
         counts = vc.field(1)
         if dropna and data.null_count > 0:
             mask = values.is_valid()
@@ -3439,7 +3444,7 @@ class ArrowExtensionArray(
             else:
                 raise NotImplementedError(pa_type)
         else:
-            data = self._pa_array
+            data = uuid_storage(self._pa_array)
 
         if dropna:
             data = data.drop_null()
@@ -3448,11 +3453,11 @@ class ArrowExtensionArray(
         most_common = res.field("values").filter(
             pc.equal(res.field("counts"), pc.max(res.field("counts")))
         )
+        most_common = most_common.take(pc.array_sort_indices(most_common))
 
-        if pa.types.is_temporal(pa_type):
+        if pa.types.is_temporal(pa_type) or is_uuid_type(pa_type):
             most_common = most_common.cast(pa_type)
 
-        most_common = most_common.take(pc.array_sort_indices(most_common))
         return self._from_pyarrow_array(most_common)
 
     def _validate_setitem_value(self, value):

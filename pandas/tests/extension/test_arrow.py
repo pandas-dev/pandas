@@ -1189,6 +1189,28 @@ def test_uuid_comparison_non_uuid(uuid_series: pd.Series):
 
 
 @uuid_mark
+def test_uuid_hashing_and_sorting(uuid_array: pa.Array):
+    # GH#63511 pyarrow has no hashing or sorting kernels for pa.uuid()
+    ser = pd.Series(pa.concat_arrays([uuid_array, uuid_array[1:2]]))
+    dtype = ArrowDtype(pa.uuid())
+    tm.assert_extension_array_equal(ser.unique(), pd.array([*UUIDS, None], dtype=dtype))
+    codes, uniques = ser.factorize()
+    tm.assert_numpy_array_equal(codes, np.array([0, 1, -1, 1], dtype=np.intp))
+    tm.assert_index_equal(uniques, pd.Index(UUIDS, dtype=dtype))
+    assert ser.value_counts().to_dict() == {UUIDS[1]: 2, UUIDS[0]: 1}
+    tm.assert_series_equal(ser.mode(), pd.Series([UUIDS[1]], dtype=dtype))
+    tm.assert_series_equal(ser.isin([UUIDS[1]]), pd.Series([False, True, False, True]))
+    tm.assert_numpy_array_equal(
+        ser.sort_values(ascending=False).index.to_numpy(),
+        np.array([1, 3, 0, 2]),
+    )
+
+    df = pd.DataFrame({"id": ser, "x": [1, 2, 3, 4]})
+    assert df.groupby("id").x.sum().tolist() == [1, 6]
+    assert len(df.merge(df, on="id")) == 6
+
+
+@uuid_mark
 def test_uuid_contains(uuid_series: pd.Series):
     # GH#63511 ``in`` looks at the index of a Series but at the values of an array
     assert UUIDS[0] not in uuid_series
