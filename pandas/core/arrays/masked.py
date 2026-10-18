@@ -2216,8 +2216,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=False)
+        op = WrappedCythonOp(how=how, has_dropped_na=False)
 
         # reshape is a view of the column-major buffer; the transpose gives the
         # (K=nrows, N=ncols) orientation that _call_cython_op transposes back.
