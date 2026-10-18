@@ -20,6 +20,20 @@ class FrameOps:
         self.df_func(axis=axis)
 
 
+class FrameOpsAxis1EA:
+    params = [[(100_000, 4), (1_000, 400)]]
+    param_names = ["shape"]
+
+    def setup(self, shape):
+        values = np.random.randn(*shape).astype(int)
+        df = pd.DataFrame(values).astype("Int64")
+        df = df.mask(np.random.rand(*shape) < 0.1)
+        self.df_func = df.sum
+
+    def time_op(self, shape):
+        self.df_func(axis=1)
+
+
 class FrameMixedDtypesOps:
     params = [ops, [0, 1, None]]
     param_names = ["op", "axis"]
