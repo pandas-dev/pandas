@@ -1119,12 +1119,12 @@ class StylerRenderer:
         When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
-          - ``styler.format.formatter``: default None.
-          - ``styler.format.na_rep``: default None.
-          - ``styler.format.precision``: default 6.
-          - ``styler.format.decimal``: default ".".
-          - ``styler.format.thousands``: default None.
-          - ``styler.format.escape``: default None.
+        - ``styler.format.formatter``: default None.
+        - ``styler.format.na_rep``: default None.
+        - ``styler.format.precision``: default 6.
+        - ``styler.format.decimal``: default ".".
+        - ``styler.format.thousands``: default None.
+        - ``styler.format.escape``: default None.
 
         .. warning::
            `Styler.format` is ignored when using the output format `Styler.to_excel`,
@@ -1548,10 +1548,10 @@ class StylerRenderer:
         This method should be used, rather than :meth:`Styler.format_index`, in one of
         the following cases (see examples):
 
-          - A specified set of labels are required which are not a function of the
-            underlying index keys.
-          - The function of the underlying index keys requires a counter variable,
-            such as those available upon enumeration.
+        - A specified set of labels are required which are not a function of the
+          underlying index keys.
+        - The function of the underlying index keys requires a counter variable,
+          such as those available upon enumeration.
 
         Examples
         --------

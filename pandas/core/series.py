@@ -2154,9 +2154,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels. Do not specify both ``by`` and ``level``.
         as_index : bool, default True
-            Return object with group labels as the index. This argument is
-            retained for compatibility with :meth:`DataFrame.groupby` and has
-            no effect on Series.
+            Return object with group labels as the index. If False, aggregations
+            return a DataFrame with the group labels as columns, similar to
+            calling ``reset_index`` on the result.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Raises if the group keys cannot be sorted; use ``sort=False`` for
@@ -2334,13 +2334,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         b    350.0
         NaN   20.0
         Name: Max Speed, dtype: float64
+
+        Use ``as_index=False`` to return the group labels as a column:
+
+        >>> ser.groupby(["a", "b", "a", np.nan], as_index=False).mean()
+          index  Max Speed
+        0     a      210.0
+        1     b      350.0
         """
         from pandas.core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
-        if not as_index:
-            raise TypeError("as_index=False only valid with DataFrame")
 
         return SeriesGroupBy(
             obj=self,
@@ -2476,15 +2481,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         :class:`~api.extensions.ExtensionArray` of that type with just
         the unique values is returned. This includes
 
-            * Categorical
-            * Period
-            * Datetime with Timezone
-            * Datetime without Timezone
-            * Timedelta
-            * Interval
-            * Sparse
-            * IntegerNA
-            * String
+        * Categorical
+        * Period
+        * Datetime with Timezone
+        * Datetime without Timezone
+        * Timedelta
+        * Interval
+        * Sparse
+        * IntegerNA
+        * String
 
         See Examples section.
 
@@ -2967,12 +2972,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
-                  the fractional part of the index surrounded by `i > j`.
-                * lower: `i`.
-                * higher: `j`.
-                * nearest: `i` or `j` whichever is nearest.
-                * midpoint: (`i` + `j`) / 2.
+            * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
+              the fractional part of the index surrounded by `i > j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
 
         Returns
         -------
@@ -3394,8 +3399,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s = pd.Series([0.25, 0.5, 0.2, -0.05])
         >>> s.autocorr()  # doctest: +ELLIPSIS
         0.10355...
-        >>> s.autocorr(lag=2)  # doctest: +ELLIPSIS
-        -0.99999...
+        >>> s.autocorr(lag=2)
+        -1.0
 
         If the Pearson correlation is not well defined, then 'NaN' is returned.
 
@@ -5297,6 +5302,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # if func is None, will switch to user-provided "named aggregation" kwargs
         if func is None:
             func = dict(kwargs.items())
+            kwargs = {}
 
         op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
@@ -6239,7 +6245,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
         columns : single label or list-like
-            No change is made to the Series; use 'index' or 'labels' instead.
+            Ignored; use 'index' or 'labels' instead.
+
+            .. deprecated:: 3.2.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
@@ -6317,7 +6325,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         inplace = self._check_inplace_deprecation(inplace, "drop")
 
-        return super().drop(
+        result = super().drop(
             labels=labels,
             axis=axis,
             index=index,
@@ -6326,6 +6334,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             inplace=inplace,
             errors=errors,
         )
+        if columns is not None:
+            # GH#39509; warn after super().drop so calls it rejects don't warn
+            warnings.warn(
+                "Series.drop ignores the 'columns' keyword. Passing it is "
+                "deprecated and will raise in a future version. Use 'index' "
+                "or 'labels' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     def pop(self, item: Hashable) -> Any:
         """
@@ -7445,6 +7463,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             this, other = self.align(other, level=level, join="outer")
 
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
+        # GH#43770 func is the bare operator, so comparison_op does not warn
+        ops.maybe_warn_complex_ordering(this_vals, other_vals, func)
 
         with np.errstate(all="ignore"):
             result = func(this_vals, other_vals)

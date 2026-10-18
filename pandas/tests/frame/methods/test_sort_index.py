@@ -497,6 +497,17 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result_df, expected_df)
         tm.assert_frame_equal(df, pd.DataFrame(original_dict, index=mi))
 
+    def test_sort_index_categorical_level_from_set_levels(self):
+        # GH#47607
+        mi = pd.MultiIndex.from_product([["a", "b", "c"], [1, 2]])
+        level = pd.CategoricalIndex(
+            ["a", "b", "c"], categories=["c", "b", "a"], ordered=True
+        )
+        df = pd.DataFrame({"col": range(6)}, index=mi.set_levels(level, level=0))
+        expected = df.iloc[[4, 5, 2, 3, 0, 1]]
+        tm.assert_frame_equal(df.sort_index(), expected)
+        tm.assert_frame_equal(df.sort_index(level=0), expected)
+
     def test_sort_index_categorical_multiindex(self):
         # GH#15058
         df = pd.DataFrame(

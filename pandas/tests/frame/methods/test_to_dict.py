@@ -399,6 +399,23 @@ class TestDataFrameToDict:
                     "b": [float, str, float],
                 },
             ),
+            (  # GH#29824
+                {
+                    "a": pd.Series(
+                        [datetime(2018, 1, 1), datetime(2018, 1, 2)], dtype=object
+                    ),
+                    "b": [1, 2],
+                },
+                {"a": [datetime, datetime], "b": [int, int]},
+            ),
+            (  # GH#29824 all-object frame
+                {
+                    "a": pd.Series(
+                        [datetime(2018, 1, 1), datetime(2018, 1, 2)], dtype=object
+                    ),
+                },
+                {"a": [datetime, datetime]},
+            ),
             (  # GH#27616
                 {
                     "a": [np.complex128(1 + 2j), 3j],

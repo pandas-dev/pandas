@@ -1921,10 +1921,33 @@ def test_agg_mapping_func_deprecated():
     )
     tm.assert_frame_equal(result, expected)
 
-    # TODO: the result below is wrong, should be fixed (GH53325)
+    # GH#23889
     result = df.agg({"x": foo1}, 0, 3, c=4)
-    expected = pd.DataFrame([2, 3, 4], columns=["x"])
+    expected = df + 7
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"x": [np.nan, np.nan], "y": [1.0, 2.0]})
+    result = df.agg({"x": "sum", "y": ["sum"]}, min_count=3)
+    expected = pd.DataFrame({"x": [np.nan], "y": [np.nan]}, index=["sum"])
+    tm.assert_frame_equal(result, expected)
+
+    # duplicate columns
+    df.columns = ["x", "x"]
+    result = df.agg({"x": "sum"}, min_count=2)
+    expected = pd.Series([np.nan, 3.0], index=["x", "x"])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_dict_reducer_with_args():
+    # TODO: dict-like apply still drops args/kwargs, which is a bug;
+    #  forwarding them must keep reducing here, not map np.sum elementwise
+    df = pd.DataFrame({"x": [1.0, 2.0]})
+    result = df.apply({"x": np.sum}, args=(0,))
+    expected = pd.Series([3.0], index=["x"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_std():
@@ -2247,6 +2270,18 @@ def test_agg_dict_string_funcs_with_duplicate_columns():
     result = df.agg({"a": "sum", "b": "min"})
     expected = pd.Series([6, 8, 3, 4], index=["a", "a", "b", "b"])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("spelling", ["dict", "list"])
+def test_agg_many_columns_result_not_fragmented(spelling):
+    # GH#61628 per-column agg results made a later insert warn about fragmentation
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    # np.sum rather than "sum": a list of strings takes a path that never fragmented
+    func = {col: ["sum"] for col in cols} if spelling == "dict" else [np.sum]
+    result = df.agg(func)
+    with tm.assert_produces_warning(None):
+        result.insert(0, "x", 0)
 
 
 def test_apply_expand_single_row_preserves_dict_order():
