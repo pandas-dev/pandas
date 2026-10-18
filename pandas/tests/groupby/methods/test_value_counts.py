@@ -64,6 +64,28 @@ def test_value_counts_with_bins(bins):
     tm.assert_series_equal(result, expected)
 
 
+def test_value_counts_with_bins_normalize_out_of_bins():
+    # GH32471 values outside the bins stay in the denominator,
+    # matching Series.value_counts
+    df = pd.DataFrame({"key": [0, 0, 0, 1], "score": [5, 50, 500, 5]})
+    bins = [0, 10, 100]
+    result = df.groupby("key")["score"].value_counts(bins=bins, normalize=True)
+    expected_bins = pd.IntervalIndex.from_breaks([-0.001, 10.0, 100.0])
+    expected = pd.Series(
+        [1 / 3, 1 / 3, 1.0, 0.0],
+        name="proportion",
+        index=pd.MultiIndex.from_product(
+            [[0, 1], expected_bins], names=["key", "score"]
+        ),
+    )
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(
+        result.loc[0],
+        pd.Series([5, 50, 500]).value_counts(bins=bins, normalize=True),
+        check_names=False,
+    )
+
+
 def seed_df(seed_nans, n, m):
     days = pd.date_range("2015-08-24", periods=10)
 
