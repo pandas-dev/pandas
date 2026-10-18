@@ -131,6 +131,14 @@ class TestIteration:
         assert (tup.Index, tup.a, tup.b) == tup
         assert type(tup).__name__ == "TestName"
 
+    def test_itertuples_no_columns_index_false(self):
+        # GH#25408
+        df = pd.DataFrame(index=["A", "B"])
+        assert list(df.itertuples(index=False, name=None)) == [(), ()]
+        result = list(df.itertuples(index=False))
+        assert result == [(), ()]
+        assert all(tup._fields == () for tup in result)
+
     def test_itertuples_disallowed_col_labels(self):
         df = pd.DataFrame(data={"def": [1, 2, 3], "return": [4, 5, 6]})
         tup2 = next(df.itertuples(name="TestName"))

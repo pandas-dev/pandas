@@ -8,6 +8,7 @@ import re
 import sys
 import time
 import tracemalloc
+from typing import Any
 import weakref
 
 import dateutil
@@ -1194,7 +1195,7 @@ class _Plain:
     attr = 1
 
 
-class _OrderedSet(set):
+class _OrderedSet(set[Any]):
     # a plain one-element set would be exhausted before the guard in
     # Set_iterNext is reached, so drive the iteration order explicitly
     def __iter__(self):

@@ -120,6 +120,11 @@ class TestSeriesFlexArithmetic:
             amask = pd.isna(a)
             bmask = pd.isna(b)
 
+            # Use to_numpy to work with NumPy scalars so that op has NumPy semantics
+            # like the flex methods.
+            avals = a.to_numpy()
+            bvals = b.to_numpy()
+
             exp_values = []
             for i in range(len(exp_index)):
                 with np.errstate(all="ignore"):
@@ -127,14 +132,14 @@ class TestSeriesFlexArithmetic:
                         if bmask[i]:
                             exp_values.append(np.nan)
                             continue
-                        exp_values.append(op(fill_value, b[i]))
+                        exp_values.append(op(fill_value, bvals[i]))
                     elif bmask[i]:
                         if amask[i]:
                             exp_values.append(np.nan)
                             continue
-                        exp_values.append(op(a[i], fill_value))
+                        exp_values.append(op(avals[i], fill_value))
                     else:
-                        exp_values.append(op(a[i], b[i]))
+                        exp_values.append(op(avals[i], bvals[i]))
 
             result = meth(a, b, fill_value=fill_value)
             expected = pd.Series(exp_values, exp_index)

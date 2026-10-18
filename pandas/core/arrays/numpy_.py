@@ -15,6 +15,7 @@ from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import LossySetitemError
 from pandas.util._decorators import set_module
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -257,6 +258,10 @@ class NumpyExtensionArray(
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in NumpyExtensionArray, since pandas' ExtensionArrays are 1-d.
+
+        # this path never reaches ExtensionArray.__array_ufunc__
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         out = kwargs.get("out", ())
 
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
@@ -492,6 +497,7 @@ class NumpyExtensionArray(
         **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
@@ -506,6 +512,7 @@ class NumpyExtensionArray(
         **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )

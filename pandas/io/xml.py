@@ -885,6 +885,12 @@ def read_xml(
     and returns the content as a DataFrame. Nodes are selected using an XPath
     expression, and their child elements and attributes are mapped to columns.
 
+    .. warning::
+
+       XSLT is a programming language, and a ``stylesheet`` is run without
+       restrictions: it can read and write local files. Only use stylesheets
+       from trusted sources.
+
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object

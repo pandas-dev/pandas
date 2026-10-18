@@ -396,7 +396,7 @@ def check_key_length(columns: Index, key, value: DataFrame) -> None:
         raise ValueError("Columns must be same length as key")
 
 
-def unpack_tuple_and_ellipses(item: tuple):
+def unpack_tuple_and_ellipses(item: tuple[Any, ...]):
     """
     Possibly unpack arr[..., n] to arr[n]
     """

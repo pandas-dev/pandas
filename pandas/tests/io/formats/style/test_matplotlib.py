@@ -261,6 +261,16 @@ def test_background_gradient_nullable_dtypes():
     assert ctx1 == ctx2
 
 
+@pytest.mark.parametrize("f", ["background_gradient", "text_gradient"])
+@pytest.mark.parametrize("kwargs", [{}, {"vmin": 1, "vmax": 1}])
+def test_background_gradient_nan_single_value(f, kwargs):
+    # GH#47695 NaN should get the same color whether or not vmin == vmax
+    df = pd.DataFrame({"A": [1.0, np.nan, np.nan], "B": [1.0, np.nan, 2.0]})
+    ctx = getattr(df.style, f)(**kwargs)._compute().ctx
+    assert ctx[(1, 0)] == ctx[(2, 0)] == ctx[(1, 1)]
+    assert ctx[(0, 0)] != ctx[(1, 0)]
+
+
 @pytest.mark.parametrize(
     "cmap",
     ["PuBu", mpl.colormaps["PuBu"]],

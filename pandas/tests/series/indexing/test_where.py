@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -369,6 +372,15 @@ def test_where_dups():
     tm.assert_series_equal(comb, expected)
 
 
+def test_where_other_with_duplicate_labels_raises():
+    # GH#27672
+    ser = pd.Series([np.nan, 1.0], index=["a", "b"])
+    other = pd.Series([5.0, 6.0, 7.0], index=["a", "a", "b"])
+    msg = "Cannot align with an object that has duplicate labels"
+    with pytest.raises(InvalidIndexError, match=msg):
+        ser.where(ser.notna(), other)
+
+
 def test_where_numeric_with_string():
     # GH 9280
     s = pd.Series([1, 2, 3])
@@ -410,6 +422,18 @@ def test_where_sparse():
     result = ser.where(ser >= 2, 0)
     expected = pd.Series(pd.arrays.SparseArray([0, 2]))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_int_with_sparse_int_other(method):
+    # GH#68457: SparseDtype has no itemsize, so this raised AttributeError
+    ser = pd.Series([1, 2, 3])
+    other = pd.Series(pd.arrays.SparseArray([4, 5, 6]))
+    cond = np.array([True, False, True])
+    if method == "mask":
+        cond = ~cond
+    result = getattr(ser, method)(cond, other)
+    tm.assert_series_equal(result, pd.Series([1, 5, 3]))
 
 
 def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
@@ -469,3 +493,36 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+@pytest.mark.parametrize(
+    "cond_dtype",
+    ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize("box", [pd.array, pd.Series])
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_nullable_bool_cond_na_series(method, inplace, box, cond_dtype):
+    # GH#35429, GH#56844 NA in cond is treated as False, as in boolean indexing
+    ser = pd.Series([1, 2, 3])
+    cond = box([True, False, pd.NA], dtype=cond_dtype)
+    if method == "where":
+        expected = pd.Series([1, -9, -9])
+    else:
+        expected = pd.Series([-9, 2, 3])
+
+    result = getattr(ser, method)(cond, -9, inplace=inplace)
+    if inplace:
+        result = ser
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+def test_mask_nullable_na_cond_from_self(dtype):
+    # GH#52955, GH#60729 NA in the values gives NA in cond; keep it unreplaced
+    ser = pd.Series([1, 2, None, 4], dtype=dtype)
+    result = ser.mask(ser <= 2, -99)
+    expected = pd.Series([-99, -99, None, 4], dtype=dtype)
+    tm.assert_series_equal(result, expected)

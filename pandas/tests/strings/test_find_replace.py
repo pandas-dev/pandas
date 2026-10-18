@@ -1569,7 +1569,7 @@ def test_fullmatch_compiled_regex(any_string_dtype):
 @pytest.mark.parametrize(
     "pat, case, na, exp",
     # Note: keep cases in sync with
-    # pandas/tests/extension/test_arrow.py::test_str_fullmatch
+    # pandas/tests/arrays/arrow/test_string.py::test_str_fullmatch
     [
         ["abc", False, None, [True, False, False, None]],
         ["Abc", True, None, [False, False, False, None]],
