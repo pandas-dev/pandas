@@ -657,6 +657,13 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     return dtype == object or dtype.kind in "SU"
 
 
+def is_compound_dtype(dtype: DtypeObj) -> bool:
+    """
+    Check for a numpy structured dtype, i.e. one with named fields.
+    """
+    return isinstance(dtype, np.dtype) and dtype.names is not None
+
+
 @set_module("pandas.api.types")
 def is_string_dtype(arr_or_dtype) -> bool:
     """
@@ -1965,6 +1972,7 @@ __all__ = [
     "is_categorical_dtype",
     "is_complex",
     "is_complex_dtype",
+    "is_compound_dtype",
     "is_dataclass",
     "is_datetime64_any_dtype",
     "is_datetime64_dtype",

@@ -36,6 +36,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_compound_dtype,
     is_list_like,
     is_object_dtype,
     pandas_dtype,
@@ -328,7 +329,7 @@ def array(
     # Handle numpy masked arrays: convert masked values to NA
     # GH#63879
     if isinstance(data, ma.MaskedArray):
-        if data.dtype.names is not None:
+        if is_compound_dtype(data.dtype):
             raise ValueError(
                 "Cannot construct an array from an ndarray with compound dtype. "
                 "Use DataFrame instead."

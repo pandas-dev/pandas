@@ -504,7 +504,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     ) from err
                 raise
 
-            # a compound dtype
+            # any void dtype, not just compound: internals treat kind "V" as
+            #  an all-NA placeholder
             if dtype.kind == "V" and not isinstance(dtype, ExtensionDtype):
                 raise NotImplementedError(
                     "compound dtypes are not implemented "

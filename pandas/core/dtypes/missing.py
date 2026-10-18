@@ -26,6 +26,7 @@ from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_compound_dtype,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -245,7 +246,7 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
         # "Union[ndarray[Any, Any], ExtensionArrayNaResult]", variable has
         # type "ndarray[Any, dtype[bool_]]")
         result = values.isna()  # type: ignore[assignment]
-    elif dtype.names is not None:
+    elif is_compound_dtype(dtype):
         # GH#48526 (np.rec.recarray), GH#55011 (structured np.ndarray)
         result = _isna_recarray_dtype(values)
     elif is_string_or_object_np_dtype(values.dtype):

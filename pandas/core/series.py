@@ -72,6 +72,7 @@ from pandas.core.dtypes.cast import (
     maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
+    is_compound_dtype,
     is_dict_like,
     is_float,
     is_integer,
@@ -436,9 +437,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 refs = data._references
 
         elif isinstance(data, np.ndarray):
-            if len(data.dtype):
-                # GH#13296 we are dealing with a compound dtype, which
-                #  should be treated as 2D
+            if is_compound_dtype(data.dtype):
+                # GH#13296 should be treated as 2D
                 raise ValueError(
                     "Cannot construct a Series from an ndarray with "
                     "compound dtype.  Use DataFrame instead."
