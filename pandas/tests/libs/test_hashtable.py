@@ -1017,3 +1017,99 @@ def test_error_raised_from_eq_method_in_get_item(do_raise):
         # this looks odd but it is because key1.value == key2.value
         assert table.get_item(key1) == 456
         assert table.get_item(key2) == 456
+
+
+# ismember goes through kh_pyset_t instead of PyObjectHashTable, so it needs
+# the same coverage as the set_item / get_item tests above.
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_hash_method_in_ismember_values(do_raise):
+    # GH 57052 - hashing a key while the set is built
+    key1 = hash_eq_raiser(value="hello1", raise_hash=do_raise)
+    key2 = hash_eq_raiser(value="hello2")
+
+    arr = np.array([key1, key2], dtype=object)
+    values = np.array([key1], dtype=object)
+
+    if do_raise:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        expected = np.array([True, False], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_hash_method_in_ismember_arr(do_raise):
+    # GH 57052 - hashing a key while the set is looked up
+    key1 = hash_eq_raiser(value="hello1")
+    key2 = hash_eq_raiser(value="hello2")
+
+    arr = np.array([key1, key2], dtype=object)
+    values = np.array([key2], dtype=object)
+
+    key1.raise_hash = do_raise
+
+    if do_raise:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        expected = np.array([False, True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_ismember_values(do_raise):
+    # GH 57052 - comparing two colliding keys while the set is built
+    key1 = hash_eq_raiser(value="hello", raise_eq=do_raise)
+    key2 = hash_eq_raiser(value=key1.value)
+
+    arr = np.array([key1], dtype=object)
+    values = np.array([key1, key2], dtype=object)
+
+    if do_raise:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        expected = np.array([True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_ismember_arr(do_raise):
+    # GH 57052 - comparing two colliding keys while the set is looked up
+    key1 = hash_eq_raiser(value="hello")
+    key2 = hash_eq_raiser(value=key1.value)
+
+    arr = np.array([key2], dtype=object)
+    values = np.array([key1], dtype=object)
+
+    key1.raise_eq = do_raise
+
+    if do_raise:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        # this looks odd but it is because key1.value == key2.value
+        expected = np.array([True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+def test_ismember_does_not_leak_table_when_hash_raises():
+    # GH 57052 - the set is freed even though the exception propagates
+    key = hash_eq_raiser(value="hello", raise_hash=True)
+    arr = np.array([key], dtype=object)
+
+    with activated_tracemalloc():
+        with pytest.raises(RuntimeError, match="__hash__"):
+            ht.ismember(arr, arr)
+        assert get_allocated_khash_memory() == 0
