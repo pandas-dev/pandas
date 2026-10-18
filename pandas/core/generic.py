@@ -81,6 +81,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -9111,7 +9112,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            lower, upper = min(lower, upper), max(lower, upper)
+            dtypes = set(self._mgr.get_dtypes())
+            dtype = dtypes.pop() if len(dtypes) == 1 else None
+            if isinstance(dtype, CategoricalDtype) and dtype.ordered:
+                # GH#49217 order by category position, not by value
+                pos = dtype.categories.get_indexer([lower, upper])
+                if pos.min() >= 0 and pos[0] > pos[1]:
+                    lower, upper = upper, lower
+            else:
+                lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
