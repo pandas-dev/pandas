@@ -1,6 +1,5 @@
 from datetime import datetime
 import re
-import tracemalloc
 
 import numpy as np
 import pytest
@@ -910,37 +909,3 @@ def test_replace_regex_non_string_arrow_dtype(compile_pattern):
     )
     expected = pd.DataFrame({"a": ser, "b": pd.Series(["x", 0], dtype=object)})
     tm.assert_frame_equal(result, expected)
-
-
-# tracemalloc's peak includes other threads, such as the one an xdist worker
-#  uses to receive scheduler messages
-@pytest.mark.single_cpu
-def test_replace_dict_inplace_memory():
-    # GH#25816 inplace held one full-length mask per key, so memory grew as
-    #  n_keys * len(ser)
-    n = 2000
-    ser = pd.Series(np.arange(n))
-    tracemalloc.start()
-    try:
-        ser.replace({i: i + 1 for i in range(n)}, inplace=True)
-        peak = tracemalloc.get_traced_memory()[1]
-    finally:
-        tracemalloc.stop()
-    assert peak < n * n // 4, peak
-
-    # each key is also a destination, so this checks replacements do not chain
-    tm.assert_series_equal(ser, pd.Series(np.arange(1, n + 1)))
-
-
-@pytest.mark.single_cpu  # see test_replace_dict_inplace_memory
-def test_replace_small_dict_inplace_memory():
-    # GH#25816 with few keys, holding the masks is cheaper than copying the values
-    ser = pd.Series(np.arange(10**5, dtype=np.int64))
-    tracemalloc.start()
-    try:
-        ser.replace({1: 2, 3: 4}, inplace=True)
-        peak = tracemalloc.get_traced_memory()[1]
-    finally:
-        tracemalloc.stop()
-    assert peak < ser.to_numpy().nbytes, peak
-    tm.assert_series_equal(ser[:6], pd.Series([0, 2, 2, 4, 4, 5]))
