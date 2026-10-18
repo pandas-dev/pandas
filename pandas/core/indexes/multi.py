@@ -18,6 +18,7 @@ from typing import (
     NoReturn,
     Self,
     cast,
+    overload,
 )
 import warnings
 
@@ -1707,7 +1708,7 @@ class MultiIndex(Index):
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = sparsify_labels(
-                result_levels, start=int(include_names), sentinel=sentinel
+                result_levels, self.codes, start=int(include_names), sentinel=sentinel
             )
 
         return result_levels
@@ -2771,7 +2772,7 @@ class MultiIndex(Index):
             # We only get here if other contains at least one index with tuples,
             # setting names to None automatically
             return MultiIndex.from_tuples(new_tuples)
-        except (TypeError, IndexError):
+        except (TypeError, ValueError):
             return Index(new_tuples, copy=False)
 
     def argsort(
@@ -3346,9 +3347,10 @@ class MultiIndex(Index):
                 try:
                     target = MultiIndex.from_tuples(target)
                 except (TypeError, ValueError):
-                    # not all tuples, see test_constructor_dict_multiindex_reindex_flat
-                    # ValueError: non-object target dtype (e.g. int), so the
-                    #  entries can't be tuples (GH#26460)
+                    # TypeError: not all tuples, see
+                    #  test_constructor_dict_multiindex_reindex_flat
+                    # ValueError: non-object dtype (GH#26460) or mixed-length
+                    #  tuples (GH#50293)
                     return target
 
         target = self._maybe_preserve_names(target, preserve_names)
@@ -5012,9 +5014,95 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    # error: Incompatible types in assignment (expression has type overloaded function,
-    # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
-    rename = Index.set_names  # type: ignore[assignment]
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: Literal[False] = ...,
+    ) -> Self: ...
+
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: Literal[True],
+    ) -> None: ...
+
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: bool = ...,
+    ) -> Self | None: ...
+
+    def rename(
+        self,
+        name: Hashable
+        | Sequence[Hashable]
+        | dict[Hashable, Hashable]
+        | lib.NoDefault = lib.no_default,
+        *,
+        names: Hashable
+        | Sequence[Hashable]
+        | dict[Hashable, Hashable]
+        | lib.NoDefault = lib.no_default,
+        level: Hashable | Sequence[Hashable] | None = None,
+        inplace: bool = False,
+    ) -> Self | None:
+        """
+        Alter MultiIndex level names.
+
+        Equivalent to :meth:`MultiIndex.set_names`.
+
+        Parameters
+        ----------
+        name : Hashable, sequence of Hashable, or dict-like
+            Name(s) to set. A dict-like maps old level names to new ones.
+        names : Hashable, sequence of Hashable, or dict-like
+            Alias for ``name``; pass only one of the two.
+        level : int, Hashable or a sequence of the previous, optional
+            If ``name`` is not dict-like, level(s) to set (None for all levels).
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new MultiIndex.
+
+        Returns
+        -------
+        MultiIndex or None
+            The same type as the caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        MultiIndex.set_names : Set level names partially and by level.
+        Index.rename : Alter Index name.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+        >>> mi.rename(["a", "b"])
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['a', 'b'])
+        >>> mi.rename("a", level=0)
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['a', 'y'])
+        """
+        if names is not lib.no_default:
+            if name is not lib.no_default:
+                raise TypeError("Pass only one of 'name' and 'names'.")
+            name = names
+        elif name is lib.no_default:
+            raise TypeError("rename() missing required argument: 'name'")
+        return self.set_names(name, level=level, inplace=inplace)
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled
@@ -5058,30 +5146,27 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
     return 0
 
 
-def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
+def sparsify_labels(label_list, codes, start: int = 0, sentinel: object = ""):
+    # Compare codes rather than labels, as distinct values can format
+    # identically, see GH#10796.
     pivoted = list(zip(*label_list, strict=True))
+    keys = list(zip(*codes, strict=True))
     k = len(label_list)
 
     result = pivoted[: start + 1]
-    prev = pivoted[start]
 
-    for cur in pivoted[start + 1 :]:
-        sparse_cur = []
+    for prev, cur, labels in zip(
+        keys[:-1], keys[1:], pivoted[start + 1 :], strict=True
+    ):
+        sparse_cur: list[object] = []
 
-        for i, (p, t) in enumerate(zip(prev, cur, strict=True)):
-            if i == k - 1:
-                sparse_cur.append(t)
-                result.append(sparse_cur)  # type: ignore[arg-type]
+        for i in range(k):
+            if i == k - 1 or prev[i] != cur[i]:
+                sparse_cur.extend(labels[i:])
                 break
+            sparse_cur.append(sentinel)
 
-            if p == t:
-                sparse_cur.append(sentinel)
-            else:
-                sparse_cur.extend(cur[i:])
-                result.append(sparse_cur)  # type: ignore[arg-type]
-                break
-
-        prev = cur
+        result.append(tuple(sparse_cur))
 
     return list(zip(*result, strict=True))
 

@@ -4527,7 +4527,11 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(self, ABCMultiIndex):
             new_index = Index(new_labels, name=self.name, copy=False)
         else:
-            new_index = type(self).from_tuples(new_labels, names=self.names)
+            try:
+                new_index = type(self).from_tuples(new_labels, names=self.names)
+            except ValueError:
+                # missing labels are tuples of a different length, GH#50293
+                new_index = Index(new_labels, copy=False)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -6715,9 +6719,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi and not other._is_multi:
             try:
                 # "Type[Index]" has no attribute "from_tuples"
-                other = type(self).from_tuples(other)  # type: ignore[attr-defined]
+                other_mi = type(self).from_tuples(other)  # type: ignore[attr-defined]
             except (TypeError, ValueError):
-                # let's instead try with a straight Index
+                other_mi = None
+            if other_mi is not None and other_mi.nlevels == self.nlevels:
+                other = other_mi
+            else:
+                # let's instead try with a straight Index, so tuples of a
+                #  different length can't match on a prefix, GH#50293
                 self = Index(self._values, copy=False)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
@@ -6887,20 +6896,22 @@ class Index(IndexOpsMixin, PandasObject):
         new_values = self._map_values(mapper, na_action=na_action)  # type: ignore[no-untyped-call]
 
         # we can return a MultiIndex
-        if (
-            new_values.size
-            and isinstance(new_values[0], tuple)
-            and all(isinstance(val, tuple) for val in new_values[~isna(new_values)])
-        ):
-            # list input pads shorter tuples with NaN instead of truncating
-            result = MultiIndex.from_tuples(new_values.tolist())
-            if isinstance(self, MultiIndex):
-                # only keep names if the number of levels is unchanged, GH#24800
-                if self.nlevels == result.nlevels:
-                    result.names = self.names
-            elif self.name:
-                result.names = [self.name] * result.nlevels
-            return result
+        if new_values.size and isinstance(new_values[0], tuple):
+            width = len(new_values[0])
+            # non-tuples or tuples of different lengths give a flat Index, GH#50293
+            if all(
+                isinstance(val, tuple) and len(val) == width
+                for val in new_values[~isna(new_values)]
+            ):
+                # unlike an ndarray, list input accepts NA entries
+                result = MultiIndex.from_tuples(new_values.tolist())
+                if isinstance(self, MultiIndex):
+                    # only keep names if the number of levels is unchanged, GH#24800
+                    if self.nlevels == result.nlevels:
+                        result.names = self.names
+                elif self.name:
+                    result.names = [self.name] * result.nlevels
+                return result
 
         dtype = None
         if not new_values.size:
@@ -7222,10 +7233,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_numeric_dtype(self.dtype):
             return self._maybe_cast_indexer(label)
 
-        # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self:
-            self._raise_invalid_indexer("slice", label)
-
         return label
 
     def _searchsorted_monotonic(
@@ -7306,11 +7313,29 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
+                if is_integer(original_label) or is_float(original_label):
+                    if isinstance(self.dtype, CategoricalDtype):
+                        values = self.dtype.categories
+                    else:
+                        values = self
+                    try:
+                        values < original_label
+                    except TypeError as err:
+                        # sorting would not make the bound comparable
+                        self._raise_invalid_indexer("slice", original_label, err)
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-monotonic index "
                     f"with a missing label {original_label!r}. "
                     "Either sort the index or specify an existing label."
                 ) from None
+            except TypeError as err:
+                if isinstance(self.dtype, CategoricalDtype):
+                    raise TypeError(
+                        f"Cannot slice {type(self).__name__} with bound "
+                        f"{original_label!r}: it is not one of the categories."
+                    ) from err
+                # label is not comparable with the index values
+                self._raise_invalid_indexer("slice", original_label, err)
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which

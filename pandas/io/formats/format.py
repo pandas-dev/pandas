@@ -802,7 +802,7 @@ class DataFrameFormatter:
                     )
                 ]
                 if self.sparsify:
-                    fmt_columns = sparsify_labels(fmt_columns)
+                    fmt_columns = sparsify_labels(fmt_columns, columns.codes)
 
             str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
