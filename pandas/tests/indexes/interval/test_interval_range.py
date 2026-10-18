@@ -406,3 +406,39 @@ class TestIntervalRange:
             [start + 1, start + 4, start + 7], dtype="interval[int64, right]"
         )
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs, breaks",
+        [
+            ({"start": 2**53, "periods": 4, "freq": 1}, [2**53 + i for i in range(5)]),
+            (
+                {"end": 2**53 + 4, "periods": 4, "freq": 1},
+                [2**53 + i for i in range(5)],
+            ),
+            (
+                {"start": 2**53, "end": 2**53 + 4, "periods": 4},
+                [2**53 + i for i in range(5)],
+            ),
+            (
+                {"start": 2**53 + 1, "end": 2**53 + 9, "periods": 4},
+                [2**53 + 1 + 2 * i for i in range(5)],
+            ),
+            (
+                {"start": 2**63 - 5, "end": 2**63 - 1, "freq": 1},
+                [2**63 - 5 + i for i in range(5)],
+            ),
+            (
+                {"end": 2**63 - 1, "periods": 4, "freq": 1},
+                [2**63 - 5 + i for i in range(5)],
+            ),
+            (
+                {"start": -(2**63), "end": -(2**63) + 2, "periods": 2},
+                [-(2**63) + i for i in range(3)],
+            ),
+        ],
+    )
+    def test_interval_range_large_int_no_float_rounding_all_args(self, kwargs, breaks):
+        # GH 71288
+        result = pd.interval_range(**kwargs)
+        expected = pd.IntervalIndex.from_breaks(breaks, dtype="interval[int64, right]")
+        tm.assert_index_equal(result, expected)
