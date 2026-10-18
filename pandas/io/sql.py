@@ -86,7 +86,6 @@ if TYPE_CHECKING:
         Iterator,
         Mapping,
     )
-    import sqlite3
 
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
@@ -1593,12 +1592,15 @@ class PandasSQL(PandasObject, ABC):
         pass
 
 
-def _begin_sqlite3_transaction(con: sqlite3.Connection) -> None:
+def _begin_sqlite3_transaction(con) -> None:
     # sqlite3 runs DDL outside a transaction unless one is open, so the DROP
     # from if_exists="replace" would be committed on its own, GH#32933.
-    # Connections in autocommit mode are left alone.
+    # Autocommit and non-sqlite3 DBAPI connections are left alone.
+    import sqlite3
+
     if (
-        not con.in_transaction
+        isinstance(con, sqlite3.Connection)
+        and not con.in_transaction
         and con.isolation_level is not None
         and getattr(con, "autocommit", None) is not True
     ):

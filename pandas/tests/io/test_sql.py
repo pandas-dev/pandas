@@ -2983,6 +2983,33 @@ def test_to_sql_replace_sqlite3_autocommit(connect_kwargs):
         tm.assert_frame_equal(result, new_df)
 
 
+def test_to_sql_replace_generic_dbapi_connection():
+    # GH#32933 a DBAPI connection that is not a sqlite3.Connection
+    class WrappedConnection:
+        def __init__(self, con) -> None:
+            self._con = con
+
+        def cursor(self):
+            return self._con.cursor()
+
+        def commit(self):
+            self._con.commit()
+
+        def rollback(self):
+            self._con.rollback()
+
+    with contextlib.closing(sqlite3.connect(":memory:")) as raw_conn:
+        conn = WrappedConnection(raw_conn)
+        new_df = pd.DataFrame({"a": [3]})
+        with tm.assert_produces_warning(UserWarning, match="Other DBAPI2 objects"):
+            pd.DataFrame({"a": [1, 2]}).to_sql("test_frame", conn, index=False)
+        with tm.assert_produces_warning(UserWarning, match="Other DBAPI2 objects"):
+            new_df.to_sql("test_frame", conn, if_exists="replace", index=False)
+
+        result = sql.read_sql_query("SELECT * FROM test_frame", raw_conn)
+        tm.assert_frame_equal(result, new_df)
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_roundtrip(conn, request, test_frame1):
     if conn == "sqlite_str":
