@@ -372,11 +372,15 @@ class ParserBase:
                 # GH#57944 - Only treat the integer key as a positional index
                 # when it falls within the valid range of orig_names.
                 # Negative integers like -10 with only 5 columns, or integers
-                # >= len(orig_names), should be kept as-is rather than causing
-                # an IndexError.
+                # >= len(orig_names), should not cause an IndexError.
+                # If the out-of-range integer matches a column name when
+                # converted to a string (e.g. column named "-10" with key -10),
+                # use that string name instead.
                 num_cols = len(self.orig_names)
                 if -num_cols <= col < num_cols:
                     col = self.orig_names[col]
+                elif str(col) in self.orig_names:
+                    col = str(col)
             clean[col] = v
         if isinstance(mapping, defaultdict):
             remaining_cols = set(self.orig_names) - set(clean.keys())
