@@ -1089,12 +1089,12 @@ UUIDS = [
 
 
 @pytest.fixture(scope="module")
-def uuid_array() -> pd.arrays.ArrowExtensionArray:
+def uuid_array() -> pa.Array:
     return pa.array([UUIDS[0].bytes, UUIDS[1].bytes, None], type=pa.uuid())
 
 
 @pytest.fixture
-def uuid_series(uuid_array: pd.arrays.ArrowExtensionArray) -> pd.Series:
+def uuid_series(uuid_array: pa.Array) -> pd.Series:
     return pd.Series(uuid_array)
 
 
@@ -1106,19 +1106,19 @@ def test_uuid_dtype_type():
 
 @uuid_mark
 @pytest.mark.parametrize("chunked", [False, True], ids=["non-chunked", "chunked"])
-def test_uuid_construction_keeps_arrow_dtype(
-    uuid_array: pd.arrays.ArrowExtensionArray, chunked: bool
-):
+def test_uuid_construction_keeps_arrow_dtype(uuid_array: pa.Array, chunked: bool):
     # GH#63511 without a NumPy equivalent, construction used to fall back to object
     data = pa.chunked_array([uuid_array[:1], uuid_array[1:]]) if chunked else uuid_array
     expected = pd.Series([*UUIDS, None], dtype=ArrowDtype(pa.uuid()))
 
     tm.assert_series_equal(pd.Series(data), expected)
     tm.assert_series_equal(pd.DataFrame({"id": data})["id"], expected.rename("id"))
+    tm.assert_extension_array_equal(pd.array(data), expected.array)
+    tm.assert_index_equal(pd.Index(data), pd.Index(expected))
 
 
 @uuid_mark
-def test_uuid_construction_honors_dtype(uuid_array: pd.arrays.ArrowExtensionArray):
+def test_uuid_construction_honors_dtype(uuid_array: pa.Array):
     # GH#63511 an explicit dtype still wins over the Arrow type
     result = pd.Series(uuid_array, dtype=object)
     expected = pd.Series([UUIDS[0].bytes, UUIDS[1].bytes, None], dtype=object)

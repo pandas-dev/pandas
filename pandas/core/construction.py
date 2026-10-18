@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     BaseMaskedDtype,
     NumpyEADtype,
 )
@@ -326,6 +327,9 @@ def array(
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
+    elif dtype is None and is_arrow_uuid_array(data):
+        # GH#63511 same as in sanitize_array
+        dtype = ArrowDtype(data.type)
 
     data = extract_array(data, extract_numpy=True)
 
@@ -691,7 +695,7 @@ def sanitize_array(
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
 
-    elif dtype is None and _is_arrow_uuid_array(data):
+    elif dtype is None and is_arrow_uuid_array(data):
         # GH#63511 pa.uuid() has no pandas/NumPy equivalent, so the __array__
         #  conversion below would give an object array of the storage bytes
         from pandas.core.arrays.arrow import ArrowExtensionArray
@@ -742,7 +746,7 @@ def sanitize_array(
     return subarr
 
 
-def _is_arrow_uuid_array(data) -> TypeGuard[pa.Array | pa.ChunkedArray]:
+def is_arrow_uuid_array(data) -> TypeGuard[pa.Array | pa.ChunkedArray]:
     """
     Whether data is a pyarrow array with the ``pyarrow.uuid()`` type.
     """

@@ -149,6 +149,17 @@ if HAS_PYARROW:
         # pa.uuid() was introduced in pyarrow 18.0
         return not pa_version_under18p0 and isinstance(pa_type, pa.UuidType)
 
+    def uuid_to_storage(
+        left: pa.ChunkedArray, right: pa.Array | pa.ChunkedArray | pa.Scalar
+    ) -> tuple[pa.ChunkedArray, pa.Array | pa.ChunkedArray | pa.Scalar]:
+        # GH#63511 pyarrow has no comparison kernels for pa.uuid(),
+        #  but its fixed_size_binary storage compares identically
+        if is_uuid_type(left.type) and is_uuid_type(right.type):
+            return left.cast(left.type.storage_type), right.cast(
+                right.type.storage_type
+            )
+        return left, right
+
     def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
     ) -> tuple[pa.ChunkedArray, pa.Array | pa.Scalar]:
@@ -1356,14 +1367,8 @@ class ArrowExtensionArray(
                     result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
                 else:
-                    lhs = self._pa_array
-                    if is_uuid_type(ltype) and is_uuid_type(rtype):
-                        # GH#63511 pyarrow has no comparison kernels for pa.uuid(),
-                        #  but its fixed_size_binary storage compares identically
-                        lhs = lhs.cast(ltype.storage_type)
-                        boxed = boxed.cast(rtype.storage_type)
                     try:
-                        result = pc_func(lhs, boxed)
+                        result = pc_func(*uuid_to_storage(self._pa_array, boxed))
                     except pa.ArrowNotImplementedError:
                         result = ops.invalid_comparison(self, other, op)
                         result = pa.array(result, type=pa.bool_())
@@ -1377,7 +1382,9 @@ class ArrowExtensionArray(
                 result = pa.array(result, type=pa.bool_())
             else:
                 try:
-                    result = pc_func(self._pa_array, self._box_pa(other))
+                    result = pc_func(
+                        *uuid_to_storage(self._pa_array, self._box_pa(other))
+                    )
                 except (
                     pa.lib.ArrowNotImplementedError,
                     pa.lib.ArrowInvalid,

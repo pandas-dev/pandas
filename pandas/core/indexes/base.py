@@ -158,6 +158,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    is_arrow_uuid_array,
     sanitize_array,
 )
 from pandas.core.indexers import (
@@ -539,6 +540,9 @@ class Index(IndexOpsMixin, PandasObject):
             pass
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
+        elif is_arrow_uuid_array(data):
+            # GH#63511 sanitize_array keeps these Arrow-backed
+            pass
         elif hasattr(data, "__array__"):
             return cls(np.asarray(data), dtype=dtype, copy=copy, name=name)
         elif not is_list_like(data) and not isinstance(data, memoryview):
