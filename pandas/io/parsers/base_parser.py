@@ -24,6 +24,7 @@ import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
+    AbstractMethodError,
     ParserError,
     ParserWarning,
 )
@@ -59,6 +60,7 @@ from pandas.core.arrays import (
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    RangeIndex,
     default_index,
     ensure_index_from_sequences,
 )
@@ -76,6 +78,7 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
+        AnyArrayLike,
         ArrayLike,
         Dtype,
         DtypeArg,
@@ -127,7 +130,9 @@ class ParserBase:
         self.na_filter = kwds.get("na_filter", False)
         self.keep_default_na = kwds.get("keep_default_na", True)
 
-        self.dtype = copy(kwds.get("dtype", None))
+        # self.dtype may gain mangled duplicate-column keys; read() uses the original
+        self._orig_dtype = kwds.get("dtype", None)
+        self.dtype = copy(self._orig_dtype)
         self.converters = kwds.get("converters")
         self.dtype_backend = kwds.get("dtype_backend")
 
@@ -180,6 +185,40 @@ class ParserBase:
 
     def close(self) -> None:
         pass
+
+    def _read_arrays(
+        self, nrows: int | None = None
+    ) -> tuple[
+        Index | None,
+        Sequence[Hashable] | MultiIndex,
+        Mapping[Hashable, AnyArrayLike],
+    ]:
+        raise AbstractMethodError(self)
+
+    def read(self, nrows: int | None = None, row_offset: int = 0) -> DataFrame:
+        """
+        Read up to ``nrows`` rows into a DataFrame.
+
+        ``row_offset`` is the start of the default index, so successive
+        chunks continue the row numbering.
+        """
+        index, columns, col_dict = self._read_arrays(nrows)
+
+        if index is None and col_dict:
+            # Any column is actually fine:
+            new_rows = len(next(iter(col_dict.values())))
+            index = RangeIndex(row_offset, row_offset + new_rows)
+
+        col_dict = wrap_object_columns(col_dict, self._orig_dtype, index)
+
+        return DataFrame(
+            col_dict,
+            # error: Argument "columns" to "DataFrame" has incompatible type
+            # "Sequence[Hashable] | MultiIndex"; expected "... | None"
+            columns=columns,  # type: ignore[arg-type]
+            index=index,
+            copy=False,
+        )
 
     @final
     def _warn_parser(self, msg: str) -> None:
@@ -350,6 +389,7 @@ class ParserBase:
             names = itertools.cycle([None])
             zip_strict = False
         for i, (arr, name) in enumerate(zip(index, names, strict=zip_strict)):
+            parsed_dates = False
             if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,
@@ -358,6 +398,7 @@ class ParserBase:
                     cache_dates=self.cache_dates,
                     date_format=self.date_format,
                 )
+                parsed_dates = arr.dtype.kind == "M"
 
             if self.na_filter:
                 col_na_values = self.na_values
@@ -381,6 +422,13 @@ class ParserBase:
             if self.index_names is not None:
                 if isinstance(clean_dtypes, dict):
                     cast_type = clean_dtypes.get(self.index_names[i], None)
+                if (
+                    parsed_dates
+                    and cast_type is not None
+                    and pandas_dtype(cast_type).kind != "M"
+                ):
+                    # GH#57512 don't undo a parse_dates conversion
+                    cast_type = None
 
                 if isinstance(converters, dict):
                     index_converter = converters.get(self.index_names[i]) is not None
@@ -791,6 +839,37 @@ class ParserBase:
         return index, columns, col_dict
 
 
+def wrap_object_columns(
+    col_dict: Mapping[Hashable, AnyArrayLike],
+    dtype_arg: DtypeArg | None,
+    index: Index | None,
+) -> Mapping[Hashable, AnyArrayLike]:
+    """
+    Wrap the columns ``dtype_arg`` requests as object/str in a Series of that dtype.
+
+    Otherwise the DataFrame constructor would infer them as str, see GH#56047.
+    """
+    if dtype_arg is None:
+        return col_dict
+    if isinstance(dtype_arg, dict):
+        requested = {key: dtype_arg.get(key) for key in col_dict}
+    elif pandas_dtype(dtype_arg) in (np.str_, np.object_):
+        requested = dict.fromkeys(col_dict, dtype_arg)
+    else:
+        return col_dict
+    return {
+        key: (
+            Series(values, index=index, dtype=requested[key], copy=False)
+            if requested[key] is not None
+            and pandas_dtype(requested[key]) in (np.str_, np.object_)
+            # GH#57512 don't undo a parse_dates conversion
+            and values.dtype.kind != "M"
+            else values
+        )
+        for key, values in col_dict.items()
+    }
+
+
 def date_converter(
     date_col,
     col: Hashable,
@@ -817,10 +896,12 @@ def date_converter(
         # test_multi_index_parse_dates
         return str_objs
 
-    if isinstance(result, DatetimeIndex):
+    if isinstance(result, DatetimeIndex) and result.tz is None:
         arr = result.to_numpy()
         arr.flags.writeable = True
         return arr
+    # GH#57512 tz-aware stays a DatetimeArray, not object, so callers can
+    #  tell the column was parsed
     return result._values
 
 
