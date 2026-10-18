@@ -2964,7 +2964,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         # if we make it here, test if we can use the fast path
         try:
-            res_fast = fast_path(group)
+            with warnings.catch_warnings():
+                # GH#41090 - the output never depends on this probe's use of the
+                #  pinned key; if the fast path is chosen, later groups still warn
+                warnings.filterwarnings(
+                    "ignore", "Pinning the group key", Pandas4Warning
+                )
+                res_fast = fast_path(group)
         except AssertionError:
             raise  # pragma: no cover
         except Exception:

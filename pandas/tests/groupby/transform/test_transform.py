@@ -1252,6 +1252,30 @@ def test_transform_lambda_with_datetimetz():
     tm.assert_series_equal(result, expected)
 
 
+def test_transform_frame_column_name_no_warning():
+    # GH#41090 - the fast path probe sees the pinned key, but the column-wise
+    #  result is used, so a UDF reading the column label must not warn
+    df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
+    with tm.assert_produces_warning(None):
+        result = df.groupby([0, 0, 1]).transform(
+            lambda x: None if x.name == "a" else x.max()
+        )
+    expected = pd.DataFrame({"a": [np.nan] * 3, "b": [3.0, 3.0, 5.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_frame_fast_path_pinned_name_warns():
+    # GH#41090 - when the fast path is chosen, groups after the first still warn
+    df = pd.DataFrame({"a": [1.0, 2.0, 4.0], "b": [2.0, 3.0, 5.0]})
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby([1, 1, 2]).transform(
+            lambda x: x * (x.name if isinstance(x, pd.DataFrame) else 1)
+        )
+    expected = pd.DataFrame({"a": [1.0, 2.0, 8.0], "b": [2.0, 3.0, 10.0]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_transform_fastpath_raises():
     # GH#29631 case where fastpath defined in groupby.generic _choose_path
     #  raises, but slow_path does not
