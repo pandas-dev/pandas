@@ -316,15 +316,8 @@ def format_array_from_datetime(
                 # GH#62111
                 res = ts.isoformat(sep=" ", timespec=timespec)
             else:
-
-                # invalid format string
-                # requires dates > 1900
-                try:
-                    # Note: dispatches to pydatetime
-                    res = ts.strftime(format)
-                except ValueError:
-                    # Use datetime.str, that returns ts.isoformat(sep=' ')
-                    res = str(ts)
+                # Note: dispatches to pydatetime
+                res = ts.strftime(format)
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
         #  like we do for the other functions because result is known C-contiguous

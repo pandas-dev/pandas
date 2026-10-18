@@ -577,6 +577,25 @@ def test_relabel_columns(styler_multi):
     assert {"value": "a", "display_value": 4}.items() <= ctx["head"][1][4].items()
 
 
+@pytest.mark.parametrize("names", [[1, 5], [1, 0]])
+def test_relabel_index_int_level_names(names):
+    # GH#42933 default level=None relabels by position, not by name
+    mi = pd.MultiIndex.from_arrays([["x", "y"], ["p", "q"]], names=names)
+    styler = Styler(pd.DataFrame({"v": [1, 2]}, index=mi))
+    ctx = styler.relabel_index([("A", "a"), ("B", "b")])._translate(True, True)
+    result = [[cell["display_value"] for cell in row[:2]] for row in ctx["body"]]
+    assert result == [["A", "a"], ["B", "b"]]
+
+
+def test_format_index_dict_int_level_names():
+    # GH#42933 formatter keys and level resolve the same way
+    mi = pd.MultiIndex.from_arrays([["x", "y"], ["p", "q"]], names=[1, 0])
+    styler = Styler(pd.DataFrame({"v": [1, 2]}, index=mi))
+    ctx = styler.format_index({0: "<{}>"}, level=0)._translate(True, True)
+    result = [[cell["display_value"] for cell in row[:2]] for row in ctx["body"]]
+    assert result == [["x", "<p>"], ["y", "<q>"]]
+
+
 def test_relabel_roundtrip(styler):
     styler.relabel_index(["{}", "{}"])
     ctx = styler._translate(True, True)

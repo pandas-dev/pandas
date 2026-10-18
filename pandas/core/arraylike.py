@@ -453,7 +453,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     return result
 
 
-def _standardize_out_kwarg(**kwargs) -> dict:
+def _standardize_out_kwarg(**kwargs) -> dict[str, Any]:
     """
     If kwargs contain "out1" and "out2", replace that with a tuple "out"
 

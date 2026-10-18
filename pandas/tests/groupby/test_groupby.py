@@ -1287,6 +1287,9 @@ def test_groupby_two_group_keys_all_nan():
     df = pd.DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [1, 2]})
     result = df.groupby(["a", "b"]).indices
     assert result == {}
+    # GH#26846: only one key all-NaN
+    result = df.groupby(["a", "c"]).indices
+    assert result == {}
 
 
 def test_groupby_2d_malformed():

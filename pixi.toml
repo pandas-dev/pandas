@@ -278,6 +278,7 @@ cmd = [
   "--ignore=pandas/tests",
   "pandas",
 ]
+default-environment = "doctests"
 
 [tasks.ci-check-import]
 cmd = [
@@ -305,6 +306,7 @@ cmd = [
   "pytest",
   "scripts",
 ]
+default-environment = "doctests"
 
 [tasks.ci-asv]
 cmd = [

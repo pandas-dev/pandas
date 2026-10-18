@@ -87,8 +87,6 @@ class TestPeriodConstruction:
 
         assert i1 == i2
 
-        # GH#54105 - Period can be confusingly instantiated with lowercase freq
-        # TODO: raise in the future an error when passing lowercase freq
         i1 = pd.Period("2005", freq="Y")
         i2 = pd.Period("2005")
 
@@ -518,6 +516,28 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             # not 6 days apart
             pd.Period("2016-01-23/2017-01-29")
+
+    @pytest.mark.parametrize("freq", ["W-SUN", "W-WED"])
+    def test_parse_week_str_second_year_like_time(self, freq):
+        # GH#48000 "2012" in the second date was read as the time 20:12
+        per = pd.Period("2012-01-01", freq=freq)
+        assert pd.Period(str(per)) == per
+        assert pd.Period(str(per), freq="D") == per.asfreq("D", how="end")
+
+    @pytest.mark.parametrize("freq", [None, "W", "D"])
+    def test_parse_week_str_day_not_read_as_offset(self, freq):
+        # the "-09" end day was read as a UTC offset
+        result = pd.Period("2000-01-03/2000-01-09", freq=freq)
+        expected = pd.Period("2000-01-09", freq=freq or "W-SUN")
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "value", ["2000-01-03/2000-01-10", "2011-12-26/2012-01-01 12:00"]
+    )
+    def test_parse_week_str_invalid(self, value):
+        # GH#48000 not 6 days apart, or trailing text after the second date
+        with pytest.raises(ValueError, match="Could not parse as weekly-freq Period"):
+            pd.Period(value)
 
     def test_period_from_ordinal(self):
         p = pd.Period("2011-01", freq="M")
@@ -1397,6 +1417,40 @@ def test_strftime_fiscal_year_lt_1000():
     # GH#58179
     per = pd.Period("0020Q1", freq="Q")
     assert per.strftime("%F-Q%q") == "0020-Q1"
+
+
+@pytest.mark.parametrize(
+    "freq, fmt, expected",
+    [
+        ("D", "%d/%m/%Y", "18/08/0064"),
+        ("D", "%Y%%Y", "0064%Y"),
+        ("D", "%%q", "%q"),
+        # %Y is the calendar year, %F the fiscal year
+        ("Q-JUN", "%Y %F", "0064 0065"),
+    ],
+)
+def test_strftime_year_lt_1000(freq, fmt, expected):
+    # GH#48746
+    per = pd.Period("0064-08-18", freq=freq)
+    assert per.strftime(fmt) == expected
+
+
+def test_strftime_escaped_n_no_warning():
+    # GH#48746 a literal "%%n" is not the deprecated %n directive
+    per = pd.Period("2020-01-01", freq="D")
+    with tm.assert_produces_warning(None):
+        assert per.strftime("%%n") == "%n"
+        result = pd.PeriodIndex([per]).strftime("%Y%%n")
+    tm.assert_index_equal(result, pd.Index(["2020%n"]))
+
+
+def test_strftime_all_nat_skips_format_validation():
+    # GH#48746 the format is only validated once a non-NaT element is formatted
+    result = pd.PeriodIndex([pd.NaT], freq="D").strftime("%Q")
+    assert len(result) == 1
+    assert result.isna().all()
+    with pytest.raises(ValueError, match="Invalid format string"):
+        pd.PeriodIndex(["2020-01-01"], freq="D").strftime("%Q")
 
 
 def test_negone_ordinals():

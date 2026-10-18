@@ -7,6 +7,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+from typing import Any
 
 import numpy as np
 import pytest
@@ -28,7 +29,7 @@ from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 #  either both-sets or both dicts, and the code assumes this is the case.
 #  But the default argument in its __init__ is None, so we have to pass these
 #  explicitly in tests.
-_na_value_kwargs: dict[str, set] = {"na_values": set(), "na_fvalues": set()}
+_na_value_kwargs: dict[str, set[Any]] = {"na_values": set(), "na_fvalues": set()}
 
 
 class TestTextReader:

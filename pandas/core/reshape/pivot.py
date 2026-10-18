@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -577,7 +578,7 @@ def _generate_marginal_results(
     margins_name: Hashable = "All",
     dropna: bool = True,
 ):
-    margin_keys: list | Index
+    margin_keys: list[Hashable] | Index
     if len(cols) > 0:
         # need to "interleave" the margins
         table_pieces = []
@@ -675,7 +676,7 @@ def _generate_marginal_results_without_values(
     margins_name: Hashable = "All",
     dropna: bool = True,
 ):
-    margin_keys: list | Index
+    margin_keys: list[Hashable] | Index
     if len(cols) > 0:
         # need to "interleave" the margins
         margin_keys = []
@@ -901,7 +902,9 @@ def pivot(
     columns_listlike = com.convert_to_list_like(columns)
 
     # GH#35785 without this, downstream label arithmetic raises cryptically.
-    labels_to_check: list[tuple[str, list]] = [("columns", list(columns_listlike))]
+    labels_to_check: list[tuple[str, list[Hashable]]] = [
+        ("columns", list(columns_listlike))
+    ]
     if index is not lib.no_default:
         labels_to_check.append(("index", list(com.convert_to_list_like(index))))
     if values is not lib.no_default and not isinstance(values, tuple):
@@ -963,7 +966,7 @@ def pivot(
             indexed = data._constructor(
                 data[values]._values,
                 index=multiindex,
-                columns=cast("SequenceNotStr", values),
+                columns=cast("SequenceNotStr[Hashable]", values),
             )
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
@@ -1220,7 +1223,7 @@ def _normalize(
 
     if margins is False:
         # Actual Normalizations
-        normalizers: dict[bool | str, Callable] = {
+        normalizers: dict[bool | str, Callable[..., Any]] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
@@ -1295,7 +1298,7 @@ def _normalize(
     return table
 
 
-def _get_names(arrs, names, prefix: str = "row") -> list:
+def _get_names(arrs, names, prefix: str = "row") -> list[Any]:
     if names is None:
         names = []
         for i, arr in enumerate(arrs):

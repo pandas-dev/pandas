@@ -7,6 +7,8 @@ import textwrap
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 
 import pandas.io.formats.format as fmt
@@ -1080,6 +1082,26 @@ def test_to_html_na_rep_non_scalar_data(datapath):
     result = df.to_html(na_rep="-")
     expected = expected_html(datapath, "gh47103_expected_output")
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([1, None], "Int64"),
+        ([1.5, None], "Float64"),
+        ([True, None], "boolean"),
+        (["a", None], "string"),
+        pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ([1, None], object),
+        ([1, pd.NA], object),
+        ([1, pd.NaT], object),
+    ],
+)
+def test_to_html_na_rep_none_and_na(values, dtype):
+    # GH#54872
+    df = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
+    result = df.to_html(na_rep="foo")
+    assert result.count("<td>foo</td>") == 1
 
 
 def test_to_html_float_format_object_col(datapath):

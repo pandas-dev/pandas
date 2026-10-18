@@ -608,6 +608,19 @@ def test_agg_no_column(cases, agg):
         cases[["A", "B"]].agg(**agg)
 
 
+def test_agg_relabel_with_name_match_named_columns():
+    # GH#68000 the result's columns are unnamed whether or not the output name
+    #  matches the column name
+    dti = date_range("2020-01-01", periods=4, freq="D")
+    df = pd.DataFrame({"A": [1, 2, 3, 4]}, index=dti)
+    df.columns.name = "metric"
+
+    result = df.resample("2D").agg(A=("A", "sum"))
+    expected = df.resample("2D").agg(x=("A", "sum"))
+    expected.columns = ["A"]
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "cols, agg",
     [

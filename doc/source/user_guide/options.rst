@@ -145,7 +145,7 @@ An example where the startup folder is in a default IPython profile can be found
   $IPYTHONDIR/profile_default/startup
 
 More information can be found in the `IPython documentation
-<https://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
+<https://ipython.readthedocs.io/en/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
 
 .. code-block:: python
 

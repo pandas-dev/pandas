@@ -300,8 +300,8 @@ def eval(
         .. deprecated:: 3.1.0
 
             This keyword is deprecated and will be removed in pandas 4.0.
-            See `PDEP-8 In-place methods in pandas
-            <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+            See the `whatsnew note on PDEP-8
+            <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
             for more details.
 
     Returns
@@ -363,8 +363,9 @@ def eval(
         # GH#63207
         warnings.warn(
             "The inplace keyword in eval is deprecated and will be removed "
-            "in a future version. See PDEP-8 for more details:"
-            "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+            "in a future version (PDEP-8).\nSee "
+            "https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace"
+            " for more details.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )

@@ -6,6 +6,7 @@ from datetime import (
     UTC,
     datetime,
 )
+import locale
 import re
 
 from dateutil.parser import parse as du_parse
@@ -23,7 +24,6 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.errors import Pandas4Warning
-import pandas.util._test_decorators as td
 
 # Usually we wouldn't want this import in this test file (which is targeted at
 #  tslibs.parsing), but it is convenient to test the Timestamp constructor at
@@ -267,7 +267,6 @@ def test_parsers_month_freq(date_str, expected):
     assert result == expected
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -317,15 +316,15 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    msg = r"when dayfirst=False \(the default\) was specified"
-    with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
-    ):
-        result = parsing.guess_datetime_format(string)
-    assert result == fmt
+    with tm.set_locale("C", locale.LC_TIME):
+        msg = r"when dayfirst=False \(the default\) was specified"
+        with tm.maybe_produces_warning(
+            UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
+        ):
+            result = parsing.guess_datetime_format(string)
+        assert result == fmt
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize("tzname", ["UTC", "GMT"])
 @pytest.mark.parametrize(
     "template, fmt",
@@ -337,19 +336,20 @@ def test_guess_datetime_format_with_parseable_formats(string, fmt):
     ],
 )
 def test_guess_datetime_format_utc_alias(tzname, template, fmt):
-    # GH#68193 the "GMT" spelling used to survive as a literal, so to_datetime
-    #  silently returned a naive result where Timestamp was tz-aware
-    dtstr = template.format(tz=tzname)
-    assert parsing.guess_datetime_format(dtstr) == fmt
+    with tm.set_locale("C", locale.LC_TIME):
+        # GH#68193 the "GMT" spelling used to survive as a literal, so to_datetime
+        #  silently returned a naive result where Timestamp was tz-aware
+        dtstr = template.format(tz=tzname)
+        assert parsing.guess_datetime_format(dtstr) == fmt
 
-    expected = pd.Timestamp("2020-01-15 08:30", tz="UTC")
-    assert pd.Timestamp(dtstr) == expected
-    # the scalar arg shape infers a format too, unlike the Timestamp constructor
-    assert pd.to_datetime(dtstr) == expected
+        expected = pd.Timestamp("2020-01-15 08:30", tz="UTC")
+        assert pd.Timestamp(dtstr) == expected
+        # the scalar arg shape infers a format too, unlike the Timestamp constructor
+        assert pd.to_datetime(dtstr) == expected
 
-    result = pd.to_datetime([dtstr])
-    assert result[0] == expected
-    assert result.tz is UTC
+        result = pd.to_datetime([dtstr])
+        assert result[0] == expected
+        assert result.tz is UTC
 
 
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
@@ -359,7 +359,6 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -369,8 +368,9 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ],
 )
 def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
-    result = parsing.guess_datetime_format(string)
-    assert result == fmt
+    with tm.set_locale("C", locale.LC_TIME):
+        result = parsing.guess_datetime_format(string)
+        assert result == fmt
 
 
 @pytest.mark.parametrize(

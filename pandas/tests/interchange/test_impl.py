@@ -2,6 +2,7 @@ from datetime import (
     UTC,
     datetime,
 )
+from typing import Any
 
 import numpy as np
 import pytest
@@ -529,7 +530,7 @@ def test_non_str_names_w_duplicates():
     ],
 )
 def test_pandas_nullable_with_missing_values(
-    data: list, dtype: str, expected_dtype: str
+    data: list[Any], dtype: str, expected_dtype: str
 ) -> None:
     # https://github.com/pandas-dev/pandas/issues/57643
     # https://github.com/pandas-dev/pandas/issues/57664
@@ -597,7 +598,7 @@ def test_pandas_nullable_with_missing_values(
     ],
 )
 def test_pandas_nullable_without_missing_values(
-    data: list, dtype: str, expected_dtype: str
+    data: list[Any], dtype: str, expected_dtype: str
 ) -> None:
     # https://github.com/pandas-dev/pandas/issues/57643
     pa = pytest.importorskip("pyarrow", "14.0.0")

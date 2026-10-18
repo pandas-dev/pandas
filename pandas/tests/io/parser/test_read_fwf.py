@@ -424,6 +424,17 @@ MyColumn
         read_fwf(StringIO(data), header=header)
 
 
+def test_multi_index_header_not_increasing():
+    # GH#47011
+    data = "a  b\nc  d\ne  f\n1  2\n3  4\n"
+    result = read_fwf(StringIO(data), header=[2, 0])
+    expected = pd.DataFrame(
+        [[1, 2], [3, 4]],
+        columns=pd.MultiIndex.from_arrays([["e", "f"], ["a", "b"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_full_file():
     # File with all values.
     test = """index                             A    B    C

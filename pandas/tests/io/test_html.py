@@ -384,12 +384,11 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @pytest.mark.network
-    @pytest.mark.single_cpu
-    def test_bad_url_protocol(self, httpserver, flavor_read_html):
-        httpserver.serve_content("urlopen error unknown url type: git", code=404)
-        with pytest.raises(URLError, match="urlopen error unknown url type: git"):
-            flavor_read_html("git://github.com", match=".*Water.*")
+    def test_bad_url_protocol(self, flavor_read_html):
+        # GH#46765 schemes urllib cannot open go to fsspec
+        pytest.importorskip("fsspec")
+        with pytest.raises(ValueError, match="Protocol not known: telnet"):
+            flavor_read_html("telnet://github.com", match=".*Water.*")
 
     @pytest.mark.slow
     @pytest.mark.network
@@ -485,6 +484,25 @@ class TestReadHtml:
         )[0]
         assert isinstance(df.index, pd.MultiIndex)
         assert isinstance(df.columns, pd.MultiIndex)
+
+    def test_multiindex_header_not_increasing(self, flavor_read_html):
+        # GH#47011
+        data = """<table>
+            <thead>
+                <tr><th>a</th><th>b</th></tr>
+                <tr><th>c</th><th>d</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>2</td></tr>
+                <tr><td>3</td><td>4</td></tr>
+            </tbody>
+        </table>"""
+        result = flavor_read_html(StringIO(data), header=[1, 0])[0]
+        expected = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays([["c", "d"], ["a", "b"]]),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
     def test_regex_idempotency(self, banklist_data, flavor_read_html):

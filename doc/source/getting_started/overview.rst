@@ -88,7 +88,7 @@ Data structures
     :widths: 15, 20, 50
 
     1, "Series", "1D labeled homogeneously-typed array"
-    2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed column"
+    2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed columns"
 
 Why more than one data structure?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -149,7 +149,7 @@ If you're interested in contributing, please visit the :ref:`contributing guide 
 
 pandas is a `NumFOCUS <https://numfocus.org/sponsored-projects>`__ sponsored project.
 This will help ensure the success of the development of pandas as a world-class open-source
-project and makes it possible to `donate <https://pandas.pydata.org/donate.html>`__ to the project.
+project and makes it possible to `donate <https://opencollective.com/pandas>`__ to the project.
 
 Project governance
 ------------------

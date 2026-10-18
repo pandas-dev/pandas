@@ -1212,7 +1212,7 @@ def mode(
     if res_mask is None:
         res_mask = np.zeros(npresult.shape, dtype=np.bool_)
     else:
-        return npresult, res_mask
+        return _reconstruct_data(npresult, original.dtype, original), res_mask
 
     try:
         npresult = safe_sort(npresult)

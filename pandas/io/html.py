@@ -12,6 +12,7 @@ import re
 from re import Pattern
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -43,7 +44,10 @@ from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
+        Hashable,
         Iterable,
+        Mapping,
         Sequence,
     )
 
@@ -64,7 +68,7 @@ if TYPE_CHECKING:
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s: str, regex: Pattern = _RE_WHITESPACE) -> str:
+def _remove_whitespace(s: str, regex: Pattern[str] = _RE_WHITESPACE) -> str:
     """
     Replace extra whitespace inside of a string with a single space.
 
@@ -202,7 +206,7 @@ class _HtmlFrameParser:
     def __init__(
         self,
         io: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
-        match: str | Pattern,
+        match: str | Pattern[str],
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
@@ -457,9 +461,12 @@ class _HtmlFrameParser:
         self,
         rows,
         section: Literal["header", "footer", "body"],
-        remainder: list[tuple[int, str | tuple, int]] | None = None,
+        remainder: list[tuple[int, str | tuple[str, str | None], int]] | None = None,
         overflow: bool = True,
-    ) -> tuple[list[list], list[tuple[int, str | tuple, int]]]:
+    ) -> tuple[
+        list[list[str | tuple[str, str | None]]],
+        list[tuple[int, str | tuple[str, str | None], int]],
+    ]:
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -489,7 +496,7 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        text: str | tuple
+        text: str | tuple[str, str | None]
         remainder = remainder if remainder is not None else []
 
         for tr in rows:
@@ -1022,7 +1029,7 @@ def _parse(
 def read_html(
     io: FilePath | ReadBuffer[str],
     *,
-    match: str | Pattern = ".+",
+    match: str | Pattern[str] = ".+",
     flavor: HTMLFlavors | Sequence[HTMLFlavors] | None = None,
     header: int | Sequence[int] | None = None,
     index_col: int | Sequence[int] | None = None,
@@ -1032,7 +1039,7 @@ def read_html(
     thousands: str | None = ",",
     encoding: str | None = None,
     decimal: str = ".",
-    converters: dict | None = None,
+    converters: Mapping[Hashable, Callable[..., Any]] | None = None,
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,

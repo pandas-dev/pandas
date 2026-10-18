@@ -124,7 +124,7 @@ consider the following ``DataFrame``:
    df
 
 On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`.
-This method returns a ``pandas.api.typing.DataFrameGroupBy`` instance.
+This method returns a :class:`pandas.api.typing.DataFrameGroupBy` instance.
 We could naturally group by either the ``A`` or ``B`` columns, or both:
 
 .. ipython:: python
@@ -186,7 +186,7 @@ only verifies that you've passed a valid mapping.
 GroupBy sorting
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups. With ``sort=False`` the order among group-keys follows the order of appearance of the keys in the original dataframe:
+By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups; it is also required when the group keys cannot be sorted. With ``sort=False`` the order among group-keys follows the order of appearance of the keys in the original dataframe:
 
 .. ipython:: python
 

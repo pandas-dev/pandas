@@ -114,7 +114,7 @@ if TYPE_CHECKING:
 from pandas.core.arrays.datetimelike import dtype_to_unit
 
 
-class BaseWindow(SelectionMixin):
+class BaseWindow(SelectionMixin["NDFrame"]):
     """Provides utilities for performing windowing operations."""
 
     _attributes: list[str] = []
@@ -322,7 +322,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()

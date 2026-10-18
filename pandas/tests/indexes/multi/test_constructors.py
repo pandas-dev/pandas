@@ -97,6 +97,30 @@ def test_constructor_mismatched_codes_levels(idx):
         pd.MultiIndex(levels=[["a"], ["b"]], codes=[[0, -2], [0, 0]])
 
 
+@pytest.mark.parametrize("bad", [np.nan, 0.5, np.inf])
+@pytest.mark.parametrize("box", [list, np.array, lambda x: np.array(x, dtype=object)])
+def test_constructor_non_integer_codes_raises(bad, box):
+    # GH#26210
+    msg = "MultiIndex codes must be integers"
+    codes = box([bad, 0, 1])
+    with pytest.raises(ValueError, match=msg):
+        pd.MultiIndex(levels=[["B", "A"], ["x"]], codes=[codes, [0, 0, 0]])
+
+    mi = pd.MultiIndex(levels=[["B", "A"], ["x"]], codes=[[0, 0, 1], [0, 0, 0]])
+    with pytest.raises(ValueError, match=msg):
+        mi.set_codes(codes, level=0)
+
+
+def test_constructor_integral_float_codes():
+    # GH#26210 integer-valued float codes are still accepted
+    result = pd.MultiIndex(
+        levels=[["B", "A"], ["x"]], codes=[[-1.0, 0.0, 1.0], [0, 0, 0]]
+    )
+    expected = pd.MultiIndex(levels=[["B", "A"], ["x"]], codes=[[-1, 0, 1], [0, 0, 0]])
+    tm.assert_index_equal(result, expected, exact=True)
+    tm.assert_numpy_array_equal(result.codes[0], expected.codes[0])
+
+
 def test_na_levels():
     # GH26408
     # test if codes are re-assigned value -1 for levels
