@@ -1747,3 +1747,19 @@ def test_replace_list_multiple_unchanged_columns(replace_kwargs):
 
     expected = pd.DataFrame({"a": ["x", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_replace_many_keys_bulk_matches_per_pair(monkeypatch):
+    # GH#6697 2D blocks go through the same single-pass path
+    from pandas.core.internals import blocks as blocks_module
+
+    df = pd.DataFrame({"a": np.arange(400), "b": np.arange(400) * 2})
+    mapping = {i: i + 1000 for i in range(0, 400, 2)}
+
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 10**9)
+    expected = df.replace(mapping)
+
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 1)
+    result = df.replace(mapping)
+
+    tm.assert_frame_equal(result, expected)
