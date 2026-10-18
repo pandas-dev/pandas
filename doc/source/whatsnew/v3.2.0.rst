@@ -126,9 +126,11 @@ Other deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69632`, :issue:`69748`, :issue:`70140`)
+- Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
+- Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
 
 .. ---------------------------------------------------------------------------
@@ -166,6 +168,7 @@ Numeric
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in integer exponentiation (``**``, :meth:`Series.pow`, :meth:`DataFrame.pow`) on large inputs returning imprecise results, ``0`` for negative exponents, or an upcast dtype when numexpr is installed (:issue:`54546`)
+- Fixed bug in :meth:`Series.corr` with ``method="pearson"`` returning an inaccurate result for nearly-constant data, and ``0.0`` instead of ``NaN`` for some constant data (:issue:`59652`)
 
 Conversion
 ^^^^^^^^^^
@@ -242,6 +245,7 @@ I/O
 - Bug in :meth:`DataFrame.to_sql` creating MySQL and MariaDB datetime and time columns that silently dropped fractional seconds (:issue:`48435`)
 - Bug in :meth:`DataFrame.to_stata` raising ``ValueError`` for an empty DataFrame with a categorical column, and :func:`read_stata` not converting the column back to a categorical (:issue:`71126`)
 - Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and :meth:`DataFrame.to_html` ignoring ``na_rep`` for ``None``, ``pd.NA``, and ``NaT`` values in object-dtype columns and an explicit ``na_rep="NaN"`` for any missing value, and in :meth:`DataFrame.to_xml` raising for ``na_rep`` with nullable, pyarrow-backed, or categorical columns containing missing values (:issue:`54872`)
+- Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and their ``repr`` where values or labels containing ANSI color codes were counted toward the column width, misaligning the other rows (:issue:`55122`)
 - Bug in displaying a :class:`Series` or :class:`DataFrame` in IPython with ``display.html.table_schema`` enabled printing a traceback when the data cannot be converted to JSON, such as non-UTF-8 ``bytes`` (:issue:`16848`)
 - Bug in the display of a :class:`MultiIndex` (repr, :meth:`DataFrame.to_string`, :meth:`DataFrame.to_html`, :class:`.Styler`) where distinct labels that display identically (e.g. ``1`` and ``"1"``) were shown as a single label; :meth:`DataFrame.to_excel` merged them into one cell, losing all but the first value (:issue:`10796`)
 - Bug in the repr of a :class:`Series` or :class:`DataFrame` with ``longdouble`` (e.g. ``float128``) dtype showing values outside the ``float64`` range as ``0`` or ``inf`` (:issue:`17809`)
