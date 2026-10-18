@@ -327,6 +327,27 @@ class TestSeriesCumulativeOps:
             expected = pd.Series([-4.0, None, None], dtype="float64[pyarrow]")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "method, exp_dtype",
+        [
+            ("cumsum", "int64[pyarrow]"),
+            ("cumprod", "int64[pyarrow]"),
+            ("cummin", "bool[pyarrow]"),
+            ("cummax", "bool[pyarrow]"),
+        ],
+    )
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_cummethods_pyarrow_bool(self, method, exp_dtype, skipna):
+        # GH#71106
+        pytest.importorskip("pyarrow")
+        values = [True, False, None, True]
+        ser = pd.Series(values, dtype="bool[pyarrow]")
+
+        result = getattr(ser, method)(skipna=skipna)
+        masked = getattr(pd.Series(values, dtype="boolean"), method)(skipna=skipna)
+        expected = masked.astype(exp_dtype)
+        tm.assert_series_equal(result, expected)
+
 
 def test_td64_cumsum_overflow():
     # GH#66551: a running total leaving int64 bounds used to wrap silently

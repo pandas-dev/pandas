@@ -69,6 +69,7 @@ def test_is_numeric_dtype(data):
         pa.types.is_floating(pa_type)
         or pa.types.is_integer(pa_type)
         or pa.types.is_decimal(pa_type)
+        or pa.types.is_boolean(pa_type)
     ):
         assert is_numeric_dtype(data)
     else:

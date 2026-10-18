@@ -465,6 +465,15 @@ def test_interpolate_not_numeric(data):
             pd.Series(data).interpolate()
 
 
+@pytest.mark.parametrize("dtype", ["bool[pyarrow]", "boolean"])
+def test_interpolate_bool_not_implemented(dtype):
+    # GH#71106
+    ser = pd.Series([True, None, False], dtype=dtype)
+    msg = f"interpolate is not implemented for dtype={dtype}"
+    with pytest.raises(NotImplementedError, match=re.escape(msg)):
+        ser.interpolate()
+
+
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
     # GH#65345 results should match the masked (e.g. Int64) dtypes:
