@@ -1923,6 +1923,21 @@ class TestAsOfMerge:
         with pytest.raises(MergeError, match="can only asof on a key for left"):
             pd.merge_asof(trades, quotes, by="ticker")
 
+    def test_valid_join_keys_one_sided_categorical(self):
+        # GH#58517 only the right key is categorical, so the categorical-specific
+        #  message does not apply and the generic one is used
+        left = pd.DataFrame({"time": [1, 2, 3], "k": ["a", "b", "c"], "lv": [1, 2, 3]})
+        right = pd.DataFrame(
+            {
+                "time": [1, 2, 3],
+                "k": pd.Categorical(["a", "b", "c"]),
+                "rv": [4, 5, 6],
+            }
+        )
+        msg = r"incompatible merge keys \[0\] .* must be the same type"
+        with pytest.raises(MergeError, match=msg):
+            pd.merge_asof(left, right, on="time", by="k")
+
     def test_with_duplicates(self, datapath, trades, quotes, asof):
         q = (
             pd.concat([quotes, quotes])
@@ -3681,3 +3696,24 @@ def test_merge_asof_multiby_with_categorical():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"left_index": True}, {"left_on": "t"}])
+@pytest.mark.parametrize("by", [None, "k"])
+def test_merge_asof_empty_left_keeps_left_index(kwargs, by):
+    # GH#41171
+    left = pd.DataFrame(
+        {
+            "k": pd.Series([], dtype="str"),
+            "t": pd.Series([], dtype="M8[us, UTC]"),
+        },
+        index=pd.DatetimeIndex([], dtype="M8[us, UTC]", name="time"),
+    )
+    if "left_on" in kwargs:
+        left.index = pd.Index([], dtype="int64", name="lkey")
+    right = pd.DataFrame(
+        {"k": ["a", "a"], "v": [1.5, 2.5]},
+        index=pd.date_range("2020-01-01", periods=2, tz="UTC", unit="us"),
+    )
+    result = pd.merge_asof(left, right, right_index=True, by=by, **kwargs)
+    tm.assert_index_equal(result.index, left.index)

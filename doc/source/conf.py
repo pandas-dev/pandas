@@ -131,6 +131,7 @@ from signature_overrides import apply_signature_overrides
 
 extensions = [
     "contributors",  # custom pandas extension
+    "rst_list_indentation",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
@@ -173,6 +174,9 @@ else:
 # (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
+if pattern:
+    # Sphinx uses "/"-separated docnames, see GH#26574
+    pattern = pattern.replace(os.sep, "/")
 single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
 include_api = pattern is None or pattern == "whatsnew"
 if pattern:
@@ -181,6 +185,7 @@ if pattern:
         for fname in fnames:
             if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
                 rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+                rel_fname = rel_fname.replace(os.sep, "/")
 
                 if rel_fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
@@ -193,8 +198,6 @@ if pattern:
                 ):
                     exclude_patterns.append(rel_fname)
                 elif single_doc and rel_fname != pattern:
-                    if "\\" in rel_fname:
-                        rel_fname = rel_fname.replace("\\", "/")
                     exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
@@ -208,6 +211,7 @@ with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     )
 autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
+maximum_signature_line_length = 88
 
 # numpydoc
 numpydoc_show_class_members = False
@@ -215,15 +219,6 @@ numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 numpydoc_validation_checks = {"all"}
 numpydoc_validation_exclude = {
-    # Jinja2 Styler template attributes (docstrings not owned by pandas)
-    r"pandas\.io\.formats\.style\.Styler\.env$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_style$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_table$",
-    r"pandas\.io\.formats\.style\.Styler\.template_latex$",
-    r"pandas\.io\.formats\.style\.Styler\.template_typst$",
-    r"pandas\.io\.formats\.style\.Styler\.template_string$",
-    r"pandas\.io\.formats\.style\.Styler\.loader$",
     # Error/warning classes with no numpydoc-style docstrings
     r"pandas\.errors\.InvalidComparison$",
     r"pandas\.errors\.LossySetitemError$",
@@ -384,6 +379,8 @@ numpydoc_validation_exclude = {
     r"pandas\.ExcelWriter\.supported_extensions$",
     # ExcelFile
     r"pandas\.ExcelFile\.close$",
+    # Styler class attributes, documented by one-line #: comments
+    r"pandas\.io\.formats\.style\.Styler\.(env|loader|template_\w+)$",
     # Index attributes and methods processed by autodoc but not in api.rst
     r"pandas\.Index\.nlevels$",
     r"pandas\.Index\.diff$",
@@ -395,34 +392,14 @@ numpydoc_validation_exclude = {
     # Series attributes processed by autodoc but not in api.rst
     r"pandas\.Series\.axes$",
     r"pandas\.Series\.transpose$",
-    # DatetimeIndex properties whose docstrings are inherited (GL08)
-    r"pandas\.DatetimeIndex\.year$",
-    r"pandas\.DatetimeIndex\.month$",
-    r"pandas\.DatetimeIndex\.day$",
-    r"pandas\.DatetimeIndex\.hour$",
-    r"pandas\.DatetimeIndex\.minute$",
-    r"pandas\.DatetimeIndex\.second$",
-    r"pandas\.DatetimeIndex\.microsecond$",
-    r"pandas\.DatetimeIndex\.nanosecond$",
-    r"pandas\.DatetimeIndex\.dayofyear$",
-    r"pandas\.DatetimeIndex\.day_of_year$",
-    r"pandas\.DatetimeIndex\.dayofweek$",
-    r"pandas\.DatetimeIndex\.day_of_week$",
-    r"pandas\.DatetimeIndex\.weekday$",
-    r"pandas\.DatetimeIndex\.quarter$",
-    r"pandas\.DatetimeIndex\.is_month_start$",
-    r"pandas\.DatetimeIndex\.is_month_end$",
-    r"pandas\.DatetimeIndex\.is_quarter_start$",
-    r"pandas\.DatetimeIndex\.is_quarter_end$",
-    r"pandas\.DatetimeIndex\.is_year_start$",
-    r"pandas\.DatetimeIndex\.is_year_end$",
-    r"pandas\.DatetimeIndex\.is_leap_year$",
-    # Deprecated aliases (GH#46768)
+    # Deprecated aliases (GH#46768): no See Also/Examples by design
     r"pandas\.Timestamp\.dayofweek$",
     r"pandas\.Timestamp\.dayofyear$",
     r"pandas\.Timestamp\.daysinmonth$",
     r"pandas\.Period\.dayofweek$",
     r"pandas\.Period\.dayofyear$",
+    r"pandas\.DatetimeIndex\.dayofweek$",
+    r"pandas\.DatetimeIndex\.dayofyear$",
     r"pandas\.DatetimeIndex\.daysinmonth$",
     r"pandas\.PeriodIndex\.dayofweek$",
     r"pandas\.PeriodIndex\.dayofyear$",
@@ -432,11 +409,15 @@ numpydoc_validation_exclude = {
     r"pandas\.Series\.dt\.daysinmonth$",
     # Deprecated weekday property (GH#12816)
     r"pandas\.Period\.weekday$",
+    r"pandas\.DatetimeIndex\.weekday$",
     r"pandas\.PeriodIndex\.weekday$",
     r"pandas\.Series\.dt\.weekday$",
-    # Relaxed-rules class page (GH#63084): not instantiated by users, so
-    # the constructor parameters are not documented (PR01)
+    # Relaxed-rules class pages (GH#63084, GH#19302): not instantiated by
+    # users, so the constructor parameters are not documented (PR01), and
+    # See Also needs the pandas. prefix to link from pandas.api.typing (SA05)
     r"pandas\.api\.typing\.Expression$",
+    r"pandas\.api\.typing\.DataFrameGroupBy$",
+    r"pandas\.api\.typing\.SeriesGroupBy$",
 }
 
 # matplotlib plot directive
@@ -1070,11 +1051,37 @@ def rstjinja(app, docname, source) -> None:
     source[0] = rendered
 
 
+def resolve_pandas_toplevel_xref(app, env, node, contnode):
+    """
+    Retry an unresolved ``py`` reference with a ``pandas.`` prefix.
+
+    numpydoc emits "See Also" entries like ``DataFrame.pipe`` as unqualified
+    references, which Sphinx fails to resolve on pages whose current module is
+    not ``pandas`` (e.g. ``pandas.api.typing``), see GH#31661.
+    """
+    if node.get("refdomain") != "py":
+        return None
+    target = node.get("reftarget", "")
+    if not target or target.startswith("pandas."):
+        return None
+    py_domain = env.get_domain("py")
+    return py_domain.resolve_xref(
+        env,
+        node.get("refdoc"),
+        app.builder,
+        node.get("reftype", "obj"),
+        f"pandas.{target}",
+        node,
+        contnode,
+    )
+
+
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
+    app.connect("missing-reference", resolve_pandas_toplevel_xref)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)

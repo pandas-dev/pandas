@@ -137,9 +137,10 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas.io.common import mangle_dupe_names
 
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
@@ -203,8 +204,9 @@ cdef extern from "pandas/parser/tokenizer.h":
         BLHM_SKIP
 
     ctypedef char* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
-                                  int *status, const char *encoding_errors)
-    ctypedef void (*io_cleanup)(void *src)
+                                  int *status,
+                                  const char *encoding_errors) noexcept nogil
+    ctypedef void (*io_cleanup)(void *src) noexcept nogil
 
     ctypedef struct parser_t:
         void *source
@@ -227,7 +229,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         int64_t *word_ends
         uint64_t words_len
         uint64_t words_cap
-        uint64_t max_words_cap   # maximum word cap encountered
+        uint64_t max_words_needed  # most word slots any reservation needed
 
         int64_t word_start       # position start of current field
 
@@ -315,7 +317,8 @@ cdef extern from "pandas/parser/pd_parser.h":
     void del_rd_source(void *src) nogil
 
     char* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status, const char *encoding_errors)
+                          size_t *bytes_read, int *status,
+                          const char *encoding_errors) nogil
 
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
@@ -370,7 +373,7 @@ cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
 
 cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    size_t *bytes_read, int *status,
-                                   const char *encoding_errors) noexcept:
+                                   const char *encoding_errors) noexcept nogil:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
 cdef void del_rd_source_wrapper(void *src) noexcept nogil:
@@ -578,11 +581,15 @@ cdef class TextReader:
 
         if len(decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
+        if ord(decimal) > 127:
+            raise ValueError("Only ASCII decimal markers supported")
         self.parser.decimal = <char>ord(decimal)
 
         if thousands is not None:
             if len(thousands) != 1:
                 raise ValueError("Only length-1 thousands markers supported")
+            if ord(thousands) > 127:
+                raise ValueError("Only ASCII thousands markers supported")
             self.parser.thousands = <char>ord(thousands)
 
         if escapechar is not None:
@@ -702,7 +709,7 @@ cdef class TextReader:
                     # need to artificially skip the final line
                     # which is still a header line
                     header = list(header)
-                    header.append(header[-1] + 1)
+                    header.append(max(header) + 1)
                     self.parser.header_end = header[-1]
                     self.has_mi_columns = 1
                 else:
@@ -869,13 +876,15 @@ cdef class TextReader:
 
         if self.parser.header_start >= 0:
 
-            # Header is in the file
+            # Header is in the file. Tokenize in file order, so the rows exempt
+            # from the field-count check do not depend on header order (GH#47011)
+            for hr in sorted(prelim_header):
+                if self.parser.lines < hr + 1:
+                    self._tokenize_rows(hr + 2)
+
             for level, hr in enumerate(prelim_header):
 
                 this_header = []
-
-                if self.parser.lines < hr + 1:
-                    self._tokenize_rows(hr + 2)
 
                 if self.parser.lines == 0:
                     field_count = 0
@@ -921,37 +930,9 @@ cdef class TextReader:
                     this_header.append(name)
 
                 if not self.has_mi_columns:
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
-                    col_loop_order = [i for i in range(len(this_header))
-                                      if i not in unnamed_col_indices
-                                      ] + unnamed_col_indices
-                    counts = {}
-
-                    for i in col_loop_order:
-                        col = this_header[i]
-                        old_col = col
-                        cur_count = counts.get(col, 0)
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_header:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts.get(col, 0)
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-
-                        this_header[i] = col
-                        counts[col] = cur_count + 1
+                    this_header = mangle_dupe_names(
+                        this_header, unnamed_col_indices, self.dtype
+                    )
 
                 if self.has_mi_columns:
 
@@ -1491,7 +1472,10 @@ cdef class TextReader:
                     st.offset_limit = _STR_OFFSET_LIMIT
                     nstr += 1
                     continue
-                mask = np.zeros(lines, dtype=np.bool_)
+                # not np.zeros: its calloc releases the GIL, a contended
+                # re-acquire per column when many workers run.  Zeroed in
+                # the nogil sweep below.
+                mask = np.empty(lines, dtype=np.bool_)
                 st.na_mask = <uint8_t *>mask.data
                 if kind == BLOCK_KIND_INT64:
                     arr = np.empty(lines, dtype=np.int64)
@@ -1507,8 +1491,9 @@ cdef class TextReader:
             with nogil:
                 for k in range(n):
                     st = &states[k]
-                    if st.kind == BLOCK_KIND_STRING and _str_col_alloc(
-                            st, parser, start, lines):
+                    if st.kind != BLOCK_KIND_STRING:
+                        memset(st.na_mask, 0, lines)
+                    elif _str_col_alloc(st, parser, start, lines):
                         error = 1
                         break
                 blk = start
@@ -1683,6 +1668,19 @@ cdef class TextReader:
                         f"{col_dtype} for {np.bool_} dtyped data in "
                         f"column {i} due to NA values"
                     )
+
+            if col_res.dtype == object and col_dtype.kind in "iuf":
+                # GH#59299 name the token our converters rejected; the cast below
+                # uses float()/int(), which ignore `decimal` and `thousands`.
+                bad_token = _first_unparseable_token(
+                    self.parser, i, start, end, na_filter, na_hashset,
+                    col_dtype.kind == "f", self.encoding_errors)
+                if bad_token is not None:
+                    if col_dtype.kind == "f":
+                        raise ValueError(
+                            f"could not convert string to float: {bad_token!r}")
+                    raise ValueError(
+                        f"invalid literal for int() with base 10: {bad_token!r}")
 
             # only allow safe casts, eg. with a nan you cannot safely cast to int
             try:
@@ -3002,9 +3000,9 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                         fallback = True
                         break
 
-                if fixed_ok:
-                    out_local = 0
-                else:
+                # parse_iso_8601_datetime only sets out_local on some paths
+                out_local = 0
+                if not fixed_ok:
                     ret = parse_iso_8601_datetime(
                         word, <int>word_len, 0,
                         &dts, &out_bestunit, &out_local, &out_tzoffset,
@@ -3820,6 +3818,50 @@ cdef int _probe_bool_flex(parser_t *parser, int64_t col,
     return 0
 
 
+# -> str | None
+cdef _first_unparseable_token(parser_t *parser, int64_t col,
+                              int64_t line_start, int64_t line_end,
+                              bint na_filter,
+                              const kh_str_starts_t *na_hashset,
+                              bint is_float, const char *encoding_errors):
+    """
+    The first token in the column that the numeric converters reject, decoded,
+    or None if every token is parseable.
+    """
+    cdef:
+        int error
+        coliter_t it
+        const char *word = NULL
+        c_int64_t token_idx = 0
+        int64_t word_len
+        char *p_end
+        float64_t value
+
+    coliter_setup(&it, parser, col, line_start)
+    for _ in range(line_end - line_start):
+        word = coliter_next_with_idx(&it, &token_idx)
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
+            continue
+        error = 0
+        if is_float:
+            parser.double_converter(word, &p_end, parser.decimal,
+                                    parser.sci, parser.thousands,
+                                    1, &error, NULL, word + word_len)
+            if error == 0 and p_end != word and p_end == word + word_len:
+                continue
+            if parse_special_float(word, word_len, &value) == 0:
+                continue
+        else:
+            str_to_int64(word, word_len, &error, parser.thousands)
+            # A token that only overflows int64 is still a valid integer; keep scanning.
+            if error == 0 or error == ERROR_OVERFLOW:
+                continue
+        return PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+    return None
+
+
 # -> tuple[ndarray[float64_t], int, ndarray[bool]] | tuple[None, None, None]
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
@@ -4497,9 +4539,9 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _sanitize_converted(ndarray[object] values, set na_set):
-    # GH#13302: na_values match the converter's output, as in the python
-    # engine. Unlike sanitize_objects this tolerates unhashable output, which
-    # only a converter can produce.
+    # GH#13302, GH#56848: na_values match the converter's output. Both
+    # _sanitize_converted and sanitize_objects tolerate unhashable output,
+    # which converters can produce.
     cdef:
         Py_ssize_t i
         object val
@@ -4550,17 +4592,24 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
 
     for i in range(n):
         val = values[i]
-        if val in na_values:
-            values[i] = onan
-            na_count += 1
-        elif val in bool_set:
-            # GH60088: Skip memoization
-            # since 1 == 1.0 == True == np.True_
-            # and 0 == 0.0 == False == np.False_
-            values[i] = val
-        elif val in memo:
-            values[i] = memo[val]
-        else:
-            memo[val] = val
+        if type(val).__hash__ is None:
+            # GH#56848: unhashable output from converters cannot
+            # match na_values or be memoized
+            continue
+        try:
+            if val in na_values:
+                values[i] = onan
+                na_count += 1
+            elif val in bool_set:
+                # GH60088: Skip memoization
+                # since 1 == 1.0 == True == np.True_
+                # and 0 == 0.0 == False == np.False_
+                values[i] = val
+            elif val in memo:
+                values[i] = memo[val]
+            else:
+                memo[val] = val
+        except TypeError:
+            pass
 
     return na_count

@@ -144,7 +144,7 @@ class TestJoin:
         tm.assert_index_equal(inner, expected)
 
         left = index.join(other, how="left")
-        tm.assert_index_equal(left, index.astype(object))
+        tm.assert_index_equal(left, index)
 
         left2 = other.join(index, how="left")
         tm.assert_index_equal(left2, other)
@@ -153,7 +153,7 @@ class TestJoin:
         tm.assert_index_equal(right, other)
 
         right2 = other.join(index, how="right")
-        tm.assert_index_equal(right2, index.astype(object))
+        tm.assert_index_equal(right2, index)
 
     def test_join_non_unique(self):
         index = pd.RangeIndex(start=0, stop=20, step=2)

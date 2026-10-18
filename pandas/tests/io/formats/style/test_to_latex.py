@@ -1084,3 +1084,15 @@ def test_empty_clines(columns, expected: str, clines: str):
     df = pd.DataFrame(columns=columns)
     result = df.style.to_latex(clines=clines)
     assert result == expected
+
+
+@pytest.mark.parametrize("option", ["max_rows", "max_columns", "max_elements"])
+def test_render_trimming_options_ignored(df_ext, option):
+    # GH#68310
+    styler = df_ext.style.map(lambda v: "textbf:--rwrap;" if v == "de" else "")
+    styler.concat(df_ext.agg(["sum"]).style)
+    expected = styler.to_latex()
+    with pd.option_context(f"styler.render.{option}", 1):
+        result = styler.to_latex()
+    assert result == expected
+    assert "\\textbf{de}" in result

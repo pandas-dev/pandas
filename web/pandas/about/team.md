@@ -4,7 +4,7 @@
 
 _pandas_ is made with love by more than [2,000 volunteer contributors](https://github.com/pandas-dev/pandas/graphs/contributors).
 
-If you want to support pandas development, you can find information in the [donations page]({{ base_url }}donate.html).
+If you want to support pandas development, you can find information on the [donate page](https://opencollective.com/pandas).
 
 ## Active maintainers
 

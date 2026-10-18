@@ -1166,9 +1166,6 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         is_frame = self._selected_obj.ndim == 2
         if update_times is not None:
             raise NotImplementedError("update_times is not implemented.")
-        update_deltas = np.ones(
-            max(self._selected_obj.shape[-1] - 1, 0), dtype=np.float64
-        )
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
@@ -1191,6 +1188,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             else:
                 result_kwargs["name"] = self._selected_obj.name
             np_array = self._selected_obj.astype(np.float64).to_numpy()
+        update_deltas = np.ones(max(len(np_array) - 1, 0), dtype=np.float64)
         ewma_func = generate_online_numba_ewma_func(
             **get_jit_arguments(self.engine_kwargs)
         )

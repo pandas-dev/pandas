@@ -399,6 +399,37 @@ class TestDataFrameToDict:
                     "b": [float, str, float],
                 },
             ),
+            (  # GH#29824
+                {
+                    "a": pd.Series(
+                        [datetime(2018, 1, 1), datetime(2018, 1, 2)], dtype=object
+                    ),
+                    "b": [1, 2],
+                },
+                {"a": [datetime, datetime], "b": [int, int]},
+            ),
+            (  # GH#29824 all-object frame
+                {
+                    "a": pd.Series(
+                        [datetime(2018, 1, 1), datetime(2018, 1, 2)], dtype=object
+                    ),
+                },
+                {"a": [datetime, datetime]},
+            ),
+            (  # GH#27616
+                {
+                    "a": [np.complex128(1 + 2j), 3j],
+                    "b": [np.complex64(1j), "x"],
+                    "c": [np.bool_(True), "y"],
+                    "d": pd.Categorical([1 + 2j, 3j]),
+                },
+                {
+                    "a": [complex, complex],
+                    "b": [complex, str],
+                    "c": [bool, str],
+                    "d": [complex, complex],
+                },
+            ),
         ),
     )
     def test_to_dict_returns_native_types(self, orient, data, expected_types):
@@ -546,3 +577,26 @@ def test_to_dict_list_pd_scalars(val):
     result = df.to_dict(orient="list")
     expected = {"a": [val]}
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "orient, expected",
+    [
+        ("split", {"index": ["A", "B"], "columns": [], "data": [[], []]}),
+        (
+            "tight",
+            {
+                "index": ["A", "B"],
+                "columns": [],
+                "data": [[], []],
+                "index_names": [None],
+                "column_names": [None],
+            },
+        ),
+        ("records", [{}, {}]),
+    ],
+)
+def test_to_dict_no_columns(orient, expected):
+    # GH#25408
+    df = pd.DataFrame(index=["A", "B"])
+    assert df.to_dict(orient=orient) == expected
