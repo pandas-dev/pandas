@@ -200,8 +200,11 @@ class HTMLFormatter:
         rs = rs.replace("  ", "&nbsp;&nbsp;")
 
         if self.render_links and is_url(rs):
-            rs_unescaped = pprint_thing(s, escape_chars={}).strip()
-            start_tag += f'<a href="{rs_unescaped}" target="_blank">'
+            # GH#66080: escape the URL for the href attribute so that quotes
+            # and ampersands cannot break out of the attribute
+            href_esc = {**esc, '"': "&quot;"} if self.escape else esc
+            rs_href = pprint_thing(s, escape_chars=href_esc).strip()
+            start_tag += f'<a href="{rs_href}" target="_blank">'
             end_a = "</a>"
         else:
             end_a = ""
