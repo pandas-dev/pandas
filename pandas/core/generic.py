@@ -81,6 +81,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -9139,7 +9140,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            lower, upper = min(lower, upper), max(lower, upper)
+            dtypes = set(self._mgr.get_dtypes())
+            dtype = dtypes.pop() if len(dtypes) == 1 else None
+            if isinstance(dtype, CategoricalDtype) and dtype.ordered:
+                # GH#49217 order by category position, not by value
+                pos = dtype.categories.get_indexer([lower, upper])
+                if pos.min() >= 0 and pos[0] > pos[1]:
+                    lower, upper = upper, lower
+            else:
+                lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
@@ -10536,16 +10545,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True, extract_range=True)
+            if (
+                self.ndim == 1
+                and is_list_like(other)
+                # a dict is keyed and a set unordered, so neither lines up by position
+                and not isinstance(other, (np.ndarray, ExtensionArray, set, frozenset))
+                and not is_dict_like(other)
+                # outside numeric and bool dtypes a tuple is one element, as
+                #  for object dtype (GH#37681)
+                and (
+                    not isinstance(other, tuple)
+                    or is_numeric_dtype(self.dtype)
+                    or is_bool_dtype(self.dtype)
+                )
+            ):
+                # GH#63842 line up a list against the mask like an ndarray
+                other = common.asarray_tuplesafe(other)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
+            if self.ndim == 1 and other.ndim == 1 and len(other) == 1:
+                # broadcast like a scalar (GH#2745, GH#4192)
+                other = other.repeat(len(self))
+
             if other.shape != self.shape:
                 if self.ndim != 1:
-                    # In the ndim == 1 case we may have
-                    #  other length 1, which we treat as scalar (GH#2745, GH#4192)
-                    #  or len(other) == icond.sum(), which we treat like
-                    #  __setitem__ (GH#3235)
                     raise ValueError(
                         "other must be the same shape as self when an ndarray"
+                    )
+                if other.ndim == 1 and not (inplace and len(other) == cond.sum()):
+                    # inplace with one value per selected position is treated
+                    #  like __setitem__ (GH#3235)
+                    raise ValueError(
+                        f"Length of values ({len(other)}) does not match length "
+                        f"of index ({len(self)})"
                     )
 
             # we are the same shape, so create an actual object for alignment
