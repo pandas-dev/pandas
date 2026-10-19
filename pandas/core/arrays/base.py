@@ -610,6 +610,16 @@ class ExtensionArray:
             # attribute "any"
             return (item == self).any()  # type: ignore[union-attr]
 
+    def __getstate__(self) -> object:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170.
+        state = super().__getstate__()
+        if isinstance(state, dict) and "_cache" in state:
+            state = {key: val for key, val in state.items() if key != "_cache"}
+            # object.__getstate__ gives None for an empty __dict__
+            state = state or None
+        return state
+
     # error: Signature of "__eq__" incompatible with supertype "object"
     def __eq__(self, other: object) -> ArrayLike:  # type: ignore[override]
         """
