@@ -489,14 +489,19 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype, expected",
-    [(">i8", "Int64"), (">f4", "Float32"), (">c16", "complex128")],
-)
-def test_array_inference_non_native_byteorder(dtype, expected):
+@pytest.mark.parametrize("dtype", [">i8", ">f4"])
+def test_array_inference_non_native_byteorder_raises(dtype):
+    # GH#53234 previously a KeyError
+    with pytest.raises(ValueError, match="Non-native byte order is not supported"):
+        pd.array(np.array([1, 2], dtype=dtype))
+
+
+def test_array_inference_non_native_byteorder_complex_deprecated():
     # GH#53234
-    result = pd.array(np.array([1, 2], dtype=dtype))
-    tm.assert_extension_array_equal(result, pd.array([1, 2], dtype=expected))
+    arr = np.array([1, 2], dtype=">c16")
+    with tm.assert_produces_warning(Pandas4Warning, match="non-native byte order"):
+        result = pd.array(arr)
+    tm.assert_numpy_array_equal(result.to_numpy(), arr)
 
 
 @pytest.mark.parametrize("data", [np.array(0)])

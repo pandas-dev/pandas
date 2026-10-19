@@ -164,6 +164,7 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
     warn_compound_dtype,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import (
     disallow_ndim_indexing,
@@ -618,15 +619,12 @@ class Index(IndexOpsMixin, PandasObject):
         if data.ndim > 1:
             # GH#13601, GH#20285, GH#27125
             raise ValueError("Index data must be 1-dimensional")
-
-        if isinstance(data, np.ndarray) and not data.dtype.isnative:
-            # GH#53234 the cython routines only accept native byteorder
-            data = data.astype(data.dtype.newbyteorder("="))
-            dtype = data.dtype
-
-        if dtype == np.float16:
+        elif dtype == np.float16:
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
+        if isinstance(data, np.ndarray):
+            warn_non_native_byteorder(data)
+
         if copy:
             # asarray_tuplesafe does not always copy underlying data,
             #  so need to make sure that this happens

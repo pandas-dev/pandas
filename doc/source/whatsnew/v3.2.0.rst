@@ -97,7 +97,6 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
 - :class:`ExtensionArray` now implements ``__array_function__``. Code expecting :func:`numpy.concatenate` or :func:`numpy.delete` to return a NumPy array for :class:`ExtensionArray` input, including ``_concat_same_type`` and ``delete`` implementations in :class:`ExtensionArray` subclasses, may need updating, as may code mixing an :class:`ExtensionArray` with another library's ``__array_function__`` arrays (:issue:`26380`)
-- :class:`DataFrame`, :class:`Index`, :class:`Series` and :func:`array` now convert numeric data with non-native byte order (e.g. ``">f4"`` on a little-endian machine) to native byte order, including through :meth:`DataFrame.astype`, :meth:`Index.astype` and :meth:`Series.astype`. Previously the byte order was kept, and many operations, such as :meth:`Index.get_indexer`, :meth:`Series.unique` and groupby and window aggregations, raised ``ValueError: Big-endian buffer not supported on little-endian compiler`` (:issue:`53234`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
 - :meth:`.Styler.to_excel` now omits the rows, columns, index and header levels, and names hidden with :meth:`.Styler.hide`, matching the other :class:`.Styler` output methods; hiding the whole index with :class:`MultiIndex` columns now raises ``NotImplementedError``, as ``index=False`` does (:issue:`42276`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
@@ -128,6 +127,7 @@ Other deprecations
 - Deprecated :meth:`DatetimeIndex.snap`; for non-fixed offsets use the offset's ``rollback`` and ``rollforward`` methods. For fixed frequencies ``snap`` returns the values unchanged; use :meth:`DatetimeIndex.round` if rounding was intended (:issue:`27098`)
 - Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, ``cummax``, ``clip``, and the comparisons ``<``, ``<=``, ``>``, ``>=`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`, :issue:`70087`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated constructing :class:`DataFrame`, :class:`Index` and :class:`Series` (including via ``astype``) from numeric data with non-native byte order (e.g. ``">f4"`` on a little-endian machine); this will raise in a future version. Convert with ``arr.astype(arr.dtype.newbyteorder("="))`` first (:issue:`53234`)
 - Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a list-like ``name`` to :meth:`Index.copy`; pass the label itself instead (:issue:`19171`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
@@ -202,6 +202,7 @@ Conversion
 ^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
+- Bug in :func:`array`, :func:`factorize` and :func:`unique` with NumPy arrays of non-native byte order raising an unclear error, or for ``datetime64`` and ``timedelta64`` in :func:`factorize` and :func:`unique` returning incorrect values; these now raise a clear ``ValueError`` (:issue:`53234`)
 - Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
 - Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting integer and boolean columns when the equal values were only in rows dropped from the result (:issue:`39899`)
 - Bug in :meth:`DataFrame.from_records` not dropping the ``exclude`` and ``index`` columns when all of their labels were falsy, such as ``0`` (:issue:`18679`)
