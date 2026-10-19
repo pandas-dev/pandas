@@ -227,6 +227,7 @@ MultiIndex
 
 I/O
 ^^^
+- Fixed bug in :func:`read_csv` where passing a ``dtype`` dict with integer keys that are out of range as positional column indices (e.g. all-negative keys like ``{-10: "float64"}``) raised ``IndexError`` instead of treating the keys as column names (:issue:`57944`)
 - Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
 - Bug in :func:`read_csv` silently misparsing non-ASCII ``thousands`` and ``decimal`` markers with the C engine; these now fall back to the Python engine with a :class:`errors.ParserWarning`, or raise ``ValueError`` if ``engine="c"`` is explicitly specified (:issue:`71158`)
 - Bug in :func:`read_csv` where a ``dtype`` given for a ``parse_dates`` column undid the date parsing, returning strings, objects, integers or categories instead of datetimes (:issue:`57512`)

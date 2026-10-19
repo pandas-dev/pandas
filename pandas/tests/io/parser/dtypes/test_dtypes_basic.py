@@ -1103,3 +1103,40 @@ def test_wrap_object_columns_only_wraps_object():
     result = wrap_object_columns({"a": ints, "b": strings}, dtype, pd.RangeIndex(2))
     assert result["a"] is ints
     tm.assert_series_equal(result["b"], pd.Series(strings, dtype=object))
+
+
+def test_dtype_dict_negative_int_keys_no_index_error(all_parsers):
+    # GH#57944 read_csv raises IndexError when the dtype dict uses integer
+    # keys of the same sign (e.g. all negative) that fall outside the valid
+    # positional range of orig_names.
+    parser = all_parsers
+    # Use integer data so float64 dtype_spec is a meaningful assertion
+    data = "-10,-9,-8,-7,-6\n1,2,3,4,5\n6,7,8,9,10\n"
+    dtype_spec = {-10: "float64", -9: "float64", -8: "float64"}
+    result = parser.read_csv(StringIO(data), dtype=dtype_spec)
+    # Verify the dtype was actually applied, not just that no error occurred
+    assert result["-10"].dtype == "float64", result["-10"].dtype
+    assert result["-9"].dtype == "float64", result["-9"].dtype
+    assert result["-8"].dtype == "float64", result["-8"].dtype
+    expected = pd.DataFrame(
+        {
+            "-10": [1.0, 6.0],
+            "-9": [2.0, 7.0],
+            "-8": [3.0, 8.0],
+            "-7": [4, 9],
+            "-6": [5, 10],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_int_keys_matching_string_colnames(all_parsers):
+    # GH#57944 integer dtype keys that are out of positional range but match
+    # a column name when converted to string (e.g. column "-10" with key -10).
+    # With a 2-column CSV, -10 is outside [-2, 2) so it is not a valid index,
+    # but str(-10) == "-10" matches the column name and the dtype should apply.
+    parser = all_parsers
+    data = "-10,-9\n1,2\n"
+    result = parser.read_csv(StringIO(data), dtype={-10: "float64", -9: "float64"})
+    assert result["-10"].dtype == "float64", result["-10"].dtype
+    assert result["-9"].dtype == "float64", result["-9"].dtype
