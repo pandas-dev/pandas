@@ -1505,7 +1505,7 @@ def test_get_locs_list_like_na_in_object_container():
     #  dtype; the NA still has to be recognized and matched to the -1 codes
     idx = pd.MultiIndex(
         levels=[pd.Index(["a", "b"]), pd.Index([1.1, 2.2])],
-        codes=[[0, 0, 1], [0, -1, 0]],
+        codes=[[1, 1, 0], [0, -1, 0]],
     )
     # the key order puts the 1.1 rows ahead of the NA row
     result = idx.get_locs((slice(None), [1.1, pd.NA]))
