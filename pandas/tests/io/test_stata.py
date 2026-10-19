@@ -806,7 +806,7 @@ class TestStata:
                 "2004-12-31",  # leap, day 365 → must clamp to week 51
             ]
         )
-        df = pd.DataFrame({"d": dates})
+        df = DataFrame({"d": dates})
         path = temp_file
         df.to_stata(path, convert_dates={"d": "tw"}, write_index=False)
 
@@ -825,8 +825,6 @@ class TestStata:
         assert back.iloc[3] == back.iloc[4] == back.iloc[5]
         # 2001-12-31 must differ from 2002-01-01
         assert back.iloc[1] != back.iloc[2]
-
-
 
     def test_write_missing_strings(self, temp_file):
         original = DataFrame([["1"], [None]], columns=["foo"])
