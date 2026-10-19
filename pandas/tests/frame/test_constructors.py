@@ -2561,6 +2561,7 @@ class TestDataFrameConstructors:
         with tm.assert_produces_warning(None):
             pd.DataFrame([[1, 2], [3, 4]])
 
+<<<<<<< HEAD
     @pytest.mark.parametrize(
         "first_row",
         [
@@ -2578,6 +2579,8 @@ class TestDataFrameConstructors:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             pd.DataFrame([first_row, str_row])
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]
         exp = pd.Series(items).astype("category")

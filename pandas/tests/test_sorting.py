@@ -682,6 +682,7 @@ def test_safe_sort_multiindex():
         [pd.Series([1, 2, pd.NA, pd.NA], dtype="Int64"), [1, 2, 3, 3]]
     )
     tm.assert_index_equal(result, expected)
+<<<<<<< HEAD
 
 
 @pytest.mark.parametrize(
@@ -696,3 +697,5 @@ def test_safe_sort_tuples_mixed_with_str(values, expected):
     #  without the DataFrame constructor's deprecation warning
     result = safe_sort(np.array(values, dtype=object))
     tm.assert_numpy_array_equal(result, np.array(expected, dtype=object))
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))

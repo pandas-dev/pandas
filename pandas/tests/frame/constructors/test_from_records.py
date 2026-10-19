@@ -623,6 +623,7 @@ class TestFromRecords:
         result = pd.DataFrame.from_records(dict_data)
         expected = pd.DataFrame([[1], [2]], columns=pd.Index([missing_value]))
         tm.assert_frame_equal(result, expected)
+<<<<<<< HEAD
 
     def test_from_records_listlike_then_str_deprecated(self):
         # GH#50461 the str record is split into characters
@@ -643,3 +644,5 @@ class TestFromRecords:
         result = pd.DataFrame.from_records([(1, 2.5), rec[0]])
         expected = pd.DataFrame([[1, 2.5], [3, 4.5]])
         tm.assert_frame_equal(result, expected)
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))

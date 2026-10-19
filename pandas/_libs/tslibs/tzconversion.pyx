@@ -50,11 +50,17 @@ from pandas._libs.portable cimport (
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
+<<<<<<< HEAD
     get_zoneinfo_twin,
     is_fixed_offset,
     is_tzlocal,
     is_utc,
     is_zoneinfo,
+=======
+    is_fixed_offset,
+    is_tzlocal,
+    is_utc,
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 )
 
 
@@ -97,6 +103,7 @@ cdef class Localizer:
         elif is_tzlocal(tz):
             self.use_tzinfo_api = True
 
+<<<<<<< HEAD
         elif is_zoneinfo(tz) and get_zoneinfo_twin(tz) is None:
             # GH#64379 no pure-python twin (e.g. ZoneInfo.from_file): put
             #  last_trans below every value so all take the tzinfo-API arm.
@@ -106,6 +113,8 @@ cdef class Localizer:
             self.has_tz_rule = True
             self.last_trans = NPY_NAT
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
         else:
             trans, deltas, typ, has_tz_rule = get_dst_info(tz)
             if creso != NPY_DATETIMEUNIT.NPY_FR_ns:
@@ -170,7 +179,11 @@ cdef class Localizer:
         elif self.use_tzinfo_api or (
             self.use_zoneinfo
             and self.has_tz_rule
+<<<<<<< HEAD
             and (self.tdata == NULL or utc_val > self.last_trans)
+=======
+            and utc_val > self.last_trans
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
         ):
             delta = _tz_localize_using_tzinfo_api(
                 utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
@@ -473,6 +486,7 @@ timedelta-like}
                     # nonexistent times
                     new_local = val - remaining_mins - 1
 
+<<<<<<< HEAD
                 # GH#64379 a no-twin zone has no transition table at all, so it
                 #  takes this arm unconditionally; last_trans alone would let
                 #  new_local == NPY_NAT fall through to a NULL bisect below.
@@ -480,6 +494,12 @@ timedelta-like}
                     info.use_zoneinfo
                     and info.has_tz_rule
                     and (info.tdata == NULL or new_local > info.last_trans)
+=======
+                if (
+                    info.use_zoneinfo
+                    and info.has_tz_rule
+                    and new_local > info.last_trans
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
                 ):
                     if shift_forward or shift_delta > 0:
                         delta = _tz_localize_using_tzinfo_api(
@@ -663,10 +683,17 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
 
             # GH#65733 a candidate that wrapped int64 fails the round-trip below
             #  and leaves both bounds NaT, which the caller reads as "nonexistent
+<<<<<<< HEAD
             #  time" instead of raising OutOfBoundsDatetime.  GH#64379 landing
             #  exactly on the NaT sentinel is an underflow too, and a no-twin
             #  zone takes this arm at every value, so it can reach it.
             if checked_sub(val, delta0, &v_left) or v_left == NPY_NAT:
+=======
+            #  time" instead of raising OutOfBoundsDatetime.  The cached path's
+            #  NPY_NAT check is not needed here: this branch only runs for
+            #  val > last_trans, which is always far above the sentinel.
+            if checked_sub(val, delta0, &v_left):
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
                 status_left = BS_UNDERFLOW if delta0 > 0 else BS_OVERFLOW
             else:
                 status_left = BS_OK
@@ -676,7 +703,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 if local0 == val:
                     result_a[i] = v_left
 
+<<<<<<< HEAD
             if checked_sub(val, delta1, &v_right) or v_right == NPY_NAT:
+=======
+            if checked_sub(val, delta1, &v_right):
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
                 status_right = BS_UNDERFLOW if delta1 > 0 else BS_OVERFLOW
             else:
                 status_right = BS_OK

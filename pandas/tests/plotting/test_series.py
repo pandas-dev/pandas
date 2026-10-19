@@ -635,6 +635,7 @@ class TestSeriesPlots:
         mpl.pyplot.close()
 
     @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
+<<<<<<< HEAD
     @pytest.mark.parametrize(
         "data",
         [
@@ -646,11 +647,16 @@ class TestSeriesPlots:
     )
     def test_invalid_plot_data(self, kind, data):
         s = pd.Series(data)
+=======
+    def test_invalid_plot_data(self, kind):
+        s = pd.Series(list("abcd"))
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
         _, ax = mpl.pyplot.subplots()
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             s.plot(kind=kind, ax=ax)
 
+<<<<<<< HEAD
     @pytest.mark.parametrize("dtype", ["category", object])
     @pytest.mark.parametrize("values", [[1, 2, 4, 2, 4], list("abcbc")])
     def test_plot_categorical_index(self, dtype, values):
@@ -666,6 +672,8 @@ class TestSeriesPlots:
         ]
         assert labeled == [(i, str(val)) for i, val in enumerate(values)]
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
     def test_valid_object_plot(self, kind):
         pytest.importorskip("scipy")

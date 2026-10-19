@@ -2393,6 +2393,7 @@ class TestTSPlot:
         # must not blow up while locating ticks
         ax.get_figure().canvas.draw()
 
+<<<<<<< HEAD
     @pytest.mark.parametrize("bar_first", [True, False])
     def test_bar_and_line_plot_same_index_aligned(self, bar_first):
         # GH#10761 - bars and a line over the same DatetimeIndex share the
@@ -2417,6 +2418,8 @@ class TestTSPlot:
         line_x = ax.get_lines()[0].get_xydata()[:, 0]
         tm.assert_numpy_array_equal(bar_centers, line_x)
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     @pytest.mark.parametrize(
         "bar_freq, line_freq", [("W", "D"), ("ME", "D"), ("D", "h")]
     )

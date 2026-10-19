@@ -795,11 +795,11 @@ class RoundTo:
     .. [3] "Rounding up"
            https://en.wikipedia.org/wiki/Rounding#Rounding_up
     .. [4] "Round half up"
-           https://en.wikipedia.org/wiki/Rounding#Rounding_half_up
+           https://en.wikipedia.org/wiki/Rounding#Round_half_up
     .. [5] "Round half down"
-           https://en.wikipedia.org/wiki/Rounding#Rounding_half_down
+           https://en.wikipedia.org/wiki/Rounding#Round_half_down
     .. [6] "Round half to even"
-           https://en.wikipedia.org/wiki/Rounding#Rounding_half_to_even
+           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
     """
     @property
     def MINUS_INFTY(self) -> int:

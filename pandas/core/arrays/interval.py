@@ -681,6 +681,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
+<<<<<<< HEAD
     def __reduce__(self) -> tuple[Any, ...]:
         # Don't pickle the cache, whose contents depend on access history,
         #  GH#49170. Keep the cython reconstructor so these load in older pandas.
@@ -688,6 +689,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         attrs = {key: val for key, val in self.__dict__.items() if key != "_cache"}
         return reduced[0], reduced[1], (attrs,)
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     @overload
     def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 

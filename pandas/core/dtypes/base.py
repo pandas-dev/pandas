@@ -172,6 +172,7 @@ class ExtensionDtype:
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
+<<<<<<< HEAD
     def __getstate__(self) -> object:
         # Don't pickle the cache, whose contents depend on access history,
         #  GH#49170.
@@ -182,6 +183,8 @@ class ExtensionDtype:
             state = state or None
         return state
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     @property
     def na_value(self) -> object:
         """

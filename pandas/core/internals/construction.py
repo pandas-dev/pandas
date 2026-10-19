@@ -831,11 +831,14 @@ def to_arrays(
     elif isinstance(data[0], ABCSeries):
         return _list_of_series_to_arrays(data, columns, dtype)
     else:
+<<<<<<< HEAD
         # a str first row is split without warning, e.g. from_records(["ab", "cd"])
         has_str_rows = not is_scalar(data[0]) and _warn_if_str_rows(
             set(map(type, data))
         )
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
@@ -858,21 +861,30 @@ def to_arrays(
             return arrays, columns
 
         data = [tuple(x) for x in data]
+<<<<<<< HEAD
         arr = _list_to_arrays(data, check_ragged=not has_str_rows)
+=======
+        arr = _list_to_arrays(data)
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 
     content, columns = _finalize_columns_and_data(arr, columns, dtype)
     return content, columns
 
 
+<<<<<<< HEAD
 def _list_to_arrays(
     data: list[tuple[Any, ...] | list[Any]], check_ragged: bool = True
 ) -> np.ndarray:
+=======
+def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
 
     # GH#65751 shorter sequences get padded with NaN out to the longest one,
     #  which is deprecated.  A null scalar counts as length 1, mirroring the
     #  handling in lib.to_object_array_tuples.
+<<<<<<< HEAD
     row_types = set(map(type, data))
     if all(issubclass(typ, (list, tuple)) for typ in row_types):
         lengths = set(map(len, data))
@@ -881,6 +893,10 @@ def _list_to_arrays(
             check_ragged = False
         lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
     if check_ragged and len(lengths) > 1:
+=======
+    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    if len(lengths) > 1:
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
         warnings.warn(
             "Constructing a DataFrame from a list of sequences with mismatched "
             "lengths is deprecated and will raise in a future version. The "
@@ -898,6 +914,7 @@ def _list_to_arrays(
     return content
 
 
+<<<<<<< HEAD
 def _warn_if_str_rows(row_types: set[type]) -> bool:
     # GH#50461 called when the first row is list-like. Returns whether a str or
     #  bytes row was found, in which case the caller skips the mismatched-lengths
@@ -914,6 +931,8 @@ def _warn_if_str_rows(row_types: set[type]) -> bool:
     return True
 
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 def _list_of_series_to_arrays(
     data: list[Any],
     columns: Index | None,

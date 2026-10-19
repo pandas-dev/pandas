@@ -35,7 +35,11 @@ import numpy.typing as npt
 
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types
+<<<<<<< HEAD
 # https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles
+=======
+# https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 
 # Note that Union is needed when a Union includes a pandas type
 

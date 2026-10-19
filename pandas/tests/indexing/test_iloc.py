@@ -619,6 +619,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
+<<<<<<< HEAD
     @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
     def test_iloc_setitem_reversed_slice_column_indexer_referenced_block(self, dtype):
         # GH#65446 a slice column indexer takes the cross product with the
@@ -694,6 +695,8 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):

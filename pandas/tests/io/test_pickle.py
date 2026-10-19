@@ -535,6 +535,7 @@ def test_pickle_timeseries_periodindex(temp_file):
 
 
 @pytest.mark.parametrize(
+<<<<<<< HEAD
     "constructor, populate_cache",
     [
         (lambda: pd.Series([1, 2], index=pd.to_datetime(["2014", "2021"])), repr),
@@ -556,6 +557,8 @@ def test_pickle_excludes_cached_properties(constructor, populate_cache):
 
 
 @pytest.mark.parametrize(
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name, temp_file):

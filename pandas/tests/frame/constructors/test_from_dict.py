@@ -239,6 +239,7 @@ class TestFromDict:
         with pytest.raises(ValueError, match=msg):
             pd.DataFrame.from_dict({"b": 8, "a": 6})
 
+<<<<<<< HEAD
     @pytest.mark.parametrize("value, row", [("BC", ["B", "C"]), ("B", ["B", None])])
     def test_from_dict_orient_index_list_then_str_deprecated(self, value, row):
         # GH#50461 the str value is split into characters; a length mismatch
@@ -252,6 +253,8 @@ class TestFromDict:
         expected = pd.DataFrame([["A1", "A2"], row], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     def test_from_dict_orient_invalid(self):
         msg = (
             "Expected 'index', 'columns' or 'tight' for orient parameter. "

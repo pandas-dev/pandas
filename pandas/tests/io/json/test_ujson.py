@@ -1237,6 +1237,7 @@ def _deeply_nested():
     return outer
 
 
+<<<<<<< HEAD
 def _traced_growth(func, n):
     # tracemalloc is process-wide, so count only blocks allocated from this
     # file (which is where it attributes the C encoder's allocations); other
@@ -1253,6 +1254,8 @@ def _traced_growth(func, n):
     return sum(stat.size_diff for stat in after.compare_to(before, "filename"))
 
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 @pytest.mark.parametrize(
     "bad, error",
     [
@@ -1269,12 +1272,25 @@ def test_encode_failure_frees_grown_buffer(bad, error):
     # with. The buffer is allocated with PyObject_Malloc, so tracemalloc sees
     # it; a leak here would be ~50 * 256 KiB.
     payload = ["x" * 1000] * 200 + [bad]
+<<<<<<< HEAD
 
     def dumps():
         with pytest.raises(error):
             ujson.ujson_dumps(payload)
 
     assert _traced_growth(dumps, 50) < 100_000
+=======
+    tracemalloc.start()
+    before = tracemalloc.take_snapshot()
+    for _ in range(50):
+        with pytest.raises(error):
+            ujson.ujson_dumps(payload)
+    after = tracemalloc.take_snapshot()
+    tracemalloc.stop()
+
+    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+    assert grew < 100_000
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 
 
 def test_to_json_bad_label_frees_values():
@@ -1375,6 +1391,17 @@ def test_to_json_datetime64_scalar_frees_dtype():
     # stands out against the allocations the loop itself makes.
     payload = [np.datetime64("2020-01-01T00:00:00", "s")]
 
+<<<<<<< HEAD
     grew = _traced_growth(lambda: ujson.ujson_dumps(payload, iso_dates=True), 20_000)
+=======
+    tracemalloc.start()
+    before = tracemalloc.take_snapshot()
+    for _ in range(20_000):
+        ujson.ujson_dumps(payload, iso_dates=True)
+    after = tracemalloc.take_snapshot()
+    tracemalloc.stop()
+
+    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     # a leak here would be ~3.2 MiB over this loop
     assert grew < 1_000_000

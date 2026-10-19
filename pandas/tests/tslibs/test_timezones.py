@@ -4,9 +4,12 @@ from datetime import (
     timedelta,
     timezone,
 )
+<<<<<<< HEAD
 import importlib.resources
 import io
 from pathlib import Path
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 import struct
 import subprocess
 import sys
@@ -25,7 +28,10 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+<<<<<<< HEAD
 from pandas.errors import OutOfBoundsDatetime
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 
 import pandas as pd
 import pandas._testing as tm
@@ -466,6 +472,7 @@ def test_normalize_pytz_timezone():
         assert result == expected
 
 
+<<<<<<< HEAD
 def _tzdata_bytes(key):
     """
     Read the installed tzdata file for the given IANA key.
@@ -627,6 +634,8 @@ def test_zoneinfo_from_file_timedelta_shift_onto_nat_sentinel():
     assert result.asi8.tolist() == [expected, expected]
 
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
 def _write_big_bang_tzif(path):
     """
     Write a TZif file opening with the -2**59 "big bang" transition, as zic

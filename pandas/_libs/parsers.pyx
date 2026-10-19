@@ -2255,7 +2255,7 @@ cdef class TextReader:
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
 # which causes a class attribute lookup and violates best practices
-# https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-methods-dealloc-and-del
+# https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
     reader.is_closed = True
     # Drop the pre-loaded buffer reference deterministically so the caller

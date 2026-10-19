@@ -1908,10 +1908,14 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     from pandas.core.internals.construction import to_arrays
     from pandas.core.sorting import lexsort_indexer
 
+<<<<<<< HEAD
     # a str or bytes element is ordered as the tuple of its elements
     arrays, _ = to_arrays(
         [tuple(x) if isinstance(x, (str, bytes)) else x for x in values], None
     )
+=======
+    arrays, _ = to_arrays(values, None)
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
 

@@ -620,6 +620,7 @@ class ExtensionArray:
             # attribute "any"
             return (item == self).any()  # type: ignore[union-attr]
 
+<<<<<<< HEAD
     def __getstate__(self) -> object:
         # Don't pickle the cache, whose contents depend on access history,
         #  GH#49170.
@@ -630,6 +631,8 @@ class ExtensionArray:
             state = state or None
         return state
 
+=======
+>>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
     # error: Signature of "__eq__" incompatible with supertype "object"
     def __eq__(self, other: object) -> ArrayLike:  # type: ignore[override]
         """
