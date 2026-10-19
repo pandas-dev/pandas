@@ -127,4 +127,3 @@ def test_nlargest_nsmallest_as_index_false(method, expected_values, expected_ind
     result = getattr(df.groupby("A", as_index=False)["B"], method)()
     expected = pd.Series(expected_values, index=expected_index, name="B")
     tm.assert_series_equal(result, expected)
-    
