@@ -168,3 +168,12 @@ class TestIndexRendering:
         result = repr(pd.Index(arr))
         expected = f"Index([(1+2j), (NaN-1j), (1+NaNj)], dtype='{dtype}')"
         assert result == expected
+
+    def test_index_repr_escapes_non_printable(self, using_infer_string):
+        # GH#14579
+        idx = pd.Index(["a b", "a\xa0b"], name="x\u200b")
+        result = repr(idx)
+        dtype = "str" if using_infer_string else "object"
+        expected = f"Index(['a b', 'a\\xa0b'], dtype='{dtype}', name='x\\u200b')"
+        assert result == expected
+        tm.assert_index_equal(eval(result, dict(vars(pd))), idx)
