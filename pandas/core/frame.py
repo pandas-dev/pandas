@@ -132,6 +132,7 @@ from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
@@ -4174,7 +4175,6 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
                 from pandas.core.arrays.arrow.array import (
-                    ArrowExtensionArray,
                     transpose_homogeneous_pyarrow,
                 )
 
@@ -17122,6 +17122,22 @@ class DataFrame(NDFrame, OpsMixin):
                     arr = concat_compat(list(df._iter_column_arrays()))
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
+                    if name in ("sum", "prod", "min", "max"):
+                        masked = arr
+                        if isinstance(dtype, ArrowDtype) and (
+                            dtype.kind in "iub"
+                            or dtype.numpy_dtype in (np.float32, np.float64)
+                        ):
+                            assert isinstance(arr, ArrowExtensionArray)
+                            masked = arr._to_masked()
+                        if isinstance(masked, BaseMaskedArray):
+                            # arr is the column-major flattened frame
+                            res_values = masked.reshape(ncols, nrows)._reduce(
+                                name, axis=0, skipna=skipna, **kwds
+                            )
+                            if isinstance(arr, ArrowExtensionArray):
+                                res_values = arr._groupby_result_to_arrow(res_values)
+                            return Series(res_values, index=df.index)
                     row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     if name in ("idxmin", "idxmax"):
                         if not skipna and arr.isna().any():
