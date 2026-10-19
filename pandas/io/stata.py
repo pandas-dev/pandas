@@ -382,10 +382,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     elif fmt in ["%tw", "tw"]:
         d = parse_dates_safe(dates, year=True, days=True)
         # Stata's %tw week is 0-indexed and a year always has exactly 52 weeks
-        # (numbered 0-51).  Days 364+ (Dec 30/31 in a non-leap year, and
-        # Dec 28-31 in a leap year) must be clamped to week 51 so they remain
-        # in the current year rather than overflowing into week 0 of year+1.
-        # Without the clamp, 2001-12-31 is stored as 2184, which decodes as
+        # (numbered 0-51).  Days 364+ (Dec 31 in a non-leap year, Dec 30-31 in
+        # a leap year) yield 364 // 7 = 52, overflowing into week 0 of year+1.
+        # Without the clamp, 2001-12-31 is stored as 2184, the same value as
         # 2002-01-01.  GH#71280
         conv_dates = 52 * (d.year - stata_epoch.year) + np.minimum(
             d.days // 7, 51
