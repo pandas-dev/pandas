@@ -2391,12 +2391,12 @@ def test_occurrence_rank(codes, expected):
     tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
 
 
-@pytest.mark.parametrize("dtype", [">i8", ">u2", ">f4", ">c16"])
-def test_ndarray_non_native_byteorder(dtype):
-    # GH#53234 raw ndarrays skip the constructors' byteorder conversion
+@pytest.mark.parametrize("dtype", [">i8", ">u2", ">f4", ">c16", ">M8[s]", ">m8[s]"])
+def test_ndarray_non_native_byteorder_raises(dtype):
+    # GH#53234 datetimelike used to give byteswapped garbage
     arr = np.array([3, 1, 3, 2], dtype=dtype)
-
-    tm.assert_numpy_array_equal(pd.unique(arr), np.array([3, 1, 2], dtype=dtype))
-    codes, uniques = pd.factorize(arr)
-    tm.assert_numpy_array_equal(codes, np.array([0, 1, 0, 2], dtype=np.intp))
-    tm.assert_numpy_array_equal(uniques, np.array([3, 1, 2], dtype=dtype))
+    msg = "Non-native byte order is not supported"
+    with pytest.raises(ValueError, match=msg):
+        pd.unique(arr)
+    with pytest.raises(ValueError, match=msg):
+        pd.factorize(arr)
