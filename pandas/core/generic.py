@@ -81,6 +81,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -233,6 +234,31 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
+
+
+def _fill_bool_ea_na(cond):
+    """
+    Treat NA in a nullable boolean `where`/`mask` condition as False.
+
+    This matches boolean indexing (GH#35429). It must happen before `mask`
+    inverts the condition, so it cannot be left to `_where`.
+    """
+
+    def is_bool_ea(dtype) -> bool:
+        return isinstance(dtype, ExtensionDtype) and dtype.kind == "b"
+
+    if isinstance(cond, ABCDataFrame):
+        if not any(is_bool_ea(dtype) for dtype in cond._blk_dtypes):
+            return cond
+        cond = cond.copy(deep=False)
+        for loc, dtype in enumerate(cond._mgr.get_dtypes()):
+            if is_bool_ea(dtype):
+                cond.isetitem(loc, cond.iloc[:, loc].fillna(False))
+        return cond
+    # cond may also be an ndarray or list, which pass through unchanged
+    if is_bool_ea(getattr(cond, "dtype", None)):
+        return cond.fillna(False)
+    return cond
 
 
 class NDFrame(PandasObject, indexing.IndexingMixin):
@@ -601,13 +627,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _get_index_resolvers(self) -> dict[Hashable, Series | MultiIndex]:
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import clean_resolvers
 
         d: dict[str, Series | MultiIndex] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
-        return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
+        return clean_resolvers((k, v) for k, v in d.items() if not isinstance(k, int))
 
     @final
     def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series | DataFrame]:
@@ -618,12 +644,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         be referred to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import (
+            clean_column_name,
+            clean_resolvers,
+        )
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
-        return {clean_column_name(k): self[k] for k in self.columns}
+        return clean_resolvers((k, self[k]) for k in self.columns)
 
     @final
     @property
@@ -2101,7 +2130,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if config["display"]["html"]["table_schema"]:
             data = self.head(config["display"]["max_rows"])
 
-            as_json = data.to_json(orient="table")
+            try:
+                as_json = data.to_json(orient="table")
+            except (TypeError, ValueError, OverflowError) as err:
+                # IPython skips a mimetype quietly only on NotImplementedError,
+                # see GH#16848
+                raise NotImplementedError(
+                    "Cannot represent this object as a table schema"
+                ) from err
             as_json = cast("str", as_json)
             return loads(as_json, object_pairs_hook=collections.OrderedDict)
 
@@ -2319,31 +2355,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             * Series:
 
-                - default is 'index'
-                - allowed values are: {'split', 'records', 'index', 'table'}.
-                - the format of the JSON string:
+              - default is 'index'
+              - allowed values are: {'split', 'records', 'index', 'table'}.
+              - the format of the JSON string:
 
-                  - 'split' : dict like {'name' -> name, 'index' -> [index],
-                    'data' -> [values]}
-                  - 'records' : list like [value, ... , value]; the index
-                    labels and the Series name are not included
-                  - 'index' : dict like {index -> value}
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                - 'split' : dict like {'name' -> name, 'index' -> [index],
+                  'data' -> [values]}
+                - 'records' : list like [value, ... , value]; the index
+                  labels and the Series name are not included
+                - 'index' : dict like {index -> value}
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             * DataFrame:
 
-                - default is 'columns'
-                - allowed values are: {'split', 'records', 'index', 'columns',
-                  'values', 'table'}.
-                - the format of the JSON string:
+              - default is 'columns'
+              - allowed values are: {'split', 'records', 'index', 'columns',
+                'values', 'table'}.
+              - the format of the JSON string:
 
-                  - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                    'data' -> [values]}
-                  - 'records' : list like [{column -> value}, ... , {column -> value}]
-                  - 'index' : dict like {index -> {column -> value}}
-                  - 'columns' : dict like {column -> {index -> value}}
-                  - 'values' : just the values array
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}
+                - 'records' : list like [{column -> value}, ... , {column -> value}]
+                - 'index' : dict like {index -> {column -> value}}
+                - 'columns' : dict like {column -> {index -> value}}
+                - 'values' : just the values array
+                - 'table' : dict like {'schema': {schema}, 'data': {data}}
 
             For ``orient='table'``, the data component is like ``orient='records'``.
 
@@ -3225,9 +3261,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         Requirements for your platform.
 
-          - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
-          - Windows : none
-          - macOS : none
+        - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
+        - Windows : none
+        - macOS : none
 
         This method uses the processes developed for the package `pyperclip`. A
         solution to render any output string format is given in the examples.
@@ -7213,6 +7249,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area
             ).T
+            if inplace:
+                self._update_inplace(result)
+                return self
 
             return result
 
@@ -7708,52 +7747,52 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             * numeric, str or regex:
 
-                - numeric: numeric values equal to `to_replace` will be
-                  replaced with `value`
-                - str: string exactly matching `to_replace` will be replaced
-                  with `value`
-                - regex: regexes matching `to_replace` will be replaced with
-                  `value`
+              - numeric: numeric values equal to `to_replace` will be
+                replaced with `value`
+              - str: string exactly matching `to_replace` will be replaced
+                with `value`
+              - regex: regexes matching `to_replace` will be replaced with
+                `value`
 
             * list of str, regex, or numeric:
 
-                - First, if `to_replace` and `value` are both lists, they
-                  **must** be the same length.
-                - Second, if ``regex=True`` then all of the strings in **both**
-                  lists will be interpreted as regexes otherwise they will match
-                  directly. This doesn't matter much for `value` since there
-                  are only a few possible substitution regexes you can use.
-                - str, regex and numeric rules apply as above.
+              - First, if `to_replace` and `value` are both lists, they
+                **must** be the same length.
+              - Second, if ``regex=True`` then all of the strings in **both**
+                lists will be interpreted as regexes otherwise they will match
+                directly. This doesn't matter much for `value` since there
+                are only a few possible substitution regexes you can use.
+              - str, regex and numeric rules apply as above.
 
             * dict:
 
-                - Dicts can be used to specify different replacement values
-                  for different existing values. For example,
-                  ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
-                  'y' with 'z'. To use a dict in this way, the optional `value`
-                  parameter should not be given.
-                - For a DataFrame a dict can specify that different values
-                  should be replaced in different columns. For example,
-                  ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
-                  and the value 'z' in column 'b' and replaces these values
-                  with whatever is specified in `value`. The `value` parameter
-                  should not be ``None`` in this case. You can treat this as a
-                  special case of passing two lists except that you are
-                  specifying the column to search in.
-                - For a DataFrame nested dictionaries, e.g.,
-                  ``{'a': {'b': np.nan}}``, are read as follows: look in column
-                  'a' for the value 'b' and replace it with NaN. The optional `value`
-                  parameter should not be specified to use a nested dict in this
-                  way. You can nest regular expressions as well. Note that
-                  column names (the top-level dictionary keys in a nested
-                  dictionary) **cannot** be regular expressions.
+              - Dicts can be used to specify different replacement values
+                for different existing values. For example,
+                ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
+                'y' with 'z'. To use a dict in this way, the optional `value`
+                parameter should not be given.
+              - For a DataFrame a dict can specify that different values
+                should be replaced in different columns. For example,
+                ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
+                and the value 'z' in column 'b' and replaces these values
+                with whatever is specified in `value`. The `value` parameter
+                should not be ``None`` in this case. You can treat this as a
+                special case of passing two lists except that you are
+                specifying the column to search in.
+              - For a DataFrame nested dictionaries, e.g.,
+                ``{'a': {'b': np.nan}}``, are read as follows: look in column
+                'a' for the value 'b' and replace it with NaN. The optional `value`
+                parameter should not be specified to use a nested dict in this
+                way. You can nest regular expressions as well. Note that
+                column names (the top-level dictionary keys in a nested
+                dictionary) **cannot** be regular expressions.
 
             * None:
 
-                - This means that the `regex` argument must be a string,
-                  compiled regular expression, or list, dict, ndarray or
-                  Series of such elements. If `value` is also ``None`` then
-                  this **must** be a nested dictionary or Series.
+              - This means that the `regex` argument must be a string,
+                compiled regular expression, or list, dict, ndarray or
+                Series of such elements. If `value` is also ``None`` then
+                this **must** be a nested dictionary or Series.
 
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
@@ -9101,7 +9140,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            lower, upper = min(lower, upper), max(lower, upper)
+            dtypes = set(self._mgr.get_dtypes())
+            dtype = dtypes.pop() if len(dtypes) == 1 else None
+            if isinstance(dtype, CategoricalDtype) and dtype.ordered:
+                # GH#49217 order by category position, not by value
+                pos = dtype.categories.get_indexer([lower, upper])
+                if pos.min() >= 0 and pos[0] > pos[1]:
+                    lower, upper = upper, lower
+            else:
+                lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
@@ -9982,19 +10029,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mask = ~((self == other) | (self.isna() & other.isna()))  # type: ignore[operator]
         mask.fillna(True, inplace=True)
 
-        if not keep_equal:
-            self = self.where(mask)
-            other = other.where(mask)
-
+        # drop rows/columns before masking so that values in dropped
+        # positions do not force an upcast, see GH#39899
         if not keep_shape:
             if isinstance(self, ABCDataFrame):
                 cmask = mask.any()
                 rmask = mask.any(axis=1)
                 self = self.loc[rmask, cmask]
                 other = other.loc[rmask, cmask]
+                mask = mask.loc[rmask, cmask]
             else:
                 self = self[mask]
                 other = other[mask]
+                mask = mask[mask]
+
+        if not keep_equal:
+            self = self.where(mask)
+            other = other.where(mask)
+
         if not isinstance(result_names, tuple):
             raise TypeError(
                 f"Passing 'result_names' as a {type(result_names)} is not "
@@ -10562,6 +10614,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is True, keep the original value. Where
             False, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10708,6 +10762,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
 
@@ -10733,6 +10788,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is False, keep the original value. Where
             True, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10879,7 +10936,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
-        cond = common.apply_if_callable(cond, self)
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
 
         # see gh-21891

@@ -1890,13 +1890,13 @@ fall back in the following manner:
 * if an object is unsupported it will attempt the following:
 
 
-    - check if the object has defined a ``toDict`` method and call it.
-      A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
+  - check if the object has defined a ``toDict`` method and call it.
+    A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
 
-    - invoke the ``default_handler`` if one was provided.
+  - invoke the ``default_handler`` if one was provided.
 
-    - convert the object to a ``dict`` by traversing its contents. However this will often fail
-      with an ``OverflowError`` or give unexpected results.
+  - convert the object to a ``dict`` by traversing its contents. However this will often fail
+    with an ``OverflowError`` or give unexpected results.
 
 In general the best approach for unsupported objects or dtypes is to provide a ``default_handler``.
 For example:
@@ -2287,13 +2287,13 @@ A few notes on the generated table schema:
 
 * The default naming roughly follows these rules:
 
-    - For series, the ``object.name`` is used. If that's none, then the
-      name is ``values``
-    - For ``DataFrames``, the stringified version of the column name is used
-    - For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
-      fallback to ``index`` if that is None.
-    - For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
-      then ``level_<i>`` is used.
+  - For series, the ``object.name`` is used. If that's none, then the
+    name is ``values``
+  - For ``DataFrames``, the stringified version of the column name is used
+  - For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    fallback to ``index`` if that is None.
+  - For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    then ``level_<i>`` is used.
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
@@ -2695,22 +2695,22 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    - |lxml|_ is very fast.
+  - |lxml|_ is very fast.
 
-    - |lxml|_ requires Cython to install correctly.
+  - |lxml|_ requires Cython to install correctly.
 
 * Drawbacks
 
-    - |lxml|_ does *not* make any guarantees about the results of its parse
-      *unless* it is given |svm|_.
+  - |lxml|_ does *not* make any guarantees about the results of its parse
+    *unless* it is given |svm|_.
 
-    - In light of the above, we have chosen to allow you, the user, to use the
-      |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
-      fails to parse
+  - In light of the above, we have chosen to allow you, the user, to use the
+    |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
+    fails to parse
 
-    - It is therefore *highly recommended* that you install both
-      |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
-      result (provided everything else is valid) even if |lxml|_ fails.
+  - It is therefore *highly recommended* that you install both
+    |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
+    result (provided everything else is valid) even if |lxml|_ fails.
 
 **Issues with** |BeautifulSoup4|_ **using** |lxml|_ **as a backend**
 
@@ -2721,27 +2721,27 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    - |html5lib|_ is far more lenient than |lxml|_ and consequently deals
-      with *real-life markup* in a much saner way rather than just, e.g.,
-      dropping an element without notifying you.
+  - |html5lib|_ is far more lenient than |lxml|_ and consequently deals
+    with *real-life markup* in a much saner way rather than just, e.g.,
+    dropping an element without notifying you.
 
-    - |html5lib|_ *generates valid HTML5 markup from invalid markup
-      automatically*. This is extremely important for parsing HTML tables,
-      since it guarantees a valid document. However, that does NOT mean that
-      it is "correct", since the process of fixing markup does not have a
-      single definition.
+  - |html5lib|_ *generates valid HTML5 markup from invalid markup
+    automatically*. This is extremely important for parsing HTML tables,
+    since it guarantees a valid document. However, that does NOT mean that
+    it is "correct", since the process of fixing markup does not have a
+    single definition.
 
-    - |html5lib|_ is pure Python and requires no additional build steps beyond
-      its own installation.
+  - |html5lib|_ is pure Python and requires no additional build steps beyond
+    its own installation.
 
 * Drawbacks
 
-    - The biggest drawback to using |html5lib|_ is that it is slow as
-      molasses.  However consider the fact that many tables on the web are not
-      big enough for the parsing algorithm runtime to matter. It is more
-      likely that the bottleneck will be in the process of reading the raw
-      text from the URL over the web, i.e., IO (input-output). For very large
-      tables, this might not be true.
+  - The biggest drawback to using |html5lib|_ is that it is slow as
+    molasses.  However consider the fact that many tables on the web are not
+    big enough for the parsing algorithm runtime to matter. It is more
+    likely that the bottleneck will be in the process of reading the raw
+    text from the URL over the web, i.e., IO (input-output). For very large
+    tables, this might not be true.
 
 
 .. |svm| replace:: **strictly valid markup**
@@ -5690,7 +5690,7 @@ documentation.
 
 Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
-Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+Examples of such drivers are `psycopg 3 <https://www.psycopg.org/psycopg3/docs/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -6133,7 +6133,7 @@ Specifying this will return an iterator through chunks of the query result:
    usage. Most database drivers fetch the complete result set into client
    memory before the first chunk is produced. Actually streaming the result
    requires a server-side cursor, which with SQLAlchemy is requested with the
-   ``stream_results`` execution option (supported by, e.g., the psycopg2 and
+   ``stream_results`` execution option (supported by, e.g., the psycopg and
    pymysql drivers; drivers without server-side cursor support ignore it):
 
    .. code-block:: python
@@ -6154,7 +6154,11 @@ connecting to.
 
    from sqlalchemy import create_engine
 
-   engine = create_engine("postgresql://scott:tiger@localhost:5432/mydatabase")
+   # PostgreSQL using the psycopg 3 driver:
+   engine = create_engine("postgresql+psycopg://scott:tiger@localhost:5432/mydatabase")
+
+   # or using the psycopg2 driver:
+   engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
 
    engine = create_engine("mysql+mysqldb://scott:tiger@localhost/foo")
 
@@ -6168,6 +6172,14 @@ connecting to.
 
    # or absolute, starting with a slash:
    engine = create_engine("sqlite:////absolute/path/to/foo.db")
+
+.. note::
+
+   The ``postgresql`` pip extra (``pip install "pandas[postgresql]"``) installs
+   psycopg2, not psycopg 3. To use the ``postgresql+psycopg`` dialect with
+   SQLAlchemy, install psycopg 3 separately, e.g.
+   ``pip install "psycopg[binary]"``. See
+   :ref:`install.optional_dependencies` for the full list of SQL dependencies.
 
 For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
@@ -6523,6 +6535,15 @@ with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
 .. _xarray: https://xarray.pydata.org/en/stable/
+
+R data files
+''''''''''''
+
+rdata_ and pyreadr_ read and write R's ``.rds`` and ``.RData``/``.rda``
+formats, converting R data frames to and from pandas ``DataFrame`` objects.
+
+.. _rdata: https://rdata.readthedocs.io/en/stable/
+.. _pyreadr: https://github.com/ofajardo/pyreadr
 
 .. _io.perf:
 

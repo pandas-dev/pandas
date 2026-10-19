@@ -94,6 +94,16 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "month",
     ),
+    pd.tseries.offsets.QuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.QuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
     pd.tseries.offsets.HalfYearEnd: (
         "n",
         "normalize",
@@ -110,6 +120,16 @@ _OFFSET_SIGNATURES = {
         "startingMonth",
     ),
     pd.tseries.offsets.BHalfYearBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BQuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BQuarterBegin: (
         "n",
         "normalize",
         "startingMonth",
@@ -174,6 +194,27 @@ _OFFSET_SIGNATURES = {
     pd.tseries.offsets.BusinessMonthBegin: (
         "n",
         "normalize",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthEnd: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthBegin: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.YearEnd: (
+        "n",
+        "normalize",
+        "month",
     ),
 }
 

@@ -2277,7 +2277,7 @@ cdef class BytesValidator(Validator):
         return self.dtype.type_num == cnp.NPY_STRING
 
 
-cdef bint is_bytes_array(ndarray values, bint skipna=False):
+cpdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
         BytesValidator validator = BytesValidator(values.size, values.dtype,
                                                   skipna=skipna)
@@ -2655,6 +2655,7 @@ def maybe_convert_numeric(
         bint have_bools = False
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
+        bint use_na_values = len(na_values) > 0
 
     for i in range(n):
         val = values[i]
@@ -2664,7 +2665,7 @@ def maybe_convert_numeric(
         # However, if no ints present (all null array), we need to return floats
         allow_null_in_int = convert_to_masked_nullable and not seen.float_
 
-        if val.__hash__ is not None and val in na_values:
+        if use_na_values and val.__hash__ is not None and val in na_values:
             if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1
@@ -3476,6 +3477,9 @@ def tuples_to_object_array(ndarray[object] tuples):
     result = np.empty((n, k), dtype=object)
     for i in range(n):
         tup = tuples[i]
+        if len(tup) != k:
+            # GH#50293
+            raise ValueError("All tuples must have the same length")
         for j in range(k):
             result[i, j] = tup[j]
 
