@@ -659,6 +659,25 @@ def infer_compression(
     raise ValueError(msg)
 
 
+def warn_unused_compression(compression: CompressionOptions) -> None:
+    """
+    Warn that ``compression`` has no effect when the output is returned as a str.
+
+    An unrecognized compression method still raises, as it would with a path.
+    """
+    compression_method, _ = get_compression_method(compression)
+    if compression_method is None or compression_method == "infer":
+        return
+    # the path is only consulted for "infer"; here this only validates the method
+    infer_compression("", compression_method)
+    warnings.warn(
+        "compression has no effect when no path or buffer is given; "
+        "the returned string is not compressed.",
+        RuntimeWarning,
+        stacklevel=find_stack_level(),
+    )
+
+
 def check_parent_directory(path: Path | str) -> None:
     """
     Check if parent directory of a file exists, raise OSError if it does not
