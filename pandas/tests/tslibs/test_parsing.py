@@ -271,6 +271,8 @@ def test_parsers_quarter_invalid(date_str):
         # the "." is its own token here, so the comma is still folded in
         "Nov .14,2013",
         ".11,04",
+        # a preceding label across a space counts only if the number ends the string
+        "2013-11-04 10h 12,5 AM",
     ],
 )
 def test_parsers_decimal_comma_in_date(date_str):

@@ -685,9 +685,7 @@ _HMS_WORDS = frozenset(word for group in DEFAULTPARSER.info.HMS for word in grou
 cdef bint _hms_label_at(str timestr, Py_ssize_t pos, int step):
     """
     Is the word next to timestr[pos], stepping outward by step, an _HMS_WORDS
-    one? A single whitespace character is skipped either way, though for a
-    label preceding the number (step < 0) dateutil skips it only when the
-    number is the final token (GH#17265).
+    one? A single whitespace character is skipped (GH#17265).
     """
     cdef:
         Py_ssize_t end, length = len(timestr)
@@ -749,7 +747,11 @@ cdef bint _has_decimal_comma_in_date(str timestr):
         if i - start == 6 or (start > 0 and timestr[start - 1] == ":"):
             # spent on a time field, "01:02:03,456", "01:02,5" or "HHMMSS,fff"
             continue
-        if _hms_label_at(timestr, end, 1) or _hms_label_at(timestr, start - 1, -1):
+        if _hms_label_at(timestr, end, 1) or (
+            # dateutil looks back across whitespace only from the final token
+            not (end < length and start > 0 and timestr[start - 1].isspace())
+            and _hms_label_at(timestr, start - 1, -1)
+        ):
             # spent on the unit below the label, e.g. "12,5h" -> 12:30
             continue
         return True
