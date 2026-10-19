@@ -231,6 +231,7 @@ I/O
 - Bug in :func:`read_csv` silently misparsing non-ASCII ``thousands`` and ``decimal`` markers with the C engine; these now fall back to the Python engine with a :class:`errors.ParserWarning`, or raise ``ValueError`` if ``engine="c"`` is explicitly specified (:issue:`71158`)
 - Bug in :func:`read_csv` where a ``dtype`` given for a ``parse_dates`` column undid the date parsing, returning strings, objects, integers or categories instead of datetimes (:issue:`57512`)
 - Bug in :func:`read_csv` with ``engine="c"`` and ``comment`` not skipping a line containing only whitespace before the comment character (:issue:`55916`)
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` silently wrapping values outside the range of the requested integer ``dtype`` instead of raising (:issue:`38013`)
 - Bug in :func:`read_csv` with ``engine="python"`` and ``index_col`` reading a date like ``"20180101"`` as nanoseconds since the epoch when ``dtype`` is a pyarrow timestamp dtype (:issue:`24542`)
 - Bug in :func:`read_csv`, :func:`read_excel`, :func:`read_fwf` and :func:`read_html` returning wrong column labels and treating header rows as data when ``header`` was a list not in increasing order, such as ``header=[1, 0]`` (:issue:`47011`)
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
@@ -316,6 +317,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
+- Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`)
 - Bug in arithmetic and logical operations on PyArrow-backed data raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError`` instead of ``TypeError`` when the other operand contains objects PyArrow cannot convert (:issue:`62682`)
 - Bug in comparisons between PyArrow-backed data and objects PyArrow cannot convert raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError``; ``==``/``!=`` now compare elementwise, ordered comparisons raise ``TypeError``, and a missing value on either side propagates instead of answering ``False`` (:issue:`62682`)
 
