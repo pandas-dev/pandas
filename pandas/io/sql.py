@@ -476,9 +476,10 @@ def read_sql_query(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
-        With such a driver, write a literal ``%`` in a string query as ``%%``
-        when ``params`` is given; without ``params``, an unescaped ``%`` is
-        passed through unchanged.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -634,9 +635,10 @@ def read_sql(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
-        With such a driver, write a literal ``%`` in a string query as ``%%``
-        when ``params`` is given; without ``params``, an unescaped ``%`` is
-        passed through unchanged.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
