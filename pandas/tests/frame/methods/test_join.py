@@ -546,29 +546,6 @@ class TestDataFrameJoin:
         tm.assert_frame_equal(df1.join(df2, how="right"), exp)
         tm.assert_frame_equal(df2.join(df1, how="left"), exp[["value2", "value1"]])
 
-    @pytest.mark.parametrize("how", ["left", "outer"])
-    def test_join_flat_index_with_multiindex_keeps_unmatched(self, how):
-        # GH#34292
-        left = pd.DataFrame({"p": [3, 7]}, index=pd.Index([2, 5], name="a"))
-        right = pd.DataFrame(
-            {"c": [3, 8, 9]},
-            index=pd.MultiIndex.from_arrays([[1, 3, 5], [2, 4, 6]], names=["a", "b"]),
-        )
-
-        result = left.join(right, how=how)
-
-        if how == "left":
-            codes = [[2, 3], [2, -1]]
-            data = {"p": [7, 3], "c": [9.0, np.nan]}
-        else:
-            codes = [[0, 1, 2, 3], [0, 1, 2, -1]]
-            data = {"p": [np.nan, np.nan, 7, 3], "c": [3.0, 8.0, 9.0, np.nan]}
-        index = pd.MultiIndex(
-            levels=[[1, 3, 5, 2], [2, 4, 6]], codes=codes, names=["a", "b"]
-        )
-        expected = pd.DataFrame(data, index=index)
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize(
         "how, codes, data",
         [
@@ -581,13 +558,13 @@ class TestDataFrameJoin:
             ("left_anti", [[3], [-1]], {"p": [3], "c": [np.nan]}),
         ],
     )
-    def test_merge_flat_index_with_multiindex_keeps_unmatched(self, how, codes, data):
+    def test_join_flat_index_with_multiindex_keeps_unmatched(self, how, codes, data):
         # GH#34292
         left = pd.DataFrame({"p": [3, 7]}, index=pd.Index([2, 5], name="a"))
         index = pd.MultiIndex.from_arrays([[1, 3, 5], [2, 4, 6]], names=["a", "b"])
         right = pd.DataFrame({"c": [3, 8, 9]}, index=index)
 
-        result = pd.merge(left, right, left_index=True, right_index=True, how=how)
+        result = left.join(right, how=how)
 
         expected_index = pd.MultiIndex(
             levels=[[1, 3, 5, 2], [2, 4, 6]], codes=codes, names=["a", "b"]
