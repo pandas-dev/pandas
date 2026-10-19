@@ -107,6 +107,7 @@ from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import (
     check_setitem_lengths,
@@ -2427,7 +2428,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     """
     Input validation for values passed to __init__. Ensure that
     any datetime64/timedelta64 dtypes are in nanoseconds.  Ensure
-    that we do not have string dtypes or non-native byteorder.
+    that we do not have string dtypes.
 
     Parameters
     ----------
@@ -2440,14 +2441,12 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     # Caller is responsible for ensuring NumpyExtensionArray is already extracted.
 
     if isinstance(values, np.ndarray):
-        if not values.dtype.isnative:
-            # GH#53234 the cython routines only accept native byteorder
-            values = values.astype(values.dtype.newbyteorder("="))
-
         values = ensure_wrapped_if_datetimelike(values)
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
+        elif isinstance(values, np.ndarray):
+            warn_non_native_byteorder(values)
 
     return values
 

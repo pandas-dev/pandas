@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -177,22 +178,23 @@ class TestIndexConstructorInference:
         expected = pd.Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_non_native_byteorder(self):
-        # GH#43042 values must survive; GH#53234 stored in native byteorder
+    def test_constructor_preserves_byteorder(self):
+        # GH#43042 non-native byteorder (and the values) must be preserved;
+        #  GH#53234 deprecated
         arr = np.array([0, 256, 2**40], dtype=">i8")
-        expected = pd.Index([0, 256, 2**40], dtype="int64")
+        msg = "non-native byte order"
 
-        tm.assert_index_equal(pd.Index(arr), expected)
-        tm.assert_index_equal(pd.Index([0, 256, 2**40], dtype=">i8"), expected)
-        tm.assert_index_equal(pd.Index(arr.astype("f8")).astype(">i8"), expected)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Index(arr)
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
 
-    def test_constructor_non_native_float16_raises(self):
-        # GH#53234 the float16 check must see the native dtype
-        msg = "float16 indexes are not supported"
-        with pytest.raises(NotImplementedError, match=msg):
-            pd.Index(np.array([1, 2], dtype=">f2"))
-        with pytest.raises(NotImplementedError, match=msg):
-            pd.Index([1.0, 2.0]).astype(">f2")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Index([0, 256, 2**40], dtype=">i8")
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Index([0, 256, 2**40]).astype(">i8")
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
 
 
 class TestDtypeEnforced:

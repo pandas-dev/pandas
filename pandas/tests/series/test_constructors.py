@@ -1220,14 +1220,19 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [">i8", ">u2", ">f4", ">c16"])
-    def test_constructor_numeric_bigendian(self, dtype):
-        # GH#43042 values must survive; GH#53234 stored in native byteorder
-        arr = np.array([3, 1, 3], dtype=dtype)
-        native = arr.dtype.newbyteorder("=")
-        expected = pd.Series(arr.astype(native))
-        tm.assert_series_equal(pd.Series(arr), expected)
-        tm.assert_series_equal(pd.Series([3, 1, 3], dtype=dtype), expected)
-        tm.assert_series_equal(pd.Series([3, 1, 3]).astype(dtype), expected)
+    def test_constructor_numeric_bigendian_deprecated(self, dtype):
+        # GH#43042 byteorder and values are preserved; GH#53234 deprecated
+        arr = np.array([0, 256, 3], dtype=dtype)
+        msg = "non-native byte order"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Series(arr)
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Series([0, 256, 3], dtype=dtype)
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Series([0, 256, 3]).astype(dtype)
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
 
     @pytest.mark.parametrize("unit", ["D", "h", "s", "ms", "us", "ns", "ps", "fs"])
     def test_constructor_timedelta64_bigendian(self, unit):
