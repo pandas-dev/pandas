@@ -11,6 +11,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
@@ -137,6 +139,35 @@ class TestNumericComparisons:
         msg = "Invalid comparison between dtype=float64 and str"
         with pytest.raises(TypeError, match=msg):
             obj < "a"
+
+    @pytest.mark.parametrize("op", [operator.lt, operator.le, operator.gt, operator.ge])
+    def test_complex_ordering_cmp_deprecated(self, box_with_array, op, complex_dtype):
+        # GH#43770 complex has no natural ordering
+        values = np.array([1 + 2j, 3j, 0j], dtype=complex_dtype)
+        obj = tm.box_expected(values, box_with_array, transpose=False)
+        msg = "deprecated on complex data"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            op(obj, 1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            op(obj, obj)
+        if box_with_array in [pd.Series, pd.DataFrame]:
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                getattr(obj, op.__name__)(obj)
+
+        with tm.assert_produces_warning(None):
+            obj == 1
+            obj != obj
+
+    @pytest.mark.parametrize("other", [np.complex128(1j), np.array([1j, 2j])])
+    def test_real_cmp_complex_deprecated(self, other):
+        # GH#43770 numexpr cannot compare against a Python complex, so use numpy's
+        ser = pd.Series([1.0, 2.0])
+        msg = "deprecated on complex data"
+        for obj in [ser, pd.Index(ser)]:
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                obj < other
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ser.lt(pd.Series(other, index=ser.index))
 
 
 # ------------------------------------------------------------------
