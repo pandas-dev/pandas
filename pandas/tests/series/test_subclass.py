@@ -76,3 +76,40 @@ def test_constructor_from_dict():
     # https://github.com/pandas-dev/pandas/issues/52445
     result = SubclassedSeries({"a": 1, "b": 2, "c": 3})
     assert isinstance(result, SubclassedSeries)
+
+
+class MySeq(pd.Series):
+    _metadata = ["custom_prop"]
+
+    @property
+    def _constructor(self):
+        return MySeq
+
+
+class MySeqWithBase(pd.Series):
+    _metadata = [*pd.Series._metadata, "custom_prop"]
+
+    @property
+    def _constructor(self):
+        return MySeqWithBase
+
+
+def test_subclass_fancy_slice_metadata_preservation():
+    # GH 61491
+    assert MySeq._metadata == ["custom_prop", "_name"]
+    assert MySeqWithBase._metadata == ["_name", "custom_prop"]
+    assert MySeqWithBase._metadata.count("_name") == 1
+
+    seq = MySeq([*"abc"], name="data")
+    seq.custom_prop = "test_property"
+    assert seq[0:1].name == "data"
+    assert seq[[0, 1]].name == "data"
+    assert seq[[0, 1]].custom_prop == "test_property"
+    assert seq.drop_duplicates().name == "data"
+
+    seq_base = MySeqWithBase([*"abc"], name="data")
+    seq_base.custom_prop = "test_property"
+    assert seq_base[0:1].name == "data"
+    assert seq_base[[0, 1]].name == "data"
+    assert seq_base[[0, 1]].custom_prop == "test_property"
+    assert seq_base.drop_duplicates().name == "data"
