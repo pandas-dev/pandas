@@ -4437,9 +4437,9 @@ cdef class QuarterEnd(QuarterOffset):
     See Also
     --------
     :class:`~pandas.tseries.offsets.HalfYearEnd` :
-        Half-year offset. Resample with ``"HYE-MAR"`` rather than
-        ``"2QE-MAR"`` for bins whose phase is set by ``startingMonth``
-        instead of by where the data starts.
+        Half-year offset. With ``n=1``, its resample bins follow
+        ``startingMonth`` rather than where the data starts, which a
+        non-unitary ``QuarterEnd`` such as ``"2QE-MAR"`` does not.
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
@@ -4490,9 +4490,9 @@ cdef class QuarterBegin(QuarterOffset):
     See Also
     --------
     :class:`~pandas.tseries.offsets.HalfYearBegin` :
-        Half-year offset. Resample with ``"HYS-MAR"`` rather than
-        ``"2QS-MAR"`` for bins whose phase is set by ``startingMonth``
-        instead of by where the data starts.
+        Half-year offset. With ``n=1``, its resample bins follow
+        ``startingMonth`` rather than where the data starts, which a
+        non-unitary ``QuarterBegin`` such as ``"2QS-MAR"`` does not.
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
