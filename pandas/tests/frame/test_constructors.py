@@ -888,6 +888,45 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame({"a": [0, 1, 2], "b": [2, 1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.rec.fromarrays([np.arange(2.0)], names=["c"]),
+            np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [None, object])
+    def test_constructor_dict_of_structured_ndarray_deprecated(self, arr, dtype):
+        # GH#49388
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame({"c": arr}, dtype=dtype)
+
+    def test_constructor_list_of_structured_ndarray_deprecated(self):
+        # GH#49388
+        arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([arr, arr])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([arr[0:1].reshape(()), arr[1:2].reshape(())])
+
+    def test_constructor_list_of_void_ndarray_no_warning(self):
+        # GH#49388 unstructured void is not deprecated
+        arr = np.zeros(3, dtype="V8")
+        with tm.assert_produces_warning(None):
+            pd.DataFrame([arr, arr])
+
+    def test_constructor_dict_of_masked_structured_ndarray_raises(self):
+        # GH#49388
+        arr = ma.masked_array(
+            np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]),
+            mask=[(False, False), (True, False)],
+        )
+        msg = "Cannot construct a pandas object from a masked array with compound"
+        with pytest.raises(ValueError, match=msg):
+            pd.DataFrame({"c": arr})
+
     def test_constructor_dict_multiindex(self):
         d = {
             ("a", "a"): {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2},

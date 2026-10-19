@@ -8,6 +8,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -708,6 +709,31 @@ def test_pd_array_structured_masked_array_raises():
     msg = "Cannot construct an array from an ndarray with compound dtype"
     with pytest.raises(ValueError, match=msg):
         pd.array(ma_arr)
+
+
+def test_pd_array_structured_ndarray_deprecated():
+    # GH#49388
+    arr = np.array([(1, 2), (2, 3)], dtype="i8,i8")
+    msg = r"compound \(structured\) dtype is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.array(arr)
+
+
+@pytest.mark.parametrize(
+    "data, dtype", [([(1, 2), (2, 3)], "i8,i8"), ([b"abcdefgh"], "V8")]
+)
+def test_pd_array_compound_dtype_deprecated(data, dtype):
+    # GH#49388
+    msg = r"Passing a compound \(structured or void\) dtype to pd.array"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.array(data, dtype=dtype)
+
+
+def test_pd_array_void_series_no_warning():
+    # GH#49388 the dtype inferred from a Series is not a dtype the user passed
+    ser = pd.Series(np.zeros(3, dtype="V8"))
+    with tm.assert_produces_warning(None):
+        pd.array(ser)
 
 
 @pytest.mark.parametrize(

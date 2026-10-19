@@ -122,6 +122,7 @@ Other deprecations
 - Deprecated setting an out-of-bounds numpy scalar into an array of a numpy-nullable integer dtype. The value is currently stored altered to fit (``np.int64(-1)`` becomes ``255`` in ``UInt8``); in a future version this will raise, as it already does for a Python integer. Cast the array to a dtype that can hold the value first (:issue:`48867`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
+- Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
