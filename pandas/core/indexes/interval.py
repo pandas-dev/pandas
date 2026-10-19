@@ -1868,7 +1868,7 @@ def interval_range(
                 start = None if start is None else int(start)
                 end = None if end is None else int(end)
                 freq = None if freq is None else int(freq)
-                periods = None if periods is None else int(periods)
+                periods = int(periods)
             # compute the period/start/end if unspecified (at most one)
             if periods is None:
                 periods = int((end - start) // freq) + 1
@@ -1894,7 +1894,7 @@ def interval_range(
                 breaks = int_breaks
             else:
                 breaks = np.linspace(start, end, periods)
-        if all(is_integer(x) for x in com.not_none(start, end, freq)):
+        if all_int:
             # np.linspace always produces float output
             breaks = maybe_downcast_numeric(breaks, dtype)
     # delegate to the appropriate range function
