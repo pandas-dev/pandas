@@ -1160,9 +1160,7 @@ def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     "start, exp_start, periods",
     [("1950-01-01", "1949-12-01", 3), ("1950-03-01", "1950-03-01", 2)],
 )
-def test_resample_non_unitary_anchored_offset_phase_is_data_dependent(
-    start, exp_start, periods, unit
-):
+def test_resample_anchored_non_unitary_phase(start, exp_start, periods, unit):
     # GH#29576: for a non-unitary anchored offset such as "2QS-MAR",
     # is_on_offset ignores n, so BaseOffset.rollback moves the first
     # timestamp to the nearest n=1 anchor (any quarter start in the MAR
@@ -1172,7 +1170,7 @@ def test_resample_non_unitary_anchored_offset_phase_is_data_dependent(
     # non-unitary MS/QS/YS offsets, not a quarter-only quirk. This pins
     # current behavior (see GH#22362). It is not the
     # startingMonth-anchored semantics requested in GH#29576; for those,
-    # see test_resample_half_year_offset_anchors_on_starting_month below.
+    # see test_resample_anchored_half_year_phase below.
     ser = pd.Series(
         np.zeros(365),
         index=date_range(start, periods=365, freq="D", unit=unit),
@@ -1188,9 +1186,7 @@ def test_resample_non_unitary_anchored_offset_phase_is_data_dependent(
     "start, exp_start, periods",
     [("1950-01-01", "1949-09-01", 3), ("1950-03-01", "1950-03-01", 2)],
 )
-def test_resample_half_year_offset_anchors_on_starting_month(
-    start, exp_start, periods, unit
-):
+def test_resample_anchored_half_year_phase(start, exp_start, periods, unit):
     # GH#29576 / GH#22362: HalfYearBegin (GH#60946) with n=1 anchors its
     # bin phase on startingMonth regardless of where the data starts,
     # unlike the non-unitary quarter offsets exercised above, so both
