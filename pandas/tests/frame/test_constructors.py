@@ -530,6 +530,20 @@ class TestDataFrameConstructors:
         frame = pd.DataFrame({"A": {"1": 1, "2": 2}})
         tm.assert_index_equal(frame.index, pd.Index(["1", "2"]))
 
+    def test_constructor_dict_of_series_datetimeindex_freq(self):
+        # GH#64253 - the union of the series indexes should keep a freq that
+        # cannot be inferred from the values, whatever the column order
+        freq = pd.offsets.CustomBusinessDay(holidays=["2020-01-10"])
+        d1 = pd.Series(1, index=pd.date_range("2020-01-01", periods=5, freq=freq))
+        d2 = pd.Series(1, index=pd.date_range(d1.index[3], periods=5, freq=freq))
+        d3 = pd.Series(1, index=pd.date_range(d2.index[3], periods=5, freq=freq))
+
+        result = pd.DataFrame({"a": d1, "c": d3, "b": d2}).index
+        expected = pd.date_range(d1.index[0], d3.index[-1], freq=freq)
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == expected.freq
+
     def test_constructor_dict_with_index(self):
         # empty dict plus index
         idx = pd.Index([0, 1, 2])
@@ -1544,6 +1558,88 @@ class TestDataFrameConstructors:
             index=["0", "1", "2"],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_empty_ea_series(self):
+        # GH#56231
+        result = pd.DataFrame([pd.Series([], dtype="Int64")], columns=[1, 2, 3])
+        expected = pd.DataFrame(
+            {col: pd.array([pd.NA], dtype="Int64") for col in [1, 2, 3]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values, dtype",
+        [
+            ([1, 2], "Int64"),
+            ([True, False], "boolean"),
+            (["a", "b"], "string[python]"),
+            (["a", "b"], "category"),
+            (["2020-01-01", "2020-01-02"], "datetime64[ns, UTC]"),
+            (["2020-01-01", "2020-01-02"], "period[D]"),
+            ([1.0, 0.0], "Sparse[float64]"),
+            pytest.param([1, 2], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_constructor_list_of_ea_series_preserves_dtype(self, values, dtype):
+        # GH#56231 column "c" is missing from every row, so is all-NA
+        arr = pd.array(values, dtype=dtype)
+        rows = [
+            pd.Series(arr, index=["a", "b"], name="x"),
+            pd.Series(arr[::-1], index=["b", "a"], name="y"),
+        ]
+        result = pd.DataFrame(rows, columns=["a", "b", "c"])
+        expected = pd.DataFrame(
+            {
+                "a": arr.take([0, 0]),
+                "b": arr.take([1, 1]),
+                "c": arr.take([-1, -1], allow_fill=True),
+            },
+            index=["x", "y"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype1, dtype2, expected_dtype",
+        [
+            ("Int64", "Float64", "Float64"),
+            ("Int8", "Int64", "Int64"),
+            ("Int64", "int64", "Int64"),
+            (
+                "Sparse[int64]",
+                pd.SparseDtype("float64", 0),
+                pd.SparseDtype("float64", 0),
+            ),
+        ],
+    )
+    def test_constructor_list_of_mixed_ea_series(self, dtype1, dtype2, expected_dtype):
+        # GH#56231 columns get the rows' common dtype, as in concat
+        rows = [
+            pd.Series([1, 0], index=["a", "b"], dtype=dtype1),
+            pd.Series([2, 0], index=["a", "b"], dtype=dtype2),
+        ]
+        result = pd.DataFrame(rows)
+        expected = pd.DataFrame({"a": [1, 2], "b": [0, 0]}, dtype=expected_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_mixed_ea_series_missing_key(self):
+        # GH#56231 the int64 row lacks "b"; casting it via float64 would lose
+        #  precision and make the common dtype Float64
+        big = 2**60 + 1
+        rows = [
+            pd.Series([1, 2], index=["a", "b"], dtype="Int64"),
+            pd.Series([big], index=["a"]),
+        ]
+        result = pd.DataFrame(rows)
+        expected = pd.DataFrame(
+            {"a": [1, big], "b": pd.array([2, pd.NA], dtype="Int64")}, dtype="Int64"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_ea_series_lossy_dtype_raises(self):
+        # GH#56231 dtype casts EA rows like numpy rows, not via a lossy astype
+        ser = pd.Series([300, -1], dtype="Int64")
+        with pytest.raises(ValueError, match="losslessly"):
+            pd.DataFrame([ser], dtype="uint8")
 
     def test_constructor_list_of_derived_dicts(self):
         class CustomDict(dict):
@@ -3306,6 +3402,18 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         expected = pd.DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
+
+    def test_from_2d_dt64_ndarray_with_tz_dtype(self):
+        # GH#58517
+        arr = np.array(
+            ["2020-01-01", "2020-06-01", "2021-01-01", "2021-06-01"], dtype="M8[ns]"
+        ).reshape(2, 2)
+        result = pd.DataFrame(arr, dtype="datetime64[ns, US/Eastern]")
+
+        expected = pd.DataFrame(
+            {i: pd.DatetimeIndex(arr[:, i]).tz_localize("US/Eastern") for i in range(2)}
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("typ", [set, frozenset])
     def test_construction_from_set_raises(self, typ):

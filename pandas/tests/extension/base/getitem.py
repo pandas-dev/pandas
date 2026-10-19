@@ -113,12 +113,12 @@ class BaseGetitemTests:
         result = df.iloc[-1]
         tm.assert_series_equal(result, expected)
 
-    def test_getitem_scalar(self, data, using_python_scalars):
+    def test_getitem_scalar(self, data):
         result = data[0]
         assert isinstance(result, data.dtype.type)
 
         result = pd.Series(data)[0]
-        if using_python_scalars and isinstance(data[0], np.generic):
+        if pd.options.future.python_scalars and isinstance(data[0], np.generic):
             assert type(result) is type(data[0].item())
         else:
             assert isinstance(result, data.dtype.type)

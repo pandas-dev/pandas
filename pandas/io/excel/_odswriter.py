@@ -28,13 +28,13 @@ if TYPE_CHECKING:
     from pandas.io.formats.excel import ExcelCell
 
 
-class ODSWriter(ExcelWriter):
+class ODSWriter(ExcelWriter["OpenDocumentSpreadsheet"]):
     _engine = "odf"
     _supported_extensions = (".ods",)
 
     def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
@@ -111,7 +111,10 @@ class ODSWriter(ExcelWriter):
             TableCell,
             TableRow,
         )
-        from odf.text import P
+        from odf.text import (
+            LineBreak,
+            P,
+        )
 
         sheet_name = self._get_sheet_name(sheet_name)
         assert sheet_name is not None
@@ -128,8 +131,8 @@ class ODSWriter(ExcelWriter):
         for _ in range(startrow):
             wks.addElement(TableRow())
 
-        rows: defaultdict = defaultdict(TableRow)
-        col_count: defaultdict = defaultdict(int)
+        rows: defaultdict[int, TableRow] = defaultdict(TableRow)
+        col_count: defaultdict[int, int] = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
             # only add empty cells if the row is still empty
@@ -145,7 +148,17 @@ class ODSWriter(ExcelWriter):
             pvalue, tc = self._make_table_cell(cell)
             rows[cell.row].addElement(tc)
             col_count[cell.row] += 1
-            p = P(text=pvalue)
+            if isinstance(pvalue, str) and "\n" in pvalue:
+                # GH#55728: a newline inside the paragraph text is collapsed to
+                # a space by ODF consumers, so each line break is written as a
+                # <text:line-break/> element instead.
+                lines = pvalue.split("\n")
+                p = P(text=lines[0])
+                for line in lines[1:]:
+                    p.addElement(LineBreak())
+                    p.addText(line)
+            else:
+                p = P(text=pvalue)
             tc.addElement(p)
 
         # add all rows to the sheet

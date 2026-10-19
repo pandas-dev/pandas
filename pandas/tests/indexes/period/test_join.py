@@ -46,5 +46,5 @@ class TestJoin:
         index = pd.period_range("1/1/2000", "1/20/2000", freq="D")
         index3 = pd.period_range("1/1/2000", "1/20/2000", freq="2D")
         result = index.join(index3)
-        expected = index.astype(object).join(index3.astype(object))
-        tm.assert_index_equal(result, expected)
+        # GH#63371 a left join keeps the left dtype
+        tm.assert_index_equal(result, index)

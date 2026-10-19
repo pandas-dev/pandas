@@ -95,6 +95,9 @@ def data_for_compare(request):
     return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:SparseArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestSparseArray(base.ExtensionTests):
     def _honors_copy_keyword(self, data) -> bool:
         return False
@@ -278,8 +281,8 @@ class TestSparseArray(base.ExtensionTests):
         super().test_fillna_length_mismatch(data_missing)
 
     @pytest.mark.xfail(reason="SparseArray does not support item assignment")
-    def test_mask_listlike_other_inplace(self, data, as_frame):
-        super().test_mask_listlike_other_inplace(data, as_frame)
+    def test_mask_listlike_other_inplace(self, data):
+        super().test_mask_listlike_other_inplace(data)
 
     def test_where_series(self, data, na_value):
         assert data[0] != data[1]

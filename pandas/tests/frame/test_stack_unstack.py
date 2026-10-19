@@ -1,6 +1,5 @@
 from datetime import datetime
 import itertools
-import re
 
 import numpy as np
 import pytest
@@ -2465,7 +2464,7 @@ class TestStackUnstackMultiLevel:
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )
-    def test_stack_multiple_bug(self, future_stack, using_infer_string):
+    def test_stack_multiple_bug(self, future_stack):
         # bug when some uniques are not present in the data GH#3170
         id_col = ([1] * 3) + ([2] * 3)
         name = (["a"] * 3) + (["b"] * 3)
@@ -2476,11 +2475,6 @@ class TestStackUnstackMultiLevel:
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        msg = re.escape("agg function failed [how->mean,dtype->")
-        if using_infer_string:
-            msg = "dtype 'str' does not support operation 'mean'"
-        with pytest.raises(TypeError, match=msg):
-            unst.resample("W-THU").mean()
         down = unst.resample("W-THU").mean(numeric_only=True)
         rs = down.stack("ID", future_stack=future_stack)
         xp = (
@@ -2943,16 +2937,9 @@ class TestStackUnstackMultiLevel:
             dtype=np.float64,
         )
         result = df_nan.stack(future_stack=future_stack)
-        if future_stack:
-            index = pd.MultiIndex(
-                levels=[[0, 1], [np.nan, "b"]],
-                codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                names=["Num", "Lower"],
-            )
-        else:
-            index = pd.MultiIndex.from_tuples(
-                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
-            )
+        index = pd.MultiIndex.from_tuples(
+            [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+        )
         expected = pd.DataFrame(
             [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
             columns=pd.Index(["A", "B"], name="Upper"),
@@ -3107,3 +3094,27 @@ def test_stack_preserves_na(dtype, na_value, test_multiindex):
         )
     expected = pd.Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_in", ["index", "columns"])
+@pytest.mark.parametrize(
+    "labels",
+    [pd.Index([1.0, np.nan, 2.0]), pd.Index(["x", None, "y"], dtype=object)],
+)
+def test_stack_na_label_lookup(na_in, labels):
+    # GH#40366 NA labels must be coded -1 so lookups find them
+    if na_in == "index":
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=labels)
+        result = df.stack()
+        keys = [(label, "a") for label in labels]
+    else:
+        columns = pd.MultiIndex.from_arrays([["a"] * 3, labels])
+        df = pd.DataFrame([[1, 2, 3]], columns=columns)
+        result = df.stack(level=1)["a"]
+        keys = [(0, label) for label in labels]
+    assert [result.loc[key] for key in keys] == [1, 2, 3]
+    assert result.index.isin(keys[1:2]).sum() == 1
+
+    # like any MultiIndex, unstack puts the -1 coded label first
+    unstacked = result.unstack(level=0 if na_in == "index" else 1)
+    tm.assert_index_equal(unstacked.columns, labels.take([1, 0, 2]))

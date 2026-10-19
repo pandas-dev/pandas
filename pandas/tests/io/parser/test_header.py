@@ -62,6 +62,52 @@ def test_negative_multi_index_header(all_parsers, header):
         parser.read_csv(StringIO(data), header=header)
 
 
+@pytest.mark.parametrize(
+    "header, levels",
+    [
+        ([2, 1, 0], [["e", "f"], ["c", "d"], ["a", "b"]]),
+        ([2, 0], [["e", "f"], ["a", "b"]]),
+        ([0, 2, 1], [["a", "b"], ["e", "f"], ["c", "d"]]),
+    ],
+)
+def test_multi_index_header_not_increasing(all_parsers, header, levels):
+    # GH#47011
+    parser = all_parsers
+    data = "a,b\nc,d\ne,f\n1,2\n3,4"
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), header=header)
+        return
+
+    result = parser.read_csv(StringIO(data), header=header)
+    expected = pd.DataFrame([[1, 2], [3, 4]], columns=pd.MultiIndex.from_arrays(levels))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs",
+    [
+        ("A,B,C\na,b,c\nidx,,\n1,2,3\n4,5,6", {"index_col": 0}),
+        ("skip\nA,B,C\na,b,c\n1,2,3\n4,5,6", {"skiprows": 1}),
+        # wide first data row, read before the C tokenizer's header phase ends
+        ("A,B,C\na,b,c\nd,e,f\ng,h,i,j,k", {}),
+    ],
+)
+def test_multi_index_header_not_increasing_matches_swaplevel(all_parsers, data, kwargs):
+    # GH#47011
+    parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), header=[1, 0], **kwargs)
+        return
+
+    result = parser.read_csv(StringIO(data), header=[1, 0], **kwargs)
+    expected = parser.read_csv(StringIO(data), header=[0, 1], **kwargs)
+    tm.assert_frame_equal(result, expected.swaplevel(axis=1))
+
+
 @pytest.mark.parametrize("header", [True, False])
 def test_bool_header_arg(all_parsers, header):
     # see gh-6114

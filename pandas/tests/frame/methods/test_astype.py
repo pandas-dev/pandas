@@ -222,6 +222,9 @@ class TestAstype:
             df.astype(dt4)
         with pytest.raises(KeyError, match=msg_frame.format("e")):
             df.astype(dt5)
+        # GH#30324 errors="ignore" only covers failed casts, not missing keys
+        with pytest.raises(KeyError, match=msg_frame.format("e")):
+            df.astype(dt5, errors="ignore")
         tm.assert_frame_equal(df, original)
 
         # if the dtypes provided are the same as the original dtypes, the

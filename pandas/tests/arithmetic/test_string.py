@@ -124,15 +124,20 @@ def test_arithmetic_custom_object(any_string_dtype):
         tm.assert_series_equal(result, expected)
 
 
-def test_mixed_object_comparison(any_string_dtype):
-    # GH#60228
+@pytest.mark.parametrize(
+    "values, expected_values",
+    [([1, "b"], [False, True]), (["a", 1], [True, False])],
+)
+def test_mixed_object_comparison(any_string_dtype, values, expected_values):
+    # GH#60228, GH#35565 pyarrow raised a different error depending on which
+    #  element came first
     dtype = any_string_dtype
     ser = pd.Series(["a", "b"], dtype=dtype)
 
-    mixed = pd.Series([1, "b"], dtype=object)
+    mixed = pd.Series(values, dtype=object)
 
     result = ser == mixed
-    expected = pd.Series([False, True], dtype=bool)
+    expected = pd.Series(expected_values, dtype=bool)
     if dtype == object:
         pass
     elif dtype.storage == "python" and dtype.na_value is pd.NA:
@@ -141,6 +146,7 @@ def test_mixed_object_comparison(any_string_dtype):
         expected = expected.astype("bool[pyarrow]")
 
     tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser != mixed, ~expected)
 
 
 def test_pyarrow_numpy_string_invalid():
@@ -232,18 +238,41 @@ def test_add_2d(any_string_dtype, request):
     dtype = any_string_dtype
 
     if dtype == object:
-        reason = "Failed: DID NOT RAISE <class 'ValueError'>"
+        reason = "Failed: DID NOT RAISE <class 'NotImplementedError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
         request.applymarker(mark)
 
+    # GH#62682 a 2-D operand is rejected up front, matching BaseMaskedArray,
+    #  rather than reported as a length mismatch
     a = pd.array(["a", "b", "c"], dtype=dtype)
     b = np.array([["a", "b", "c"]], dtype=object)
-    with pytest.raises(ValueError, match="3 != 1"):
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
         a + b
 
     s = pd.Series(a)
-    with pytest.raises(ValueError, match="3 != 1"):
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
         s + b
+
+
+@pytest.mark.parametrize("op", [operator.or_, operator.and_, operator.xor])
+def test_logical_2d(any_string_dtype, op, request):
+    # GH#62682 the GH#60234 string-vs-bool arm silently broadcast the 2-D
+    #  operand to a (2, 2) result
+    dtype = any_string_dtype
+
+    if dtype == object:
+        reason = "object dtype has no string-vs-bool arm; raises TypeError"
+        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        request.applymarker(mark)
+
+    a = pd.array(["a", "b"], dtype=dtype)
+    other = np.array([[True, False], [True, False]])
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(other, a)
+
+    s = pd.Series(a)
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(other, s)
 
 
 def test_add_sequence(any_string_dtype, request, using_infer_string):

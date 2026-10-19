@@ -2,12 +2,14 @@ import inspect
 from io import StringIO
 import operator
 import re
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas._libs._ujson import ujson_dumps
 from pandas._typing import Dtype
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -20,6 +22,19 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
+
+# GH#24433 methods whose default implementation may cast to object, mapped to
+# the methods an EA must override (any one of) to avoid it; map is left out
+# since it is elementwise regardless, and isin/value_counts since they are only
+# slow without a fast __array__
+SLOW_DEFAULTS = {
+    "unique": ["unique"],
+    "factorize": ["factorize", "_values_for_factorize"],
+    "argsort": ["argsort", "_values_for_argsort"],
+    "argmin": ["argmin", "_values_for_argsort"],
+    "argmax": ["argmax", "_values_for_argsort"],
+    "searchsorted": ["searchsorted"],
+}
 
 
 class BaseMethodsTests:
@@ -35,6 +50,23 @@ class BaseMethodsTests:
         )
         assert res.dtype == np.uint64
         assert res.shape == data.shape
+
+    @pytest.mark.parametrize("method", list(SLOW_DEFAULTS))
+    def test_slow_defaults_overridden(self, data, method):
+        # GH#24433 warn EA authors about defaults that may cast to object
+        base_cls = pd.api.extensions.ExtensionArray
+        inherited = all(
+            getattr(type(data), meth) is getattr(base_cls, meth)
+            for meth in SLOW_DEFAULTS[method]
+        )
+        if inherited and pd.get_option("mode.performance_warnings"):
+            warnings.warn(
+                f"{type(data).__name__} uses the default ExtensionArray "
+                f"implementation of {method}, which may be slow. "
+                "See the ExtensionArray docstring for methods to override.",
+                PerformanceWarning,
+                stacklevel=1,
+            )
 
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
@@ -751,36 +783,28 @@ class BaseMethodsTests:
         ser.mask(~cond, other, inplace=True)
         tm.assert_equal(ser, expected)
 
-    def _listlike_other_setup(self, data, as_frame):
-        assert data[0] != data[1]
+    def test_where_series_listlike_other(self, data):
+        # GH#63842 a list 'other' is lined up against the mask without
+        #  casting to object
         cls = type(data)
         first, second = data[:2]
-
-        orig = pd.Series(
+        ser = pd.Series(
             cls._from_sequence([first, first, second, second], dtype=data.dtype)
         )
         cond = np.array([True, False, True, False])
-        if as_frame:
-            orig = orig.to_frame(name="a")
-            cond = pd.DataFrame({"a": cond})
 
-        def expected(values):
-            res = pd.Series(cls._from_sequence(values, dtype=data.dtype))
-            return res.to_frame(name="a") if as_frame else res
-
-        return orig, cond, expected, first, second
-
-    def test_where_series_listlike_other(self, data, as_frame):
-        # GH#63842 a list 'other' is lined up against the mask without
-        #  casting to object
-        orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
-
-        result = orig.where(cond, [second, second, first, first])
-        tm.assert_equal(result, expected([first, second, second, first]))
+        result = ser.where(cond, [second, second, first, first])
+        expected = pd.Series(
+            cls._from_sequence([first, second, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(result, expected)
 
         # a length-1 'other' is broadcast, as it is for numpy dtypes
-        result = orig.where(cond, [first])
-        tm.assert_equal(result, expected([first, first, second, first]))
+        result = ser.where(cond, [first])
+        expected = pd.Series(
+            cls._from_sequence([first, first, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_where_series_listlike_other_wrong_length(self, data):
         # GH#63842 a length that is neither 1 nor len(self) cannot be lined up
@@ -795,12 +819,20 @@ class BaseMethodsTests:
         with pytest.raises(ValueError, match=msg):
             ser.where(cond, [first, second, first])
 
-    def test_mask_listlike_other_inplace(self, data, as_frame):
+    def test_mask_listlike_other_inplace(self, data):
         # GH#63842
-        orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
+        cls = type(data)
+        first, second = data[:2]
+        ser = pd.Series(
+            cls._from_sequence([first, first, second, second], dtype=data.dtype)
+        )
+        cond = np.array([True, False, True, False])
 
-        orig.mask(~cond, [first], inplace=True)
-        tm.assert_equal(orig, expected([first, first, second, first]))
+        ser.mask(~cond, [first], inplace=True)
+        expected = pd.Series(
+            cls._from_sequence([first, first, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):

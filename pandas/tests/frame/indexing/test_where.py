@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -849,84 +851,51 @@ def test_where_string_dtype(frame_or_series):
     tm.assert_equal(result, expected)
 
 
-def test_where_listlike_other_keeps_ea_dtype(
-    frame_or_series, any_numeric_ea_and_arrow_dtype
-):
-    # GH#63842 a list 'other' should not cast to object or raise
+def test_where_tuple_other_numeric_ea(any_numeric_ea_and_arrow_dtype):
+    # GH#63842 for numeric dtypes a tuple is lined up against the mask, as for
+    #  numpy dtypes
     dtype = any_numeric_ea_and_arrow_dtype
-    obj = frame_or_series(pd.array([1, 2, 3, 4], dtype=dtype))
+    ser = pd.Series(pd.array([1, 2, 3, 4], dtype=dtype))
     cond = pd.Series([True, False, True, False])
-    if frame_or_series is pd.DataFrame:
-        cond = cond.to_frame()
+    expected = pd.Series(pd.array([1, 8, 3, 6], dtype=dtype))
 
-    result = obj.where(cond, [9, 8, 7, 6])
-    expected = frame_or_series(pd.array([1, 8, 3, 6], dtype=dtype))
-    tm.assert_equal(result, expected)
+    result = ser.where(cond, (9, 8, 7, 6))
+    tm.assert_series_equal(result, expected)
 
-    # any ordered Sequence, not just a list
-    result = obj.where(cond, range(9, 13))
-    tm.assert_equal(result, frame_or_series(pd.array([1, 10, 3, 12], dtype=dtype)))
-
-    # a length-1 'other' is broadcast, as it is for numpy dtypes
-    result = obj.where(cond, [9])
-    expected = frame_or_series(pd.array([1, 9, 3, 9], dtype=dtype))
-    tm.assert_equal(result, expected)
-
-    obj.mask(~cond, [9], inplace=True)
-    tm.assert_equal(obj, expected)
+    ser.mask(~cond, (9, 8, 7, 6), inplace=True)
+    tm.assert_series_equal(ser, expected)
 
 
-def test_where_listlike_other_wrong_length_raises(any_numeric_ea_and_arrow_dtype):
-    # GH#63842 a length that is neither 1 nor len(self) cannot be lined up
-    ser = pd.Series(pd.array([1, 2, 3, 4], dtype=any_numeric_ea_and_arrow_dtype))
-    msg = r"Length of values \(2\) does not match length of index \(4\)"
-    with pytest.raises(ValueError, match=msg):
-        ser.where(pd.Series([True, False, True, False]), [9, 8])
-
-
-def test_where_listlike_other_keeps_string_dtype(frame_or_series, any_string_dtype):
+@pytest.mark.parametrize(
+    "dtype",
+    ["bool", "boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_where_tuple_other_bool(dtype):
     # GH#63842
-    obj = frame_or_series(pd.array(["a", "bc", "cde", "fghi"], dtype=any_string_dtype))
+    ser = pd.Series([True, True, True, True], dtype=dtype)
     cond = pd.Series([True, False, True, False])
-    if frame_or_series is pd.DataFrame:
-        cond = cond.to_frame()
+    expected = pd.Series([True, False, True, False], dtype=dtype)
 
-    result = obj.where(cond, ["w", "x", "y", "z"])
-    expected = frame_or_series(pd.array(["a", "x", "cde", "z"], dtype=any_string_dtype))
-    tm.assert_equal(result, expected)
-
-    # a length-1 'other' is broadcast, as it is for numpy dtypes
-    result = obj.where(cond, ["cudf"])
-    expected = frame_or_series(
-        pd.array(["a", "cudf", "cde", "cudf"], dtype=any_string_dtype)
-    )
-    tm.assert_equal(result, expected)
-
-    result = obj.mask(~cond, ["cudf"])
-    tm.assert_equal(result, expected)
-
-
-def test_where_tuple_other_treated_as_scalar(any_string_dtype):
-    # GH#37681 a tuple is a valid scalar, so -- as for object dtype -- it is
-    #  filled in whole rather than lined up against the mask
-    ser = pd.Series(["a", "b", "c"], dtype=any_string_dtype)
-    result = ser.where(pd.Series([True, False, True]), ("x", "y", "z"))
-    expected = pd.Series(["a", ("x", "y", "z"), "c"], dtype=object)
+    result = ser.where(cond, (False, False, False, False))
     tm.assert_series_equal(result, expected)
 
 
-def test_where_listlike_other_keeps_interval_dtype(frame_or_series):
-    # GH#63842
-    values = list(pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4]))
-    other = list(pd.IntervalIndex.from_breaks([9, 10, 11, 12, 13]))
-    obj = frame_or_series(pd.array(values))
-    cond = pd.Series([True, False, True, False])
-    if frame_or_series is pd.DataFrame:
-        cond = cond.to_frame()
+@pytest.mark.parametrize("other", [("x", "y", "z"), {"zz": 1}])
+def test_where_listlike_scalar_other(any_string_dtype, other):
+    # GH#37681, GH#63842 a tuple is a valid scalar and a dict is keyed, not
+    #  positional, so -- as for object dtype -- either is filled in whole
+    ser = pd.Series(["a", "b", "c"], dtype=any_string_dtype)
+    result = ser.where(pd.Series([True, False, True]), other)
+    expected = pd.Series(["a", other, "c"], dtype=object)
+    tm.assert_series_equal(result, expected)
 
-    result = obj.where(cond, other)
-    expected = frame_or_series(pd.array([values[0], other[1], values[2], other[3]]))
-    tm.assert_equal(result, expected)
+
+def test_where_set_other_numeric_ea_raises(any_numeric_ea_and_arrow_dtype):
+    # GH#63842 a set has no element order, so it is not lined up against the
+    #  mask in hash order
+    ser = pd.Series(pd.array([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype))
+    with pytest.raises(TypeError):
+        ser.where(pd.Series([True, False, True]), {7, 8, 9})
 
 
 def test_index_where_listlike_other_keeps_ea_dtype(any_numeric_ea_and_arrow_dtype):
@@ -1064,15 +1033,6 @@ def test_where_listlike_other_unknown_category_raises():
     cat = pd.Series(pd.Categorical(["a", "b", "a", "b"]))
     with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
         cat.where(pd.Series([True, False, True, False]), ["z", "z", "z", "z"])
-
-
-def test_where_mapping_other_treated_as_scalar(any_string_dtype):
-    # GH#63842 a dict is list-like, but it has no element order to line up
-    #  against the mask, so it stays a scalar as it does for numpy dtypes
-    ser = pd.Series(["a", "b", "c"], dtype=any_string_dtype)
-    result = ser.where(pd.Series([True, False, True]), {"zz": 1})
-    expected = pd.Series(["a", {"zz": 1}, "c"], dtype=object)
-    tm.assert_series_equal(result, expected)
 
 
 def test_where_bool_comparison():
@@ -1368,4 +1328,30 @@ def test_where_mask_inplace_2d_ea_other(method, dtype):
     result = df.copy()
     getattr(result, method)(cond, other, inplace=True)
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "cond_dtype",
+    ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_nullable_bool_cond_na_frame(method, inplace, cond_dtype):
+    # GH#35429 mixing nullable and numpy bool columns in cond
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    cond = pd.DataFrame(
+        {
+            "a": pd.array([True, False, pd.NA], dtype=cond_dtype),
+            "b": [True, False, False],
+        }
+    )
+    if method == "where":
+        expected = pd.DataFrame({"a": [1, -9, -9], "b": [4, -9, -9]})
+    else:
+        expected = pd.DataFrame({"a": [-9, 2, 3], "b": [-9, 5, 6]})
+
+    result = getattr(df, method)(cond, -9, inplace=inplace)
+    if inplace:
+        result = df
     tm.assert_frame_equal(result, expected)
