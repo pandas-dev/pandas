@@ -959,6 +959,19 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
+def test_usecols_integer_converter_key_is_file_position():
+    # GH#18566 key 2 is past the columns read, so it is the file position of "c"
+    data = "a b c\n1 2 3\n4 5 6"
+    result = read_fwf(
+        StringIO(data),
+        widths=[2, 2, 1],
+        usecols=[0, 2],
+        converters={2: lambda x: int(x) * 10},
+    )
+    expected = pd.DataFrame({"a": [1, 4], "c": [30, 60]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_dtype_backend(string_storage, dtype_backend):
     # GH#50289
     data = """a  b    c      d  e     f  g    h  i
