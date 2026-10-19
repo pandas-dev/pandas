@@ -1615,7 +1615,7 @@ class MultiIndex(Index):
         )
 
     def _get_values_for_csv(
-        self, *, na_rep: str = "nan", **kwargs
+        self, *, na_rep: str | None = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
         new_codes = []
@@ -1629,7 +1629,7 @@ class MultiIndex(Index):
                 nan_index = len(level_strs)
                 # numpy 1.21 deprecated implicit string casting
                 level_strs = level_strs.astype(str)
-                level_strs = np.append(level_strs, na_rep)
+                level_strs = np.append(level_strs, np.array([na_rep], dtype=object))
                 assert not level_codes.flags.writeable  # i.e. copy is needed
                 level_codes = level_codes.copy()  # make writeable
                 level_codes[mask] = nan_index
@@ -1640,11 +1640,12 @@ class MultiIndex(Index):
             # a single-level multi-index
             return Index(
                 new_levels[0].take(new_codes[0]), copy=False
-            )._get_values_for_csv()
+            )._get_values_for_csv(na_rep=na_rep)
         else:
             # reconstruct the multi-index
             mi = MultiIndex(
-                levels=new_levels,
+                # object dtype so a None na_rep is not inferred as NaN
+                levels=[Index(lev, dtype=object, copy=False) for lev in new_levels],
                 codes=new_codes,
                 names=self.names,
                 sortorder=self.sortorder,
