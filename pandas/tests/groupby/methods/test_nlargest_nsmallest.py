@@ -112,6 +112,8 @@ def test_nlargest_and_smallest_noop(data, groups, dtype, nselect_method):
         data, index=pd.MultiIndex.from_arrays([expidx, ser.index]), name="a"
     )
     tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method, expected_values, expected_index",
     [
@@ -124,4 +126,5 @@ def test_nlargest_nsmallest_as_index_false(method, expected_values, expected_ind
     df = pd.DataFrame({"A": [1, 1, 2, 1, 2], "B": [5, 6, 7, 8, 9]})
     result = getattr(df.groupby("A", as_index=False)["B"], method)()
     expected = pd.Series(expected_values, index=expected_index, name="B")
-    tm.assert_series_equal(result, expected)    
+    tm.assert_series_equal(result, expected)
+    
