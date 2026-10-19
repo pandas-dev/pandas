@@ -391,25 +391,18 @@ class TestIntervalRange:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_interval_range_large_int_no_float_rounding(self):
-        # GH 71288
-        start = 2**53
-        result = pd.interval_range(start=start, end=start + 4, freq=1)
-        expected = pd.IntervalIndex.from_breaks(
-            [start + i for i in range(5)], dtype="interval[int64, right]"
-        )
-        tm.assert_index_equal(result, expected)
-
-        # end not hit exactly by the step
-        result = pd.interval_range(start=start + 1, end=start + 8, freq=3)
-        expected = pd.IntervalIndex.from_breaks(
-            [start + 1, start + 4, start + 7], dtype="interval[int64, right]"
-        )
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize(
         "kwargs, breaks",
         [
+            (
+                {"start": 2**53, "end": 2**53 + 4, "freq": 1},
+                [2**53 + i for i in range(5)],
+            ),
+            # end not hit exactly by the step
+            (
+                {"start": 2**53 + 1, "end": 2**53 + 8, "freq": 3},
+                [2**53 + 1, 2**53 + 4, 2**53 + 7],
+            ),
             ({"start": 2**53, "periods": 4, "freq": 1}, [2**53 + i for i in range(5)]),
             (
                 {"end": 2**53 + 4, "periods": 4, "freq": 1},
@@ -435,10 +428,28 @@ class TestIntervalRange:
                 {"start": -(2**63), "end": -(2**63) + 2, "periods": 2},
                 [-(2**63) + i for i in range(3)],
             ),
+            # NumPy integer periods must not overflow while deriving start
+            (
+                {"end": 2**62, "periods": np.int64(2), "freq": 2**62},
+                [-(2**62), 0, 2**62],
+            ),
         ],
     )
-    def test_interval_range_large_int_no_float_rounding_all_args(self, kwargs, breaks):
+    def test_interval_range_large_int_no_float_rounding(self, kwargs, breaks):
         # GH 71288
         result = pd.interval_range(**kwargs)
         expected = pd.IntervalIndex.from_breaks(breaks, dtype="interval[int64, right]")
         tm.assert_index_equal(result, expected)
+
+    def test_interval_range_int_span_wider_than_int64(self):
+        # GH 71288 - the step does not fit in int64, so fall back to float64
+        result = pd.interval_range(start=-(2**63), end=2**63 - 1, periods=1)
+        expected = pd.IntervalIndex.from_breaks(
+            [-(2.0**63), 2.0**63], dtype="interval[float64, right]"
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_interval_range_negative_periods_raises(self):
+        msg = "Number of samples, -2, must be non-negative"
+        with pytest.raises(ValueError, match=msg):
+            pd.interval_range(start=0, periods=-3)

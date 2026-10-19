@@ -1670,10 +1670,21 @@ def _is_type_compatible(a, b) -> bool:
     )
 
 
-def _fits_int64(*values: int) -> bool:
-    """Whether all the given Python integers are representable as int64."""
+def _int64_breaks(start: int, step: int, n: int) -> np.ndarray | None:
+    """
+    ``start + step * np.arange(n)`` computed exactly in int64 arithmetic.
+
+    Returns None if ``n`` is negative or if the step, a break or the span
+    between the first and last break does not fit in int64; the caller
+    then falls back to its float64 computation.
+    """
+    if n < 0:
+        return None
+    last = start + step * max(n - 1, 0)
     info = np.iinfo(np.int64)
-    return all(info.min <= x <= info.max for x in values)
+    if not all(info.min <= x <= info.max for x in (start, step, last, last - start)):
+        return None
+    return np.arange(n, dtype=np.int64) * step + start
 
 
 @set_module("pandas")
@@ -1838,22 +1849,26 @@ def interval_range(
                 or isinstance(freq, (float, np.floating))
             ):
                 dtype = np.dtype("float64")
-            if all_int and freq != 0 and _fits_int64(start, end, freq):
+            int_breaks = None
+            if all_int and freq != 0:
                 # stay in integer arithmetic; a float64 intermediate would
                 # round values above 2**53
-                start, end, freq = int(start), int(end), int(freq)
-                n = max((end - start) // freq + 1, 0)
-                breaks = start + freq * np.arange(n, dtype=np.int64)
+                n = max((int(end) - int(start)) // int(freq) + 1, 0)
+                int_breaks = _int64_breaks(int(start), int(freq), n)
+            if int_breaks is not None:
+                breaks = int_breaks
             else:
                 # 0.1 ensures we capture end
                 breaks = np.arange(start, end + (freq * 0.1), freq)
             breaks = maybe_downcast_numeric(breaks, dtype)
         else:
             if all_int:
-                # Python ints so that the arithmetic below cannot overflow
+                # Python ints, so that the arithmetic below does not overflow
+                # (or wrap around, for NumPy integers)
                 start = None if start is None else int(start)
                 end = None if end is None else int(end)
                 freq = None if freq is None else int(freq)
+                periods = None if periods is None else int(periods)
             # compute the period/start/end if unspecified (at most one)
             if periods is None:
                 periods = int((end - start) // freq) + 1
@@ -1862,20 +1877,21 @@ def interval_range(
             elif end is None:
                 end = start + (periods - 1) * freq
 
-            if all_int and _fits_int64(start, end, *com.not_none(freq)):
+            int_breaks = None
+            if all_int:
+                # same breaks as linspace, without the float64 intermediate
                 if freq is not None:
                     step = freq
-                elif periods == 1:
+                elif periods <= 1:
                     step = 0
                 elif (end - start) % (periods - 1) == 0:
                     step = (end - start) // (periods - 1)
                 else:
                     step = None
-            else:
-                step = None
-            if step is not None:
-                # same breaks as linspace, without the float64 intermediate
-                breaks = start + step * np.arange(periods, dtype=np.int64)
+                if step is not None:
+                    int_breaks = _int64_breaks(start, step, periods)
+            if int_breaks is not None:
+                breaks = int_breaks
             else:
                 breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
