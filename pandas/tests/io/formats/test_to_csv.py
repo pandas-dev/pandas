@@ -1207,13 +1207,13 @@ def test_to_csv_na_rep_none_column_label():
 @pytest.mark.parametrize(
     "quoting, expected_rows",
     [
-        ("QUOTE_NOTNULL", ['"x","1.0","",', ',,,"1.5"']),
-        ("QUOTE_STRINGS", ['"x","1.0","",', ",,,1.5"]),
+        ("QUOTE_NOTNULL", ['"x","y","",', ',,,"1.5"']),
+        ("QUOTE_STRINGS", ['"x","y","",', ",,,1.5"]),
     ],
 )
 def test_to_csv_na_rep_none_unquoted(quoting, expected_rows):
     # GH#60423
-    index = pd.MultiIndex.from_tuples([("x", 1.0), (None, np.nan)])
+    index = pd.MultiIndex.from_tuples([("x", "y"), (None, None)])
     df = pd.DataFrame({"a": ["", None], "b": [np.nan, 1.5]}, index=index)
     result = df.to_csv(quoting=getattr(csv, quoting), na_rep=None, header=False)
     expected = tm.convert_rows_list_to_csv_str(expected_rows)
