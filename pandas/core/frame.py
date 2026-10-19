@@ -8748,10 +8748,16 @@ class DataFrame(NDFrame, OpsMixin):
             if not is_list_like(subset):
                 subset = [cast("Hashable", subset)]
             ax = self._get_axis(agg_axis)
-            indices = ax.get_indexer_for(subset)  # type: ignore[arg-type]
-            check = indices == -1
-            if check.any():
-                raise KeyError(np.array(subset)[check].tolist())
+            if isinstance(ax, MultiIndex):
+                # accept partial keys, matching df[subset]; GH#17737
+                _, indices = ax._get_indexer_strict(
+                    com.maybe_iterable_to_list(subset), self._get_axis_name(agg_axis)
+                )
+            else:
+                indices = ax.get_indexer_for(subset)  # type: ignore[arg-type]
+                check = indices == -1
+                if check.any():
+                    raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
         if thresh is not lib.no_default:
