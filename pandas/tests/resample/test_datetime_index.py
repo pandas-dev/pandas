@@ -1163,10 +1163,10 @@ def test_resample_non_unitary_anchored_offset_phase_is_data_dependent(unit):
     # own stride. As a result the bin phase tracks where the data starts
     # rather than being fixed by the offset's startingMonth, and this is
     # true uniformly for non-unitary MS/QS/YS offsets, not a quarter-only
-    # quirk. This pins the current, intentional behavior described on the
-    # issue; it is not the startingMonth-anchored semantics originally
-    # requested there (see test_resample_half_year_offset_anchors_on_
-    # starting_month below for the offset that provides those).
+    # quirk. This pins current behavior (see GH#22362; GH#29576 is still
+    # open). It is not the startingMonth-anchored semantics requested in
+    # GH#29576; for those, see
+    # test_resample_half_year_offset_anchors_on_starting_month below.
     ser_jan_start = pd.Series(
         np.zeros(365),
         index=date_range("1950-01-01", periods=365, freq="D", unit=unit),
@@ -1189,19 +1189,30 @@ def test_resample_non_unitary_anchored_offset_phase_is_data_dependent(unit):
 
 
 def test_resample_half_year_offset_anchors_on_starting_month(unit):
-    # GH#29576 / GH#22362: HalfYearBegin/HalfYearEnd (GH#60946) anchor
-    # their bin phase on startingMonth regardless of where the data
-    # starts, unlike the non-unitary quarter offsets exercised above.
-    # This is the offset GH#29576 actually wanted from "2QS-MAR".
-    ser = pd.Series(
+    # GH#29576 / GH#22362: HalfYearBegin (GH#60946) with n=1 anchors its
+    # bin phase on startingMonth regardless of where the data starts,
+    # unlike the non-unitary quarter offsets exercised above, so both
+    # starts below land on March/September edges. This is the behavior
+    # GH#29576 wanted from "2QS-MAR".
+    ser_jan_start = pd.Series(
         np.zeros(365),
         index=date_range("1950-01-01", periods=365, freq="D", unit=unit),
     )
-    result = ser.resample("HYS-MAR").mean()
-    expected = pd.Series(
+    result_jan_start = ser_jan_start.resample("HYS-MAR").mean()
+    expected_jan_start = pd.Series(
         0.0, index=date_range("1949-09-01", periods=3, freq="HYS-MAR", unit=unit)
     )
-    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result_jan_start, expected_jan_start)
+
+    ser_mar_start = pd.Series(
+        np.zeros(365),
+        index=date_range("1950-03-01", periods=365, freq="D", unit=unit),
+    )
+    result_mar_start = ser_mar_start.resample("HYS-MAR").mean()
+    expected_mar_start = pd.Series(
+        0.0, index=date_range("1950-03-01", periods=2, freq="HYS-MAR", unit=unit)
+    )
+    tm.assert_series_equal(result_mar_start, expected_mar_start)
 
 
 @pytest.mark.parametrize("label, sec", [[None, 2.0], ["right", "4.2"]])
