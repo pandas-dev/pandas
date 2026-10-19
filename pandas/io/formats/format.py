@@ -439,7 +439,7 @@ class DataFrameFormatter:
         col_space: ColspaceArgType | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str | lib.NoDefault = lib.no_default,
+        na_rep: str | lib.NoDefault | None = lib.no_default,
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
@@ -766,7 +766,8 @@ class DataFrameFormatter:
             ),
             formatter,
             float_format=self.float_format,
-            na_rep=self.na_rep,
+            # only to_csv accepts na_rep=None, and it does not reach here
+            na_rep=self.na_rep,  # type: ignore[arg-type]
             space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
             leading_space=self.index,

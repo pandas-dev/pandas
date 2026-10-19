@@ -1674,7 +1674,9 @@ function takes a number of arguments. Only the first is required.
 
 * ``path_or_buf``: A string path to the file to write or a file object.  If a file object it must be opened with ``newline=''``
 * ``sep`` : Field delimiter for the output file (default ",")
-* ``na_rep``: A string representation of a missing value (default '')
+* ``na_rep``: A string representation of a missing value (default ''). If ``None``,
+  missing values are written as empty fields, which ``csv.QUOTE_NOTNULL`` and
+  ``csv.QUOTE_STRINGS`` leave unquoted
 * ``float_format``: Format string for floating point numbers
 * ``columns``: Columns to write (default None)
 * ``header``: Whether to write out the column names (default True)

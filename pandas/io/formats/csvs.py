@@ -106,7 +106,7 @@ class CSVFormatter:
         self.chunksize = self._initialize_chunksize(chunksize)
 
     @property
-    def na_rep(self) -> str:
+    def na_rep(self) -> str | None:
         na_rep = self.fmt.na_rep
         assert na_rep is not lib.no_default  # to_csv always passes na_rep
         return na_rep
