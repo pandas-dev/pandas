@@ -320,6 +320,13 @@ whereas a tuple of lists refer to several values within a level:
    s.loc[[("A", "c"), ("B", "d")]]  # list of tuples
    s.loc[(["A", "B"], ["c", "d"])]  # tuple of lists
 
+Tuples shorter than the number of levels select every row matching on the
+leading levels:
+
+.. ipython:: python
+
+   s.loc[[("B",), ("A",)]]
+
 
 .. _advanced.mi_slicers:
 
