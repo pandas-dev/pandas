@@ -147,7 +147,6 @@ def _short_circuit_empty_axis1_agg(func: str, obj) -> bool:
     return is_datetime64_any_dtype(common) or isinstance(common, PeriodDtype)
 
 
-
 def _stack_as_object(dtypes: list[DtypeObj]) -> bool:
     """
     Whether results of these dtypes must be stacked as object to keep their

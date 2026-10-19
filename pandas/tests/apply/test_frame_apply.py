@@ -2284,7 +2284,6 @@ def test_agg_many_columns_result_not_fragmented(spelling):
         result.insert(0, "x", 0)
 
 
-
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize(
     "dtype",

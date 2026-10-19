@@ -667,7 +667,6 @@ def dt64_any_all_msg(how: str) -> str:
     )
 
 
-
 def _raise_period_any_all(values: ArrayLike, how: str) -> None:
     """
     Raise for any/all on Period data (GH#34479).
