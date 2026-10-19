@@ -163,6 +163,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
+- Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) with a :class:`Series` or :class:`DataFrame` operand having index labels not in the left side upcasting the result (e.g. ``int64`` to ``float64``) or raising (:issue:`12755`)
 - Bug in integer exponentiation (``**``, :meth:`Series.pow`, :meth:`DataFrame.pow`) on large inputs returning imprecise results, ``0`` for negative exponents, or an upcast dtype when numexpr is installed (:issue:`54546`)
 
 Conversion
