@@ -299,6 +299,7 @@ def test_parsers_decimal_comma_in_date(date_str):
         ("2013-11-04 12,5h", datetime(2013, 11, 4, 12, 30)),
         ("2013-11-04 10h36,5s", datetime(2013, 11, 4, 10, 0, 36, 500000)),
         ("2013-11-04 10h36,5", datetime(2013, 11, 4, 10, 36, 30)),
+        ("2013-11-04 10h\t36,5", datetime(2013, 11, 4, 10, 36, 30)),
         # the trailing "." splits the token, leaving the comma as punctuation
         ("Nov 14,2013.", datetime(2013, 11, 14)),
     ],

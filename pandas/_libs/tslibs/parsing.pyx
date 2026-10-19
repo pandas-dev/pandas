@@ -685,14 +685,14 @@ _HMS_WORDS = frozenset(word for group in DEFAULTPARSER.info.HMS for word in grou
 cdef bint _hms_label_at(str timestr, Py_ssize_t pos, int step):
     """
     Is the word next to timestr[pos], stepping outward by step, an _HMS_WORDS
-    one? A single space is skipped either way, though for a label preceding
-    the number (step < 0) dateutil skips it only when the number is the final
-    token (GH#17265).
+    one? A single whitespace character is skipped either way, though for a
+    label preceding the number (step < 0) dateutil skips it only when the
+    number is the final token (GH#17265).
     """
     cdef:
         Py_ssize_t end, length = len(timestr)
 
-    if 0 <= pos < length and timestr[pos] == " ":
+    if 0 <= pos < length and timestr[pos].isspace():
         pos += step
     end = pos
     while 0 <= end < length and timestr[end].isalpha():
