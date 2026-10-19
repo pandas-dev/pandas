@@ -147,7 +147,10 @@ from pandas.core.construction import (
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import NDFrame
+from pandas.core.generic import (
+    NDFrame,
+    join_for_align,
+)
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -10296,7 +10299,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # Do the join on the columns instead of using left._align_for_op
         #  to avoid constructing two potentially large/sparse DataFrames
-        join_columns = left.columns.join(right.columns, how="outer")
+        join_columns = join_for_align(left.columns, right.columns, "outer", None)[0]
 
         if result.columns.has_duplicates:
             # Avoid reindexing with a duplicate axis.

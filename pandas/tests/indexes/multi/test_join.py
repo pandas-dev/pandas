@@ -87,6 +87,91 @@ def test_join_multi():
     tm.assert_numpy_array_equal(ridx, exp_ridx)
 
 
+@pytest.mark.parametrize("flat_first", [True, False])
+@pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
+def test_join_flat_with_multi_unmatched_flat_keys(how, flat_first):
+    # GH#34292 a key of the flat side with no MultiIndex row is kept when `how`
+    # keeps that side, with missing values in the other levels
+    midx = pd.MultiIndex.from_arrays([[1, 3, 5], [2, 4, 6]], names=["a", "b"])
+    idx = pd.Index([2, 5], name="a")
+    left, right = (idx, midx) if flat_first else (midx, idx)
+
+    result, lidx, ridx = left.join(right, how=how, return_indexers=True)
+
+    keep_flat = how in ("outer", "left" if flat_first else "right")
+    keep_multi = how in ("outer", "right" if flat_first else "left")
+    multi_rows = [0, 1, 2] if keep_multi else [2]
+    flat_rows = [-1, -1, 1] if keep_multi else [1]
+    codes = [multi_rows, multi_rows]
+    if keep_flat:
+        codes = [[*multi_rows, 3], [*multi_rows, -1]]
+        multi_rows, flat_rows = [*multi_rows, -1], [*flat_rows, 0]
+    expected = pd.MultiIndex(
+        levels=[[1, 3, 5, 2], [2, 4, 6]], codes=codes, names=["a", "b"]
+    )
+    tm.assert_index_equal(result, expected)
+
+    flat_idx, multi_idx = (lidx, ridx) if flat_first else (ridx, lidx)
+    if multi_idx is None:
+        # None means the result is the MultiIndex itself
+        assert result.equals(midx)
+        multi_idx = np.arange(len(midx), dtype=np.intp)
+    tm.assert_numpy_array_equal(flat_idx, np.array(flat_rows, dtype=np.intp))
+    tm.assert_numpy_array_equal(multi_idx, np.array(multi_rows, dtype=np.intp))
+
+
+def test_join_flat_with_multi_unmatched_missing_and_object_keys():
+    # GH#34292 appended keys keep the level's dtype; a missing key stays missing
+    midx = pd.MultiIndex.from_arrays(
+        [pd.Index(["a", "b"], dtype=object), [1, 2]], names=["k", "o"]
+    )
+    idx = pd.Index(["b", np.nan, "d"], dtype=object, name="k")
+
+    result = idx.join(midx, how="left")
+
+    expected = pd.MultiIndex(
+        levels=[pd.Index(["b", np.nan, "d"], dtype=object), [1, 2]],
+        codes=[[0, -1, 2], [1, -1, -1]],
+        names=["k", "o"],
+    )
+    tm.assert_index_equal(result, expected, exact=True)
+    tm.assert_index_equal(result.levels[0], expected.levels[0], exact=True)
+    tm.assert_numpy_array_equal(result.codes[0], expected.codes[0])
+
+
+def test_join_flat_with_multi_unmatched_middle_level():
+    # GH#34292 shared level not first; the sliced MultiIndex keeps the unused
+    # level value 5, so the level join returns no MultiIndex indexer
+    midx = pd.MultiIndex.from_arrays(
+        [["x", "y", "z"], [1, 3, 5], [7, 8, 9]], names=["x", "a", "z"]
+    )[:2]
+    idx = pd.Index([1, 3, 5], name="a")
+
+    result, lidx, ridx = idx.join(midx, how="left", return_indexers=True)
+
+    expected = pd.MultiIndex(
+        levels=[["x", "y", "z"], [1, 3, 5], [7, 8, 9]],
+        codes=[[0, 1, -1], [0, 1, 2], [0, 1, -1]],
+        names=["x", "a", "z"],
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(lidx, np.array([0, 1, 2], dtype=np.intp))
+    tm.assert_numpy_array_equal(ridx, np.array([0, 1, -1], dtype=np.intp))
+
+
+def test_join_flat_with_multi_unmatched_overlapping_intervals():
+    # GH#34292 the level of an overlapping IntervalIndex cannot use get_indexer
+    idx = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (5, 6)], name="iv")
+    midx = pd.MultiIndex.from_arrays([idx[:2], ["x", "y"]], names=["iv", "k"])
+
+    result, lidx, ridx = idx.join(midx, how="left", return_indexers=True)
+
+    expected = pd.MultiIndex.from_arrays([idx, ["x", "y", np.nan]], names=["iv", "k"])
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(lidx, np.array([0, 1, 2], dtype=np.intp))
+    tm.assert_numpy_array_equal(ridx, np.array([0, 1, -1], dtype=np.intp))
+
+
 def test_join_multi_wrong_order():
     # GH 25760
     # GH 28956
