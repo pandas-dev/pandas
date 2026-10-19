@@ -136,7 +136,10 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
 
-    if isinstance(values, np.ndarray):
+    if isinstance(values, np.ndarray) and not (
+        values.dtype.kind == "f" and values.dtype.itemsize in [2, 12, 16]
+    ):
+        # the float branch below converts these sizes to native float64
         validate_native_byteorder(values)
 
     if is_object_dtype(values.dtype):
