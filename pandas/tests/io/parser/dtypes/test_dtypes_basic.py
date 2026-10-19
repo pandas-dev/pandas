@@ -1118,7 +1118,7 @@ def test_dtype_dict_negative_int_keys_no_index_error(all_parsers):
     assert result["-10"].dtype == "float64", result["-10"].dtype
     assert result["-9"].dtype == "float64", result["-9"].dtype
     assert result["-8"].dtype == "float64", result["-8"].dtype
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "-10": [1.0, 6.0],
             "-9": [2.0, 7.0],
