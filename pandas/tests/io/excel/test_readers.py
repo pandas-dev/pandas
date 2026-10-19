@@ -628,6 +628,30 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.parametrize("key", [1, 2])
+    def test_reader_converters_usecols_integer_keys(self, read_ext, key):
+        # GH#18566 key 2 is the sheet position of "BoolCol"; key 1 is its
+        # deprecated position among the columns read
+        basename = "test_converters"
+        found = lambda x: "Found" if x != "" else "Not found"
+        warn = Pandas4Warning if key == 1 else None
+        with tm.assert_produces_warning(
+            warn, match="Integer keys", raise_on_extra_warnings=False
+        ):
+            actual = pd.read_excel(
+                basename + read_ext,
+                sheet_name="Sheet1",
+                usecols=[0, 2],
+                converters={key: found},
+            )
+        expected = pd.read_excel(
+            basename + read_ext,
+            sheet_name="Sheet1",
+            usecols=[0, 2],
+            converters={"BoolCol": found},
+        )
+        tm.assert_frame_equal(actual, expected)
+
     def test_reader_dtype(self, read_ext):
         # GH 8212
         basename = "testdtype"
