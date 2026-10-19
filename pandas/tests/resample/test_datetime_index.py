@@ -1163,13 +1163,14 @@ def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
 def test_resample_non_unitary_anchored_offset_phase_is_data_dependent(
     start, exp_start, periods, unit
 ):
-    # GH#29576: for a non-unitary anchored offset such as "2QS-MAR", the
-    # previous bin edge is computed via BaseOffset.rollback, which steps
-    # back exactly one offset (its n=1 form) regardless of the offset's
-    # own stride. As a result the bin phase tracks where the data starts
-    # rather than being fixed by the offset's startingMonth, and this is
-    # true uniformly for non-unitary MS/QS/YS offsets, not a quarter-only
-    # quirk. This pins current behavior (see GH#22362). It is not the
+    # GH#29576: for a non-unitary anchored offset such as "2QS-MAR",
+    # is_on_offset ignores n, so BaseOffset.rollback moves the first
+    # timestamp to the nearest n=1 anchor (any quarter start in the MAR
+    # cycle), not to one on the offset's own two-quarter grid. As a
+    # result the bin phase tracks where the data starts rather than being
+    # fixed by the offset's startingMonth, and this is true uniformly for
+    # non-unitary MS/QS/YS offsets, not a quarter-only quirk. This pins
+    # current behavior (see GH#22362). It is not the
     # startingMonth-anchored semantics requested in GH#29576; for those,
     # see test_resample_half_year_offset_anchors_on_starting_month below.
     ser = pd.Series(
