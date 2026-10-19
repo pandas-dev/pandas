@@ -5699,9 +5699,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             also selects labels, but since it is likely intended as a mask a
             warning is issued; pass ``items`` or ``cond`` instead to be
             explicit.
-
-            .. versionadded:: 3.1.0
-
         like : str
             Keep labels from axis for which "like in label == True". This
             will be deprecated in a future version; use
