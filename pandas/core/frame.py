@@ -132,7 +132,6 @@ from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
-    ArrowExtensionArray,
     BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
@@ -4175,6 +4174,7 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
                 from pandas.core.arrays.arrow.array import (
+                    ArrowExtensionArray,
                     transpose_homogeneous_pyarrow,
                 )
 
@@ -17123,6 +17123,10 @@ class DataFrame(NDFrame, OpsMixin):
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
                     if name in ("sum", "prod", "min", "max"):
+                        from pandas.core.arrays.arrow.array import (
+                            ArrowExtensionArray,
+                        )
+
                         masked = arr
                         if isinstance(dtype, ArrowDtype) and (
                             dtype.kind in "iub"
