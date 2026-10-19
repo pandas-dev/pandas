@@ -2485,8 +2485,18 @@ class _iLocIndexer(_LocationIndexer):
         take_split_path = not self.obj._mgr.is_single_block
 
         if not take_split_path and isinstance(value, ABCDataFrame):
-            # Avoid cast of values
-            take_split_path = not value._mgr.is_single_block
+            info_axis = self.obj._info_axis_number
+            if (
+                isinstance(indexer, tuple)
+                and len(indexer) == self.ndim == 2
+                and is_integer(indexer[info_axis])
+            ):
+                # GH#58482 setting a scalar column with a DataFrame value must
+                # go through the split path to align columns and series properly
+                take_split_path = True
+            else:
+                # Avoid cast of values
+                take_split_path = not value._mgr.is_single_block
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
