@@ -309,10 +309,15 @@ def test_str_dtype():
 
 @pytest.mark.parametrize("ignore_index", [True, False])
 @pytest.mark.parametrize(
-    "column, explode_ef",
-    [(("B", "C"), False), ([("B", "C")], False), ([("B", "C"), ("E", "F")], True)],
+    "column, exploded",
+    [
+        (("B", "C"), [("B", "C")]),
+        ([("B", "C")], [("B", "C")]),
+        ([("E", "F")], [("E", "F")]),
+        ([("B", "C"), ("E", "F")], [("B", "C"), ("E", "F")]),
+    ],
 )
-def test_explode_tuple_label_flat_columns(column, explode_ef, ignore_index):
+def test_explode_tuple_label_flat_columns(column, exploded, ignore_index):
     # GH 55142
     df = pd.DataFrame(
         {"A": [1, 2], ("B", "C"): [[3, 4], [5]], ("E", "F"): [[6, 7], [8]]},
@@ -322,31 +327,15 @@ def test_explode_tuple_label_flat_columns(column, explode_ef, ignore_index):
     expected = pd.DataFrame(
         {
             "A": [1, 1, 2],
-            ("B", "C"): np.array([3, 4, 5], dtype=object),
+            ("B", "C"): np.array([3, 4, 5], dtype=object)
+            if ("B", "C") in exploded
+            else [[3, 4], [3, 4], [5]],
             ("E", "F"): np.array([6, 7, 8], dtype=object)
-            if explode_ef
+            if ("E", "F") in exploded
             else [[6, 7], [6, 7], [8]],
         },
         index=list("aab"),
     )
     if ignore_index:
         expected = expected.reset_index(drop=True)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_explode_tuple_label_not_first_column():
-    # GH 55142
-    df = pd.DataFrame(
-        {"A": [1, 2], ("B", "C"): [[3, 4], [5]], ("E", "F"): [[6, 7], [8]]},
-        index=list("ab"),
-    )
-    result = df.explode([("E", "F")])
-    expected = pd.DataFrame(
-        {
-            "A": [1, 1, 2],
-            ("B", "C"): [[3, 4], [3, 4], [5]],
-            ("E", "F"): np.array([6, 7, 8], dtype=object),
-        },
-        index=list("aab"),
-    )
     tm.assert_frame_equal(result, expected)

@@ -14548,7 +14548,9 @@ class DataFrame(NDFrame, OpsMixin):
             result = DataFrame({c: df[c].explode() for c in columns})
         # Tuple labels can turn into a MultiIndex above even if self.columns
         # is a flat Index, so reuse the labels from self.columns (GH#55142)
-        result.columns = df.columns[df.columns.get_indexer(columns)]
+        indexer = df.columns.get_indexer(columns)
+        if not (indexer == -1).any():
+            result.columns = df.columns[indexer]
         result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))
