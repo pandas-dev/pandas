@@ -139,7 +139,7 @@ This applies to both row and column labels for a :class:`DataFrame`
 .. ipython:: python
    :okexcept:
 
-   pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],).set_flags(
+   pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "A", "B"],).set_flags(
        allows_duplicate_labels=False
    )
 
