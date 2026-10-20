@@ -2377,12 +2377,20 @@ class PiePlot(MPLPlot):
             )
         return False
 
-    def _validate_color_args(self, color, colormap) -> None:
-        # TODO: warn if color is passed and ignored?
-        return None
+    def _validate_color_args(self, color, colormap):
+        # GH#11228 honor "color" like other plot kinds
+        if color is lib.no_default or color is None:
+            return None
+        if "colors" in self.kwds:
+            raise TypeError("Only specify one of `color` and `colors`.")
+        if isinstance(color, dict):
+            # matplotlib would read the keys as colors
+            raise TypeError("pie plots do not support a dict for `color`.")
+        return color
 
     def _make_plot(self, fig: Figure) -> None:
-        colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
+        color_kwds = "colors" if self.color is None else "color"
+        colors = self._get_colors(num_colors=len(self.data), color_kwds=color_kwds)
         self.kwds.setdefault("colors", colors)
 
         for i, (label, y) in enumerate(self._iter_data(data=self.data)):

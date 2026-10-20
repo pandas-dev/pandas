@@ -417,6 +417,32 @@ class TestSeriesPlots:
         color_expected = ["r", "g", "b", "r", "g"]
         _check_colors(ax.patches, facecolors=color_expected)
 
+    @pytest.mark.parametrize(
+        "color, expected",
+        [
+            (["r", "g", "b"], ["r", "g", "b", "r", "g"]),
+            ("r", ["r"] * 5),
+            ((1.0, 0.0, 0.0), [(1.0, 0.0, 0.0)] * 5),
+        ],
+    )
+    def test_pie_series_color(self, color, expected):
+        # GH#11228
+        series = pd.Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
+        ax = _check_plot_works(series.plot.pie, color=color)
+        _check_colors(ax.patches, facecolors=expected)
+
+    def test_pie_series_color_and_colors_raises(self):
+        # GH#11228
+        series = pd.Series([1, 2, 3])
+        with pytest.raises(TypeError, match="Only specify one of"):
+            series.plot.pie(color=["r"], colors=["g"])
+
+    def test_pie_series_color_dict_raises(self):
+        # GH#11228
+        series = pd.Series([1, 2, 3], index=["red", "green", "blue"])
+        with pytest.raises(TypeError, match="do not support a dict"):
+            series.plot.pie(color={"red": "k", "green": "k", "blue": "k"})
+
     def test_pie_series_labels_and_colors(self):
         series = pd.Series(
             np.random.default_rng(2).integers(1, 5),
