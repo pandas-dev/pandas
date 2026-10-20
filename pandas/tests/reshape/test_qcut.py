@@ -124,7 +124,7 @@ def test_qcut_infinite_values(data, q, expected):
 
 
 def test_qcut_only_infinite_values():
-    # see gh-11113 an edge between -inf and inf resolves to -inf, so the bins
+    # see gh-11113 an edge between -inf and inf resolves to inf, so the bins
     #  collapse the way they do for constant input
     with pytest.raises(ValueError, match="edges.*unique"):
         pd.qcut([-np.inf, np.inf], 2)
@@ -132,6 +132,25 @@ def test_qcut_only_infinite_values():
     result = pd.qcut([-np.inf, np.inf], 2, duplicates="drop")
     expected = pd.IntervalIndex([pd.Interval(-np.inf, np.inf)])
     tm.assert_index_equal(result.categories, expected)
+
+
+@pytest.mark.parametrize("q", [[0, 0.8, 1], [0, 0.9, 1]])
+def test_qcut_infinite_values_quantiles_in_the_tail(q):
+    _, bins = pd.qcut([1, 2, 3, np.inf], q, retbins=True, duplicates="drop")
+    tm.assert_numpy_array_equal(bins, np.array([1.0, np.inf]))
+
+    with pytest.raises(ValueError, match="edges.*unique"):
+        pd.qcut([1, 2, 3, np.inf], q)
+
+
+def test_qcut_infinite_values_bins_are_monotonic():
+    result, bins = pd.qcut(
+        [0, 1, 2, 3, np.inf], 10, labels=False, retbins=True, duplicates="drop"
+    )
+    expected_bins = np.array([0.0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, np.inf])
+    tm.assert_almost_equal(bins, expected_bins)
+    assert (np.diff(bins) > 0).all()
+    tm.assert_numpy_array_equal(result, np.array([0, 2, 4, 7, 7], dtype=result.dtype))
 
 
 def test_qcut_index():
