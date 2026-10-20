@@ -937,3 +937,28 @@ def test_na_values_prefilter_edge_cases(all_parsers, na_values, data, expected_v
     result = parser.read_csv(StringIO("col\n" + data), na_values=na_values)
     expected = pd.DataFrame({"col": expected_values})
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_float64_distinguish_nan_and_na():
+    data = "key,value\na,1.0\nb,\nc,nan\n"
+
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.read_csv(
+            StringIO(data),
+            index_col="key",
+            dtype={"value": "Float64"},
+            keep_default_na=False,
+            na_values=[""],
+        )
+
+    expected = pd.DataFrame(
+        {
+            "value": pd.array(
+                [1.0, pd.NA, np.nan],
+                dtype="Float64",
+            )
+        },
+        index=pd.Index(["a", "b", "c"], name="key"),
+    )
+
+    tm.assert_frame_equal(result, expected)

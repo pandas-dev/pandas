@@ -2619,7 +2619,7 @@ def maybe_convert_numeric(
     cdef:
         # fastpath for ints - try to convert all based on first value
         object val = values[0]
-        # fastpath for distinguish_nan_and_na for float na and non float no
+        # fastpath Resolved once; consulted inside the else: branch for string NaN values.
         bint distinguish_nan_and_na = get_option("future.distinguish_nan_and_na")
 
     if util.is_integer_object(val):
