@@ -2120,8 +2120,8 @@ class SQLDatabase(PandasSQL):
         )
 
         if created:
-            # Writing to an existing table can't change the name it is stored
-            # under, so skip listing every table in the schema (GH#52601).
+            # the case warning only applies to a table we just created; listing
+            # every table can block on MSSQL (GH#52601)
             self.check_case_sensitive(name=name, schema=schema)
         return total_inserted
 

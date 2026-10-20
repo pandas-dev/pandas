@@ -2612,9 +2612,9 @@ def test_to_sql_case_check_only_for_new_table(
 ):
     # GH#52601 listing all tables can block on MSSQL, so only list them
     # when the table was (re)created
+    conn = request.getfixturevalue(conn)
     from sqlalchemy.engine.reflection import Inspector
 
-    conn = request.getfixturevalue(conn)
     if preexisting:
         test_frame1.to_sql(name="CaseSensitive", con=conn)
 
