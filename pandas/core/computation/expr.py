@@ -42,7 +42,7 @@ from pandas.core.computation.ops import (
     is_term,
 )
 from pandas.core.computation.parsing import (
-    backtick_quoted_names,
+    backtick_quoted_assign_target,
     clean_backtick_quoted_toks,
     tokenize_string,
 )
@@ -656,9 +656,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             raise SyntaxError(
                 "left hand side of an assignment must be a single resolvable name"
             )
-        self.assigner_label = backtick_quoted_names(self._source).get(
-            self.assigner, self.assigner
-        )
+        self.assigner_label = backtick_quoted_assign_target(self._source, self.assigner)
 
         return self.visit(node.value, **kwargs)
 

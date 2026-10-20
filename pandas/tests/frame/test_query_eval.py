@@ -1652,6 +1652,21 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df.assign(**{"new-col": df["A"] + df["B B"]})
         tm.assert_frame_equal(res, expect)
 
+    @pytest.mark.parametrize(
+        "expr, label",
+        [
+            ("`a b!` = `a_b!` * 2", "a b!"),
+            ("`a_b!` = `a b!` * 2", "a_b!"),
+            ("(`a b!`) = `a_b!` * 2", "a b!"),
+        ],
+    )
+    def test_assign_to_backtick_column_cleaned_to_same_name(self, expr, label):
+        # GH#47699
+        df = pd.DataFrame({"a_b!": [1, 2]})
+        res = df.eval(expr)
+        expect = df.assign(**{label: [2, 4]})
+        tm.assert_frame_equal(res, expect)
+
     def test_unneeded_quoting(self, df):
         res = df.query("`A` > 2")
         expect = df[df["A"] > 2]

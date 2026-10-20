@@ -241,29 +241,29 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
     return substrings
 
 
-def backtick_quoted_names(source: str) -> dict[str, str]:
+def backtick_quoted_assign_target(source: str, assigner: str) -> str:
     """
-    Map the identifier of each backtick-quoted name in ``source`` to the name.
+    Return the column label for the left hand side of an assignment.
 
     Parameters
     ----------
     source : str
-        The Python source code string.
+        The Python source code string of a single assignment.
+    assigner : str
+        The identifier the left hand side was parsed to.
 
     Returns
     -------
-    dict[str, str]
-        The valid Python identifier that a backtick-quoted name is cleaned to
-        (see :func:`create_valid_python_identifier`), mapped to the name as
-        it would appear as a column label.
+    str
+        The backtick-quoted name as written on the left hand side, or
+        ``assigner`` if the left hand side is not backtick-quoted.
     """
-    return {
-        create_valid_python_identifier(substring[1:-1]): substring[1:-1].replace(
-            "``", "`"
-        )
-        for is_backtick_quoted, substring in _split_by_backtick(source)
-        if is_backtick_quoted
-    }
+    substrings = _split_by_backtick(source.lstrip(" \t("))
+    if substrings and substrings[0][0]:
+        name = substrings[0][1][1:-1]
+        if create_valid_python_identifier(name) == assigner:
+            return name.replace("``", "`")
+    return assigner
 
 
 def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
