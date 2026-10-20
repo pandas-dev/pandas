@@ -1023,6 +1023,7 @@ def test_embedded_nul_is_not_a_float(value):
     result = pd.to_numeric(ser, errors="coerce")
     tm.assert_series_equal(result, pd.Series([np.nan]))
 
+
 @pytest.mark.parametrize(
     "data, expected",
     [
@@ -1042,8 +1043,7 @@ def test_string_nan_and_specific_na(data, expected):
         tm.assert_series_equal(res, expected)
         if len(data) > 1 and data[1] == "nan":
             assert res.iloc[1] is np.nan or (
-                isinstance(res.iloc[1], (float, np.floating))
-                and np.isnan(res.iloc[1])
+                isinstance(res.iloc[1], (float, np.floating)) and np.isnan(res.iloc[1])
             )
 
 
