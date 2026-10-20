@@ -1743,7 +1743,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
     case EAT_CRNL_NOP: // inside an ignored comment line
       self->state = START_RECORD;
       // \r line terminator -- parse this character again
-      if (c != '\n' && !IS_DELIMITER(c)) {
+      if (c != '\n') {
         --i;
         --buf;
       }
