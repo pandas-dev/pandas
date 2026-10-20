@@ -626,6 +626,8 @@ def test_leading_whitespace_split_at_chunk_boundary(c_parser_only, line, expecte
         ("x,y\n a ,b\n", {"quotechar": " "}, [["x", "y"], ["a", "b"]]),
         ("x,y\n\t\t,b\n", {"escapechar": "\t"}, [["x", "y"], ["\t", "b"]]),
         ("x,y\n \t\t,b\n", {"escapechar": "\t"}, [["x", "y"], [" \t", "b"]]),
+        # not skipped as blank, matching engine="python"
+        ("x\n \t\nc\n", {"escapechar": "\t"}, [["x"], [" \nc"]]),
         (
             "x,y\n  \ta,b\t,c\n",
             {"quotechar": "\t", "skipinitialspace": True},

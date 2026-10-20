@@ -1393,21 +1393,20 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
     case WHITESPACE_LINE:
       // Hold the line's leading blanks in the stream; backtracking over buf
       // loses those read before a buffer refill (GH#34085).
-      if (IS_TERMINATOR(c)) {
+      if (IS_TERMINATOR(c) || IS_CARRIAGE(c) || IS_COMMENT_CHAR(c)) {
+        // the line is skipped: discard the held blanks
         slen = self->word_start;
         stream = self->stream + slen;
+      }
+      if (IS_TERMINATOR(c)) {
         self->file_lines++;
         self->state = START_RECORD;
         break;
       } else if (IS_CARRIAGE(c)) {
-        slen = self->word_start;
-        stream = self->stream + slen;
         self->file_lines++;
         self->state = EAT_CRNL_NOP;
         break;
       } else if (IS_COMMENT_CHAR(c)) {
-        slen = self->word_start;
-        stream = self->stream + slen;
         self->state = EAT_LINE_COMMENT;
         break;
       } else if (!self->delim_whitespace) {
