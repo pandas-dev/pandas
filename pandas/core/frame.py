@@ -15711,6 +15711,7 @@ class DataFrame(NDFrame, OpsMixin):
             An array-like other than a list or tuple with the same length
             as the left DataFrame, or a list of these, is used as the join key
             values directly instead of being looked up as a label.
+            If multiple values are given, `other` must have a MultiIndex.
         how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
             default 'left'
             How to handle the operation of the two objects.
