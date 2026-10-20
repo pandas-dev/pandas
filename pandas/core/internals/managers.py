@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_python_scalars
 from pandas._config.config import _global_config as config
 
 from pandas._libs import (
@@ -38,6 +39,7 @@ from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_unbox_numpy_scalar,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -196,7 +198,8 @@ class BaseBlockManager(PandasObject):
 
     _blknos: npt.NDArray[np.intp]
     _blklocs: npt.NDArray[np.intp]
-    _dtypes_cache: npt.NDArray[np.object_] | None
+    # (blocks, value): an entry is valid only while its blocks are self.blocks
+    _dtypes_cache: tuple[tuple[Block, ...], npt.NDArray[np.object_]] | None
     blocks: tuple[Block, ...]
     axes: list[Index]
 
@@ -342,16 +345,17 @@ class BaseBlockManager(PandasObject):
         return algos.unique(np.array([blk.dtype for blk in self.blocks], dtype=object))
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
+        blocks = self.blocks
         cache = self._dtypes_cache
-        if cache is None:
-            blocks = self.blocks
+        # Validate on read rather than on store: a reader racing a write may
+        # store an entry for blocks that are already gone (GH#68446). Keying on
+        # blocks alone relies on writes that change column dtypes rebinding
+        # blocks after they update blknos.
+        if cache is None or cache[0] is not blocks:
             dtypes = np.array([blk.dtype for blk in blocks], dtype=object)
-            cache = dtypes.take(self.blknos)
-            # An invalidating write that landed while we computed has already
-            # cleared the cache, so storing now would leave the stale array for good.
-            if blocks is self.blocks:
-                self._dtypes_cache = cache
-        return cache.copy()
+            cache = (blocks, dtypes.take(self.blknos))
+            self._dtypes_cache = cache
+        return cache[1].copy()
 
     @property
     def arrays(self) -> list[ArrayLike]:
@@ -1161,6 +1165,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Indexing
 
+    def _get_interleaved_dtype(self) -> DtypeObj | None:
+        blocks = self.blocks
+        cache = self._interleaved_dtype
+        # validated on read for the same reason as in get_dtypes
+        if cache is None or cache[0] is not blocks:
+            cache = (blocks, interleaved_dtype([blk.dtype for blk in blocks]))
+            self._interleaved_dtype = cache
+        return cache[1]
+
     def fast_xs(self, loc: int) -> SingleBlockManager:
         """
         Return the array corresponding to `frame.iloc[loc]`.
@@ -1191,10 +1204,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         # GH#62263 cache interleaved_dtype to avoid recomputing on
         # repeated fast_xs calls
-        dtype = self._interleaved_dtype
-        if dtype is None:
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-            self._interleaved_dtype = dtype
+        dtype = self._get_interleaved_dtype()
 
         n = len(self)
 
@@ -1207,6 +1217,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         else:
             result = np.empty(n, dtype=dtype)
             result = ensure_wrapped_if_datetimelike(result)
+
+        # GH#13468 for an extension dtype, result is only a buffer for _from_sequence
+        unbox = using_python_scalars() and not isinstance(dtype, ExtensionDtype)
 
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
@@ -1229,6 +1242,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     else:
                         new_dtype = np.float64
                     result = result.astype(new_dtype)
+                if unbox and result.dtype == object:
+                    item = maybe_unbox_numpy_scalar(item, object_with_dtype=blk)
                 result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
@@ -1366,6 +1381,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
+        if not value_is_extension_type and len(blklocs) and len(value) != len(blklocs):
+            # Otherwise value_getitem below silently drops value columns, or
+            #  yields a block narrower than its placement, GH#68445.  An empty
+            #  loc writes nothing, so it stays a no-op.
+            raise ValueError(
+                f"Got {len(blklocs)} positions but value has {len(value)} columns."
+            )
+
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
@@ -1442,8 +1465,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blknos[unfit_idxr] = len(self.blocks)
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
-            # Invalidate the caches before swapping blocks; see get_dtypes
-            # for the window this ordering leaves open.
+            # Not needed for correctness (see get_dtypes); releases the old blocks
             self._interleaved_dtype = None
             self._dtypes_cache = None
             self._known_consolidated = False
@@ -1494,6 +1516,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         )
         self.blocks = blocks_tup
         self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb.mgr_locs))
+        self._interleaved_dtype = None
+        self._dtypes_cache = None
 
         if not nbs_tup and value is not None:
             # No need to update _blknos if split did not happen
@@ -1530,8 +1554,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
-        # Invalidate the caches before swapping blocks; see get_dtypes
-        # for the window this ordering leaves open.
+        # Not needed for correctness (see get_dtypes); releases the old blocks
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self.blocks = new_blocks
@@ -1603,8 +1626,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
-        # Invalidate the caches before swapping blocks; see get_dtypes
-        # for the window this ordering leaves open.
+        # Not needed for correctness (see get_dtypes); releases the old blocks
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self._known_consolidated = False
@@ -1937,12 +1959,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # "Optional[Union[dtype[Any], ExtensionDtype]]", variable has
             # type "Optional[dtype[Any]]")
             # GH#62263 use cached interleaved_dtype
-            dtype = self._interleaved_dtype  # type: ignore[assignment]
-            if dtype is None:
-                dtype = interleaved_dtype(  # type: ignore[assignment]
-                    [blk.dtype for blk in self.blocks]
-                )
-                self._interleaved_dtype = dtype
+            dtype = self._get_interleaved_dtype()  # type: ignore[assignment]
             # not cached since it depends on the values, GH#38240
             dtype = common_dtype_categorical_compat(  # type: ignore[assignment]
                 [blk.values for blk in self.blocks],

@@ -108,6 +108,7 @@ from pandas.core.nanops import (
     check_below_min_count,
     dt64_any_all_msg,
     na_accum_func,
+    warn_complex_unordered,
 )
 from pandas.core.ops.array_ops import (
     arithmetic_op,
@@ -2735,6 +2736,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         -------
         scalar
         """
+        if self.dtype.subtype.kind == "c":
+            warn_complex_unordered()
         valid_vals = self._valid_sp_values
         has_nonnull_fill_vals = not self._null_fill_value and self.sp_index.ngaps > 0
 
@@ -2761,6 +2764,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return maybe_box_datetimelike(result, self.dtype.subtype)
 
     def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
+        if self.dtype.subtype.kind == "c":
+            warn_complex_unordered()
         values = self._sparse_values
         index = self._sparse_index.indices
         mask = np.asarray(isna(values))
@@ -2947,6 +2952,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # GH#68579 defer to the masked operand's reflected comparison, which
             #  keeps its NA semantics; densifying here loses them.
             return NotImplemented
+
+        if isinstance(other, list):
+            other = np.asarray(other)
+        other_kind = getattr(getattr(other, "dtype", None), "kind", None)
+        # object operands already raise TypeError on complex
+        if (
+            op not in {operator.eq, operator.ne}
+            and other_kind != "O"
+            and (self.dtype.kind == "c" or other_kind == "c" or lib.is_complex(other))
+        ):
+            # GH#43770 complex has no natural ordering
+            warn_complex_unordered()
 
         return self._cmp_or_logical_op(other, op)
 

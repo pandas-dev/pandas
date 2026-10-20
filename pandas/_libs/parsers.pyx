@@ -581,11 +581,15 @@ cdef class TextReader:
 
         if len(decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
+        if ord(decimal) > 127:
+            raise ValueError("Only ASCII decimal markers supported")
         self.parser.decimal = <char>ord(decimal)
 
         if thousands is not None:
             if len(thousands) != 1:
                 raise ValueError("Only length-1 thousands markers supported")
+            if ord(thousands) > 127:
+                raise ValueError("Only ASCII thousands markers supported")
             self.parser.thousands = <char>ord(thousands)
 
         if escapechar is not None:

@@ -131,6 +131,7 @@ from signature_overrides import apply_signature_overrides
 
 extensions = [
     "contributors",  # custom pandas extension
+    "rst_list_indentation",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
@@ -173,6 +174,9 @@ else:
 # (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
+if pattern:
+    # Sphinx uses "/"-separated docnames, see GH#26574
+    pattern = pattern.replace(os.sep, "/")
 single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
 include_api = pattern is None or pattern == "whatsnew"
 if pattern:
@@ -181,6 +185,7 @@ if pattern:
         for fname in fnames:
             if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
                 rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+                rel_fname = rel_fname.replace(os.sep, "/")
 
                 if rel_fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
@@ -193,8 +198,6 @@ if pattern:
                 ):
                     exclude_patterns.append(rel_fname)
                 elif single_doc and rel_fname != pattern:
-                    if "\\" in rel_fname:
-                        rel_fname = rel_fname.replace("\\", "/")
                     exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:

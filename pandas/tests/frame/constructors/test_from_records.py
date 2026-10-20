@@ -248,6 +248,13 @@ class TestFromRecords:
         )
         tm.assert_frame_equal(frame, expected)
 
+    def test_from_records_list_of_ea_series(self):
+        # GH#56231
+        ser = pd.Series([1, 2], index=["a", "b"], dtype="Int64")
+        result = pd.DataFrame.from_records([ser])
+        expected = pd.DataFrame({"a": [1], "b": [2]}, dtype="Int64")
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_from_records_utc(self):
         rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=UTC)}
 
@@ -573,6 +580,23 @@ class TestFromRecords:
             iter(rows), columns=["a", "b", "c"], exclude=["b"], nrows=0
         )
         expected = pd.DataFrame([], columns=["a", "c"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("label", [0, "", False])
+    def test_from_records_exclude_falsy_label(self, label):
+        # GH#18679
+        data = [[1, 2, 3], [4, 5, 6]]
+        columns = [label, "b", "c"]
+        result = pd.DataFrame.from_records(data, columns=columns, exclude=[label])
+        expected = pd.DataFrame(data, columns=columns).drop(columns=[label])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [0, [0]])
+    def test_from_records_index_falsy_label(self, index):
+        # GH#18679
+        data = [[1, 2, 3], [4, 5, 6]]
+        result = pd.DataFrame.from_records(data, index=index)
+        expected = pd.DataFrame({1: [2, 5], 2: [3, 6]}, index=pd.Index([1, 4], name=0))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])

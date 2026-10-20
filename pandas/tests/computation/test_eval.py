@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from itertools import product
+from types import MappingProxyType
 
 import numpy as np
 import pytest
@@ -731,15 +732,10 @@ class TestEval:
             df.query("lambda == 0")
 
     def test_true_false_logic(self):
-        # GH 25823
-        # This behavior is deprecated in Python 3.12
-        msg = "Bitwise inversion '~' on bool is deprecated"
-        with tm.maybe_produces_warning(
-            DeprecationWarning, PY312, check_stacklevel=False, match=msg
-        ):
-            assert pd.eval("not True") == -2
-            assert pd.eval("not False") == -1
-            assert pd.eval("True and not True") == 0
+        # GH 25823, GH#11367
+        assert pd.eval("not True") is np.False_
+        assert pd.eval("not False") is np.True_
+        assert pd.eval("True and not True") is np.False_
 
     def test_and_logic_string_match(self):
         # GH 25823
@@ -1352,6 +1348,33 @@ class TestOperations:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_multi_line_expression_reuses_aligned_column(self, engine, parser):
+        # GH#59062 alignment in one line must not leak into the next
+        df = pd.DataFrame({"a": [1.0, np.nan, 3.0], "b": [4.0, 5.0, 7.0]})
+        result = df.eval(
+            """
+        c = a / b.fillna(a)
+        d = b / b.fillna(a)
+        e = a.sum()
+        f = b.std()
+        """,
+            engine=engine,
+            parser=parser,
+        )
+        expected = df.copy()
+        expected["c"] = df["a"] / df["b"]
+        expected["d"] = df["b"] / df["b"]
+        expected["e"] = df["a"].sum()
+        expected["f"] = df["b"].std()
+        tm.assert_frame_equal(result, expected)
+
+    def test_subscript_alignment_does_not_leak(self, engine, parser):
+        # GH#59062
+        df = pd.DataFrame({"a": [1.0, np.nan, 3.0]})
+        result = df.eval("a[a > 0] + a.sum()", engine=engine, parser=parser)
+        expected = df["a"][df["a"] > 0] + df["a"].sum()
+        tm.assert_series_equal(result, expected)
+
     def test_assignment_in_query(self):
         # GH 8664
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
@@ -1497,6 +1520,23 @@ class TestOperations:
                 pd.eval("3 not in (1, 2)", engine=engine, parser=parser)
             with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("[3] not in (1, 2, [[3]])", engine=engine, parser=parser)
+
+    @pytest.mark.parametrize(
+        "expr, expected",
+        [
+            ("abs(a) in [1, 2]", [True, True, True, False]),
+            ("abs(a) not in [1, 2]", [False, False, False, True]),
+            ("-a in [1, 2]", [False, True, False, False]),
+            ("abs(a) + 0 in [1, 2]", [True, True, True, False]),
+            ("abs(a) == [2, 1, 1, 3]", [False, True, False, True]),
+            ("-a > [0, 0, 0, 0]", [False, True, False, True]),
+        ],
+    )
+    def test_in_ops_with_unary_or_math_operand(self, engine, expr, expected):
+        # GH#31848 numexpr raised AttributeError on a UnaryOp/MathCall operand
+        df = pd.DataFrame({"a": [1, -1, 2, -3]})
+        result = df.eval(expr, engine=engine)
+        tm.assert_series_equal(result, pd.Series(expected), check_names=False)
 
     def test_check_many_exprs(self, engine, parser):
         a = 1  # noqa: F841
@@ -1807,6 +1847,15 @@ def test_bad_resolver_raises(engine, parser):
         pd.eval("1 + 2", resolvers=cannot_resolve, engine=engine, parser=parser)
 
 
+def test_eval_does_not_mutate_resolvers(engine, parser):
+    # GH#59062
+    ser = pd.Series([1.0, 2.0])
+    # read-only, so any write into it raises
+    resolvers = MappingProxyType({"a": ser, "b": ser})
+    result = pd.eval("a + b", resolvers=(resolvers,), engine=engine, parser=parser)
+    tm.assert_series_equal(result, ser + ser)
+
+
 def test_empty_string_raises(engine, parser):
     # GH 13139
     with pytest.raises(ValueError, match="expr cannot be an empty string"):
@@ -1915,12 +1964,12 @@ def test_negate_lt_eq_le(engine, parser):
     DEFAULT_GLOBALS.keys(),
 )
 def test_eval_no_support_column_name(request, engine, parser, column):
-    # GH#44603, GH#35695
-    if column in ["True", "False", "inf", "Inf"]:
+    # GH#44603, GH#35695, GH#47859
+    if column in ["True", "False"]:
         request.applymarker(
             pytest.mark.xfail(
-                raises=KeyError,
-                reason=f"GH#47859 DataFrame eval not supported with {column}",
+                raises=ValueError,
+                reason=f"{column} is a keyword literal; use backticks",
             )
         )
 
@@ -1932,6 +1981,38 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     result = df.query(f"{column}>6", engine=engine, parser=parser)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("column", ["inf", "Inf"])
+def test_query_column_shadows_inf(engine, parser, column):
+    # GH#47859
+    df = pd.DataFrame({column: [1.0, 10.0, 20.0], "col1": [1, 2, 3]})
+    expected = df.iloc[1:]
+
+    result = df.query(f"col1 < {column}", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.set_index(column).query(f"{column} > 6", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, expected.set_index(column))
+
+    if parser == "pandas":
+        result = df.query(f"`{column}` > 6", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, expected)
+
+        # "@" still refers to the default global
+        result = df.query(f"col1 < @{column}", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df)
+
+
+def test_query_float_inf_label_does_not_shadow_inf(engine, parser):
+    # GH#47859 only a str label named "inf" shadows np.inf
+    df = pd.DataFrame({"x": [1.0, 5.0], np.inf: [0.0, 0.0]})
+    result = df.query("x < inf", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df)
+
+    df = df.set_index(np.inf)
+    result = df.query("x < inf", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
@@ -2159,3 +2240,107 @@ def test_eval_top_level_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         pd.eval("b = df.a + 1", target=df, inplace=True)
     tm.assert_frame_equal(df, expected)
+
+
+def test_eval_top_level_multi_line_resolves_locals(engine, parser):
+    # GH#31952 lines after the first assignment could not see the caller's locals
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})  # noqa: F841
+    offset = 10  # noqa: F841
+    c = 100  # noqa: F841  # shadowed by the assignment on the first line
+    result = pd.eval(
+        """
+        c = df.a - df.b
+        c = c * 2
+        d = c + df.b + offset
+        """,
+        target=pd.DataFrame(),
+        engine=engine,
+        parser=parser,
+    )
+    expected = pd.DataFrame({"c": [-6, -6, -6], "d": [8, 9, 10]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_eval_multi_line_python_parser_resolves_locals():
+    # GH#31952 "@" is unavailable with the python parser, so level >= 1 must
+    #  also see the caller's locals by bare name
+    def helper(expr):
+        return pd.eval(expr, target=pd.DataFrame(), level=1, parser="python")
+
+    df = pd.DataFrame({"a": [1, 2]})  # noqa: F841
+    result = helper("c = df.a\nd = c + df.a")
+    expected = pd.DataFrame({"c": [1, 2], "d": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_eval_multi_line_resolver_path_unchanged():
+    # GH#31952 calls with resolvers, or "@" available, keep the old behavior
+    def helper(expr):
+        return pd.eval(expr, target=pd.DataFrame(), level=1)
+
+    # with level >= 1, "@k" after a line assigning k is still the local
+    df = pd.DataFrame({"a": [1, 2, 3]})  # noqa: F841
+    k = 10  # noqa: F841
+    result = helper("k = df.a + 1\nd = @k + k")
+    expected = pd.DataFrame({"k": [2, 3, 4], "d": [12, 13, 14]})
+    tm.assert_frame_equal(result, expected)
+
+    # with resolvers, later lines still find earlier results
+    result = pd.eval(
+        "c = x\nd = c + x",
+        target=pd.DataFrame(),
+        resolvers=[{"x": pd.Series([1, 2])}],
+    )
+    expected = pd.DataFrame({"c": [1, 2], "d": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([True, False], [False, True]),
+        ([0, 2], [True, False]),
+        ([0.0, 1.5], [True, False]),
+    ],
+)
+def test_not_is_logical_negation(values, expected, engine):
+    # GH#11367 "not" was evaluated as bitwise "~"
+    df = pd.DataFrame({"x": values})
+    result = df.eval("not x", engine=engine)
+    tm.assert_series_equal(result, pd.Series(expected), check_names=False)
+
+
+def test_not_scalar(engine):
+    # GH#11367
+    result = pd.eval("not (1 > 2)", engine=engine)
+    assert result is np.True_
+
+
+@pytest.mark.parametrize(
+    "values, dtype, expected_dtype",
+    [
+        ([False, True, None], "boolean", "boolean"),
+        pytest.param(
+            [False, True, None],
+            "bool[pyarrow]",
+            "bool[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        ([0, 2, None], "Int64", "boolean"),
+        ([0, 2, None], "Float64", "boolean"),
+    ],
+)
+def test_not_nullable_keeps_na(values, dtype, expected_dtype):
+    # GH#11367
+    df = pd.DataFrame({"x": pd.array(values, dtype=dtype)})
+    result = df.eval("not x", engine="python")
+    expected = pd.Series(pd.array([True, False, None], dtype=expected_dtype), name="x")
+    tm.assert_series_equal(result, expected)
+
+
+def test_not_object_returns_bool():
+    # GH#11367
+    df = pd.DataFrame({"x": np.array([True, 0, None, "a"], dtype=object)})
+    result = df.eval("not x", engine="python")
+    expected = pd.Series([False, True, True, False], name="x")
+    tm.assert_series_equal(result, expected)
