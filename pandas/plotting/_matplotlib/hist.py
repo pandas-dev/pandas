@@ -84,17 +84,18 @@ class HistPlot(LinePlot):
         self.bins = self._adjust_bins(bins)
 
     def _adjust_bins(self, bins: int | np.ndarray | list[np.ndarray]):
-        if self.by is not None:
-            by_modified = unpack_single_str_list(self.by)
-            grouped = self.data.groupby(by_modified)[self.columns]
-            if is_integer(bins):
+        if is_integer(bins):
+            if self.by is not None:
+                by_modified = unpack_single_str_list(self.by)
+                grouped = self.data.groupby(by_modified)[self.columns]
                 bins = [self._calculate_bins(group, bins) for key, group in grouped]
-            elif not any(is_list_like(edges) for edges in bins):
-                # explicit bin edges are shared by every group, unless one
-                # array of edges per group was passed
-                bins = [np.asarray(bins)] * grouped.ngroups
-        elif is_integer(bins):
-            bins = self._calculate_bins(self.data, bins)
+            else:
+                bins = self._calculate_bins(self.data, bins)
+        # error: Item "int" of "int | ndarray[...] | list[ndarray[...]]" has no
+        # attribute "__iter__" (not iterable)
+        elif self.by is not None and not any(is_list_like(edges) for edges in bins):  # type: ignore[union-attr]
+            # explicit bin edges are shared by every group
+            bins = [np.asarray(bins)] * len(self._grouped)
         return bins
 
     def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
