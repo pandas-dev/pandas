@@ -145,9 +145,7 @@ class TestArrayToDatetimeOutOfPyDatetimeRange:
     #  corrupted when converted to datetime64 storage
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     def test_array_to_datetime_out_of_pydatetime_range(self, unit):
-        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize(
-            "UTC"
-        )
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize("UTC")
         arr = np.array([ts], dtype=object)
         result, res_tz = tslib.array_to_datetime(arr, creso=creso_infer)
         assert res_tz == UTC
@@ -156,21 +154,15 @@ class TestArrayToDatetimeOutOfPyDatetimeRange:
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     def test_array_to_datetime_with_tz_out_of_pydatetime_range(self, unit):
-        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize(
-            "UTC"
-        )
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize("UTC")
         arr = np.array([ts], dtype=object)
-        result = tslib.array_to_datetime_with_tz(
-            arr, UTC, False, False, creso_infer
-        )
+        result = tslib.array_to_datetime_with_tz(arr, UTC, False, False, creso_infer)
         expected = np.array([np.datetime64("10000-03-05T12:00", unit)])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_array_to_datetime_out_of_pydatetime_range_ns(self):
         # year 10000 is out of bounds for nanosecond resolution
-        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", "us")).tz_localize(
-            "UTC"
-        )
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", "us")).tz_localize("UTC")
         arr = np.array([ts], dtype=object)
         with pytest.raises(OutOfBoundsDatetime, match="without overflow"):
             tslib.array_to_datetime(
@@ -188,9 +180,7 @@ class TestArrayToDatetimeOutOfPyDatetimeRange:
     )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     def test_public_constructors_out_of_pydatetime_range(self, constructor, unit):
-        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize(
-            "UTC"
-        )
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize("UTC")
         result = constructor([ts])
         assert result[0] == ts
         assert result[0].unit == unit
