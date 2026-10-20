@@ -73,11 +73,13 @@ def _asfreq_plotting(index: Index, freq: str | BaseOffset) -> Index:
     if isinstance(index, ABCDatetimeIndex):
         # Convert timestamps directly rather than via a coarser Period, which
         # would move e.g. month-end dates to the 1st (GH#11574).
+        source_freq = _get_index_freq(index)
         index = index.tz_localize(None)
         if _get_period_alias(freq) == "B":
             # Avoid creating deprecated Period[B]; use numpy business-day
             # arithmetic to map each timestamp to its business-day ordinal.
-            return Index(bday_count_array(index.values), dtype=np.int64)
+            dates = _roll_to_bday(index, source_freq)
+            return Index(bday_count_array(dates), dtype=np.int64)
         return index.to_period(freq)
     if _get_period_alias(freq) == "B":
         if is_integer_dtype(index):
@@ -91,6 +93,27 @@ def _asfreq_plotting(index: Index, freq: str | BaseOffset) -> Index:
         dt64 = bday_offset_array(np.asarray(index, dtype=np.int64))
         return DatetimeIndex(dt64).to_period(freq)
     return index.asfreq(freq, how="S")  # type: ignore[attr-defined]
+
+
+def _roll_to_bday(index: DatetimeIndex, source_freq: BaseOffset | None) -> np.ndarray:
+    """
+    Move weekend dates to a business day, staying within their period at
+    ``source_freq`` where possible.
+
+    Rolls forward by default, but rolls back when only that keeps the date in
+    its own period, e.g. a Saturday month-end or a W-SUN date.
+    """
+    days = index.values.astype("datetime64[D]")
+    forward = np.busday_offset(days, 0, roll="forward")
+    alias = None if source_freq is None else _get_period_alias(source_freq)
+    if alias is None or (forward == days).all():
+        return forward
+    backward = np.busday_offset(days, 0, roll="backward")
+    periods = index.to_period(alias)
+    use_backward = (DatetimeIndex(forward).to_period(alias) != periods) & (
+        DatetimeIndex(backward).to_period(alias) == periods
+    )
+    return np.where(use_backward, backward, forward)
 
 
 def maybe_resample(
@@ -134,12 +157,10 @@ def maybe_resample(
             series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
-            if timestamps is not None and ax_freq.startswith("W"):
+            if timestamps is not None:
                 # put each weekly bin on its last day, where the timestamps of
                 # weekly data fall
                 timestamps = series.index.asfreq("D", how="E").to_timestamp()  # type: ignore[attr-defined]
-            else:
-                timestamps = None
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
         else:  # pragma: no cover
