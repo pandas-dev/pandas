@@ -89,6 +89,9 @@ class HistPlot(LinePlot):
                 by_modified = unpack_single_str_list(self.by)
                 grouped = self.data.groupby(by_modified)[self.columns]
                 bins = [self._calculate_bins(group, bins) for key, group in grouped]
+            elif self.subplots and not self.sharex:
+                # computed per axis in _make_plot, GH#13489
+                pass
             else:
                 bins = self._calculate_bins(self.data, bins)
         return bins
@@ -138,6 +141,18 @@ class HistPlot(LinePlot):
             if self.by is not None
             else self.data
         )
+        axis_bins = None
+        if self._kind == "hist" and is_integer(self.bins):
+            # subplots without a shared x-axis each get their own bins
+            axis_columns: dict[int, list[int]] = {}
+            for col_idx in range(self.data.shape[1]):
+                axis_idx = self._col_idx_to_axis_idx(col_idx)
+                axis_columns.setdefault(axis_idx, []).append(col_idx)
+            axis_bins = {
+                axis_idx: self._calculate_bins(self.data.iloc[:, columns], self.bins)
+                for axis_idx, columns in axis_columns.items()
+            }
+
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
 
@@ -154,6 +169,8 @@ class HistPlot(LinePlot):
                 kwds["style"] = style
 
             self._make_plot_keywords(kwds, y)
+            if axis_bins is not None:
+                kwds["bins"] = axis_bins[self._col_idx_to_axis_idx(i)]
 
             # the bins is multi-dimension array now and each plot need only 1-d and
             # when by is applied, label should be columns that are grouped
