@@ -346,9 +346,6 @@ def test_concat_retains_masked_subtype(subtype):
         (np.int8, -128, -100, -114.0),
         (np.int64, 2**63 - 2, 2**63 - 1, 2.0**63),
         (np.int64, 10, 2**63 - 1, 2.0**62),
-        # no overflow: keep the correctly-rounded sum
-        (np.int64, -(2**63), 2**63 - 1, -0.5),
-        (np.int64, 1600032392344190824, 1630902435275821611, 1.6154674138100063e18),
         (np.uint64, 2**64 - 2, 2**64 - 1, 2.0**64),
         (np.float64, 1e308, 1.5e308, 1.25e308),
     ],
@@ -363,9 +360,48 @@ def test_mid_no_overflow(constructor, dtype, left, right, mid):
 
 
 @pytest.mark.parametrize(
+    "dtype, left, right, mid",
+    [
+        # 0.5 * left + 0.5 * right would round each endpoint before adding
+        (np.int64, -(2**63), 2**63 - 1, -0.5),
+        (np.int64, 1600032392344190824, 1630902435275821611, 1.6154674138100063e18),
+        (np.uint64, 2**62 + 513, 2**63 + 1025, 2.0**62 + 2.0**61 + 1024),
+        (
+            np.float64,
+            2.225073858507202e-308,
+            2.225073858507202e-308,
+            2.225073858507202e-308,
+        ),
+        # left + 0.5 * (right - left) would round differently, overflow, or give nan
+        (np.float64, 0.1, 0.7, 0.39999999999999997),
+        (np.float64, -1e308, 1e308, 0.0),
+        (np.float64, np.inf, np.inf, np.inf),
+    ],
+)
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_correctly_rounded(constructor, dtype, left, right, mid):
+    # GH#25499
+    obj = constructor.from_arrays(
+        np.array([left], dtype=dtype), np.array([right], dtype=dtype)
+    )
+    tm.assert_index_equal(obj.mid, pd.Index([mid]))
+
+
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_timedelta_odd_nanoseconds(constructor):
+    # halving each endpoint before adding would truncate twice
+    obj = constructor.from_arrays(
+        pd.to_timedelta([1, 1], unit="ns"), pd.to_timedelta([1, 3], unit="ns")
+    )
+    tm.assert_index_equal(obj.mid, pd.to_timedelta([1, 2], unit="ns"))
+
+
+@pytest.mark.parametrize(
     "dtype, left, right, mid, mid_dtype",
     [
         ("Int8", [100, None, 1], [120, None, 3], [110.0, None, 2.0], "Float64"),
+        # sum fits, but each endpoint alone rounds in float64
+        ("Int64", [-(2**63), None], [2**63 - 1, None], [-0.5, None], "Float64"),
         pytest.param(
             "float64[pyarrow]",
             [1e308, None],
