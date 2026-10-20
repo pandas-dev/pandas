@@ -97,6 +97,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        Frequency,
         JoinHow,
         TimeUnit,
         npt,
@@ -738,6 +739,64 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 raise ValueError("Cannot set freq with ndim > 1")
 
         self._freq = value
+
+    def set_freq(self, freq: Frequency | None) -> Self:
+        """
+        Return a new Index with the given frequency.
+
+        The values are unchanged; only the ``freq`` attribute differs. Unlike
+        assigning to ``freq``, this does not modify the original Index.
+
+        Parameters
+        ----------
+        freq : str, DateOffset or None
+            Frequency to set. It must conform to the values of the Index.
+            ``"infer"`` sets the frequency inferred from the values, or ``None``
+            if none can be inferred. ``None`` removes the frequency.
+
+        Returns
+        -------
+        DatetimeIndex or TimedeltaIndex
+            A new Index with ``freq`` set.
+
+        Raises
+        ------
+        ValueError
+            If ``freq`` is invalid or does not conform to the values of the Index.
+        TypeError
+            If the Index is an empty TimedeltaIndex and ``freq`` is not a fixed
+            frequency.
+
+        See Also
+        --------
+        DatetimeIndex.freq : Return the frequency object if it is set.
+        DatetimeIndex.inferred_freq : Return the frequency inferred from the values.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-01", "2020-01-03", "2020-01-05"])
+        >>> idx
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq=None)
+        >>> idx.set_freq("2D")
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq='2D')
+        >>> idx.set_freq("2D").set_freq(None)
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq=None)
+        >>> idx.set_freq("infer")
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq='2D')
+        """
+        result = self._view()
+        # don't share the cache, some cached attributes depend on freq
+        result._cache = {}
+        if freq == "infer":
+            # the inferred freq conforms by construction, so skip validation
+            result._freq = to_offset(self._inferred_freq_str)
+        else:
+            result.freq = freq
+        return result
 
     def astype(self, dtype, copy: bool = True):
         result = super().astype(dtype, copy=copy)

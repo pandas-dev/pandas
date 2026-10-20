@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 import io
 from os import PathLike
 from typing import (
@@ -591,7 +592,9 @@ class _LxmlFrameParser(_XMLFrameParser):
         xml_dicts: list[dict[str, str | None]] = (
             self._parse_nodes(elems)
             if self.iterparse is None
-            else self._iterparse_nodes(iterparse)
+            # lxml < 6.1 iterparse defaults to resolve_entities=True,
+            # which allows XXE (CVE-2026-41066)
+            else self._iterparse_nodes(partial(iterparse, resolve_entities="internal"))
         )
 
         return xml_dicts
@@ -663,7 +666,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         )
 
         with handle_data as xml_data:
-            curr_parser = XMLParser(encoding=self.encoding)
+            curr_parser = XMLParser(encoding=self.encoding, resolve_entities="internal")
 
             if isinstance(xml_data, io.StringIO):
                 if self.encoding is None:

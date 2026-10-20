@@ -3399,8 +3399,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s = pd.Series([0.25, 0.5, 0.2, -0.05])
         >>> s.autocorr()  # doctest: +ELLIPSIS
         0.10355...
-        >>> s.autocorr(lag=2)  # doctest: +ELLIPSIS
-        -0.99999...
+        >>> s.autocorr(lag=2)
+        -1.0
 
         If the Pearson correlation is not well defined, then 'NaN' is returned.
 
@@ -6245,7 +6245,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
         columns : single label or list-like
-            No change is made to the Series; use 'index' or 'labels' instead.
+            Ignored; use 'index' or 'labels' instead.
+
+            .. deprecated:: 3.2.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
@@ -6323,7 +6325,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         inplace = self._check_inplace_deprecation(inplace, "drop")
 
-        return super().drop(
+        result = super().drop(
             labels=labels,
             axis=axis,
             index=index,
@@ -6332,6 +6334,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             inplace=inplace,
             errors=errors,
         )
+        if columns is not None:
+            # GH#39509; warn after super().drop so calls it rejects don't warn
+            warnings.warn(
+                "Series.drop ignores the 'columns' keyword. Passing it is "
+                "deprecated and will raise in a future version. Use 'index' "
+                "or 'labels' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     def pop(self, item: Hashable) -> Any:
         """
@@ -7451,6 +7463,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             this, other = self.align(other, level=level, join="outer")
 
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
+        # GH#43770 func is the bare operator, so comparison_op does not warn
+        ops.maybe_warn_complex_ordering(this_vals, other_vals, func)
 
         with np.errstate(all="ignore"):
             result = func(this_vals, other_vals)

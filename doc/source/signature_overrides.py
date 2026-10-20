@@ -99,6 +99,16 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "month",
     ),
+    pd.tseries.offsets.QuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.QuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
     pd.tseries.offsets.HalfYearEnd: (
         "n",
         "normalize",

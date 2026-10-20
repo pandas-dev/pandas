@@ -1794,7 +1794,9 @@ class DataFrame(NDFrame, OpsMixin):
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
                     index = Index(data.keys())
-                    data = _from_nested_dict(data)
+                    data = _from_nested_dict(
+                        dict(zip(index, data.values(), strict=True))
+                    )
                 else:
                     index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
@@ -2276,7 +2278,7 @@ class DataFrame(NDFrame, OpsMixin):
                     result_index = ensure_index_from_sequences(index_data, names=index)
                     exclude.update(index)
 
-        if any(exclude):
+        if exclude:
             arr_exclude = (x for x in exclude if x in arr_columns)
             to_remove = {
                 arr_columns.get_loc(col)
