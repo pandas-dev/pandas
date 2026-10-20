@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -335,3 +337,57 @@ def test_concat_retains_masked_subtype(subtype):
         )
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid",
+    [
+        (np.int8, 100, 120, 110.0),
+        (np.int8, -128, -100, -114.0),
+        (np.int64, 2**63 - 2, 2**63 - 1, 2.0**63),
+        (np.int64, 10, 2**63 - 1, 2.0**62),
+        # no overflow: keep the correctly-rounded sum
+        (np.int64, -(2**63), 2**63 - 1, -0.5),
+        (np.int64, 1600032392344190824, 1630902435275821611, 1.6154674138100063e18),
+        (np.uint64, 2**64 - 2, 2**64 - 1, 2.0**64),
+        (np.float64, 1e308, 1.5e308, 1.25e308),
+    ],
+)
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_no_overflow(constructor, dtype, left, right, mid):
+    # GH#25499
+    obj = constructor.from_arrays(
+        np.array([left], dtype=dtype), np.array([right], dtype=dtype)
+    )
+    tm.assert_index_equal(obj.mid, pd.Index([mid]))
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid, mid_dtype",
+    [
+        ("Int8", [100, None, 1], [120, None, 3], [110.0, None, 2.0], "Float64"),
+        pytest.param(
+            "float64[pyarrow]",
+            [1e308, None],
+            [1.5e308, None],
+            [1.25e308, None],
+            "float64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        # opposite-sign endpoints whose sum fits
+        pytest.param(
+            "int64[pyarrow]",
+            [-(2**60)],
+            [2**60 + 10],
+            [5.0],
+            "float64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_mid_no_overflow_ea(dtype, left, right, mid, mid_dtype):
+    # GH#25499
+    arr = IntervalArray.from_arrays(
+        pd.array(left, dtype=dtype), pd.array(right, dtype=dtype)
+    )
+    tm.assert_index_equal(arr.mid, pd.Index(pd.array(mid, dtype=mid_dtype)))

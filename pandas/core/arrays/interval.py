@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     IntervalDtype,
 )
@@ -1347,10 +1348,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Index([0.5, 3.0], dtype='float64')
         """
         try:
-            return 0.5 * (self.left + self.right)
+            mid = 0.5 * (self.left + self.right)
         except TypeError:
             # datetime safe version
             return self.left + 0.5 * self.length
+        subtype = self.dtype.subtype
+        # pyarrow ints already raise on overflow, and comparing them with a
+        #  float mid raises past 2**53
+        if subtype.kind == "f" or (
+            subtype.kind in "iu" and not isinstance(subtype, ArrowDtype)
+        ):
+            # an overflowing sum lands outside the interval; there, halve before
+            #  adding, which cannot overflow but rounds more, see GH#25499
+            outside = (mid < self.left) | (mid > self.right)
+            if outside.any():
+                mid = mid.putmask(outside, 0.5 * self.left + 0.5 * self.right)
+        return mid
 
     def overlaps(self, other):
         """
