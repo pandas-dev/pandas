@@ -1534,7 +1534,7 @@ class TestPandasContainer:
         df = pd.DataFrame(
             {
                 "a": pd.cut([1, 5, np.nan], [0, 2, 6]),
-                "b": pd.interval_range(0, 3)[[0, 1, 2]],
+                "b": pd.interval_range(0, 3),
             }
         )
         result = df.to_json()
@@ -1571,7 +1571,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "orient, expected",
         [
-            ("split", '{"columns":["x"],"index":%s,"data":[[1],[2]]}'),
+            ("split", '{"columns":["x"],"index":["(0, 1]","(1, 2]"],"data":[[1],[2]]}'),
             ("index", '{"(0, 1]":{"x":1},"(1, 2]":{"x":2}}'),
             ("columns", '{"x":{"(0, 1]":1,"(1, 2]":2}}'),
         ],
@@ -1580,7 +1580,7 @@ class TestPandasContainer:
         # GH#55544 IntervalIndex as the index
         df = pd.DataFrame({"x": [1, 2]}, index=pd.interval_range(0, 2))
         result = df.to_json(orient=orient)
-        assert result == expected.replace("%s", '["(0, 1]","(1, 2]"]')
+        assert result == expected
 
     @pytest.mark.parametrize(
         "orient, expected",
