@@ -191,6 +191,7 @@ class PythonParser(ParserBase):
             }
             if not self._warn_integer_keys_change(position_names):
                 self._position_names = position_names
+                self._num_file_columns = offset + self.num_original_columns
 
         self._no_thousands_columns = self._set_no_thousand_columns()
 
@@ -203,18 +204,21 @@ class PythonParser(ParserBase):
         different columns as positions in the file than as positions in
         orig_names. Returns whether it warned. see GH#18566
         """
-        changed = set()
-        for mapping in (self.converters, self.dtype, self.na_values):
-            if not isinstance(mapping, dict):
-                continue
-            for key in mapping:
-                if (
-                    isinstance(key, int)
-                    and key not in self.orig_names
-                    and 0 <= key < len(self.orig_names)
-                    and self.orig_names[key] != position_names.get(key)
-                ):
-                    changed.add(key)
+        keys = [
+            key
+            for mapping in (self.converters, self.dtype, self.na_values)
+            if isinstance(mapping, dict)
+            for key in mapping
+            if isinstance(key, int) and key not in self.orig_names
+        ]
+        if any(key >= len(self.orig_names) for key in keys):
+            # the deprecated rule raises IndexError here, so nothing depends on it
+            return False
+        changed = {
+            key
+            for key in keys
+            if key >= 0 and self.orig_names[key] != position_names.get(key)
+        }
         if not changed:
             return False
         warnings.warn(
