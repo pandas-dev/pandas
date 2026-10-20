@@ -207,6 +207,26 @@ class TestHistWithBy:
         axes = hist_df.plot.hist(column="A", by="C", figsize=figsize)
         _check_axes_shape(axes, axes_num=3, figsize=figsize)
 
+    @pytest.mark.parametrize(
+        "bins", [[-3, -1, 1, 3], np.array([-3, -1, 1, 3]), range(-3, 4, 2)]
+    )
+    def test_hist_plot_by_with_bin_edges(self, bins, hist_df):
+        # GH#11483 explicit bin edges are used for every group
+        axes = hist_df.plot.hist(column="A", by="C", bins=bins)
+        assert len(axes) == 3
+        for ax in axes:
+            edges = [patch.get_x() for patch in ax.patches]
+            edges.append(ax.patches[-1].get_x() + ax.patches[-1].get_width())
+            tm.assert_almost_equal(np.array(edges), np.array([-3.0, -1, 1, 3]))
+
+    def test_hist_plot_by_with_bin_edges_per_group(self, hist_df):
+        bins = [np.array([-3, 0, 3]), np.array([-2, -1, 1, 2]), np.array([-1, 1])]
+        axes = hist_df.plot.hist(column="A", by="C", bins=bins)
+        for ax, expected in zip(axes, bins, strict=True):
+            edges = [patch.get_x() for patch in ax.patches]
+            edges.append(ax.patches[-1].get_x() + ax.patches[-1].get_width())
+            tm.assert_almost_equal(np.array(edges), expected.astype(float))
+
 
 class TestBoxWithBy:
     @pytest.mark.parametrize(
