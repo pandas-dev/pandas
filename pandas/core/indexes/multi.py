@@ -4549,7 +4549,15 @@ class MultiIndex(Index):
                     # If the index is lexsorted and the list_like label
                     # in seq are sorted then we do not need to sort
                     k_codes = self.levels[i].get_indexer(k)
-                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
+                    k_isna = np.asarray(
+                        isna(list(k) if isinstance(k, MultiIndex) else k)
+                    )
+                    if k_isna.shape != k_codes.shape:
+                        # k holds tuple-like labels, which are never NA
+                        k_isna = np.zeros(len(k_codes), dtype=bool)
+                    # NA keys match the -1 codes, which may sort last
+                    k_codes[k_isna] = self._lexsort_na_code(i)
+                    k_codes = k_codes[(k_codes >= 0) | k_isna]  # Filter absent keys
                     # True if the given codes are not ordered
                     need_sort = (k_codes[:-1] > k_codes[1:]).any()
                 else:
