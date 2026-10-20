@@ -109,6 +109,7 @@ class ParserBase:
         self.orig_names: Sequence[Hashable] | None = None
         # file position -> name of each column read; None falls back to orig_names
         self._position_names: dict[int, Hashable] | None = None
+        self._num_file_columns = 0
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set[Any] = set()
@@ -367,12 +368,19 @@ class ParserBase:
 
         Non-negative keys are field positions in the file, as in the C reader,
         so they count columns dropped by ``usecols``. Returns None for a column
-        that is not read. Negative keys, or any key when there is no position
-        map, index ``orig_names``. see GH#18566
+        that is not read and raises IndexError past the last column. Negative
+        keys, or any key when there is no position map, index ``orig_names``.
+        see GH#18566
         """
         assert self.orig_names is not None
         if col < 0 or self._position_names is None:
             return self.orig_names[col]
+        if col not in self._position_names and col >= self._num_file_columns:
+            # keep raising until GH#57944 decides what out-of-range keys do
+            raise IndexError(
+                f"Integer key {col} is out of range for {self._num_file_columns} "
+                "columns"
+            )
         return self._position_names.get(col)
 
     @final
@@ -400,6 +408,20 @@ class ParserBase:
         arrays = []
         converters = self._clean_mapping(self.converters)
         clean_dtypes = self._clean_mapping(self.dtype)
+        if isinstance(self.na_values, dict):
+            assert self.orig_names is not None
+            # skip negative keys, which TextReader ignores, until GH#57944
+            na_keys = [
+                key
+                for key in self.na_values
+                if not (is_integer(key) and key < 0 and key not in self.orig_names)
+            ]
+            clean_na_values = self._clean_mapping(
+                {key: self.na_values[key] for key in na_keys}
+            )
+            clean_na_fvalues = self._clean_mapping(
+                {key: self.na_fvalues[key] for key in na_keys}
+            )
 
         if self.index_names is not None:
             names: Iterable[Hashable | None] = self.index_names
@@ -432,8 +454,8 @@ class ParserBase:
                 if col_name is not None:
                     col_na_values, col_na_fvalues = get_na_values(
                         col_name,
-                        self._clean_mapping(self.na_values),
-                        self._clean_mapping(self.na_fvalues),
+                        clean_na_values,
+                        clean_na_fvalues,
                         self.keep_default_na,
                     )
                 else:

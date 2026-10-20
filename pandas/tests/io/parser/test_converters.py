@@ -519,3 +519,10 @@ def test_converters_integer_key_implicit_index(all_parsers):
         {"b": [2, 6], "c": [30, 70], "d": [4, 8]}, index=pd.Index([1, 5])
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_converters_integer_key_out_of_range(python_parser_only):
+    # GH#18566 keys past the last column still raise, see GH#57944
+    parser = python_parser_only
+    with pytest.raises(IndexError, match="Integer key 5 is out of range"):
+        parser.read_csv(StringIO("a,b\n1,2"), converters={5: str})

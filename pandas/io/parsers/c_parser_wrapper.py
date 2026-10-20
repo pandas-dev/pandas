@@ -183,6 +183,7 @@ class CParserWrapper(ParserBase):
         self._position_names = {
             pos: name for pos, name in position_names.items() if name in kept
         }
+        self._num_file_columns = self._reader.table_width
 
         if self._reader.leading_cols == 0 and is_index_col(self.index_col):
             (
