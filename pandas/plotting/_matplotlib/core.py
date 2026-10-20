@@ -1909,7 +1909,7 @@ class AreaPlot(LinePlot):
         # one hatch per column, as in matplotlib's stackplot
         if is_list_like(fill_kwds.get("hatch")):
             hatches = list(fill_kwds["hatch"])
-            fill_kwds["hatch"] = hatches[column_num % len(hatches)]
+            fill_kwds["hatch"] = hatches[(column_num or 0) % len(hatches)]
         # Set face and edge separately so that a passed facecolor/edgecolor wins,
         # and leave the edge unset under a hatch, which is drawn in the edge color.
         color = fill_kwds.pop("color", lines[0].get_color())
