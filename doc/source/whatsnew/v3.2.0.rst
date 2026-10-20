@@ -154,6 +154,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)
 - Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
+- Bug in :class:`Series`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` silently storing a wrong instant for timezone-aware :class:`Timestamp` values with a year outside 1-9999 (e.g. constructed from a non-nanosecond ``numpy.datetime64``); the values are now stored correctly (:issue:`71371`)
 - Bug in ``!=`` between a :class:`Tick` offset such as :class:`Hour` and an array-like of ``timedelta64`` values or ``pd.NA`` raising ``ValueError`` or ``TypeError`` (:issue:`71162`)
 - Bug in comparisons, indexing, setitem and :meth:`Series.astype` to :class:`CategoricalDtype` with datetime, timedelta or period values not parsing :class:`ArrowDtype` ``string`` and ``large_string`` values the way :class:`StringDtype` values are parsed (:issue:`62051`)
 
