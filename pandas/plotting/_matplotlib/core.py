@@ -1034,9 +1034,12 @@ class MPLPlot(ABC):
                 kwds["xerr"] = np.array(kwds.get("xerr"))
             if "yerr" in kwds:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
+            # errorbar takes the format string as ``fmt``; an explicit
+            # ``fmt`` takes precedence, GH#7023
+            if style is not None:
+                kwds.setdefault("fmt", style)
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is unsupported
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
