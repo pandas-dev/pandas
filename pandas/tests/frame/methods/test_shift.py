@@ -828,6 +828,22 @@ class TestDataFrameShift:
         result = df.shift(freq=offset)
         tm.assert_frame_equal(result, df_shifted)
 
+    @pytest.mark.parametrize("periods", [1, -1, 0])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_shift_empty_with_freq(self, periods, axis):
+        # GH#71188
+        df = pd.DataFrame()
+        result = df.shift(periods=periods, freq="D", axis=axis)
+        tm.assert_frame_equal(result, df)
+
+        df_cols = pd.DataFrame(columns=["a", "b"])
+        result_cols = df_cols.shift(periods=periods, freq="D", axis=0)
+        tm.assert_frame_equal(result_cols, df_cols)
+
+        df_dti = pd.DataFrame(index=pd.date_range("2020-01-01", periods=0, freq="D"))
+        result_dti = df_dti.shift(periods=periods, freq="D", axis=0)
+        tm.assert_frame_equal(result_dti, df_dti)
+
     def test_series_shift_interval_preserves_closed(self):
         # GH#60389
         ser = pd.Series(

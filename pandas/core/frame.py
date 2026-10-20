@@ -153,6 +153,7 @@ from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
     PeriodIndex,
+    RangeIndex,
     default_index,
     ensure_index,
     ensure_index_from_sequences,
@@ -7601,10 +7602,12 @@ class DataFrame(NDFrame, OpsMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if self.empty and freq is None:
-            return self.copy()
-
         axis = self._get_axis_number(axis)
+
+        if self.empty:
+            ax = self._get_axis(axis)
+            if freq is None or len(ax) == 0 or isinstance(ax, RangeIndex):
+                return self.copy()
 
         if is_list_like(periods):
             periods = cast("Sequence[int]", periods)
