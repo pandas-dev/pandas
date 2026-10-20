@@ -1871,7 +1871,14 @@ class TestPandasContainer:
     def test_read_json_large_numbers_explicit_dtype_raises(self, value):
         # GH#20599 an explicit dtype that cannot hold the value is not ignored
         json = '{"a":{"0":' + value + ',"1":1}}'
-        with pytest.raises(OverflowError, match="too large"):
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
             pd.read_json(StringIO(json), dtype={"a": "int64"})
 
     def test_read_json_large_numbers2(self):
