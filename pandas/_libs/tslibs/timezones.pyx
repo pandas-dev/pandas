@@ -364,8 +364,8 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int year, last_year, std_offset, dst_offset
         bint valid
 
-    # NB: non-None; Localizer and tz_localize_to_utc_single (via
-    #  is_fixed_offset) keep no-twin zones away from get_dst_info.  GH#64379
+    # Note: result is always non-None; callers (Localizer and tz_localize_to_utc_single,
+    #  via is_fixed_offset) keep no-twin zones away from get_dst_info (GH#64379)
     tz_py = get_zoneinfo_twin(tz)
 
     if tz_py._fixed_offset:
