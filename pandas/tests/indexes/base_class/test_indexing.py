@@ -158,7 +158,6 @@ def test_get_indexer_nat_matches_nan():
         tm.assert_numpy_array_equal(result, expected)
 
 
-
 def test_get_indexer_monotonic_above_size_cutoff(monkeypatch):
     # GH#14273 get_indexer should avoid building a hash table for large
     # monotonic indices.
