@@ -35,7 +35,7 @@ import numpy.typing as npt
 
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types
-# https://mypy.readthedocs.io/en/latest/runtime_troubles.html#import-cycles
+# https://mypy.readthedocs.io/en/stable/runtime_troubles.html#import-cycles
 
 # Note that Union is needed when a Union includes a pandas type
 
