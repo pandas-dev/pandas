@@ -1479,7 +1479,8 @@ def read_csv(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
@@ -2093,7 +2094,8 @@ def read_table(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
