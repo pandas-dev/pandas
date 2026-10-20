@@ -29,6 +29,12 @@ if TYPE_CHECKING:
     from pandas._typing import Scalar
 
 
+# Matches a `\uxxxx` (unicode escape sequence) with an odd number of preceding "\"
+# (otherwise the \\u is escaped itself), and does not follow the `\u{xxxx}` pattern
+# (how pyarrow supports it). Also checks for `\U` and `\N{`.
+_escaped_unicode_char = re.compile(r"(?<!\\)((?:\\\\)*)(?:\\[uU](?!{)|\\N{)")
+
+
 class ArrowStringArrayMixin:
     _pa_array: pa.ChunkedArray
 
@@ -78,6 +84,11 @@ class ArrowStringArrayMixin:
                 "or downgrade Python"
             ) from err
 
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+
+        if re.search(_escaped_unicode_char, str_pat) is not None:
+            return True
+
         def has_unsupported_code(tokens):
             # For certain op codes we need to recurse.
             for op_code, argument in tokens:
@@ -98,7 +109,6 @@ class ArrowStringArrayMixin:
                     return True
             return False
 
-        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
         try:
             tokens = regex_parser(str_pat)
         except re.error:
