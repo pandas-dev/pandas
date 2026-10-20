@@ -513,9 +513,7 @@ def _bins_to_cuts(
         if missing_mask is not None and missing_mask.any():
             valid_mask = ~missing_mask
             ids = np.zeros(len(x_idx), dtype=np.intp)
-            ids[valid_mask] = bins.searchsorted(
-                x_idx[valid_mask], side=side
-            )
+            ids[valid_mask] = bins.searchsorted(x_idx[valid_mask], side=side)
         else:
             ids = bins.searchsorted(x_idx, side=side)
     except TypeError as err:
