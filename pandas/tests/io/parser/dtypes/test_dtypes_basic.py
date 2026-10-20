@@ -1190,9 +1190,9 @@ def test_dtype_integer_key_implicit_index(all_parsers):
         result = parser.read_csv_check_warnings(
             Pandas4Warning, r"Integer keys \[0\]", StringIO(data), dtype={0: "float64"}
         )
-        expected = pd.DataFrame({"b": [2.0], "c": [3]})
-        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        expected = pd.DataFrame({"b": [2.0], "c": [3]}, index=pd.Index([1]))
+        tm.assert_frame_equal(result, expected)
         return
     result = parser.read_csv(StringIO(data), dtype={0: "float64"})
-    expected = pd.DataFrame({"b": [2], "c": [3]})
-    tm.assert_frame_equal(result.reset_index(drop=True), expected)
+    expected = pd.DataFrame({"b": [2], "c": [3]}, index=pd.Index([1.0]))
+    tm.assert_frame_equal(result, expected)

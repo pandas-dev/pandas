@@ -642,3 +642,18 @@ def test_usecols_integer_keys_among_columns_read_deprecated(
     )
     expected = pd.DataFrame({"b": expected_b, "c": [3, 6]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_unordered_integer_converter_keys(all_parsers):
+    # GH#18566 key 2 is past the columns read, so neither key warns
+    parser = all_parsers
+    data = "a,b,c\n1,2,3\n4,5,6"
+    converters = {1: lambda x: int(x) * 10, 2: lambda x: int(x) * 100}
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), usecols=[2, 1], converters=converters)
+        return
+    result = parser.read_csv(StringIO(data), usecols=[2, 1], converters=converters)
+    expected = pd.DataFrame({"b": [20, 50], "c": [300, 600]})
+    tm.assert_frame_equal(result, expected)
