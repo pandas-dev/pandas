@@ -215,7 +215,6 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` slicing with an integer or float bound that is not in the index: an object-dtype index of numbers (e.g. :class:`decimal.Decimal`) raised ``TypeError`` instead of slicing by sort order, and a non-monotonic index of non-string values raised ``TypeError`` instead of ``KeyError`` (:issue:`70295`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
-- Bug in :meth:`Series.where`, :meth:`Series.mask`, :meth:`Index.where`, :meth:`Index.putmask` and boolean-mask setitem on a :class:`Series` with an extension dtype (e.g. ``str``, ``Int64``, :class:`ArrowDtype`) casting to ``object`` or raising ``TypeError`` for a list ``other`` (:issue:`63842`)
 
 Missing
 ^^^^^^^
@@ -264,7 +263,6 @@ I/O
 - Bug in the display of a :class:`MultiIndex` (repr, :meth:`DataFrame.to_string`, :meth:`DataFrame.to_html`, :class:`.Styler`) where distinct labels that display identically (e.g. ``1`` and ``"1"``) were shown as a single label; :meth:`DataFrame.to_excel` merged them into one cell, losing all but the first value (:issue:`10796`)
 - Bug in the repr of a :class:`Series` or :class:`DataFrame` with ``longdouble`` (e.g. ``float128``) dtype showing values outside the ``float64`` range as ``0`` or ``inf`` (:issue:`17809`)
 - Fixed bug in :func:`read_csv` where callable ``skiprows`` received incorrect row numbers on 32-bit big-endian architectures (:issue:`69985`)
-- Fixed bug in :func:`read_csv` with the ``c`` engine where ``decimal`` and ``thousands`` were ignored for a nullable or pyarrow numeric ``dtype`` (e.g. ``dtype="Float64"``), raising an error or, with ``thousands="."``, silently reading ``"1.000"`` as ``1`` (:issue:`52086`)
 - Bug in :class:`ExcelWriter` with ``engine="openpyxl"`` ignoring ``date_format`` and ``datetime_format`` (:issue:`44284`, :issue:`59882`)
 - :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``orient="table"``, and :func:`build_table_schema`, no longer raise ``AttributeError`` for a :class:`MultiIndex` with non-string level names (:issue:`19129`)
 - Bug in :func:`read_csv` where using ``engine="python"`` with custom ``converters`` returning unhashable types (such as lists or dicts) raised ``TypeError`` (:issue:`56848`)
