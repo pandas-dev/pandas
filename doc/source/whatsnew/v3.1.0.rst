@@ -1,7 +1,7 @@
 .. _whatsnew_310:
 
-What's new in 3.1.0 (Month XX, 2026)
-------------------------------------
+What's new in 3.1.0 (October 21, 2026)
+--------------------------------------
 
 These are the changes in pandas 3.1.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -141,11 +141,6 @@ parallelizes work:
 
 See :ref:`io.csv.parallel` for the full list of conditions under which a read
 is parallelized (:issue:`64347`).
-
-.. _whatsnew_310.enhancements.enhancement2:
-
-enhancement2
-^^^^^^^^^^^^
 
 .. _whatsnew_310.enhancements.other:
 
@@ -1070,7 +1065,6 @@ Indexing
 - Fixed bug in :meth:`DataFrame.loc` where assigning a :class:`Series` to a subset of rows of one column upcast the dtype of other columns in a single-dtype :class:`DataFrame` (:issue:`66105`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
--
 
 Missing
 ^^^^^^^
@@ -1476,12 +1470,10 @@ Other
 - Bug in the ``display.max_colwidth`` option where values smaller than ``4`` were silently ignored, leaving the repr untruncated and its column headers misaligned (:issue:`16097`)
 - Bug in warning ``stacklevel`` resolution where warnings raised on behalf of user code living in a third-party package whose install directory merely starts with ``pandas`` (e.g. ``pandas_ta``) pointed past the real caller (:issue:`67992`)
 
-.. ***DO NOT USE THIS SECTION***
-
--
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v3.0.0..v3.1.0|HEAD
