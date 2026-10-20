@@ -851,7 +851,7 @@ performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/airspeed-velocity/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
-test results can be found `here <https://asv-runner.github.io/asv-collection/pandas>`__.
+test results can be found `here <https://pandas.pydata.org/asv-runner/>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -867,6 +867,11 @@ If you need to run a benchmark, change your directory to ``asv_bench/`` and run:
 
 You can replace ``HEAD`` with the name of the branch you are working on,
 and report benchmarks that changed by more than 10%.
+
+Benchmarks are not deterministic: running on different hardware, or on
+the same hardware under different levels of load, can have a big impact on the
+results, so a reported change is not necessarily caused by your code.
+
 The command uses ``conda`` by default for creating the benchmark
 environments. If you want to use virtualenv instead, write::
 

@@ -4,7 +4,10 @@ Operator classes for eval.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 from functools import partial
 import operator
 from typing import (
@@ -280,15 +283,6 @@ class Op:
     def is_scalar(self) -> bool:
         return all(operand.is_scalar for operand in self.operands)
 
-    @property
-    def is_datetime(self) -> bool:
-        try:
-            t = self.return_type.type
-        except AttributeError:
-            t = self.return_type
-
-        return issubclass(t, (datetime, np.datetime64))
-
 
 def _in(x, y):
     """
@@ -359,6 +353,17 @@ for d in (_cmp_ops_dict, _bool_ops_dict, _arith_ops_dict):
 
 def is_term(obj) -> bool:
     return isinstance(obj, Term)
+
+
+def is_datetimelike(obj) -> bool:
+    """
+    Whether a Term or Op evaluates to a datetime or timedelta.
+    """
+    typ = getattr(obj, "return_type", None)
+    typ = getattr(typ, "type", typ)
+    return isinstance(typ, type) and issubclass(
+        typ, (datetime, timedelta, np.datetime64, np.timedelta64)
+    )
 
 
 class BinOp(Op):
@@ -490,6 +495,10 @@ class BinOp(Op):
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             term.update(v)
+
+        if self.op not in CMP_OPS_SYMS:
+            # only comparisons coerce scalars to Timestamp, GH#52559
+            return
 
         lhs, rhs = self.lhs, self.rhs
 
