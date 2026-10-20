@@ -248,6 +248,13 @@ class TestFromRecords:
         )
         tm.assert_frame_equal(frame, expected)
 
+    def test_from_records_list_of_ea_series(self):
+        # GH#56231
+        ser = pd.Series([1, 2], index=["a", "b"], dtype="Int64")
+        result = pd.DataFrame.from_records([ser])
+        expected = pd.DataFrame({"a": [1], "b": [2]}, dtype="Int64")
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_from_records_utc(self):
         rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=UTC)}
 

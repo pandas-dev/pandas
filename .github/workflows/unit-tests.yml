@@ -12,6 +12,10 @@ on:
     paths-ignore:
       - "doc/**"
       - "web/**"
+      # code-scanning workflows; checked by zizmor in security.yml
+      - ".github/workflows/codeql.yml"
+      - ".github/workflows/scorecard.yml"
+      - ".github/workflows/security.yml"
 
 permissions: {}
 
@@ -43,7 +47,7 @@ jobs:
             pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Freethreading"
-            environment: py313-freethreading
+            environment: py314-freethreading
             pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Without PyArrow"
