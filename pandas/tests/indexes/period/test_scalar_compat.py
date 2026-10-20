@@ -21,7 +21,7 @@ class TestPeriodIndexOps:
     def test_deprecated_day_attrs(self, old_attr, new_attr):
         # GH#46768
         pi = pd.period_range(start="2020-01-01", end="2020-03-01", freq="M")
-        msg = f"PeriodArray.{old_attr} is deprecated"
+        msg = f"PeriodIndex.{old_attr} is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             old_val = getattr(pi, old_attr)
         tm.assert_index_equal(old_val, getattr(pi, new_attr))

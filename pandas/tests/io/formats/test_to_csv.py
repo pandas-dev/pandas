@@ -19,6 +19,12 @@ import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
 from pandas.core.indexes.base import get_values_for_csv
 
+skip_if_bare_cr_unquoted = pytest.mark.skipif(
+    sys.version_info < (3, 11, 9) or (3, 12) <= sys.version_info < (3, 12, 3),
+    reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9 and 3.12.3, "
+    "see python/cpython#67044",
+)
+
 
 class TestToCSV:
     def test_to_csv_with_single_column(self, temp_file):
@@ -551,6 +557,14 @@ $1$,$2$
         result = pd.read_csv(temp_file)
         tm.assert_frame_equal(result, df)
 
+    @skip_if_bare_cr_unquoted
+    def test_to_csv_roundtrip_with_carriage_return_in_field(self, temp_file):
+        # GH#27737 a lone trailing "\r" must not be read back as a line terminator
+        df = pd.DataFrame({"a": ["a1\r", "a2"], "b": ["b1", "b2"]})
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
+
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
@@ -585,11 +599,7 @@ $1$,$2$
         with open(temp_file, "rb") as f:
             assert f.read() == expected_crlf
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 11, 9),
-        reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9, "
-        "see python/cpython#67044",
-    )
+    @skip_if_bare_cr_unquoted
     def test_to_csv_string_with_cr(self, temp_file):
         # GH#10018 - a bare "\r" must be quoted even though it is not the
         #  lineterminator, or read_csv splits the field across rows
@@ -1100,3 +1110,57 @@ def test_to_csv_datetime_tz_consistent_format():
     ]
     expected = tm.convert_rows_list_to_csv_str(expected_rows)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "first_row, index, kwargs, expected_rows",
+    [
+        (
+            [np.nan, np.nan],
+            ["r0", "r1"],
+            {},
+            [",a,b", ",x,y", ",,", "r0,,", "r1,1.0,2.0"],
+        ),
+        (
+            [np.nan, np.nan],
+            pd.MultiIndex.from_tuples([("r", 0), ("r", 1)]),
+            {},
+            [",,a,b", ",,x,y", ",,,", "r,0,,", "r,1,1.0,2.0"],
+        ),
+        # missing index value: two of three fields blank
+        (
+            [np.nan, 0.5],
+            [np.nan, 1.0],
+            {},
+            [",a,b", ",x,y", ",,", ",,0.5", "1.0,1.0,2.0"],
+        ),
+        (
+            [np.nan, np.nan],
+            ["r0", "r1"],
+            {"index_label": False},
+            [",a,b", ",x,y", ",,", "r0,,", "r1,1.0,2.0"],
+        ),
+    ],
+)
+@pytest.mark.parametrize("engine", ["c", "python"])
+def test_to_csv_mi_columns_blank_first_row_roundtrip(
+    first_row, index, kwargs, expected_rows, engine
+):
+    # GH#21995 the first row was read back as index names and dropped
+    columns = pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")])
+    df = pd.DataFrame([first_row, [1.0, 2.0]], index=index, columns=columns)
+
+    result = df.to_csv(**kwargs)
+    assert result == tm.convert_rows_list_to_csv_str(expected_rows)
+
+    index_col = list(range(df.index.nlevels))
+    roundtrip = pd.read_csv(
+        io.StringIO(result), header=[0, 1], index_col=index_col, engine=engine
+    )
+    tm.assert_frame_equal(roundtrip, df, check_index_type=False)
+
+
+def test_to_csv_mi_columns_empty_frame():
+    # GH#21995 no first row to check for the index line
+    df = pd.DataFrame(columns=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]))
+    assert df.to_csv() == tm.convert_rows_list_to_csv_str([",a,b", ",x,y"])

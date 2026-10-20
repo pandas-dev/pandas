@@ -189,6 +189,31 @@ class TestFromDict:
         result = df.columns
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("keys", [[("x",), ("y",)], [("x", 1), ("y", 2)]])
+    @pytest.mark.parametrize("box", [pd.Series, dict])
+    def test_from_dict_orient_index_tuple_keys(self, keys, box):
+        # GH#9751 single-element tuples become a MultiIndex like longer tuples
+        values = box(dict(zip(keys, [1, 2], strict=True)))
+        result = pd.DataFrame.from_dict({"a": values}, orient="index")
+        expected = pd.DataFrame(
+            [[1, 2]], index=["a"], columns=pd.MultiIndex.from_tuples(keys)
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing", [None, float("nan")])
+    @pytest.mark.parametrize("box", [pd.Series, dict])
+    def test_from_dict_orient_index_tuple_keys_with_missing(self, missing, box):
+        # GH#28390 a missing value in a tuple key should not turn the row into NaN
+        keys = [("a", 1), (missing, 1)]
+        data = {keys[0]: box({"x": 1, "y": 2}), keys[1]: box({"x": 3, "y": 4})}
+        result = pd.DataFrame.from_dict(data, orient="index")
+        expected = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            index=pd.MultiIndex.from_tuples(keys),
+            columns=["x", "y"],
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_dict_constructor_empty_series(self):
         s1 = pd.Series(
             [1, 2, 3, 4],

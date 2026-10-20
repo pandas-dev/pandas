@@ -393,6 +393,26 @@ def test_na_empty_elem_option(parser, geom_df):
     assert output == expected
 
 
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([1, None], "Int64"),
+        ([1.5, None], "Float64"),
+        ([True, None], "boolean"),
+        (["a", None], "string"),
+        pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ([1, None], object),
+        ([1, pd.NA], object),
+        (["x", None], "category"),
+    ],
+)
+def test_na_rep_none_and_na(parser, values, dtype):
+    # GH#54872
+    df = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
+    output = df.to_xml(na_rep="foo", parser=parser)
+    assert output.count("<a>foo</a>") == 1
+
+
 # ATTR_COLS
 
 
@@ -1013,6 +1033,25 @@ def test_stylesheet_io(xsl_row_field_output, mode, geom_df):
     output = geom_df.to_xml(stylesheet=xsl_obj)
 
     assert output == xsl_expected
+
+
+def test_stylesheet_external_entity_not_resolved(geom_df, tmp_path):
+    lxml_etree = pytest.importorskip("lxml.etree")
+    secret = tmp_path / "secret.txt"
+    secret.write_text("secret", encoding="utf-8")
+    xsl = f"""\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xsl:stylesheet [
+    <!ENTITY xxe SYSTEM "{secret.as_uri()}">
+]>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:template match="/">
+        <data>&xxe;</data>
+    </xsl:template>
+</xsl:stylesheet>"""
+
+    with pytest.raises(lxml_etree.XMLSyntaxError, match="Entity 'xxe' not defined"):
+        geom_df.to_xml(stylesheet=StringIO(xsl))
 
 
 def test_stylesheet_buffered_reader(xsl_row_field_output, mode, geom_df):

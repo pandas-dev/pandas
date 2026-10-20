@@ -182,3 +182,33 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_masked_subtype():
+    # GH#64297
+    pa = pytest.importorskip("pyarrow")
+
+    lefts, rights = [0, 1, None], [1, 2, None]
+    dtype = pd.IntervalDtype("Int64", closed="right")
+    expected = IntervalArray.from_arrays(
+        pd.array(lefts, dtype="Int64"), pd.array(rights, dtype="Int64"), closed="right"
+    )
+    assert expected.dtype == dtype
+
+    arr = pa.array(
+        [
+            {"left": left, "right": right}
+            for left, right in zip(lefts, rights, strict=True)
+        ],
+        type=pa.struct([("left", pa.int64()), ("right", pa.int64())]),
+    )
+
+    result = dtype.__from_arrow__(arr)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr, arr[:1]]))
+    tm.assert_extension_array_equal(result[: len(expected)], expected)
+    tm.assert_extension_array_equal(result[len(expected) :], expected[:1])
+
+    result = dtype.__from_arrow__(pa.chunked_array([], type=arr.type))
+    tm.assert_extension_array_equal(result, expected[:0])
