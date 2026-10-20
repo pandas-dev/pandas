@@ -206,6 +206,16 @@ _OFFSET_SIGNATURES = {
         "calendar",
         "offset",
     ),
+    pd.tseries.offsets.SemiMonthEnd: (
+        "n",
+        "normalize",
+        "day_of_month",
+    ),
+    pd.tseries.offsets.SemiMonthBegin: (
+        "n",
+        "normalize",
+        "day_of_month",
+    ),
     pd.tseries.offsets.YearEnd: (
         "n",
         "normalize",
