@@ -292,18 +292,18 @@ timedelta-like}
     cdef:
         ndarray[uint8_t, cast=True] ambiguous_array
         Py_ssize_t i, n = vals.shape[0]
-        Py_ssize_t delta_idx_offset, delta_idx
         int64_t v, left, right, val, new_local, remaining_mins
-        int64_t first_delta, delta
+        int64_t delta
         int64_t shift_delta = 0
         ndarray[int64_t] result_a, result_b, dst_hours
         int64_t[::1] result
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
-        bint fill_nonexist = False
+        bint fill_nonexist = False, left_ok, right_ok
         str stamp
         Localizer info = Localizer(tz, creso=creso)
-        int64_t pph = periods_per_day(creso) // 24
+        int64_t ppd = periods_per_day(creso)
+        int64_t pph = ppd // 24
 
     # Vectorized version of DstTzInfo.localize
 
@@ -386,22 +386,6 @@ timedelta-like}
     if infer_dst:
         dst_hours = _get_dst_hours(vals, result_a, result_b, creso=creso)
 
-    # Pre-compute delta_idx_offset that will be used if we go down non-existent
-    #  paths.
-    # Shift the delta_idx by if the UTC offset of
-    # the target tz is greater than 0 and we're moving forward
-    # or vice versa
-    # TODO: delta_idx_offset and info.deltas are needed for zoneinfo timezones,
-    # but are not applicable for all timezones. Setting the former to 0 and
-    # length checking the latter avoids UB, but this could use a larger refactor
-    delta_idx_offset = 0
-    if len(info.deltas):
-        first_delta = info.deltas[0]
-        if (shift_forward or shift_delta > 0) and first_delta > 0:
-            delta_idx_offset = 1
-        elif (shift_backward or shift_delta < 0) and first_delta < 0:
-            delta_idx_offset = 1
-
     for i in range(n):
         val = vals[i]
         left = result_a[i]
@@ -462,51 +446,26 @@ timedelta-like}
                     # nonexistent times
                     new_local = val - remaining_mins - 1
 
-                if (
-                    info.use_zoneinfo
-                    and info.has_tz_rule
-                    and new_local > info.last_trans
-                ):
-                    if shift_forward or shift_delta > 0:
-                        delta = _tz_localize_using_tzinfo_api(
-                            new_local, tz, True, creso, NULL, 0
-                        )
-                    else:
-                        delta = _tz_localize_using_tzinfo_api(
-                            new_local, tz, True, creso, NULL, 1
-                        )
-                    result[i] = _shift_to_utc(new_local, delta, creso)
+                left, right, left_ok, right_ok = _utc_bounds_single(
+                    new_local, info, ppd
+                )
+                if left_ok:
+                    # on an ambiguous new_local, this takes the earlier instant
+                    result[i] = left
+                elif right_ok:
+                    result[i] = right
+                elif shift_forward or shift_delta > 0:
+                    # new_local is nonexistent too: only the shift out of the
+                    #  original hour is validated, and a multi-hour gap can
+                    #  swallow the shifted value.  Take the side shifted toward;
+                    #  left is the later instant.
+                    result[i] = left
                 else:
-                    delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
-                    if delta_idx == info.ntrans:
-                        # new_local is past the last cached transition, so the
-                        #  offsets below would index deltas (length ntrans) out
-                        #  of bounds. The bisect compared a *local* time against
-                        #  info.tdata, which holds *UTC* instants, so the last
-                        #  delta can put us back before its own transition;
-                        #  walk back to the last one that does not.
-                        delta_idx = info.ntrans - 1
-                        while (
-                            delta_idx > 0
-                            and _shift_to_utc(new_local, info.deltas[delta_idx], creso)
-                            < info.tdata[delta_idx]
-                        ):
-                            delta_idx -= 1
-                    # Logic similar to the precompute section. But check the current
-                    # delta in case we are moving between UTC+0 and non-zero timezone
-                    elif (
-                        (shift_forward or shift_delta > 0)
-                        and info.deltas[delta_idx - 1] >= 0
-                    ):
-                        delta_idx = delta_idx - 1
-                    else:
-                        delta_idx = delta_idx - delta_idx_offset
-                    delta = info.deltas[delta_idx]
-                    result[i] = _shift_to_utc(new_local, delta, creso)
+                    result[i] = right
                 if result[i] == NPY_NAT:
                     raise_out_of_bounds(
                         new_local,
-                        BS_UNDERFLOW if delta > 0 else BS_OVERFLOW,
+                        BS_UNDERFLOW if new_local < 0 else BS_OVERFLOW,
                         creso,
                     )
             elif fill_nonexist:
@@ -614,69 +573,84 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
     cdef:
         ndarray[int64_t] result_a, result_b
         Py_ssize_t i, n = vals.size
-        const int64_t* tdata = info.tdata
-        const int64_t[::1] deltas = info.deltas
-        Py_ssize_t ntrans = info.ntrans
-        NPY_DATETIMEUNIT creso = info._creso
-        bint use_zoneinfo = info.use_zoneinfo
-        tzinfo tz = info.tz
-        int64_t val, v_left, v_right, delta0, delta1, local0, local1
-        int64_t delta_l, delta_r
-        Py_ssize_t isl, isr, pos_left, pos_right
-        int64_t search_value
-        int64_t ppd = periods_per_day(creso)
-        BoundaryStatus status_left, status_right
+        int64_t val, left, right
+        int64_t ppd = periods_per_day(info._creso)
+        bint left_ok, right_ok
 
     result_a = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
     result_b = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
 
     for i in range(n):
-        # This loops resembles the "Find the two best possibilities" block
-        #  in pytz's DstTZInfo.localize method.
-        result_a[i] = NPY_NAT
-        result_b[i] = NPY_NAT
-
         val = vals[i]
         if val == NPY_NAT:
+            result_a[i] = NPY_NAT
+            result_b[i] = NPY_NAT
             continue
 
-        if use_zoneinfo and info.has_tz_rule and val > info.last_trans:
-            # For values beyond cached transition coverage, derive the two
-            # candidate UTC instants via zoneinfo and keep whichever
-            # round-trip back to this wall time.
-            delta0 = _tz_localize_using_tzinfo_api(val, tz, True, creso, NULL, 0)
-            delta1 = _tz_localize_using_tzinfo_api(val, tz, True, creso, NULL, 1)
+        left, right, left_ok, right_ok = _utc_bounds_single(val, info, ppd)
+        result_a[i] = left if left_ok else NPY_NAT
+        result_b[i] = right if right_ok else NPY_NAT
 
-            # GH#65733 a candidate that wrapped int64 fails the round-trip below
-            #  and leaves both bounds NaT, which the caller reads as "nonexistent
-            #  time" instead of raising OutOfBoundsDatetime.  The cached path's
-            #  NPY_NAT check is not needed here: this branch only runs for
-            #  val > last_trans, which is always far above the sentinel.
-            if checked_sub(val, delta0, &v_left):
-                status_left = BS_UNDERFLOW if delta0 > 0 else BS_OVERFLOW
-            else:
-                status_left = BS_OK
-                local0 = v_left + _tz_localize_using_tzinfo_api(
-                    v_left, tz, to_utc=False, creso=creso
-                )
-                if local0 == val:
-                    result_a[i] = v_left
+    return result_a, result_b
 
-            if checked_sub(val, delta1, &v_right):
-                status_right = BS_UNDERFLOW if delta1 > 0 else BS_OVERFLOW
-            else:
-                status_right = BS_OK
-                local1 = v_right + _tz_localize_using_tzinfo_api(
-                    v_right, tz, to_utc=False, creso=creso
-                )
-                if local1 == val:
-                    result_b[i] = v_right
 
-            if result_a[i] == NPY_NAT and result_b[i] == NPY_NAT:
-                if status_left != BS_OK and status_right != BS_OK:
-                    raise_out_of_bounds(val, status_left, creso)
-            continue
+@cython.initializedcheck(False)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline (int64_t, int64_t, bint, bint) _utc_bounds_single(
+    int64_t val, Localizer info, int64_t ppd
+):
+    """
+    The UTC instants for wall time val read with the offset before (left) and
+    after (right) a transition within a day of it.
 
+    Each is NPY_NAT if out of bounds, and its flag says whether it maps back to
+    val: both do on an ambiguous val, neither on a nonexistent one.  Raises
+    OutOfBoundsDatetime if neither does and both are out of bounds.
+    """
+    # This resembles the "Find the two best possibilities" block
+    #  in pytz's DstTZInfo.localize method.
+    cdef:
+        const int64_t* tdata = info.tdata
+        Py_ssize_t ntrans = info.ntrans
+        NPY_DATETIMEUNIT creso = info._creso
+        int64_t v_left, v_right, delta0, delta1, delta_l, delta_r
+        Py_ssize_t isl, isr, pos_left, pos_right
+        int64_t search_value
+        bint left_ok = False, right_ok = False
+        BoundaryStatus status_left, status_right
+
+    if info.use_zoneinfo and info.has_tz_rule and val > info.last_trans:
+        # For values beyond cached transition coverage, derive the two
+        # candidate UTC instants via zoneinfo and keep whichever
+        # round-trip back to this wall time.
+        delta0 = _tz_localize_using_tzinfo_api(val, info.tz, True, creso, NULL, 0)
+        delta1 = _tz_localize_using_tzinfo_api(val, info.tz, True, creso, NULL, 1)
+
+        # GH#65733 a candidate that wrapped int64 fails the round-trip below
+        #  and leaves both bounds NaT, which the caller reads as "nonexistent
+        #  time" instead of raising OutOfBoundsDatetime.  The cached path's
+        #  NPY_NAT check is not needed here: this branch only runs for
+        #  val > last_trans, which is always far above the sentinel.
+        if checked_sub(val, delta0, &v_left):
+            v_left = NPY_NAT
+            status_left = BS_UNDERFLOW if delta0 > 0 else BS_OVERFLOW
+        else:
+            status_left = BS_OK
+            left_ok = v_left + _tz_localize_using_tzinfo_api(
+                v_left, info.tz, to_utc=False, creso=creso
+            ) == val
+
+        if checked_sub(val, delta1, &v_right):
+            v_right = NPY_NAT
+            status_right = BS_UNDERFLOW if delta1 > 0 else BS_OVERFLOW
+        else:
+            status_right = BS_OK
+            right_ok = v_right + _tz_localize_using_tzinfo_api(
+                v_right, info.tz, to_utc=False, creso=creso
+            ) == val
+
+    else:
         if checked_sub(val, ppd, &search_value):
             isl = 0
         else:
@@ -684,19 +658,19 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
             if isl < 0:
                 isl = 0
 
-        delta_l = deltas[isl]
+        delta_l = info.deltas[isl]
         # GH#66550 landing exactly on NPY_NAT is an underflow too: it is one
         #  below the minimum representable value.  It also breaks
         #  bisect_right_i8's `val >= tdata[0]` precondition (tdata[0] is
         #  NPY_NAT+1), which would leave pos_left at -1 and read out of bounds.
         if checked_sub(val, delta_l, &v_left) or v_left == NPY_NAT:
+            v_left = NPY_NAT
             status_left = BS_UNDERFLOW if delta_l > 0 else BS_OVERFLOW
         else:
             status_left = BS_OK
             pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
             # timestamp falls to the left side of the DST transition
-            if v_left + deltas[pos_left] == val:
-                result_a[i] = v_left
+            left_ok = v_left + info.deltas[pos_left] == val
 
         if checked_add(val, ppd, &search_value):
             isr = ntrans - 1
@@ -705,22 +679,22 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
             if isr < 0:
                 isr = 0
 
-        delta_r = deltas[isr]
+        delta_r = info.deltas[isr]
         # GH#66550 same guard as for v_left above
         if checked_sub(val, delta_r, &v_right) or v_right == NPY_NAT:
+            v_right = NPY_NAT
             status_right = BS_UNDERFLOW if delta_r > 0 else BS_OVERFLOW
         else:
             status_right = BS_OK
             pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
             # timestamp falls to the right side of the DST transition
-            if v_right + deltas[pos_right] == val:
-                result_b[i] = v_right
+            right_ok = v_right + info.deltas[pos_right] == val
 
-        if result_a[i] == NPY_NAT and result_b[i] == NPY_NAT:
-            if status_left != BS_OK and status_right != BS_OK:
-                raise_out_of_bounds(val, status_left, creso)
+    if not left_ok and not right_ok:
+        if status_left != BS_OK and status_right != BS_OK:
+            raise_out_of_bounds(val, status_left, creso)
 
-    return result_a, result_b
+    return v_left, v_right, left_ok, right_ok
 
 
 @cython.wraparound(False)
