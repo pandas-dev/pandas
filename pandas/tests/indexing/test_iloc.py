@@ -619,6 +619,81 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    def test_iloc_setitem_reversed_slice_column_indexer_referenced_block(self, dtype):
+        # GH#65446 a slice column indexer takes the cross product with the
+        #  row indexer; on a referenced frame it became an array instead
+        df = pd.DataFrame(
+            np.arange(12, dtype="i8").reshape(4, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        value = np.arange(100, 106, dtype="i8").reshape(2, 3).astype(dtype)
+        df.iloc[[2, 0], ::-1] = value
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[2] = value[0, ::-1]
+        expected.iloc[0] = value[1, ::-1]
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    @pytest.mark.parametrize(
+        "key, shape",
+        [
+            (([2, 0], slice(0, 2)), (2, 2)),
+            (([2, 0], slice(2, None, -2)), (2, 2)),
+            # these keys reject a 2-D value even on an unreferenced frame
+            ((range(2, 0, -1), [0, 2]), None),
+            (((2, 1), [0, 2]), None),
+            ((pd.array([2, 1], dtype="Int64"), [0, 2]), None),
+            ((np.array([2, 1]), range(0, 3, 2)), None),
+            ((np.array([2, 1]), pd.array([0, 2], dtype="Int64")), None),
+            ((np.array([0, 2]), None), None),
+            (([2, 1, 0], Ellipsis), (3, 3)),
+            ((Ellipsis, [2, 0, 1]), (4, 3)),
+            ((np.array([True, False, True, False]), slice(None, None, -1)), (2, 3)),
+            ((np.array([[1, 0]]), slice(None, None, -1)), (2, 3)),
+        ],
+    )
+    def test_iloc_setitem_referenced_block_matches_unreferenced(
+        self, key, shape, dtype
+    ):
+        # GH#65446 a distinct value per cell, so a transposed or reordered
+        #  write shows up; a scalar still tells a cross product from a
+        #  pointwise write
+        df = pd.DataFrame(
+            np.arange(12, dtype="i8").reshape(4, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        if shape is None:
+            value = df_orig.iloc[3, 1]
+        else:
+            value = np.arange(100, 100 + np.prod(shape), dtype="i8").reshape(shape)
+            value = value.astype(dtype)
+
+        expected = df.copy()
+        expected.iloc[key] = value
+        ref = df[["a", "b", "c"]]
+        df.iloc[key] = value
+        df._mgr._verify_integrity()
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_loc_setitem_boolean_row_mask_reversed_slice_referenced_block(self):
+        # GH#65446 a reversed label slice reaches the same path through loc
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        df.loc[[True, False, True, False], "c":"a":-1] = 99.0
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[[0, 2]] = 99.0
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
