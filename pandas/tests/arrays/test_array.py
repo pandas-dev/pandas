@@ -730,10 +730,10 @@ def test_pd_array_compound_dtype_deprecated(data, dtype):
 
 
 def test_pd_array_void_series_no_warning():
-    # GH#49388 the dtype inferred from a Series is not a dtype the user passed
+    # GH#49388 no warning when the data already has the void dtype
     ser = pd.Series(np.zeros(3, dtype="V8"))
     with tm.assert_produces_warning(None):
-        pd.array(ser)
+        pd.array(ser, dtype="V8")
 
 
 @pytest.mark.parametrize(

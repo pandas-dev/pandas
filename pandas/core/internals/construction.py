@@ -88,6 +88,7 @@ from pandas.core.internals.managers import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Mapping,
         Sequence,
@@ -849,18 +850,17 @@ def to_arrays(
         ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
+            constructor: Callable[..., ArrayLike]
             if isinstance(common_dtype, np.dtype) and common_dtype.kind == "V":
                 # GH#49388 avoid pd.array's void-dtype warning; for structured
                 #  rows sanitize_array warns instead
-                arrays = [
-                    np.array([row[col_idx] for row in data], dtype=common_dtype)
-                    for col_idx in range(ncols)
-                ]
+                constructor = np.array
             else:
-                arrays = [
-                    pd_array([row[col_idx] for row in data], dtype=common_dtype)
-                    for col_idx in range(ncols)
-                ]
+                constructor = pd_array
+            arrays = [
+                constructor([row[col_idx] for row in data], dtype=common_dtype)
+                for col_idx in range(ncols)
+            ]
             columns = _validate_or_indexify_columns(arrays, columns)
             return arrays, columns
 
