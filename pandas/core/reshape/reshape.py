@@ -1037,7 +1037,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         index_levels = frame.index.levels
         index_codes = list(np.tile(frame.index.codes, (1, ratio)))
     else:
-        codes, uniques = factorize(frame.index, use_na_sentinel=False)
+        codes, uniques = factorize(frame.index)
         index_levels = [uniques]
         index_codes = list(np.tile(codes, (1, ratio)))
 
@@ -1053,8 +1053,9 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
-        column_levels = [ordered_stack_cols_unique]
-        column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
+        codes, uniques = factorize(ordered_stack_cols_unique)
+        column_levels = [uniques]
+        column_codes = [codes]
 
     # error: Incompatible types in assignment (expression has type "list[ndarray[Any,
     # dtype[Any]]]", variable has type "FrozenList")

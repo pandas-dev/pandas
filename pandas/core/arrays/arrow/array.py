@@ -7,6 +7,7 @@ from datetime import (
 )
 from decimal import Decimal
 import functools
+from numbers import Rational
 import operator
 import re
 import textwrap
@@ -35,6 +36,7 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under18p0,
     pa_version_under21p0,
     pa_version_under25p0,
 )
@@ -452,12 +454,19 @@ def _copy_pyarrow_buffers(
     Return an equal array that owns its buffers (GH#67990).
 
     ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
-    so dictionary types are rebuilt from copies of both halves.
+    so dictionary types are rebuilt from copies of both halves. It likewise
+    reuses the data buffers of view types, so those round-trip through a cast
+    first, and nested types holding either are copied again with ``copy_to``
+    (both pyarrow >= 18 only).
     """
     if isinstance(pa_array, pa.ChunkedArray):
         return pa.chunked_array(
             [_copy_pyarrow_buffers(chunk) for chunk in pa_array.chunks],
             type=pa_array.type,
+        )
+    if isinstance(pa_array, pa.ExtensionArray):
+        return pa.ExtensionArray.from_storage(
+            pa_array.type, _copy_pyarrow_buffers(pa_array.storage)
         )
     if pa.types.is_dictionary(pa_array.type):
         return pa.DictionaryArray.from_arrays(
@@ -465,7 +474,33 @@ def _copy_pyarrow_buffers(
             _copy_pyarrow_buffers(pa_array.dictionary),
             ordered=pa_array.type.ordered,
         )
+    if not pa_version_under18p0:
+        if pa.types.is_string_view(pa_array.type):
+            pa_array = pa_array.cast(pa.large_string()).cast(pa_array.type)
+        elif pa.types.is_binary_view(pa_array.type):
+            pa_array = pa_array.cast(pa.large_binary()).cast(pa_array.type)
+        elif _has_dictionary_or_view_child(pa_array.type):
+            return pa.concat_arrays([pa_array]).copy_to(pa.default_cpu_memory_manager())
     return pa.concat_arrays([pa_array])
+
+
+def _has_dictionary_or_view_child(pa_type: pa.DataType) -> bool:
+    """
+    Whether any child type (or its extension storage), at any depth, is a dictionary
+    or view type.
+    """
+    for i in range(pa_type.num_fields):
+        child = pa_type.field(i).type
+        if isinstance(child, pa.BaseExtensionType):
+            child = child.storage_type
+        if (
+            pa.types.is_dictionary(child)
+            or pa.types.is_string_view(child)
+            or pa.types.is_binary_view(child)
+            or _has_dictionary_or_view_child(child)
+        ):
+            return True
+    return False
 
 
 @set_module("pandas.arrays")
@@ -1317,10 +1352,23 @@ class ArrowExtensionArray(
                 raise ValueError("Lengths must match to compare")
             try:
                 boxed = self._box_pa(other)
-            except pa.lib.ArrowInvalid:
+            except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError):
                 # e.g. GH#60228 [1, "b"] we have to operate pointwise
-                res_values = [op(x, y) for x, y in zip(self, other, strict=True)]
-                result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
+                # error: Argument 1 to "construct_1d_object_array_from_listlike"
+                # has incompatible type "ExtensionArray | ndarray[Any, Any] |
+                # list[Any] | range"; expected "Collection[Any]"
+                other_arr = construct_1d_object_array_from_listlike(
+                    other  # type: ignore[arg-type]
+                )
+                if pa.types.is_nested(ltype):
+                    # GH#62682 numpy broadcasts e.g. [1] == np.int64(1) to an array
+                    result = ops.invalid_comparison(self, other, op)
+                else:
+                    result = ops.comp_method_OBJECT_ARRAY(
+                        op, self.to_numpy(dtype=object), other_arr
+                    )
+                mask = isna(self) | isna(other_arr)
+                result = pa.array(result, type=pa.bool_(), mask=mask)
             else:
                 rtype = boxed.type
                 if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
@@ -1346,7 +1394,11 @@ class ArrowExtensionArray(
             else:
                 try:
                     result = pc_func(self._pa_array, self._box_pa(other))
-                except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                except (
+                    pa.lib.ArrowNotImplementedError,
+                    pa.lib.ArrowInvalid,
+                    pa.lib.ArrowTypeError,
+                ):
                     mask = isna(self) | isna(other)
                     valid = ~mask
                     result = np.zeros(len(self), dtype="bool")
@@ -1825,15 +1877,22 @@ class ArrowExtensionArray(
 
     def copy(self) -> Self:
         """
-        Return a shallow copy of the array.
-
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
+        Return a copy of the array.
 
         Returns
         -------
         type(self)
         """
-        return self._from_pyarrow_array(self._pa_array)
+        return self._from_pyarrow_array(_copy_pyarrow_buffers(self._pa_array))
+
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
+        # __setitem__ replaces _pa_array rather than writing into its buffers,
+        #  so the base class's copy is unnecessary
+        result = self._from_pyarrow_array(self._pa_array)
+        if is_list_like(value):
+            value = value[~mask]
+        result[~mask] = value
+        return result
 
     @overload
     def view(self, dtype: None = ...) -> Self: ...
@@ -2138,8 +2197,11 @@ class ArrowExtensionArray(
             return indices, uniques
 
         if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
+            # dictionary_encode is a no-op on already-encoded input, so cast back
+            # to the value type and re-encode when nulls must be encoded, or when
+            # a chunk stores the null as a dictionary value (GH#66490)
+            dict_has_null = any(c.dictionary.null_count > 0 for c in data.chunks)
+            if null_encoding == "encode" or dict_has_null:
                 data = data.cast(data.type.value_type)
                 encoded = data.dictionary_encode(null_encoding=null_encoding)
             else:
@@ -3409,7 +3471,14 @@ class ArrowExtensionArray(
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
-        self_temporal = _is_temporal_pa_type(self._pa_array.type)
+        pa_type = self._pa_array.type
+        if pa.types.is_integer(pa_type):
+            # GH#68638 pyarrow truncates the fractional part instead of refusing
+            #  the value; the masked dtypes raise
+            value = lib.item_from_zerodim(value)
+            if _truncates_to_integer(value):
+                raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+        self_temporal = _is_temporal_pa_type(pa_type)
         if self_temporal is not None:
             value_temporal = _is_temporal_value(value)
             if value_temporal is not None and value_temporal != self_temporal:
@@ -3423,9 +3492,9 @@ class ArrowExtensionArray(
                     # _box_pa would still cast, and e.g. double -> timestamp has
                     #  no cast kernel. len() is the element count only for a 1-D
                     #  value, so anything else stays with _box_pa
-                    return pa.nulls(len(value), type=self._pa_array.type)
+                    return pa.nulls(len(value), type=pa_type)
         try:
-            value = self._box_pa(value, self._pa_array.type)
+            value = self._box_pa(value, pa_type)
         except pa.ArrowTypeError as err:
             msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
@@ -4756,6 +4825,27 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return self._from_pyarrow_array(result)
+
+
+def _truncates_to_integer(value) -> bool:
+    """
+    Whether an integer-typed pyarrow column would silently drop part of ``value``.
+
+    A missing value is not lossy; a non-finite one has no integral form at all.
+    See GH#68638.
+    """
+    if lib.is_float(value):
+        return not isna(value) and not value.is_integer()
+    if lib.is_integer(value):
+        return False
+    if isinstance(value, Decimal):
+        if isna(value):
+            return False
+        return not value.is_finite() or value != value.to_integral_value()
+    if isinstance(value, Rational):
+        # Fraction; the integers short-circuit above rather than pay this ABC lookup
+        return value.denominator != 1
+    return False
 
 
 def transpose_homogeneous_pyarrow(
