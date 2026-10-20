@@ -154,6 +154,14 @@ def test_rowspan_w3():
     assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.to_html()
 
 
+def test_rowspan_values_format_identically():
+    # GH#10796 distinct values that format identically are not merged
+    df = pd.DataFrame({"C": [3, 4]}, index=[[1, "1"], ["a", "a"]])
+    result = Styler(df, uuid="_", cell_ids=False).to_html()
+    assert "rowspan" not in result
+    assert result.count('<th class="row_heading level0') == 2
+
+
 def test_styles(styler):
     styler.set_uuid("abc")
     styler.set_table_styles([{"selector": "td", "props": "color: red;"}])
@@ -1037,3 +1045,18 @@ def test_format_index_names(styler_multi, escape_axis_0, escape_axis_1):
     result = styler_multi.to_html(table_uuid="test")
     for expected_str in expected_index + expected_columns:
         assert f"{expected_str}</th>" in result
+
+
+@pytest.mark.parametrize("method", ["map", "map_index_0", "map_index_1"])
+def test_cellstyle_rules_split_at_8192_selectors(method):
+    # GH#40913 Chromium only applies the first 8192 selectors of a rule
+    df = pd.DataFrame(np.zeros((8193, 1)))
+    if method == "map_index_1":
+        df = df.T
+    if method == "map":
+        styler = df.style.map(lambda x: "color: red;")
+    else:
+        styler = df.style.map_index(lambda x: "color: red;", axis=int(method[-1]))
+    style = styler.to_html(table_uuid="test").split("</style>")[0]
+    rules = [rule.count("#T_test_") for rule in style.split("{")[:-1]]
+    assert rules == [8192, 1]

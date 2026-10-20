@@ -68,7 +68,7 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
     _exhausted: bool
-    # When False, read() leaves deferred string columns as raw pending
+    # When False, _read_arrays() leaves deferred string columns as raw pending
     # handles for the caller to materialize (one chunked ExtensionArray per
     # column, e.g. post-gather in a parallel read).
     wrap_deferred: bool = True
@@ -106,7 +106,7 @@ class CParserWrapper(ParserBase):
             import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
         # Let the pyarrow string fast path return raw pending-column handles;
-        # read() wraps them into one ExtensionArray per column at the end.
+        # _read_arrays() wraps them into one ExtensionArray per column at the end.
         self._reader.defer_pa_wrap = True
 
         self.unnamed_cols = self._reader.unnamed_cols
@@ -278,7 +278,7 @@ class CParserWrapper(ParserBase):
         )
         return {position: named.get(position) for position in positions}
 
-    def read(
+    def _read_arrays(
         self,
         nrows: int | None = None,
     ) -> tuple[

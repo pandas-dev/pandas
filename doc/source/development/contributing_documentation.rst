@@ -114,8 +114,11 @@ on how to format the docstring.
 
 The examples in the docstring ('doctests') must be valid Python code,
 that in a deterministic way returns the presented output, and that can be
-copied and run by users. This can be checked with the script above, and is
-also tested by GitHub Actions. A failing doctest will be a blocker for merging a PR.
+copied and run by users. To run them locally, use ``pytest`` and
+select them by name with ``-k``::
+
+    PANDAS_FUTURE_PYTHON_SCALARS=1 pytest --doctest-modules --doctest-cython --ignore=pandas/tests pandas -k "Series.sum"
+
 Check the :ref:`examples <docstring.examples>` section in the docstring guide
 for some tips and tricks to get the doctests passing.
 

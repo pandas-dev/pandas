@@ -203,7 +203,7 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
-def flatten(data: dict) -> list[tuple[str, Any]]:
+def flatten(data: dict[str, dict[str, Any]]) -> list[tuple[str, Any]]:
     """Flatten create_pickle_data"""
     return [
         (typ, example)
@@ -706,7 +706,7 @@ def test_unpickle_keeps_instance_level_metadata():
     assert pickle.loads(pickle.dumps(result)).copy().myattr == "keepme"
 
 
-def _legacy_timestamp_pickle(args: tuple) -> bytes:
+def _legacy_timestamp_pickle(args: tuple[Any, ...]) -> bytes:
     # Emulate pandas<=1.2, whose Timestamp.__reduce__ returned
     #  (Timestamp, (value, freq, tz)).
     inner = pickle.dumps(args, protocol=0)

@@ -1,0 +1,48 @@
+name: Scorecard supply-chain security
+on:
+  schedule:
+    # every Monday at 05:17
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+# publish_results restricts this workflow: no top-level env or defaults,
+# no workflow-level write permissions, and only checkout, upload-artifact,
+# upload-sarif and scorecard-action steps in the job, see
+# https://github.com/ossf/scorecard-action#workflow-restrictions
+permissions: {}
+
+jobs:
+  analysis:
+    runs-on: ubuntu-24.04
+    permissions:
+      # upload the results to code scanning
+      security-events: write
+      # OIDC token to publish the results to the Scorecard API
+      id-token: write
+    # Scorecard only accepts results for the default branch
+    if: github.repository_owner == 'pandas-dev' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        # the results file is written before publishing, so an error from the
+        # Scorecard API (the reason it was removed in GH#50269) shouldn't fail
+        # the run; a failed analysis still fails upload-sarif below
+        continue-on-error: true
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+          # .gitattributes export-ignores .github, so the default "archive"
+          # mode (the GitHub tarball) doesn't see the workflows
+          file_mode: git
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: results.sarif
