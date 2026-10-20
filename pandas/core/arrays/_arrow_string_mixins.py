@@ -94,6 +94,7 @@ class ArrowStringArrayMixin:
                         op_code
                         in [_parser.ASSERT_NOT, _parser.ASSERT, _parser.GROUPREF]
                     )
+                    or (op_code == _parser.AT and argument == _parser.AT_END)
                 ):
                     return True
             return False
