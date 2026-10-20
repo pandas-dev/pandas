@@ -992,8 +992,16 @@ class TestDataFrameGroupByPlots:
         heights = [sum(p.get_height() for p in ax.patches) for ax in axes.ravel()]
         assert heights == expected
 
+    def test_grouped_hist_weights_by_column_name(self):
+        # GH#9540
+        df = pd.DataFrame({"key": [1, 0, 1, 0], "a": [1.0, 2.0, np.nan, 4.0]})
+        weights = np.array([1, 10, 100, 1000])
+        axes = df.hist(by="key", weights=weights, bins=2)
+        heights = [sum(p.get_height() for p in ax.patches) for ax in axes.ravel()]
+        assert heights == [1010, 1]
+
     def test_grouped_hist_weights_per_group(self):
-        # weights the length of each group, not of the data, are reused per group
+        # GH#9540 weights the length of each group, not of the data, are reused
         ser = pd.Series([1.0, 2.0, 3.0, 4.0])
         axes = ser.hist(by=[0, 0, 1, 1], weights=[1, 10], bins=2)
         heights = [sum(p.get_height() for p in ax.patches) for ax in axes.ravel()]
