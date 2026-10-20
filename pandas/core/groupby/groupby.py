@@ -167,7 +167,9 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     @staticmethod
-    def _set_default_title(kwargs: dict, group: NDFrame, key: Hashable) -> None:
+    def _set_default_title(
+        kwargs: dict[str, Any], group: NDFrame, key: Hashable
+    ) -> None:
         # GH#12452: without ax, each DataFrame group gets its own figure; Series
         #  groups share one axes, so a title there would just be overwritten
         if group.ndim == 2 and kwargs.get("ax") is None:
