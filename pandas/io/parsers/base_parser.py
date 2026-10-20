@@ -410,11 +410,16 @@ class ParserBase:
         clean_dtypes = self._clean_mapping(self.dtype)
         if isinstance(self.na_values, dict):
             assert self.orig_names is not None
-            # skip negative keys, which TextReader ignores, until GH#57944
+            # skip keys TextReader ignores (negative or past the last column)
+            #  until GH#57944
             na_keys = [
                 key
                 for key in self.na_values
-                if not (is_integer(key) and key < 0 and key not in self.orig_names)
+                if not (
+                    is_integer(key)
+                    and key not in self.orig_names
+                    and not 0 <= key < self._num_file_columns
+                )
             ]
             clean_na_values = self._clean_mapping(
                 {key: self.na_values[key] for key in na_keys}

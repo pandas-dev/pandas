@@ -189,9 +189,9 @@ class PythonParser(ParserBase):
                 offset + i: name
                 for i, name in zip(self._col_indices, self.orig_names, strict=True)
             }
+            self._num_file_columns = offset + self.num_original_columns
             if not self._warn_integer_keys_change(position_names):
                 self._position_names = position_names
-                self._num_file_columns = offset + self.num_original_columns
 
         self._no_thousands_columns = self._set_no_thousand_columns()
 
@@ -212,7 +212,7 @@ class PythonParser(ParserBase):
             if isinstance(key, int) and key not in self.orig_names
         ]
         if any(key >= len(self.orig_names) for key in keys):
-            # the deprecated rule raises IndexError here, so nothing depends on it
+            # the deprecated rule raises IndexError here whenever there are data rows
             return False
         changed = {
             key
