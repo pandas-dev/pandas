@@ -1530,14 +1530,19 @@ def test_get_locs_list_like_na_in_object_container():
 
 
 @pytest.mark.parametrize(
-    "key, expected", [([1.1, pd.NA], [1, 2, 0]), ([pd.NA, 1.1], [0, 1, 2])]
+    "level_codes, key, expected",
+    [
+        ([-1, 0, 0], [1.1, pd.NA], [1, 2, 0]),
+        ([-1, 0, 0], [pd.NA, 1.1], [0, 1, 2]),
+        ([0, -1, 0], [1.1, pd.NA], [0, 1, 2]),
+    ],
 )
-def test_get_locs_list_like_na_key_order_lexsorted(key, expected):
+def test_get_locs_list_like_na_key_order_lexsorted(level_codes, key, expected):
     # GH#17931 a lexsorted index skips reordering only if the key follows the
-    #  index order, including where the NA rows sit
+    #  index order, including where the NA rows sit (first or last)
     idx = pd.MultiIndex(
         levels=[pd.Index(["a", "b"]), pd.Index([1.1, 2.2])],
-        codes=[[0, 0, 1], [-1, 0, 0]],
+        codes=[[0, 0, 1], level_codes],
     )
     assert idx._is_lexsorted()
     result = idx.get_locs((slice(None), key))
