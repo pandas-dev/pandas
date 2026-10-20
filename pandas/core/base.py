@@ -221,7 +221,10 @@ class SelectionMixin(Generic[NDFrameT]):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, tuple):
+        # a tuple column key (e.g. MultiIndex) selects like DataFrame.__getitem__
+        if isinstance(key, tuple) and not (
+            self.obj.ndim == 2 and len(key) > 0 and key in self.obj.columns
+        ):
             warnings.warn(
                 "Passing a tuple to __getitem__ is deprecated and "
                 "will raise a KeyError in a future version. Use a list instead.",
@@ -619,9 +622,8 @@ class IndexOpsMixin(OpsMixin):
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
             Whether to ensure that the returned value is not a view on
-            another array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            another array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view.
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.

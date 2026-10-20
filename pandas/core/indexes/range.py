@@ -596,13 +596,6 @@ class RangeIndex(Index):
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
 
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should an integer key be treated as positional?
-        """
-        return False
-
     # --------------------------------------------------------------------
 
     def tolist(self) -> list[int]:

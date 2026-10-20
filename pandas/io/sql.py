@@ -190,10 +190,11 @@ def _convert_arrays_to_dataframe(
     coerce_float: bool = True,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
-    if data and is_dict_like(data[0]):
+    if data and is_dict_like(data[0]) and not isinstance(data[0], (list, tuple)):
         # DBAPI cursors returning dict rows, e.g. pymysql's DictCursor. Use
         # values() rather than lookup by column name, since such cursors may
-        # rename duplicate columns (GH#53028)
+        # rename duplicate columns (GH#53028). Skip list-based rows like
+        # psycopg2's DictRow, whose values() drops duplicate columns.
         data = [tuple(row.values()) for row in data]
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
@@ -1236,7 +1237,8 @@ class SQLTable(PandasObject):
         else:
             sql_select = select(self.table)
         result = self.pd_sql.execute(sql_select)
-        column_names = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        column_names = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             return self._query_iterator(
@@ -1411,6 +1413,7 @@ class SQLTable(PandasObject):
         # Needed for inserting typed data containing NULLs, GH 8778.
         col_type = lib.infer_dtype(col, skipna=True)
 
+        from sqlalchemy.dialects import mysql
         from sqlalchemy.types import (
             TIMESTAMP,
             BigInteger,
@@ -1424,19 +1427,24 @@ class SQLTable(PandasObject):
             Time,
         )
 
+        # GH#48435 MySQL defaults to whole seconds, dropping fractional ones
+        mysql_dialects = ("mysql", "mariadb")
+
         if col_type in ("datetime64", "datetime"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
                 # error: Item "Index" of "Union[Index, Series]" has no attribute "dt"
-                if col.dt.tz is not None:  # type: ignore[union-attr]
-                    return TIMESTAMP(timezone=True)
+                is_tz_aware = col.dt.tz is not None  # type: ignore[union-attr]
             except AttributeError:
                 # The column is actually a DatetimeIndex
                 # GH 26761 or an Index with date-like data e.g. 9999-01-01
-                if getattr(col, "tz", None) is not None:
-                    return TIMESTAMP(timezone=True)
-            return DateTime
+                is_tz_aware = getattr(col, "tz", None) is not None
+            if is_tz_aware:
+                return TIMESTAMP(timezone=True).with_variant(
+                    mysql.TIMESTAMP(timezone=True, fsp=6), *mysql_dialects
+                )
+            return DateTime().with_variant(mysql.DATETIME(fsp=6), *mysql_dialects)
         if col_type == "timedelta64":
             warnings.warn(
                 "the 'timedelta' type is not supported, and will be "
@@ -1465,7 +1473,7 @@ class SQLTable(PandasObject):
         elif col_type == "date":
             return Date
         elif col_type == "time":
-            return Time
+            return Time().with_variant(mysql.TIME(fsp=6), *mysql_dialects)
         elif col_type == "complex":
             raise ValueError("Complex datatypes not supported")
 
@@ -1910,7 +1918,8 @@ class SQLDatabase(PandasSQL):
 
         """
         result = self.execute(sql, params)
-        columns = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        columns = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             self.returns_generator = True
@@ -2117,6 +2126,7 @@ class SQLDatabase(PandasSQL):
 
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
         from sqlalchemy import (
+            Float,
             Numeric,
             Table,
         )
@@ -2124,7 +2134,8 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         tbl = Table(table_name, self.meta, autoload_with=self.con, schema=schema)
         for column in tbl.columns:
-            if isinstance(column.type, Numeric):
+            # Float is not a Numeric subclass in SQLAlchemy>=2.1
+            if isinstance(column.type, (Numeric, Float)):
                 column.type.asdecimal = False
         return tbl
 

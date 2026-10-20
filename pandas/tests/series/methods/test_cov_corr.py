@@ -85,6 +85,37 @@ class TestSeriesCorr:
         expected, _ = stats.pearsonr(A, A)
         tm.assert_almost_equal(result, expected)
 
+    def test_corr_nearly_constant(self):
+        # GH#59652 the two values of "b" differ by 1 ulp, so the exact
+        # correlation of two observations is -1
+        a = pd.Series([30.0, np.nan, np.nan, 30.100000381469727])
+        b = pd.Series([116.80000305175781, np.nan, np.nan, 116.8000030517578])
+        tm.assert_almost_equal(a.corr(b), -1.0)
+        result = pd.DataFrame({"a": a, "b": b}).corr().loc["a", "b"]
+        tm.assert_almost_equal(result, -1.0)
+
+    def test_corr_constant_inexact_mean(self):
+        # GH#59652 mean([0.1] * 3) != 0.1, which previously gave 0.0
+        a = pd.Series([0.1] * 3)
+        b = pd.Series([0.0, 1.0, 2.0])
+        assert np.isnan(a.corr(b))
+        assert np.isnan(b.corr(a))
+
+    @pytest.mark.parametrize("scale", [1e-200, 1e-80, 1e-49, 1e49, 1e80, 1e200])
+    def test_corr_scale_invariant(self, scale):
+        # GH#59652 large or small magnitudes must not overflow or underflow
+        a = pd.Series([1.0, 2.0, 3.0, 4.0])
+        b = pd.Series([1.0, 3.0, 2.0, 5.0])
+        expected = a.corr(b)
+        tm.assert_almost_equal((a * scale).corr(b * scale), expected)
+        tm.assert_almost_equal((a * scale).corr(b), expected)
+
+    def test_corr_self_exact(self):
+        # GH#59652
+        ser = pd.Series([0.0, 0.1, 0.2])
+        assert ser.corr(ser) == 1.0
+        assert ser.corr(-ser) == -1.0
+
     def test_corr_rank(self):
         stats = pytest.importorskip("scipy.stats")
 

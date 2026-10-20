@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -790,17 +791,28 @@ class Block(PandasObject, libinternals.Block):
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        if is_re(to_replace) and _regex_target_dtype(self.dtype) not in [
-            object,
-            "string",
-        ]:
-            # only object or string dtype can hold strings, and a regex object
-            # will only match strings
+        target_dtype = _regex_target_dtype(self.dtype)
+        # a regex only matches strings; is_string_dtype counts numpy bytes,
+        #  which never match
+        regex_can_match = is_string_dtype(target_dtype) and target_dtype.kind != "S"
+        if is_re(to_replace) and not regex_can_match:
             return [self.copy(deep=False)]
 
-        if not (
-            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
-        ):
+        if isinstance(self.dtype, ArrowDtype) and is_string_dtype(self.dtype):
+            # can_hold_element returns True for every ArrowDtype (GH#70458).
+            #  Refuse bytes, which pyarrow would decode, so they upcast as with
+            #  StringDtype; a regex value raises on write (pyarrow's own error)
+            can_hold_value = (
+                isinstance(value, str)
+                or is_re(value)
+                or (is_scalar(value) and isna(value))
+            )
+        else:
+            can_hold_value = self._can_hold_element(value) or (
+                self.dtype == "string" and is_re(value)
+            )
+
+        if not can_hold_value:
             # GH#57733 - astype to object may return a block sharing memory
             # with self (e.g. StringArray backed by object ndarray). Since
             # replace_regex mutates values in-place, we must ensure the
@@ -840,6 +852,12 @@ class Block(PandasObject, libinternals.Block):
 
         src_len = len(pairs) - 1
 
+        # With inplace, the masks must see the original values: either compare against
+        #  a copy or materialize the masks, whichever takes less memory (GH#25816).
+        copy_values = inplace and len(pairs) * values.size > values.nbytes
+        if copy_values:
+            values = values.copy()
+
         if is_string_dtype(values.dtype) or (
             regex and is_string_dtype(_regex_target_dtype(values.dtype))
         ):
@@ -855,9 +873,7 @@ class Block(PandasObject, libinternals.Block):
         else:
             # GH#38086 faster if we know we dont need to check for regex
             masks = (missing.mask_missing(values, s[0]) for s in pairs)
-        # Materialize if inplace = True, since the masks can change
-        # as we replace
-        if inplace:
+        if inplace and not copy_values:
             masks = list(masks)
 
         # Don't set up refs here, otherwise we will think that we have
@@ -978,6 +994,25 @@ class Block(PandasObject, libinternals.Block):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
+                    if (
+                        self.ndim == 2
+                        and self.shape[0] > 1
+                        and not self.is_object
+                        and not mask.any(axis=1).all()
+                    ):
+                        # split so we only cast columns with a match (GH#30512)
+                        blocks = []
+                        for i, nb in enumerate(self._split()):
+                            blocks.extend(
+                                nb._replace_coerce(
+                                    to_replace,
+                                    value,
+                                    mask=mask[i : i + 1],
+                                    inplace=inplace,
+                                    regex=regex,
+                                )
+                            )
+                        return blocks
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:
@@ -2129,7 +2164,7 @@ class ExtensionBlock(EABackedBlock):
 
     def _maybe_squeeze_arg(self, arg):
         """
-        If necessary, squeeze a (N, 1) ndarray to (N,)
+        If necessary, squeeze a (N, 1) ndarray to (N,), or (N, 0) to (0,)
         """
         # e.g. if we are passed a 2D mask for putmask
         if (
@@ -2137,10 +2172,14 @@ class ExtensionBlock(EABackedBlock):
             and arg.ndim == self.values.ndim + 1
         ):
             # TODO(EA2D): unnecessary with 2D EAs
-            assert arg.shape[1] == 1
-            # error: No overload variant of "__getitem__" of "ExtensionArray"
-            # matches argument type "Tuple[slice, int]"
-            arg = arg[:, 0]  # type: ignore[call-overload]
+            if arg.shape[1] == 0:
+                # GH#70232 setitem with a column key selecting no columns
+                arg = arg.ravel()
+            else:
+                assert arg.shape[1] == 1
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[slice, int]"
+                arg = arg[:, 0]  # type: ignore[call-overload]
         elif isinstance(arg, ABCDataFrame):
             # 2022-01-06 only reached for setitem
             # TODO: should we avoid getting here with DataFrame?
@@ -2165,14 +2204,18 @@ class ExtensionBlock(EABackedBlock):
             if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
                 # GH#44703 went through indexing.maybe_convert_ix
                 first, second = indexer
-                if not (
+                if second.size == 0:
+                    # e.g. all-False column mask: nothing to set
+                    indexer = []
+                elif not (
                     second.size == 1 and (second == 0).all() and first.shape[1] == 1
                 ):
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
                         "github.com/pandas-dev/pandas/"
                     )
-                indexer = first[:, 0]
+                else:
+                    indexer = first[:, 0]
 
             elif lib.is_integer(indexer[1]) and indexer[1] == 0:
                 # reached via setitem_single_block passing the whole indexer
@@ -2186,6 +2229,9 @@ class ExtensionBlock(EABackedBlock):
                     indexer = indexer[0]
                 else:
                     indexer = []
+
+            elif is_list_like(indexer[1]) and len(indexer[1]) == 0:
+                indexer = []
 
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
