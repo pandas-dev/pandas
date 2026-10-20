@@ -1587,7 +1587,7 @@ class Parser:
             try:
                 data = data.astype("float64")
                 converted = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         if data.dtype.kind == "f" and data.dtype != "float64":
