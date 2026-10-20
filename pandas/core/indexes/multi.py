@@ -4424,15 +4424,7 @@ class MultiIndex(Index):
                         # NaN labels are stored as code -1 and are absent
                         # from levels, so get_indexer returns -1 for them.
                         # Separate true missing labels from NaN labels.
-                        k_isna = np.asarray(
-                            isna(list(k) if isinstance(k, MultiIndex) else k)
-                        )
-                        if k_isna.shape != k_codes.shape:
-                            # GH#64807 k holds tuple-like labels, so isna() gave
-                            #  a result per tuple *element*. Left alone that
-                            #  either broadcasts against the codes silently or
-                            #  fails to; a tuple is never NA, so flatten it out.
-                            k_isna = np.zeros(len(k_codes), dtype=bool)
+                        k_isna = _key_isna(k, len(k_codes))
                         na_count = k_isna.sum()
                         missing_mask = k_codes == -1
                         # GH#64807 The non-NA labels the level does not have.
@@ -4549,12 +4541,7 @@ class MultiIndex(Index):
                     # If the index is lexsorted and the list_like label
                     # in seq are sorted then we do not need to sort
                     k_codes = self.levels[i].get_indexer(k)
-                    k_isna = np.asarray(
-                        isna(list(k) if isinstance(k, MultiIndex) else k)
-                    )
-                    if k_isna.shape != k_codes.shape:
-                        # k holds tuple-like labels, which are never NA
-                        k_isna = np.zeros(len(k_codes), dtype=bool)
+                    k_isna = _key_isna(k, len(k_codes))
                     # NA keys match the -1 codes, which may sort last
                     k_codes[k_isna] = self._lexsort_na_code(i)
                     k_codes = k_codes[(k_codes >= 0) | k_isna]  # Filter absent keys
@@ -5225,6 +5212,19 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
         if libalgos.is_lexsorted(int64_codes[:k]):
             return k
     return 0
+
+
+def _key_isna(key, length: int) -> np.ndarray:
+    """
+    Boolean mask of the NA labels in a list-like key of ``length`` labels.
+    """
+    key_isna = np.asarray(isna(list(key) if isinstance(key, MultiIndex) else key))
+    if key_isna.shape != (length,):
+        # GH#64807 key holds tuple-like labels, so isna() gave a result per
+        #  tuple *element*. Left alone that either broadcasts against the codes
+        #  silently or fails to; a tuple is never NA, so flatten it out.
+        key_isna = np.zeros(length, dtype=bool)
+    return key_isna
 
 
 def sparsify_labels(label_list, codes, start: int = 0, sentinel: object = ""):
