@@ -5728,23 +5728,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
             DataFrame and is only supported with ``axis=0``.
-<<<<<<< HEAD
 
             .. versionadded:: 3.1.0
 
-=======
->>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
         na : {"raise", True, False}, default False
             How to treat missing values in a boolean mask. ``True`` or
             ``False`` treats missing values as that value, matching
             ``obj[mask]`` for a mask with nullable boolean dtype; ``"raise"``
             raises a ``ValueError``. Ignored when selecting labels.
 
-<<<<<<< HEAD
             .. versionadded:: 3.1.0
 
-=======
->>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
         Returns
         -------
         Same type as caller
