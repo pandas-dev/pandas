@@ -156,7 +156,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     ensure_index_from_sequences,
-    union_indexes,
+    get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import (
     MultiIndex,
@@ -15969,8 +15969,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # align to the union as an outer concat would, but take only
                     # the result's rows so keys absent from it do not upcast the
                     # kept columns, see GH#28269
-                    indexes = [frame.index for frame in frames]
-                    union = union_indexes(indexes, sort=False)[0]
+                    union = get_objs_combined_axis(frames, sort=False)[0]
                     target = union.reindex(index)[1]
                     aligned = []
                     for frame in frames:

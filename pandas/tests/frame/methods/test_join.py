@@ -498,6 +498,22 @@ def test_join_list_tz_mismatch_raises(how):
         left.join([right], how=how)
 
 
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_join_list_shared_index_raises(how):
+    # GH#28269 others sharing one index object still raise, as with concat
+    dti = pd.date_range("2020", periods=3)
+    left = pd.DataFrame(
+        {"a": [1, 2]}, index=pd.MultiIndex.from_tuples([(0, 1), (2, 3)])
+    )
+    others = [
+        pd.DataFrame({"b": [1, 2, 3]}, index=dti),
+        pd.Series(4, index=dti, name="c"),
+    ]
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
+        left.join(others, how=how)
+
+
 class TestDataFrameJoin:
     def test_join(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
