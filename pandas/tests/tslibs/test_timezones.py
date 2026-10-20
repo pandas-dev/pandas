@@ -5,11 +5,17 @@ from datetime import (
     timezone,
 )
 <<<<<<< HEAD
+<<<<<<< HEAD
 import importlib.resources
 import io
 from pathlib import Path
 =======
 >>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
+=======
+import importlib.resources
+import io
+from pathlib import Path
+>>>>>>> bb9cc05 (BUG: tz_convert/tz_localize failing or silently wrong with a ZoneInfo built by from_file (GH#64379) (#66828))
 import struct
 import subprocess
 import sys
@@ -29,9 +35,13 @@ from pandas.compat import (
     is_platform_windows,
 )
 <<<<<<< HEAD
+<<<<<<< HEAD
 from pandas.errors import OutOfBoundsDatetime
 =======
 >>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
+=======
+from pandas.errors import OutOfBoundsDatetime
+>>>>>>> bb9cc05 (BUG: tz_convert/tz_localize failing or silently wrong with a ZoneInfo built by from_file (GH#64379) (#66828))
 
 import pandas as pd
 import pandas._testing as tm
@@ -473,6 +483,9 @@ def test_normalize_pytz_timezone():
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> bb9cc05 (BUG: tz_convert/tz_localize failing or silently wrong with a ZoneInfo built by from_file (GH#64379) (#66828))
 def _tzdata_bytes(key):
     """
     Read the installed tzdata file for the given IANA key.
@@ -634,8 +647,11 @@ def test_zoneinfo_from_file_timedelta_shift_onto_nat_sentinel():
     assert result.asi8.tolist() == [expected, expected]
 
 
+<<<<<<< HEAD
 =======
 >>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
+=======
+>>>>>>> bb9cc05 (BUG: tz_convert/tz_localize failing or silently wrong with a ZoneInfo built by from_file (GH#64379) (#66828))
 def _write_big_bang_tzif(path):
     """
     Write a TZif file opening with the -2**59 "big bang" transition, as zic

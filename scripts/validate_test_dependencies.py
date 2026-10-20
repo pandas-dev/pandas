@@ -62,12 +62,18 @@ IMPORT_TO_CONDA = {
 ALLOWED_UNDECLARED = {
     "moto": "CI serves moto from a container, see PANDAS_MOTO_URL",
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> bb9cc05 (BUG: tz_convert/tz_localize failing or silently wrong with a ZoneInfo built by from_file (GH#64379) (#66828))
     "tzdata": (
         "declared under [target.win.dependencies], which is the only platform "
         "that needs it; elsewhere the zone files come from zoneinfo.TZPATH"
     ),
+<<<<<<< HEAD
 =======
 >>>>>>> bb4297c (BUG: BlockManager dtype caches could be left permanently stale by a concurrent write (#70224))
+=======
+>>>>>>> bb9cc05 (BUG: tz_convert/tz_localize failing or silently wrong with a ZoneInfo built by from_file (GH#64379) (#66828))
 }
 
 MESSAGE = (
