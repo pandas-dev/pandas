@@ -2833,7 +2833,17 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs.setdefault("tablefmt", "pipe")
         kwargs.setdefault("showindex", index)
         tabulate = import_optional_dependency("tabulate")
-        result = tabulate.tabulate(self, **kwargs)
+
+        # tabulate formats via float when it sees numpy ints or a float64-upcast
+        # .values, losing precision for large ints; pass Python ints, see GH#49465
+        frame = self
+        int_locs = [i for i, dtype in enumerate(self.dtypes) if dtype.kind in "iu"]
+        if int_locs:
+            frame = self.copy(deep=False)
+            for loc in int_locs:
+                values = self.iloc[:, loc].to_numpy(dtype=object, na_value=None)
+                frame.isetitem(loc, values)
+        result = tabulate.tabulate(frame, **kwargs)
         if buf is None:
             return result
 
