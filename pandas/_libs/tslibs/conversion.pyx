@@ -640,6 +640,35 @@ cdef _TSObject convert_datetime_to_tsobject(
 
     obj.creso = reso
     obj.fold = ts.fold
+    if isinstance(ts, _Timestamp):
+        # GH#71371 a Timestamp's datetime fields cannot represent years
+        #  outside 1-9999 and may not match its actual value, so parse
+        #  from _value instead. For tz-aware Timestamps _value is already
+        #  UTC, so no offset shift is needed below.
+        if tz is not None:
+            if ts.tzinfo is not None:
+                # Convert the current timezone to the passed timezone;
+                #  this changes the display timezone but not the instant
+                ts = ts.tz_convert(tz)
+            else:
+                ts = _localize_pydatetime(ts, tz)
+            obj.tzinfo = tz
+        else:
+            obj.tzinfo = ts.tzinfo
+        ts = (<_Timestamp>ts)._as_creso(reso, round_ok=True)
+        obj.value = (<_Timestamp>ts)._value
+        pandas_datetime_to_datetimestruct(obj.value, reso, &obj.dts)
+        if nanos:
+            obj.dts.ps = nanos * 1000
+            try:
+                obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+            except OverflowError as err:
+                attrname = npy_unit_to_attrname[reso]
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds {attrname} timestamp") from err
+        check_nat_sentinel(obj.value, &obj.dts, reso)
+        check_overflows(obj, reso)
+        return obj
     if tz is not None:
 
         if ts.tzinfo is not None:
@@ -1011,12 +1040,14 @@ cdef int64_t parse_pydatetime(
         _TSObject _ts
         int64_t result
 
-    if val.tzinfo is not None:
+    if isinstance(val, _Timestamp):
+        # GH#71371 _value is authoritative; the datetime fields cannot
+        #  represent years outside 1-9999. For tz-aware Timestamps _value
+        #  is already UTC.
+        result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
+    elif val.tzinfo is not None:
         _ts = convert_datetime_to_tsobject(val, None, nanos=0, reso=creso)
         result = _ts.value
     else:
-        if isinstance(val, _Timestamp):
-            result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
-        else:
-            result = pydatetime_to_dt64(val, dts, reso=creso)
+        result = pydatetime_to_dt64(val, dts, reso=creso)
     return result
