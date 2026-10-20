@@ -3083,6 +3083,17 @@ class TextFileReader(abc.Iterator[DataFrame]):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
+        if (
+            engine == "pyarrow"
+            and self.options.get("encoding_errors", "strict") != "strict"
+            and not isinstance(f, io.TextIOBase)
+        ):
+            # GH#71298 pyarrow ignores encoding_errors when it decodes bytes;
+            # text buffers are fine since pandas encodes those itself.
+            raise ValueError(
+                "The 'encoding_errors' option is not supported with the "
+                "'pyarrow' engine"
+            )
         if not isinstance(f, list):
             # open file here
             # The c and pyarrow engines can decode utf-8 bytes natively;
