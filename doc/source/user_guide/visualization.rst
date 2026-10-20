@@ -792,12 +792,12 @@ drawn in each pie plots by default; specify ``legend=False`` to hide it.
 
    plt.close("all")
 
-You can use the ``labels`` and ``colors`` keywords to specify the labels and colors of each wedge.
+You can use the ``labels`` and ``color`` (or ``colors``) keywords to specify the labels and colors of each wedge.
 
 .. warning::
 
-   Most pandas plots use the ``label`` and ``color`` arguments (note the lack of "s" on those).
-   To be consistent with :func:`matplotlib.pyplot.pie` you must use ``labels`` and ``colors``.
+   Most pandas plots use the ``label`` argument (note the lack of "s").
+   To be consistent with :func:`matplotlib.pyplot.pie` you must use ``labels``.
 
 If you want to hide wedge labels, specify ``labels=None``.
 If ``fontsize`` is specified, the value will be applied to wedge labels.
