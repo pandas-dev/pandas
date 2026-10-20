@@ -82,6 +82,7 @@ from pandas.core.algorithms import (
     take,
     unique,
 )
+from pandas.core.array_algos.putmask import extract_bool_array
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
@@ -1360,7 +1361,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ):
             # an overflowing sum lands outside the interval; there, halve before
             #  adding, which cannot overflow but rounds more, see GH#25499
-            outside = (mid < self.left) | (mid > self.right)
+            outside = extract_bool_array(
+                (mid._values < self._left) | (mid._values > self._right)
+            )
             if outside.any():
                 mid = mid.putmask(outside, 0.5 * self.left + 0.5 * self.right)
         return mid
