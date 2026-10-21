@@ -169,6 +169,12 @@ def test_css_border_shorthand_sides(shorthand, sides):
         ("solid", ("black", "solid", "1.500000pt")),
         # Sizes
         ("1em", ("black", "none", "12pt")),
+        # GH#71305: color names containing unit substrings
+        ("1px solid indigo", ("indigo", "solid", "0.750000pt")),
+        ("1px solid aqua", ("aqua", "solid", "0.750000pt")),
+        ("1px solid linen", ("linen", "solid", "0.750000pt")),
+        ("mintcream", ("mintcream", "none", "1.500000pt")),
+        ("turquoise 1pt solid", ("turquoise", "solid", "1pt")),
     ],
 )
 def test_css_border_shorthands(prop, expected):
