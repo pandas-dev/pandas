@@ -14035,6 +14035,15 @@ class DataFrame(NDFrame, OpsMixin):
             * index/column keys containing NA values will be dropped (see ``dropna``
               parameter in :meth:`DataFrame.groupby`).
 
+            .. deprecated:: 3.2.0
+
+                The rows that are omitted before computing the margins will only
+                be the rows with an NA value in an index or column key, so that
+                the margins are computed from the same rows as the table, and
+                the rows of the result that are all NA will be kept. Use
+                ``pd.set_option("future.pivot_table_dropna", True)`` to opt in
+                to the future behavior.
+
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.

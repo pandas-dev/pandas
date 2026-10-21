@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -252,6 +254,59 @@ class TestCrosstab:
         actual = pd.crosstab(df.a, df.b, margins=True, dropna=True)
         expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 3, 5]])
         expected.index = pd.Index([1.0, 2.0, "All"], name="a")
+        expected.columns = pd.Index([3, 4, "All"], name="b")
+        tm.assert_frame_equal(actual, expected)
+
+    def test_margin_dropna_values(self):
+        # GH#65765 the margins of a crosstab with values are computed from the
+        #  rows with an NA value in the values, so that they do not add up to
+        #  the cells
+        df = pd.DataFrame(
+            {"a": [1, 2, 2, 2, 2], "b": [3, 3, 4, 4, 4], "c": [1, 1, np.nan, 1, 1]}
+        )
+        msg = "future.pivot_table_dropna"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            actual = pd.crosstab(
+                df.a, df.b, values=df.c, aggfunc=len, margins=True, dropna=True
+            )
+        expected = pd.DataFrame(
+            {3: [1.0, 1.0, 2.0], 4: [np.nan, 3.0, 2.0], "All": [1, 3, 4]}
+        )
+        expected.index = pd.Index([1, 2, "All"], name="a")
+        expected.columns = pd.Index([3, 4, "All"], name="b")
+        tm.assert_frame_equal(actual, expected)
+
+    def test_margin_dropna_values_future_option(self):
+        # GH#65765 with the future option the margins are computed from the
+        #  same rows as the table, so that they add up
+        df = pd.DataFrame(
+            {"a": [1, 2, 2, 2, 2], "b": [3, 3, 4, 4, 4], "c": [1, 1, np.nan, 1, 1]}
+        )
+        with pd.option_context("future.pivot_table_dropna", True):
+            actual = pd.crosstab(
+                df.a, df.b, values=df.c, aggfunc=len, margins=True, dropna=True
+            )
+        expected = pd.DataFrame(
+            {3: [1.0, 1.0, 2.0], 4: [np.nan, 3.0, 3.0], "All": [1, 4, 5]}
+        )
+        expected.index = pd.Index([1, 2, "All"], name="a")
+        expected.columns = pd.Index([3, 4, "All"], name="b")
+        tm.assert_frame_equal(actual, expected)
+
+    def test_margin_dropna_values_no_deprecation(self):
+        # GH#65765 the margins do not change if the omitted rows do not
+        #  contribute to them, so nothing is deprecated
+        df = pd.DataFrame(
+            {"a": [1, 2, 2, 2, 2], "b": [3, 3, 4, 4, 4], "c": [1, 1, np.nan, 1, 1]}
+        )
+        with tm.assert_produces_warning(None):
+            actual = pd.crosstab(
+                df.a, df.b, values=df.c, aggfunc="sum", margins=True, dropna=True
+            )
+        expected = pd.DataFrame(
+            {3: [1.0, 1.0, 2.0], 4: [np.nan, 2.0, 2.0], "All": [1.0, 3.0, 4.0]}
+        )
+        expected.index = pd.Index([1, 2, "All"], name="a")
         expected.columns = pd.Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
