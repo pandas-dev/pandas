@@ -750,7 +750,7 @@ class PyTablesExpr(expr.Expr):
                 "is not a valid filter"
             ) from err
         # GH#71277 the condition and the filter are ANDed after the read, which
-        # is wrong if a term of an OR landed in one and the rest in the other  
+        # is wrong if a term of an OR landed in one and the rest in the other
         _check_or_branches(self.terms)
 
         return self.condition, self.filter
