@@ -1036,6 +1036,7 @@ def test_setitem_with_different_string_storage():
         (r"(abc)\1", True),
         (r"\b(\w+)\s+\1\b", True),
         (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
+        # unicode escape sequences
         (r"\u20AC", True),
         (r"\U000020AC", True),
         (r"\N{EURO SIGN}", True),
@@ -1043,6 +1044,11 @@ def test_setitem_with_different_string_storage():
         (r"\\U000020AC", False),
         (r"\\N{EURO SIGN}", False),
         (r"\NEURO", False),
+        (r"\\\u20AC", True),
+        (r"\\\\u20AC", False),
+        (r"[\u0e00-\u0e7f]", True),
+        (r"\pL\u20AC", True),  # also includes an invalid escape \p for Python
+        (r"\Q\u\E", True),  # \Q..\E pattern supported by pyarrow, but prioritize \u
     ],
 )
 def test_needs_python_regex_unsupported_code(pat, expected):

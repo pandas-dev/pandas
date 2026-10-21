@@ -466,6 +466,10 @@ def test_contains_unicode_char(any_string_dtype):
         expected = pd.Series([False, True], dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
+    # invalid unicode escape gives clear error
+    with pytest.raises(re.error, match="incomplete escape"):
+        ser.str.contains(r"\u20G")
+
 
 # --------------------------------------------------------------------------------------
 # str.startswith
