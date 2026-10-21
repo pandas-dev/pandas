@@ -2406,13 +2406,13 @@ class Tooltips:
             ]
             for i, row in zip(visible_rows, d["body"], strict=False):
                 if row_trim in str(row[0]["class"]).split():
-                    break 
+                    break
                 for j in range(len(self.tt_data.columns)):
                     if j + index_offset >= len(row):
                         break
                     item = row[j + index_offset]
                     if col_trim in str(item["class"]).split():
-                        break  
+                        break
                     if not (mask.iloc[i, j] or j in styler.hidden_columns):
                         value = self.tt_data.iloc[i, j]
                         item["attributes"] += f' title="{value}"'
