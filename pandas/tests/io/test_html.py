@@ -8,6 +8,7 @@ from io import (
 import os
 from pathlib import Path
 import re
+import sys
 import threading
 from urllib.error import URLError
 
@@ -66,6 +67,25 @@ def test_bs4_version_fails(monkeypatch, datapath):
     monkeypatch.setattr(bs4, "__version__", "4.2")
     with pytest.raises(ImportError, match="Pandas requires version"):
         pd.read_html(datapath("io", "data", "html", "spam.html"), flavor="bs4")
+
+
+def test_default_flavor_falls_back_to_bs4_without_lxml(monkeypatch):
+    # GH#30281
+    pytest.importorskip("bs4")
+    pytest.importorskip("html5lib")
+    monkeypatch.setitem(sys.modules, "lxml.etree", None)
+    html = "<table><tr><td>1</td></tr></table>"
+
+    result = pd.read_html(StringIO(html))
+    expected = [pd.DataFrame([[1]])]
+    assert_framelist_equal(result, expected)
+
+    with pytest.raises(ImportError, match="lxml"):
+        pd.read_html(StringIO(html), flavor="lxml")
+
+    monkeypatch.setitem(sys.modules, "html5lib", None)
+    with pytest.raises(ImportError, match="lxml"):
+        pd.read_html(StringIO(html))
 
 
 def test_invalid_flavor():

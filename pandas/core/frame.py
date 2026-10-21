@@ -1794,7 +1794,9 @@ class DataFrame(NDFrame, OpsMixin):
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
                     index = Index(data.keys())
-                    data = _from_nested_dict(data)
+                    data = _from_nested_dict(
+                        dict(zip(index, data.values(), strict=True))
+                    )
                 else:
                     index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
