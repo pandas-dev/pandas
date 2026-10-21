@@ -130,6 +130,28 @@ def test_count_compiled_pattern_with_flags(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "pat, expected_data",
+    [
+        (r"\w", [4, 6, 2, 3, 2]),
+        (r"\s", [0, 1, 0, 0, 1]),
+        (r"\d", [0, 0, 0, 3, 0]),
+        (r"\b", [2, 4, 2, 2, 4]),
+    ],
+)
+def test_count_unicode_regex_classes(any_string_dtype, pat, expected_data):
+    # GH#70770
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+    ser = pd.Series(
+        ["café", "été nœl", "東京", "١٢٣", "a\xa0b"], dtype=any_string_dtype
+    )
+    result = ser.str.count(pat)
+    expected = pd.Series(expected_data, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_repeat(any_string_dtype):
     ser = pd.Series(["a", "b", np.nan, "c", np.nan, "d"], dtype=any_string_dtype)
 
@@ -1040,25 +1062,3 @@ def test_needs_python_regex_unicode_classes(pat, expected):
     # all-ASCII data keeps the pyarrow path
     ascii_arr = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
     assert not ascii_arr._needs_python_regex(pat)
-
-
-@pytest.mark.parametrize(
-    "pat, expected_data",
-    [
-        (r"\w", [4, 6, 2, 3, 2]),
-        (r"\s", [0, 1, 0, 0, 1]),
-        (r"\d", [0, 0, 0, 3, 0]),
-        (r"\b", [2, 4, 2, 2, 4]),
-    ],
-)
-def test_count_unicode_regex_classes(any_string_dtype, pat, expected_data):
-    # GH#70770
-    expected_dtype = (
-        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
-    ser = pd.Series(
-        ["café", "été nœl", "東京", "١٢٣", "a\xa0b"], dtype=any_string_dtype
-    )
-    result = ser.str.count(pat)
-    expected = pd.Series(expected_data, dtype=expected_dtype)
-    tm.assert_series_equal(result, expected)

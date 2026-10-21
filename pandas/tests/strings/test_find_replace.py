@@ -1048,9 +1048,9 @@ def test_replace_lookarounds(any_string_dtype, pat, expected_data):
         ),
         (r"\s+", " ", ["café crème!", "Müller-Lüdenscheidt", "東京 2024", "a b"]),
         (
-            r"\bt",
+            r"\b東",
             "T",
-            ["café crème!", "Müller-Lüdenscheidt", "東京 2024", "a\xa0 b"],
+            ["café crème!", "Müller-Lüdenscheidt", "T京 2024", "a\xa0 b"],
         ),
     ],
 )
