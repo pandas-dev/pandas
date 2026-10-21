@@ -232,6 +232,77 @@ class TestRolling:
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "sort, expected",
+        [
+            [
+                True,
+                [
+                    [("b", 2.0)],
+                    [("b", 2.0), ("d", 4.0)],
+                    [("a", 1.0)],
+                    [("a", 1.0), ("c", 3.0)],
+                    [("a", 1.0), ("c", 3.0), ("e", 5.0)],
+                ],
+            ],
+            [
+                False,
+                [
+                    [("a", 1.0)],
+                    [("a", 1.0), ("c", 3.0)],
+                    [("a", 1.0), ("c", 3.0), ("e", 5.0)],
+                    [("b", 2.0)],
+                    [("b", 2.0), ("d", 4.0)],
+                ],
+            ],
+        ],
+    )
+    def test_rolling_apply_index_aligned(self, sort, expected):
+        # GH 63769
+        df = pd.DataFrame(
+            {"Id": [2, 1, 2, 1, 2], "value": [1.0, 2.0, 3.0, 4.0, 5.0]},
+            index=pd.Index(list("abcde"), name="key"),
+        )
+        seen = []
+        df.groupby("Id", sort=sort)["value"].rolling(3, min_periods=1).apply(
+            lambda x: seen.append(list(zip(x.index, x, strict=True))) or 0, raw=False
+        )
+        assert seen == expected
+
+    def test_rolling_apply_index_aligned_on(self):
+        # GH 63769
+        df = pd.DataFrame(
+            {
+                "Id": [1, 2, 1, 2, 1],
+                "date": pd.date_range("2024-01-01", periods=5, freq="D"),
+                "value": [1.0, 2.0, 3.0, 4.0, 5.0],
+            }
+        )
+        r = df.groupby("Id").rolling("3D", on="date")
+        # each value is the day of its date, so the last index label of each
+        # window must have the same day as the last value
+        result = r.apply(lambda x: x.index[-1].day, raw=False)
+        expected = r.apply(lambda x: x.iloc[-1], raw=False)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_apply_index_aligned_empty(self):
+        # GH 63769
+        df = pd.DataFrame({"Id": [], "value": []})
+        r = df.groupby("Id")["value"].rolling(2)
+        result = r.apply(lambda x: x.sum(), raw=False)
+        expected = r.sum()
+        tm.assert_series_equal(result, expected)
+
+    def test_rolling_apply_index_aligned_na_group_key(self):
+        # GH 63769
+        ser = pd.Series([1.0, 2.0, 3.0, 4.0], index=list("abcd"))
+        r = ser.groupby([1, np.nan, 1, 2]).rolling(2, min_periods=1)
+        # summing the original values looked up by label only matches the
+        # rolling sum if the labels are aligned with the values
+        result = r.apply(lambda x: ser.loc[x.index].sum(), raw=False)
+        expected = r.sum()
+        tm.assert_series_equal(result, expected)
+
     def test_rolling_apply_mutability(self):
         # GH 14013
         df = pd.DataFrame({"A": ["foo"] * 3 + ["bar"] * 3, "B": [1] * 6})
@@ -1131,6 +1202,16 @@ class TestExpanding:
         expected_index = pd.MultiIndex.from_arrays([frame["A"], range(40)])
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
+
+    def test_expanding_apply_index_aligned(self):
+        # GH 63769
+        ser = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], index=list("abcde"))
+        r = ser.groupby([2, 1, 2, 1, 2]).expanding()
+        # summing the original values looked up by label only matches the
+        # expanding sum if the labels are aligned with the values
+        result = r.apply(lambda x: ser.loc[x.index].sum(), raw=False)
+        expected = r.sum()
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_expanding_agg_namedagg(self):
         # GH#28333
