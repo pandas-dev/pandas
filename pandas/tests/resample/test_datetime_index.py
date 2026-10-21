@@ -1120,6 +1120,24 @@ def test_resample_anchored_intraday(unit):
     tm.assert_frame_equal(result, exp)
 
 
+@pytest.mark.parametrize("freq", ["ME", "BME", "2ME", "QE", "YE", "W"])
+@pytest.mark.parametrize("tz", [None, "US/Eastern"])
+def test_resample_last_value_at_end_of_day_no_extra_bin(freq, tz, unit):
+    # GH#41843 a last value at the final instant of a bin must not add a bin
+    labels = date_range("2020-01-01", "2020-12-31", freq=freq).as_unit(unit)
+    end = labels + pd.Timedelta(1, unit="D") - pd.Timedelta(1, unit=unit)
+    ser = pd.Series(1, index=end.as_unit(unit).tz_localize(tz))
+
+    result = ser.resample(freq).sum()
+    expected = pd.Series(1, index=labels.tz_localize(tz))
+    tm.assert_series_equal(result, expected)
+
+    # labels are at midnight, so each one forward-fills the previous bin's value
+    result = ser.resample(freq).ffill()
+    expected = pd.Series([np.nan] + [1.0] * (len(labels) - 1), index=expected.index)
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_anchored_intraday2(unit):
     rng = date_range("1/1/2012", "4/1/2012", freq="100min").as_unit(unit)
     df = pd.DataFrame(rng.month, index=rng)

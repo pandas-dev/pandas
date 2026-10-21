@@ -2757,11 +2757,14 @@ class TimeGrouper(Grouper):
                     - Timedelta(1, unit=edges_dti.unit).as_unit(edges_dti.unit)
                 )
                 bin_edges = edges_dti.tz_localize(binner.tz).asi8
+                # a value on the right edge belongs to the bin it closes, GH#41843
+                last_bin_empty = bin_edges[-2] >= ax_values.max()
             else:
                 bin_edges = binner.asi8
+                last_bin_empty = bin_edges[-2] > ax_values.max()
 
             # intraday values on last day
-            if bin_edges[-2] > ax_values.max():
+            if last_bin_empty:
                 bin_edges = bin_edges[:-1]
                 binner = binner[:-1]
         else:
