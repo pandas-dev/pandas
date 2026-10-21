@@ -4697,6 +4697,50 @@ def test_factorize_dictionary_with_na():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+@pytest.mark.parametrize(
+    "pa_type",
+    [
+        pa.struct([("x", pa.string()), ("y", pa.int64())]),
+        pa.list_(pa.int64()),
+        pa.map_(pa.string(), pa.int64()),
+    ],
+    ids=["struct", "list", "map"],
+)
+@pytest.mark.parametrize(
+    "op, op_name",
+    [
+        (lambda ser: ser.factorize(), "factorize"),
+        (lambda ser: ser.unique(), "unique"),
+        (lambda ser: ser.drop_duplicates(), "factorize"),
+        (lambda ser: ser.duplicated(), "factorize"),
+        (lambda ser: ser.value_counts(), "value_counts"),
+        (lambda ser: ser.to_frame("a").groupby("a").size(), "factorize"),
+    ],
+)
+def test_hash_based_ops_raise_on_nested_types(pa_type, op, op_name):
+    # GH#61351
+    ser = pd.Series([None, None], dtype=ArrowDtype(pa_type))
+    msg = (
+        f"dtype '{ArrowDtype(pa_type)}' does not support "
+        f"operation '{op_name}', which requires hashing the values"
+    )
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        op(ser)
+
+
+def test_hash_based_ops_raise_on_group_by():
+    # GH#61351
+    pa_type = pa.struct([("x", pa.string()), ("y", pa.int64())])
+    df = pd.DataFrame(
+        {
+            "key": pd.Series([None, None], dtype=ArrowDtype(pa_type)),
+            "value": [1, 2],
+        }
+    )
+    with pytest.raises(TypeError, match="does not support operation 'factorize'"):
+        df.groupby("key").mean()
+
+
 def test_dictionary_astype_categorical():
     # GH#56672
     arrs = [

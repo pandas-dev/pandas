@@ -4,6 +4,7 @@ from datetime import (
     date,
     datetime,
 )
+import contextlib
 import functools
 import operator
 import re
@@ -332,6 +333,27 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
         or pa.types.is_binary(pa_type)
         or pa.types.is_large_binary(pa_type)
     )
+
+
+@contextlib.contextmanager
+def _translate_hashing_not_implemented(pa_type: pa.DataType, op_name: str):
+    """
+    Re-raise pyarrow's "no kernel" error for hash-based ops as a clear TypeError.
+
+    Operations such as groupby, unique and drop_duplicates require hashing the
+    values, which pandas delegates to pyarrow. And currently, pyarrow does not
+    support nested types (GH#60594 - https://github.com/pandas-dev/pandas/issues/60594).
+    Raising TypeError here stops that and names the real
+    culprit.
+    """
+    try:
+        yield
+    except pa.lib.ArrowNotImplementedError as err:
+        raise TypeError(
+            f"dtype '{ArrowDtype(pa_type)}' does not support operation "
+            f"'{op_name}', which requires hashing the values. pyarrow does "
+            f"not implement hashing for nested types."
+        ) from err
 
 
 @set_module("pandas.arrays")
@@ -1902,15 +1924,17 @@ class ArrowExtensionArray(
 
         data = self._pa_array
 
-        if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
+        with _translate_hashing_not_implemented(data.type, "factorize"):
+            if pa.types.is_dictionary(data.type):
+                if null_encoding == "encode":
+                    # dictionary encode does nothing if an already encoded
+                    # array is given
+                    data = data.cast(data.type.value_type)
+                    encoded = data.dictionary_encode(null_encoding=null_encoding)
+                else:
+                    encoded = data
             else:
-                encoded = data
-        else:
-            encoded = data.dictionary_encode(null_encoding=null_encoding)
+                encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
             uniques = self._from_pyarrow_array(
@@ -2309,7 +2333,8 @@ class ArrowExtensionArray(
         -------
         ArrowExtensionArray
         """
-        pa_result = pc.unique(self._pa_array)
+        with _translate_hashing_not_implemented(self._pa_array.type, "unique"):
+            pa_result = pc.unique(self._pa_array)
         return self._from_pyarrow_array(pa_result)
 
     def value_counts(self, dropna: bool = True) -> Series:
@@ -2335,7 +2360,8 @@ class ArrowExtensionArray(
         )
 
         data = self._pa_array
-        vc = data.value_counts()
+        with _translate_hashing_not_implemented(data.type, "value_counts"):
+            vc = data.value_counts()
 
         values = vc.field(0)
         counts = vc.field(1)
