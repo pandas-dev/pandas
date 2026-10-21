@@ -186,6 +186,9 @@ Conversion
 - Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
 -
 
+- Bug in :class:`DataFrame` constructor silently converting ``IntEnum`` members to plain :class:`int` when ``dtype=object`` was specified; constructing from mixed-type data with ``dtype=object`` now also preserves the original Python types instead of converting them (:issue:`59380`)
+-
+
 Strings
 ^^^^^^^
 - Bug in :class:`StringDtype` with PyArrow storage rejecting a PyArrow string scalar in item assignment and :meth:`Series.fillna`, and :meth:`Series.where` with one storing a character code (:issue:`71075`)
