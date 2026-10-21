@@ -1156,6 +1156,53 @@ def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     ts.resample(freq).mean()
 
 
+@pytest.mark.parametrize(
+    "start, exp_start, periods",
+    [("1950-01-01", "1949-12-01", 3), ("1950-03-01", "1950-03-01", 2)],
+)
+def test_resample_anchored_non_unitary_phase(start, exp_start, periods, unit):
+    # GH#29576: for a non-unitary anchored offset such as "2QS-MAR",
+    # is_on_offset ignores n, so BaseOffset.rollback moves the first
+    # timestamp to the nearest n=1 anchor (any quarter start in the MAR
+    # cycle), not to one on the offset's own two-quarter grid. As a
+    # result the bin phase tracks where the data starts rather than being
+    # fixed by the offset's startingMonth, and this is true uniformly for
+    # non-unitary MS/QS/YS offsets, not a quarter-only quirk. This pins
+    # current behavior (see GH#22362). It is not the
+    # startingMonth-anchored semantics requested in GH#29576; for those,
+    # see test_resample_anchored_half_year_phase below.
+    ser = pd.Series(
+        np.zeros(365),
+        index=date_range(start, periods=365, freq="D", unit=unit),
+    )
+    result = ser.resample("2QS-MAR").mean()
+    expected = pd.Series(
+        0.0, index=date_range(exp_start, periods=periods, freq="2QS-MAR", unit=unit)
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, exp_start, periods",
+    [("1950-01-01", "1949-09-01", 3), ("1950-03-01", "1950-03-01", 2)],
+)
+def test_resample_anchored_half_year_phase(start, exp_start, periods, unit):
+    # GH#29576 / GH#22362: HalfYearBegin (GH#60946) with n=1 anchors its
+    # bin phase on startingMonth regardless of where the data starts,
+    # unlike the non-unitary quarter offsets exercised above, so both
+    # starts land on March/September edges. This is the behavior GH#29576
+    # wanted from "2QS-MAR".
+    ser = pd.Series(
+        np.zeros(365),
+        index=date_range(start, periods=365, freq="D", unit=unit),
+    )
+    result = ser.resample("HYS-MAR").mean()
+    expected = pd.Series(
+        0.0, index=date_range(exp_start, periods=periods, freq="HYS-MAR", unit=unit)
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("label, sec", [[None, 2.0], ["right", "4.2"]])
 def test_resample_anchored_multiday(label, sec):
     # When resampling a range spanning multiple days, ensure that the
