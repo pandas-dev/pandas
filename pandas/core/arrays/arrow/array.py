@@ -4207,7 +4207,7 @@ class ArrowExtensionArray(
         if expand:
             return {
                 label: self._from_pyarrow_array(pc.struct_field(result, [i]))
-                for i, label in zip(range(result.type.num_fields), labels, strict=True)
+                for i, label in enumerate(labels)
             }
         else:
             return type(self)(pc.struct_field(result, [0]))

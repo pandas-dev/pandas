@@ -967,6 +967,19 @@ def test_str_extract_non_symbolic_flags():
     tm.assert_frame_equal(result, expected)
 
 
+def test_str_extract_mixed_symbolic_flags():
+    # GH#67024 the `re` fallback taken for flags also handles mixed named/unnamed groups
+    ser = pd.Series(["A1", "b2", "c3"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.extract(r"(?P<letter>[ab])(\d)", flags=re.IGNORECASE)
+    expected = pd.DataFrame(
+        {
+            "letter": ArrowExtensionArray(pa.array(["A", "b", None])),
+            1: ArrowExtensionArray(pa.array(["1", "2", None])),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("expand", [True, False])
 def test_str_extract(expand):
     ser = pd.Series(["a1", "b2", "c3"], dtype=ArrowDtype(pa.string()))
