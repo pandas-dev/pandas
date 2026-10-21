@@ -111,6 +111,23 @@ To convert a :external+pyarrow:py:class:`pyarrow.Table` to a :class:`DataFrame`,
    df
    df.dtypes
 
+When starting from a :external+pyarrow:py:class:`pyarrow.Array` or
+:external+pyarrow:py:class:`pyarrow.ChunkedArray`, which approach to use depends
+on the use case. Wrapping the array in :class:`arrays.ArrowExtensionArray` keeps
+the data in the Arrow type system, so the operations accelerated by PyArrow
+compute functions can be used from within pandas. Calling ``to_pandas()``
+without arguments instead converts the data to pandas' default NumPy-based type
+system.
+
+.. ipython:: python
+
+   arr = pa.array([1, 2, None])
+
+   # Converted to the NumPy-based default type system
+   arr.to_pandas().dtype
+
+   # Stays in the Arrow type system
+   pd.Series(pd.arrays.ArrowExtensionArray(arr)).dtype
 
 Operations
 ----------
