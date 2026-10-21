@@ -235,6 +235,18 @@ def test_label_precision():
     tm.assert_index_equal(result.categories, ex_levels)
 
 
+def test_label_precision_include_lowest():
+    # GH 33912
+    ser = pd.Series([2.58, 4.79, 5.50, 6.75, 2.65, 6.60, 11.25, 3.78, 4.90, 5.21])
+    bins = np.histogram_bin_edges(ser, bins="sturges", range=(1.195, 12.875))
+    result = pd.cut(ser, bins=bins, include_lowest=True, precision=3)
+
+    ex_levels = pd.IntervalIndex.from_breaks(
+        [1.194, 3.142, 5.088, 7.035, 8.982, 10.928, 12.875]
+    )
+    tm.assert_index_equal(result.cat.categories, ex_levels)
+
+
 @pytest.mark.parametrize("labels", [None, False])
 def test_na_handling(labels):
     arr = np.arange(0, 0.75, 0.01)
