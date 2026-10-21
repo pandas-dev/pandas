@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 from datetime import (
     date,
     datetime,
 )
-import contextlib
 import functools
 import operator
 import re
