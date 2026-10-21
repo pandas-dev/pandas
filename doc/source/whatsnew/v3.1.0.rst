@@ -561,6 +561,15 @@ Other deprecations
 Dependencies and build changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_310.packaging.numpy:
+
+Pandas now requires NumPy >= 2
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Support for NumPy 1.26 (and 1.x in general) has been dropped, and pandas now requires
+NumPy >= 2.0.2. Users with older versions of NumPy will need to upgrade to meet this requirement.
+
+
 .. _whatsnew_310.packaging.deps:
 
 Increased minimum versions for dependencies
@@ -568,69 +577,69 @@ Increased minimum versions for dependencies
 Some minimum supported versions of dependencies were updated.
 If installed, we now require:
 
-+-----------------+-----------------+
-| Package         | Minimum Version |
-+=================+=================+
-| numpy           | 2.0.2           |
-+-----------------+-----------------+
-| python-dateutil | 2.9.0           |
-+-----------------+-----------------+
++-----------------+---------------------+
+| Package         | New minimum version |
++=================+=====================+
+| numpy           | 2.0.2               |
++-----------------+---------------------+
+| python-dateutil | 2.9.0               |
++-----------------+---------------------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
-+------------------------+-----------------+
-| Package                | Minimum Version |
-+========================+=================+
-| adbc-driver-postgresql | 1.7.0           |
-+------------------------+-----------------+
-| adbc-driver-sqlite     | 1.7.0           |
-+------------------------+-----------------+
-| beautifulsoup4         | 4.13.4          |
-+------------------------+-----------------+
-| bottleneck             | 1.5.0           |
-+------------------------+-----------------+
-| fsspec                 | 2025.7.0        |
-+------------------------+-----------------+
-| gcsfs                  | 2025.7.0        |
-+------------------------+-----------------+
-| Jinja2                 | 3.1.6           |
-+------------------------+-----------------+
-| lxml                   | 6.0.0           |
-+------------------------+-----------------+
-| matplotlib             | 3.10.5          |
-+------------------------+-----------------+
-| numba                  | 0.61.2          |
-+------------------------+-----------------+
-| numexpr                | 2.11.0          |
-+------------------------+-----------------+
-| pyarrow                | 16.0.0          |
-+------------------------+-----------------+
-| PyQt5                  | 5.15.11         |
-+------------------------+-----------------+
-| pyiceberg              | 0.9.1           |
-+------------------------+-----------------+
-| pyreadstat             | 1.3.0           |
-+------------------------+-----------------+
-| pytables               | 3.10.2          |
-+------------------------+-----------------+
-| python-calamine        | 0.4.0           |
-+------------------------+-----------------+
-| qtpy                   | 2.4.3           |
-+------------------------+-----------------+
-| s3fs                   | 2025.7.0        |
-+------------------------+-----------------+
-| SciPy                  | 1.16.1          |
-+------------------------+-----------------+
-| sqlalchemy             | 2.0.42          |
-+------------------------+-----------------+
-| xarray                 | 2025.7.1        |
-+------------------------+-----------------+
-| xlrd                   | 2.0.2           |
-+------------------------+-----------------+
-| xlsxwriter             | 3.2.5           |
-+------------------------+-----------------+
++------------------------+---------------------+
+| Package                | New minimum version |
++========================+=====================+
+| adbc-driver-postgresql | 1.7.0               |
++------------------------+---------------------+
+| adbc-driver-sqlite     | 1.7.0               |
++------------------------+---------------------+
+| beautifulsoup4         | 4.13.4              |
++------------------------+---------------------+
+| bottleneck             | 1.5.0               |
++------------------------+---------------------+
+| fsspec                 | 2025.7.0            |
++------------------------+---------------------+
+| gcsfs                  | 2025.7.0            |
++------------------------+---------------------+
+| Jinja2                 | 3.1.6               |
++------------------------+---------------------+
+| lxml                   | 6.0.0               |
++------------------------+---------------------+
+| matplotlib             | 3.10.5              |
++------------------------+---------------------+
+| numba                  | 0.61.2              |
++------------------------+---------------------+
+| numexpr                | 2.11.0              |
++------------------------+---------------------+
+| pyarrow                | 16.0.0              |
++------------------------+---------------------+
+| PyQt5                  | 5.15.11             |
++------------------------+---------------------+
+| pyiceberg              | 0.9.1               |
++------------------------+---------------------+
+| pyreadstat             | 1.3.0               |
++------------------------+---------------------+
+| pytables               | 3.10.2              |
++------------------------+---------------------+
+| python-calamine        | 0.4.0               |
++------------------------+---------------------+
+| qtpy                   | 2.4.3               |
++------------------------+---------------------+
+| s3fs                   | 2025.7.0            |
++------------------------+---------------------+
+| SciPy                  | 1.16.1              |
++------------------------+---------------------+
+| sqlalchemy             | 2.0.42              |
++------------------------+---------------------+
+| xarray                 | 2025.7.1            |
++------------------------+---------------------+
+| xlrd                   | 2.0.2               |
++------------------------+---------------------+
+| xlsxwriter             | 3.2.5               |
++------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
@@ -640,11 +649,11 @@ In addition, Hypothesis has been removed as a test dependency (:issue:`66675`).
 
 Build
 ^^^^^
-- Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
 - C++20 is required to build from source (:issue:`66735`)
+
+- Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
 - Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.performance:
