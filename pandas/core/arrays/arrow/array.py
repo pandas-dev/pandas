@@ -4179,13 +4179,18 @@ class ArrowExtensionArray(
         self, pat: str | re.Pattern[str], flags: int = 0, expand: bool = True
     ):
         compiled = self._compile_re_fallback(pat, flags=flags)
-        # as in _get_group_names, unnamed groups are labelled by position
-        names = {num: name for name, num in compiled.groupindex.items()}
-        labels: list[Hashable] = [names.get(1 + i, i) for i in range(compiled.groups)]
 
-        # GH#67024 pc.extract_regex addresses the struct it returns by field name,
-        #  so a pattern with any unnamed group is evaluated with `re` instead
-        if flags or isinstance(pat, re.Pattern) or len(names) != compiled.groups:
+        from pandas.core.strings.accessor import get_group_names
+
+        labels: list[Hashable] = list(get_group_names(compiled))
+
+        if (
+            flags
+            or isinstance(pat, re.Pattern)
+            # GH#67024 pc.extract_regex addresses the struct it returns by field name,
+            #  so a pattern with any unnamed group is evaluated with `re` instead
+            or len(compiled.groupindex) != compiled.groups
+        ):
             # pc.extract_regex has no `ignore_case`, so unlike elsewhere not even
             #  IGNORECASE can be honored by the kernel
             matches = self._apply_elementwise(compiled.search)
