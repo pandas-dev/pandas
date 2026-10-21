@@ -27,7 +27,7 @@ class TestDataFrameToStringFormatters:
     def test_keyword_deprecation(self):
         # GH 57280
         msg = (
-            "Starting with pandas version 4.0 all arguments of to_string "
+            "Starting with pandas version 4.0 all arguments of Series.to_string "
             "except for the argument 'buf' will be keyword-only."
         )
         s = pd.Series(["a", "b"])
@@ -611,6 +611,32 @@ class TestDataFrameToString:
 
         assert df.to_string() == df_cat_cols.to_string()
 
+    @pytest.mark.parametrize("dtype", ["int64", "Int64", "float64", "object"])
+    def test_to_string_numeric_columns_alignment(self, dtype):
+        # GH#8300 labels of differing widths should not be padded
+        data = [[0, 1], [2, 3]]
+        columns = pd.Index([0, 10], dtype=dtype)
+        if dtype == "float64":
+            str_columns = ["0.0", "10.0"]
+        else:
+            str_columns = ["0", "10"]
+        df = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=str_columns)
+
+        assert df.to_string() == expected.to_string()
+
+    @pytest.mark.parametrize("sparsify", [True, False])
+    def test_to_string_numeric_multiindex_columns_alignment(self, sparsify):
+        # GH#8300
+        data = [[1, 2]]
+        columns = pd.MultiIndex.from_arrays([[0, 0], [0, 100]])
+        str_columns = pd.MultiIndex.from_arrays([["0", "0"], ["0", "100"]])
+        df = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=str_columns)
+
+        result = df.to_string(sparsify=sparsify)
+        assert result == expected.to_string(sparsify=sparsify)
+
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[("err", object)])
         for i in range(len(arr)):
@@ -701,35 +727,35 @@ class TestDataFrameToString:
             (
                 10,
                 None,
-                " 0   1   2   3   4   ...  6   7   8   9   10\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0",
+                " 0  1  2  3  4  ...  6  7  8  9  10\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0",
             ),
             (
                 None,
                 2,
-                " 0   1   2   3   4   5   6   7   8   9   10\n"
-                "  0   0   0   0   0   0   0   0   0   0   0\n"
-                " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
-                "  0   0   0   0   0   0   0   0   0   0   0",
+                " 0  1  2  3  4  5  6  7  8  9  10\n"
+                " 0  0  0  0  0  0  0  0  0  0   0\n"
+                ".. .. .. .. .. .. .. .. .. ..  ..\n"
+                " 0  0  0  0  0  0  0  0  0  0   0",
             ),
             (
                 10,
                 2,
-                " 0   1   2   3   4   ...  6   7   8   9   10\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                " ..  ..  ..  ..  ..  ...  ..  ..  ..  ..  ..\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0",
+                " 0  1  2  3  4  ...  6  7  8  9  10\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                ".. .. .. .. ..  ... .. .. .. ..  ..\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0",
             ),
             (
                 9,
                 2,
-                " 0   1   2   3   ...  7   8   9   10\n"
-                "  0   0   0   0  ...   0   0   0   0\n"
-                " ..  ..  ..  ..  ...  ..  ..  ..  ..\n"
-                "  0   0   0   0  ...   0   0   0   0",
+                " 0  1  2  3  ...  7  8  9  10\n"
+                " 0  0  0  0  ...  0  0  0   0\n"
+                ".. .. .. ..  ... .. .. ..  ..\n"
+                " 0  0  0  0  ...  0  0  0   0",
             ),
             (
                 1,
@@ -1037,6 +1063,19 @@ class TestDataFrameToString:
         expected = "                   level3\n0  {'level2': ['level1']}"
         assert result == expected
 
+    def test_to_string_multiindex_sparsify_by_value(self):
+        # GH#10796 distinct values that format identically are not sparsified
+        mi = pd.MultiIndex.from_arrays([[1, "1"], ["a", "a"]])
+        df = pd.DataFrame({"C": [3, 4]}, index=mi)
+
+        result = df.to_string()
+        expected = "     C\n1 a  3\n1 a  4"
+        assert result == expected
+
+        result = df.T.to_string()
+        expected = "   1  1\n   a  a\nC  3  4"
+        assert result == expected
+
 
 class TestSeriesToString:
     def test_to_string_without_index(self):
@@ -1288,3 +1327,23 @@ class TestSeriesToString:
         # nat in summary
         result = str(s2.index)
         assert "NaT" in result
+
+
+@pytest.mark.parametrize("east_asian_width", [True, False])
+def test_to_string_ansi_escapes_aligned(east_asian_width):
+    # GH#55122 escape sequences such as terminal colors should not widen columns
+    def color(text):
+        return f"\x1b[96m{text}\x1b[0m"
+
+    df = pd.DataFrame(
+        {"a": ["XXX", "XXX", "XXX"], "b": ["YYY", "YYY", "YYY"]},
+        index=["r0", "r1", "r2"],
+    )
+    colored = pd.DataFrame(
+        {color("a"): [color("XXX"), "XXX", "XXX"], "b": ["YYY", "YYY", "YYY"]},
+        index=[color("r0"), "r1", "r2"],
+    )
+    with pd.option_context("display.unicode.east_asian_width", east_asian_width):
+        for obj, plain in [(colored, df), (colored.iloc[:, 0], df["a"])]:
+            result = re.sub(r"\x1b\[\d+m", "", obj.to_string())
+            assert result == plain.to_string()

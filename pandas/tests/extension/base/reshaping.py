@@ -335,6 +335,9 @@ class BaseReshapingTests:
             obj_ser = ser.astype(object)
 
             expected = obj_ser.unstack(level=level, fill_value=data.dtype.na_value)
+            if data.dtype.na_value is None:
+                # unstack(fill_value=None) fills with NaN, not None
+                expected = expected.where(expected.notna(), None)
             if obj == "series":
                 assert (expected.dtypes == object).all()
 

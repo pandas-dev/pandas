@@ -8,6 +8,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import register_extension_dtype
@@ -65,7 +66,12 @@ class IntegerDtype(NumericDtype):
             return values.astype(dtype, copy=copy)
 
         casted = values.astype(dtype, copy=copy)
-        if (casted == values).all():
+        equal = casted == values
+        if equal.all():
+            return casted
+        if lib.is_string_array(values[~equal]):
+            # GH#34460 strs compare unequal to ints, but parsing them with
+            #  int() raises on any lossy value
             return casted
 
         raise TypeError(
@@ -79,11 +85,6 @@ class IntegerArray(NumericArray):
     Array of integer (optional missing) values.
 
     Uses :attr:`pandas.NA` as the missing value.
-
-    .. warning::
-
-       IntegerArray is currently experimental, and its API or internal
-       implementation may change without warning.
 
     We represent an IntegerArray with 2 numpy arrays:
 

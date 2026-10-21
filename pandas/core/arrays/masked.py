@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -33,6 +34,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.astype import (
     astype_is_view,
@@ -129,6 +131,43 @@ if TYPE_CHECKING:
     from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
+
+
+@cache
+def _integer_bounds(dtype: np.dtype) -> tuple[int, int]:
+    """
+    The inclusive bounds of an integer dtype, memoized: np.iinfo is slow to
+    construct.
+    """
+    info = np.iinfo(dtype)
+    return info.min, info.max
+
+
+def _warn_if_out_of_bounds(value, dtype: BaseMaskedDtype) -> None:
+    """
+    Warn for a numpy scalar that was stored altered to fit rather than rejected.
+
+    Called *after* the assignment: numpy range-checks a numpy scalar only for a
+    signed dtype under an integer or slice key, and casts it unchecked for an
+    unsigned dtype or a fancy or boolean key.  Rather than model that, rely on
+    having got here at all: numpy did not reject the value.
+    """
+    # python scalars are always range-checked by numpy
+    if dtype.kind not in "iu" or not isinstance(value, np.generic):
+        return
+
+    # int() keeps the comparison exact against a float, which would otherwise
+    #  demote the python-int bounds and let np.float64(2**64) through for UInt64.
+    low, high = _integer_bounds(dtype.numpy_dtype)
+    if not low <= int(value) <= high:
+        warnings.warn(
+            f"Setting the out-of-bounds value {value!s} into an array of dtype "
+            f"{dtype} is deprecated: it is currently stored altered to fit, and "
+            "will raise in a future version, as a python integer already does. "
+            "Cast the array to a dtype that can hold the value first.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
@@ -419,8 +458,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
 
         elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
+            # TODO(4.0): range check belongs here once GH#48867 is enforced; raise
+            #  OverflowError, not TypeError, which Index.where catches and upcasts
             return value
-            # TODO: unsigned checks
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
@@ -491,6 +531,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 value = self._validate_setitem_value(value)
                 self._data[key] = value
                 self._mask[key] = False
+                _warn_if_out_of_bounds(value, self.dtype)
             return
 
         value, mask = self._validate_listlike(value)
@@ -639,12 +680,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         dtype : dtype, default object
             The numpy dtype to convert to.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
-            the array. Note that ``copy=False`` does not *ensure* that
-            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary. This is typically
-            only possible when no missing values are present and `dtype`
-            is the equivalent numpy dtype.
+            Whether to ensure that the returned value is not a view on
+            the array. ``copy=False`` avoids a copy when possible but
+            does not guarantee a view. A view is typically only possible
+            when no missing values are present and `dtype` is the
+            equivalent numpy dtype.
         na_value : scalar, optional
              Scalar missing value indicator to use in numpy array. Defaults
              to the native missing value indicator of this array (pd.NA).
@@ -1099,6 +1139,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 raise NotImplementedError("can only perform ops with 1-d structures")
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
+
+        ops.maybe_warn_complex_ordering(self._data, other, op)
 
         if other is libmissing.NA:
             # numpy does not handle pd.NA well as "other" scalar (it returns
@@ -1800,6 +1842,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         **kwargs,
     ):
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
 
         result = masked_reductions.sum(
             self._data,
@@ -1821,6 +1864,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
 
         result = masked_reductions.prod(
             self._data,

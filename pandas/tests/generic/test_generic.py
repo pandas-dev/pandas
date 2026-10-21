@@ -2,6 +2,7 @@ from copy import (
     copy,
     deepcopy,
 )
+import re
 
 import numpy as np
 import pytest
@@ -487,3 +488,12 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
+
+
+@pytest.mark.parametrize("box", [pd.DataFrame, pd.Series, pd.Index])
+def test_nonzero_suggests_bitwise_operators(box):
+    # GH#35037
+    obj = box([1, 2, 3])
+    msg = re.escape("use '&', '|' and '~' instead of 'and', 'or' and 'not'")
+    with pytest.raises(ValueError, match=msg):
+        obj and obj

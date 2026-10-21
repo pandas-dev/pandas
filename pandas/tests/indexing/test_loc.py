@@ -2401,6 +2401,33 @@ class TestLocSetitemWithExpansion:
         alt.loc[[0, 1, 2], "data"] = pd.Series({0: "x", 1: "y", 2: "z"})
         tm.assert_frame_equal(df, alt, check_column_type=False)
 
+    @pytest.mark.parametrize("value", [["a"], ("a",), ["a", "b"], [None], [[1, 2]]])
+    def test_loc_setitem_with_expansion_list_like_single_cell(self, value):
+        # GH#30649 numeric counterpart: test_scalar_setitem_with_nested_value_length1
+        df = pd.DataFrame({"a": [0, 0]})
+        df.loc[0, "b"] = value
+        expected = pd.DataFrame(
+            {"a": [0, 0], "b": pd.Series([value, np.nan], dtype=object)}
+        )
+        tm.assert_frame_equal(df, expected)
+
+        msg = "Setting a value on a DataFrame via .at with a key that does not exist"
+        alt = pd.DataFrame({"a": [0, 0]})
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            alt.at[0, "b"] = value
+        tm.assert_frame_equal(alt, expected)
+
+    @pytest.mark.parametrize(
+        "scalar",
+        [pd.Timestamp("2020", tz="UTC"), pd.Period("2020"), pd.Interval(0, 1)],
+    )
+    def test_loc_setitem_with_expansion_length1_ea_single_cell(self, scalar):
+        # GH#30649 unpacked like the numeric case, rather than stored as a list
+        df = pd.DataFrame({"a": [0, 0]})
+        df.loc[0, "b"] = [scalar]
+        expected = pd.DataFrame({"a": [0, 0], "b": [scalar, None]})
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_datetimeindex_str_column_name(self):
         # GH#47006 - string column name that could be parsed as a datetime
         # should not be interpreted as a row indexer
@@ -3074,6 +3101,40 @@ class TestLocBooleanLabelsAndSlices:
         )
         obj.loc[bool_value]
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([False, 42, "x"], dtype=object),
+            pd.Index([False, False, "x"], dtype=object),
+            pd.MultiIndex.from_tuples([(False, "a"), (42, "b"), ("x", "c")]),
+        ],
+    )
+    def test_loc_bool_label_in_object_index(self, index):
+        # GH#50165
+        df = pd.DataFrame({"A": range(len(index))}, index=index)
+        result = df.loc[False]
+        expected = df.xs(False)
+        tm.assert_equal(result, expected)
+        tm.assert_equal(df["A"].loc[False], expected["A"])
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([0, 1, "x"], dtype=object),
+            pd.Index([False, 0, "x"], dtype=object),
+            pd.MultiIndex.from_tuples([(0, "a"), (1, "b"), ("x", "c")]),
+        ],
+    )
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_label_does_not_match_int(
+        self, index, frame_or_series, bool_value
+    ):
+        # GH#50165 object-dtype lookups would otherwise match False to 0
+        obj = frame_or_series(range(3), index=index)
+        msg = f"{bool_value}: boolean label can not be used without a boolean index"
+        with pytest.raises(KeyError, match=msg):
+            obj.loc[bool_value]
+
     def test_loc_bool_slice_raises(self, index, frame_or_series):
         # GH20432
         message = (
@@ -3403,6 +3464,19 @@ def test_loc_setitem_int_row_length_mismatch_message():
         df2.loc[0, ["a", "b"]] = [7, 8, 9]
 
 
+def test_loc_setitem_empty_frame_empty_column_key_length_mismatch():
+    # GH#58517 an empty multi-block frame takes the split path; an empty column
+    #  key with a non-empty value must raise the length-mismatch ValueError
+    #  instead of falling into the setitem-with-expansion branch
+    df = pd.DataFrame(
+        {"a": pd.Series([], dtype="int64"), "b": pd.Series([], dtype="float64")}
+    )
+    assert not df._mgr.is_single_block
+    msg = "Must have equal len keys and value when setting with an iterable"
+    with pytest.raises(ValueError, match=msg):
+        df.loc[:, []] = [1, 2, 3]
+
+
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
     [
@@ -3531,6 +3605,26 @@ def test_loc_setitem_int_slice_decimal_multiindex_level(frame_or_series):
     tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
     obj.loc[0:4] = 99
     tm.assert_equal(obj, expected)
+
+
+@pytest.mark.parametrize("values", [[Decimal(1), Decimal(3), Decimal(5)], [1, 2.5, 5]])
+def test_loc_slice_object_numeric_index_missing_bound(values, frame_or_series):
+    # GH#70295 bounds missing from a monotonic index slice by sort order
+    index = pd.Index(values, dtype=object)
+    obj = frame_or_series(range(3), index=index)
+
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    tm.assert_equal(obj.loc[2:9], obj.iloc[1:])
+
+
+@pytest.mark.parametrize("values", [["b", "a", "c"], ["b", np.nan, "a"]])
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_loc_slice_unsorted_string_index_numeric_bound(values, dtype, frame_or_series):
+    # GH#70295 sorting cannot help, so raise TypeError rather than KeyError
+    obj = frame_or_series(range(3), index=pd.Index(values, dtype=dtype))
+    msg = r"cannot do slice indexing on Index with these indexers \[1\] of type int"
+    with pytest.raises(TypeError, match=msg):
+        obj.loc[1:2]
 
 
 def test_loc_datetimelike_mismatched_dtypes():

@@ -320,6 +320,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 
     @classmethod
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
+    ) -> Self:
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    @classmethod
     def _from_sequence_not_strict(
         cls,
         data,
@@ -2660,7 +2666,7 @@ def _sequence_to_dt64(
         #  also complex or categorical or other extension
         data = cast("np.ndarray", data)
         copy = False
-        if lib.infer_dtype(data, skipna=False) == "integer":
+        if lib.is_integer_array(data, skipna=False):
             # Much more performant than going through array_to_datetime
             data = data.astype(np.int64)
         elif tz is not None and ambiguous == "raise":

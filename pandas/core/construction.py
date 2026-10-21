@@ -206,8 +206,8 @@ def array(
 
     Finally, Pandas has arrays that mostly overlap with NumPy
 
-      * :class:`arrays.DatetimeArray`
-      * :class:`arrays.TimedeltaArray`
+    * :class:`arrays.DatetimeArray`
+    * :class:`arrays.TimedeltaArray`
 
     When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
     passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``

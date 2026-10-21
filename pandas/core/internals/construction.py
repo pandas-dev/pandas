@@ -21,11 +21,15 @@ from pandas._libs import lib
 from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_is_view,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
     dict_compat,
+    find_common_type,
     maybe_cast_to_datetime,
 )
 from pandas.core.dtypes.common import (
@@ -36,6 +40,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     ExtensionDtype,
@@ -824,8 +829,13 @@ def to_arrays(
     elif isinstance(data[0], abc.Mapping):
         arr, columns = _list_of_dict_to_arrays(data, columns)
     elif isinstance(data[0], ABCSeries):
-        arr, columns = _list_of_series_to_arrays(data, columns)
+        return _list_of_series_to_arrays(data, columns, dtype)
     else:
+        # a str first row is split without warning, e.g. from_records(["ab", "cd"])
+        has_str_rows = not is_scalar(data[0]) and _warn_if_str_rows(
+            set(map(type, data))
+        )
+
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
@@ -848,21 +858,29 @@ def to_arrays(
             return arrays, columns
 
         data = [tuple(x) for x in data]
-        arr = _list_to_arrays(data)
+        arr = _list_to_arrays(data, check_ragged=not has_str_rows)
 
     content, columns = _finalize_columns_and_data(arr, columns, dtype)
     return content, columns
 
 
-def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
+def _list_to_arrays(
+    data: list[tuple[Any, ...] | list[Any]], check_ragged: bool = True
+) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
 
     # GH#65751 shorter sequences get padded with NaN out to the longest one,
     #  which is deprecated.  A null scalar counts as length 1, mirroring the
     #  handling in lib.to_object_array_tuples.
-    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
-    if len(lengths) > 1:
+    row_types = set(map(type, data))
+    if all(issubclass(typ, (list, tuple)) for typ in row_types):
+        lengths = set(map(len, data))
+    else:
+        if _warn_if_str_rows(row_types):
+            check_ragged = False
+        lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    if check_ragged and len(lengths) > 1:
         warnings.warn(
             "Constructing a DataFrame from a list of sequences with mismatched "
             "lengths is deprecated and will raise in a future version. The "
@@ -880,12 +898,27 @@ def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
     return content
 
 
+def _warn_if_str_rows(row_types: set[type]) -> bool:
+    # GH#50461 called when the first row is list-like. Returns whether a str or
+    #  bytes row was found, in which case the caller skips the mismatched-lengths
+    #  warning since this deprecation already covers the call.
+    if not any(issubclass(typ, (str, bytes)) for typ in row_types):
+        return False
+    warnings.warn(
+        "Constructing a DataFrame with a str or bytes row after a list-like row "
+        "is deprecated and will raise in a future version. Such rows are "
+        "currently split into their elements; pass list(row) to split explicitly.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    return True
+
+
 def _list_of_series_to_arrays(
     data: list[Any],
     columns: Index | None,
-) -> tuple[np.ndarray, Index]:
-    # returned np.ndarray has ndim == 2
-
+    dtype: DtypeObj | None,
+) -> tuple[list[ArrayLike], Index]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -893,7 +926,8 @@ def _list_of_series_to_arrays(
 
     indexer_cache: dict[int, np.ndarray] = {}
 
-    aligned_values = []
+    values_list = []
+    indexers = []
     for s in data:
         index = getattr(s, "index", None)
         if index is None:
@@ -904,11 +938,35 @@ def _list_of_series_to_arrays(
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = extract_array(s, extract_numpy=True)
-        aligned_values.append(algorithms.take_nd(values, indexer))
+        values_list.append(extract_array(s, extract_numpy=True))
+        indexers.append(indexer)
 
-    content = np.vstack(aligned_values)
-    return content, columns
+    common_dtype = find_common_type([values.dtype for values in values_list])
+    if dtype is None and isinstance(common_dtype, ExtensionDtype):
+        # GH#56231 keep an EA common dtype, which np.vstack would lose.
+        #  Cast before the take so missing keys don't upcast int rows to float.
+        #  With a dtype, keep the constructor's casting (EA.astype can be lossy)
+        aligned_values = [
+            algorithms.take_nd(astype_array(values, common_dtype), indexer)
+            for values, indexer in zip(values_list, indexers, strict=True)
+        ]
+        flat = concat_compat(aligned_values)
+        nrows, ncols = len(aligned_values), len(columns)
+        # one take rather than one per column, which is slow for wide input
+        indexer = np.arange(nrows * ncols).reshape(nrows, ncols).T.ravel()
+        taken = flat.take(indexer)
+        arrays: list[ArrayLike] = [
+            taken[i * nrows : (i + 1) * nrows] for i in range(ncols)
+        ]
+        return arrays, columns
+
+    content = np.vstack(
+        [
+            algorithms.take_nd(values, indexer)
+            for values, indexer in zip(values_list, indexers, strict=True)
+        ]
+    )
+    return _finalize_columns_and_data(content, columns, dtype)
 
 
 def _list_of_dict_to_arrays(
