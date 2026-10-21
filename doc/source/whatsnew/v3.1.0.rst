@@ -584,7 +584,7 @@ If installed, we now require:
 | python-dateutil | 2.9.0               |
 +-----------------+---------------------+
 
-For :ref:`optional libraries <install.optional_dependencies>`_ the general recommendation is to use the latest version.
+For :ref:`optional libraries <install.optional_dependencies>` the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
