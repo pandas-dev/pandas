@@ -939,7 +939,7 @@ class TestSeriesPlots:
         ],
     )
     def test_plot_order(self, data, index):
-        # GH38865 Verify plot order of a Series
+        # GH 38865: non-monotonic numeric indexes retain categorical order
         ser = pd.Series(data=data, index=index)
         ax = ser.plot(kind="bar")
 
@@ -949,6 +949,21 @@ class TestSeriesPlots:
             for patch in sorted(ax.patches, key=lambda patch: patch.get_bbox().xmax)
         ]
         assert expected == result
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(
+            np.array(centers), np.arange(len(ser), dtype=np.float64)
+        )
+
+    def test_plot_order_categorical_index(self):
+        # GH 38865
+        ser = pd.Series(data=[1, 2, 3, 4], index=["3", "2", "1", "0"])
+        ax = ser.plot.bar()
+
+        result = [
+            patch.get_bbox().ymax
+            for patch in sorted(ax.patches, key=lambda patch: patch.get_bbox().xmax)
+        ]
+        assert result == ser.tolist()
 
     def test_style_single_ok(self):
         s = pd.Series([1, 2])
