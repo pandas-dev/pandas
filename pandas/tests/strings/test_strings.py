@@ -113,6 +113,19 @@ def test_count_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("pat", [r"\u20AC", r"\U000020AC", r"\N{EURO SIGN}"])
+def test_count_unicode_escape_patterns(any_string_dtype, pat):
+    # https://github.com/pandas-dev/pandas/issues/63901
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = pd.Series(["a", "10€", "10€ and 11€ and 12$"], dtype=any_string_dtype)
+    result = ser.str.count(r"[0-9]*" + pat)
+    expected = pd.Series([0, 1, 2], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_count_compiled_pattern_with_flags(any_string_dtype):
     # GH#63705 flags on a compiled pattern must not be dropped
     expected_dtype = (
@@ -1023,6 +1036,19 @@ def test_setitem_with_different_string_storage():
         (r"(abc)\1", True),
         (r"\b(\w+)\s+\1\b", True),
         (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
+        # unicode escape sequences
+        (r"\u20AC", True),
+        (r"\U000020AC", True),
+        (r"\N{EURO SIGN}", True),
+        (r"\\u20AC", False),
+        (r"\\U000020AC", False),
+        (r"\\N{EURO SIGN}", False),
+        (r"\NEURO", False),
+        (r"\\\u20AC", True),
+        (r"\\\\u20AC", False),
+        (r"[\u0e00-\u0e7f]", True),
+        (r"\pL\u20AC", True),  # also includes an invalid escape \p for Python
+        (r"\Q\u\E", True),  # \Q..\E pattern supported by pyarrow, but prioritize \u
     ],
 )
 def test_needs_python_regex_unsupported_code(pat, expected):
