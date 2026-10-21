@@ -208,7 +208,7 @@ def test_select_or_with_large_list_raises(temp_hdfstore, where):
     df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
     temp_hdfstore.append("df", df, format="table", data_columns=True)
 
-    big = list(range(100, 140)) + [2]
+    big = [*range(100, 140), 2]
     assert len(big) > 31
     msg = "the terms of an OR"
     with pytest.raises(NotImplementedError, match=msg):
@@ -237,7 +237,7 @@ def test_select_or_and_with_list_matches_in_memory(temp_hdfstore, where, mask):
     df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
     temp_hdfstore.append("df", df, format="table", data_columns=True)
 
-    big = list(range(100, 140)) + [2, 9]
+    big = [*range(100, 140), 2, 9]
     small = big[-21:]
     values = small if "{small}" in where else big
     where = where.format(small=small, big=big)
