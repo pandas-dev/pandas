@@ -668,7 +668,16 @@ Pivot tables:
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
-    pd.pivot_table(df, values="values", index=["A", "B"], observed=False)
+    with pd.option_context("future.pivot_table_dropna", True):
+        result = pd.pivot_table(df, values="values", index=["A", "B"], observed=False)
+    result
+
+The unused category ``"c"`` is shown as rows with missing values.  By default
+:meth:`DataFrame.pivot_table` drops the rows of the result that are all
+missing, but this behavior is deprecated: in a future version these rows will
+be kept, as shown above.  The behavior shown above can be enabled with
+``pd.set_option("future.pivot_table_dropna", True)``, see
+:ref:`whatsnew_320.deprecations`.
 
 Data munging
 ------------
