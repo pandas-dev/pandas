@@ -27,6 +27,7 @@ from pandas._libs.tslibs import (
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 from pandas.core.computation import (
@@ -302,7 +303,9 @@ class BinOp(ops.BinOp):
                 )
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
-            if conv_val not in metadata:
+            if isna(conv_val):
+                result = -1
+            elif conv_val not in metadata:
                 # GH#22977 value is not a category; use -2 as a code that
                 # matches no row, unlike -1 which is the code for NaN values.
                 result = -2
