@@ -35,6 +35,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -666,6 +667,22 @@ def dt64_any_all_msg(how: str) -> str:
     )
 
 
+def _raise_period_any_all(values: ArrayLike, how: str) -> None:
+    """
+    Raise for any/all on Period data (GH#34479).
+
+    ``PeriodArray`` has no ``any``/``all``. ``ExtensionArray._reduce`` raises
+    ``TypeError`` naming ``PeriodArray``; an empty axis=1 reduction reaches
+    nanops directly and must raise the same way instead of ``AttributeError``.
+    """
+    dtype = values.dtype
+    if isinstance(dtype, PeriodDtype):
+        raise TypeError(
+            f"'{type(values).__name__}' with dtype {dtype} "
+            f"does not support operation '{how}'"
+        )
+
+
 def nanany(
     values: np.ndarray,
     *,
@@ -709,6 +726,8 @@ def nanany(
     if values.dtype.kind == "M":
         # GH#34479
         raise TypeError(dt64_any_all_msg("any"))
+
+    _raise_period_any_all(values, "any")
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
@@ -765,6 +784,8 @@ def nanall(
     if values.dtype.kind == "M":
         # GH#34479
         raise TypeError(dt64_any_all_msg("all"))
+
+    _raise_period_any_all(values, "all")
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
