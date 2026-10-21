@@ -36,7 +36,10 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.portable cimport checked_add, checked_sub
+from pandas._libs.portable cimport (
+    checked_add,
+    checked_sub,
+)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
