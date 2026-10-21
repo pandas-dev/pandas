@@ -1489,10 +1489,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        if isinstance(value, ExtensionArray):
-            value = value.astype(object)
+        if isinstance(value, BaseMaskedArray):
+            na_mask = value._mask
+            if na_mask.any():
+                # 0 for negs as overridden either way
+                clean_vals = np.where(na_mask, 0, value._data)
+                res = algos.int_searchsorted(self._data, clean_vals, side, sorter)
+                res[na_mask] = len(self)
+                return res
+            value = value._data
+        elif value is libmissing.NA:  # type: ignore[comparison-overlap]
+            return np.array([len(self)])
         # Base class searchsorted would cast to object, which is *much* slower.
-        return self._data.searchsorted(value, side=side, sorter=sorter)
+        return algos.int_searchsorted(self._data, value, side, sorter)
 
     def factorize(
         self,
