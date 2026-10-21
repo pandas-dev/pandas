@@ -1746,6 +1746,18 @@ supports the same format as the standard :meth:`~datetime.datetime.strftime`.
    s
    s.dt.strftime("%Y/%m/%d")
 
+Casting a datetime :class:`Series` to strings with ``astype(str)`` uses a
+format that depends on the values, so the fractional part only appears when
+it is needed.
+
+.. ipython:: python
+
+   pd.Series([1], dtype="datetime64[ms]").astype(str)
+   pd.Series([1000], dtype="datetime64[ms]").astype(str)
+
+Use :meth:`Series.dt.strftime` when a format that does not depend on the
+values is required.
+
 The ``.dt`` accessor works for period and timedelta dtypes.
 
 .. ipython:: python
