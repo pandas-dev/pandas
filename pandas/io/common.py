@@ -552,7 +552,7 @@ _supported_compressions = set(extension_to_compression.values())
 
 
 def get_compression_method(
-    compression: CompressionOptions,
+    compression: str | CompressionDict | None,
 ) -> tuple[str | None, CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
@@ -658,7 +658,7 @@ def infer_compression(
 
 
 def warn_unused_compression(
-    compression: CompressionOptions,
+    compression: str | CompressionDict | None,
     reason: str = "no path or buffer is given; the returned string is not compressed",
 ) -> None:
     """
