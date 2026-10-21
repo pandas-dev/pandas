@@ -1,13 +1,6 @@
 import numpy as np
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-)
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 
@@ -15,21 +8,23 @@ from pandas.core.arrays import IntervalArray
 class TestGetNumericData:
     def test_get_numeric_data_preserve_dtype(self):
         # get the numeric data
-        obj = DataFrame({"A": [1, "2", 3.0]}, columns=Index(["A"], dtype="object"))
+        obj = pd.DataFrame(
+            {"A": [1, "2", 3.0]}, columns=pd.Index(["A"], dtype="object")
+        )
         result = obj._get_numeric_data()
-        expected = DataFrame(dtype=object, index=pd.RangeIndex(3), columns=[])
+        expected = pd.DataFrame(dtype=object, index=pd.RangeIndex(3), columns=[])
         tm.assert_frame_equal(result, expected)
 
     def test_get_numeric_data(self, using_infer_string):
         datetime64name = np.dtype("M8[s]").name
         objectname = np.dtype(np.object_).name
 
-        df = DataFrame(
-            {"a": 1.0, "b": 2, "c": "foo", "f": Timestamp("20010102").as_unit("s")},
+        df = pd.DataFrame(
+            {"a": 1.0, "b": 2, "c": "foo", "f": pd.Timestamp("20010102").as_unit("s")},
             index=np.arange(10),
         )
         result = df.dtypes
-        expected = Series(
+        expected = pd.Series(
             [
                 np.dtype("float64"),
                 np.dtype("int64"),
@@ -42,7 +37,7 @@ class TestGetNumericData:
         )
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": 1.0,
                 "b": 2,
@@ -50,7 +45,7 @@ class TestGetNumericData:
                 "d": np.array([1.0] * 10, dtype="float32"),
                 "e": np.array([1] * 10, dtype="int32"),
                 "f": np.array([1] * 10, dtype="int16"),
-                "g": Timestamp("20010102"),
+                "g": pd.Timestamp("20010102"),
             },
             index=np.arange(10),
         )
@@ -64,9 +59,11 @@ class TestGetNumericData:
         expected = df.loc[:, []]
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame.from_dict({"a": [1, 2], "b": ["foo", "bar"], "c": [np.pi, np.e]})
+        df = pd.DataFrame.from_dict(
+            {"a": [1, 2], "b": ["foo", "bar"], "c": [np.pi, np.e]}
+        )
         result = df._get_numeric_data()
-        expected = DataFrame.from_dict({"a": [1, 2], "c": [np.pi, np.e]})
+        expected = pd.DataFrame.from_dict({"a": [1, 2], "c": [np.pi, np.e]})
         tm.assert_frame_equal(result, expected)
 
         df = result.copy()
@@ -77,7 +74,7 @@ class TestGetNumericData:
     def test_get_numeric_data_mixed_dtype(self):
         # numeric and object columns
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": [1, 2, 3],
                 "b": [True, False, True],
@@ -87,14 +84,14 @@ class TestGetNumericData:
             }
         )
         result = df._get_numeric_data()
-        tm.assert_index_equal(result.columns, Index(["a", "b", "e"]))
+        tm.assert_index_equal(result.columns, pd.Index(["a", "b", "e"]))
 
     def test_get_numeric_data_extension_dtype(self):
         # GH#22290
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": pd.array([-10, pd.NA, 0, 10, 20, 30], dtype="Int64"),
-                "B": Categorical(list("abcabc")),
+                "B": pd.Categorical(list("abcabc")),
                 "C": pd.array([0, 1, 2, 3, pd.NA, 5], dtype="UInt8"),
                 "D": IntervalArray.from_breaks(range(7)),
             }

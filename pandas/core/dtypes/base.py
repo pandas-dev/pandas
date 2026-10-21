@@ -29,6 +29,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    import matplotlib.units
+
     from pandas._typing import (
         DtypeObj,
         Shape,
@@ -169,6 +171,16 @@ class ExtensionDtype:
 
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
+
+    def __getstate__(self) -> object:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170.
+        state = super().__getstate__()
+        if isinstance(state, dict) and "_cache" in state:
+            state = {key: val for key, val in state.items() if key != "_cache"}
+            # object.__getstate__ gives None for an empty __dict__
+            state = state or None
+        return state
 
     @property
     def na_value(self) -> object:
@@ -470,6 +482,29 @@ class ExtensionDtype:
         Only relevant for cases where _supports_2d is True.
         """
         return False
+
+    @classmethod
+    def _get_plot_converter(
+        cls,
+    ) -> list[tuple[type_t, type_t[matplotlib.units.ConversionInterface]]]:
+        """
+        If dtype is plottable, return the type and converter to use for plotting.
+
+        By default only numeric ExtensionDtypes are plottable. In other cases, this
+        function just returns an empty list and ExtensionArrays of this dtype are
+        filtered out during plotting.
+
+        If the dtype is plottable, this function shall return a list of tuples of type
+        and converter pairs. These pairs are then registered to the matplotlib
+        converter registry, see
+        https://matplotlib.org/stable/api/units_api.html#module-matplotlib.units
+        The returned type is likely the same as ``cls.type``. The returned converter
+        should be a subclass of ``matplotlib.units.ConversionInterface``. If a dtype
+        supports multiple types, e.g. ``ArrowDtype``, then this function can return
+        multiple tuples inside the list, where each tuple is a pair of a type and
+        corresponding converter.
+        """
+        return []
 
 
 class StorageExtensionDtype(ExtensionDtype):

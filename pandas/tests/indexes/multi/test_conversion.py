@@ -2,11 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    RangeIndex,
-)
 import pandas._testing as tm
 
 
@@ -49,9 +44,9 @@ def test_array_interface(idx):
 def test_to_frame():
     tuples = [(1, "one"), (1, "two"), (2, "one"), (2, "two")]
 
-    index = MultiIndex.from_tuples(tuples)
+    index = pd.MultiIndex.from_tuples(tuples)
     result = index.to_frame(index=False)
-    expected = DataFrame(tuples)
+    expected = pd.DataFrame(tuples)
     tm.assert_frame_equal(result, expected)
 
     result = index.to_frame()
@@ -59,9 +54,9 @@ def test_to_frame():
     tm.assert_frame_equal(result, expected)
 
     tuples = [(1, "one"), (1, "two"), (2, "one"), (2, "two")]
-    index = MultiIndex.from_tuples(tuples, names=["first", "second"])
+    index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
     result = index.to_frame(index=False)
-    expected = DataFrame(tuples)
+    expected = pd.DataFrame(tuples)
     expected.columns = ["first", "second"]
     tm.assert_frame_equal(result, expected)
 
@@ -70,9 +65,9 @@ def test_to_frame():
     tm.assert_frame_equal(result, expected)
 
     # See GH-22580
-    index = MultiIndex.from_tuples(tuples)
+    index = pd.MultiIndex.from_tuples(tuples)
     result = index.to_frame(index=False, name=["first", "second"])
-    expected = DataFrame(tuples)
+    expected = pd.DataFrame(tuples)
     expected.columns = ["first", "second"]
     tm.assert_frame_equal(result, expected)
 
@@ -90,9 +85,9 @@ def test_to_frame():
         index.to_frame(name=["first"])
 
     # Tests for datetime index
-    index = MultiIndex.from_product([range(5), pd.date_range("20130101", periods=3)])
+    index = pd.MultiIndex.from_product([range(5), pd.date_range("20130101", periods=3)])
     result = index.to_frame(index=False)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             0: np.repeat(np.arange(5, dtype="int64"), 3),
             1: np.tile(pd.date_range("20130101", periods=3), 5),
@@ -106,7 +101,7 @@ def test_to_frame():
 
     # See GH-22580
     result = index.to_frame(index=False, name=["first", "second"])
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "first": np.repeat(np.arange(5, dtype="int64"), 3),
             "second": np.tile(pd.date_range("20130101", periods=3), 5),
@@ -121,7 +116,7 @@ def test_to_frame():
 
 def test_to_frame_dtype_fidelity():
     # GH 22420
-    mi = MultiIndex.from_arrays(
+    mi = pd.MultiIndex.from_arrays(
         [
             pd.date_range("19910905", periods=6, tz="US/Eastern"),
             [1, 1, 1, 2, 2, 2],
@@ -132,7 +127,7 @@ def test_to_frame_dtype_fidelity():
     )
     original_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
 
-    expected_df = DataFrame(
+    expected_df = pd.DataFrame(
         {
             "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
             "a": [1, 1, 1, 2, 2, 2],
@@ -150,7 +145,7 @@ def test_to_frame_dtype_fidelity():
 def test_to_frame_resulting_column_order():
     # GH 22420
     expected = ["z", 0, "a"]
-    mi = MultiIndex.from_arrays(
+    mi = pd.MultiIndex.from_arrays(
         [["a", "b", "c"], ["x", "y", "z"], ["q", "w", "e"]], names=expected
     )
     result = mi.to_frame().columns.tolist()
@@ -161,28 +156,28 @@ def test_to_frame_duplicate_labels():
     # GH 45245
     data = [(1, 2), (3, 4)]
     names = ["a", "a"]
-    index = MultiIndex.from_tuples(data, names=names)
+    index = pd.MultiIndex.from_tuples(data, names=names)
     with pytest.raises(ValueError, match="Cannot create duplicate column labels"):
         index.to_frame()
 
     result = index.to_frame(allow_duplicates=True)
-    expected = DataFrame(data, index=index, columns=names)
+    expected = pd.DataFrame(data, index=index, columns=names)
     tm.assert_frame_equal(result, expected)
 
     names = [None, 0]
-    index = MultiIndex.from_tuples(data, names=names)
+    index = pd.MultiIndex.from_tuples(data, names=names)
     with pytest.raises(ValueError, match="Cannot create duplicate column labels"):
         index.to_frame()
 
     result = index.to_frame(allow_duplicates=True)
-    expected = DataFrame(data, index=index, columns=[0, 0])
+    expected = pd.DataFrame(data, index=index, columns=[0, 0])
     tm.assert_frame_equal(result, expected)
 
 
 def test_to_frame_column_rangeindex():
-    mi = MultiIndex.from_arrays([[1, 2], ["a", "b"]])
+    mi = pd.MultiIndex.from_arrays([[1, 2], ["a", "b"]])
     result = mi.to_frame().columns
-    expected = RangeIndex(2)
+    expected = pd.RangeIndex(2)
     tm.assert_index_equal(result, expected, exact=True)
 
 

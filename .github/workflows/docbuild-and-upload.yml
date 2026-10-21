@@ -11,6 +11,11 @@ on:
     branches:
       - main
       - 3.0.x
+    paths-ignore:
+      # code-scanning workflows; checked by zizmor in security.yml
+      - ".github/workflows/codeql.yml"
+      - ".github/workflows/scorecard.yml"
+      - ".github/workflows/security.yml"
   workflow_dispatch:
     inputs:
       version:
@@ -30,14 +35,19 @@ permissions: {}
 
 jobs:
   web_and_docs:
-    name: Doc Build and Upload
-    runs-on: ubuntu-24.04
+    name: Doc Build and Upload (${{ matrix.os }})
+    strategy:
+      matrix:
+        # Windows catches platform-specific errors in the doc build, see GH#26574
+        os: [ubuntu-24.04, windows-2025]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs-${{ matrix.os }}
       cancel-in-progress: true
 
     steps:
@@ -88,11 +98,17 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
+        persist-credentials: false
 
     - name: Create virtual environment with Pixi
       uses: ./.github/actions/setup-pixi
       with:
         environment: docs-and-web
+
+    - name: Remove link.EXE for Windows
+      # https://github.com/Quansight-Labs/uarray/pull/310#issuecomment-3872989816
+      run: rm /c/Program\ Files/Git/usr/bin/link.EXE
+      if: ${{ matrix.os == 'windows-2025' }}
 
     - name: Build pandas
       run: |
@@ -100,7 +116,7 @@ jobs:
           --environment docs-and-web \
           build-pandas \
           --editable \
-          -Csetup-args="--werror"
+          "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}"
 
     - name: Test website
       run: |
@@ -113,6 +129,9 @@ jobs:
           ci-test-single-page-doc pandas.Series.value_counts
         pixi run \
           ci-test-single-page-doc pandas.Series.str.split
+        # a page in a subdirectory that renders the {{ header }} ipython block
+        pixi run \
+          ci-test-single-page-doc development/internals.rst
 
     - name: Test nbconvert doc notebooks
       run: |
@@ -142,6 +161,7 @@ jobs:
         pixi run \
           ci-build-documentation \
           zip_html
+      if: matrix.os == 'ubuntu-24.04'
 
     - name: Copy cheatsheets into site directory
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
@@ -153,19 +173,19 @@ jobs:
         ssh-key: ${{ secrets.PANDAS_DEV_GITHUB_IO_DEPLOY_KEY }}
         path: pandas-dev.github.io
         persist-credentials: true
-      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true'
+      if: matrix.os == 'ubuntu-24.04' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true')
 
     - name: Upload web
       run: rsync -a --delete --exclude='.git' --exclude='README.md' --exclude='CNAME' --exclude='.nojekyll' --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ pandas-dev.github.io/
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: matrix.os == 'ubuntu-24.04' && github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload dev docs
       run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/dev
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: matrix.os == 'ubuntu-24.04' && github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload prod docs
       run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/version/${PANDAS_DOCS_VERSION}
-      if: env.PUBLISH_PROD == 'true'
+      if: matrix.os == 'ubuntu-24.04' && env.PUBLISH_PROD == 'true'
 
     - name: Commit and push to pandas-dev.github.io
       working-directory: pandas-dev.github.io
@@ -181,14 +201,15 @@ jobs:
         fi
         git commit -m "${COMMIT_MSG}"
         git push || (git pull --rebase && git push)
-      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true'
+      if: matrix.os == 'ubuntu-24.04' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true')
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
       with:
         name: website
         path: web/build
         retention-days: 14
+      if: matrix.os == 'ubuntu-24.04'

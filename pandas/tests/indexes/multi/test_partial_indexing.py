@@ -1,12 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    IndexSlice,
-    MultiIndex,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -28,10 +23,10 @@ def df():
     # 2016-01-03 00:00:00 a  12
     #                     b  13
     #                     c  14
-    dr = date_range("2016-01-01", "2016-01-03", freq="12h")
+    dr = pd.date_range("2016-01-01", "2016-01-03", freq="12h")
     abc = ["a", "b", "c"]
-    mi = MultiIndex.from_product([dr, abc])
-    frame = DataFrame({"c1": range(15)}, index=mi)
+    mi = pd.MultiIndex.from_product([dr, abc])
+    frame = pd.DataFrame({"c1": range(15)}, index=mi)
     return frame
 
 
@@ -41,7 +36,7 @@ def test_partial_string_matching_single_index(df):
         df_swap = df_swap.sort_index()
         just_a = df_swap.loc["a"]
         result = just_a.loc["2016-01-01"]
-        expected = df.loc[IndexSlice[:, "a"], :].iloc[0:2]
+        expected = df.loc[pd.IndexSlice[:, "a"], :].iloc[0:2]
         expected.index = expected.index.droplevel(1)
         tm.assert_frame_equal(result, expected)
 
@@ -85,7 +80,7 @@ def test_get_loc_partial_timestamp_multiindex(df):
 def test_partial_string_timestamp_multiindex(df):
     # GH10331
     df_swap = df.swaplevel(0, 1).sort_index()
-    SLC = IndexSlice
+    SLC = pd.IndexSlice
 
     # indexing with IndexSlice
     result = df.loc[SLC["2016-01-01":"2016-02-01", :], :]
@@ -143,6 +138,6 @@ def test_partial_string_timestamp_multiindex_str_key_raises(df):
 
 def test_partial_string_timestamp_multiindex_daily_resolution(df):
     # GH12685 (partial string with daily resolution or below)
-    result = df.loc[IndexSlice["2013-03":"2013-03", :], :]
+    result = df.loc[pd.IndexSlice["2013-03":"2013-03", :], :]
     expected = df.iloc[118:180]
     tm.assert_frame_equal(result, expected)

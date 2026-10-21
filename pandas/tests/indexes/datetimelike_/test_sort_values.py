@@ -1,14 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    NaT,
-    PeriodIndex,
-    TimedeltaIndex,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -18,9 +11,9 @@ def check_freq_ascending(ordered, orig, ascending):
     when the original index is generated (or generate-able) with
     period_range/date_range/timedelta_range.
     """
-    if isinstance(ordered, PeriodIndex):
+    if isinstance(ordered, pd.PeriodIndex):
         assert ordered.freq == orig.freq
-    elif isinstance(ordered, (DatetimeIndex, TimedeltaIndex)):
+    elif isinstance(ordered, (pd.DatetimeIndex, pd.TimedeltaIndex)):
         if ascending:
             assert ordered.freq.n == orig.freq.n
         else:
@@ -33,22 +26,22 @@ def check_freq_nonmonotonic(ordered, orig):
     when the original index is _not_ generated (or generate-able) with
     period_range/date_range//timedelta_range.
     """
-    if isinstance(ordered, PeriodIndex):
+    if isinstance(ordered, pd.PeriodIndex):
         assert ordered.freq == orig.freq
-    elif isinstance(ordered, (DatetimeIndex, TimedeltaIndex)):
+    elif isinstance(ordered, (pd.DatetimeIndex, pd.TimedeltaIndex)):
         assert ordered.freq is None
 
 
 class TestSortValues:
-    @pytest.fixture(params=[DatetimeIndex, TimedeltaIndex, PeriodIndex])
+    @pytest.fixture(params=[pd.DatetimeIndex, pd.TimedeltaIndex, pd.PeriodIndex])
     def non_monotonic_idx(self, request):
-        if request.param is DatetimeIndex:
-            return DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
-        elif request.param is PeriodIndex:
-            dti = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
+        if request.param is pd.DatetimeIndex:
+            return pd.DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
+        elif request.param is pd.PeriodIndex:
+            dti = pd.DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
             return dti.to_period("D")
         else:
-            return TimedeltaIndex(
+            return pd.TimedeltaIndex(
                 ["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"]
             )
 
@@ -95,17 +88,17 @@ class TestSortValues:
     @pytest.mark.parametrize("freq", ["D", "h"])
     def test_sort_values_with_freq_timedeltaindex(self, freq):
         # GH#10295
-        idx = timedelta_range(start=f"1{freq}", periods=3, freq=freq).rename("idx")
+        idx = pd.timedelta_range(start=f"1{freq}", periods=3, freq=freq).rename("idx")
 
         self.check_sort_values_with_freq(idx)
 
     @pytest.mark.parametrize(
         "idx",
         [
-            DatetimeIndex(
+            pd.DatetimeIndex(
                 ["2011-01-01", "2011-01-02", "2011-01-03"], freq="D", name="idx"
             ),
-            DatetimeIndex(
+            pd.DatetimeIndex(
                 ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
                 freq="h",
                 name="tzidx",
@@ -119,7 +112,7 @@ class TestSortValues:
     @pytest.mark.parametrize("freq", ["D", "2D", "4D"])
     def test_sort_values_with_freq_periodindex(self, freq):
         # here with_freq refers to being period_range-like
-        idx = PeriodIndex(
+        idx = pd.PeriodIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03"], freq=freq, name="idx"
         )
         self.check_sort_values_with_freq(idx)
@@ -127,8 +120,8 @@ class TestSortValues:
     @pytest.mark.parametrize(
         "idx",
         [
-            PeriodIndex(["2011", "2012", "2013"], name="pidx", freq="Y"),
-            Index([2011, 2012, 2013], name="idx"),  # for compatibility check
+            pd.PeriodIndex(["2011", "2012", "2013"], name="pidx", freq="Y"),
+            pd.Index([2011, 2012, 2013], name="idx"),  # for compatibility check
         ],
     )
     def test_sort_values_with_freq_periodindex2(self, idx):
@@ -174,10 +167,10 @@ class TestSortValues:
     def test_sort_values_without_freq_timedeltaindex(self):
         # GH#10295
 
-        idx = TimedeltaIndex(
+        idx = pd.TimedeltaIndex(
             ["1 hour", "3 hour", "5 hour", "2 hour ", "1 hour"], name="idx1"
         )
-        expected = TimedeltaIndex(
+        expected = pd.TimedeltaIndex(
             ["1 hour", "1 hour", "2 hour", "3 hour", "5 hour"], name="idx1"
         )
         self.check_sort_values_without_freq(idx, expected)
@@ -190,8 +183,8 @@ class TestSortValues:
                 ["2011-01-01", "2011-01-01", "2011-01-02", "2011-01-03", "2011-01-05"],
             ),
             (
-                [NaT, "2011-01-03", "2011-01-05", "2011-01-02", NaT],
-                [NaT, NaT, "2011-01-02", "2011-01-03", "2011-01-05"],
+                [pd.NaT, "2011-01-03", "2011-01-05", "2011-01-02", pd.NaT],
+                [pd.NaT, pd.NaT, "2011-01-02", "2011-01-03", "2011-01-05"],
             ),
         ],
     )
@@ -201,8 +194,8 @@ class TestSortValues:
         tz = tz_naive_fixture
 
         # without freq
-        idx = DatetimeIndex(index_dates, tz=tz, name="idx")
-        expected = DatetimeIndex(expected_dates, tz=tz, name="idx")
+        idx = pd.DatetimeIndex(index_dates, tz=tz, name="idx")
+        expected = pd.DatetimeIndex(expected_dates, tz=tz, name="idx")
 
         self.check_sort_values_without_freq(idx, expected)
 
@@ -210,7 +203,7 @@ class TestSortValues:
         "idx,expected",
         [
             (
-                PeriodIndex(
+                pd.PeriodIndex(
                     [
                         "2011-01-01",
                         "2011-01-03",
@@ -221,7 +214,7 @@ class TestSortValues:
                     freq="D",
                     name="idx1",
                 ),
-                PeriodIndex(
+                pd.PeriodIndex(
                     [
                         "2011-01-01",
                         "2011-01-01",
@@ -234,7 +227,7 @@ class TestSortValues:
                 ),
             ),
             (
-                PeriodIndex(
+                pd.PeriodIndex(
                     [
                         "2011-01-01",
                         "2011-01-03",
@@ -245,7 +238,7 @@ class TestSortValues:
                     freq="D",
                     name="idx2",
                 ),
-                PeriodIndex(
+                pd.PeriodIndex(
                     [
                         "2011-01-01",
                         "2011-01-01",
@@ -258,29 +251,29 @@ class TestSortValues:
                 ),
             ),
             (
-                PeriodIndex(
-                    [NaT, "2011-01-03", "2011-01-05", "2011-01-02", NaT],
+                pd.PeriodIndex(
+                    [pd.NaT, "2011-01-03", "2011-01-05", "2011-01-02", pd.NaT],
                     freq="D",
                     name="idx3",
                 ),
-                PeriodIndex(
-                    [NaT, NaT, "2011-01-02", "2011-01-03", "2011-01-05"],
+                pd.PeriodIndex(
+                    [pd.NaT, pd.NaT, "2011-01-02", "2011-01-03", "2011-01-05"],
                     freq="D",
                     name="idx3",
                 ),
             ),
             (
-                PeriodIndex(
+                pd.PeriodIndex(
                     ["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="Y"
                 ),
-                PeriodIndex(
+                pd.PeriodIndex(
                     ["2011", "2011", "2012", "2013", "2015"], name="pidx", freq="Y"
                 ),
             ),
             (
                 # For compatibility check
-                Index([2011, 2013, 2015, 2012, 2011], name="idx"),
-                Index([2011, 2011, 2012, 2013, 2015], name="idx"),
+                pd.Index([2011, 2013, 2015, 2012, 2011], name="idx"),
+                pd.Index([2011, 2011, 2012, 2013, 2015], name="idx"),
             ),
         ],
     )
@@ -290,8 +283,10 @@ class TestSortValues:
 
     def test_sort_values_without_freq_periodindex_nat(self):
         # doesn't quite fit into check_sort_values_without_freq
-        idx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
-        expected = PeriodIndex(["NaT", "2011", "2011", "2013"], name="pidx", freq="D")
+        idx = pd.PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
+        expected = pd.PeriodIndex(
+            ["NaT", "2011", "2011", "2013"], name="pidx", freq="D"
+        )
 
         ordered = idx.sort_values(na_position="first")
         tm.assert_index_equal(ordered, expected)
@@ -304,8 +299,10 @@ class TestSortValues:
 
 def test_order_stability_compat():
     # GH#35922. sort_values is stable both for normal and datetime-like Index
-    pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="Y")
-    iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
+    pidx = pd.PeriodIndex(
+        ["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="Y"
+    )
+    iidx = pd.Index([2011, 2013, 2015, 2012, 2011], name="idx")
     ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
     ordered2, indexer2 = iidx.sort_values(return_indexer=True, ascending=False)
     tm.assert_numpy_array_equal(indexer1, indexer2)

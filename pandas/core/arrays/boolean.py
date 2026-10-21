@@ -54,11 +54,6 @@ class BooleanDtype(BaseMaskedDtype):
     which implements Kleene logic (sometimes called three-value logic) for
     logical operations. See :ref:`boolean.kleene` for more.
 
-    .. warning::
-
-        BooleanDtype is considered experimental. The implementation and
-        parts of the API may change without warning.
-
     Attributes
     ----------
     None
@@ -280,11 +275,6 @@ class BooleanArray(BaseMaskedArray):
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
 
-    .. warning::
-
-       BooleanArray is considered experimental. The implementation and
-       parts of the API may change without warning.
-
     Parameters
     ----------
     values : numpy.ndarray
@@ -392,6 +382,7 @@ class BooleanArray(BaseMaskedArray):
 
     def _logical_method(self, other, op):
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
+        ops.disallow_datetimelike_logical_op(self, other, op)
         other_is_scalar = lib.is_scalar(other)
         mask = None
 

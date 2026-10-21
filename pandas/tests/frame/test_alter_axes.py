@@ -3,7 +3,7 @@ from datetime import (
     datetime,
 )
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -14,7 +14,7 @@ class TestDataFrameAlterAxes:
         # GH 6785
         # set the index manually
 
-        df = DataFrame([{"ts": datetime(2014, 4, 1, tzinfo=UTC), "foo": 1}])
+        df = pd.DataFrame([{"ts": datetime(2014, 4, 1, tzinfo=UTC), "foo": 1}])
         expected = df.set_index("ts")
         df.index = df["ts"]
         df.pop("ts")

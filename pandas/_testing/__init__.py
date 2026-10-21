@@ -86,7 +86,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Iterable,
-        Sequence,
     )
     from contextlib import AbstractContextManager
 
@@ -273,6 +272,36 @@ arithmetic_dunder_methods = [
 
 comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
 
+comparison_ops = [
+    operator.eq,
+    operator.ne,
+    operator.gt,
+    operator.ge,
+    operator.lt,
+    operator.le,
+]
+
+numeric_reductions = [
+    "count",
+    "sum",
+    "max",
+    "min",
+    "mean",
+    "prod",
+    "std",
+    "var",
+    "median",
+    "kurt",
+    "skew",
+    "sem",
+]
+
+boolean_reductions = ["all", "any"]
+
+all_reductions = numeric_reductions + boolean_reductions
+
+numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
 
 # -----------------------------------------------------------------------------
 # Comparators
@@ -336,7 +365,7 @@ class SubclassedSeries(Series):
     _metadata = ["testattr", "name"]
 
     @property
-    def _constructor(self) -> Callable:  # type: ignore[override]
+    def _constructor(self) -> Callable[..., Any]:  # type: ignore[override]
         # For testing, those properties return a generic callable, and not
         # the actual class. In this case that is equivalent, but it is to
         # ensure we don't rely on the property returning a class
@@ -345,7 +374,7 @@ class SubclassedSeries(Series):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     @property
-    def _constructor_expanddim(self) -> Callable:
+    def _constructor_expanddim(self) -> Callable[..., Any]:
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
 
@@ -353,12 +382,12 @@ class SubclassedDataFrame(DataFrame):
     _metadata = ["testattr"]
 
     @property
-    def _constructor(self) -> Callable:  # type: ignore[override]
+    def _constructor(self) -> Callable[..., Any]:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
     # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self) -> Callable:  # type: ignore[override]
+    def _constructor_sliced(self) -> Callable[..., Any]:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -384,7 +413,7 @@ def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
 
 def external_error_raised(
     expected_exception: type[Exception],
-) -> AbstractContextManager:
+) -> AbstractContextManager[Any]:
     """
     Helper function to mark pytest.raises that have an external error message.
 
@@ -403,33 +432,7 @@ def external_error_raised(
     return pytest.raises(expected_exception, match=None)
 
 
-def get_cython_table_params(
-    ndframe: DataFrame | Series,
-    func_names_and_expected: Iterable[Sequence[Any]],
-) -> list[tuple[DataFrame | Series, str, Any]]:
-    """
-    Combine frame, functions from com._cython_table
-    keys and expected result.
-
-    Parameters
-    ----------
-    ndframe : DataFrame or Series
-    func_names_and_expected : Sequence of two items
-        The first item is a name of an NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value.
-
-    Returns
-    -------
-    list
-        List of three items (DataFrame, function, expected result)
-    """
-    results = []
-    for func_name, expected in func_names_and_expected:
-        results.append((ndframe, func_name, expected))
-    return results
-
-
-def get_op_from_name(op_name: str) -> Callable:
+def get_op_from_name(op_name: str) -> Callable[..., Any]:
     """
     The operator function for a given op name.
 
@@ -502,11 +505,17 @@ def _pa_buffer_addresses(pa_data: pa.ChunkedArray) -> set[int]:
 
     Zero-length buffers are excluded because distinct empty arrays can be
     handed out the same address, which would look like sharing.
+    ``buffers()`` omits a dictionary's values, so those are added separately.
     """
+    arrays = []
+    for chunk in pa_data.iterchunks():
+        arrays.append(chunk)
+        if pa.types.is_dictionary(chunk.type):
+            arrays.append(chunk.dictionary)
     return {
         buf.address
-        for chunk in pa_data.iterchunks()
-        for buf in chunk.buffers()
+        for arr in arrays
+        for buf in arr.buffers()
         if buf is not None and buf.size > 0
     }
 
@@ -565,9 +574,9 @@ def shares_memory(left: Any, right: Any) -> bool:
 
 
 def run_multithreaded(
-    closure: Callable,
+    closure: Callable[..., Any],
     max_workers: int,
-    arguments: Iterable | None = None,
+    arguments: Iterable[Any] | None = None,
     pass_barrier: bool = False,
 ) -> None:
     with ThreadPoolExecutor(max_workers=max_workers) as tpe:
@@ -651,7 +660,6 @@ __all__ = [
     "convert_rows_list_to_csv_str",
     "decompress_file",
     "external_error_raised",
-    "get_cython_table_params",
     "get_dtype",
     "get_finest_unit",
     "get_locales",

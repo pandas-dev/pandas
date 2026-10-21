@@ -158,20 +158,21 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8")
         else:
-            # e.g. Sparse[bool, False]  # TODO: no test cases get here
+            # e.g. Sparse[bool, False], see test_mode_sparse_bool
             return np.asarray(values).astype("uint8", copy=False)
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values)
 
     elif is_float_dtype(values.dtype):
+        # itemsize comes off the values, not the dtype: an ExtensionDtype
+        # (e.g. Sparse[float64]) may not have one.
         # Note: checking `values.dtype == "float128"` raises on Windows and 32bit
-        # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype, dtype[Any]]"
-        # has no attribute "itemsize"
-        if values.dtype.itemsize in [2, 12, 16]:  # type: ignore[union-attr]
+        float_values = np.asarray(values)
+        if float_values.dtype.itemsize in [2, 12, 16]:
             # we dont (yet) have float128 hashtable support
-            return ensure_float64(values)
-        return np.asarray(values)
+            return ensure_float64(float_values)
+        return float_values
 
     elif is_complex_dtype(values.dtype):
         # NumpyExtensionArray needs to be unwrapped to the underlying ndarray
@@ -242,15 +243,38 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
                 f"got {type(values).__name__}."
             )
 
-        inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "mixed-integer"]:
-            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
-            if isinstance(values, tuple):
-                values = list(values)
+        arr: np.ndarray | None = None
+        if not (len(values) and isinstance(values[0], (str, bytes, tuple))):
+            # np.asarray would give a str/bytes, 2D or object array here
+            try:
+                arr = np.asarray(values)
+            except ValueError:
+                # ragged nested sequences
+                pass
+        if arr is None or arr.ndim != 1 or _asarray_is_lossy(arr, values):
             values = construct_1d_object_array_from_listlike(values)
         else:
-            values = np.asarray(values)
+            values = arr
     return values
+
+
+def _asarray_is_lossy(arr: np.ndarray, values) -> bool:
+    """
+    Whether ``arr = np.asarray(values)`` may have changed some element.
+    """
+    kind = arr.dtype.kind
+    if kind in "US":
+        # stringified non-strings (GH#22160) or stripped trailing NULs
+        return True
+    if kind in "fc":
+        # ints cast to float64 are inexact above 2**53
+        inexact = np.flatnonzero(np.abs(arr) >= _FLOAT64_INT_EXACT_MAX)
+        return any(lib.is_integer(values[i]) for i in inexact)
+    if kind in "mM":
+        # e.g. ints cast to timedelta64, timedelta64 cast to datetime64
+        scalar_type = np.datetime64 if kind == "M" else np.timedelta64
+        return not all(isinstance(val, scalar_type) for val in values)
+    return False
 
 
 _hashtables = {
@@ -635,12 +659,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                     values_arr = cast("np.ndarray", values)
                     needs_object = _may_lose_precision_as_float64(values_arr)
                 else:
-                    # float/complex values_dtype means _ensure_arraylike may
-                    # already have rounded large ints in a mixed int/float
-                    # list, so exactness cannot be checked from the array;
-                    # recover it from orig_values via the object cast. Smaller
-                    # ints/bools cast to float64 exactly.
-                    needs_object = values_dtype.kind in "fc"
+                    # comps is not a 64-bit int and _ensure_arraylike kept any
+                    # ints float64 cannot hold as objects, so the cast is exact
+                    needs_object = False
             if needs_object:
                 values = construct_1d_object_array_from_listlike(orig_values)
 
@@ -1211,7 +1232,7 @@ def mode(
     if res_mask is None:
         res_mask = np.zeros(npresult.shape, dtype=np.bool_)
     else:
-        return npresult, res_mask
+        return _reconstruct_data(npresult, original.dtype, original), res_mask
 
     try:
         npresult = safe_sort(npresult)
@@ -1259,6 +1280,10 @@ def rank(
     mask : bool ndarray, optional
         Boolean array indicating which elements to exclude from ranking.
     """
+    if values.dtype.kind == "c":
+        # GH#43770 complex has no natural ordering
+        raise TypeError(f"dtype '{values.dtype}' does not support operation 'rank'")
+
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)
 
@@ -1316,6 +1341,35 @@ def is_monotonic(values: ArrayLike) -> tuple[bool, bool, bool]:
 # ---- #
 # take #
 # ---- #
+
+
+def occurrence_rank(codes: npt.NDArray[np.intp]) -> npt.NDArray[np.intp]:
+    """
+    For each element, the number of earlier elements with the same code.
+
+    Parameters
+    ----------
+    codes : np.ndarray[intp]
+
+    Returns
+    -------
+    np.ndarray[intp]
+
+    Examples
+    --------
+    >>> occurrence_rank(np.array([0, 1, 0, 0, 1]))
+    array([0, 0, 1, 2, 1])
+    """
+    order = np.argsort(codes, kind="stable")
+    sorted_codes = codes[order]
+    n = len(codes)
+    is_start = np.empty(n, dtype=bool)
+    is_start[:1] = True
+    is_start[1:] = sorted_codes[1:] != sorted_codes[:-1]
+    group_start = np.maximum.accumulate(np.where(is_start, np.arange(n), 0))
+    rank = np.empty(n, dtype=np.intp)
+    rank[order] = np.arange(n) - group_start
+    return rank
 
 
 @set_module("pandas.api.extensions")
@@ -1722,14 +1776,24 @@ def safe_sort(
 
     if use_counting:
         ordered = np.sort(cast("np.ndarray", values))
-    elif (
-        not isinstance(values.dtype, ExtensionDtype)
-        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
-    ):
-        ordered = _sort_mixed(values)
     else:
+        null_mask = (
+            isna(values)
+            if values.dtype == object and not isinstance(values, ABCMultiIndex)
+            else None
+        )
         try:
-            if (
+            if null_mask is not None and null_mask.any():
+                # argsort does not raise on NaN/NaT but misplaces them, since
+                #  every comparison with them is False; _sort_mixed puts nulls last
+                non_null = values[~null_mask]
+                if len(non_null) and isinstance(non_null[0], tuple):
+                    # _sort_mixed would argsort the tuples, misplacing NaN
+                    #  elements inside them
+                    ordered = _sort_tuples(values)  # type: ignore[arg-type]
+                else:
+                    ordered = _sort_mixed(values)
+            elif (
                 codes is None
                 and isinstance(values, np.ndarray)
                 and values.dtype.kind in "iufb"
@@ -1844,7 +1908,10 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     from pandas.core.internals.construction import to_arrays
     from pandas.core.sorting import lexsort_indexer
 
-    arrays, _ = to_arrays(values, None)
+    # a str or bytes element is ordered as the tuple of its elements
+    arrays, _ = to_arrays(
+        [tuple(x) if isinstance(x, (str, bytes)) else x for x in values], None
+    )
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
 

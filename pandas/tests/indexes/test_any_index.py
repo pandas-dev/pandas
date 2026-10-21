@@ -9,7 +9,7 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
-from pandas import StringDtype
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -40,7 +40,7 @@ def test_map_identity_mapping(index, request, using_infer_string):
     # GH#12766
     if (
         not using_infer_string
-        and isinstance(index.dtype, StringDtype)
+        and isinstance(index.dtype, pd.StringDtype)
         and index.dtype.storage == "python"
     ):
         mark = pytest.mark.xfail(reason="Does not preserve dtype")

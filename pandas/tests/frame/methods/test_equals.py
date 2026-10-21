@@ -1,24 +1,20 @@
 import numpy as np
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestEquals:
     def test_dataframe_not_equal(self):
         # see GH#28839
-        df1 = DataFrame({"a": [1, 2], "b": ["s", "d"]})
-        df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
+        df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
+        df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
         assert df1.equals(df2) is False
 
     def test_equals_object_array_vs_scalar(self):
         # GH#43867 one object-dtype element is a numpy array, the other a
         #  scalar; these must not compare equal
-        df = DataFrame({"x": ["a"]}, dtype=object)
+        df = pd.DataFrame({"x": ["a"]}, dtype=object)
         other = df.copy()
         other["x"] = [np.array(["a"], dtype=object)]
         assert df["x"].dtype == other["x"].dtype == object
@@ -27,12 +23,12 @@ class TestEquals:
 
     def test_equals_different_blocks(self):
         # GH#9330
-        df0 = DataFrame(
+        df0 = pd.DataFrame(
             {"A": [1.0, 2.0], "B": np.array([1, 2], dtype=np.int64), "C": [3.0, 4.0]}
         )
         # build df1 via sequential __setitem__ so the float columns end up
         # in separate blocks instead of being consolidated upfront
-        df1 = DataFrame({"A": [1.0, 2.0]})
+        df1 = pd.DataFrame({"A": [1.0, 2.0]})
         df1["B"] = np.array([1, 2], dtype=np.int64)
         df1["C"] = np.array([3.0, 4.0])
         assert len(df0._mgr.blocks) == 2
@@ -46,12 +42,12 @@ class TestEquals:
     def test_equals(self):
         # Add object dtype column with nans
         index = np.random.default_rng(2).random(10)
-        df1 = DataFrame(
+        df1 = pd.DataFrame(
             np.random.default_rng(2).random(10), index=index, columns=["floats"]
         )
         df1["text"] = "the sky is so blue. we could use more chocolate.".split()
-        df1["start"] = date_range("2000-1-1", periods=10, freq="min")
-        df1["end"] = date_range("2000-1-1", periods=10, freq="D")
+        df1["start"] = pd.date_range("2000-1-1", periods=10, freq="min")
+        df1["end"] = pd.date_range("2000-1-1", periods=10, freq="D")
         df1["diff"] = df1["end"] - df1["start"]
         # Explicitly cast to object, to avoid implicit cast when setting np.nan
         df1["bool"] = (np.arange(10) % 3 == 0).astype(object)
@@ -81,7 +77,7 @@ class TestEquals:
         assert not df1.equals(different)
 
         # DatetimeIndex
-        index = date_range("2000-1-1", periods=10, freq="min")
+        index = pd.date_range("2000-1-1", periods=10, freq="min")
         df1 = df1.set_index(index)
         df2 = df1.copy()
         assert df1.equals(df2)
@@ -100,14 +96,14 @@ class TestEquals:
         assert df3.equals(df2)
 
     def test_equals_categorical_categories_order(self):
-        cat1 = Categorical(["a", "b", "a"], categories=["a", "b"])
-        cat2 = Categorical(["a", "b", "a"], categories=["b", "a"])
-        df1 = DataFrame({"c": cat1})
-        df2 = DataFrame({"c": cat2})
+        cat1 = pd.Categorical(["a", "b", "a"], categories=["a", "b"])
+        cat2 = pd.Categorical(["a", "b", "a"], categories=["b", "a"])
+        df1 = pd.DataFrame({"c": cat1})
+        df2 = pd.DataFrame({"c": cat2})
 
         assert df1.equals(df2)
 
-        cat3 = Categorical(["a", "b", "a"], categories=["a", "b", "c"])
-        df3 = DataFrame({"c": cat3})
+        cat3 = pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"])
+        df3 = pd.DataFrame({"c": cat3})
 
         assert not df1.equals(df3)

@@ -5,16 +5,9 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Categorical,
-    DataFrame,
-    MultiIndex,
-    Series,
-    array,
-    concat,
-    merge,
-)
+from pandas.errors import Pandas4Warning
+
+import pandas as pd
 import pandas._testing as tm
 from pandas.core import algorithms
 from pandas.core.algorithms import safe_sort
@@ -31,7 +24,7 @@ from pandas.core.sorting import (
 @pytest.fixture
 def left_right():
     low, high, n = -1 << 10, 1 << 10, 600
-    left = DataFrame(
+    left = pd.DataFrame(
         np.random.default_rng(2).integers(low, high, (n, 7)), columns=list("ABCDEFG")
     )
     shape = left.nunique().to_numpy()
@@ -50,7 +43,7 @@ class TestSorting:
     def test_int64_overflow(self):
         B = np.concatenate((np.arange(149), np.arange(149), np.arange(75)))
         A = np.arange(373)
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": A,
                 "B": B,
@@ -90,7 +83,9 @@ class TestSorting:
     def test_int64_overflow_groupby_large_range(self):
         # GH9096
         values = range(55109)
-        data = DataFrame.from_dict({"a": values, "b": values, "c": values, "d": values})
+        data = pd.DataFrame.from_dict(
+            {"a": values, "b": values, "c": values, "d": values}
+        )
         grouped = data.groupby(["a", "b", "c", "d"])
         assert len(grouped) == len(values)
 
@@ -105,7 +100,7 @@ class TestSorting:
         i = rs.permutation(len(arr))
         arr = arr[i]  # shuffle rows
 
-        df = DataFrame(arr, columns=list("abcde"))
+        df = pd.DataFrame(arr, columns=list("abcde"))
         df["jim"], df["joe"] = np.zeros((2, len(df)))
         gr = df.groupby(list("abcde"))
 
@@ -114,12 +109,12 @@ class TestSorting:
             tuple(ping.ngroups for ping in gr._grouper.groupings)
         )
 
-        mi = MultiIndex.from_arrays(
+        mi = pd.MultiIndex.from_arrays(
             [ar.ravel() for ar in np.array_split(np.unique(arr, axis=0), 5, axis=1)],
             names=list("abcde"),
         )
 
-        res = DataFrame(
+        res = pd.DataFrame(
             np.zeros((len(mi), 2)), columns=["jim", "joe"], index=mi
         ).sort_index()
 
@@ -182,7 +177,7 @@ class TestSorting:
         # Compare with Categorical-based reference implementation
         labels = []
         for key, ord_ in zip(reversed(keys), [order, order], strict=True):
-            cat = Categorical(key, ordered=True)
+            cat = pd.Categorical(key, ordered=True)
             codes = cat.codes
             num_categories = len(cat.categories)
             mask = codes == -1
@@ -208,7 +203,7 @@ class TestSorting:
 
         labels = []
         for key, ord_ in zip(reversed(keys), [order, order], strict=True):
-            cat = Categorical(key, ordered=True)
+            cat = pd.Categorical(key, ordered=True)
             codes = cat.codes
             num_categories = len(cat.categories)
             mask = codes == -1
@@ -278,22 +273,22 @@ class TestSorting:
 class TestMerge:
     def test_int64_overflow_outer_merge(self):
         # #2690, combinatorial explosion
-        df1 = DataFrame(
+        df1 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((1000, 7)),
             columns=[*list("ABCDEF"), "G1"],
         )
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             np.random.default_rng(3).standard_normal((1000, 7)),
             columns=[*list("ABCDEF"), "G2"],
         )
-        result = merge(df1, df2, how="outer")
+        result = pd.merge(df1, df2, how="outer")
         assert len(result) == 2000
 
     @pytest.mark.slow
     def test_int64_overflow_check_sum_col(self, left_right):
         left, right = left_right
 
-        out = merge(left, right, how="outer")
+        out = pd.merge(left, right, how="outer")
         assert len(out) == len(left)
         tm.assert_series_equal(out["left"], -out["right"], check_names=False)
         result = out.iloc[:, :-2].sum(axis=1)
@@ -305,19 +300,19 @@ class TestMerge:
     def test_int64_overflow_how_merge(self, left_right, join_type):
         left, right = left_right
 
-        out = merge(left, right, how="outer")
+        out = pd.merge(left, right, how="outer")
         out.sort_values(out.columns.tolist(), inplace=True)
-        tm.assert_frame_equal(out, merge(left, right, how=join_type, sort=True))
+        tm.assert_frame_equal(out, pd.merge(left, right, how=join_type, sort=True))
 
     @pytest.mark.slow
     def test_int64_overflow_sort_false_order(self, left_right):
         left, right = left_right
 
         # check that left merge w/ sort=False maintains left frame order
-        out = merge(left, right, how="left", sort=False)
+        out = pd.merge(left, right, how="left", sort=False)
         tm.assert_frame_equal(left, out[left.columns.tolist()])
 
-        out = merge(right, left, how="left", sort=False)
+        out = pd.merge(right, left, how="left", sort=False)
         tm.assert_frame_equal(right, out[right.columns.tolist()])
 
     @pytest.mark.slow
@@ -325,7 +320,7 @@ class TestMerge:
         # one-2-many/none match
         how = join_type
         low, high, n = -1 << 10, 1 << 10, 589
-        left = DataFrame(
+        left = pd.DataFrame(
             np.random.default_rng(2).integers(low, high, (n, 7)).astype("int64"),
             columns=list("ABCDEFG"),
         )
@@ -335,16 +330,16 @@ class TestMerge:
         assert is_int64_overflow_possible(shape)
 
         # add duplicates to left frame
-        left = concat([left, left], ignore_index=True)
+        left = pd.concat([left, left], ignore_index=True)
 
-        right = DataFrame(
+        right = pd.DataFrame(
             np.random.default_rng(3).integers(low, high, (n // 2, 7)).astype("int64"),
             columns=list("ABCDEFG"),
         )
 
         # add duplicates & overlap with left to the right frame
         i = np.random.default_rng(4).choice(len(left), n)
-        right = concat([right, right, left.iloc[i]], ignore_index=True)
+        right = pd.concat([right, right, left.iloc[i]], ignore_index=True)
 
         left["left"] = np.random.default_rng(2).standard_normal(len(left))
         right["right"] = np.random.default_rng(2).standard_normal(len(right))
@@ -376,7 +371,7 @@ class TestMerge:
             if k not in ldict:
                 vals.extend((*k, np.nan, rv) for rv in rval)
 
-        out = DataFrame(vals, columns=[*list("ABCDEFG"), "left", "right"])
+        out = pd.DataFrame(vals, columns=[*list("ABCDEFG"), "left", "right"])
         out = out.sort_values(out.columns.to_list(), ignore_index=True)
 
         jmask = {
@@ -390,7 +385,7 @@ class TestMerge:
         frame = out[mask].sort_values(out.columns.to_list(), ignore_index=True)
         assert mask.all() ^ mask.any() or how == "outer"
 
-        res = merge(left, right, how=how, sort=sort)
+        res = pd.merge(left, right, how=how, sort=sort)
         if sort:
             kcols = list("ABCDEFG")
             tm.assert_frame_equal(
@@ -579,7 +574,7 @@ class TestSafeSort:
 
     def test_unsortable(self):
         # GH 13714
-        arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
+        arr = np.array([1, 2, datetime(2011, 1, 1), 0, 3], dtype=object)
         msg = "'[<>]' not supported between instances of .*"
         with pytest.raises(TypeError, match=msg):
             safe_sort(arr)
@@ -597,19 +592,19 @@ class TestSafeSort:
             safe_sort(values=arg, codes=codes)
 
     @pytest.mark.parametrize(
-        "arg, exp", [[[1, 3, 2], [1, 2, 3]], [[1, 3, NA, 2], [1, 2, 3, NA]]]
+        "arg, exp", [[[1, 3, 2], [1, 2, 3]], [[1, 3, pd.NA, 2], [1, 2, 3, pd.NA]]]
     )
     def test_extension_array(self, arg, exp):
-        a = array(arg, dtype="Int64")
+        a = pd.array(arg, dtype="Int64")
         result = safe_sort(a)
-        expected = array(exp, dtype="Int64")
+        expected = pd.array(exp, dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("verify", [True, False])
     def test_extension_array_codes(self, verify):
-        a = array([1, 3, 2], dtype="Int64")
+        a = pd.array([1, 3, 2], dtype="Int64")
         result, codes = safe_sort(a, [0, 1, -1, 2], use_na_sentinel=True, verify=verify)
-        expected_values = array([1, 2, 3], dtype="Int64")
+        expected_values = pd.array([1, 2, 3], dtype="Int64")
         expected_codes = np.array([0, 2, -1, 1], dtype=np.intp)
         tm.assert_extension_array_equal(result, expected_values)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -622,13 +617,82 @@ def test_mixed_str_null(nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([2, np.nan, 1], [1, 2, np.nan]),
+        ([2.0, np.nan, 1.0], [1.0, 2.0, np.nan]),
+        (
+            [pd.Timestamp("2021-01-01"), pd.NaT, pd.Timestamp("2020-01-01")],
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2021-01-01"), pd.NaT],
+        ),
+    ],
+)
+def test_object_with_nan_sorts_nulls_last(values, expected):
+    # GH#70216 argsort silently misorders NaN/NaT in object arrays
+    values = np.array(values, dtype=object)
+    expected = np.array(expected, dtype=object)
+
+    result = safe_sort(values)
+    tm.assert_numpy_array_equal(result, expected)
+
+    codes = np.array([0, 1, 2, -1], dtype=np.intp)
+    result, result_codes = safe_sort(values, codes)
+    tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result_codes, np.array([1, 2, 0, -1], dtype=np.intp))
+
+
+@pytest.mark.parametrize(
+    "keys, expected_keys, expected_sums",
+    [
+        ([("a", 2), ("a", None), np.nan], [("a", 2), ("a", None), np.nan], [1, 2, 3]),
+        ([("b", 2), (1, "a"), np.nan], [(1, "a"), ("b", 2), np.nan], [2, 1, 3]),
+        (
+            [("a", 3.0), ("a", np.nan), np.nan, ("a", 1.0), ("a", 2.0)],
+            [("a", 1.0), ("a", 2.0), ("a", 3.0), ("a", np.nan), np.nan],
+            [4, 5, 1, 2, 3],
+        ),
+    ],
+)
+def test_tuples_with_nan_falls_back_to_sort_tuples(keys, expected_keys, expected_sums):
+    # GH#70216 argsort raises on incomparable tuple elements, misorders NaN ones
+    keys = pd.Series(keys, dtype=object)
+    expected_keys = pd.Index(expected_keys, dtype=object, tupleize_cols=False)
+
+    # _sort_tuples pads the NaN key to tuple length, deprecated in GH#65751
+    msg = "mismatched lengths"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = safe_sort(keys.to_numpy())
+    tm.assert_numpy_array_equal(result, expected_keys.to_numpy())
+
+    values = pd.Series(range(1, len(keys) + 1))
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = values.groupby(keys, dropna=False).sum()
+    expected = pd.Series(expected_sums, index=expected_keys)
+    tm.assert_series_equal(result, expected)
+
+
 def test_safe_sort_multiindex():
     # GH#48412
-    arr1 = Series([2, 1, NA, NA], dtype="Int64")
+    arr1 = pd.Series([2, 1, pd.NA, pd.NA], dtype="Int64")
     arr2 = [2, 1, 3, 3]
-    midx = MultiIndex.from_arrays([arr1, arr2])
+    midx = pd.MultiIndex.from_arrays([arr1, arr2])
     result = safe_sort(midx)
-    expected = MultiIndex.from_arrays(
-        [Series([1, 2, NA, NA], dtype="Int64"), [1, 2, 3, 3]]
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Series([1, 2, pd.NA, pd.NA], dtype="Int64"), [1, 2, 3, 3]]
     )
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([("b", 1), "ab", ("a", 2)], [("a", 2), "ab", ("b", 1)]),
+        ([(98, 1), b"ab", (97, 2)], [(97, 2), b"ab", (98, 1)]),
+    ],
+)
+def test_safe_sort_tuples_mixed_with_str(values, expected):
+    # GH#50461 a str or bytes element is ordered as the tuple of its elements,
+    #  without the DataFrame constructor's deprecation warning
+    result = safe_sort(np.array(values, dtype=object))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=object))

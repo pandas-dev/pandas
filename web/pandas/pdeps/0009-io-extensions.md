@@ -26,7 +26,7 @@ pandas.load_io_plugins()
 
 df = pandas.DataFrame.read_duckdb("SELECT * FROM 'my_dataset.parquet';")
 
-df.to_deltalake('/delta/my_dataset')
+df.to_deltalake("/delta/my_dataset")
 ```
 
 This would allow to easily extend the existing number of connectors, adding
@@ -187,8 +187,11 @@ df.to_hive(hive_conn, "hive_table")
 This API allows for method chaining:
 
 ```python
-(pandas.read_duckdb("SELECT * FROM 'dataset.parquet';")
-       .to_hive(hive_conn, "hive_table"))
+(
+    pandas.read_duckdb("SELECT * FROM 'dataset.parquet';").to_hive(
+        hive_conn, "hive_table"
+    )
+)
 ```
 
 The total number of I/O functions and methods is expected to be small, as users
@@ -291,16 +294,13 @@ Better integration with PyArrow tables was discussed in
 _Current API_:
 
 ```python
-pyarrow.Table.from_pandas(table.to_pandas()
-                               .query('my_col > 0'))
+pyarrow.Table.from_pandas(table.to_pandas().query("my_col > 0"))
 ```
 
 _Proposed API_:
 
 ```python
-(pandas.read_pyarrow(table)
-       .query('my_col > 0')
-       .to_pyarrow())
+(pandas.read_pyarrow(table).query("my_col > 0").to_pyarrow())
 ```
 
 **Polars**, **Vaex** and other dataframe frameworks could benefit from
@@ -311,16 +311,13 @@ more explicitly API. Integration with Polars was requested in
 _Current API_:
 
 ```python
-polars.DataFrame(df.to_pandas()
-                   .query('my_col > 0'))
+polars.DataFrame(df.to_pandas().query("my_col > 0"))
 ```
 
 _Proposed API_:
 
 ```python
-(pandas.read_polars(df)
-       .query('my_col > 0')
-       .to_polars())
+(pandas.read_polars(df).query("my_col > 0").to_polars())
 ```
 
 **DuckDB** provides an out-of-core engine able to push predicates before

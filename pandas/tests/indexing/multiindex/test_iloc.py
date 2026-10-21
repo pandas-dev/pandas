@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -18,7 +14,7 @@ def simple_multiindex_dataframe():
     """
 
     data = np.random.default_rng(2).standard_normal((3, 3))
-    return DataFrame(
+    return pd.DataFrame(
         data, columns=[[2, 2, 4], [6, 8, 10]], index=[[4, 4, 8], [8, 10, 12]]
     )
 
@@ -28,15 +24,17 @@ def simple_multiindex_dataframe():
     [
         (
             lambda df: df.iloc[0],
-            lambda arr: Series(arr[0], index=[[2, 2, 4], [6, 8, 10]], name=(4, 8)),
+            lambda arr: pd.Series(arr[0], index=[[2, 2, 4], [6, 8, 10]], name=(4, 8)),
         ),
         (
             lambda df: df.iloc[2],
-            lambda arr: Series(arr[2], index=[[2, 2, 4], [6, 8, 10]], name=(8, 12)),
+            lambda arr: pd.Series(arr[2], index=[[2, 2, 4], [6, 8, 10]], name=(8, 12)),
         ),
         (
             lambda df: df.iloc[:, 2],
-            lambda arr: Series(arr[:, 2], index=[[4, 4, 8], [8, 10, 12]], name=(4, 10)),
+            lambda arr: pd.Series(
+                arr[:, 2], index=[[4, 4, 8], [8, 10, 12]], name=(4, 10)
+            ),
         ),
     ],
 )
@@ -66,8 +64,8 @@ def test_iloc_returns_scalar(simple_multiindex_dataframe):
 def test_iloc_getitem_multiple_items():
     # GH 5528
     tup = zip(*[["a", "a", "b", "b"], ["x", "y", "x", "y"]], strict=True)
-    index = MultiIndex.from_tuples(tup)
-    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), index=index)
+    index = pd.MultiIndex.from_tuples(tup)
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((4, 4)), index=index)
     result = df.iloc[[2, 3]]
     expected = df.xs("b", drop_level=False)
     tm.assert_frame_equal(result, expected)
@@ -76,7 +74,7 @@ def test_iloc_getitem_multiple_items():
 def test_iloc_getitem_labels():
     # this is basically regular indexing
     arr = np.random.default_rng(2).standard_normal((4, 3))
-    df = DataFrame(
+    df = pd.DataFrame(
         arr,
         columns=[["i", "i", "j"], ["A", "A", "B"]],
         index=[["i", "i", "j", "k"], ["X", "X", "Y", "Y"]],
@@ -103,12 +101,12 @@ def test_frame_setitem_slice(multiindex_dataframe_random_data):
 
 def test_indexing_ambiguity_bug_1678():
     # GH 1678
-    columns = MultiIndex.from_tuples(
+    columns = pd.MultiIndex.from_tuples(
         [("Ohio", "Green"), ("Ohio", "Red"), ("Colorado", "Green")]
     )
-    index = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)])
+    index = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)])
 
-    df = DataFrame(np.arange(12).reshape((4, 3)), index=index, columns=columns)
+    df = pd.DataFrame(np.arange(12).reshape((4, 3)), index=index, columns=columns)
 
     result = df.iloc[:, 1]
     expected = df.loc[:, ("Ohio", "Red")]
@@ -125,14 +123,14 @@ def test_iloc_integer_locations():
         ["str40", "str41"],
     ]
 
-    index = MultiIndex.from_tuples(
+    index = pd.MultiIndex.from_tuples(
         [("CC", "A"), ("CC", "B"), ("CC", "B"), ("BB", "a"), ("BB", "b")]
     )
 
-    expected = DataFrame(data)
-    df = DataFrame(data, index=index)
+    expected = pd.DataFrame(data)
+    df = pd.DataFrame(data, index=index)
 
-    result = DataFrame([[df.iloc[r, c] for c in range(2)] for r in range(5)])
+    result = pd.DataFrame([[df.iloc[r, c] for c in range(2)] for r in range(5)])
 
     tm.assert_frame_equal(result, expected)
 
@@ -152,7 +150,7 @@ def test_iloc_integer_locations():
 )
 def test_iloc_setitem_int_multiindex_series(data, indexes, values, expected_k):
     # GH17148
-    df = DataFrame(data=data, columns=["i", "j", "k"])
+    df = pd.DataFrame(data=data, columns=["i", "j", "k"])
     df = df.set_index(["i", "j"])
 
     series = df.k.copy()

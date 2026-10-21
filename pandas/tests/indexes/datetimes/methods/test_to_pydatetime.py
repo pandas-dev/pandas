@@ -8,11 +8,7 @@ import dateutil.tz
 from dateutil.tz import tzlocal
 import numpy as np
 
-from pandas import (
-    DatetimeIndex,
-    date_range,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.indexes.datetimes.test_timezones import FixedOffset
 
@@ -26,12 +22,12 @@ class TestToPyDatetime:
 
         arr = np.array([dt], dtype=object)
 
-        result = to_datetime(arr, utc=True)
+        result = pd.to_datetime(arr, utc=True)
         assert result.tz is UTC
 
-        rng = date_range("2012-11-03 03:00", "2012-11-05 03:00", tz=tzlocal())
+        rng = pd.date_range("2012-11-03 03:00", "2012-11-05 03:00", tz=tzlocal())
         arr = rng.to_pydatetime()
-        result = to_datetime(arr, utc=True)
+        result = pd.to_datetime(arr, utc=True)
         assert result.tz is UTC
 
     def test_dti_to_pydatetime_fizedtz(self):
@@ -42,7 +38,7 @@ class TestToPyDatetime:
                 datetime(2000, 1, 3, tzinfo=fixed_off),
             ]
         )
-        dti = DatetimeIndex(dates)
+        dti = pd.DatetimeIndex(dates)
 
         result = dti.to_pydatetime()
         tm.assert_numpy_array_equal(dates, result)

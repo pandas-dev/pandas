@@ -19,6 +19,8 @@ will never be held in an Index.
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
@@ -238,6 +240,30 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         #  adapt something like libindex._bin_search.
         super().test_searchsorted(data_for_sorting, as_series)
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_empty_array(self, method, data):
+        super().test_argmin_argmax_empty_array(method, data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_all_na(self, method, data, na_value):
+        super().test_argmin_argmax_all_na(method, data, na_value)
+
+    def _compare_other(self, ser, data, op, other):
+        warn = None
+        if op.__name__ not in ["eq", "ne"] and data.dtype.kind == "c":
+            # GH#43770 complex has no natural ordering
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(
+            warn, match="deprecated on complex data", check_stacklevel=False
+        ):
+            super()._compare_other(ser, data, op, other)
+
     @pytest.mark.xfail(reason="NumpyExtensionArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
@@ -333,6 +359,8 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if ser.dtype.kind == "O":
             return op_name in ["sum", "min", "max", "any", "all", "count"]
+        if ser.dtype.kind == "c":
+            return op_name not in ["skew", "kurt"]
         return True
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
@@ -343,13 +371,24 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         cmp_dtype = ser.dtype.numpy_dtype  # type: ignore[union-attr]
         alt = ser.astype(cmp_dtype)
         exp_op = getattr(alt, op_name)
-        if op_name == "count":
-            result = res_op()
-            expected = exp_op()
-        else:
-            result = res_op(skipna=skipna)
-            expected = exp_op(skipna=skipna)
+        warn = None
+        if op_name in ["median", "min", "max"] and ser.dtype.kind == "c":
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match="deprecated on complex data"):
+            if op_name == "count":
+                result = res_op()
+                expected = exp_op()
+            else:
+                result = res_op(skipna=skipna)
+                expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.filterwarnings(
+        "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+    )
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_array(self, request, data, all_reductions, skipna):
+        super().test_reduce_array(request, data, all_reductions, skipna)
 
     @pytest.mark.skip("TODO: tests not written yet")
     @pytest.mark.parametrize("skipna", [True, False])
@@ -524,6 +563,20 @@ class TestNumpyExtensionArray(base.ExtensionTests):
                 raise
         else:
             super().test_json_roundtrip(data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:Casting complex values to real discards the imaginary part:"
+        "numpy.exceptions.ComplexWarning"
+    )
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # While plotting complex numbers only the real part is plotted, therefore numpy
+        # raises a ComplexWarning. Object dtype as it cannot be plotted on y-axis.
+        if is_object_dtype(plot_data["Data"].dtype):
+            with pytest.raises(TypeError, match="no numeric data to plot"):
+                super().test_plot_on_y_axis(plot_data)
+        else:
+            super().test_plot_on_y_axis(plot_data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

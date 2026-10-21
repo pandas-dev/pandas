@@ -3,10 +3,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    concat,
-    merge,
-)
 import pandas._testing as tm
 
 
@@ -83,18 +79,18 @@ def test_copy_deprecation_merge_concat():
     with tm.assert_produces_warning(
         Pandas4Warning, match="copy", check_stacklevel=False
     ):
-        merge(df, df, copy=False)
+        pd.merge(df, df, copy=False)
 
     with tm.assert_produces_warning(
         Pandas4Warning, match="copy", check_stacklevel=False
     ):
-        concat([df, df], copy=False)
+        pd.concat([df, df], copy=False)
 
 
 @pytest.mark.parametrize("value", [False, True, "warn"])
 def test_copy_on_write_deprecation_option(value):
     msg = "Copy-on-Write can no longer be disabled"
-    # stacklevel points to contextlib due to use of context manager.
-    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+    # GH#63235: stacklevel is now fixed and correctly points to user code.
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=True):
         with pd.option_context("mode.copy_on_write", value):
             pass

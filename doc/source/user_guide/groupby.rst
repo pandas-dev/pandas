@@ -19,20 +19,20 @@ might wish to do one of the following:
 * **Aggregation**: compute a summary statistic (or statistics) for each
   group. Some examples:
 
-    * Compute group sums or means.
-    * Compute group sizes / counts.
+  * Compute group sums or means.
+  * Compute group sizes / counts.
 
 * **Transformation**: perform some group-specific computations and return a
   like-indexed object. Some examples:
 
-    * Standardize data (zscore) within a group.
-    * Filling NAs within groups with a value derived from each group.
+  * Standardize data (zscore) within a group.
+  * Filling NAs within groups with a value derived from each group.
 
 * **Filtration**: discard some groups, according to a group-wise computation
   that evaluates to True or False. Some examples:
 
-    * Discard data that belong to groups with only a few members.
-    * Filter out data based on the group sum or mean.
+  * Discard data that belong to groups with only a few members.
+  * Filter out data based on the group sum or mean.
 
 Many of these operations are defined on GroupBy objects. These operations are similar
 to those of the :ref:`aggregating API <basics.aggregate>`,
@@ -124,7 +124,7 @@ consider the following ``DataFrame``:
    df
 
 On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`.
-This method returns a ``pandas.api.typing.DataFrameGroupBy`` instance.
+This method returns a :class:`pandas.api.typing.DataFrameGroupBy` instance.
 We could naturally group by either the ``A`` or ``B`` columns, or both:
 
 .. ipython:: python
@@ -186,7 +186,7 @@ only verifies that you've passed a valid mapping.
 GroupBy sorting
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups. With ``sort=False`` the order among group-keys follows the order of appearance of the keys in the original dataframe:
+By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups; it is also required when the group keys cannot be sorted. With ``sort=False`` the order among group-keys follows the order of appearance of the keys in the original dataframe:
 
 .. ipython:: python
 
@@ -1530,8 +1530,8 @@ You may also use slices or lists of slices.
 
 .. ipython:: python
 
-   df.groupby([df.index.year, df.index.month]).nth[1:]
-   df.groupby([df.index.year, df.index.month]).nth[1:, :-1]
+   df.groupby([df.index.year, df.index.month]).nth(slice(1, None))
+   df.groupby([df.index.year, df.index.month]).nth([slice(1, None), slice(None, -1)])
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~

@@ -7,11 +7,7 @@ from pandas._libs.missing import is_matching_na
 
 from pandas.core.dtypes.common import is_float
 
-from pandas import (
-    Index,
-    MultiIndex,
-    Series,
-)
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -21,12 +17,12 @@ from pandas import (
         ([1, np.nan, 3, np.nan], [0, 2, 1, 3]),
         (
             [1, np.nan, 3, np.nan],
-            MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c"), (3, "c")]),
+            pd.MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c"), (3, "c")]),
         ),
     ],
 )
 def test_equals(arr, idx):
-    s1 = Series(arr, index=idx)
+    s1 = pd.Series(arr, index=idx)
     s2 = s1.copy()
     assert s1.equals(s2)
 
@@ -40,7 +36,7 @@ def test_equals(arr, idx):
 def test_equals_list_array(val):
     # GH20676 Verify equals operator for list of Numpy arrays
     arr = np.array([1, 2])
-    s1 = Series([arr, arr])
+    s1 = pd.Series([arr, arr])
     s2 = s1.copy()
     assert s1.equals(s2)
 
@@ -51,9 +47,9 @@ def test_equals_list_array(val):
 def test_equals_false_negative():
     # GH8437 Verify false negative behavior of equals function for dtype object
     arr = [False, np.nan]
-    s1 = Series(arr)
+    s1 = pd.Series(arr)
     s2 = s1.copy()
-    s3 = Series(index=range(2), dtype=object)
+    s3 = pd.Series(index=range(2), dtype=object)
     s4 = s3.copy()
     s5 = s3.copy()
     s6 = s3.copy()
@@ -69,22 +65,22 @@ def test_equals_false_negative():
 
 def test_equals_matching_nas():
     # matching but not identical NAs
-    left = Series([np.datetime64("NaT", "ns")], dtype=object)
-    right = Series([np.datetime64("NaT", "ns")], dtype=object)
+    left = pd.Series([np.datetime64("NaT", "ns")], dtype=object)
+    right = pd.Series([np.datetime64("NaT", "ns")], dtype=object)
     assert left.equals(right)
-    assert Index(left).equals(Index(right))
+    assert pd.Index(left).equals(pd.Index(right))
     assert left.array.equals(right.array)
 
-    left = Series([np.timedelta64("NaT", "ns")], dtype=object)
-    right = Series([np.timedelta64("NaT", "ns")], dtype=object)
+    left = pd.Series([np.timedelta64("NaT", "ns")], dtype=object)
+    right = pd.Series([np.timedelta64("NaT", "ns")], dtype=object)
     assert left.equals(right)
-    assert Index(left).equals(Index(right))
+    assert pd.Index(left).equals(pd.Index(right))
     assert left.array.equals(right.array)
 
-    left = Series([np.float64("NaN")], dtype=object)
-    right = Series([np.float64("NaN")], dtype=object)
+    left = pd.Series([np.float64("NaN")], dtype=object)
+    right = pd.Series([np.float64("NaN")], dtype=object)
     assert left.equals(right)
-    assert Index(left, dtype=left.dtype).equals(Index(right, dtype=right.dtype))
+    assert pd.Index(left, dtype=left.dtype).equals(pd.Index(right, dtype=right.dtype))
     assert left.array.equals(right.array)
 
 
@@ -97,8 +93,8 @@ def test_equals_mismatched_nas(nulls_fixture, nulls_fixture2):
     else:
         right = copy.copy(right)
 
-    ser = Series([left], dtype=object)
-    ser2 = Series([right], dtype=object)
+    ser = pd.Series([left], dtype=object)
+    ser2 = pd.Series([right], dtype=object)
 
     if is_matching_na(left, right):
         assert ser.equals(ser2)
@@ -110,18 +106,18 @@ def test_equals_mismatched_nas(nulls_fixture, nulls_fixture2):
 
 def test_equals_none_vs_nan():
     # GH#39650
-    ser = Series([1, None], dtype=object)
-    ser2 = Series([1, np.nan], dtype=object)
+    ser = pd.Series([1, None], dtype=object)
+    ser2 = pd.Series([1, np.nan], dtype=object)
 
     assert ser.equals(ser2)
-    assert Index(ser, dtype=ser.dtype).equals(Index(ser2, dtype=ser2.dtype))
+    assert pd.Index(ser, dtype=ser.dtype).equals(pd.Index(ser2, dtype=ser2.dtype))
     assert ser.array.equals(ser2.array)
 
 
 def test_equals_None_vs_float():
     # GH#44190
-    left = Series([-np.inf, np.nan, -1.0, 0.0, 1.0, 10 / 3, np.inf], dtype=object)
-    right = Series([None] * len(left))
+    left = pd.Series([-np.inf, np.nan, -1.0, 0.0, 1.0, 10 / 3, np.inf], dtype=object)
+    right = pd.Series([None] * len(left))
 
     # these series were found to be equal due to a bug, check that they are correctly
     # found to not equal
@@ -129,5 +125,5 @@ def test_equals_None_vs_float():
     assert not right.equals(left)
     assert not left.to_frame().equals(right.to_frame())
     assert not right.to_frame().equals(left.to_frame())
-    assert not Index(left, dtype="object").equals(Index(right, dtype="object"))
-    assert not Index(right, dtype="object").equals(Index(left, dtype="object"))
+    assert not pd.Index(left, dtype="object").equals(pd.Index(right, dtype="object"))
+    assert not pd.Index(right, dtype="object").equals(pd.Index(left, dtype="object"))

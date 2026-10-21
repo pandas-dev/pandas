@@ -158,7 +158,7 @@ def radviz(
         ax.set_xlim(-1, 1)
         ax.set_ylim(-1, 1)
 
-    to_plot: dict[Hashable, list[list]] = {}
+    to_plot: dict[Hashable, list[list[float]]] = {}
     colors = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )

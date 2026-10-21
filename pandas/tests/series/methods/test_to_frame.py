@@ -1,8 +1,4 @@
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -11,31 +7,31 @@ class TestToFrame:
         # GH#44212 if we explicitly pass name=None, then that should be respected,
         #  not changed to 0
         # GH-45448 this is first deprecated & enforced in 2.0
-        ser = Series(range(3))
+        ser = pd.Series(range(3))
         result = ser.to_frame(None)
 
-        exp_index = Index([None], dtype=object)
+        exp_index = pd.Index([None], dtype=object)
         tm.assert_index_equal(result.columns, exp_index)
 
         result = ser.rename("foo").to_frame(None)
-        exp_index = Index([None], dtype=object)
+        exp_index = pd.Index([None], dtype=object)
         tm.assert_index_equal(result.columns, exp_index)
 
     def test_to_frame(self, datetime_series):
         datetime_series.name = None
         rs = datetime_series.to_frame()
-        xp = DataFrame(datetime_series.values, index=datetime_series.index)
+        xp = pd.DataFrame(datetime_series.values, index=datetime_series.index)
         tm.assert_frame_equal(rs, xp)
 
         datetime_series.name = "testname"
         rs = datetime_series.to_frame()
-        xp = DataFrame(
+        xp = pd.DataFrame(
             {"testname": datetime_series.values}, index=datetime_series.index
         )
         tm.assert_frame_equal(rs, xp)
 
         rs = datetime_series.to_frame(name="testdifferent")
-        xp = DataFrame(
+        xp = pd.DataFrame(
             {"testdifferent": datetime_series.values}, index=datetime_series.index
         )
         tm.assert_frame_equal(rs, xp)
@@ -43,12 +39,12 @@ class TestToFrame:
     def test_to_frame_expanddim(self):
         # GH#9762
 
-        class SubclassedSeries(Series):
+        class SubclassedSeries(pd.Series):
             @property
             def _constructor_expanddim(self):
                 return SubclassedFrame
 
-        class SubclassedFrame(DataFrame):
+        class SubclassedFrame(pd.DataFrame):
             pass
 
         ser = SubclassedSeries([1, 2, 3], name="X")

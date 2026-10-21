@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
 import pandas._testing as tm
 
 
@@ -10,7 +9,7 @@ class TestSeriesRound:
     def test_round(self, datetime_series):
         datetime_series.index.name = "index_name"
         result = datetime_series.round(2)
-        expected = Series(
+        expected = pd.Series(
             np.round(datetime_series.values, 2), index=datetime_series.index, name="ts"
         )
         tm.assert_series_equal(result, expected)
@@ -18,9 +17,9 @@ class TestSeriesRound:
 
     def test_round_numpy(self, any_float_dtype):
         # See GH#12600
-        ser = Series([1.53, 1.36, 0.06], dtype=any_float_dtype)
+        ser = pd.Series([1.53, 1.36, 0.06], dtype=any_float_dtype)
         out = np.round(ser, decimals=0)
-        expected = Series([2.0, 1.0, 0.0], dtype=any_float_dtype)
+        expected = pd.Series([2.0, 1.0, 0.0], dtype=any_float_dtype)
         tm.assert_series_equal(out, expected)
 
         msg = "the 'out' parameter is not supported"
@@ -29,26 +28,26 @@ class TestSeriesRound:
 
     def test_round_numpy_with_nan(self, any_float_dtype):
         # See GH#14197
-        ser = Series([1.53, np.nan, 0.06], dtype=any_float_dtype)
+        ser = pd.Series([1.53, np.nan, 0.06], dtype=any_float_dtype)
         with tm.assert_produces_warning(None):
             result = ser.round()
-        expected = Series([2.0, np.nan, 0.0], dtype=any_float_dtype)
+        expected = pd.Series([2.0, np.nan, 0.0], dtype=any_float_dtype)
         tm.assert_series_equal(result, expected)
 
     def test_round_builtin(self, any_float_dtype):
-        ser = Series(
+        ser = pd.Series(
             [1.123, 2.123, 3.123],
             index=range(3),
             dtype=any_float_dtype,
         )
         result = round(ser)
-        expected_rounded0 = Series(
+        expected_rounded0 = pd.Series(
             [1.0, 2.0, 3.0], index=range(3), dtype=any_float_dtype
         )
         tm.assert_series_equal(result, expected_rounded0)
 
         decimals = 2
-        expected_rounded = Series(
+        expected_rounded = pd.Series(
             [1.12, 2.12, 3.12], index=range(3), dtype=any_float_dtype
         )
         result = round(ser, decimals)
@@ -58,15 +57,15 @@ class TestSeriesRound:
     @pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
     def test_round_nat(self, method, freq, unit):
         # GH14940, GH#56158
-        ser = Series([pd.NaT], dtype=f"M8[{unit}]")
-        expected = Series(pd.NaT, dtype=f"M8[{unit}]")
+        ser = pd.Series([pd.NaT], dtype=f"M8[{unit}]")
+        expected = pd.Series(pd.NaT, dtype=f"M8[{unit}]")
         round_method = getattr(ser.dt, method)
         result = round_method(freq)
         tm.assert_series_equal(result, expected)
 
     def test_round_ea_boolean(self):
         # GH#55936
-        ser = Series([True, False], dtype="boolean")
+        ser = pd.Series([True, False], dtype="boolean")
         expected = ser.copy()
         result = ser.round(2)
         tm.assert_series_equal(result, expected)
@@ -84,9 +83,9 @@ class TestSeriesRound:
     )
     def test_round_dtype_object(self, data, decimals, expected_data):
         # GH#63444
-        ser = Series(data, dtype="object")
+        ser = pd.Series(data, dtype="object")
         result = ser.round(decimals)
-        expected = Series(expected_data, dtype="object")
+        expected = pd.Series(expected_data, dtype="object")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -100,8 +99,8 @@ class TestSeriesRound:
     )
     def test_round_empty_series(self, dtype):
         # GH#63444
-        result = Series(dtype=dtype).round(4)
-        expected = Series(dtype=dtype)
+        result = pd.Series(dtype=dtype).round(4)
+        expected = pd.Series(dtype=dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -114,6 +113,6 @@ class TestSeriesRound:
     )
     def test_round_non_numeric_dtype_noop(self, dtype, data):
         # GH#63444, GH#63559
-        ser = Series(data, dtype=dtype)
+        ser = pd.Series(data, dtype=dtype)
         result = ser.round(2)
         tm.assert_series_equal(result, ser)

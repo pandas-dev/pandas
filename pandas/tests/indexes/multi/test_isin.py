@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import MultiIndex
+import pandas as pd
 import pandas._testing as tm
 
 
 def test_isin_nan():
-    idx = MultiIndex.from_arrays([["foo", "bar"], [1.0, np.nan]])
+    idx = pd.MultiIndex.from_arrays([["foo", "bar"], [1.0, np.nan]])
     tm.assert_numpy_array_equal(idx.isin([("bar", np.nan)]), np.array([False, True]))
     tm.assert_numpy_array_equal(
         idx.isin([("bar", float("nan"))]), np.array([False, True])
@@ -15,8 +15,8 @@ def test_isin_nan():
 
 def test_isin_missing(nulls_fixture):
     # GH48905
-    mi1 = MultiIndex.from_tuples([(1, nulls_fixture)])
-    mi2 = MultiIndex.from_tuples([(1, 1), (1, 2)])
+    mi1 = pd.MultiIndex.from_tuples([(1, nulls_fixture)])
+    mi2 = pd.MultiIndex.from_tuples([(1, 1), (1, 2)])
     result = mi2.isin(mi1)
     expected = np.array([False, False])
     tm.assert_numpy_array_equal(result, expected)
@@ -25,20 +25,20 @@ def test_isin_missing(nulls_fixture):
 def test_isin():
     values = [("foo", 2), ("bar", 3), ("quux", 4)]
 
-    idx = MultiIndex.from_arrays([["qux", "baz", "foo", "bar"], np.arange(4)])
+    idx = pd.MultiIndex.from_arrays([["qux", "baz", "foo", "bar"], np.arange(4)])
     result = idx.isin(values)
     expected = np.array([False, False, True, True])
     tm.assert_numpy_array_equal(result, expected)
 
     # empty, return dtype bool
-    idx = MultiIndex.from_arrays([[], []])
+    idx = pd.MultiIndex.from_arrays([[], []])
     result = idx.isin(values)
     assert len(result) == 0
     assert result.dtype == np.bool_
 
 
 def test_isin_level_kwarg():
-    idx = MultiIndex.from_arrays([["qux", "baz", "foo", "bar"], np.arange(4)])
+    idx = pd.MultiIndex.from_arrays([["qux", "baz", "foo", "bar"], np.arange(4)])
 
     vals_0 = ["foo", "bar", "quux"]
     vals_1 = [2, 3, 10]
@@ -82,7 +82,7 @@ def test_isin_level_kwarg():
 )
 def test_isin_multi_index_with_missing_value(labels, expected, level):
     # GH 19132
-    midx = MultiIndex.from_arrays([[np.nan, "a", "b"], ["c", "d", np.nan]])
+    midx = pd.MultiIndex.from_arrays([[np.nan, "a", "b"], ["c", "d", np.nan]])
     result = midx.isin(labels, level=level)
     expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
@@ -90,7 +90,7 @@ def test_isin_multi_index_with_missing_value(labels, expected, level):
 
 def test_isin_empty():
     # GH#51599
-    midx = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    midx = pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
     result = midx.isin([])
     expected = np.array([False, False])
     tm.assert_numpy_array_equal(result, expected)
@@ -98,7 +98,7 @@ def test_isin_empty():
 
 def test_isin_generator():
     # GH#52568
-    midx = MultiIndex.from_tuples([(1, 2)])
+    midx = pd.MultiIndex.from_tuples([(1, 2)])
     result = midx.isin(x for x in [(1, 2)])
     expected = np.array([True])
     tm.assert_numpy_array_equal(result, expected)
@@ -106,7 +106,7 @@ def test_isin_generator():
 
 def test_isin_scalar_values_raises_gh20252():
     # GH#20252
-    midx = MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
+    midx = pd.MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
     msg = (
         "MultiIndex.isin expects an iterable of tuples of length 2 "
         r"\(the number of levels\); got a scalar \(1\) at position 0\. "
@@ -126,7 +126,7 @@ def test_isin_scalar_values_raises_gh20252():
 )
 def test_isin_wrong_length_tuples_raises_gh26622(values, bad_len, position):
     # GH#26622 short tuples used to silently give wrong results
-    midx = MultiIndex.from_product([["foo", "bar"], ["one", "two"], ["A", "B"]])
+    midx = pd.MultiIndex.from_product([["foo", "bar"], ["one", "two"], ["A", "B"]])
     msg = (
         "MultiIndex.isin expects an iterable of tuples of length 3 "
         rf"\(the number of levels\); got an element of length {bad_len} at "
