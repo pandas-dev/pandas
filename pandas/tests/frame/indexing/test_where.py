@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
