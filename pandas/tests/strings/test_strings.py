@@ -1037,8 +1037,6 @@ def test_setitem_with_different_string_storage():
         (r"(abc)\1", True),
         (r"\b(\w+)\s+\1\b", True),
         (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
-        # at-end $
-        (r"test$", True),
     ],
 )
 def test_needs_python_regex_unsupported_code(pat, expected):
@@ -1078,3 +1076,24 @@ def test_needs_python_regex_unicode_classes(pat, expected):
     # all-ASCII data keeps the pyarrow path
     ascii_arr = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
     assert not ascii_arr._needs_python_regex(pat)
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        (r"test$", True),
+        (r"test\$", False),
+        (r"r[$]", False),
+    ],
+)
+def test_needs_python_regex_newline_sensitive(pat, expected):
+    # https://github.com/pandas-dev/pandas/pull/71387
+    pytest.importorskip("pyarrow")
+    arr = pd.array(["test\n"], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
+    arr = pd.array(["test\ntest", None], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
+
+    # data without newlines keeps the pyarrow path
+    arr_no_newline = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
+    assert not arr_no_newline._needs_python_regex(pat)

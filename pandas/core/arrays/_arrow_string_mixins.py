@@ -116,8 +116,9 @@ class ArrowStringArrayMixin:
         - ``\\w``, ``\\d``, ``\\s`` and ``\\b`` (or their negations) on non-ASCII data,
           since RE2 only matches them against ASCII characters while Python's ``re``
           is Unicode-aware
-        - At-end-of-string ``$`` assertion, which can match before or after a newline
-          in Python's ``re``
+        - At-end-of-string ``$`` assertion, which Python matches at the end or just
+          before a trailing newline, while pyarrow only matches at the end
+          (only falling back if newlines are present)
         """
         _parser = self._re_parser()
         unsupported_ops = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
@@ -132,7 +133,7 @@ class ArrowStringArrayMixin:
             (_parser.AT, _parser.AT_BOUNDARY),
             (_parser.AT, _parser.AT_NON_BOUNDARY),
         }
-        unsupported_op_args = {
+        newline_sensitive = {
             # newline-sensitive behaviour of $
             (_parser.AT, _parser.AT_END),
         }
@@ -141,18 +142,19 @@ class ArrowStringArrayMixin:
         if any(op_code in unsupported_ops for op_code, _ in nodes):
             return True
         if any(
-            (op_code, argument) in unsupported_op_args
-            for op_code, argument in nodes
-            if op_code == _parser.AT
-        ):
-            return True
-        if any(
             (op_code, argument) in unicode_sensitive
             for op_code, argument in nodes
             if op_code in (_parser.CATEGORY, _parser.AT)
         ):
             # all-ASCII data keeps the faster pyarrow path
             if self._has_non_ascii():
+                return True
+        if any(
+            (op_code, argument) in newline_sensitive
+            for op_code, argument in nodes
+            if op_code == _parser.AT
+        ):
+            if pc.any(pc.match_substring(self._pa_array, "\n"), min_count=0).as_py():
                 return True
 
         return False

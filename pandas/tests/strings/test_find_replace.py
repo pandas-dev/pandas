@@ -1692,7 +1692,8 @@ def test_fullmatch_end_of_string(any_string_dtype):
 
     ser = pd.Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
 
-    # with dollar sign (matches $ before or after an ending newline)
+    # with dollar sign (for fullmatch, no difference between python and pyarrow
+    # because the the newline needs to be in the pattern as well)
     result = ser.str.fullmatch("bar$")
     expected = pd.Series([False, True, False, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
