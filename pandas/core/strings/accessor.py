@@ -3504,7 +3504,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if returns_df:
             name = None
-            columns = _get_group_names(regex)
+            columns = get_group_names(regex)
 
             if obj.array.size == 0:
                 result = DataFrame(columns=columns, dtype=result_dtype)
@@ -4892,7 +4892,7 @@ def _get_single_group_name(regex: re.Pattern) -> Hashable:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable] | range:
+def get_group_names(regex: re.Pattern) -> list[Hashable] | range:
     """
     Get named groups from compiled regex.
 
@@ -4926,7 +4926,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
     if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True).astype(arr.dtype)
 
-    columns = _get_group_names(regex)
+    columns = get_group_names(regex)
     match_list = []
     index_list = []
     is_mi = arr.index.nlevels > 1
