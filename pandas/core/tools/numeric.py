@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from datetime import (
+    datetime,
+    timedelta,
+)
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -10,10 +14,6 @@ import numpy as np
 from pandas._libs import (
     lib,
     missing as libmissing,
-)
-from pandas._libs.tslibs import (
-    Timedelta,
-    Timestamp,
 )
 from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
@@ -38,6 +38,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -224,12 +225,27 @@ def to_numeric(
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype="O")
     elif is_scalar(arg):
-        if is_decimal(arg):
+        # np.timedelta64 subclasses np.integer, so this must precede is_number
+        if isinstance(arg, (datetime, np.datetime64, timedelta, np.timedelta64)):
+            # match the Series path, which infers datetime64/timedelta64; GH#43280
+            # NaT keeps errors= handling; the Series path gives iNaT, see GH#16674
+            if not libmissing.checknull(arg):
+                try:
+                    idx = Index([arg])
+                except ValueError:
+                    # unsupported unit; errors= decides below
+                    pass
+                else:
+                    return to_numeric(
+                        idx,
+                        errors=errors,
+                        downcast=downcast,
+                        dtype_backend=dtype_backend,
+                    )[0]
+        elif is_decimal(arg):
             return float(arg)
-        if is_number(arg):
+        elif is_number(arg):
             return arg
-        if isinstance(arg, (Timedelta, Timestamp)):
-            return arg._value
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
@@ -342,8 +358,6 @@ def to_numeric(
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy
-        from pandas import Index
-
         return Index(values, name=arg.name)
     elif is_scalars:
         return values[0]

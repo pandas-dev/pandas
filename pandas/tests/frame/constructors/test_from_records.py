@@ -248,6 +248,13 @@ class TestFromRecords:
         )
         tm.assert_frame_equal(frame, expected)
 
+    def test_from_records_list_of_ea_series(self):
+        # GH#56231
+        ser = pd.Series([1, 2], index=["a", "b"], dtype="Int64")
+        result = pd.DataFrame.from_records([ser])
+        expected = pd.DataFrame({"a": [1], "b": [2]}, dtype="Int64")
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_from_records_utc(self):
         rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=UTC)}
 
@@ -575,6 +582,23 @@ class TestFromRecords:
         expected = pd.DataFrame([], columns=["a", "c"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("label", [0, "", False])
+    def test_from_records_exclude_falsy_label(self, label):
+        # GH#18679
+        data = [[1, 2, 3], [4, 5, 6]]
+        columns = [label, "b", "c"]
+        result = pd.DataFrame.from_records(data, columns=columns, exclude=[label])
+        expected = pd.DataFrame(data, columns=columns).drop(columns=[label])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [0, [0]])
+    def test_from_records_index_falsy_label(self, index):
+        # GH#18679
+        data = [[1, 2, 3], [4, 5, 6]]
+        result = pd.DataFrame.from_records(data, index=index)
+        expected = pd.DataFrame({1: [2, 5], 2: [3, 6]}, index=pd.Index([1, 4], name=0))
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
     def test_from_records_missing_value_key(self, missing_value, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/63889
@@ -598,4 +622,24 @@ class TestFromRecords:
         ]
         result = pd.DataFrame.from_records(dict_data)
         expected = pd.DataFrame([[1], [2]], columns=pd.Index([missing_value]))
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_listlike_then_str_deprecated(self):
+        # GH#50461 the str record is split into characters
+        msg = "a str or bytes row after a list-like row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.DataFrame.from_records([["a", "b"], "cd"])
+        expected = pd.DataFrame([["a", "b"], ["c", "d"]])
+        tm.assert_frame_equal(result, expected)
+
+        # a str first record is unaffected
+        result = pd.DataFrame.from_records(["ab", "cd"])
+        expected = pd.DataFrame([["a", "b"], ["c", "d"]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_tuple_then_numpy_record(self):
+        # a structured-array element is a scalar with one entry per field
+        rec = np.array([(3, 4.5)], dtype=[("x", "i8"), ("y", "f8")])
+        result = pd.DataFrame.from_records([(1, 2.5), rec[0]])
+        expected = pd.DataFrame([[1, 2.5], [3, 4.5]])
         tm.assert_frame_equal(result, expected)

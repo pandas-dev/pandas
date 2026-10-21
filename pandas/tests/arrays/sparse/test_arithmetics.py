@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import roperator
@@ -1122,3 +1124,23 @@ def test_op_result_keeps_signed_zero_complex():
     expected = (pd.Series([-1 + 1j, 2 + 0j]) * 0).to_numpy()
     tm.assert_numpy_array_equal(np.signbit(result.real), np.signbit(expected.real))
     tm.assert_numpy_array_equal(np.signbit(result.imag), np.signbit(expected.imag))
+
+
+@pytest.mark.parametrize("op", [operator.lt, operator.le, operator.gt, operator.ge])
+def test_complex_ordering_cmp_deprecated(op):
+    # GH#43770 complex has no natural ordering
+    arr = SparseArray([1 + 2j, 3j, np.nan])
+    msg = "deprecated on complex data"
+    for other in [1, arr, np.array([1, 2, 3])]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            op(arr, other)
+
+    with tm.assert_produces_warning(None):
+        arr == 1
+
+
+def test_complex_ordering_cmp_deprecated_list_operand():
+    # GH#43770
+    arr = SparseArray([1.0, 2.0])
+    with tm.assert_produces_warning(Pandas4Warning, match="deprecated on complex"):
+        arr < [1j, 2j]
