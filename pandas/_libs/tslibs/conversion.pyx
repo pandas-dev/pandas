@@ -36,7 +36,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.portable cimport checked_sub
+from pandas._libs.portable cimport checked_add, checked_sub
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
@@ -636,15 +636,15 @@ cdef _TSObject convert_datetime_to_tsobject(
     """
     cdef:
         _TSObject obj = _TSObject()
-        int64_t pps, offset_val
+        int64_t pps, offset_val, wall_val
 
     obj.creso = reso
     obj.fold = ts.fold
     if isinstance(ts, _Timestamp):
         # GH#71371 a Timestamp's datetime fields cannot represent years
-        #  outside 1-9999 and may not match its actual value, so parse
-        #  from _value instead. For tz-aware Timestamps _value is already
-        #  UTC, so no offset shift is needed below.
+        #  outside 1-9999 and may not match its actual value, so derive the
+        #  wall-time fields from _value and the UTC offset of the result
+        #  timezone instead of reading them off the object.
         if tz is not None:
             if ts.tzinfo is not None:
                 # Convert the current timezone to the passed timezone;
@@ -656,20 +656,21 @@ cdef _TSObject convert_datetime_to_tsobject(
         else:
             obj.tzinfo = ts.tzinfo
         ts = (<_Timestamp>ts)._as_creso(reso, round_ok=True)
-        obj.value = (<_Timestamp>ts)._value
-        pandas_datetime_to_datetimestruct(obj.value, reso, &obj.dts)
-        if nanos:
-            obj.dts.ps = nanos * 1000
-            try:
-                obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
-            except OverflowError as err:
+        if obj.tzinfo is not None and not is_utc(obj.tzinfo):
+            offset = get_utcoffset(obj.tzinfo, ts)
+            pps = periods_per_second(reso)
+            offset_val = int(offset.total_seconds() * pps)
+            # wall time in the result timezone, checked against wraparound
+            if checked_add((<_Timestamp>ts)._value, offset_val, &wall_val):
                 attrname = npy_unit_to_attrname[reso]
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds {attrname} timestamp") from err
-        check_nat_sentinel(obj.value, &obj.dts, reso)
-        check_overflows(obj, reso)
-        return obj
-    if tz is not None:
+                    f"Out of bounds {attrname} timestamp") from None
+            pandas_datetime_to_datetimestruct(wall_val, reso, &obj.dts)
+        else:
+            pandas_datetime_to_datetimestruct(
+                (<_Timestamp>ts)._value, reso, &obj.dts
+            )
+    elif tz is not None:
 
         if ts.tzinfo is not None:
             # Convert the current timezone to the passed timezone
