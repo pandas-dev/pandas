@@ -114,9 +114,17 @@ def _border_expander(
             f"border{side}-width": "medium",
         }
         for token in tokens:
-            if token.lower() in self.BORDER_STYLES:
+            token_lower = token.lower()
+            if token_lower in self.BORDER_STYLES:
                 border_declarations[f"border{side}-style"] = token
-            elif any(ratio in token.lower() for ratio in self.BORDER_WIDTH_RATIOS):
+            elif (
+                # A width is a numeric length (e.g. '1px', '0.5em') or one of
+                # the thin/medium/thick keywords. Bare substring matching of
+                # units misclassifies color names containing a unit substring
+                # ('indigo' contains 'in', 'aqua' contains 'q').
+                (token[0].isdigit() or token[0] in "+-.")
+                and any(ratio in token_lower for ratio in self.BORDER_WIDTH_RATIOS)
+            ):
                 border_declarations[f"border{side}-width"] = token
             else:
                 border_declarations[f"border{side}-color"] = token
