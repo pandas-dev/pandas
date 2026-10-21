@@ -598,6 +598,11 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     Convert numpy MaskedArray to a plain ndarray with the masked entries filled.
     """
+    if data.dtype.names is not None:
+        # GH#49388
+        raise ValueError(
+            "Cannot construct a pandas object from a masked array with compound dtype."
+        )
     mask = ma.getmaskarray(data)
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
@@ -636,11 +641,6 @@ def sanitize_array(
     """
     original_dtype = dtype
     if isinstance(data, ma.MaskedArray):
-        if data.dtype.names is not None:
-            raise ValueError(
-                "Cannot construct a pandas object from a masked array with "
-                "compound dtype."
-            )
         data = sanitize_masked_array(data)
 
     if isinstance(dtype, NumpyEADtype):

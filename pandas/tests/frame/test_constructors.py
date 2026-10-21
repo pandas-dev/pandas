@@ -917,15 +917,17 @@ class TestDataFrameConstructors:
         with tm.assert_produces_warning(None):
             pd.DataFrame([arr, arr])
 
-    def test_constructor_dict_of_masked_structured_ndarray_raises(self):
+    @pytest.mark.parametrize("wrap_in_dict", [True, False])
+    def test_constructor_masked_structured_ndarray_raises(self, wrap_in_dict):
         # GH#49388
         arr = ma.masked_array(
             np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]),
             mask=[(False, False), (True, False)],
         )
+        data = {"c": arr} if wrap_in_dict else arr
         msg = "Cannot construct a pandas object from a masked array with compound"
         with pytest.raises(ValueError, match=msg):
-            pd.DataFrame({"c": arr})
+            pd.DataFrame(data)
 
     def test_constructor_dict_multiindex(self):
         d = {
