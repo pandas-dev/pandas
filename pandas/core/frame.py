@@ -16050,6 +16050,9 @@ class DataFrame(NDFrame, OpsMixin):
               similar to SQL right anti join; preserve key order.
 
               .. versionadded:: 3.0
+
+            Rows sharing a key are ordered by their position in the left frame, then
+            in the right frame (for 'right', the right frame first).
         on : Hashable or a sequence of the previous
             Column or index level names to join on. These must be found in both
             DataFrames. If `on` is None and not merging on indexes then this defaults
