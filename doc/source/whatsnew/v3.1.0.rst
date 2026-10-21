@@ -179,7 +179,6 @@ Other enhancements
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
-- Removed Hypothesis as a test dependency (:issue:`66675`).
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
 - Time strings with a space before ``AM``/``PM`` (e.g. ``"3:25:00 PM"``) are now recognized; :meth:`Series.between_time` and :meth:`DataFrame.between_time` previously raised on them, and :meth:`Series.at_time` and :meth:`DataFrame.at_time` warned that they would raise in a future version. Casting such strings to a pyarrow time dtype (``time32``/``time64``) no longer silently gives a missing value (:issue:`18793`)
 - Vertical bar plots with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` now format the x-axis with the same dynamic date tick labeling as line plots, instead of labeling every bar with the full string representation of its timestamp. The tick labels of such plots are no longer rotated by default, matching line plots; pass ``rot`` to override. Bar plots over a frequency the date ticks cannot be aligned to — a multiplied business-day, monthly, quarterly or annual frequency such as ``"3B"`` or ``"2ME"`` — keep the previous labeling (:issue:`1918`)
@@ -321,79 +320,6 @@ If you actually need the specific resolution from the input data, use the
 :meth:`~Timestamp.as_unit` (or :meth:`Series.dt.as_unit`) method after
 construction to convert to the desired resolution.
 
-.. _whatsnew_310.api_breaking.deps:
-
-Increased minimum versions for dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Some minimum supported versions of dependencies were updated.
-If installed, we now require:
-
-+-----------------+-----------------+----------+---------+
-| Package         | Minimum Version | Required | Changed |
-+=================+=================+==========+=========+
-| numpy           | 2.0.2           |    X     |    X    |
-+-----------------+-----------------+----------+---------+
-| python-dateutil | 2.9.0           |    X     |    X    |
-+-----------------+-----------------+----------+---------+
-
-For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
-The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
-Optional libraries below the lowest tested version may still work, but are not considered supported.
-
-+------------------------+-----------------+---------+
-| Package                | Minimum Version | Changed |
-+========================+=================+=========+
-| adbc-driver-postgresql | 1.7.0           |    X    |
-+------------------------+-----------------+---------+
-| adbc-driver-sqlite     | 1.7.0           |    X    |
-+------------------------+-----------------+---------+
-| beautifulsoup4         | 4.13.4          |    X    |
-+------------------------+-----------------+---------+
-| bottleneck             | 1.5.0           |    X    |
-+------------------------+-----------------+---------+
-| fsspec                 | 2025.7.0        |    X    |
-+------------------------+-----------------+---------+
-| gcsfs                  | 2025.7.0        |    X    |
-+------------------------+-----------------+---------+
-| Jinja2                 | 3.1.6           |    X    |
-+------------------------+-----------------+---------+
-| lxml                   | 6.0.0           |    X    |
-+------------------------+-----------------+---------+
-| matplotlib             | 3.10.5          |    X    |
-+------------------------+-----------------+---------+
-| numba                  | 0.61.2          |    X    |
-+------------------------+-----------------+---------+
-| numexpr                | 2.11.0          |    X    |
-+------------------------+-----------------+---------+
-| pyarrow                | 16.0.0          |    X    |
-+------------------------+-----------------+---------+
-| PyQt5                  | 5.15.11         |    X    |
-+------------------------+-----------------+---------+
-| pyiceberg              | 0.9.1           |    X    |
-+------------------------+-----------------+---------+
-| pyreadstat             | 1.3.0           |    X    |
-+------------------------+-----------------+---------+
-| pytables               | 3.10.2          |    X    |
-+------------------------+-----------------+---------+
-| python-calamine        | 0.4.0           |    X    |
-+------------------------+-----------------+---------+
-| qtpy                   | 2.4.3           |    X    |
-+------------------------+-----------------+---------+
-| s3fs                   | 2025.7.0        |    X    |
-+------------------------+-----------------+---------+
-| SciPy                  | 1.16.1          |    X    |
-+------------------------+-----------------+---------+
-| sqlalchemy             | 2.0.42          |    X    |
-+------------------------+-----------------+---------+
-| xarray                 | 2025.7.1        |    X    |
-+------------------------+-----------------+---------+
-| xlrd                   | 2.0.2           |    X    |
-+------------------------+-----------------+---------+
-| xlsxwriter             | 3.2.5           |    X    |
-+------------------------+-----------------+---------+
-
-See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
-
 .. _whatsnew_310.api_breaking.other:
 
 Other API changes
@@ -425,15 +351,6 @@ Other API changes
 - The ``year`` column of :meth:`DatetimeIndex.isocalendar` and :meth:`Series.dt.isocalendar` is now ``Int32`` instead of ``UInt32``, so that years before year 1 are representable (:issue:`66549`)
 - ``numexpr`` 2.14.1 is no longer used to accelerate arithmetic and comparisons; some builds of that release intermittently and silently returned incorrect results, such as an all-zero column, for operations on large objects. pandas now falls back to NumPy, warning the first time an operation would have used ``numexpr``, and :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` raise ``ImportError`` when passed an explicit ``engine="numexpr"``; install ``numexpr`` 2.14.2 or newer to restore the acceleration. HDF5 ``where=`` queries are evaluated by PyTables, which imports ``numexpr`` itself, and are neither covered nor warned about (:issue:`65408`)
 -
-
-.. _whatsnew_310.api_breaking.build:
-
-Build
-^^^^^
-- Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
-- C++20 is required to build from source (:issue:`66735`)
-- MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
-- Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.deprecations:
@@ -637,6 +554,105 @@ Other deprecations
   ``SelectionMixin``-based objects (e.g. ``Rolling.__getitem__``) for
   selecting multiple columns; use a list instead. In a future version,
   tuple keys will raise ``KeyError`` (:issue:`66266`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_310.packaging:
+
+Dependencies and build changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_310.packaging.numpy:
+
+Pandas now requires NumPy >= 2
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Support for NumPy 1.26 (and 1.x in general) has been dropped, and pandas now requires
+NumPy >= 2.0.2. Users with older versions of NumPy will need to upgrade to meet this requirement.
+
+.. _whatsnew_310.packaging.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+---------------------+
+| Package         | New minimum version |
++=================+=====================+
+| numpy           | 2.0.2               |
++-----------------+---------------------+
+| python-dateutil | 2.9.0               |
++-----------------+---------------------+
+
+For :ref:`optional libraries <install.optional_dependencies>` the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++------------------------+---------------------+
+| Package                | New minimum version |
++========================+=====================+
+| adbc-driver-postgresql | 1.7.0               |
++------------------------+---------------------+
+| adbc-driver-sqlite     | 1.7.0               |
++------------------------+---------------------+
+| beautifulsoup4         | 4.13.4              |
++------------------------+---------------------+
+| bottleneck             | 1.5.0               |
++------------------------+---------------------+
+| fsspec                 | 2025.7.0            |
++------------------------+---------------------+
+| gcsfs                  | 2025.7.0            |
++------------------------+---------------------+
+| Jinja2                 | 3.1.6               |
++------------------------+---------------------+
+| lxml                   | 6.0.0               |
++------------------------+---------------------+
+| matplotlib             | 3.10.5              |
++------------------------+---------------------+
+| numba                  | 0.61.2              |
++------------------------+---------------------+
+| numexpr                | 2.11.0              |
++------------------------+---------------------+
+| pyarrow                | 16.0.0              |
++------------------------+---------------------+
+| PyQt5                  | 5.15.11             |
++------------------------+---------------------+
+| pyiceberg              | 0.9.1               |
++------------------------+---------------------+
+| pyreadstat             | 1.3.0               |
++------------------------+---------------------+
+| pytables               | 3.10.2              |
++------------------------+---------------------+
+| python-calamine        | 0.4.0               |
++------------------------+---------------------+
+| qtpy                   | 2.4.3               |
++------------------------+---------------------+
+| s3fs                   | 2025.7.0            |
++------------------------+---------------------+
+| SciPy                  | 1.16.1              |
++------------------------+---------------------+
+| sqlalchemy             | 2.0.42              |
++------------------------+---------------------+
+| xarray                 | 2025.7.1            |
++------------------------+---------------------+
+| xlrd                   | 2.0.2               |
++------------------------+---------------------+
+| xlsxwriter             | 3.2.5               |
++------------------------+---------------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+In addition, Hypothesis has been removed as a test dependency (:issue:`66675`).
+
+.. _whatsnew_310.packaging.build:
+
+Build
+^^^^^
+- C++20 is required to build from source (:issue:`66735`)
+
+- Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
+- MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
+- Building from source no longer fails when compiling the windowing extensions against C++ standard libraries that provide only ``std::signbit`` (:issue:`50979`, :issue:`51047`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.performance:
