@@ -687,11 +687,6 @@ class BaseWindowGroupBy(BaseWindow):
             raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper
         self._as_index = _as_index
-        # GH 32262: It's convention to keep the grouping column in
-        # groupby.<agg_func>, but unexpected to users in
-        # groupby.rolling.<agg_func>
-        if obj.ndim == 2:
-            obj = obj.drop(columns=self._grouper.names, errors="ignore")
         # GH 15354
         if kwargs.get("step") is not None:
             raise NotImplementedError("step not implemented for groupby")
@@ -720,16 +715,6 @@ class BaseWindowGroupBy(BaseWindow):
         groupby_keys = copy.copy(self._grouper.names)
         result_index_names = groupby_keys + grouped_index_name
 
-        drop_columns = [
-            key
-            for key in self._grouper.names
-            if key not in self.obj.index.names or key is None
-        ]
-
-        if len(drop_columns) != len(groupby_keys) and result.ndim == 2:
-            # Our result will have still kept the column in the result
-            result = result.drop(columns=drop_columns, errors="ignore")
-
         codes = self._grouper.codes
         levels = copy.copy(self._grouper.levels)
 
@@ -755,7 +740,13 @@ class BaseWindowGroupBy(BaseWindow):
 
         result.index = result_index
         if not self._as_index:
-            result = result.reset_index(level=list(range(len(groupby_keys))))
+            result_columns = result.columns if isinstance(result, ABCDataFrame) else ()
+            for level in reversed(range(len(groupby_keys))):
+                # An explicitly selected grouping column already holds its
+                # aggregation, as in other GroupBy operations.
+                result = result.reset_index(
+                    level=level, drop=groupby_keys[level] in result_columns
+                )
         return result
 
     def _apply_pairwise(
@@ -769,9 +760,6 @@ class BaseWindowGroupBy(BaseWindow):
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
-        if target.ndim == 2:
-            # Manually drop the grouping column first
-            target = target.drop(columns=self._grouper.names, errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func, numeric_only)
         # 1) Determine the levels + codes of the groupby levels
         if other is not None and not all(
