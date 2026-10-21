@@ -447,7 +447,12 @@ def array(
             r"'s', 'ms', 'us', and 'ns' are no longer supported."
         )
 
-    return NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
+    result = NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
+    if result.ndim > 1:
+        # GH#64280 pandas.array is documented to be 1-dimensional; an explicit
+        #  NumPy dtype otherwise silently produced a 2-D NumpyExtensionArray.
+        raise ValueError("'pandas.array' does not support multidimensional data")
+    return result
 
 
 _typs = frozenset(
