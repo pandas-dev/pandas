@@ -470,6 +470,9 @@ def test_contains_unicode_char(any_string_dtype):
     with pytest.raises(re.error, match="incomplete escape"):
         ser.str.contains(r"\u20G")
 
+    with pytest.raises(re.error, match=r"bad escape \\p"):
+        ser.str.contains(r"\pL\u20AC")
+
 
 # --------------------------------------------------------------------------------------
 # str.startswith
