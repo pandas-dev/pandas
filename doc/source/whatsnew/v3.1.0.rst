@@ -569,7 +569,6 @@ Pandas now requires NumPy >= 2
 Support for NumPy 1.26 (and 1.x in general) has been dropped, and pandas now requires
 NumPy >= 2.0.2. Users with older versions of NumPy will need to upgrade to meet this requirement.
 
-
 .. _whatsnew_310.packaging.deps:
 
 Increased minimum versions for dependencies
@@ -585,7 +584,7 @@ If installed, we now require:
 | python-dateutil | 2.9.0               |
 +-----------------+---------------------+
 
-For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+For :ref:`optional libraries <install.optional_dependencies>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
