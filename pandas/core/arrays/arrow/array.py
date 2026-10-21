@@ -73,8 +73,11 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
+    ExtensionDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -299,8 +302,6 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.dtypes.dtypes import ExtensionDtype
-
     from pandas import Series
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -311,6 +312,11 @@ def to_pyarrow_type(
 ) -> pa.DataType | None:
     """
     Convert dtype to a pyarrow type instance.
+
+    Returns None for None and for numpy dtypes pyarrow cannot represent
+    (e.g. object), leaving the type to pyarrow's inference. Extension
+    dtypes without a pyarrow equivalent (e.g. CategoricalDtype) raise
+    TypeError.
     """
     if isinstance(dtype, ArrowDtype):
         return dtype.pyarrow_dtype
@@ -318,6 +324,11 @@ def to_pyarrow_type(
         return dtype
     elif isinstance(dtype, DatetimeTZDtype):
         return pa.timestamp(dtype.unit, dtype.tz)
+    elif isinstance(dtype, StringDtype):
+        # the storage type of the pyarrow-backed string dtype
+        return pa.large_string()
+    elif isinstance(dtype, (BaseMaskedDtype, NumpyEADtype)):
+        return to_pyarrow_type(dtype.numpy_dtype)
     elif dtype:
         try:
             # Accepts python types too
@@ -326,6 +337,20 @@ def to_pyarrow_type(
         except pa.ArrowNotImplementedError:
             pass
     return None
+
+
+def _validate_constructor_dtype(cls: type, dtype: Dtype | None) -> None:
+    """
+    Reject extension dtypes that are not ArrowExtensionArray dtypes.
+
+    to_pyarrow_type maps e.g. StringDtype and Int64Dtype to their pyarrow
+    storage type, but constructing an ArrowExtensionArray from them would
+    silently return a different dtype than the one requested.
+    """
+    if isinstance(dtype, ExtensionDtype) and not isinstance(
+        dtype, (ArrowDtype, DatetimeTZDtype)
+    ):
+        raise TypeError(f"Cannot construct {cls.__name__} with dtype {dtype!r}")
 
 
 def _is_varbinary_type(pa_type: pa.DataType) -> bool:
@@ -590,6 +615,7 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
+        _validate_constructor_dtype(cls, dtype)
         pa_type = to_pyarrow_type(dtype)
         pa_array = cls._box_pa_array(scalars, pa_type=pa_type, copy=copy)
         arr = cls(pa_array)
@@ -607,6 +633,7 @@ class ArrowExtensionArray(
 
         is_pa_array = isinstance(strings, (pa.Array, pa.ChunkedArray))
 
+        _validate_constructor_dtype(cls, dtype)
         pa_type = to_pyarrow_type(dtype)
         if (
             pa_type is None

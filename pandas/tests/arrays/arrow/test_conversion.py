@@ -10,6 +10,7 @@ from pandas.compat import pa_version_under18p0
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    NumpyEADtype,
 )
 
 import pandas as pd
@@ -20,7 +21,10 @@ from pandas.api.types import (
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.array import (
+    ArrowExtensionArray,
+    to_pyarrow_type,
+)
 from pandas.tests.arrays.arrow.common import _require_timezone_database
 
 
@@ -258,6 +262,67 @@ def test_from_sequence_of_strings_duration_non_varbinary(pa_type):
 
     expected = ArrowExtensionArray(pa.array(expected_seconds, type=pa.duration("s")))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (pd.StringDtype("python"), pa.large_string()),
+        (pd.StringDtype("pyarrow"), pa.large_string()),
+        (pd.StringDtype("pyarrow", na_value=np.nan), pa.large_string()),
+        (pd.Int64Dtype(), pa.int64()),
+        (pd.Float64Dtype(), pa.float64()),
+        (pd.BooleanDtype(), pa.bool_()),
+        (NumpyEADtype("int64"), pa.int64()),
+        (NumpyEADtype("object"), None),
+        (ArrowDtype(pa.large_string()), pa.large_string()),
+        (np.dtype("int64"), pa.int64()),
+        (np.dtype(object), None),
+        (str, pa.string()),
+        (None, None),
+    ],
+)
+def test_to_pyarrow_type(dtype, expected):
+    # GH#67007
+    result = to_pyarrow_type(dtype)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.CategoricalDtype(),
+        pd.PeriodDtype("D"),
+        pd.IntervalDtype("int64"),
+        pd.SparseDtype("int64"),
+    ],
+)
+def test_to_pyarrow_type_no_pyarrow_equivalent_raises(dtype):
+    # GH#67007 these must not map to None, which callers read as "let
+    # pyarrow infer the type"
+    with pytest.raises(TypeError, match="Cannot interpret"):
+        to_pyarrow_type(dtype)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.CategoricalDtype(),
+        pd.PeriodDtype("D"),
+        pd.SparseDtype("int64"),
+        pd.Int64Dtype(),
+        pd.StringDtype("pyarrow"),
+        NumpyEADtype("int64"),
+    ],
+)
+def test_from_sequence_non_arrow_extension_dtype_raises(dtype):
+    # GH#67007 constructing from a non-Arrow extension dtype must raise rather
+    # than silently return an ArrowDtype other than the one requested
+    msg = "Cannot construct ArrowExtensionArray with dtype"
+    with pytest.raises(TypeError, match=msg):
+        ArrowExtensionArray._from_sequence([1, 2], dtype=dtype)
+    with pytest.raises(TypeError, match=msg):
+        ArrowExtensionArray._from_sequence_of_strings(["1", "2"], dtype=dtype)
 
 
 @pytest.mark.parametrize("dtype", ["string", "string[pyarrow]"])
