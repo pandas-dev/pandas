@@ -7,11 +7,16 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
+from pandas._config import using_pivot_table_dropna
+
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -112,6 +117,14 @@ def pivot_table(
         * rows with an NA value in any column will be omitted before computing margins,
         * index/column keys containing NA values will be dropped (see ``dropna``
           parameter in :meth:``DataFrame.groupby``).
+
+        .. deprecated:: 3.2.0
+
+            The rows that are omitted before computing the margins will only be
+            the rows with an NA value in an index or column key, and rows of
+            the result that are all NA will be kept. Use
+            ``pd.set_option("future.pivot_table_dropna", True)`` to opt in to
+            the future behavior.
 
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
@@ -358,7 +371,12 @@ def __internal_pivot_table(
     agged = grouped.agg(aggfunc, **kwargs)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
-        agged = agged.dropna(how="all")
+        if not using_pivot_table_dropna():
+            if agged.isna().all(axis=1).any():
+                # GH#53521 (3): the rows of the aggregated result that are all
+                #  NA are dropped; in a future version they will be kept
+                _warn_pivot_table_dropna_rows()
+            agged = agged.dropna(how="all")
 
     table = agged
 
@@ -398,7 +416,18 @@ def __internal_pivot_table(
 
     if margins:
         if dropna:
-            data = data[data.notna().all(axis=1)]
+            if using_pivot_table_dropna():
+                # GH#65765, GH#53521 (4): only the rows that are not part of
+                # the table are omitted before the margins are computed, i.e.
+                # the rows with an NA value in one of the keys.  Those rows
+                # are left out by groupby(dropna=True), so this makes the
+                # margins be computed from exactly the rows the table is
+                # built from.
+                data = data[grouped._grouper.ids != -1]
+            else:
+                if _pivot_table_margins_would_differ(data, values, grouped):
+                    _warn_pivot_table_dropna_margins()
+                data = data[data.notna().all(axis=1)]
         table = _add_margins(
             table,
             data,
@@ -424,6 +453,53 @@ def __internal_pivot_table(
         table = table.dropna(how="all", axis=1)
 
     return cast("DataFrame", table)
+
+
+def _pivot_table_margins_would_differ(
+    data: DataFrame, values, grouped: SeriesGroupBy | DataFrameGroupBy
+) -> bool:
+    """
+    Whether the margins of a pivot table would change if only the rows with an
+    NA value in one of the keys were omitted before computing them.
+
+    That is the case if a row with complete keys has an NA value in one of the
+    value columns, because such a row is currently omitted from the margins
+    even though it is part of the table.
+    """
+    if not len(values):
+        return False
+    # rows with an NA value in one of the keys are not part of the table
+    in_table = grouped._grouper.ids != -1
+    has_na = data[values].isna().any(axis=1).to_numpy()
+    return bool((has_na & in_table).any())
+
+
+def _warn_pivot_table_dropna_margins() -> None:
+    warnings.warn(
+        "DataFrame.pivot_table with margins=True and dropna=True omits the "
+        "rows with an NA value in any column before computing the margins. "
+        "In a future version, only the rows with an NA value in an index or "
+        "column key will be omitted, so that the margins are computed from "
+        "the same rows as the table. To opt in to the future behavior, use "
+        "pd.set_option('future.pivot_table_dropna', True). To keep the "
+        "current behavior, drop the rows with NA values before calling "
+        "pivot_table, e.g. with df.dropna().",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
+def _warn_pivot_table_dropna_rows() -> None:
+    warnings.warn(
+        "DataFrame.pivot_table with dropna=True drops the rows of the result "
+        "that are all NA. In a future version these rows will be kept. To opt "
+        "in to the future behavior, use "
+        "pd.set_option('future.pivot_table_dropna', True). To keep the "
+        "current behavior, drop the all-NA rows of the result with "
+        "result.dropna(how='all').",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
 
 
 def _add_margins(

@@ -1020,6 +1020,24 @@ with cf.config_prefix("future"):
     )
 
     _register_future_option(
+        "pivot_table_dropna",
+        legacy=False,
+        default=False,
+        upcoming=True,
+        # the test suite does not yet pass with the upcoming value
+        enrolled=False,
+        doc="Whether DataFrame.pivot_table computes the margins from the rows "
+        "that the table is built from. If False (the default), rows with an NA "
+        "value in any column are omitted before the margins are computed and "
+        "rows of the result that are all NA are dropped. If True, only rows "
+        "with an NA value in an index or column key are omitted before the "
+        "margins are computed and rows of the result that are all NA are kept. "
+        "The future behavior will become the default in a future version of "
+        "pandas.",
+        validator=is_one_of_factory([True, False]),
+    )
+
+    _register_future_option(
         "python_scalars",
         legacy=False,
         default=False,

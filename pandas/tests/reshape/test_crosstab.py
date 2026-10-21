@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -287,6 +289,26 @@ class TestCrosstab:
         expected.columns = pd.Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
+    def test_margin_dropna_future_option(self):
+        # GH#65765 with the future option the rows with an NA value in a key
+        #  are still excluded from the margins
+        df = pd.DataFrame({"a": [1, 2, 2, 2, 2, np.nan], "b": [3, 3, 4, 4, 4, 4]})
+        with pd.option_context("future.pivot_table_dropna", True):
+            actual = pd.crosstab(df.a, df.b, margins=True, dropna=True)
+        expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 3, 5]])
+        expected.index = pd.Index([1.0, 2.0, "All"], name="a")
+        expected.columns = pd.Index([3, 4, "All"], name="b")
+        tm.assert_frame_equal(actual, expected)
+
+    def test_crosstab_dropna_future_option(self):
+        # GH#65765 crosstab is not affected by the pivot_table dropna
+        #  deprecation, the values are not part of the keys
+        df = pd.DataFrame({"a": [1, 2, 2, 2, 2], "b": [3, 3, 4, 4, 4]})
+        expected = pd.crosstab(df.a, df.b, margins=True)
+        with pd.option_context("future.pivot_table_dropna", True):
+            result = pd.crosstab(df.a, df.b, margins=True)
+        tm.assert_frame_equal(result, expected)
+
     def test_margin_dropna5(self):
         # GH: 10772: Keep np.nan in result with dropna=False
         df = pd.DataFrame(
@@ -435,9 +457,11 @@ class TestCrosstab:
             index=pd.Index([1, 2, "All"], name="a", dtype="object"),
             columns=pd.Index([3, 4, "All"], name="b"),
         )
-        test_case = pd.crosstab(
-            df.a, df.b, df.c, aggfunc="count", normalize="all", margins=True
-        )
+        msg = "future.pivot_table_dropna"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            test_case = pd.crosstab(
+                df.a, df.b, df.c, aggfunc="count", normalize="all", margins=True
+            )
         tm.assert_frame_equal(test_case, norm_counts)
 
         df = pd.DataFrame(
@@ -449,9 +473,10 @@ class TestCrosstab:
             index=pd.Index([1, 2, "All"], name="a", dtype="object"),
             columns=pd.Index([3, 4, "All"], name="b", dtype="object"),
         )
-        test_case = pd.crosstab(
-            df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            test_case = pd.crosstab(
+                df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
+            )
         tm.assert_frame_equal(test_case, norm_sum)
 
     def test_crosstab_with_empties(self):
