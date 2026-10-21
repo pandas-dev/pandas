@@ -550,6 +550,25 @@ def test_hash_equal_namedtuple_and_tuple():
     assert ht.objects_are_equal(a, b)
 
 
+@pytest.mark.parametrize(
+    "a, b",
+    [(np.dtype("int64"), "int64"), (pd.CategoricalDtype(), "category")],
+)
+def test_objects_are_equal_requires_equal_hash(a, b):
+    # GH#43581 equal objects with different hashes must not match, otherwise
+    # lookups succeed or fail depending on where probing lands
+    assert a == b
+    assert ht.object_hash(a) != ht.object_hash(b)
+    assert not ht.objects_are_equal(a, b)
+
+
+@pytest.mark.parametrize("a, b", [(1, 1.0), (True, 1), (np.str_("a"), "a")])
+def test_objects_are_equal_different_types_equal_hash(a, b):
+    # GH#43581
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
