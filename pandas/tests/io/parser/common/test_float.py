@@ -208,11 +208,9 @@ def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
     "value", ["+0.0000000000000000000000005", "+0.0001234567890123456789"]
 )
 def test_leading_plus_fractional_leading_zeros(c_parser_only, value):
-    # GH#68311: a leading "+" is rejected by fast_float, so the token falls
-    # through to the same converter thousands= uses, which charged the
-    # fractional leading zeros against its 17 significant-digit budget.
-    # dtype="category" is how the C engine reaches it -- via Categorical's
-    # to_numeric -- where plain read_csv takes try_parse_plain_double instead
+    # GH#68311, GH#44145: a leading "+" must parse like the unsigned value.
+    # dtype="category" is how the C engine reaches to_numeric -- via
+    # Categorical -- where plain read_csv takes try_parse_plain_double instead
     parser = c_parser_only
     result = parser.read_csv(StringIO(f"val\n{value}\n"), dtype="category")
     assert result["val"].cat.categories[0] == float(value)
