@@ -324,8 +324,9 @@ class DataFrame(NDFrame, OpsMixin):
     Notes
     -----
     Please reference the :ref:`User Guide <basics.dataframe>` for more information.
-    If a dict is passed for index or columns, the keys are used to create the corresponding index.
-    
+    If a dict is passed for index or columns, the keys are used to create the
+    corresponding index.
+
     Examples
     --------
     Constructing DataFrame from a dictionary.
