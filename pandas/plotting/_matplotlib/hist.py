@@ -98,7 +98,11 @@ class HistPlot(LinePlot):
     def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         data = data.infer_objects()
-        if data.shape[1] and all(dtype.kind == "M" for dtype in data.dtypes):
+        if (
+            isinstance(data, ABCDataFrame)
+            and data.shape[1]
+            and all(dtype.kind == "M" for dtype in data.dtypes)
+        ):
             # GH#17372 bin on the same floats matplotlib converts datetimes to
             values = np.concatenate(
                 [mdates.date2num(ser.dropna()) for _, ser in data.items()]
