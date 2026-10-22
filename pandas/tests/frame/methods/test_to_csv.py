@@ -1482,6 +1482,20 @@ class TestDataFrameToCSV:
     def test_to_csv_chunksize_datetime_format(self):
         # GH#55481: to_csv with chunksize should produce consistent datetime
         # formatting across all chunks, not per-chunk formatting.
+        # The issue's own example: every row must carry the time component,
+        # even the midnight ones, once any row in the column has a time.
+        dti = pd.date_range("2016-01-01", periods=3, freq="D")
+        df_issue = pd.DataFrame({"A": dti})
+        df_issue.iloc[-1, -1] += pd.Timedelta(minutes=1)
+        expected_issue = (
+            ",A\n"
+            "0,2016-01-01 00:00:00\n"
+            "1,2016-01-02 00:00:00\n"
+            "2,2016-01-03 00:01:00\n"
+        )
+        assert df_issue.to_csv(chunksize=1) == expected_issue
+        assert df_issue.to_csv() == expected_issue
+
         # Use a column where the full column is NOT dates-only (has a non-midnight
         # value) but individual chunks may be dates-only.
         df = pd.DataFrame(
