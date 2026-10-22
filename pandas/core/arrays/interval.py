@@ -681,6 +681,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170. Keep the cython reconstructor so these load in older pandas.
+        reduced = super().__reduce__()
+        attrs = {key: val for key, val in self.__dict__.items() if key != "_cache"}
+        return reduced[0], reduced[1], (attrs,)
+
     @overload
     def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 

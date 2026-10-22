@@ -1794,7 +1794,9 @@ class DataFrame(NDFrame, OpsMixin):
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
                     index = Index(data.keys())
-                    data = _from_nested_dict(data)
+                    data = _from_nested_dict(
+                        dict(zip(index, data.values(), strict=True))
+                    )
                 else:
                     index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
@@ -2276,7 +2278,7 @@ class DataFrame(NDFrame, OpsMixin):
                     result_index = ensure_index_from_sequences(index_data, names=index)
                     exclude.update(index)
 
-        if any(exclude):
+        if exclude:
             arr_exclude = (x for x in exclude if x in arr_columns)
             to_remove = {
                 arr_columns.get_loc(col)
@@ -3496,6 +3498,12 @@ class DataFrame(NDFrame, OpsMixin):
         an XML element. Column values can be mapped to either XML element text
         or attributes, and the output supports namespaces, XSLT stylesheets,
         and custom root/row element names.
+
+        .. warning::
+
+           XSLT is a programming language, and a ``stylesheet`` is run without
+           restrictions: it can read and write local files. Only use stylesheets
+           from trusted sources.
 
         Parameters
         ----------
@@ -5116,6 +5124,9 @@ class DataFrame(NDFrame, OpsMixin):
             with. Reducing those columns back to one dimension, as in
             ``df.query("a.max(axis=1) > 4")``, is fine.
 
+            If ``expr`` evaluates to anything other than a boolean array or a
+            DataFrame.
+
         See Also
         --------
         eval : Evaluate a string describing operations on
@@ -5251,6 +5262,17 @@ class DataFrame(NDFrame, OpsMixin):
                 "a row mask. Rename or drop the duplicate labels, or reduce "
                 "the result to one dimension with e.g. .any(axis=1)."
             )
+
+        # GH#8560 a non-boolean result would otherwise be silently used as labels;
+        #  a non-boolean DataFrame already raises in __getitem__
+        if not isinstance(res, DataFrame) and not com.is_bool_indexer(res):
+            msg = "expr must evaluate to a boolean array, got"
+            dtype = getattr(res, "dtype", None) if is_list_like(res) else None
+            if dtype is None:
+                raise ValueError(f"{msg} {type(res).__name__}")
+            # an empty object column may still be a bool column once it has rows
+            if not (dtype == object and len(res) == 0):
+                raise ValueError(f"{msg} dtype {dtype}")
 
         try:
             result = self.loc[res]
@@ -17204,6 +17226,11 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise NotImplementedError(name)
 
+        if name in ("min", "max") and any(
+            block.dtype.kind == "c" for block in self._mgr.blocks
+        ):
+            nanops.warn_complex_unordered()
+
         for block in self._mgr.blocks:
             vals = block.values
             if acc_dtype is not None and vals.dtype != acc_dtype:
@@ -20354,11 +20381,7 @@ class _DuplicateColumnRecorder(dict[Any, Any]):
     this only takes note and ``query`` decides once it can see the result.
 
     Lookups always raise ``KeyError`` so that the column resolvers behind this
-    one still supply the value. The names live in an attribute rather than in
-    the dict itself because the scope machinery rewrites an ``@local``
-    reference by writing it into the first resolver that *contains* that name
-    (``Scope.swapkey``), so anything stored here would capture locals sharing a
-    name with a duplicated column.
+    one still supply the value.
     """
 
     def __init__(self, names: set[Hashable]) -> None:

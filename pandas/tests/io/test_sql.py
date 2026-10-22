@@ -1629,6 +1629,27 @@ def test_read_sql_percent_operator_and_selectable(conn, request):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_column_labels_are_str(conn, request, string_storage):
+    # GH#52816 SQLAlchemy result keys are str subclasses
+    sa = pytest.importorskip("sqlalchemy")
+    conn = request.getfixturevalue(conn)
+    pd.DataFrame({"a": [1]}).to_sql(name="test_labels", con=conn, index=False)
+    empty = pd.DataFrame({"a": pd.Series([], dtype="int64")})
+    empty.to_sql(name="test_labels_empty", con=conn, index=False)
+    table = sa.Table("test_labels", sa.MetaData(), sa.Column("a", sa.Integer))
+
+    with pd.option_context("mode.string_storage", string_storage):
+        results = [
+            sql.read_sql_query(sa.select(table), conn),
+            sql.read_sql_table("test_labels", conn),
+            next(sql.read_sql_query(sa.select(table), conn, chunksize=1)),
+            next(sql.read_sql_table("test_labels_empty", conn, chunksize=1)),
+        ]
+    for result in results:
+        assert type(result.columns[0]) is str
+
+
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     if "adbc" in conn:
@@ -2381,6 +2402,28 @@ def test_api_unicode_column_name(conn, request):
 
     df = pd.DataFrame([[1, 2], [3, 4]], columns=["\xe9", "b"])
     df.to_sql(name="test_unicode", con=conn, index=False)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("method", [None, "multi"])
+def test_api_to_sql_column_name_special_characters(conn, method, request):
+    # GH#8762 psycopg2 raised KeyError on parentheses in a column name
+    if method == "multi" and "adbc" in conn:
+        pytest.skip("'method' not implemented for ADBC drivers, see test_to_sql")
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=["CT Volume (cc)", "a%b", "a:b", "a.b"],
+    )
+    df.to_sql(
+        name="test_special_chars",
+        con=conn,
+        index=False,
+        if_exists="replace",
+        method=method,
+    )
+    result = sql.read_sql_query("SELECT * FROM test_special_chars", conn)
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -3197,6 +3240,51 @@ def test_datetime_time(conn, request, sqlite_buildin):
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_datetime_time_fractional_seconds_roundtrip(conn, request):
+    # GH#48435 MySQL rounded fractional seconds away
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    ts = pd.Timestamp("2022-09-07 17:42:52.771654")
+    df = pd.DataFrame(
+        {
+            "naive": pd.Series([ts], dtype="M8[us]"),
+            "aware": pd.Series([ts.tz_localize("UTC")], dtype="M8[us, UTC]"),
+            "time": [ts.time()],
+        }
+    )
+    assert df.to_sql(name="test_fractional", con=conn, index=False) == 1
+    result = sql.read_sql_table("test_fractional", conn)
+
+    expected = df.copy()
+    if "postgresql" not in conn_name:
+        # timestamps with timezones come back naive outside postgresql
+        expected["aware"] = expected["aware"].dt.tz_localize(None)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("mariadb", [False, True])
+def test_mysql_datetime_types_keep_fractional_seconds(mariadb, sqlite_engine):
+    # GH#48435
+    from sqlalchemy.dialects import mysql
+    from sqlalchemy.dialects.mysql.mariadb import MariaDBDialect
+    from sqlalchemy.schema import CreateTable
+
+    dialect = MariaDBDialect() if mariadb else mysql.dialect()
+    ts = pd.Timestamp("2022-09-07 17:42:52.771654")
+    df = pd.DataFrame(
+        {"naive": [ts], "aware": [ts.tz_localize("UTC")], "time": [ts.time()]},
+        index=pd.DatetimeIndex([ts], tz="UTC", name="idx"),
+    )
+    with sql.SQLDatabase(sqlite_engine) as pandas_sql:
+        table = sql.SQLTable("test", pandas_sql, frame=df, index=True)
+        create_sql = str(CreateTable(table.table).compile(dialect=dialect))
+    assert "naive DATETIME(6)" in create_sql
+    assert "aware TIMESTAMP(6)" in create_sql
+    assert "time TIME(6)" in create_sql
+    assert "idx TIMESTAMP(6)" in create_sql
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_mixed_dtype_insert(conn, request):
     # see GH6509
     conn = request.getfixturevalue(conn)
@@ -3553,6 +3641,25 @@ def test_read_sql_table_float_asdecimal(sqlite_engine):
         event.listen(pandas_sql.meta, "column_reflect", as_decimal_float)
         res = pandas_sql.read_table("test_float_asdecimal")
     tm.assert_frame_equal(res, df, check_exact=True)
+
+
+def test_read_sql_table_datetime_utc_z_suffix(sqlite_engine):
+    # GH#30879
+    from sqlalchemy import text
+
+    with sqlite_engine.begin() as conn:
+        conn.execute(text("CREATE TABLE gpkg_contents (last_change DATETIME);"))
+        conn.execute(
+            text("INSERT INTO gpkg_contents VALUES ('2019-01-01T00:00:00.000Z');")
+        )
+
+    result = sql.read_sql_table(
+        "gpkg_contents", sqlite_engine, parse_dates=["last_change"]
+    )
+    expected = pd.DataFrame(
+        {"last_change": pd.DatetimeIndex(["2019-01-01"], tz="UTC").as_unit("us")}
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)

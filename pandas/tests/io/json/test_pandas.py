@@ -1476,6 +1476,17 @@ class TestPandasContainer:
         with pytest.raises(AttributeError, match="_creso"):
             ser.to_json(date_format="iso")
 
+    def test_to_json_iso_datetime_conversion_failure_raises(self):
+        # GH#69461 PyDateTimeToIso returned NULL without setting errorMsg,
+        # which segfaulted instead of propagating the Python exception
+        class BadTZ(datetime.tzinfo):
+            def utcoffset(self, dt):
+                raise RuntimeError("boom")
+
+        ser = pd.Series([datetime.datetime(2020, 1, 1, tzinfo=BadTZ())], dtype=object)
+        with pytest.raises(RuntimeError, match="boom"):
+            ser.to_json(date_format="iso")
+
     def test_default_handler(self):
         value = object()
         frame = pd.DataFrame({"a": [7, value]})
@@ -2735,6 +2746,32 @@ def test_to_json_unsupported_object_gh36211():
     msg = "Unable to serialize object to JSON: encountered an unsupported object type"
     with pytest.raises(ValueError, match=msg):
         df.to_json()
+
+
+class _RaisingTZ(datetime.tzinfo):
+    def utcoffset(self, dt):
+        raise RuntimeError("boom")
+
+
+class _DatetimeSubclass(datetime.datetime):
+    pass
+
+
+@pytest.mark.parametrize("dt_cls", [datetime.datetime, _DatetimeSubclass])
+@pytest.mark.parametrize(
+    "box",
+    [
+        lambda val: pd.Series([{"a": val}], dtype=object),
+        lambda val: pd.DataFrame({"a": pd.Series([val], dtype=object)}),
+        lambda val: pd.Series([1], index=pd.Index([val], dtype=object)),
+        lambda val: pd.DataFrame([[1]], columns=pd.Index([val], dtype=object)),
+    ],
+)
+def test_to_json_iso_utcoffset_raises(dt_cls, box):
+    # GH#69461 an error raised by utcoffset should propagate
+    obj = box(dt_cls(2020, 1, 1, tzinfo=_RaisingTZ()))
+    with pytest.raises(RuntimeError, match="boom"):
+        obj.to_json(date_format="iso")
 
 
 @pytest.mark.parametrize("other", ['"notadate"', "true"])
