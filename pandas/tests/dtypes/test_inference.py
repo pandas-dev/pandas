@@ -1450,6 +1450,23 @@ class TestTypeInference:
     def test_infer_dtype_datetime(self, arr):
         assert lib.infer_dtype(np.array(arr), skipna=True) == "datetime"
 
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.array([1, 1.0, True], dtype=object),
+            np.array([1.0, True, 1], dtype=object),
+            np.array([True, 1, 1.0], dtype=object),
+        ],
+    )
+    def test_infer_dtype_mixed_integer_float_bool(self, arr):
+        # GH 62033
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+    def test_infer_dtype_mixed_integer_bool_nan(self):
+        # GH 62033
+        arr = np.array([1, True, np.nan], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed-integer"
+
     @pytest.mark.parametrize("na_value", [pd.NaT, np.nan, pd.NA])
     @pytest.mark.parametrize(
         "time_stamp", [pd.Timestamp("2011-01-01"), datetime(2011, 1, 1)]
