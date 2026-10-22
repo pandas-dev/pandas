@@ -1870,15 +1870,12 @@ def interval_range(
                 end = start + (periods - 1) * freq
 
             step = freq
-            if (
-                step is None
-                and periods > 1
-                and is_integer(start)
-                and is_integer(end)
-                and (end - start) % (periods - 1) == 0
-            ):
-                # start/end/periods with evenly spaced integer breaks
-                step = (end - start) // (periods - 1)
+            if step is None and periods > 1 and is_integer(start) and is_integer(end):
+                # start/end/periods with evenly spaced integer breaks; use
+                # Python ints so the span of NumPy integers can't overflow
+                span = int(end) - int(start)
+                if span % (periods - 1) == 0:
+                    step = span // (periods - 1)
             int_breaks = None
             if step is not None:
                 int_breaks = _integer_breaks(start, end, step, dtype)

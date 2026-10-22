@@ -201,6 +201,16 @@ class TestIntervalRange:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_large_numpy_integer_span_with_periods(self):
+        # GH#71288 end - start overflows int64 for NumPy integer endpoints
+        start = np.int64(-(2**62) - 1)
+        end = np.int64(2**62 + 1)
+        result = pd.interval_range(start=start, end=end, periods=2)
+        expected = pd.IntervalIndex.from_breaks(
+            np.array([start, 0, end], dtype=np.int64)
+        )
+        tm.assert_index_equal(result, expected)
+
     def test_large_unsigned_endpoints(self):
         # GH#71288
         start = np.uint64(2**63)
