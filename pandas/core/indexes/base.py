@@ -4527,7 +4527,11 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(self, ABCMultiIndex):
             new_index = Index(new_labels, name=self.name, copy=False)
         else:
-            new_index = type(self).from_tuples(new_labels, names=self.names)
+            try:
+                new_index = type(self).from_tuples(new_labels, names=self.names)
+            except ValueError:
+                # missing labels are tuples of a different length, GH#50293
+                new_index = Index(new_labels, copy=False)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -6715,9 +6719,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi and not other._is_multi:
             try:
                 # "Type[Index]" has no attribute "from_tuples"
-                other = type(self).from_tuples(other)  # type: ignore[attr-defined]
+                other_mi = type(self).from_tuples(other)  # type: ignore[attr-defined]
             except (TypeError, ValueError):
-                # let's instead try with a straight Index
+                other_mi = None
+            if other_mi is not None and other_mi.nlevels == self.nlevels:
+                other = other_mi
+            else:
+                # let's instead try with a straight Index, so tuples of a
+                #  different length can't match on a prefix, GH#50293
                 self = Index(self._values, copy=False)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
@@ -6894,7 +6903,16 @@ class Index(IndexOpsMixin, PandasObject):
                 names = [self.name] * len(new_values[0])
             else:
                 names = None
-            return MultiIndex.from_tuples(new_values, names=names)
+            # ValueError: tuples of different lengths, return a flat Index
+            #  (GH#50293); names are set afterwards so a mismatch still raises
+            try:
+                result = MultiIndex.from_tuples(new_values)
+            except ValueError:
+                pass
+            else:
+                if names is not None:
+                    result.names = names
+                return result
 
         dtype = None
         if not new_values.size:
@@ -7216,10 +7234,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_numeric_dtype(self.dtype):
             return self._maybe_cast_indexer(label)
 
-        # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self:
-            self._raise_invalid_indexer("slice", label)
-
         return label
 
     def _searchsorted_monotonic(
@@ -7300,11 +7314,29 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
+                if is_integer(original_label) or is_float(original_label):
+                    if isinstance(self.dtype, CategoricalDtype):
+                        values = self.dtype.categories
+                    else:
+                        values = self
+                    try:
+                        values < original_label
+                    except TypeError as err:
+                        # sorting would not make the bound comparable
+                        self._raise_invalid_indexer("slice", original_label, err)
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-monotonic index "
                     f"with a missing label {original_label!r}. "
                     "Either sort the index or specify an existing label."
                 ) from None
+            except TypeError as err:
+                if isinstance(self.dtype, CategoricalDtype):
+                    raise TypeError(
+                        f"Cannot slice {type(self).__name__} with bound "
+                        f"{original_label!r}: it is not one of the categories."
+                    ) from err
+                # label is not comparable with the index values
+                self._raise_invalid_indexer("slice", original_label, err)
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
@@ -7743,6 +7775,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(other, Index) and self.is_(other):
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
+                if op is not operator.eq and self.dtype.kind == "c":
+                    # GH#43770 this fastpath skips the comparison_op warning
+                    nanops.warn_complex_unordered()
                 arr = np.ones(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
