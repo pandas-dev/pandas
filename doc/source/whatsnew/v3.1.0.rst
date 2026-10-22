@@ -1023,6 +1023,7 @@ Strings
 - Bug in :meth:`Series.str.split` with :class:`ArrowDtype` ``string`` not inferring regex for multi-character patterns when ``regex=None``, causing the pattern to be treated as a literal instead of a regular expression (:issue:`58321`)
 - Bug in :meth:`Series.unique`, :meth:`Index.unique` and :func:`factorize` on object dtype returning incorrect results when the values were not UTF-8 encodable, e.g. lone surrogates (:issue:`34550`)
 - Bug in :meth:`Series.unique`, :meth:`Index.unique`, :meth:`Series.nunique`, :func:`factorize` and ``groupby`` on object dtype, and on ``str``/``string`` dtype backed by python storage, collapsing distinct strings that are identical up to an embedded NUL byte, e.g. ``""`` and ``"\x00"``, into a single value (:issue:`34551`)
+- Bug in string methods using a regex pattern with ``$`` to indicate the end of the string: when using PyArrow-backed string dtypes, for certain cases this no longer matched before or after an ending newline; now it is consistent again with Python's ``re`` behaviour in all cases (:issue:`63683`)
 - Bug in string methods using a regex pattern with unicode escape sequences (``\u``/``\U``/``\N{}``) with PyArrow-backed string dtypes failing, now working again as in pandas 2.x (:issue:`63901`)
 
 Interval
