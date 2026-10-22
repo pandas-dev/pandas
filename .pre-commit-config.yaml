@@ -338,4 +338,4 @@ repos:
         types: [rst]
         language: python
         files: ^doc/source/whatsnew/v
-        exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
+        exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0|3\.1\.0)
