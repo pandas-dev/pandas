@@ -652,7 +652,7 @@ class BaseBlockManager(PandasObject):
         decimal,
         na_rep: str = "nan",
         quoting=None,
-        skip_dates_only_check: "bool | frozenset | set | tuple | list" = False,
+        skip_dates_only_check: "bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]" = False,
     ) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
