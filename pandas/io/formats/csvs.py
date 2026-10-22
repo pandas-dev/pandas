@@ -314,19 +314,27 @@ class CSVFormatter:
         nrows = len(self.data_index)
         chunks = (nrows // self.chunksize) + 1
 
-        # Compute effective date_format and skip_dates_only_check based on full
-        # columns to ensure consistent formatting across chunks (GH#55481)
-        skip_dates_only_check = False
-        for col in self.obj.columns:
-            values = self.obj[col]._values
-            if isinstance(values, (DatetimeArray, TimedeltaArray)):
-                if not values._is_dates_only:
-                    skip_dates_only_check = True
-                    break
+        # Compute, per column, whether the *full* column is NOT dates-only, so
+        # that a chunk which happens to be all-midnight does not get the
+        # compact dates-only format while the full column uses the full one
+        # (GH#55481). Kept per-column (not a single global flag) so a
+        # dates-only column is not affected by a non-dates-only sibling.
+        non_dates_only_cols = frozenset(
+            col
+            for col in self.obj.columns
+            if isinstance(self.obj[col]._values, (DatetimeArray, TimedeltaArray))
+            and not self.obj[col]._values._is_dates_only
+        )
+
+        index_values = getattr(self.data_index, "_values", None)
+        index_skip_dates_only_check = bool(
+            isinstance(index_values, (DatetimeArray, TimedeltaArray))
+            and not index_values._is_dates_only
+        )
 
         number_format = {
             **self._number_format,
-            "skip_dates_only_check": skip_dates_only_check,
+            "skip_dates_only_check": non_dates_only_cols,
         }
 
         for i in range(chunks):
@@ -334,10 +342,19 @@ class CSVFormatter:
             end_i = min(start_i + self.chunksize, nrows)
             if start_i >= end_i:
                 break
-            self._save_chunk(start_i, end_i, number_format)
+            self._save_chunk(
+                start_i,
+                end_i,
+                number_format,
+                index_skip_dates_only_check,
+            )
 
     def _save_chunk(
-        self, start_i: int, end_i: int, number_format: dict[str, Any]
+        self,
+        start_i: int,
+        end_i: int,
+        number_format: dict[str, Any],
+        index_skip_dates_only_check: bool = False,
     ) -> None:
         # create the data for a chunk
         slicer = slice(start_i, end_i)
@@ -347,7 +364,12 @@ class CSVFormatter:
         data = list(res._iter_column_arrays())
 
         ix = (
-            self.data_index[slicer]._get_values_for_csv(**number_format)
+            self.data_index[slicer]._get_values_for_csv(
+                **{
+                    **self._number_format,
+                    "skip_dates_only_check": index_skip_dates_only_check,
+                }
+            )
             if self.nlevels != 0
             else np.empty(end_i - start_i)
         )

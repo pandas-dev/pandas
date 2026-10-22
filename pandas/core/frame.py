@@ -1219,7 +1219,7 @@ class DataFrame(NDFrame, OpsMixin):
         decimal: str,
         na_rep: str,
         quoting,  # int csv.QUOTE_FOO from stdlib
-        skip_dates_only_check: bool = False,
+        skip_dates_only_check: "bool | frozenset | set | tuple | list" = False,
     ) -> DataFrame:
         # helper used by to_csv
         mgr = self._mgr.get_values_for_csv(

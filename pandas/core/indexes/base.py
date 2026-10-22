@@ -1638,7 +1638,7 @@ class Index(IndexOpsMixin, PandasObject):
         float_format: str_t | None = None,
         date_format: str_t | None = None,
         quoting: int | None = None,
-        skip_dates_only_check: bool = False,
+        skip_dates_only_check: "bool | frozenset | set | tuple | list" = False,
     ) -> npt.NDArray[np.object_]:
         return get_values_for_csv(
             self._values,
@@ -8605,12 +8605,20 @@ def get_values_for_csv(
 
     values = ensure_wrapped_if_datetimelike(values)  # type: ignore[no-untyped-call]
 
+    # normalize: allow a per-column sequence of bools (from BlockManager) in
+    # addition to a single bool
+    if isinstance(skip_dates_only_check, (list, tuple, frozenset, set)):
+        _skip_seq = list(skip_dates_only_check)
+    else:
+        _skip_seq = None
+
     if isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
         if values.ndim == 1:
+            _skip = _skip_seq[0] if _skip_seq else bool(skip_dates_only_check)
             result = values._format_native_types(
                 na_rep=na_rep,
                 date_format=date_format,
-                skip_dates_only_check=skip_dates_only_check,
+                skip_dates_only_check=_skip,
             )
             result = result.astype(object, copy=False)
             return result
@@ -8618,10 +8626,11 @@ def get_values_for_csv(
         # GH#21734 Process every column separately, they might have different formats
         results_converted = []
         for i in range(len(values)):
+            _skip = _skip_seq[i] if _skip_seq else bool(skip_dates_only_check)
             result = values[i, :]._format_native_types(
                 na_rep=na_rep,
                 date_format=date_format,
-                skip_dates_only_check=skip_dates_only_check,
+                skip_dates_only_check=_skip,
             )
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)

@@ -652,12 +652,39 @@ class BaseBlockManager(PandasObject):
         decimal,
         na_rep: str = "nan",
         quoting=None,
-        skip_dates_only_check: bool = False,
+        skip_dates_only_check: "bool | frozenset | set | tuple | list" = False,
     ) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
         in formatting (repr / csv).
+
+        ``skip_dates_only_check`` may be a collection of column labels identifying
+        the columns whose full data is not dates-only; in that case the skip is
+        resolved per block instead of applied uniformly.
         """
+        if isinstance(skip_dates_only_check, (frozenset, set, tuple, list)):
+            skip_set = set(skip_dates_only_check)
+            new_blocks = []
+            for blk in self.blocks:
+                # resolve per-column so a dates-only column is not affected
+                # by a non-dates-only sibling living in the same block
+                block_skip = [
+                    self.items[i] in skip_set for i in blk.mgr_locs.as_array
+                ]
+                new_blocks.append(
+                    blk.get_values_for_csv(
+                        na_rep=na_rep,
+                        quoting=quoting,
+                        float_format=float_format,
+                        date_format=date_format,
+                        decimal=decimal,
+                        skip_dates_only_check=block_skip,
+                    )
+                )
+            new_mgr = self.copy(deep=False)
+            new_mgr.blocks = tuple(new_blocks)
+            return new_mgr
+
         return self.apply(
             "get_values_for_csv",
             na_rep=na_rep,

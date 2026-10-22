@@ -647,7 +647,7 @@ class Block(PandasObject, libinternals.Block):
         decimal,
         na_rep: str = "nan",
         quoting=None,
-        skip_dates_only_check: bool = False,
+        skip_dates_only_check: "bool | frozenset | set | tuple | list" = False,
     ) -> Block:
         """convert to our native types format"""
         result = get_values_for_csv(
