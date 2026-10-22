@@ -2005,18 +2005,21 @@ class BarPlot(MPLPlot):
         # even distinct integer centers or bar edges can collapse together.
         if is_integer_dtype(index.dtype) and np.any(np.abs(float_positions) >= 2**53):
             return None
-        if self._bar_width_is_default:
-            unique_positions = np.unique(float_positions)
-            if len(unique_positions) < 2:
-                spacing = 1.0
-            else:
+        unique_positions = np.unique(float_positions)
+        if len(unique_positions) < 2:
+            spacing = 1.0
+        else:
+            with np.errstate(over="ignore"):
                 spacing = float(np.diff(unique_positions).min())
+            if not np.isfinite(spacing):
+                return None
+        if self._bar_width_is_default:
             half_width = 0.25 * spacing
             if np.any(float_positions - half_width == float_positions) or np.any(
                 float_positions + half_width == float_positions
             ):
                 return None
-        if positions.dtype.kind in "iuf":
+        if positions.dtype.kind in "iu":
             return positions
         return float_positions
 
@@ -2304,11 +2307,13 @@ class BarPlot(MPLPlot):
         if self._numeric_index_positions is not None:
             start = self.ax_pos.min()
             end = self.ax_pos.max()
+            padding = 0.25 * self._numeric_index_spacing
         else:
             start = self.ax_pos[0]
             end = self.ax_pos[-1]
-        s_edge = start - 0.25 + self.lim_offset
-        e_edge = end + 0.25 + self.bar_width + self.lim_offset
+            padding = 0.25
+        s_edge = start - padding + self.lim_offset
+        e_edge = end + padding + self.bar_width + self.lim_offset
 
         # GH#1918: use the same dynamic date tick labeling as line plots
         if self._use_dynamic_dateaxis:

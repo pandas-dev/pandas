@@ -643,6 +643,39 @@ class TestDataFramePlots:
             centers.mean(axis=0), df.index.to_numpy(dtype=np.float64)
         )
 
+    def test_bar_plot_float32_group_offsets_do_not_collapse(self):
+        index = pd.Index(
+            [np.float32(1.0), np.nextafter(np.float32(1.0), np.float32(np.inf))]
+        )
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=index)
+
+        ax = df.plot.bar()
+
+        centers = np.array(
+            [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        ).reshape(len(df.columns), len(df))
+        expected = index.to_numpy(dtype=np.float64)
+        assert (centers[0] < expected).all()
+        assert (centers[1] > expected).all()
+        tm.assert_numpy_array_equal(centers.mean(axis=0), expected)
+
+    def test_bar_plot_nonfinite_numeric_spacing_remains_categorical(self):
+        ser = pd.Series([1, 2], index=[-1e308, 1e308])
+
+        ax = ser.plot.bar()
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(np.array(centers), np.arange(len(ser), dtype=float))
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_numeric_axis_padding_scales_to_spacing(self, kind):
+        ser = pd.Series([1, 2, 3], index=[0.0, 1e-6, 2e-6])
+
+        ax = ser.plot(kind=kind)
+
+        limits = ax.get_xlim() if kind == "bar" else ax.get_ylim()
+        tm.assert_almost_equal(np.array(limits), np.array([-5e-7, 2.5e-6]))
+
     def test_bar_plot_respects_numeric_xlim(self):
         # GH 48806
         ser = pd.Series([4, 8, 1, 4, 6], index=[3, 4, 5, 6, 7])
