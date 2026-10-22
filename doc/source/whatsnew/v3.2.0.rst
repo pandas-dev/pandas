@@ -308,6 +308,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- :func:`merge` now raises an informative ``ValueError`` when an array-like passed to ``on``, ``left_on`` or ``right_on`` does not match the length of the corresponding DataFrame, instead of a confusing ``KeyError`` (:issue:`58279`)
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
