@@ -11,8 +11,8 @@ import pytest
 from pandas._libs.parsers import STR_NA_VALUES
 
 import pandas as pd
-from pandas.core.arrays.floating import FloatingArray
 import pandas._testing as tm
+from pandas.core.arrays.floating import FloatingArray
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -952,8 +952,7 @@ def test_read_csv_float64_distinguish_nan_and_na():
             na_values=[""],
         )
     expected_array = FloatingArray(
-    np.array([1.0, np.nan, np.nan]), 
-    np.array([False, True, False])
+        np.array([1.0, np.nan, np.nan]), np.array([False, True, False])
     )
 
     expected = pd.DataFrame(
