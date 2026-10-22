@@ -8,6 +8,7 @@ from io import (
 import os
 from pathlib import Path
 import re
+import sys
 import threading
 from urllib.error import URLError
 
@@ -68,6 +69,25 @@ def test_bs4_version_fails(monkeypatch, datapath):
         pd.read_html(datapath("io", "data", "html", "spam.html"), flavor="bs4")
 
 
+def test_default_flavor_falls_back_to_bs4_without_lxml(monkeypatch):
+    # GH#30281
+    pytest.importorskip("bs4")
+    pytest.importorskip("html5lib")
+    monkeypatch.setitem(sys.modules, "lxml.etree", None)
+    html = "<table><tr><td>1</td></tr></table>"
+
+    result = pd.read_html(StringIO(html))
+    expected = [pd.DataFrame([[1]])]
+    assert_framelist_equal(result, expected)
+
+    with pytest.raises(ImportError, match="lxml"):
+        pd.read_html(StringIO(html), flavor="lxml")
+
+    monkeypatch.setitem(sys.modules, "html5lib", None)
+    with pytest.raises(ImportError, match="lxml"):
+        pd.read_html(StringIO(html))
+
+
 def test_invalid_flavor():
     url = "google.com"
     flavor = "invalid flavor"
@@ -96,6 +116,19 @@ def test_same_ordering(datapath):
 )
 def flavor_read_html(request):
     return partial(pd.read_html, flavor=request.param)
+
+
+def test_duplicate_tables_are_returned(flavor_read_html):
+    # GH#49934 identical tables are distinct tables and should all be returned
+    html = (
+        "<html><body>"
+        "<table><tr><td>a</td></tr></table>"
+        "<table><tr><td>a</td></tr></table>"
+        "</body></html>"
+    )
+    result = flavor_read_html(StringIO(html))
+    assert len(result) == 2
+    tm.assert_frame_equal(result[0], result[1])
 
 
 class TestReadHtml:

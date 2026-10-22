@@ -504,6 +504,18 @@ through the ``str`` accessor will work the same:
 
 .. note::
 
+   A small number of unicode edge cases give different results depending on
+   whether the storage variant is backed by ``pyarrow`` (the default when
+   pyarrow is installed) or by the python fallback. For example,
+   ``pd.Series(["ß"]).str.upper()`` returns ``"ẞ"`` with pyarrow storage but
+   ``"SS"`` with python storage (which is also what earlier pandas versions
+   return), and similar differences exist for related case-mapping characters
+   such as ``"İ"``. These differences can also change string lengths. The known
+   differences are being tracked in
+   https://github.com/pandas-dev/pandas/issues/63105.
+
+.. note::
+
    The new default string dtype is an instance of the :class:`pandas.StringDtype`
    class. The dtype can be constructed as ``pd.StringDtype(na_value=np.nan)``,
    but for general usage we recommend to use the shorter ``"str"`` alias.
