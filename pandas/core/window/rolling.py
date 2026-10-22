@@ -402,6 +402,12 @@ class BaseWindow(SelectionMixin["NDFrame"]):
             return self._on.to_numpy(dtype=np.int64)
         return None
 
+    def _get_apply_index(self) -> Index:
+        """
+        Index to attach to the values passed to a user function in apply.
+        """
+        return self._on
+
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
         """Validate and finalize result."""
         if out.shape[1] == 0 and obj.shape[1] > 0:
@@ -856,6 +862,14 @@ class BaseWindowGroupBy(BaseWindow):
             )
             obj = obj.take(groupby_order)
         return super()._create_data(obj, numeric_only)
+
+    def _get_apply_index(self) -> Index:
+        # GH 63769: _create_data reorders the values by group, so reorder
+        # the index the same way to keep it aligned with the values
+        group_indices = self._grouper.indices.values()
+        if not group_indices:
+            return self._on[:0]
+        return self._on.take(np.concatenate(list(group_indices)))
 
     def _gotitem(self, key, ndim, subset=None):
         # we are setting the index on the actual object
@@ -1612,11 +1626,12 @@ class RollingAndExpandingMixin(BaseWindow):
             raw=bool(raw),
             function=function,
         )
+        index = None if raw else self._get_apply_index()
 
         def apply_func(values, begin, end, min_periods, raw=raw):
             if not raw:
                 # GH 45912
-                values = Series(values, index=self._on, copy=False)
+                values = Series(values, index=index, copy=False)
             return window_func(values, begin, end, min_periods)
 
         return apply_func
