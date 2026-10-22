@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -486,6 +487,76 @@ def test_contains_unicode_char(any_string_dtype):
 
     with pytest.raises(re.error, match=r"bad escape \\p"):
         ser.str.contains(r"\pL\u20AC")
+
+
+@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]"])
+@pytest.mark.parametrize("pat", [r"\s", r"\S"])
+def test_fullmatch_every_python_whitespace_char(dtype, pat):
+    # GH#70991 RE2's \s only matches [\t\n\f\r ], Python's every char for which
+    #  str.isspace() is True
+    pytest.importorskip("pyarrow")
+    whitespace = [
+        char for char in map(chr, range(sys.maxunicode + 1)) if char.isspace()
+    ]
+    ser = pd.Series([*whitespace, "a", "\u200b"], dtype=dtype)
+    result = ser.str.fullmatch(pat)
+    expected = ser.astype(object).str.fullmatch(pat)
+    assert result.tolist() == expected.tolist()
+
+
+@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]"])
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [
+        ("contains", {}),
+        ("match", {}),
+        ("fullmatch", {}),
+        ("count", {}),
+        ("replace", {"repl": "_", "regex": True}),
+    ],
+)
+@pytest.mark.parametrize(
+    "pat",
+    [
+        r"\s",
+        r"\S",
+        r"a\s+b",
+        r"\S\s\S",
+        r"[\s,]",
+        r"[^\s]",
+        r"[\S]",
+        r"[\S\d]",
+        r"[^\S,]",
+        r"[\s\S]",
+        r"[^\s\S]",
+        r"[]\s]",
+        r"[^^\S]",
+        r"[^]\S]",
+        r"\\s",
+    ],
+)
+def test_regex_python_whitespace(dtype, method, kwargs, pat):
+    # GH#70991
+    pytest.importorskip("pyarrow")
+    data = [
+        "a\x0bb",
+        "a\x1cb",
+        "a\x1fb",
+        "a b",
+        "a,b",
+        "a1b",
+        "a]b",
+        "a^b",
+        r"a\sb",
+        "ab",
+        "\x0b",
+        "x",
+        "",
+    ]
+    ser = pd.Series(data, dtype=dtype)
+    result = getattr(ser.str, method)(pat, **kwargs)
+    expected = getattr(ser.astype(object).str, method)(pat, **kwargs)
+    assert result.tolist() == expected.tolist()
 
 
 # --------------------------------------------------------------------------------------
