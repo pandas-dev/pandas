@@ -34,7 +34,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_handle
