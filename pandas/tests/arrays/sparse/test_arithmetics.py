@@ -1145,3 +1145,57 @@ def test_complex_ordering_cmp_deprecated_list_operand():
     arr = SparseArray([1.0, 2.0])
     with tm.assert_produces_warning(Pandas4Warning, match="deprecated on complex"):
         arr < [1j, 2j]
+
+
+@pytest.mark.parametrize(
+    "arraylike",
+    [pd.Series, pd.Index, pd.array, np.array],
+)
+def test_comparison_with_arraylike_preserve_na(arraylike):
+    # GH#63328
+    data_1 = [0, 1, 2]
+    data_2 = [1, 1, pd.NA]
+    data_3 = [pd.NA, pd.NA, pd.NA]
+
+    if arraylike is pd.array:
+        dtype_1 = dtype_2 = "boolean"
+
+        # when all data in array are NA, dtype follows the other operand
+        dtype_3 = pd.SparseDtype(object, True)
+    else:
+        dtype_1 = dtype_2 = dtype_3 = pd.SparseDtype(object, True)
+    expected_1 = pd.Series([False, True, pd.NA], dtype=dtype_1)
+    expected_2 = pd.Series([pd.NA, pd.NA, pd.NA], dtype=dtype_2)
+    expected_3 = pd.Series([pd.NA, pd.NA, pd.NA], dtype=dtype_3)
+
+    left = SparseArray(data_1, fill_value=0)
+    right = arraylike(data_2)
+
+    result = pd.Series(left == right)
+    tm.assert_series_equal(result, expected_1)
+    result = pd.Series(right == left)
+    tm.assert_series_equal(result, expected_1)
+
+    left = arraylike(data_1)
+    right = SparseArray(data_2, fill_value=0)
+
+    result = pd.Series(left == right)
+    tm.assert_series_equal(result, expected_1)
+    result = pd.Series(right == left)
+    tm.assert_series_equal(result, expected_1)
+
+    left = SparseArray(data_2, fill_value=0)
+    right = arraylike(data_3)
+
+    result = pd.Series(left == right)
+    tm.assert_series_equal(result, expected_3)
+    result = pd.Series(right == left)
+    tm.assert_series_equal(result, expected_3)
+
+    left = arraylike(data_2)
+    right = SparseArray(data_3, fill_value=0)
+
+    result = pd.Series(left == right)
+    tm.assert_series_equal(result, expected_2)
+    result = pd.Series(right == left)
+    tm.assert_series_equal(result, expected_2)

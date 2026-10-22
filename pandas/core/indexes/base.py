@@ -7778,11 +7778,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(other, Index) and self.is_(other):
             # fastpath
-            if op in {operator.eq, operator.le, operator.ge}:
-                if op is not operator.eq and self.dtype.kind == "c":
+            if op in {operator.eq, operator.le, operator.ge, operator.ne}:
+                if op in {operator.le, operator.ge} and self.dtype.kind == "c":
                     # GH#43770 this fastpath skips the comparison_op warning
                     nanops.warn_complex_unordered()
-                arr = np.ones(len(self), dtype=bool)
+                is_ne = op is operator.ne
+                arr = np.full(len(self), not is_ne, dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
                     arr[self.isna()] = is_ne
