@@ -1141,6 +1141,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 raise ValueError("Lengths must match to compare")
 
         ops.maybe_warn_complex_ordering(self._data, other, op)
+        mask = self._propagate_mask(mask, other)
 
         if other is libmissing.NA:
             # numpy does not handle pd.NA well as "other" scalar (it returns
@@ -1148,8 +1149,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # This may be fixed by NA.__array_ufunc__. Revisit this check
             # once that's implemented.
             result = np.zeros(self._data.shape, dtype="bool")
-            mask = np.ones(self._data.shape, dtype="bool")
         else:
+            if isinstance(other, np.ndarray) and other.dtype == object and mask.any():
+                other = np.where(mask, False, other)
             with warnings.catch_warnings():
                 # numpy may show a FutureWarning or DeprecationWarning:
                 #     elementwise comparison failed; returning scalar instead,
