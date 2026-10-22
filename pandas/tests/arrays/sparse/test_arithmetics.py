@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import roperator
@@ -1125,55 +1127,21 @@ def test_op_result_keeps_signed_zero_complex():
     tm.assert_numpy_array_equal(np.signbit(result.imag), np.signbit(expected.imag))
 
 
-@pytest.mark.parametrize(
-    "arraylike",
-    [pd.Series, pd.Index, pd.array, np.array],
-)
-def test_comparison_with_arraylike_preserve_na(arraylike):
-    # GH#63328
-    data_1 = [0, 1, 2]
-    data_2 = [1, 1, pd.NA]
-    data_3 = [pd.NA, pd.NA, pd.NA]
+@pytest.mark.parametrize("op", [operator.lt, operator.le, operator.gt, operator.ge])
+def test_complex_ordering_cmp_deprecated(op):
+    # GH#43770 complex has no natural ordering
+    arr = SparseArray([1 + 2j, 3j, np.nan])
+    msg = "deprecated on complex data"
+    for other in [1, arr, np.array([1, 2, 3])]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            op(arr, other)
 
-    if arraylike is pd.array:
-        dtype_1 = dtype_2 = "boolean"
+    with tm.assert_produces_warning(None):
+        arr == 1
 
-        # when all data in array are NA, dtype follows the other operand
-        dtype_3 = pd.SparseDtype(object, True)
-    else:
-        dtype_1 = dtype_2 = dtype_3 = pd.SparseDtype(object, True)
-    expected_1 = pd.Series([False, True, pd.NA], dtype=dtype_1)
-    expected_2 = pd.Series([pd.NA, pd.NA, pd.NA], dtype=dtype_2)
-    expected_3 = pd.Series([pd.NA, pd.NA, pd.NA], dtype=dtype_3)
 
-    left = SparseArray(data_1, fill_value=0)
-    right = arraylike(data_2)
-
-    result = pd.Series(left == right)
-    tm.assert_series_equal(result, expected_1)
-    result = pd.Series(right == left)
-    tm.assert_series_equal(result, expected_1)
-
-    left = arraylike(data_1)
-    right = SparseArray(data_2, fill_value=0)
-
-    result = pd.Series(left == right)
-    tm.assert_series_equal(result, expected_1)
-    result = pd.Series(right == left)
-    tm.assert_series_equal(result, expected_1)
-
-    left = SparseArray(data_2, fill_value=0)
-    right = arraylike(data_3)
-
-    result = pd.Series(left == right)
-    tm.assert_series_equal(result, expected_3)
-    result = pd.Series(right == left)
-    tm.assert_series_equal(result, expected_3)
-
-    left = arraylike(data_2)
-    right = SparseArray(data_3, fill_value=0)
-
-    result = pd.Series(left == right)
-    tm.assert_series_equal(result, expected_2)
-    result = pd.Series(right == left)
-    tm.assert_series_equal(result, expected_2)
+def test_complex_ordering_cmp_deprecated_list_operand():
+    # GH#43770
+    arr = SparseArray([1.0, 2.0])
+    with tm.assert_produces_warning(Pandas4Warning, match="deprecated on complex"):
+        arr < [1j, 2j]

@@ -448,6 +448,32 @@ def test_contains_end_of_string_not_regex(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_contains_unicode_char(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/63901
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = pd.Series(["a", "ก"], dtype=any_string_dtype)
+    result = ser.str.contains(r"[\u0e00-\u0e7f]")
+    expected = pd.Series([False, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # different unicode escape patterns (\u, \U, \N) should all work
+    ser = pd.Series(["a", "€"], dtype=any_string_dtype)
+    for pat in [r"\u20AC", r"\U000020AC", r"\N{EURO SIGN}"]:
+        result = ser.str.contains(pat)
+        expected = pd.Series([False, True], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+    # invalid unicode escape gives clear error
+    with pytest.raises(re.error, match="incomplete escape"):
+        ser.str.contains(r"\u20G")
+
+    with pytest.raises(re.error, match=r"bad escape \\p"):
+        ser.str.contains(r"\pL\u20AC")
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
@@ -1018,6 +1044,7 @@ def test_replace_regex_single_character(regex, any_string_dtype):
         (r"(?<=a)b", ["aa", "ax", "ba", "bb"]),
         (r"a(?!b)", ["xx", "ab", "bx", "bb"]),
         (r"(?<!b)a", ["xx", "xb", "ba", "bb"]),
+        (r"(?:a(?=b))+", ["aa", "xb", "ba", "bb"]),
         ("ab", ["aa", "x", "ba", "bb"]),
     ],
 )
@@ -1034,6 +1061,33 @@ def test_replace_lookarounds(any_string_dtype, pat, expected_data):
     else:
         raise ValueError(f"Unrecognized dtype: {any_string_dtype}")
     expected = pd.Series([*expected_data, null_result], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pat, repl, expected_data",
+    [
+        (
+            r"[^\w\s]",
+            "",
+            ["café crème", "MüllerLüdenscheidt", "東京 2024", "a\xa0 b"],
+        ),
+        (r"\s+", " ", ["café crème!", "Müller-Lüdenscheidt", "東京 2024", "a b"]),
+        (
+            r"\b東",
+            "T",
+            ["café crème!", "Müller-Lüdenscheidt", "T京 2024", "a\xa0 b"],
+        ),
+    ],
+)
+def test_replace_unicode_regex_classes(any_string_dtype, pat, repl, expected_data):
+    # GH#70770
+    ser = pd.Series(
+        ["café crème!", "Müller-Lüdenscheidt", "東京 2024", "a\xa0 b"],
+        dtype=any_string_dtype,
+    )
+    result = ser.str.replace(pat, repl, regex=True)
+    expected = pd.Series(expected_data, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -1060,6 +1114,15 @@ def test_replace_end_of_string(any_string_dtype):
     ser = pd.Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
     result = ser.str.replace(r"bar\\Z", "x", regex=True)
     expected = pd.Series(["x", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pat", [r"\u20AC", r"\U000020AC", r"\N{EURO SIGN}"])
+def test_replace_unicode_escape_patterns(any_string_dtype, pat):
+    # https://github.com/pandas-dev/pandas/issues/63901
+    ser = pd.Series(["a", "€"], dtype=any_string_dtype)
+    result = ser.str.replace(pat, "X", regex=True)
+    expected = pd.Series(["a", "X"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -1464,6 +1527,22 @@ def test_match_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("pat", [r"\u20AC", r"\U000020AC", r"\N{EURO SIGN}"])
+def test_match_unicode_escape_patterns(any_string_dtype, pat):
+    # https://github.com/pandas-dev/pandas/issues/63901
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = pd.Series(["a", "€"], dtype=any_string_dtype)
+    result = ser.str.match(pat)
+    expected = pd.Series([False, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.fullmatch(pat)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -1627,6 +1706,31 @@ def test_fullmatch_lookarounds(any_string_dtype, pat):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method, pat, expected_data",
+    [
+        ("contains", r"\W", [False, True, True, False]),
+        ("contains", r"\d", [False, False, True, True]),
+        ("match", r"\w+\s", [False, False, True, False]),
+        ("fullmatch", r"\w+", [True, False, False, True]),
+        ("fullmatch", r"\w+(?:\s\w+)*", [True, False, True, True]),
+    ],
+)
+def test_match_methods_unicode_regex_classes(
+    any_string_dtype, method, pat, expected_data
+):
+    # GH#70770
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    ser = pd.Series(
+        ["naïve", "Müller-Lüdenscheidt", "東京 2024", "١٢٣"], dtype=any_string_dtype
+    )
+    result = getattr(ser.str, method)(pat)
+    expected = pd.Series(expected_data, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_fullmatch_end_of_string(any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/63613
     expected_dtype = (
@@ -1741,6 +1845,15 @@ def test_findall_end_of_string(any_string_dtype):
     ser = pd.Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
     result = ser.str.findall(r"bar\\Z")
     expected = pd.Series([["bar\\Z"], [], [], []], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pat", [r"\u20AC", r"\U000020AC", r"\N{EURO SIGN}"])
+def test_findall_unicode_escape_patterns(any_string_dtype, pat):
+    # https://github.com/pandas-dev/pandas/issues/63901
+    ser = pd.Series(["a", "10€", "10€ and 11€ and 12$"], dtype=any_string_dtype)
+    result = ser.str.findall(r"[0-9]*" + pat)
+    expected = pd.Series([[], ["10€"], ["10€", "11€"]], dtype=object)
     tm.assert_series_equal(result, expected)
 
 

@@ -847,7 +847,7 @@ class SetitemCastingEquivalents:
 
         if is_list_like(val) and len(val) < len(obj):
             # Series.where is not valid here
-            msg = "operands could not be broadcast together with shapes"
+            msg = r"Length of values \(\d+\) does not match length of index"
             with pytest.raises(ValueError, match=msg):
                 obj.where(~mask, val)
             return
