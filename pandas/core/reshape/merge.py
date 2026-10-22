@@ -2961,9 +2961,11 @@ def _factorize_keys(
 
             from pandas.compat.pyarrow import _safe_fill_null
 
+            from pandas.core.arrays.arrow.array import uuid_storage
+
             len_lk = len(lk)
-            lk = lk._pa_array  # type: ignore[attr-defined]
-            rk = rk._pa_array  # type: ignore[union-attr]
+            lk = uuid_storage(lk._pa_array)  # type: ignore[attr-defined]
+            rk = uuid_storage(rk._pa_array)  # type: ignore[union-attr]
             dc = (
                 pa.chunked_array(lk.chunks + rk.chunks)  # type: ignore[union-attr]
                 .combine_chunks()
