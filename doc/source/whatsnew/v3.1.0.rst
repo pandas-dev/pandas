@@ -288,8 +288,8 @@ String regex methods aligning again with Python's ``re`` module
 The introduction of the default :class:`StringDtype`, using PyArrow under the hood when
 installed, in pandas 3.0 led to certain behaviour changes for string methods using regex
 operations (because PyArrow using a different regex flavor) (:issue:`63683`).
-Certain of those cases have been fixed again in 3.1 to ensure the string methods'
-behaviour is consistent again with Python's ``re`` module (and with pandas 2.x).
+Certain of those cases have been fixed in 3.1 to ensure the string methods'
+behaviour is consistent again with Python's ``re`` module (and with pandas 2.x):
 
 - Bug where ``\w``, ``\d``, ``\s`` and ``\b`` (and their negations) in a regular expression only matched ASCII characters. Now they also match unicode characters again (:issue:`70770`)
 - Bug using a regex pattern with ``$`` to indicate the end of the string: when using PyArrow-backed string dtypes, for certain cases this no longer matched before or after an ending newline; now it is consistent again with Python's ``re`` behaviour in all cases (:issue:`63683`)
