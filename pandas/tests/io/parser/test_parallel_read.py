@@ -1995,6 +1995,20 @@ def test_parallel_chunk_count_follows_file_size(tmp_path, monkeypatch):
 
 
 @pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+def test_parallel_read_many_chunks_per_worker(tmp_path, monkeypatch):
+    # Workers slicing one shared memoryview raised "released memoryview" on
+    # free-threaded builds (GH#71418).  The race is narrow, so split a single
+    # column (which gets the whole piece budget) into tiny chunks and repeat.
+    path = tmp_path / "data.csv"
+    _write_grid(path, 20_000, 1)
+    for _ in range(20):
+        n_chunks = _planned_chunk_count(
+            path, monkeypatch, chunk_bytes=16, n_workers=8, min_chunk_rows=1
+        )
+        assert n_chunks >= 1000
+
+
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
 def test_parallel_chunk_count_bounded_by_column_pieces(tmp_path, monkeypatch):
     # Every chunk repeats a per-column cost, so the byte term stays bounded by
     # the (column x chunk) piece budget on a wide frame (GH#66798).
