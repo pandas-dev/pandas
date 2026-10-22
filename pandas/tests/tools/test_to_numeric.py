@@ -1060,6 +1060,7 @@ def test_leading_plus_fractional_leading_zeros(value):
         "0.00498124967521367",
         "1.4833969477515917953304135",
         "2.5000806360837783533",
+        "2.4703282292062328e-324",
     ],
 )
 def test_long_mantissa_correctly_rounded(value, sign):
