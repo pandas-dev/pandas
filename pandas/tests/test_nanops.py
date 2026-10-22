@@ -1667,7 +1667,9 @@ def test_nanvar_family_float16_overflow(use_bottleneck, method, values):
     expected = getattr(ser.astype(np.float64), method)()
     with pd.option_context("compute.use_bottleneck", use_bottleneck):
         result = getattr(ser, method)()
+        result_2d = getattr(ser.to_frame().T, method)(axis=1).iloc[0]
     tm.assert_almost_equal(result, expected)
+    tm.assert_almost_equal(result_2d, expected)
 
 
 @pytest.mark.parametrize("use_bottleneck", [True, False])

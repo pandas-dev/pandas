@@ -420,8 +420,9 @@ def _read(
         )
 
     # For large local uncompressed files with the C engine, attempt parallel reading.
-    # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
-    # and type-conversion code in parsers.pyx runs truly in parallel.
+    # Each worker gets its own view of the mmapped file and its own TextReader so
+    # the GIL-free tokenisation and type-conversion code in parsers.pyx runs truly
+    # in parallel.
     if not iterator and chunksize is None and nrows is None:
         _n_workers = _default_n_workers()
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
@@ -1071,7 +1072,7 @@ def _read_csv_chunks(
     chunk_failed = threading.Event()
     workers_readers: list[Any] = []
 
-    def _worker() -> None:
+    def _worker(mv: memoryview) -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
         # Buffers are reused across the queued chunks and freed at close;
@@ -1158,10 +1159,15 @@ def _read_csv_chunks(
         mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
     try:
         with (
-            memoryview(mm) as mv,
+            contextlib.ExitStack() as views,
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
-            for fut in [pool.submit(_worker) for _ in range(n_workers)]:
+            # One view per worker: slicing a shared memoryview from several
+            # threads races on free-threaded builds (GH#71418).
+            worker_views = [
+                views.enter_context(memoryview(mm)) for _ in range(n_workers)
+            ]
+            for fut in [pool.submit(_worker, mv) for mv in worker_views]:
                 fut.result()
             if chunk_failed.is_set():
                 # Let the serial read raise: a chunk's error can be an artifact
@@ -1479,12 +1485,15 @@ def read_csv(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
+          intervening rows that are not specified, will be skipped and do
+          not appear in the result (e.g. ``[1, 2, 4]`` skips rows 0 and 3).
+          The levels follow the order of the sequence, so ``[1, 0]`` puts
+          row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -2091,12 +2100,15 @@ def read_table(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
+          intervening rows that are not specified, will be skipped and do
+          not appear in the result (e.g. ``[1, 2, 4]`` skips rows 0 and 3).
+          The levels follow the order of the sequence, so ``[1, 0]`` puts
+          row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
