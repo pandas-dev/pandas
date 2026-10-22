@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_axes_shape,
     _check_legend_labels,
@@ -174,6 +175,19 @@ class TestDataFrameGroupByPlots:
         df.groupby("k").plot.line(x="x", y="y", ax=ax, legend=True)
         assert len(ax.get_lines()) == 2
         _check_legend_labels(ax, ["y", "y"])
+
+    def test_groupby_plot_each_group_own_data(self):
+        # GH#11434 - each group gets its own axes holding only that group's data
+        df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [5, 6, 7, 8], "k": [1, 1, 2, 2]})
+
+        res = df.groupby("k").plot(x="x", y="y")
+        assert res.iloc[0] is not res.iloc[1]
+        for key, ax in res.items():
+            lines = ax.get_lines()
+            assert len(lines) == 1
+            expected = df[df["k"] == key]
+            tm.assert_numpy_array_equal(lines[0].get_xdata(), expected["x"].to_numpy())
+            tm.assert_numpy_array_equal(lines[0].get_ydata(), expected["y"].to_numpy())
 
     def test_groupby_hist_series_with_legend_raises(self):
         # GH 6279 - SeriesGroupBy histogram with legend and label raises

@@ -999,6 +999,27 @@ class TestTSPlot:
         assert left <= expected1[0]
         assert right >= expected1[-1]
 
+    @pytest.mark.parametrize("freq", ["h", "D"])
+    def test_mixed_freq_regular_first_irregular_off_grid(self, freq, frame_or_series):
+        # GH#29705 irregular timestamps off the regular series' grid were
+        # plotted as matplotlib date numbers on an axis of period ordinals
+        idx = date_range("2016-03-01", "2016-03-31", freq=freq)
+        s1 = pd.Series(np.arange(len(idx), dtype=np.float64), index=idx)
+        irreg_idx = DatetimeIndex(
+            ["2016-03-09 09:15", "2016-03-11 13:15", "2016-03-15 12:45"]
+        )
+        s2 = frame_or_series([1.0, 2.0, 3.0], index=irreg_idx)
+
+        _, ax = mpl.pyplot.subplots()
+        s1.plot(ax=ax)
+        s2.plot(ax=ax, style="o")
+        ax.plot(irreg_idx.to_pydatetime(), [1.0, 2.0, 3.0])
+
+        expected = irreg_idx.to_period(freq).asi8.astype(np.float64)
+        lines = ax.get_lines()
+        tm.assert_numpy_array_equal(lines[1].get_xdata(orig=False), expected)
+        tm.assert_numpy_array_equal(lines[2].get_xdata(orig=False), expected)
+
     def test_mixed_freq_irregular_first(self):
         s1 = pd.Series(
             np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
@@ -2371,6 +2392,30 @@ class TestTSPlot:
         )
         # must not blow up while locating ticks
         ax.get_figure().canvas.draw()
+
+    @pytest.mark.parametrize("bar_first", [True, False])
+    def test_bar_and_line_plot_same_index_aligned(self, bar_first):
+        # GH#10761 - bars and a line over the same DatetimeIndex share the
+        # x-axis instead of landing on unrelated scales
+        df = pd.DataFrame(
+            np.arange(30.0).reshape(10, 3),
+            index=date_range("2015-07-01", periods=10, freq="D"),
+            columns=["col1", "col2", "col3"],
+        )
+        _, ax = plt.subplots()
+        if bar_first:
+            df[["col1", "col2"]].plot(kind="bar", stacked=True, ax=ax)
+            df["col3"].plot(ax=ax)
+        else:
+            df["col3"].plot(ax=ax)
+            df[["col1", "col2"]].plot(kind="bar", stacked=True, ax=ax)
+
+        assert len(ax.patches) == 20
+        bar_centers = np.array(
+            [patch.get_x() + patch.get_width() / 2 for patch in ax.patches[:10]]
+        )
+        line_x = ax.get_lines()[0].get_xydata()[:, 0]
+        tm.assert_numpy_array_equal(bar_centers, line_x)
 
     @pytest.mark.parametrize(
         "bar_freq, line_freq", [("W", "D"), ("ME", "D"), ("D", "h")]
