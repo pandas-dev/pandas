@@ -159,6 +159,57 @@ class TestIntervalRange:
         result = pd.interval_range(start=start, end=end, periods=4, freq=freq)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("freq", [1, 3, 1000])
+    @pytest.mark.parametrize(
+        "start",
+        [
+            2**50 - 1,
+            2**50,
+            2**52 + 1,
+            2**53,
+            2**53 + 1,
+            2**62 + 3,
+            -(2**62) - 3,
+            np.iinfo(np.int64).max - 4000,
+        ],
+    )
+    def test_large_integer_endpoints(self, start, freq):
+        # GH#71288 float arithmetic dropped the last break from ~2**50 and
+        # rounded the breaks above 2**53
+        breaks = np.array([start + i * freq for i in range(5)], dtype=np.int64)
+        expected = pd.IntervalIndex.from_breaks(breaks)
+        end = int(breaks[-1])
+
+        result = pd.interval_range(start=start, end=end, freq=freq)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.interval_range(start=start, periods=4, freq=freq)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.interval_range(end=end, periods=4, freq=freq)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.interval_range(start=start, end=end, periods=4)
+        tm.assert_index_equal(result, expected)
+
+    def test_large_integer_early_truncation(self):
+        # GH#71288
+        start = 2**53 + 1
+        result = pd.interval_range(start=start, end=start + 10, freq=3)
+        expected = pd.IntervalIndex.from_breaks(
+            np.array([start, start + 3, start + 6, start + 9], dtype=np.int64)
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_large_unsigned_endpoints(self):
+        # GH#71288
+        start = np.uint64(2**63)
+        result = pd.interval_range(start=start, end=start + np.uint64(4))
+        expected = pd.IntervalIndex.from_breaks(
+            np.array([2**63 + i for i in range(5)], dtype=np.uint64)
+        )
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "start, mid, end",
         [
