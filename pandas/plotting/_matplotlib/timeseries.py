@@ -7,6 +7,7 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
+    cast,
 )
 
 import numpy as np
@@ -50,6 +51,7 @@ from pandas.tseries.frequencies import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import timedelta
 
     from matplotlib.axes import Axes
@@ -325,7 +327,7 @@ def _has_date_lines(ax: Axes) -> bool:
     # A line drawn at matplotlib date numbers keeps its dates as the original
     # x data; period-ordinal lines, bar error caps and axhline are numeric.
     for line in ax.get_lines():
-        xdata = line.get_xdata(orig=True)
+        xdata = cast("Sequence[Any]", line.get_xdata(orig=True))
         if len(xdata) > 0 and isinstance(xdata[0], (date, np.datetime64)):
             return True
     return False
