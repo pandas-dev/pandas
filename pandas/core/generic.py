@@ -262,7 +262,7 @@ def _fill_bool_ea_na(cond):
 
 
 def _rename_multiindex_entries(
-    ax: MultiIndex, new_index: MultiIndex, mapper: Mapping | Series
+    ax: MultiIndex, new_index: MultiIndex, mapper: Mapping[Hashable, Hashable] | Series
 ) -> MultiIndex:
     """
     Apply mapper keys that match a full MultiIndex entry (GH#4160).
@@ -1147,8 +1147,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if ax._is_multi and level is None and not callable(replacements):
                 # GH#4160: keys that are full MultiIndex tuples rename whole entries
                 new_index = _rename_multiindex_entries(
-                    cast(MultiIndex, ax),
-                    cast(MultiIndex, new_index),
+                    cast("MultiIndex", ax),
+                    cast("MultiIndex", new_index),
                     replacements,
                 )
             result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
