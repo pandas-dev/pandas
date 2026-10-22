@@ -212,3 +212,93 @@ def test_from_arrow_masked_subtype():
 
     result = dtype.__from_arrow__(pa.chunked_array([], type=arr.type))
     tm.assert_extension_array_equal(result, expected[:0])
+
+
+@pytest.mark.parametrize("container", ["array", "chunked", "sliced", "extension"])
+def test_from_arrow_struct_level_null(container):
+    # GH#67754
+    # a null struct entry whose children hold valid values must read back as NA
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    st = pa.struct([("left", pa.float64()), ("right", pa.float64())])
+    values = [{"left": 0.0, "right": 1.0}, None]
+    if container == "array":
+        arr = pa.array(values, type=st)
+    elif container == "chunked":
+        arr = pa.chunked_array([values[:1], values[1:]], type=st)
+    elif container == "sliced":
+        # validity bitmap read at a non-zero offset
+        arr = pa.array([{"left": 5.0, "right": 6.0}, *values], type=st)[1:]
+    elif container == "extension":
+        arr = pa.ExtensionArray.from_storage(
+            ArrowIntervalType(pa.float64(), "right"), pa.array(values, type=st)
+        )
+
+    dtype = pd.IntervalDtype(np.dtype("float64"), closed="right")
+    result = dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_arrays(
+        np.array([0.0, np.nan]), np.array([1.0, np.nan]), closed="right"
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_struct_level_null_masked_subtype():
+    # GH#67754
+    pa = pytest.importorskip("pyarrow")
+
+    st = pa.struct([("left", pa.int64()), ("right", pa.int64())])
+    arr = pa.array([{"left": 0, "right": 1}, None], type=st)
+
+    dtype = pd.IntervalDtype("Int64", closed="right")
+    result = dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_arrays(
+        pd.array([0, None], dtype="Int64"),
+        pd.array([1, None], dtype="Int64"),
+        closed="right",
+    )
+    assert expected.dtype == dtype
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, lefts, rights",
+    [
+        ([{"left": 3, "right": 5}], [3.0], [5.0]),
+        ([{"left": 3, "right": 5}, None], [3.0, np.nan], [5.0, np.nan]),
+    ],
+    ids=["no_null", "with_null"],
+)
+def test_from_arrow_casts_to_requested_subtype(values, lefts, rights):
+    # GH#67754
+    # the result subtype is the requested one, not the arrow child type,
+    # whether or not the data has nulls
+    pa = pytest.importorskip("pyarrow")
+
+    st = pa.struct([("left", pa.int64()), ("right", pa.int64())])
+    arr = pa.array(values, type=st)
+
+    dtype = pd.IntervalDtype(np.dtype("float64"), closed="right")
+    result = dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_arrays(
+        np.array(lefts), np.array(rights), closed="right"
+    )
+    assert result.dtype == dtype
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_struct_field_order():
+    # GH#67754
+    # struct children are matched by name, not by position
+    pa = pytest.importorskip("pyarrow")
+
+    st = pa.struct([("right", pa.float64()), ("left", pa.float64())])
+    arr = pa.array([{"right": 1.0, "left": 0.0}, None], type=st)
+
+    dtype = pd.IntervalDtype(np.dtype("float64"), closed="right")
+    result = dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_arrays(
+        np.array([0.0, np.nan]), np.array([1.0, np.nan]), closed="right"
+    )
+    tm.assert_extension_array_equal(result, expected)
