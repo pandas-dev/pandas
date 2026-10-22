@@ -91,14 +91,9 @@ def test_count_end_of_string(any_string_dtype):
 
     ser = pd.Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
 
-    # with dollar sign
+    # with dollar sign (matches $ before or after an ending newline)
     result = ser.str.count("bar$")
-    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
-        # pyarrow (RE2) only matches $ at the very end of the line
-        expected = pd.Series([0, 1, 0, 0], dtype=expected_dtype)
-    else:
-        # python matches $ before or after an ending newline
-        expected = pd.Series([0, 1, 0, 1], dtype=expected_dtype)
+    expected = pd.Series([0, 1, 0, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     # with \Z (ensure this is translated to \z for pyarrow)
@@ -111,6 +106,24 @@ def test_count_end_of_string(any_string_dtype):
     result = ser.str.count(r"bar\\Z")
     expected = pd.Series([1, 0, 0, 0], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_count_end_of_line(any_string_dtype):
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = pd.Series(
+        ["foo1", "foo1\n", "foo1\nbar", "foo1\nfoo2", "foo1\nfoo2\n"],
+        dtype=any_string_dtype,
+    )
+
+    result = ser.str.count(r"foo.$")
+    expected = pd.Series([1, 1, 0, 1, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.count(r"foo.$", flags=re.MULTILINE)
+    expected = pd.Series([1, 1, 1, 2, 2], dtype=expected_dtype)
 
 
 @pytest.mark.parametrize("pat", [r"\u20AC", r"\U000020AC", r"\N{EURO SIGN}"])
@@ -1088,3 +1101,24 @@ def test_needs_python_regex_unicode_classes(pat, expected):
     # all-ASCII data keeps the pyarrow path
     ascii_arr = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
     assert not ascii_arr._needs_python_regex(pat)
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        (r"test$", True),
+        (r"test\$", False),
+        (r"r[$]", False),
+    ],
+)
+def test_needs_python_regex_newline_sensitive(pat, expected):
+    # https://github.com/pandas-dev/pandas/pull/71387
+    pytest.importorskip("pyarrow")
+    arr = pd.array(["test\n"], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
+    arr = pd.array(["test\ntest", None], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
+
+    # data without newlines keeps the pyarrow path
+    arr_no_newline = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
+    assert not arr_no_newline._needs_python_regex(pat)
