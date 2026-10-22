@@ -1638,7 +1638,9 @@ class Index(IndexOpsMixin, PandasObject):
         float_format: str_t | None = None,
         date_format: str_t | None = None,
         quoting: int | None = None,
-        skip_dates_only_check: "bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]" = False,
+        skip_dates_only_check: (
+            bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
+        ) = False,
     ) -> npt.NDArray[np.object_]:
         return get_values_for_csv(
             self._values,
@@ -8588,7 +8590,9 @@ def get_values_for_csv(
     quoting: int | None = None,
     float_format: str_t | None = None,
     decimal: str = ".",
-    skip_dates_only_check: "bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]" = False,
+    skip_dates_only_check: (
+        bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
+    ) = False,
 ) -> npt.NDArray[np.object_]:
     """
     Convert to types which can be consumed by the standard library's

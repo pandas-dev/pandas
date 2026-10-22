@@ -652,7 +652,9 @@ class BaseBlockManager(PandasObject):
         decimal,
         na_rep: str = "nan",
         quoting=None,
-        skip_dates_only_check: "bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]" = False,
+        skip_dates_only_check: (
+            bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
+        ) = False,
     ) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
@@ -668,9 +670,7 @@ class BaseBlockManager(PandasObject):
             for blk in self.blocks:
                 # resolve per-column so a dates-only column is not affected
                 # by a non-dates-only sibling living in the same block
-                block_skip = [
-                    self.items[i] in skip_set for i in blk.mgr_locs.as_array
-                ]
+                block_skip = [self.items[i] in skip_set for i in blk.mgr_locs.as_array]
                 new_blocks.append(
                     blk.get_values_for_csv(
                         na_rep=na_rep,
