@@ -32,6 +32,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -80,10 +81,10 @@ from pandas.plotting import boxplot_frame_groupby
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Mapping,
         Sequence,
     )
 
-    from pandas._libs import Interval
     from pandas._typing import (
         ArrayLike,
         BlockManager,
@@ -94,7 +95,10 @@ if TYPE_CHECKING:
         TakeIndexer,
     )
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        IntervalIndex,
+    )
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -191,6 +195,30 @@ class NamedAgg:
 
 @set_module("pandas.api.typing")
 class SeriesGroupBy(GroupBy[Series]):
+    """
+    Groupby object for a Series.
+
+    Returned by :meth:`Series.groupby <pandas.Series.groupby>` and by selecting
+    a single column of a :class:`~pandas.api.typing.DataFrameGroupBy`. This is
+    not meant to be instantiated directly.
+
+    See :ref:`api.groupby` for the available methods and :ref:`groupby` for
+    the user guide.
+
+    See Also
+    --------
+    pandas.Series.groupby : Group Series using a mapper or by a Series of columns.
+    pandas.api.typing.DataFrameGroupBy : Groupby object for a DataFrame.
+
+    Examples
+    --------
+    >>> ser = pd.Series([1, 2, 3], index=["a", "a", "b"])
+    >>> ser.groupby(level=0).sum()
+    a    3
+    b    3
+    dtype: int64
+    """
+
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
         out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
         out._name = self.obj.name
@@ -545,7 +573,9 @@ class SeriesGroupBy(GroupBy[Series]):
             return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
-        output = self.obj._constructor_expanddim(indexed_output, index=None)
+        # GH#39609 with no funcs, index by the groups
+        index = None if results else self._grouper.result_index
+        output = self.obj._constructor_expanddim(indexed_output, index=index)
         output.columns = Index(key.label for key in results)
 
         return output
@@ -770,9 +800,7 @@ class SeriesGroupBy(GroupBy[Series]):
         obj = self._obj_with_exclusions
 
         try:
-            result = self._grouper._cython_operation(
-                "transform", obj._values, how, 0, **kwargs
-            )
+            result = self._grouper._cython_operation(obj._values, how, 0, **kwargs)
         except NotImplementedError as err:
             # e.g. test_groupby_raises_string
             raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
@@ -780,7 +808,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
     def _transform_general(
-        self, func: Callable, engine, engine_kwargs, *args, **kwargs
+        self, func: Callable[..., Any], engine, engine_kwargs, *args, **kwargs
     ) -> Series:
         """
         Transform with a callable `func`.
@@ -790,7 +818,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
         assert callable(func)
-        klass = type(self.obj)
+        klass = self.obj._constructor
 
         results = []
         for name, group in self._grouper.get_iterator(
@@ -1120,9 +1148,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = [*self._grouper.names, self.obj.name]
 
-        if isinstance(val.dtype, CategoricalDtype) or (
-            bins is not None and not np.iterable(bins)
-        ):
+        if isinstance(val.dtype, CategoricalDtype) or not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
             # GH38672 relates to categorical dtype
@@ -1141,25 +1167,20 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
-        lab: Index | np.ndarray
-        if bins is None:
-            lab, lev = algorithms.factorize(val, sort=True)
-            llab = lambda lab, inc: lab[inc]
-        else:
-            # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
-            cat_obj = cast("Categorical", cat_ser._values)
-            lev = cat_obj.categories
-            lab = lev.take(
-                cat_obj.codes,
-                allow_fill=True,
-                fill_value=lev._na_value,
-            )
-            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
+        # lab is a Categorical with categories an IntervalIndex
+        cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
+        cat_obj = cast("Categorical", cat_ser._values)
+        lev = cat_obj.categories
+        lab = lev.take(
+            cat_obj.codes,
+            allow_fill=True,
+            fill_value=lev._na_value,
+        )
+        llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast("Interval", lab)
+            lab_interval = cast("IntervalIndex", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -1216,46 +1237,38 @@ class SeriesGroupBy(GroupBy[Series]):
                 acc = rep(d)
             out /= acc
 
-        if sort and bins is None:
-            cat = ids[inc][mask] if dropna else ids[inc]
-            sorter = np.lexsort((out if ascending else -out, cat))
-            out, codes[-1] = out[sorter], codes[-1][sorter]
+        # for compat. with libgroupby.value_counts need to ensure every
+        # bin is present at every index level, null filled with zeros
+        diff = np.zeros(len(out), dtype="bool")
+        for level_codes in codes[:-1]:
+            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
-        if bins is not None:
-            # for compat. with libgroupby.value_counts need to ensure every
-            # bin is present at every index level, null filled with zeros
-            diff = np.zeros(len(out), dtype="bool")
-            for level_codes in codes[:-1]:
-                diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
+        ncat, nbin = diff.sum(), len(levels[-1])
+        left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+        right = [diff.cumsum() - 1, codes[-1]]
 
-            ncat, nbin = diff.sum(), len(levels[-1])
+        # error: Argument 1 to "get_join_indexers" has incompatible type
+        # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
+        # ndarray[Any, Any]], Index, Series]]
+        _, idx = get_join_indexers(
+            left,  # type: ignore[arg-type]
+            right,
+            sort=False,
+            how="left",
+        )
+        if idx is not None:
+            out = np.where(idx != -1, out[idx], 0)
 
-            left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+        if sort:
+            sorter = np.lexsort((out if ascending else -out, left[0]))
+            out, left[-1] = out[sorter], left[-1][sorter]
 
-            right = [diff.cumsum() - 1, codes[-1]]
+        # build the multi-index w/ full levels
+        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+            return np.repeat(lev_codes[diff], nbin)
 
-            # error: Argument 1 to "get_join_indexers" has incompatible type
-            # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]
-            _, idx = get_join_indexers(
-                left,  # type: ignore[arg-type]
-                right,
-                sort=False,
-                how="left",
-            )
-            if idx is not None:
-                out = np.where(idx != -1, out[idx], 0)
-
-            if sort:
-                sorter = np.lexsort((out if ascending else -out, left[0]))
-                out, left[-1] = out[sorter], left[-1][sorter]
-
-            # build the multi-index w/ full levels
-            def build_codes(lev_codes: np.ndarray) -> np.ndarray:
-                return np.repeat(lev_codes[diff], nbin)
-
-            codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
-            codes.append(left[-1])
+        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
+        codes.append(left[-1])
 
         mi = MultiIndex(
             levels=levels, codes=codes, names=index_names, verify_integrity=False
@@ -1707,9 +1720,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -1768,9 +1781,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -2088,6 +2101,32 @@ class SeriesGroupBy(GroupBy[Series]):
 
 @set_module("pandas.api.typing")
 class DataFrameGroupBy(GroupBy[DataFrame]):
+    """
+    Groupby object for a DataFrame.
+
+    Returned by :meth:`DataFrame.groupby <pandas.DataFrame.groupby>`. Selecting
+    a single column returns a :class:`~pandas.api.typing.SeriesGroupBy`. This
+    is not meant to be instantiated directly.
+
+    See :ref:`api.groupby` for the available methods and :ref:`groupby` for
+    the user guide.
+
+    See Also
+    --------
+    pandas.DataFrame.groupby : Group DataFrame using a mapper or by a Series of
+        columns.
+    pandas.api.typing.SeriesGroupBy : Groupby object for a Series.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"key": ["a", "a", "b"], "val": [1, 2, 3]})
+    >>> df.groupby("key").sum()
+         val
+    key
+    a      3
+    b      3
+    """
+
     def aggregate(
         self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
     ) -> DataFrame:
@@ -2267,15 +2306,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # This method can consume the un-normalized {column: aggfunc} form, but only
         #  when the columns are unique: dict aggregation fans a single key out to
         #  every matching column, while named aggregation must produce exactly one
-        #  output per keyword.
+        #  output per keyword. The columns must also be unnamed, since the dict
+        #  form keeps columns.name and the normalized form drops it.
         #  `func is None` is a precondition for relabeling at all, and short-circuits
         #  materializing _obj_with_exclusions on the far more common plain-agg path.
-        allow_skip_normalization = (
-            func is None and self._obj_with_exclusions.columns.is_unique
+        allow_skip_normalization = func is None and (
+            self._obj_with_exclusions.columns.is_unique
+            and self._obj_with_exclusions.columns.name is None
         )
+        named_agg = func is None
         relabeling, func, columns, order = reconstruct_func(
             func, allow_skip_normalization, **kwargs
         )
+        if named_agg:
+            # kwargs held the spec; not keyed on relabeling, which
+            #  allow_skip_normalization can make False
+            kwargs = {}
         func = maybe_mangle_lambdas(func)
 
         if maybe_use_numba(engine):
@@ -2348,7 +2394,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_applied_output(
         self,
         data: DataFrame,
-        values: list,
+        values: list[Any],
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
@@ -2478,9 +2524,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(
-                "transform", bvalues, how, 1, **kwargs
-            )
+            try:
+                return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
+            except NotImplementedError as err:
+                raise TypeError(
+                    f"{how} is not supported for {bvalues.dtype} dtype"
+                ) from err
 
         res_mgr = mgr.apply(arr_func)
 
@@ -2671,13 +2720,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Broadcast result of the transformation
 
         >>> grouped.transform(lambda x: x.max() - x.min())
-             C    D
-        0  4.0  6.0
-        1  3.0  8.0
-        2  4.0  6.0
-        3  3.0  8.0
-        4  4.0  6.0
-        5  3.0  8.0
+           C    D
+        0  4  6.0
+        1  3  8.0
+        2  4  6.0
+        3  3  8.0
+        4  4  6.0
+        5  3  8.0
 
         >>> grouped.transform("mean")
                   C    D
@@ -2764,10 +2813,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _transform_multiple_funcs(
         self,
-        func: list | dict,
+        func: Sequence[Any] | Mapping[Any, Any],
         *args,
         engine: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ) -> DataFrame:
         """
@@ -2775,7 +2824,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        func : list or dict
+        func : list-like or dict-like
             - list of str/callable: applied to every non-key column, producing
               a MultiIndex-column DataFrame (column, func_name).
             - dict mapping output_name -> str/callable or NamedAgg.
@@ -2784,7 +2833,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if is_dict_like(func):
             # Also includes NamedAgg / NamedFunc
-            func = cast("dict", func)
+            func = cast("Mapping[Hashable, Any]", func)
             results: list[Series] = []
             for name, agg in func.items():
                 if isinstance(agg, NamedAgg):
@@ -2814,7 +2863,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Apply every func to every non-key column.
         assert is_list_like(func)
         results_list: list[Series] = []
-        col_order: list[tuple] = []
+        col_order: list[tuple[Hashable, Any]] = []
         for column in self._obj_with_exclusions.columns:
             for agg_func in func:
                 col_result = self._transform_single_column(
@@ -2838,10 +2887,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _transform_single_column(
         self,
         column_name: Hashable,
-        agg_func: Callable | str,
+        agg_func: Callable[..., Any] | str,
         *args,
         engine: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ) -> Series:
         """
@@ -2875,17 +2924,47 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
             fast_path = lambda group: getattr(group, func)(*args, **kwargs)
-            slow_path = lambda group: group.apply(
-                lambda x: getattr(x, func)(*args, **kwargs), axis=0
-            )
+            col_func = lambda x: getattr(x, func)(*args, **kwargs)
         else:
             fast_path = lambda group: func(group, *args, **kwargs)
-            slow_path = lambda group: group.apply(
-                lambda x: func(x, *args, **kwargs), axis=0
-            )
+            col_func = lambda x: func(x, *args, **kwargs)
+
+        def slow_path(group: DataFrame):
+            col_results = []
+
+            def record(column: Series):
+                col_results.append(col_func(column))
+                return col_results[-1]
+
+            res = group.apply(record, axis=0)
+            if (
+                isinstance(res, Series)
+                and len(col_results) == len(res)
+                and not any(is_list_like(val) for val in col_results)
+                and any(
+                    infer_dtype_from_scalar(val)[0] != res.dtype for val in col_results
+                )
+            ):
+                # apply cast the scalars to a common dtype, GH#42617
+                # None -> NaN, matching SeriesGroupBy.transform
+                res = group._constructor(
+                    {
+                        pos: np.nan if val is None else val
+                        for pos, val in enumerate(col_results)
+                    },
+                    index=group.index,
+                )
+                res.columns = group.columns
+            return res
+
         return fast_path, slow_path
 
-    def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
+    def _choose_path(
+        self,
+        fast_path: Callable[..., Any],
+        slow_path: Callable[..., Any],
+        group: DataFrame,
+    ):
         path = slow_path
         res = slow_path(group)
 
@@ -3189,9 +3268,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are
@@ -3264,9 +3343,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ValueError
             When there are no valid values for a group. Then can happen if:
 
-                * There is an unobserved group and ``observed=False``.
-                * All values for a group are NA.
-                * Some values for a group are NA and ``skipna=False``.
+            * There is an unobserved group and ``observed=False``.
+            * All values for a group are NA.
+            * Some values for a group are NA and ``skipna=False``.
 
         .. versionchanged:: 3.0.0
             Previously if all values for a group are NA or some values for a group are

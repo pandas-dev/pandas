@@ -115,6 +115,22 @@ def test_period_index_from_series_inferred_freq_deprecated():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        ["2022-01-01 06:00+02:00"] * 3,
+        pd.DatetimeIndex(["2022-01-01 06:00"] * 3, tz="UTC"),
+    ],
+)
+def test_period_index_from_tzaware_warns_once(data):
+    # GH#47005
+    with tm.assert_produces_warning(UserWarning, match="drop timezone") as record:
+        result = pd.PeriodIndex(data, freq="h")
+    assert len(record) == 1
+    expected = pd.PeriodIndex(["2022-01-01 06:00"] * 3, freq="h")
+    tm.assert_index_equal(result, expected)
+
+
 class TestPeriodIndex:
     def test_from_ordinals(self):
         pd.Period(ordinal=-1000, freq="Y")

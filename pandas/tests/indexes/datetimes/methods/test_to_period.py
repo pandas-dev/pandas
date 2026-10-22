@@ -202,8 +202,8 @@ class TestToPeriod:
         with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             period = index.to_period(freq="ms")
         assert 2 == len(period)
-        assert period[0] == pd.Period("2007-01-01 10:11:12.123Z", "ms")
-        assert period[1] == pd.Period("2007-01-01 10:11:13.789Z", "ms")
+        assert period[0] == pd.Period("2007-01-01 10:11:12.123", "ms")
+        assert period[1] == pd.Period("2007-01-01 10:11:13.789", "ms")
 
     def test_to_period_out_of_bounds_ordinal(self):
         # GH#64158 the nanosecond ordinal overflows int64 for these dates; the
@@ -224,8 +224,8 @@ class TestToPeriod:
         with tm.assert_produces_warning(UserWarning, match="drop timezone info"):
             period = index.to_period(freq="us")
         assert 2 == len(period)
-        assert period[0] == pd.Period("2007-01-01 10:11:12.123456Z", "us")
-        assert period[1] == pd.Period("2007-01-01 10:11:13.789123Z", "us")
+        assert period[0] == pd.Period("2007-01-01 10:11:12.123456", "us")
+        assert period[1] == pd.Period("2007-01-01 10:11:13.789123", "us")
 
     @pytest.mark.parametrize(
         "tz",

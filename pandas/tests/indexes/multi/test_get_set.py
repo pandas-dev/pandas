@@ -90,10 +90,9 @@ def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
 
 
 def test_set_name_methods(idx):
-    # so long as these are synonyms, we don't need to test set_names
     index_names = ["first", "second"]
-    assert idx.rename == idx.set_names
     new_names = [name + "SUFFIX" for name in index_names]
+    assert idx.rename(new_names).names == idx.set_names(new_names).names
     ind = idx.set_names(new_names)
     assert idx.names == index_names
     assert ind.names == new_names
@@ -283,6 +282,13 @@ def test_set_levels_codes_names_bad_input(idx):
 
     with pytest.raises(TypeError, match="list-like"):
         idx.set_codes(codes, level=0)
+
+    # GH#66287 nested value with a scalar level
+    with pytest.raises(TypeError, match="must be list-like, not a list of list-likes"):
+        idx.set_levels([levels[0]], level=0)
+
+    with pytest.raises(TypeError, match="must be list-like, not a list of list-likes"):
+        idx.set_codes([codes[0]], level=0)
 
     # should have equal lengths
     with pytest.raises(ValueError, match="Length of names"):

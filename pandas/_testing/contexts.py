@@ -19,6 +19,7 @@ from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    import warnings
 
     from pandas._typing import (
         BaseBuffer,
@@ -131,7 +132,7 @@ def with_csv_dialect(name: str, **kwargs: Any) -> Generator[None]:
 def raises_chained_assignment_error(
     extra_warnings: tuple[type[Warning], ...] = (),
     extra_match: tuple[str | None, ...] = (),
-) -> AbstractContextManager:
+) -> AbstractContextManager[list[warnings.WarningMessage] | None]:
     from pandas._testing import assert_produces_warning
 
     if CHAINED_WARNING_DISABLED:

@@ -43,6 +43,36 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=timedelta(0),
     ),
+    "month": inspect.Parameter(
+        "month",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "startingMonth": inspect.Parameter(
+        "startingMonth",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "start": inspect.Parameter(
+        "start",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default="09:00",
+    ),
+    "end": inspect.Parameter(
+        "end",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default="17:00",
+    ),
+    "weekday": inspect.Parameter(
+        "weekday",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "method": inspect.Parameter(
+        "method",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=3,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -58,6 +88,153 @@ _OFFSET_SIGNATURES = {
         "holidays",
         "calendar",
         "offset",
+    ),
+    pd.tseries.offsets.BYearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.BYearBegin: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.YearBegin: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.QuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.QuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.HalfYearEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.HalfYearBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BHalfYearEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BHalfYearBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BQuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BQuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BusinessHour: (
+        "n",
+        "normalize",
+        "start",
+        "end",
+        "offset",
+    ),
+    pd.tseries.offsets.CustomBusinessHour: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "start",
+        "end",
+        "offset",
+    ),
+    pd.tseries.offsets.MonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.MonthBegin: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Day: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Hour: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Minute: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Second: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Milli: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Micro: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.Nano: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.BusinessMonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.BusinessMonthBegin: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthEnd: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthBegin: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.YearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.Week: (
+        "n",
+        "normalize",
+        "weekday",
+    ),
+    pd.tseries.offsets.Easter: (
+        "n",
+        "normalize",
+        "method",
     ),
 }
 

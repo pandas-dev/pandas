@@ -23,9 +23,10 @@ from pandas._libs import (
 import pandas._libs.algos as libalgos
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    ensure_float64,
     is_float,
     is_float_dtype,
     is_integer,
@@ -171,7 +172,15 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        return name not in ["nansum", "nanprod", "nanmean"]
+        # GH#41277 bottleneck has no float16 kernels; its numpy fallback
+        #  squares in float16 and overflows in nanvar/nanstd
+        if name in ["nansum", "nanprod", "nanmean"] or dtype == np.float16:
+            return False
+
+        # GH#70945 bottleneck accumulates float32 nanvar/nanstd in float32,
+        #  losing nearly all precision for large inputs
+        # crossref: https://github.com/pydata/bottleneck/issues/462
+        return not (name in ["nanvar", "nanstd"] and dtype == np.float32)
     return False
 
 
@@ -995,9 +1004,9 @@ def nanmean(
     elif dtype.kind in "iu":
         dtype_sum = np.dtype(np.float64)
     elif dtype.kind == "f":
-        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        # GH#43929 upcast float16 sum and count, which lose precision or overflow
         dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
-        dtype_count = dtype
+        dtype_count = dtype_sum
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = values.sum(axis, dtype=dtype_sum)
@@ -1016,7 +1025,31 @@ def nanmean(
     return the_mean
 
 
+def warn_complex_unordered() -> None:
+    # GH#43770 complex has no natural ordering; each caller raises TypeError
+    #  instead when this deprecation is enforced
+    warnings.warn(
+        "min, max, median, idxmin, clip, '<', and similar ordering operations are "
+        "deprecated on complex data and will raise a TypeError in a future "
+        "version, as complex numbers have no natural ordering. Use the real and "
+        "imaginary parts, or the absolute value, instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
+def _deprecate_complex(func: F) -> F:
+    @functools.wraps(func)
+    def wrapper(values: np.ndarray, *args, **kwargs):
+        if values.dtype.kind == "c":
+            warn_complex_unordered()
+        return func(values, *args, **kwargs)
+
+    return cast("F", wrapper)
+
+
 @_ensure_numeric_input
+@_deprecate_complex
 @bottleneck_switch()
 def nanmedian(
     values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
@@ -1222,8 +1255,8 @@ def nanstd(
     Returns
     -------
     result : float
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1275,8 +1308,8 @@ def nanvar(
     Returns
     -------
     result : float
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1289,11 +1322,11 @@ def nanvar(
         # GH#18976
         return cast("float", _na_for_min_count(values, axis))
     dtype = values.dtype
-    mask = _maybe_get_mask(values, skipna, mask)
-    if dtype.kind in "biu":
-        # bool: the np.nan putmask below would write True into a bool array
-        values = values.astype("f8")
-    elif dtype.kind == "c":
+    if dtype.kind == "c":
+        if mask is None:
+            # Create mask to handle partial NaN
+            mask = np.isnan(values)
+
         # https://en.wikipedia.org/wiki/Complex_random_variable#Variance_and_pseudo-variance
         # The variance is equal to the sum of
         # the variances of the real and imaginary part of the complex random variable.
@@ -1301,39 +1334,30 @@ def nanvar(
             values.real, axis=axis, skipna=skipna, ddof=ddof, mask=mask
         ) + nanvar(values.imag, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
-    if values.dtype.kind == "f":
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    # GH#41277 float16 counts overflow, and float16 variances easily do too
+    keep_dtype = dtype.kind == "f" and dtype != np.float16
+
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
+
+    result: npt.NDArray[np.floating] | np.floating
+    if axis is None or (values.ndim == 1 and axis == 0):
+        order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
+        result_float = libalgos.scalar_var(
+            values.ravel(order),
+            skipna,
+            ddof,
+            mask.ravel(order) if mask is not None else None,
+        )
+        result = np.float64(result_float)
+    elif axis in {0, 1}:
+        result = libalgos.axis_var(values, axis, skipna, ddof, mask)
     else:
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
+        raise ValueError("axis must be 0, 1 or None")
 
-    if mask is not None:
-        values = values.copy()
-        # GH#65373 an explicit mask marks NA, so skipna=False propagates
-        np.putmask(values, mask, 0 if skipna else np.nan)
-
-    # xref GH10242
-    # Compute variance via two-pass algorithm, which is stable against
-    # cancellation errors and relatively accurate for small numbers of
-    # observations.
-    #
-    # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    avg = values.sum(axis=axis, dtype=np.float64) / count
-    if axis is not None:
-        avg = np.expand_dims(avg, axis)
-
-    sqr = (avg - values) ** 2
-    if mask is not None:
-        np.putmask(sqr, mask, 0)
-    # numpy's stubs allow the division to produce a plain float, which it never
-    #  does here; d is an ndarray or an np.float64 and so is the sum
-    result: np.ndarray | np.float64 = cast(
-        "np.ndarray | np.float64", sqr.sum(axis=axis, dtype=np.float64) / d
-    )
-
-    # Return variance as np.float64 (the datatype used in the accumulator),
-    # unless we were dealing with a float array, in which case use the same
-    # precision as the original values array.
-    if dtype.kind == "f":
+    # Return float64 (the accumulator dtype) unless input is a non-float16 float
+    if keep_dtype:
         result = result.astype(dtype, copy=False)
     return result
 
@@ -1365,8 +1389,8 @@ def nansem(
     Returns
     -------
     result : float64
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1375,17 +1399,15 @@ def nansem(
     >>> nanops.nansem(s.values)
      np.float64(0.5773502691896258)
     """
-    # This checks if non-numeric-like data is passed with numeric_only=False
-    # and raises a TypeError otherwise
-    nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
-
-    mask = _maybe_get_mask(values, skipna, mask)
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     # Convert to bottleneck return a float
     if values.dtype.kind not in "fc":
-        values = values.astype("f8")
+        values = values.astype("f8", order=preferred_order)
+    mask = _maybe_get_mask(values, skipna, mask)
 
     dtype_count = np.dtype(np.float64)
-    if values.dtype.kind == "f":
+    if values.dtype.kind == "f" and values.dtype != np.float16:
+        # GH#41277 float16 counts overflow and nanvar returns float64 for them
         dtype_count = values.dtype
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
@@ -1490,6 +1512,7 @@ def _get_arg_values(
 
 
 def _nanminmax(meth, fill_value_typ):
+    @_deprecate_complex
     @bottleneck_switch(name=f"nan{meth}")
     @_datetimelike_compat
     def reduction(
@@ -1543,6 +1566,7 @@ nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 
+@_deprecate_complex
 def nanargmax(
     values: np.ndarray,
     *,
@@ -1592,6 +1616,7 @@ def nanargmax(
     return result
 
 
+@_deprecate_complex
 def nanargmin(
     values: np.ndarray,
     *,
@@ -1642,7 +1667,7 @@ def nanargmin(
 
 
 @_ensure_numeric_input
-@disallow("M8", "m8")
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nanskew(
     values: np.ndarray,
@@ -1679,8 +1704,10 @@ def nanskew(
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
@@ -1701,7 +1728,7 @@ def nanskew(
 
 
 @_ensure_numeric_input
-@disallow("M8", "m8")
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nankurt(
     values: np.ndarray,
@@ -1738,8 +1765,10 @@ def nankurt(
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
@@ -2070,27 +2099,32 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
 
     a = a - a.mean()
     b = b - b.mean()
-    a_scale = np.max(np.abs(a))
-    b_scale = np.max(np.abs(b))
+    a_scale = max(a.max(), -a.min())
+    b_scale = max(b.max(), -b.min())
 
     if a_scale == 0 or b_scale == 0:
         return np.nan
 
-    a = a / a_scale
-    b = b / b_scale
-    fact = len(a) - 1
-    divisor = np.sqrt(np.dot(a, a) / fact)
+    # rescale only when ssq_a * ssq_b could overflow or underflow; the hard
+    # limit is ~1e77 (float64 max ** 0.25), 1e50 leaves headroom for nobs**2
+    if not 1e-50 < a_scale < 1e50:
+        a = a / a_scale
+    if not 1e-50 < b_scale < 1e50:
+        b = b / b_scale
 
-    if divisor == 0:
+    # corrected two-pass: remove the rounding error left in the first mean,
+    # which can dominate nearly-constant data, see GH#59652
+    nobs = len(a)
+    a_sum = float(a.sum())
+    b_sum = float(b.sum())
+    ssq_a = float(np.dot(a, a)) - a_sum * a_sum / nobs
+    ssq_b = float(np.dot(b, b)) - b_sum * b_sum / nobs
+
+    if ssq_a <= 0 or ssq_b <= 0:
         return np.nan
 
-    result = np.dot(a, b) / fact / divisor
-    divisor = np.sqrt(np.dot(b, b) / fact)
-
-    if divisor == 0:
-        return np.nan
-
-    return np.clip(result / divisor, -1.0, 1.0)
+    result = (float(np.dot(a, b)) - a_sum * b_sum / nobs) / np.sqrt(ssq_a * ssq_b)
+    return np.float64(min(max(result, -1.0), 1.0))
 
 
 @disallow("M8", "m8")
@@ -2144,6 +2178,12 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
 
     # This should go through ea interface
     assert values.dtype.kind not in "mM"
+
+    if values.dtype.kind == "c" and accum_func in [
+        np.minimum.accumulate,
+        np.maximum.accumulate,
+    ]:
+        warn_complex_unordered()
 
     # We will be applying this function to block values
     if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):

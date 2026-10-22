@@ -8,7 +8,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2_6
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -556,10 +555,10 @@ class TestDatetimeIndexSetOps:
         # GH#21671
         rng = pd.DatetimeIndex([pd.Timestamp("2011-01-01"), pd.NaT])
         rng2 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz="Asia/Tokyo")
-        # numpy>=2.6 object-dtype sort compares the tz-naive and tz-aware
-        #  Timestamps directly, so safe_sort fails and union warns
-        warn = RuntimeWarning if np_version_gt2_6 else None
-        with tm.assert_produces_warning(warn, match="sort order is undefined"):
+        # tz-naive and tz-aware Timestamps are incomparable, so union warns
+        with tm.assert_produces_warning(
+            RuntimeWarning, match="sort order is undefined"
+        ):
             result = rng.union(rng2)
         expected = pd.Index(
             [

@@ -83,7 +83,7 @@ class BlockManager:
     axes: list[Index]
     _known_consolidated: bool
     _is_consolidated: bool
-    _interleaved_dtype: DtypeObj | None
+    _interleaved_dtype: tuple[tuple[B, ...], DtypeObj | None] | None
     _blknos: np.ndarray
     _blklocs: np.ndarray
     def __init__(
@@ -95,7 +95,7 @@ class BlockManager:
     def _rebuild_blknos_and_blklocs(self) -> None: ...
 
 class BlockValuesRefs:
-    referenced_blocks: list[weakref.ref]
+    referenced_blocks: list[weakref.ref[Block | Index]]
     def __new__(cls, blk: Block | None = ...) -> Self: ...
     def add_reference(self, blk: Block) -> None: ...
     def add_index_reference(self, index: Index) -> None: ...

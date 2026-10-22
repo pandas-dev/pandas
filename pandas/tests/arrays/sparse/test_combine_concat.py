@@ -87,3 +87,13 @@ def test_concat_different_fill_value_warns(performance_warning):
         result = pd.concat([ser, other], ignore_index=True)
 
     assert result.dtype == pd.SparseDtype("float64", np.nan)
+
+
+def test_concat_object_subtype_not_reinferred():
+    # GH#69028 - an object subtype holding only datetimelikes stays object
+    arr = SparseArray(
+        np.array(["2016-01-01", "2000-01-01"], dtype="M8[s]"),
+        fill_value=np.datetime64("2000-01-01", "s"),
+    ).astype(pd.SparseDtype(object, pd.Timestamp("2000-01-01")))
+    result = SparseArray._concat_same_type([arr, arr])
+    assert result.dtype == arr.dtype
