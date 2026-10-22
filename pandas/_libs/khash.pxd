@@ -1,3 +1,4 @@
+from cpython.exc cimport PyErr_Occurred
 from cpython.object cimport PyObject
 from numpy cimport (
     complex64_t,
@@ -50,12 +51,19 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
         PyObject **keys
         size_t *vals
 
+    # The functions that hash or compare keys can leave an exception set by a
+    # custom __hash__ or __eq__ (GH 57052); "except *" makes Cython check for
+    # one after each call. kh_put_pymap_noexcept is the same C function
+    # without that check, for the call sites that have to Py_INCREF a newly
+    # inserted key before letting the exception propagate - otherwise the
+    # table is left holding a borrowed reference for __dealloc__ to decref.
     kh_pymap_t* kh_init_pymap()
     void kh_destroy_pymap(kh_pymap_t*)
     void kh_clear_pymap(kh_pymap_t*)
-    khuint_t kh_get_pymap(kh_pymap_t*, PyObject*)
-    void kh_resize_pymap(kh_pymap_t*, khuint_t)
-    khuint_t kh_put_pymap(kh_pymap_t*, PyObject*, int*)
+    khuint_t kh_get_pymap(kh_pymap_t*, PyObject*) except *
+    void kh_resize_pymap(kh_pymap_t*, khuint_t) except *
+    khuint_t kh_put_pymap(kh_pymap_t*, PyObject*, int*) except *
+    khuint_t kh_put_pymap_noexcept "kh_put_pymap" (kh_pymap_t*, PyObject*, int*)
     void kh_del_pymap(kh_pymap_t*, khuint_t)
 
     bint kh_exist_pymap(kh_pymap_t*, khiter_t)
@@ -66,12 +74,13 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
         PyObject **keys
         size_t *vals
 
+    # see the comment on kh_pymap_t above for "except *"
     kh_pyset_t* kh_init_pyset()
     void kh_destroy_pyset(kh_pyset_t*)
     void kh_clear_pyset(kh_pyset_t*)
-    khuint_t kh_get_pyset(kh_pyset_t*, PyObject*)
-    void kh_resize_pyset(kh_pyset_t*, khuint_t)
-    khuint_t kh_put_pyset(kh_pyset_t*, PyObject*, int*)
+    khuint_t kh_get_pyset(kh_pyset_t*, PyObject*) except *
+    void kh_resize_pyset(kh_pyset_t*, khuint_t) except *
+    khuint_t kh_put_pyset(kh_pyset_t*, PyObject*, int*) except *
     void kh_del_pyset(kh_pyset_t*, khuint_t)
 
     bint kh_exist_pyset(kh_pyset_t*, khiter_t)
@@ -132,6 +141,15 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     bint kh_exist_strbox(kh_strbox_t*, khiter_t) nogil
 
     khuint_t kh_needed_n_buckets(khuint_t element_n) nogil
+
+
+cdef inline int raise_if_errors() except -1:
+    """
+    Propagate an exception left behind by a "noexcept" khash call.
+    """
+    if PyErr_Occurred():
+        return -1
+    return 0
 
 
 include "khash_for_primitive_helper.pxi"
