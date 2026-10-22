@@ -1554,6 +1554,99 @@ class TestPandasContainer:
         sc = df["B"]
         assert s.to_json() == sc.to_json()
 
+    @pytest.mark.parametrize(
+        "closed, brackets",
+        [("left", "[)"), ("right", "(]"), ("both", "[]"), ("neither", "()")],
+    )
+    def test_interval(self, closed, brackets):
+        # GH#55544 Intervals are written as strings, matching to_csv/repr
+        lb, rb = brackets
+        arr = pd.arrays.IntervalArray.from_breaks([0.0, 1.0, 2.0], closed=closed)
+        ser = pd.Series(arr.insert(1, np.nan))
+        result = ser.to_json()
+        expected = f'{{"0":"{lb}0.0, 1.0{rb}","1":null,"2":"{lb}1.0, 2.0{rb}"}}'
+        assert result == expected
+
+    def test_interval_frame_cut(self):
+        # GH#55544 categorical of Intervals (e.g. pd.cut)
+        df = pd.DataFrame(
+            {
+                "a": pd.cut([1, 5, np.nan], [0, 2, 6]),
+                "b": pd.interval_range(0, 3),
+            }
+        )
+        result = df.to_json()
+        assert result == (
+            '{"a":{"0":"(0, 2]","1":"(2, 6]","2":null},'
+            '"b":{"0":"(0, 1]","1":"(1, 2]","2":"(2, 3]"}}'
+        )
+
+    @pytest.mark.parametrize(
+        "breaks, expected",
+        [
+            (
+                pd.date_range("2020-01-01", periods=3),
+                '"(2020-01-01 00:00:00, 2020-01-02 00:00:00]",'
+                '"(2020-01-02 00:00:00, 2020-01-03 00:00:00]"',
+            ),
+            (
+                pd.date_range("2020-01-01", periods=3, tz="UTC"),
+                '"(2020-01-01 00:00:00+00:00, 2020-01-02 00:00:00+00:00]",'
+                '"(2020-01-02 00:00:00+00:00, 2020-01-03 00:00:00+00:00]"',
+            ),
+            (
+                pd.timedelta_range("1D", periods=3),
+                '"(1 days 00:00:00, 2 days 00:00:00]",'
+                '"(2 days 00:00:00, 3 days 00:00:00]"',
+            ),
+        ],
+    )
+    def test_interval_datetimelike(self, breaks, expected):
+        # GH#55544
+        ser = pd.Series(pd.IntervalIndex.from_breaks(breaks))
+        assert ser.to_json(orient="values") == f"[{expected}]"
+
+    @pytest.mark.parametrize(
+        "orient, expected",
+        [
+            ("split", '{"columns":["x"],"index":["(0, 1]","(1, 2]"],"data":[[1],[2]]}'),
+            ("index", '{"(0, 1]":{"x":1},"(1, 2]":{"x":2}}'),
+            ("columns", '{"x":{"(0, 1]":1,"(1, 2]":2}}'),
+        ],
+    )
+    def test_interval_index(self, orient, expected):
+        # GH#55544 IntervalIndex as the index
+        df = pd.DataFrame({"x": [1, 2]}, index=pd.interval_range(0, 2))
+        result = df.to_json(orient=orient)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "orient, expected",
+        [
+            ("split", '{"columns":["(0, 1]","(1, 2]"],"index":[0],"data":[[1,2]]}'),
+            ("index", '{"0":{"(0, 1]":1,"(1, 2]":2}}'),
+            ("columns", '{"(0, 1]":{"0":1},"(1, 2]":{"0":2}}'),
+            ("records", '[{"(0, 1]":1,"(1, 2]":2}]'),
+        ],
+    )
+    def test_interval_columns(self, orient, expected):
+        # GH#55544 IntervalIndex as the columns
+        df = pd.DataFrame([[1, 2]], columns=pd.interval_range(0, 2))
+        assert df.to_json(orient=orient) == expected
+
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "index", "columns", "values"]
+    )
+    def test_interval_orients_no_attribute_dict(self, orient):
+        # GH#55544 no orient falls back to dumping Interval attributes
+        df = pd.DataFrame(
+            {"a": pd.cut([1, 5, np.nan], [0, 2, 6]), "b": pd.interval_range(0, 3)}
+        )
+        result = df.to_json(orient=orient)
+        assert "closed" not in result
+        assert "(0, 2]" in result
+        assert "null" in result
+
     def test_datetime_tz(self, unit):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         tz_range = pd.date_range("20130101", periods=3, tz="US/Eastern").as_unit(unit)

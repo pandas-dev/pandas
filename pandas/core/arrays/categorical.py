@@ -53,6 +53,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -2159,6 +2160,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         backing = np.zeros(shape, dtype=arr._ndarray.dtype)
 
         return arr._from_backing_data(backing)
+
+    def _values_for_json(self) -> np.ndarray:
+        # GH#55544 e.g. pd.cut results: render interval categories as strings
+        #  instead of letting the encoder dump Interval attributes
+        if isinstance(self.categories.dtype, IntervalDtype):
+            cats = self.categories.array._values_for_json()
+            return take_nd(cats, self._codes, fill_value=None)
+        return super()._values_for_json()
 
     def _internal_get_values(self) -> ArrayLike:
         """
