@@ -116,7 +116,7 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@adba99c781d3746d38b3a09b1cf797965bcb7fe6 # v4.3.0
+        uses: pypa/cibuildwheel@b3395e271a35f73dad77f21802abe9b986dfe299 # v4.3.1
         with:
           package-dir: ./dist/${{ env.sdist_name }}
           only: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
@@ -359,7 +359,7 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       - name: Publish to **PyPI** (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: upload
           skip-existing: true

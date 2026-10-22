@@ -2393,6 +2393,30 @@ class TestTSPlot:
         # must not blow up while locating ticks
         ax.get_figure().canvas.draw()
 
+    @pytest.mark.parametrize("bar_first", [True, False])
+    def test_bar_and_line_plot_same_index_aligned(self, bar_first):
+        # GH#10761 - bars and a line over the same DatetimeIndex share the
+        # x-axis instead of landing on unrelated scales
+        df = pd.DataFrame(
+            np.arange(30.0).reshape(10, 3),
+            index=date_range("2015-07-01", periods=10, freq="D"),
+            columns=["col1", "col2", "col3"],
+        )
+        _, ax = plt.subplots()
+        if bar_first:
+            df[["col1", "col2"]].plot(kind="bar", stacked=True, ax=ax)
+            df["col3"].plot(ax=ax)
+        else:
+            df["col3"].plot(ax=ax)
+            df[["col1", "col2"]].plot(kind="bar", stacked=True, ax=ax)
+
+        assert len(ax.patches) == 20
+        bar_centers = np.array(
+            [patch.get_x() + patch.get_width() / 2 for patch in ax.patches[:10]]
+        )
+        line_x = ax.get_lines()[0].get_xydata()[:, 0]
+        tm.assert_numpy_array_equal(bar_centers, line_x)
+
     @pytest.mark.parametrize(
         "bar_freq, line_freq", [("W", "D"), ("ME", "D"), ("D", "h")]
     )
