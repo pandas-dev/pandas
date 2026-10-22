@@ -1147,9 +1147,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if ax._is_multi and level is None and not callable(replacements):
                 # GH#4160: keys that are full MultiIndex tuples rename whole entries
                 new_index = _rename_multiindex_entries(
-                    ax,
-                    new_index,
-                    replacements,  # type: ignore[arg-type]
+                    cast(MultiIndex, ax),
+                    cast(MultiIndex, new_index),
+                    replacements,
                 )
             result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
 
