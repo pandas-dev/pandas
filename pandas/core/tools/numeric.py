@@ -335,7 +335,14 @@ def to_numeric(
             klass = FloatingArray
         values = klass(data, mask)
 
-        if dtype_backend == "pyarrow" or isinstance(values_dtype, ArrowDtype):
+        if dtype_backend == "pyarrow" or (
+            isinstance(values_dtype, ArrowDtype)
+            and (
+                dtype_backend is lib.no_default
+                or is_numeric_dtype(values_dtype)
+                or is_bool_dtype(values_dtype)
+            )
+        ):
             values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:

@@ -1027,10 +1027,12 @@ def test_to_numeric_masked_float_nan_sync(dtype_backend):
     tm.assert_series_equal(result, expected)
 
 
-def test_to_numeric_arrow_with_numpy_nullable():
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_arrow_with_dtype_backend(dtype_backend):
     # GH 63732
     pa = pytest.importorskip("pyarrow")
     ser = pd.Series(["1", "x", None], dtype=pd.ArrowDtype(pa.string()))
-    result = pd.to_numeric(ser, errors="coerce", dtype_backend="numpy_nullable")
-    expected = pd.Series([1, pd.NA, pd.NA], dtype="int64[pyarrow]")
+    result = pd.to_numeric(ser, errors="coerce", dtype_backend=dtype_backend)
+    expected_dtype = "Int64" if dtype_backend == "numpy_nullable" else "int64[pyarrow]"
+    expected = pd.Series([1, pd.NA, pd.NA], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
