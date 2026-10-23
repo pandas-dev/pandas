@@ -1248,6 +1248,11 @@ class TimeSeries_TimedeltaFormatter(mpl.ticker.Formatter):  # pyright: ignore[re
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
+        if x < 0:
+            negative = True
+            x = np.abs(x)
+        else:
+            negative = False
         s, ns = divmod(x, 10**exp)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
@@ -1258,6 +1263,8 @@ class TimeSeries_TimedeltaFormatter(mpl.ticker.Formatter):  # pyright: ignore[re
             s += f".{decimals:0{n_decimals}d}"
         if d != 0:
             s = f"{int(d):d} days {s}"
+        if negative:
+            s = "-" + s
         return s
 
     def __call__(self, x, pos: int | None = 0) -> str:
