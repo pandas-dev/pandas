@@ -121,6 +121,18 @@ class TestDataFrameRenameAxis:
         expected = pd.DataFrame(data, expected_index, expected_columns)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "name", [(1, 2, 3), ("a",), frozenset([1, 2, 3]), range(3)]
+    )
+    def test_rename_axis_hashable_iterable_name_1d_index(self, name):
+        # GH#66656
+        df = pd.DataFrame([1], index=pd.Index([1], name=name))
+        result = df.rename_axis(name)
+        assert result.index.name == name
+
+        result_reset = df.reset_index().rename_axis(df.index.name)
+        assert result_reset.index.name == name
+
 
 def test_rename_axis_inplace_depr():
     msg = "The inplace keyword in DataFrame.rename_axis is deprecated"
