@@ -1033,7 +1033,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
         if self.obj.ndim == 1:
             assert not isinstance(orig_dtype_info, np.ndarray)
             if orig_dtype_info != self.obj.dtype:
-                orig_arr = pd_array([], dtype=orig_dtype_info)
+                if is_np_dtype(orig_dtype_info, "V"):
+                    # GH#49388 avoid pd.array's void-dtype warning
+                    orig_arr = pd_array(np.array([], dtype=orig_dtype_info))
+                else:
+                    orig_arr = pd_array([], dtype=orig_dtype_info)
                 new_arr = infer_and_maybe_downcast(orig_arr, self.obj._values)
                 new_ser = self.obj._constructor(
                     new_arr, index=self.obj.index, name=self.obj.name

@@ -1,7 +1,7 @@
 .. _whatsnew_310:
 
-What's new in 3.1.0 (Month XX, 2026)
-------------------------------------
+What's new in 3.1.0 (October 22, 2026)
+--------------------------------------
 
 These are the changes in pandas 3.1.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -147,37 +147,54 @@ is parallelized (:issue:`64347`).
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
-- :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
-- :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
-- :meth:`.DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`~.DataFrameGroupBy.agg`, and supports ``NamedFunc`` (alias of :class:`NamedAgg`) (:issue:`58318`)
+
+New methods/arguments:
+
+- Added ``union_categories`` parameter to :func:`concat` to preserve categorical dtype by unioning categories when concatenating categoricals with different categories (:issue:`14177`)
+- Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
+
+I/O:
+
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
-- :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
-- Added ``NamedFunc``, an alias to :class:`NamedAgg` for a more semantically accurate name when used with non-aggregation functions; either can accept arbitrary functions (:issue:`65164`)
-- :meth:`.ExtensionArray.map` now calls ``ExtensionArray._cast_pointwise_result`` to retain the dtype backend, e.g. Arrow-backed arrays now preserve their Arrow dtype through ``map`` (:issue:`57189`, :issue:`62164`)
 - :func:`read_csv` now supports ``dtype="complex64"`` and ``dtype="complex128"`` with the C engine, enabling round-tripping of complex-number columns written by :meth:`DataFrame.to_csv` (:issue:`9379`)
 - :func:`read_excel` and :class:`ExcelFile` now infer ``engine`` from a workbook object created by a supported engine's library, such as an ``openpyxl.Workbook``, instead of raising (:issue:`46352`)
+- Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
+
+Groupby/resample/rolling:
+
+- :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
+- :meth:`.DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`~.DataFrameGroupBy.agg`, and supports ``NamedFunc`` (alias of :class:`NamedAgg`) (:issue:`58318`)
+- Added ``NamedFunc``, an alias to :class:`NamedAgg` for a more semantically accurate name when used with non-aggregation functions; either can accept arbitrary functions (:issue:`65164`)
+
+Datetimelike:
+
+- :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
+- :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
+- :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
 - :func:`to_datetime` and ``strptime`` parsing now support the ``%N`` directive for matching exactly 9 digits representing nanoseconds, providing symmetry with ``strftime`` formatting (:issue:`65863`)
-- :meth:`DataFrame.info` now respects the ``display.unicode.east_asian_width`` option when aligning column names (:issue:`46082`)
-- :meth:`DataFrame.select_dtypes` can now select ``datetime64`` and ``timedelta64`` columns by a specific resolution (e.g. ``"datetime64[us]"``, ``np.dtype("timedelta64[ms]")``), which previously raised; a unit-specific spec matches only columns with exactly that resolution, while a unitless ``"datetime64"``/``"timedelta64"`` still matches every resolution (:issue:`40234`)
-- :meth:`Series.round` now works on third-party numeric :class:`.ExtensionArray` types via a default :meth:`.ExtensionArray.round` (:issue:`49387`)
 - :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
+- Time strings with a space before ``AM``/``PM`` (e.g. ``"3:25:00 PM"``) are now recognized; :meth:`DataFrame.between_time` previously raised on them, and :meth:`DataFrame.at_time` warned that they would raise in a future version. Casting such strings to a pyarrow time dtype (``time32``/``time64``) no longer silently gives a missing value (:issue:`18793`)
+- Vertical bar plots with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` now format the x-axis with the same dynamic date tick labeling as line plots, instead of labeling every bar with the full string representation of its timestamp. The tick labels of such plots are no longer rotated by default, matching line plots; pass ``rot`` to override. Bar plots over a frequency the date ticks cannot be aligned to keep the previous labeling (:issue:`1918`)
+
+ExtensionArray:
+
+- :meth:`.ExtensionArray.map` now calls ``ExtensionArray._cast_pointwise_result`` to retain the dtype backend, e.g. Arrow-backed arrays now preserve their Arrow dtype through ``map`` (:issue:`57189`, :issue:`62164`)
+- :meth:`Series.round` now works on third-party numeric :class:`.ExtensionArray` types via a default :meth:`.ExtensionArray.round` (:issue:`49387`)
 - Added :meth:`.ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`.ExtensionArray.sort` for in-place sorting of :class:`.ExtensionArray` (:issue:`64977`)
 - Added ``ExtensionDtype._get_plot_converter`` allowing :class:`.ExtensionDtype` to register their own :class:`matplotlib.units.ConversionInterface` to support plotting for non-numeric :class:`.ExtensionArray` (:issue:`64300`)
-- Added :meth:`DatetimeIndex.set_freq` and :meth:`TimedeltaIndex.set_freq`, which return a new index with the given ``freq`` instead of modifying it in place (:issue:`61094`)
-- Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
-- Added ``SparseArray.from_indices`` to construct a :class:`.SparseArray` from sparse values and their indices without materializing a dense array (:issue:`43628`)
-- Added ``union_categories`` parameter to :func:`concat` to preserve categorical dtype by unioning categories when concatenating categoricals with different categories (:issue:`14177`)
 - Added reduction methods as public API on pandas-implemented extension arrays where applicable (:issue:`63512`)
+
+Other:
+
+- :meth:`DataFrame.select_dtypes` can now select ``datetime64`` and ``timedelta64`` columns by a specific resolution (e.g. ``"datetime64[us]"``, ``np.dtype("timedelta64[ms]")``), which previously raised; a unit-specific spec matches only columns with exactly that resolution, while a unitless ``"datetime64"``/``"timedelta64"`` still matches every resolution (:issue:`40234`)
+- :meth:`DataFrame.info` now respects the ``display.unicode.east_asian_width`` option when aligning column names (:issue:`46082`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
-- Improved the error message raised when constructing an :class:`IntervalIndex` or :class:`~arrays.IntervalArray` with a left side greater than the right side, which now shows the offending intervals and their positions (:issue:`66807`)
-- Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`.SparseArray` (:issue:`64547`)
+- Added ``SparseArray.from_indices`` to construct a :class:`.SparseArray` from sparse values and their indices without materializing a dense array (:issue:`43628`)
+- Improved the error message raised when constructing an :class:`IntervalIndex` or :class:`~arrays.IntervalArray` with a left side greater than the right side, which now shows the offending intervals and their positions (:issue:`66807`)
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
 - Setting values with :meth:`DataFrame.at` or :meth:`Series.at` using a non-scalar indexer (e.g. a boolean mask, list, or array) now raises a clearer ``InvalidIndexError`` directing users to ``.loc`` (:issue:`51866`)
-- Time strings with a space before ``AM``/``PM`` (e.g. ``"3:25:00 PM"``) are now recognized; :meth:`DataFrame.between_time` previously raised on them, and :meth:`DataFrame.at_time` warned that they would raise in a future version. Casting such strings to a pyarrow time dtype (``time32``/``time64``) no longer silently gives a missing value (:issue:`18793`)
-- Vertical bar plots with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` now format the x-axis with the same dynamic date tick labeling as line plots, instead of labeling every bar with the full string representation of its timestamp. The tick labels of such plots are no longer rotated by default, matching line plots; pass ``rot`` to override. Bar plots over a frequency the date ticks cannot be aligned to keep the previous labeling (:issue:`1918`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:
@@ -262,6 +279,21 @@ components by keyword, e.g. ``pd.Timestamp(year=2020, month=12, day=31, hour=5)`
 A positional ``tzinfo`` (the eighth argument, as in :class:`datetime.datetime`)
 is now attached to the result instead of being dropped, so :func:`copy.replace`
 also keeps the timezone (:issue:`31930`, :issue:`45307`).
+
+.. _whatsnew_310.notable_bug_fixes.string_regex:
+
+String regex methods aligning again with Python's ``re`` module
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The introduction of the default :class:`StringDtype`, using PyArrow under the hood when
+installed, in pandas 3.0 led to certain behaviour changes for string methods using regex
+operations (because PyArrow using a different regex flavor) (:issue:`63683`).
+Certain of those cases have been fixed in 3.1 to ensure the string methods'
+behaviour is consistent again with Python's ``re`` module (and with pandas 2.x):
+
+- Bug where ``\w``, ``\d``, ``\s`` and ``\b`` (and their negations) in a regular expression only matched ASCII characters. Now they also match unicode characters again (:issue:`70770`)
+- Bug using a regex pattern with ``$`` to indicate the end of the string: when using PyArrow-backed string dtypes, for certain cases this no longer matched before or after an ending newline; now it is consistent again with Python's ``re`` behaviour in all cases (:issue:`63683`)
+- Bug using a regex pattern with unicode escape sequences (``\u``/``\U``/``\N{}``) with PyArrow-backed string dtypes failing, now working again as in pandas 2.x (:issue:`63901`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.api_breaking:
@@ -833,7 +865,6 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.union() <Index.union>` and :meth:`TimedeltaIndex.union() <Index.union>` with ``sort=False`` silently dropping values from the other index that fell after the end of ``self`` (:issue:`66322`)
 - Bug in :meth:`Series.dt.isocalendar` with a pyarrow-backed datetime or date dtype not preserving the original index, resetting it to a default :class:`RangeIndex` (:issue:`65894`)
 - Bug in :meth:`Series.dt.to_pydatetime` not preserving the original index and name (:issue:`66443`)
-- Bug in :meth:`~Series.isin` on datetime-like data missing ``numpy.datetime64`` or ``numpy.timedelta64`` values (``NaT``, or any value on numpy < 2.2) when ``values`` also held non-datetime-like entries (:issue:`71186`)
 - Bug in :meth:`Series.std`, :meth:`Series.sem` and their DataFrame counterparts on ``date32[pyarrow]`` and ``date64[pyarrow]`` data returning a wrong result, reading the value in days (``date32``) or milliseconds (``date64``) as seconds; the result for ``date64[pyarrow]`` is now ``duration[ms][pyarrow]``, matching subtraction, instead of ``duration[s][pyarrow]`` (:issue:`69752`)
 - Bug in ``day_of_week``, :meth:`Timestamp.weekday` and :meth:`Timestamp.day_name` returning a wrong weekday, or raising ``OverflowError``, for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
 - Bug in ``day_of_year`` and ``week``, on :class:`Timestamp` as well as on :class:`DatetimeIndex` and :class:`Series`, taking the leap-year status from a wrapped year for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
@@ -921,9 +952,7 @@ Numeric
 - Fixed bug in :meth:`DataFrame.idxmax` and :meth:`~DataFrame.idxmin` returning the label of a missing-value row when every non-missing value equals the dtype's minimum (for ``idxmax``) or maximum (for ``idxmin``), e.g. a float column containing only ``-inf`` and NaN (:issue:`64478`)
 - Fixed bug in :meth:`~Series.isin` reporting a match between two distinct values above ``2**53`` when the two sides had different numeric dtypes, such as ``uint64`` against a signed 64-bit integer, or a 64-bit integer against ``float64`` (:issue:`59609`, :issue:`61676`)
 - Bug in :meth:`~Series.median` on object-dtype data holding ``numpy.datetime64`` or ``numpy.timedelta64`` objects returning a meaningless float instead of raising ``TypeError`` (:issue:`34671`)
-- Fixed bug in :meth:`~Series.isin` reporting false matches when ``values`` was a list of integers above ``2**53`` mixed with floats, ``NaN``, or integers outside the ``int64`` range, or a list of ``bytes`` ending in a null byte (:issue:`70217`)
 - Fixed bug in :meth:`Series.mean` and :meth:`~Series.sum` (and their DataFrame counterparts) overflowing for ``float16`` dtypes instead of upcasting to ``float64`` (:issue:`43929`)
-- Fixed bug in :meth:`Series.var`, :meth:`~Series.std`, and :meth:`~Series.sem` (and their DataFrame counterparts) returning ``inf`` or incorrect results for ``float16`` dtypes when the variance or the number of values exceeded the ``float16`` range; these now return ``float64`` like :meth:`Series.mean` (:issue:`41277`)
 - Bug in :meth:`Series.skew` and :meth:`~Series.kurt` (and their DataFrame counterparts) on object-dtype data silently converting strings to numbers, e.g. ``Series(["1", "2", "3"], dtype=object).skew()`` returned ``0.0`` instead of raising ``TypeError`` as the other statistics do (:issue:`34671`, :issue:`44008`)
 - Bug in :meth:`DataFrame.median` with ``skipna=False`` discarding the imaginary part of complex columns whose median was well-defined, depending on where the first column holding a missing value sat; :meth:`Series.median` returned a real ``NaN`` for complex data in the same case (:issue:`68487`)
 - Bug in :meth:`~Series.median` discarding the imaginary part of complex data on installations without ``bottleneck`` (:issue:`34671`)
@@ -955,7 +984,6 @@ Conversion
 - Fixed bug in :func:`to_numeric` raising ``TypeError`` for a :class:`Series` with :class:`PeriodDtype`; it now returns the period ordinals, matching :class:`PeriodIndex` (:issue:`69448`)
 - Fixed bug in :func:`to_numeric` where a string containing an embedded NUL byte was converted using only the bytes before the NUL, so e.g. ``"1.5\x00xyz"`` silently became ``1.5``; such values now raise, or become ``NaN`` with ``errors="coerce"`` (:issue:`66524`)
 - Fixed bug in :func:`to_numeric` where values preceding the first complex number in ``object``-dtype data were replaced with uninitialized memory, so e.g. ``to_numeric(Series(["1.5", 2j]))`` returned ``0j`` in place of ``1.5+0j`` (:issue:`35051`)
-- Fixed bug in :func:`to_numeric` with ``errors="coerce"`` raising ``TypeError`` for object values containing unhashable nested elements, such as a tuple containing a list, instead of coercing them to ``NaN`` (:issue:`69916`)
 - Fixed bug in :func:`to_numeric`, and the readers built on it such as :func:`read_html`, :func:`read_xml`, :func:`read_excel`, :func:`read_fwf` and :func:`read_csv` with ``engine="python"`` or ``dtype="category"``, where a value written with a leading ``+`` and leading zeros after the decimal point lost significant digits, so e.g. ``"+0.0001234567890123456789"`` kept only 14 of them and ``"+0.0000000000000000000000005"`` became ``0.0`` (:issue:`68311`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.itertuples` with ``index=False`` returning no rows for a :class:`DataFrame` with rows but no columns, which also made :meth:`DataFrame.to_dict` with ``orient="split"``, ``"tight"`` or ``"records"`` drop the rows (:issue:`25408`)
@@ -977,7 +1005,6 @@ Strings
 - Bug in :meth:`Series.str.normalize`, :meth:`Series.str.zfill` and their :class:`Index` counterparts with PyArrow-backed string dtypes raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
 - Bug in addition and multiplication on length-zero ``string``-dtype :class:`Series` and :class:`Index` returning ``object`` dtype instead of the string dtype, and raising ``TypeError`` when the other operand was length-zero with a different string storage or ``object`` dtype (:issue:`40624`)
 - Bug in :meth:`Series.str.match` raising for regex flags other than ``re.IGNORECASE`` (e.g. ``re.MULTILINE``, ``re.DOTALL``, ``re.ASCII``), whether passed via ``flags`` or carried by a compiled ``re.Pattern`` (:issue:`63108`, :issue:`66348`)
-- Bug in :meth:`Series.str.contains`, :meth:`~Series.str.match`, :meth:`~Series.str.fullmatch`, :meth:`~Series.str.replace` and :meth:`~Series.str.count` for PyArrow-backed :class:`StringDtype` where ``\w``, ``\d``, ``\s`` and ``\b`` (and their negations) in a regular expression only matched ASCII characters (:issue:`70770`)
 - Bug in :meth:`Series.str.contains`, :meth:`~Series.str.match`, :meth:`~Series.str.fullmatch`, :meth:`~Series.str.replace` and :meth:`~Series.str.count` for PyArrow-backed :class:`StringDtype` where a lookaround or backreference inside a repeat such as ``(?:a(?=b))+`` raised an error (:issue:`70770`)
 - Bug in :meth:`Series.str.match` where passing ``flags=0`` was not equivalent to omitting ``flags``, raising for patterns using PyArrow-only regex syntax such as ``\p{L}`` or an inline flag such as ``(?i)`` (:issue:`63108`)
 - Bug in :meth:`Series.str.match`, :meth:`~Series.str.fullmatch`, :meth:`~Series.str.contains`, :meth:`~Series.str.count`, :meth:`~Series.str.extract`, :meth:`~Series.str.replace` and their :class:`Index` counterparts with :class:`ArrowDtype` raising instead of honoring ``flags`` such as ``re.ASCII``, or the flags carried by a compiled ``re.Pattern`` (:issue:`66348`)
@@ -986,8 +1013,6 @@ Strings
 - Bug in :meth:`Series.str.split` with :class:`ArrowDtype` ``string`` not inferring regex for multi-character patterns when ``regex=None``, causing the pattern to be treated as a literal instead of a regular expression (:issue:`58321`)
 - Bug in :meth:`~Series.unique` and :func:`factorize` on object dtype returning incorrect results when the values were not UTF-8 encodable, e.g. lone surrogates (:issue:`34550`)
 - Bug in :meth:`~Series.unique`, :meth:`~Series.nunique`, :func:`factorize` and ``groupby`` on object dtype, and on ``str``/``string`` dtype backed by python storage, collapsing distinct strings that are identical up to an embedded NUL byte, e.g. ``""`` and ``"\x00"``, into a single value (:issue:`34551`)
-- Bug in string methods using a regex pattern with ``$`` to indicate the end of the string: when using PyArrow-backed string dtypes, for certain cases this no longer matched before or after an ending newline; now it is consistent again with Python's ``re`` behaviour in all cases (:issue:`63683`)
-- Bug in string methods using a regex pattern with unicode escape sequences (``\u``/``\U``/``\N{}``) with PyArrow-backed string dtypes failing, now working again as in pandas 2.x (:issue:`63901`)
 
 Interval
 ^^^^^^^^
@@ -1223,7 +1248,6 @@ I/O
 
 Period
 ^^^^^^
-- Bug in :class:`PeriodIndex` and :func:`array` with a period ``dtype`` raising when given a list of nanosecond-unit ``np.datetime64`` values, and :class:`PeriodIndex` raising ``AttributeError`` instead of ``ValueError`` for ``datetime64`` data without a ``freq`` (:issue:`70139`)
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :class:`Period` subtraction raising ``TypeError`` instead of returning an empty result when either operand was a length-zero :class:`PeriodIndex` or ``period``-dtype :class:`Series` (:issue:`40624`)
 - Bug in :class:`Period`, :class:`PeriodIndex` and :meth:`DatetimeIndex.to_period` silently returning the 1970 epoch for dates the frequency cannot represent, e.g. ``Period("2300-01-01", freq="ns")``; these now raise ``OutOfBoundsDatetime`` (:issue:`66248`)
@@ -1378,7 +1402,6 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - :func:`api.extensions.register_extension_dtype` now raises an informative ``TypeError`` at registration when the :class:`~pandas.api.extensions.ExtensionDtype` subclass does not define a string ``name`` attribute, instead of a bare ``AssertionError`` when the dtype is later used (:issue:`46093`)
-- Bug in :meth:`.ArrowExtensionArray.factorize` ignoring ``use_na_sentinel=True`` for dictionary-encoded PyArrow data that stores nulls as dictionary values, keeping the null in the returned ``uniques`` or raising ``ArrowInvalid`` for chunked data (:issue:`66490`)
 - Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` not propagating ``pd.NA`` on numpy-nullable columns (``boolean``, ``Int*``, ``UInt*``, ``Float*``); ``axis=0`` raised ``ValueError`` and ``axis=1`` returned a concrete ``True``/``False`` (:issue:`65710`)
 - Bug in arithmetic, comparison, and logical operations between PyArrow-backed or :class:`StringDtype` data and a two-dimensional operand raising an assortment of internal or misleading errors, or silently returning a wrong result; these now raise ``NotImplementedError`` (:issue:`62682`)
 - Bug in comparisons between PyArrow-backed data and a differently-sized array or list raising ``pyarrow.ArrowInvalid`` instead of reporting the length mismatch (:issue:`62682`)
@@ -1388,7 +1411,6 @@ ExtensionArray
 - Bug in :attr:`Series.list` raising error when using negative indices with PyArrow list dtypes (:issue:`63221`)
 - Bug in :func:`read_parquet` and other conversions from PyArrow with ``dtype_backend="pyarrow"`` where accessing an element of a list-of-interval column (or another list of a struct-backed PyArrow extension type) crashed the interpreter (:issue:`69869`)
 - Bug in :meth:`DataFrame.sort_values` raising ``ValueError`` when sorting on a column with PyArrow null dtype (:issue:`54908`)
-- Bug in :meth:`~Series.isin` on PyArrow-backed dtypes raising when ``values`` held a mix of types PyArrow cannot combine (:issue:`70300`)
 - Bug in the ``prod``, ``mean``, ``median``, ``std``, ``var``, ``sem``, ``skew`` and ``kurt`` methods of a :class:`.StringArray` (and ``np.prod``, ``np.mean``, ``np.std`` and ``np.var``, which dispatch to them) not rejecting the string dtype, returning a value or raising an unrelated error instead of the ``TypeError`` the equivalent :class:`Series` reduction raises (:issue:`68389`)
 - Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
@@ -1440,4 +1462,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v3.0.0..v3.1.0|HEAD
+.. contributors:: v3.0.0..v3.1.0
