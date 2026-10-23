@@ -1487,8 +1487,13 @@ class TestDataFrameToCSV:
         dti = pd.date_range("2016-01-01", periods=3, freq="D")
         df_issue = pd.DataFrame({"A": dti})
         df_issue.iloc[-1, -1] += pd.Timedelta(minutes=1)
-        expected_issue = (
-            ",A\n0,2016-01-01 00:00:00\n1,2016-01-02 00:00:00\n2,2016-01-03 00:01:00\n"
+        expected_issue = tm.convert_rows_list_to_csv_str(
+            [
+                ",A",
+                "0,2016-01-01 00:00:00",
+                "1,2016-01-02 00:00:00",
+                "2,2016-01-03 00:01:00",
+            ]
         )
         assert df_issue.to_csv(chunksize=1) == expected_issue
         assert df_issue.to_csv() == expected_issue
