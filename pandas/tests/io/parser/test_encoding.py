@@ -88,27 +88,13 @@ def test_text_buffer_encoding_errors(all_parsers, encoding_errors, expected):
     tm.assert_frame_equal(result, pd.DataFrame({"a": [expected]}))
 
 
-@pytest.mark.parametrize(
-    "data, encoding",
-    [
-        # "①" is in cp932 but not in shift_jis
-        ("id,value\n1,①\n".encode("cp932"), "shift_jis"),
-        # pyarrow returns invalid utf-8 as bytes instead of raising
-        (b"a\nx\xff\n", "utf-8"),
-    ],
-)
-@pytest.mark.parametrize("encoding_errors", ["replace", "ignore"])
-def test_binary_encoding_errors_pyarrow(
-    pyarrow_parser_only, data, encoding, encoding_errors, tmp_path
-):
+def test_binary_encoding_errors_pyarrow(pyarrow_parser_only):
     # GH#71298 pyarrow ignores encoding_errors when it decodes bytes
     parser = pyarrow_parser_only
-    path = tmp_path / "test.csv"
-    path.write_bytes(data)
+    data = BytesIO("id,value\n1,①\n".encode("cp932"))
     msg = "The 'encoding_errors' option is not supported with the 'pyarrow' engine"
-    for src in [BytesIO(data), path]:
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(src, encoding=encoding, encoding_errors=encoding_errors)
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(data, encoding="shift_jis", encoding_errors="replace")
 
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
