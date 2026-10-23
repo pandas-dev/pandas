@@ -655,9 +655,10 @@ cdef _TSObject convert_datetime_to_tsobject(
                 ts = ts.tz_convert(tz)
             else:
                 ts = _localize_pydatetime(ts, tz)
-            obj.tzinfo = tz
-        else:
-            obj.tzinfo = ts.tzinfo
+        # Use the localized/converted tzinfo, not the raw passed one: for
+        #  pytz the raw zone resolves utcoffset to LMT, while the bound
+        #  instance carries the correct offset for this instant.
+        obj.tzinfo = ts.tzinfo
         ts = (<_Timestamp>ts)._as_creso(reso, round_ok=True)
         if obj.tzinfo is not None and not is_utc(obj.tzinfo):
             offset = get_utcoffset(obj.tzinfo, ts)
