@@ -4040,10 +4040,9 @@ class ArrowExtensionArray(
         self,
         pat: str | re.Pattern[str],
         case: bool = True,
-        flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        pat, case, flags = self._unwrap_re_pattern(pat, case)
 
         if flags:
             compiled = self._compile_re_fallback(pat, case, flags)
@@ -4051,7 +4050,7 @@ class ArrowExtensionArray(
             result = self._apply_re_fallback(func, pa.bool_())
             return self._convert_bool_result(result, na=na, method_name="match")
 
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+        return ArrowStringArrayMixin._str_match(self, pat, case, na)
 
     def _str_fullmatch(
         self,
