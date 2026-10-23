@@ -159,6 +159,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
+    warn_compound_dtype,
 )
 from pandas.core.indexers import (
     disallow_ndim_indexing,
@@ -497,6 +498,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
+            if dtype.kind == "V" and not isinstance(dtype, ExtensionDtype):
+                # match the Series and DataFrame constructors
+                raise NotImplementedError(
+                    "compound dtypes are not implemented in the Index constructor"
+                )
 
         data_dtype = getattr(data, "dtype", None)
 
@@ -528,6 +534,8 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
+            if data.dtype.names is not None:
+                warn_compound_dtype()
             if data.dtype.kind not in "iufcbmM":
                 # GH#11836 we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
