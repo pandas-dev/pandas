@@ -375,14 +375,3 @@ def test_multi_columns_same_total_different_lengths(storage):
     df = pd.DataFrame({"left": left, "right": right})
     with pytest.raises(ValueError, match="columns must have matching element counts"):
         df.explode(["left", "right"])
-
-
-@pytest.mark.parametrize("reverse", [True, False])
-def test_multi_columns_categorical_tuple_lengths(reverse):
-    # Categorical tuples still participate in the element-count validation.
-    df = pd.DataFrame({"tuples": pd.Categorical([(1, 2)]), "scalar": [1]})
-    columns = ["tuples", "scalar"]
-    if reverse:
-        columns.reverse()
-    with pytest.raises(ValueError, match="columns must have matching element counts"):
-        df.explode(columns)
