@@ -350,6 +350,19 @@ class TestTSPlot:
         assert labels == ["Jan\n2015", "Jan\n2016", "Jan\n2017"]
         assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
 
+    def test_daily_mpl_dates_locator_formatter(self):
+        # GH#21860 daily period ordinals and matplotlib date numbers share the
+        #  1970 epoch, so matplotlib.dates tickers label daily data correctly
+        idx = date_range("2018-01-01", periods=4, freq="D")
+        ax = pd.Series(range(4), index=idx).plot()
+        ax.set_xlim(datetime(2018, 1, 1), datetime(2018, 4, 1))
+        ax.xaxis.set_major_locator(mpl.dates.MonthLocator())
+        ax.xaxis.set_major_formatter(mpl.dates.DateFormatter("%b %Y"))
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018"]
+
     def test_bday_set_xlim_with_strings_or_datetimes(self):
         # GH#64244 - After a BDay plot, ax.set_xlim() with string or datetime
         # arguments should convert them to business-day ordinals via

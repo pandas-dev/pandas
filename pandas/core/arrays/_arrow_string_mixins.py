@@ -121,15 +121,18 @@ class ArrowStringArrayMixin:
         - ``\\w``, ``\\d``, ``\\s`` and ``\\b`` (or their negations) on non-ASCII data,
           since RE2 only matches them against ASCII characters while Python's ``re``
           is Unicode-aware
-
+        - At-end-of-string ``$`` assertion, which Python matches at the end or just
+          before a trailing newline, while pyarrow only matches at the end
+          (only falling back if newlines are present)
         """
         str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
         if re.search(_escaped_unicode_char, str_pat) is not None:
             return True
 
         _parser = self._re_parser()
-        unsupported = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
+        unsupported_ops = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
         unicode_sensitive = {
+            # unicode-sensitive categories and assertions
             (_parser.CATEGORY, _parser.CATEGORY_WORD),
             (_parser.CATEGORY, _parser.CATEGORY_NOT_WORD),
             (_parser.CATEGORY, _parser.CATEGORY_DIGIT),
@@ -139,18 +142,31 @@ class ArrowStringArrayMixin:
             (_parser.AT, _parser.AT_BOUNDARY),
             (_parser.AT, _parser.AT_NON_BOUNDARY),
         }
+        newline_sensitive = {
+            # newline-sensitive behaviour of $
+            (_parser.AT, _parser.AT_END),
+        }
 
         nodes = self._regex_nodes(str_pat)
-        if any(op_code in unsupported for op_code, _ in nodes):
+        if any(op_code in unsupported_ops for op_code, _ in nodes):
             return True
-        if not any(
+        if any(
             (op_code, argument) in unicode_sensitive
             for op_code, argument in nodes
             if op_code in (_parser.CATEGORY, _parser.AT)
         ):
-            return False
-        # all-ASCII data keeps the faster pyarrow path
-        return self._has_non_ascii()
+            # all-ASCII data keeps the faster pyarrow path
+            if self._has_non_ascii():
+                return True
+        if any(
+            (op_code, argument) in newline_sensitive
+            for op_code, argument in nodes
+            if op_code == _parser.AT
+        ):
+            if pc.any(pc.match_substring(self._pa_array, "\n"), min_count=0).as_py():
+                return True
+
+        return False
 
     def _has_non_ascii(self) -> bool:
         # min_count=0 so that an empty or all-null array reports False
