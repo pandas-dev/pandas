@@ -16,13 +16,13 @@ available in any language**. It is already well on its way toward this goal.
 
 pandas is well suited for many different kinds of data:
 
-  - Tabular data with heterogeneously-typed columns, as in an SQL table or
-    Excel spreadsheet
-  - Ordered and unordered (not necessarily fixed-frequency) time series data.
-  - Arbitrary matrix data (homogeneously typed or heterogeneous) with row and
-    column labels
-  - Any other form of observational / statistical data sets. The data
-    need not be labeled at all to be placed into a pandas data structure
+- Tabular data with heterogeneously-typed columns, as in an SQL table or
+  Excel spreadsheet
+- Ordered and unordered (not necessarily fixed-frequency) time series data.
+- Arbitrary matrix data (homogeneously typed or heterogeneous) with row and
+  column labels
+- Any other form of observational / statistical data sets. The data
+  need not be labeled at all to be placed into a pandas data structure
 
 The two primary data structures of pandas, :class:`Series` (1-dimensional)
 and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
@@ -34,30 +34,30 @@ computing environment with many other 3rd party libraries.
 
 Here are just a few of the things that pandas does well:
 
-  - Easy handling of **missing data** (represented as NaN) in floating point as
-    well as non-floating point data
-  - Size mutability: columns can be **inserted and deleted** from DataFrame and
-    higher dimensional objects
-  - Automatic and explicit **data alignment**: objects can be explicitly
-    aligned to a set of labels, or the user can simply ignore the labels and
-    let ``Series``, ``DataFrame``, etc. automatically align the data for you in
-    computations
-  - Powerful, flexible **group by** functionality to perform
-    split-apply-combine operations on data sets, for both aggregating and
-    transforming data
-  - Make it **easy to convert** ragged, differently-indexed data in other
-    Python and NumPy data structures into DataFrame objects
-  - Intelligent label-based **slicing**, **fancy indexing**, and **subsetting**
-    of large data sets
-  - Intuitive **merging** and **joining** data sets
-  - Flexible **reshaping** and pivoting of data sets
-  - **Hierarchical** labeling of axes (possible to have multiple labels per
-    tick)
-  - Robust IO tools for loading data from **flat files** (CSV and delimited),
-    Excel files, databases, and saving / loading data from the ultrafast **HDF5
-    format**
-  - **Time series**-specific functionality: date range generation and frequency
-    conversion, moving window statistics, date shifting, and lagging.
+- Easy handling of **missing data** (represented as NaN) in floating point as
+  well as non-floating point data
+- Size mutability: columns can be **inserted and deleted** from DataFrame and
+  higher dimensional objects
+- Automatic and explicit **data alignment**: objects can be explicitly
+  aligned to a set of labels, or the user can simply ignore the labels and
+  let ``Series``, ``DataFrame``, etc. automatically align the data for you in
+  computations
+- Powerful, flexible **group by** functionality to perform
+  split-apply-combine operations on data sets, for both aggregating and
+  transforming data
+- Make it **easy to convert** ragged, differently-indexed data in other
+  Python and NumPy data structures into DataFrame objects
+- Intelligent label-based **slicing**, **fancy indexing**, and **subsetting**
+  of large data sets
+- Intuitive **merging** and **joining** data sets
+- Flexible **reshaping** and pivoting of data sets
+- **Hierarchical** labeling of axes (possible to have multiple labels per
+  tick)
+- Robust IO tools for loading data from **flat files** (CSV and delimited),
+  Excel files, databases, and saving / loading data from the ultrafast **HDF5
+  format**
+- **Time series**-specific functionality: date range generation and frequency
+  conversion, moving window statistics, date shifting, and lagging.
 
 Many of these principles are here to address the shortcomings frequently
 experienced using other languages / scientific research environments. For data
@@ -68,17 +68,17 @@ is the ideal tool for all of these tasks.
 
 Some other notes
 
- - pandas is **fast**. Many of the low-level algorithmic bits have been
-   extensively tweaked in `Cython <https://cython.org>`__ code. However, as with
-   anything else generalization usually sacrifices performance. So if you focus
-   on one feature for your application you may be able to create a faster
-   specialized tool.
+- pandas is **fast**. Many of the low-level algorithmic bits have been
+  extensively tweaked in `Cython <https://cython.org>`__ code. However, as with
+  anything else generalization usually sacrifices performance. So if you focus
+  on one feature for your application you may be able to create a faster
+  specialized tool.
 
- - pandas is a dependency of `statsmodels
-   <https://www.statsmodels.org/>`__, making it an important part of the
-   statistical computing ecosystem in Python.
+- pandas is a dependency of `statsmodels
+  <https://www.statsmodels.org/>`__, making it an important part of the
+  statistical computing ecosystem in Python.
 
- - pandas has been used extensively in production in financial applications.
+- pandas has been used extensively in production in financial applications.
 
 Data structures
 ---------------
@@ -138,8 +138,8 @@ The first stop for pandas issues and ideas is the `GitHub Issue Tracker
 pandas community experts can answer through `Stack Overflow
 <https://stackoverflow.com/questions/tagged/pandas>`__.
 
-Community
----------
+Community and project
+---------------------
 
 pandas is actively supported today by a community of like-minded individuals around
 the world who contribute their valuable time and energy to help make open source
@@ -147,28 +147,12 @@ pandas possible. Thanks to `all of our contributors <https://github.com/pandas-d
 
 If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`.
 
-pandas is a `NumFOCUS <https://numfocus.org/sponsored-projects>`__ sponsored project.
-This will help ensure the success of the development of pandas as a world-class open-source
-project and makes it possible to `donate <https://opencollective.com/pandas>`__ to the project.
+Information about the pandas project itself can be found on the `about page <https://pandas.pydata.org/about/>`__:
 
-Project governance
-------------------
-
-The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md>`__.
-The documents clarify how decisions are made and how the various elements of our community interact, including the relationship between open source collaborative development and work that may be funded by for-profit or non-profit entities.
-
-Wes McKinney is the Benevolent Dictator for Life (BDFL).
-
-Development team
------------------
-
-The list of the Core Team members and more detailed information can be found on the `pandas website <https://pandas.pydata.org/about/team.html>`__.
-
-
-Institutional partners
-----------------------
-
-The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about/sponsors.html>`__.
+- `Project governance <https://pandas.pydata.org/about/governance.html>`__
+- `Team <https://pandas.pydata.org/about/team.html>`__
+- `Sponsors and institutional partners <https://pandas.pydata.org/about/sponsors.html>`__
+- `Ways to support pandas <https://pandas.pydata.org/contribute.html>`__, including `donations <https://opencollective.com/pandas>`__
 
 License
 -------

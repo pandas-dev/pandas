@@ -63,6 +63,16 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default="17:00",
     ),
+    "weekday": inspect.Parameter(
+        "weekday",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "method": inspect.Parameter(
+        "method",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=3,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -94,6 +104,16 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "month",
     ),
+    pd.tseries.offsets.QuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.QuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
     pd.tseries.offsets.HalfYearEnd: (
         "n",
         "normalize",
@@ -114,6 +134,16 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "startingMonth",
     ),
+    pd.tseries.offsets.BQuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.BQuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
     pd.tseries.offsets.BusinessHour: (
         "n",
         "normalize",
@@ -130,6 +160,14 @@ _OFFSET_SIGNATURES = {
         "start",
         "end",
         "offset",
+    ),
+    pd.tseries.offsets.MonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.MonthBegin: (
+        "n",
+        "normalize",
     ),
     pd.tseries.offsets.Day: (
         "n",
@@ -158,6 +196,45 @@ _OFFSET_SIGNATURES = {
     pd.tseries.offsets.Nano: (
         "n",
         "normalize",
+    ),
+    pd.tseries.offsets.BusinessMonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.BusinessMonthBegin: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthEnd: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthBegin: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.YearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.Week: (
+        "n",
+        "normalize",
+        "weekday",
+    ),
+    pd.tseries.offsets.Easter: (
+        "n",
+        "normalize",
+        "method",
     ),
 }
 

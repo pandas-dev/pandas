@@ -303,16 +303,16 @@ class Styler(StylerRenderer):
 
         The following should be noted:
 
-          - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
-            inherited from the original Styler and not ``other``.
-          - hidden columns and hidden index levels will be inherited from the
-            original Styler
-          - ``css`` will be inherited from the original Styler, and the value of
-            keys ``data``, ``row_heading`` and ``row`` will be prepended with
-            ``foot0_``. If more concats are chained, their styles will be prepended
-            with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
-            another concatenated style, the second style will be prepended with
-            ``foot{parent}_foot{child}_``.
+        - ``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all
+          inherited from the original Styler and not ``other``.
+        - hidden columns and hidden index levels will be inherited from the
+          original Styler
+        - ``css`` will be inherited from the original Styler, and the value of
+          keys ``data``, ``row_heading`` and ``row`` will be prepended with
+          ``foot0_``. If more concats are chained, their styles will be prepended
+          with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
+          another concatenated style, the second style will be prepended with
+          ``foot{parent}_foot{child}_``.
 
         A common use case is to concatenate user defined functions with
         ``DataFrame.agg`` or with described statistics via ``DataFrame.describe``.
@@ -790,16 +790,16 @@ class Styler(StylerRenderer):
             Use to control adding \\cline commands for the index labels separation.
             Possible values are:
 
-              - `None`: no cline commands are added (default).
-              - `"all;data"`: a cline is added for every index value extending the
-                width of the table, including data entries.
-              - `"all;index"`: as above with lines extending only the width of the
-                index entries.
-              - `"skip-last;data"`: a cline is added for each index value except the
-                last level (which is never sparsified), extending the width of the
-                table.
-              - `"skip-last;index"`: as above with lines extending only the width of the
-                index entries.
+            - `None`: no cline commands are added (default).
+            - `"all;data"`: a cline is added for every index value extending the
+              width of the table, including data entries.
+            - `"all;index"`: as above with lines extending only the width of the
+              index entries.
+            - `"skip-last;data"`: a cline is added for each index value except the
+              last level (which is never sparsified), extending the width of the
+              table.
+            - `"skip-last;index"`: as above with lines extending only the width of the
+              index entries.
 
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
@@ -2405,20 +2405,20 @@ class Styler(StylerRenderer):
 
         The following items are exported since they are not generally data dependent:
 
-          - Styling functions added by the ``apply`` and ``map``
-          - Whether axes and names are hidden from the display, if unambiguous.
-          - Table attributes
-          - Table styles
+        - Styling functions added by the ``apply`` and ``map``
+        - Whether axes and names are hidden from the display, if unambiguous.
+        - Table attributes
+        - Table styles
 
         The following attributes are considered data dependent and therefore not
         exported:
 
-          - Caption
-          - UUID
-          - Tooltips
-          - Any hidden rows or columns identified by Index labels
-          - Any formatting applied using ``Styler.format``
-          - Any CSS classes added using ``Styler.set_td_classes``
+        - Caption
+        - UUID
+        - Tooltips
+        - Any hidden rows or columns identified by Index labels
+        - Any formatting applied using ``Styler.format``
+        - Any CSS classes added using ``Styler.set_td_classes``
 
         Examples
         --------
@@ -2649,8 +2649,8 @@ class Styler(StylerRenderer):
         This method uses the CSS 'position: sticky;' property to display. It is
         designed to work with visible axes, therefore both:
 
-          - `styler.set_sticky(axis="index").hide(axis="index")`
-          - `styler.set_sticky(axis="columns").hide(axis="columns")`
+        - `styler.set_sticky(axis="index").hide(axis="index")`
+        - `styler.set_sticky(axis="columns").hide(axis="columns")`
 
         may produce strange behaviour due to CSS controls with missing elements.
 

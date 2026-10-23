@@ -697,6 +697,13 @@ class TestTableOrient:
         result = [x["name"] for x in build_table_schema(df)["fields"]]
         assert result == ["level_0", "level_1", 0, 1, 2, 3]
 
+    @pytest.mark.parametrize("name", [0, False, ""])
+    def test_falsy_series_name(self, name):
+        # GH#19129 only an unnamed Series gets the "values" placeholder
+        ser = pd.Series([1.0, 2.0], name=name)
+        result = json.loads(ser.to_json(orient="table"))
+        assert result["schema"]["fields"][1]["name"] == name
+
     def test_mi_non_string_level_names(self):
         # GH#19129
         mi = pd.MultiIndex.from_tuples([(1, 2), (3, 4)], names=[0, "y"])

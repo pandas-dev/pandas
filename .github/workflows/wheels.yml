@@ -22,6 +22,10 @@ on:
     paths-ignore:
       - "doc/**"
       - "web/**"
+      # code-scanning workflows; checked by zizmor in security.yml
+      - ".github/workflows/codeql.yml"
+      - ".github/workflows/scorecard.yml"
+      - ".github/workflows/security.yml"
   workflow_dispatch:
 
 defaults:
@@ -67,7 +71,7 @@ jobs:
       - name: Check sdist
         run: ls -l --human-readable ./dist
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sdist
           path: ./dist/*
@@ -103,7 +107,7 @@ jobs:
 
     steps:
       - name: Download sdist
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: sdist
           path: ./dist
@@ -112,7 +116,7 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@e090b81e30c4d855ea63bf4b6e59204c09a101ae # v4.2.1
+        uses: pypa/cibuildwheel@b3395e271a35f73dad77f21802abe9b986dfe299 # v4.3.1
         with:
           package-dir: ./dist/${{ env.sdist_name }}
           only: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
@@ -128,7 +132,7 @@ jobs:
       - name: Validate wheel RECORD
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
@@ -150,7 +154,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist
           merge-multiple: true
@@ -162,11 +166,8 @@ jobs:
           anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
   stubs_tests:
-    # run the pandas-stubs tests (which error on warnings) against the nightly wheel;
-    # on failure, open or update a single issue here. See GH#54095.
+    # GH#54095
     name: pandas-stubs tests against pandas nightly
-    # !cancelled(): an unrelated failed build_wheels leg would otherwise skip this job.
-    # Manual runs are allowed on any branch of a fork, for testing this job.
     if: >
       !cancelled() &&
       ((github.event_name == 'schedule' && github.repository == 'pandas-dev/pandas') ||
@@ -177,10 +178,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      issues: write # open/update the failure issue
-    env:
-      ISSUE_TITLE: "CI: pandas-stubs tests fail against pandas nightly"
-      STUBS_TEAM: "@pandas-dev/pandas-stubs-team"
+      issues: write # open, comment on, and close the tracking issue
     steps:
       - name: Checkout pandas-stubs
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -189,7 +187,7 @@ jobs:
           persist-credentials: false
 
       - name: Download pandas wheel
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: cp314-manylinux_x86_64
           path: ${{ runner.temp }}/pandas-wheel
@@ -203,7 +201,6 @@ jobs:
         run: |
           python -m pip install poetry
           poetry install --no-root
-          poetry run python -m pip install pytest-reportlog
 
       - name: Install pandas wheel
         env:
@@ -214,32 +211,57 @@ jobs:
 
       - name: Run pandas-stubs tests
         id: tests
-        run: poetry run pytest --report-log=pytest-log.jsonl
+        run: poetry run pytest
 
-      - name: Open or update issue on failure
-        id: issue
-        if: failure() && steps.tests.outcome == 'failure'
-        uses: scientific-python/issue-from-pytest-log-action@35b4e0a9e06f8e7e261778289cf4b968b722662d # v1.6.2
-        with:
-          log-path: pytest-log.jsonl
-          issue-title: ${{ env.ISSUE_TITLE }}
-          issue-label: "CI,Typing"
-
-      # the action only edits the body of an existing issue, so ping once per issue
-      - name: Ping pandas-stubs team on a new issue
-        if: failure() && steps.issue.outcome == 'success'
+      # Keep one open issue while the tests fail, closed by the next passing run.
+      - name: Report pandas-stubs test failures
+        if: >-
+          !cancelled() &&
+          (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure')
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          number=$(
-            gh api "repos/$GITHUB_REPOSITORY/issues?state=open&creator=github-actions%5Bbot%5D&labels=CI,Typing&per_page=100" \
-              | jq -r --arg title "$ISSUE_TITLE" 'map(select(.title == $title))[0].number'
-          )
-          if ! gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$number/comments" --jq ".[].body" \
-              | grep -F "$STUBS_TEAM" > /dev/null; then
-            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" \
-              --body "$STUBS_TEAM the pandas-stubs tests are failing against pandas nightly."
-          fi
+          FAILED: ${{ steps.tests.outcome == 'failure' }}
+        with:
+          script: |
+            const TITLE = 'CI: pandas-stubs tests fail against pandas nightly';
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const runUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              ...repo, state: 'open', creator: 'github-actions[bot]', per_page: 100,
+            });
+            const issue = openIssues.find(item => !item.pull_request && item.title === TITLE);
+
+            if (process.env.FAILED !== 'true') {
+              if (issue) {
+                await github.rest.issues.createComment({
+                  ...repo, issue_number: issue.number, body: `Passing again as of ${runUrl}`,
+                });
+                await github.rest.issues.update({
+                  ...repo, issue_number: issue.number, state: 'closed', state_reason: 'completed',
+                });
+              }
+              return;
+            }
+
+            if (issue) {
+              await github.rest.issues.createComment({
+                ...repo, issue_number: issue.number, body: `Failing run: ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                ...repo,
+                title: TITLE,
+                labels: ['CI', 'Typing'],
+                body: [
+                  '@pandas-dev/pandas-stubs-team the pandas-stubs tests are failing against pandas nightly.',
+                  'This issue is managed by the `stubs_tests` job in',
+                  '`.github/workflows/wheels.yml` and closes on the next passing run.',
+                  'Closing it by hand while the tests still fail opens a new one on the next failing run.',
+                  '',
+                  `Failing run: ${runUrl}`,
+                ].join('\n'),
+              });
+            }
 
   report_failure:
     # Keep one open issue while nightly builds fail, closed by the next passing night. GH#55903
@@ -322,11 +344,11 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist          # everything lands in ./dist/**
 
-      # TODO: This step can be probably be achieved by actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      # TODO: This step can be probably be achieved by the step above
       # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
@@ -337,7 +359,7 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       - name: Publish to **PyPI** (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: upload
           skip-existing: true
@@ -368,7 +390,7 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download sdist
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: sdist
           path: ./dist
