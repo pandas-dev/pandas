@@ -532,3 +532,55 @@ class TestExpressions:
             arr = np.arange(3, dtype=dtype)
             result = expr._can_use_numexpr(operator.pow, "**", arr, other, "evaluate")
         assert result is expected
+
+    @pytest.mark.parametrize("int_dtype", ["int64", "int32"])
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize(
+        "op",
+        [
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
+            operator.eq,
+            operator.gt,
+        ],
+    )
+    @pytest.mark.parametrize("box", [pd.Index, pd.Series, DataFrame])
+    def test_int_with_float32_matches_numpy(
+        self, int_dtype, reverse, op, box, monkeypatch
+    ):
+        # GH#71272 numexpr computes int with float32 in float32, losing precision
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            left = tm.box_expected(np.array([16777217, 3], dtype=int_dtype), box)
+            right = tm.box_expected(np.array([16777216, 2], dtype="float32"), box)
+            if reverse:
+                left, right = right, left
+            result = op(left, right)
+
+            with pd.option_context("compute.use_numexpr", False):
+                expected = op(left, right)
+
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "left_dtype,right_dtype,expected",
+        [
+            ("int32", "float32", False),
+            ("float32", "int64", False),
+            ("float32", "float32", True),
+            ("int32", "float64", True),
+            ("bool", "float32", True),
+        ],
+    )
+    def test_can_use_numexpr_int_with_float32(
+        self, left_dtype, right_dtype, expected, monkeypatch
+    ):
+        # GH#71272 only int mixed with float32 is kept away from numexpr
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            left = np.ones(3, dtype=left_dtype)
+            right = np.ones(3, dtype=right_dtype)
+            result = expr._can_use_numexpr(operator.add, "+", left, right, "evaluate")
+        assert result is expected
