@@ -4128,6 +4128,10 @@ class ArrowExtensionArray(
             raise NotImplementedError(
                 f"repeat is not implemented when repeats is {type(repeats).__name__}"
             )
+        if repeats < 0:
+            # Python semantics: negative counts produce an empty string, while
+            # pyarrow raises for them
+            repeats = 0
         return self._from_pyarrow_array(pc.binary_repeat(self._pa_array, repeats))
 
     def _str_join(self, sep: str) -> Self:
