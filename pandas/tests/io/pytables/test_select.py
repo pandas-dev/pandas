@@ -189,6 +189,63 @@ def test_select_ne_list_matches_post_read_filter(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {big}"), expected)
 
 
+@pytest.mark.parametrize(
+    "where",
+    [
+        "a > 7 | b in {big}",
+        "b in {big} | a > 7",
+        "a > 7 | index in {big}",
+        "(a > 7 | a < 1) | b in {big}",
+        "(a > 7 & b < 9) | b in {big}",
+        "b in {big} | b == 3",
+        "a > 7 | b != {big}",
+    ],
+)
+def test_select_or_with_large_list_raises(temp_hdfstore, where):
+    # GH#71277 an "in" with more than 31 values is applied as a post-read filter
+    # and the filter is ANDed with the numexpr condition, so an OR mixing the two
+    # silently returned the rows matching both branches instead of either
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.append("df", df, format="table", data_columns=True)
+
+    big = [*range(100, 140), 2]
+    assert len(big) > 31
+    msg = "the terms of an OR"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select("df", where.format(big=big))
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select_as_coordinates("df", where.format(big=big))
+
+
+@pytest.mark.parametrize(
+    "where, mask",
+    [
+        # few enough values for a numexpr condition: the OR is evaluated in the table
+        ("a > 7 | b in {small}", lambda df, v: (df.a > 7) | df.b.isin(v)),
+        ("b in {small} | a > 7", lambda df, v: df.b.isin(v) | (df.a > 7)),
+        ("a > 7 | index in {small}", lambda df, v: (df.a > 7) | df.index.isin(v)),
+        # a large list that is ANDed with the rest is still a valid post-read filter
+        (
+            "(a > 7 | a < 1) & b in {big}",
+            lambda df, v: ((df.a > 7) | (df.a < 1)) & df.b.isin(v),
+        ),
+        ("a > 7 & b in {big}", lambda df, v: (df.a > 7) & df.b.isin(v)),
+    ],
+)
+def test_select_or_and_with_list_matches_in_memory(temp_hdfstore, where, mask):
+    # GH#71277 the valid combinations around the OR with a large list still work
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.append("df", df, format="table", data_columns=True)
+
+    big = [*range(100, 140), 2, 9]
+    small = big[-21:]
+    values = small if "{small}" in where else big
+    where = where.format(small=small, big=big)
+
+    result = temp_hdfstore.select("df", where)
+    tm.assert_frame_equal(result, df[mask(df, values)])
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = pd.DataFrame(

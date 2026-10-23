@@ -275,6 +275,7 @@ I/O
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
 - Bug in :func:`read_sql_query` and :func:`read_sql_table` with a SQLAlchemy connection returning column labels that require ``sqlalchemy`` to unpickle (:issue:`52816`)
 - Bug in :meth:`HDFStore.append` raising ``ValueError: Buffer dtype mismatch`` instead of the "different categories" error when appending a categorical whose categories have a different dtype than the existing ones (:issue:`71128`)
+- Bug in :meth:`HDFStore.select` and :func:`read_hdf` silently returning only the rows matching both sides of an OR (``|``) in ``where`` when one side was an ``in`` or ``==`` with more than 31 values; this now raises ``NotImplementedError`` (:issue:`71277`)
 - Bug in :meth:`Series.to_json` with ``orient="table"`` writing a falsy :class:`Series` name such as ``0``, ``False`` or ``""`` as ``"values"`` (:issue:`19129`)
 - Bug where the pickled bytes (e.g. for ``joblib.hash``) of a :class:`Series`, :class:`DataFrame` or :class:`Index` with datetimelike or extension-dtype data depended on which operations had previously been run on it (:issue:`49170`)
 - Fixed a segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``date_format="iso"`` when datetime conversion raises an exception (:issue:`69461`)

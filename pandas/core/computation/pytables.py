@@ -491,6 +491,53 @@ class UnaryOp(ops.UnaryOp):
         return None
 
 
+def _check_or_branches(node) -> tuple[bool, bool]:
+    """
+    Check that no ``|`` mixes terms that end up in the condition and the filter.
+
+    A term is evaluated either in the table (the numexpr condition) or, when it
+    cannot be (e.g. an ``in`` with more than ``BinOp._max_selectors`` values),
+    after the read (the filter). The two are always combined with an AND, so an OR
+    whose branches are split between them cannot be represented.
+
+    Returns
+    -------
+    tuple[bool, bool]
+        Whether ``node`` contributes to the condition and to the filter.
+    """
+    if is_term(node):
+        return False, False
+    if isinstance(node, UnaryOp):
+        return _check_or_branches(node.operand)
+
+    left, right = node.lhs, node.rhs
+    if is_term(left) and is_term(right):
+        return (
+            node.prune(ConditionBinOp) is not None,
+            node.prune(FilterBinOp) is not None,
+        )
+
+    kinds_left = _check_or_branches(left)
+    kinds_right = _check_or_branches(right)
+    if node.op == "|":
+        # each non-empty branch must be entirely a condition or entirely a filter
+        # and both branches must agree
+        branches = {k for k in (kinds_left, kinds_right) if any(k)}
+        if len(branches) > 1 or any(all(k) for k in branches):
+            raise NotImplementedError(
+                "the terms of an OR (|) must all be applied in the table or all be "
+                "applied as a filter after the read, but at least one of them can "
+                "only be applied as a filter (e.g. an 'in'/'==' with more than "
+                f"{BinOp._max_selectors} values) while another is applied in the "
+                "table. Reduce the number of values, combine the terms with '&' "
+                "instead, or read the data and filter it in pandas."
+            )
+    return (
+        kinds_left[0] or kinds_right[0],
+        kinds_left[1] or kinds_right[1],
+    )
+
+
 class PyTablesExprVisitor(BaseExprVisitor):
     const_type: ClassVar[type[ops.Term]] = Constant
     term_type: ClassVar[type[Term]] = Term
@@ -702,6 +749,9 @@ class PyTablesExpr(expr.Expr):
                 f"cannot process expression [{self.expr}], [{self}] "
                 "is not a valid filter"
             ) from err
+        # GH#71277 the condition and the filter are ANDed after the read, which
+        # is wrong if a term of an OR landed in one and the rest in the other
+        _check_or_branches(self.terms)
 
         return self.condition, self.filter
 
