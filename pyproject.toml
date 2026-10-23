@@ -105,7 +105,7 @@ sql-other = ['SQLAlchemy>=2.0.42', 'adbc-driver-postgresql>=1.7.0', 'adbc-driver
 html = ['beautifulsoup4>=4.13.4', 'html5lib>=1.1', 'lxml>=6.0.0']
 xml = ['lxml>=6.0.0']
 plot = ['matplotlib>=3.10.5']
-output-formatting = ['jinja2>=3.1.6', 'tabulate>=0.9.0']
+output-formatting = ['jinja2>=3.1.6', 'tabulate>=0.10.0']
 clipboard = ['PyQt5>=5.15.11', 'qtpy>=2.4.3']
 compression = ['zstandard>=0.23.0']
 timezone = ['pytz>=2020.1']
@@ -140,7 +140,7 @@ all = ['adbc-driver-postgresql>=1.7.0',
        's3fs>=2025.7.0',
        'SQLAlchemy>=2.0.42',
        'tables>=3.10.2',
-       'tabulate>=0.9.0',
+       'tabulate>=0.10.0',
        'xarray>=2025.7.1',
        'xlrd>=2.0.2',
        'xlsxwriter>=3.2.5',
