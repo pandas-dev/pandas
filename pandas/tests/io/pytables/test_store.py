@@ -561,6 +561,24 @@ def test_remove(temp_hdfstore):
     assert len(store) == 0
 
 
+@pytest.mark.parametrize(
+    "where",
+    [
+        [5, 1, 2],
+        np.array([5, 1, 2]),
+    ],
+)
+def test_remove_with_unsorted_coordinates(temp_hdfstore, where):
+    df = pd.DataFrame({"a": range(10)})
+    temp_hdfstore.append("df", df)
+
+    result = temp_hdfstore.remove("df", where=where)
+
+    assert result == 3
+    expected = df.drop([1, 2, 5])
+    tm.assert_frame_equal(temp_hdfstore["df"], expected)
+
+
 @pytest.mark.parametrize("n_selectors", [3, 100])
 def test_remove_where_many_selectors(temp_hdfstore, n_selectors):
     # GH#17567 removing with a large "in" selector (more than numexpr can
