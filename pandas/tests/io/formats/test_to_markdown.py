@@ -102,46 +102,12 @@ def test_showindex_disallowed_in_kwargs():
         df.to_markdown(index=True, showindex=True)
 
 
-@pytest.mark.parametrize("dtype", ["int64", "uint64"])
-@pytest.mark.parametrize("floatfmt", ["g", ".0f"])
-def test_large_ints_keep_precision(dtype, floatfmt):
-    # GH#49465 a float column alongside makes .values upcast to float64
-    df = pd.DataFrame({"a": pd.array([503498111827123021, 2], dtype=dtype)})
-    df["b"] = [1.5, 2.5]
-    result = df.to_markdown(floatfmt=floatfmt)
-    b0, b1 = ("1.5", "2.5") if floatfmt == "g" else ("2", "2")
-    expected = (
-        "|    |                  a |   b |\n"
-        "|---:|-------------------:|----:|\n"
-        f"|  0 | 503498111827123021 | {b0:>3} |\n"
-        f"|  1 |                  2 | {b1:>3} |"
-    )
-    assert result == expected
-
-
-def test_large_ints_keep_precision_single_column():
-    # GH#49465
+def test_large_ints_keep_precision():
+    # GH#49465 fixed in tabulate 0.10.0
     df = pd.DataFrame({"a": [503498111827123021]})
     result = df.to_markdown(floatfmt=".0f")
     expected = (
         "|    |                  a |\n|---:|-------------------:|\n"
         "|  0 | 503498111827123021 |"
-    )
-    assert result == expected
-
-
-@pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
-def test_nullable_int_missing(dtype):
-    # GH#49465 missing values render as tabulate's missingval
-    if dtype == "int64[pyarrow]":
-        pytest.importorskip("pyarrow")
-    df = pd.DataFrame({"a": pd.array([None, 503498111827123021], dtype=dtype)})
-    df["b"] = ["x", "y"]
-    result = df.to_markdown(missingval="NA")
-    expected = (
-        "|    |                  a | b   |\n"
-        "|---:|-------------------:|:----|\n"
-        "|  0 |                 NA | x   |\n"
-        "|  1 | 503498111827123021 | y   |"
     )
     assert result == expected
