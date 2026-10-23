@@ -1352,6 +1352,53 @@ class TestLocBaseIndependent:
         result = s.loc[np.array(0)]
         assert result == 1
 
+    def test_setitem_zerodim_np_array(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            dtype="Int64",
+        )
+        expected = df.copy()
+        expected.loc[1] = 9
+        df.loc[np.array(1)] = 9
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_zerodim_np_array_tuple(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            dtype="Int64",
+        )
+        expected = df.copy()
+        expected.loc[1, "a"] = 9
+        df.loc[np.array(1), "a"] = 9
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_zerodim_np_array_both_axes(self):
+        # GH#70256
+        df = pd.DataFrame(
+            [[1, 4], [2, 5], [3, 6]],
+            columns=[10, 20],
+            dtype="Int64",
+        )
+        expected = df.copy()
+        expected.loc[1, 10] = 9
+        df.loc[np.array(1), np.array(10)] = 9
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_zerodim_np_array_mixed_dtype(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": ["x", "y", "z"],
+            }
+        )
+        expected = df.copy()
+        expected.loc[1] = [9, "changed"]
+        df.loc[np.array(1)] = [9, "changed"]
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_reverse_assignment(self):
         # GH26939
         data = [1, 2, 3, 4, 5, 6] + [None] * 4

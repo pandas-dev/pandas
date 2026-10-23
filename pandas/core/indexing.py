@@ -993,6 +993,12 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 )
 
         check_dict_or_set_indexers(key)
+        # GH#70256 - Treat zero-dimensional ndarray keys as scalars.
+        if isinstance(key, tuple):
+            key = tuple(item_from_zerodim(k) for k in key)
+        else:
+            key = item_from_zerodim(key)
+
         if isinstance(key, tuple):
             key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
