@@ -30,6 +30,11 @@ if TYPE_CHECKING:
     from pandas._typing import Scalar
 
 
+# Matches a `\uxxxx` (unicode escape sequence) with an odd number of preceding "\"
+# (otherwise the \\u is escaped itself). Also checks for `\U` and `\N{`.
+_escaped_unicode_char = re.compile(r"(?<!\\)(?:\\\\)*\\(?:[uU]|N{)")
+
+
 class ArrowStringArrayMixin:
     _pa_array: pa.ChunkedArray
 
@@ -63,7 +68,7 @@ class ArrowStringArrayMixin:
         return _parser
 
     @staticmethod
-    def _regex_nodes(pat: str | re.Pattern[str]) -> list[tuple[Any, Any]]:
+    def _regex_nodes(pat: str) -> list[tuple[Any, Any]]:
         """
         Parse a regex pattern into a flat list of its (op, arg) nodes.
 
@@ -97,9 +102,8 @@ class ArrowStringArrayMixin:
                 elif op_code in (_parser.ATOMIC_GROUP, _parser.IN):
                     yield from walk(argument)
 
-        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
         try:
-            tokens = _parser.parse(str_pat)
+            tokens = _parser.parse(pat)
         except re.error:
             # Pattern not valid for Python's re (e.g. RE2 syntax like \x{...} or \p)
             # Let the pyarrow backend handle it.
@@ -110,14 +114,25 @@ class ArrowStringArrayMixin:
         """
         Whether a regex operation must use Python's ``re`` instead of pyarrow.
 
-        This is the case for features not supported by RE2 / pyarrow (lookaround
-        assertions and backreferences), and for ``\\w``, ``\\d``, ``\\s`` and
-        ``\\b`` (or their negations) on non-ASCII data, since RE2 only matches
-        them against ASCII characters while Python's ``re`` is Unicode-aware.
+        This is the case for features not supported by RE2 / pyarrow or with
+        different behaviour:
+        - Not supported: lookaround assertions and backreferences, unicode escape
+          sequences like ``\\u``, ``\\U`` and ``\\N{}``
+        - ``\\w``, ``\\d``, ``\\s`` and ``\\b`` (or their negations) on non-ASCII data,
+          since RE2 only matches them against ASCII characters while Python's ``re``
+          is Unicode-aware
+        - At-end-of-string ``$`` assertion, which Python matches at the end or just
+          before a trailing newline, while pyarrow only matches at the end
+          (only falling back if newlines are present)
         """
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        if re.search(_escaped_unicode_char, str_pat) is not None:
+            return True
+
         _parser = self._re_parser()
-        unsupported = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
+        unsupported_ops = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
         unicode_sensitive = {
+            # unicode-sensitive categories and assertions
             (_parser.CATEGORY, _parser.CATEGORY_WORD),
             (_parser.CATEGORY, _parser.CATEGORY_NOT_WORD),
             (_parser.CATEGORY, _parser.CATEGORY_DIGIT),
@@ -127,18 +142,31 @@ class ArrowStringArrayMixin:
             (_parser.AT, _parser.AT_BOUNDARY),
             (_parser.AT, _parser.AT_NON_BOUNDARY),
         }
+        newline_sensitive = {
+            # newline-sensitive behaviour of $
+            (_parser.AT, _parser.AT_END),
+        }
 
-        nodes = self._regex_nodes(pat)
-        if any(op_code in unsupported for op_code, _ in nodes):
+        nodes = self._regex_nodes(str_pat)
+        if any(op_code in unsupported_ops for op_code, _ in nodes):
             return True
-        if not any(
+        if any(
             (op_code, argument) in unicode_sensitive
             for op_code, argument in nodes
             if op_code in (_parser.CATEGORY, _parser.AT)
         ):
-            return False
-        # all-ASCII data keeps the faster pyarrow path
-        return self._has_non_ascii()
+            # all-ASCII data keeps the faster pyarrow path
+            if self._has_non_ascii():
+                return True
+        if any(
+            (op_code, argument) in newline_sensitive
+            for op_code, argument in nodes
+            if op_code == _parser.AT
+        ):
+            if pc.any(pc.match_substring(self._pa_array, "\n"), min_count=0).as_py():
+                return True
+
+        return False
 
     def _has_non_ascii(self) -> bool:
         # min_count=0 so that an empty or all-null array reports False

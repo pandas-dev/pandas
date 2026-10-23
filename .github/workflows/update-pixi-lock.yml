@@ -27,7 +27,7 @@ jobs:
     - name: Install Pixi
       uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
       with:
-        pixi-version: v0.76.2
+        pixi-version: v0.82.1
         log-level: vv
         manifest-path: pixi.toml
         run-install: false
