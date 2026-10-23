@@ -2423,12 +2423,16 @@ class Index(IndexOpsMixin, PandasObject):
         >>> mi.droplevel(["x", "y"])
         Index([5, 6], dtype='int64', name='z')
         """
-        if not isinstance(level, (tuple, list)):
+        if not isinstance(level, (tuple, list)) or self._is_tuple_level_name(level):
             level = [level]
 
         levnums = sorted((self._get_level_number(lev) for lev in level), reverse=True)
 
         return self._drop_level_numbers(levnums)
+
+    @final
+    def _is_tuple_level_name(self, level: IndexLabel) -> bool:
+        return isinstance(level, tuple) and level in self.names
 
     @final
     def _drop_level_numbers(self, levnums: list[int]) -> Index:

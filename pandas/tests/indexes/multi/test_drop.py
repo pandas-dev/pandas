@@ -183,3 +183,32 @@ def test_droplevel_multiindex_one_level():
     result = index.droplevel([])
     expected = pd.Index([2], name="b")
     tm.assert_index_equal(result, expected)
+
+
+def test_droplevel_tuple_level_name():
+    # GH#21120 a tuple that is a level name means one level
+    mi = pd.MultiIndex.from_product(
+        [[0, 1], [2, 3]], names=[("first", "level"), ("second", "level")]
+    )
+    result = mi.droplevel(("first", "level"))
+    expected = mi.droplevel(0)
+    tm.assert_index_equal(result, expected)
+
+
+def test_droplevel_tuple_of_level_names():
+    # GH#21120 a tuple that is not a level name still means several levels
+    mi = pd.MultiIndex.from_product([[0, 1], [2, 3], [4, 5]], names=["x", "y", "z"])
+    result = mi.droplevel(("x", "y"))
+    expected = mi.droplevel([0, 1])
+    tm.assert_index_equal(result, expected)
+
+
+def test_droplevel_tuple_level_name_and_parts_are_names():
+    # GH#21120 if the tuple is a level name and its parts are names too,
+    # the exact name wins
+    mi = pd.MultiIndex.from_product(
+        [[0, 1], [2, 3], [4, 5]], names=["x", "y", ("x", "y")]
+    )
+    result = mi.droplevel(("x", "y"))
+    expected = mi.droplevel(2)
+    tm.assert_index_equal(result, expected)

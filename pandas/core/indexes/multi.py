@@ -3282,7 +3282,7 @@ class MultiIndex(Index):
                     (0, 1)],
                    ), array([0, 1]))
         """
-        if not is_list_like(level):
+        if not is_list_like(level) or self._is_tuple_level_name(level):
             level = [level]
         # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
         # no attribute "__iter__" (not iterable)
@@ -3803,7 +3803,9 @@ class MultiIndex(Index):
         >>> mi.get_loc_level(["b", "e"])
         (1, None)
         """
-        if not isinstance(level, (range, list, tuple)):
+        if not isinstance(level, (range, list, tuple)) or self._is_tuple_level_name(
+            level
+        ):
             level = self._get_level_number(level)
         else:
             level = [self._get_level_number(lev) for lev in level]

@@ -8223,7 +8223,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         new_index = default_index(len(new_obj))
         if level is not None:
-            if not isinstance(level, (tuple, list)):
+            if not isinstance(level, (tuple, list)) or self.index._is_tuple_level_name(
+                level
+            ):
                 level = [level]
             level = [self.index._get_level_number(lev) for lev in level]
             if len(level) < self.index.nlevels:

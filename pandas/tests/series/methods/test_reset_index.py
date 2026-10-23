@@ -247,3 +247,15 @@ def test_reset_index_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         ser.reset_index(drop=True, inplace=True)
     tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize("drop", [True, False])
+def test_reset_index_tuple_level_name(drop):
+    # GH#21120
+    mi = pd.MultiIndex.from_product(
+        [[0, 1], [2, 3]], names=[("first", "level"), ("second", "level")]
+    )
+    ser = pd.Series(range(4), index=mi)
+    result = ser.reset_index(level=("first", "level"), drop=drop)
+    expected = ser.reset_index(level=0, drop=drop)
+    tm.assert_equal(result, expected)
