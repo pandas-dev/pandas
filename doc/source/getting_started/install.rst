@@ -353,7 +353,7 @@ Dependency                                                                      
 
 .. note::
 
-   Depending on operating system, system-level packages may need to installed.
+   Depending on operating system, system-level packages may need to be installed.
    For clipboard to operate on Linux one of the CLI tools ``xclip`` or ``xsel`` must be installed on your system.
 
 

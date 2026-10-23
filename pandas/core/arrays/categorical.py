@@ -317,6 +317,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     remove_unused_categories
     map
     __array__
+    to_dense
 
     Raises
     ------
@@ -1933,13 +1934,46 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Unable to avoid copy while creating an array as requested."
             )
 
-        ret = take_nd(self.categories._values, self._codes)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
         # ndarray.
 
-        # `take_nd` should already make a copy, so don't force again.
-        return np.asarray(ret, dtype=dtype)
+        # `to_dense` already makes a copy, so don't force again.
+        return np.asarray(self.to_dense(), dtype=dtype)
+
+    def to_dense(self) -> ArrayLike:
+        """
+        Return the values as an array with the dtype of the categories.
+
+        Unlike ``np.asarray``, this keeps extension dtypes such as ``Int64``,
+        ``period`` or timezone-aware datetimes. Unlike
+        ``astype(categories.dtype)``, it does not raise when there are missing
+        values and the categories' dtype cannot hold them; the result is then
+        upcast as in :meth:`Series.reindex` (e.g. ``int64`` to ``float64``).
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+            The decoded values.
+
+        See Also
+        --------
+        Categorical.astype : Cast to a specified dtype.
+        Categorical.__array__ : Convert to a NumPy array.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(pd.array([1, 2, None], dtype="Int64"))
+        >>> cat.to_dense()
+        <IntegerArray>
+        [1, 2, <NA>]
+        Length: 3, dtype: Int64
+
+        >>> cat = pd.Categorical([1, 2, None])
+        >>> cat.to_dense()
+        array([ 1.,  2., nan])
+        """
+        return take_nd(self.categories._values, self._codes)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
@@ -3079,6 +3113,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         "set_categories",
         "as_ordered",
         "as_unordered",
+        "to_dense",
     ],
     typ="method",
 )
@@ -3252,7 +3287,8 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         method = getattr(self._parent, name)
         res = method(*args, **kwargs)
         if res is not None:
-            return Series(res, index=self._index, name=self._name)
+            # dtype keeps to_dense's object result from being inferred as str
+            return Series(res, index=self._index, name=self._name, dtype=res.dtype)
 
 
 # utility routines

@@ -501,21 +501,20 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         categories = self.categories
         ordered = self.ordered
 
+        if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
+            # TODO: hash_array doesn't handle mixed types. It casts
+            # everything to a str first, which means we treat
+            # {'1', '2'} the same as {'1', 2}
+            # find a better solution
+            if ordered:
+                return hash((tuple(categories), True))
+            # unordered: must not depend on category order, GH#51543
+            return hash(frozenset(categories))
+
         if len(categories) and isinstance(categories[0], tuple):
-            # assumes if any individual category is a tuple, then all our. ATM
-            # I don't really want to support just some of the categories being
-            # tuples.
             cat_list = list(categories)  # breaks if an np.array of categories
             cat_array = hash_tuples(cat_list)
         else:
-            if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
-                # TODO: hash_array doesn't handle mixed types. It casts
-                # everything to a str first, which means we treat
-                # {'1', '2'} the same as {'1', 2}
-                # find a better solution
-                hashed = hash((tuple(categories), ordered))
-                return hashed
-
             cat_array = hash_array(categories._values, categorize=False)
         if ordered:
             cat_array = np.vstack(

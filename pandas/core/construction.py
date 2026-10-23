@@ -13,6 +13,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -24,7 +25,9 @@ from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -206,8 +209,8 @@ def array(
 
     Finally, Pandas has arrays that mostly overlap with NumPy
 
-      * :class:`arrays.DatetimeArray`
-      * :class:`arrays.TimedeltaArray`
+    * :class:`arrays.DatetimeArray`
+    * :class:`arrays.TimedeltaArray`
 
     When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
     passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``
@@ -362,6 +365,21 @@ def array(
     # this returns None for not-found dtypes.
     if dtype is not None:
         dtype = pandas_dtype(dtype)
+
+    if isinstance(data, np.ndarray) and data.dtype.names is not None:
+        warn_compound_dtype()
+    elif (
+        isinstance(dtype, np.dtype)
+        and dtype.kind == "V"
+        and getattr(data, "dtype", None) != dtype
+    ):
+        # GH#49388 the Series and DataFrame constructors already reject this dtype
+        warnings.warn(
+            "Passing a compound (structured or void) dtype to pd.array is "
+            "deprecated and will raise in a future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     if isinstance(data, ExtensionArray) and (dtype is None or data.dtype == dtype):
         # e.g. TimedeltaArray[s], avoid casting to NumpyExtensionArray
@@ -562,10 +580,29 @@ def ensure_wrapped_if_datetimelike(arr):
     return arr
 
 
+def warn_compound_dtype() -> None:
+    """
+    Deprecate holding an ndarray with a compound (structured) dtype, GH#49388.
+    """
+    warnings.warn(
+        "Constructing a pandas object from an ndarray with a compound "
+        "(structured) dtype is deprecated and will raise in a future version. "
+        "Use pd.DataFrame(arr) for one column per field, or arr.astype(object) "
+        "for tuples.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
 def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     Convert numpy MaskedArray to a plain ndarray with the masked entries filled.
     """
+    if data.dtype.names is not None:
+        # GH#49388
+        raise ValueError(
+            "Cannot construct a pandas object from a masked array with compound dtype."
+        )
     mask = ma.getmaskarray(data)
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
@@ -614,6 +651,9 @@ def sanitize_array(
 
     # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
+
+    if isinstance(data, np.ndarray) and data.dtype.names is not None:
+        warn_compound_dtype()
 
     if isinstance(data, np.ndarray) and data.ndim == 0:
         if dtype is None:

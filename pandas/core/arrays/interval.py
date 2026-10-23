@@ -217,7 +217,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ) -> Self:
-        data = extract_array(data, extract_numpy=True)
+        data = extract_array(data, extract_numpy=True, extract_range=True)
 
         if isinstance(data, cls):
             left: IntervalSide = data._left
@@ -235,6 +235,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # might need to convert empty or purely na data
             data = _maybe_convert_platform_interval(data)
+            if isinstance(data, ExtensionArray):
+                # GH#68343 non-interval EA, e.g. from astype
+                data = np.asarray(data)
             left, right, infer_closed = intervals_to_interval_bounds(
                 data, validate_closed=closed is None
             )
@@ -677,6 +680,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def __len__(self) -> int:
         return len(self._left)
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170. Keep the cython reconstructor so these load in older pandas.
+        reduced = super().__reduce__()
+        attrs = {key: val for key, val in self.__dict__.items() if key != "_cache"}
+        return reduced[0], reduced[1], (attrs,)
 
     @overload
     def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...

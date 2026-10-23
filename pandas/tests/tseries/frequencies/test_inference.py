@@ -109,6 +109,17 @@ def test_infer_freq_quarter_start(offset_prefix, month):
         assert inferred in (f"BQS-{expected_month}", f"QS-{expected_month}")
 
 
+def test_infer_freq_multi_quarter_start():
+    # GH#63791 the anchor is the first-calendar-quarter month whether the
+    #  series starts in January or July
+    bdates = pd.date_range("2015-12-31", periods=6, freq="6BME") + offsets.BDay(1)
+    assert frequencies.infer_freq(bdates) == "2BQS-JAN"
+
+    for start in ["2016-01-01", "2016-07-01"]:
+        dates = pd.DatetimeIndex(pd.date_range(start, periods=6, freq="6MS").values)
+        assert frequencies.infer_freq(dates) == "2QS-JAN"
+
+
 def test_raise_if_period_index():
     index = pd.period_range(start="1/1/1990", periods=20, freq="M")
     msg = "Check the `freq` attribute instead of using infer_freq"

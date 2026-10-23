@@ -386,8 +386,8 @@ def test_open_file(all_parsers, temp_file):
 
     msg = "Could not determine delimiter"
     err = csv.Error
-    if parser.engine in ("c", "pyarrow"):
-        msg = f"the '{parser.engine}' engine does not support sep=None"
+    if parser.engine == "pyarrow":
+        msg = "the 'pyarrow' engine does not support sep=None"
         err = ValueError
 
     file = Path(temp_file)

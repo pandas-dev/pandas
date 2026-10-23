@@ -296,8 +296,7 @@ If adding to ``pandas-core``, there are two additional steps:
 3. Add the contributor to the pandas Google group.
 4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/web/pandas/config.yml``.
 
-The current list of core-team members is at
-https://github.com/pandas-dev/pandas/blob/main/web/pandas/config.yml
+The current list of core-team members is on the `team page <https://pandas.pydata.org/about/team.html>`__.
 
 
 .. _maintaining.merging:
@@ -506,5 +505,5 @@ Post-Release
 7. Update this release instructions to fix anything incorrect and to update about any
    change since the last release.
 
-.. _governance documents: https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md
+.. _governance documents: https://pandas.pydata.org/about/governance.html
 .. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization
