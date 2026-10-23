@@ -237,6 +237,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :class:`Styler` border shorthand CSS resolution where color names containing unit substrings (e.g. ``"indigo"``, ``"aqua"``) were misclassified as border widths, losing the color and width when exporting to Excel (:issue:`71305`)
 - Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
 - Bug in :func:`read_csv` silently misparsing non-ASCII ``thousands`` and ``decimal`` markers with the C engine; these now fall back to the Python engine with a :class:`errors.ParserWarning`, or raise ``ValueError`` if ``engine="c"`` is explicitly specified (:issue:`71158`)
 - Bug in :func:`read_csv` where a ``dtype`` given for a ``parse_dates`` column undid the date parsing, returning strings, objects, integers or categories instead of datetimes (:issue:`57512`)
