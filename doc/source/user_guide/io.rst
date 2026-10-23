@@ -87,12 +87,13 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
-  that are not specified will be skipped (e.g. 2 in this example is
-  skipped). The levels follow the order of the list, so ``[1,0]`` puts
-  row 1 in level 0. Note that this parameter ignores commented lines
-  and empty lines if ``skip_blank_lines=True``, so header=0 denotes the
-  first line of data rather than the first line of the file.
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Rows above
+  ``min(header)``, and unlisted rows in between are skipped
+  (e.g. ``[1,2,4]`` skips rows 0 and 3). The levels follow the order
+  of the list, so ``[1,0]`` puts row 1 in level 0. Note that this
+  parameter ignores commented lines and empty lines if
+  ``skip_blank_lines=True``, so header=0 denotes the first line of
+  data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
