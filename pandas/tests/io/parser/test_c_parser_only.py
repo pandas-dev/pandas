@@ -1981,6 +1981,23 @@ def test_sniff_delimiter_lone_surrogate(c_parser_only):
         )
 
 
+@pytest.mark.parametrize(
+    "data, kwargs, last",
+    [
+        ("x,y\r1,2\r\r,b\r", {}, "b"),
+        ("x,y\r1,2\r\r, b\r", {}, " b"),
+        ("x,y\r1,2\r# note\r,b\r", {"comment": "#"}, "b"),
+        ("x,y\r1,2\r9,9\r,b\r", {"skiprows": [2]}, "b"),
+    ],
+)
+def test_bare_cr_then_leading_delimiter(c_parser_only, data, kwargs, last):
+    # GH#71409 a line starting with the delimiter after a skipped line ending
+    # in a bare CR lost its empty first field
+    result = c_parser_only.read_csv(StringIO(data), **kwargs)
+    expected = pd.DataFrame({"x": [1.0, np.nan], "y": ["2", last]})
+    tm.assert_frame_equal(result, expected)
+
+
 @td.skip_if_32bit
 @pytest.mark.slow
 def test_skiprows_past_int32_lines():
