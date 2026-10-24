@@ -367,6 +367,7 @@ Other
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` with ``engine="numexpr"`` raising ``AttributeError`` for some comparisons and ``in``/``not in`` checks whose operand is a math function or unary operator, e.g. ``abs(a) in [1, 2]`` (:issue:`31848`)
 - Bug in calling a generalized ufunc on a :class:`Series` raising ``AttributeError`` when it reduced ``object`` data to a single object pandas does not recognize as a scalar, e.g. ``shapely.geometrycollections`` returning a geometry (:issue:`71109`)
 - Bug in :func:`eval`, :meth:`DataFrame.eval`, and :meth:`DataFrame.query` raising on some ``datetime64`` and ``timedelta64`` operations, e.g. ``df.query("time > @now - @delta")``, and returning ``float32`` for a ``float32`` column times a ``np.timedelta64`` (:issue:`30729`, :issue:`52559`)
+- Bug in :meth:`DataFrame.eval` and :func:`eval` where assigning to a backtick-quoted name that is not a valid Python identifier, e.g. ``df.eval("`a-b` = a + b")``, created a column labeled ``BACKTICK_QUOTED_STRING_a_MINUS_b`` instead of ``"a-b"`` (:issue:`47699`)
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
 
