@@ -1175,8 +1175,49 @@ def test_apply_dropna_with_indexed_same(dropna):
         index=list("xxyxz"),
     )
     result = df.groupby("group", dropna=dropna, group_keys=False).apply(lambda x: x)
-    expected = df.dropna()[["col"]] if dropna else df[["col"]].iloc[[0, 3, 1, 2, 4]]
+    # GH#57906 - rows are in the order of the input, also with a duplicated index
+    expected = df.dropna()[["col"]] if dropna else df[["col"]]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("frame", [True, False])
+def test_apply_group_keys_false_duplicate_index_order(sort, dropna, frame):
+    # GH#57906
+    df = pd.DataFrame(
+        {"key": [2, 1, np.nan, 2, 1, 1], "value": [10, 20, 30, 40, 50, 60]},
+        index=list("ababaa"),
+    )
+    gb = df.groupby("key", sort=sort, dropna=dropna, group_keys=False)
+    if frame:
+        result = gb.apply(lambda x: x + 1)
+        expected = df[["value"]] + 1
+    else:
+        result = gb["value"].apply(lambda x: x + 1)
+        expected = df["value"] + 1
+    if dropna:
+        expected = expected[df["key"].notna()]
+    tm.assert_equal(result, expected)
+
+
+def test_apply_group_keys_false_duplicate_na_index_order(sort, dropna):
+    # GH#57906
+    df = pd.DataFrame(
+        [
+            ["k0", 13, "e"],
+            ["k1", 14, "d"],
+            ["k0", 15, "c"],
+            ["k0", 16, "b"],
+            [None, 17, "a"],
+        ],
+        index=pd.Index(["i1", None, "i0", "i2", None], name="index"),
+        columns=pd.Index(["string_col_1", "int_col", "string_col_2"], name="x"),
+    )
+    gb = df.groupby("index", sort=sort, dropna=dropna, group_keys=False)
+    result = gb["int_col"].apply(lambda v: v)
+    expected = df["int_col"]
+    if dropna:
+        expected = expected[df.index.notna()]
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
