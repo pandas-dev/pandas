@@ -779,9 +779,7 @@ def test_numpy_datetime_like_to_string(data, dtype, expected_data):
         (["2020-01", None], "period[M]"),
         ([1, 2], "object"),
         pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        pytest.param(
-            ["a", None], pd.StringDtype("pyarrow"), marks=td.skip_if_no("pyarrow")
-        ),
+        pytest.param(["a", None], "string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ],
 )
 def test_concat_same_type_axis_keyword(data, dtype):
