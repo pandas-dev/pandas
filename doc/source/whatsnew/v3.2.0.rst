@@ -145,7 +145,6 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-- Bug in :func:`tseries.frequencies.to_offset`, :meth:`Timestamp.round`, :meth:`Timestamp.floor`, :meth:`Timestamp.ceil` and other methods taking a ``freq`` raising a ``TypeError`` with a misleading "expected str" message for an invalid non-string ``freq`` such as an integer or ``np.timedelta64``; the message now lists the accepted types (:issue:`71253`)
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)
 - Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
 - Bug in ``!=`` between a :class:`Tick` offset such as :class:`Hour` and an array-like of ``timedelta64`` values or ``pd.NA`` raising ``ValueError`` or ``TypeError`` (:issue:`71162`)
