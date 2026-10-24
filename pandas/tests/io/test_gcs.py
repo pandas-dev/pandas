@@ -5,9 +5,15 @@ import tarfile
 import warnings
 import zipfile
 
+warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings(
     "ignore",
-    message="You are using a Python version.*google.api_core",
+    message="You are using a Python version.*google",
+    category=FutureWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message=".*google.api_core.*",
     category=FutureWarning,
 )
 
