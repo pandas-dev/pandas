@@ -418,7 +418,8 @@ class TestMultiIndexConcat:
         expected = pd.concat([ser1, ser2])
         tuples = [("a", np.nan, "x")] + [("b", "c", idx) for idx in ser2.index]
         expected.index = pd.MultiIndex.from_tuples(tuples)
-        tm.assert_series_equal(result, expected)
+        # with object dtype the passed levels keep NaN, so inferred_type differs
+        tm.assert_series_equal(result, expected, check_index_type=False)
 
     @pytest.mark.parametrize("same_index", [True, False])
     def test_concat_tuple_keys_missing_value_not_in_levels(self, same_index):
