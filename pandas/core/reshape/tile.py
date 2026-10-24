@@ -508,8 +508,14 @@ def _bins_to_cuts(
 
     side: Literal["left", "right"] = "left" if right else "right"
 
+    missing_mask = isna(x_idx) if x_idx.dtype == object else None
     try:
-        ids = bins.searchsorted(x_idx, side=side)
+        if missing_mask is not None and missing_mask.any():
+            valid_mask = ~missing_mask
+            ids = np.zeros(len(x_idx), dtype=np.intp)
+            ids[valid_mask] = bins.searchsorted(x_idx[valid_mask], side=side)
+        else:
+            ids = bins.searchsorted(x_idx, side=side)
     except TypeError as err:
         # e.g. test_datetime_nan_error if bins are DatetimeArray and x_idx
         #  is integers
@@ -529,7 +535,10 @@ def _bins_to_cuts(
     if include_lowest:
         ids[x_idx == bins[0]] = 1
 
-    na_mask = isna(x_idx) | (ids == len(bins)) | (ids == 0)
+    if missing_mask is None:
+        missing_mask = isna(x_idx)
+
+    na_mask = missing_mask | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
 
     if labels is not False:
