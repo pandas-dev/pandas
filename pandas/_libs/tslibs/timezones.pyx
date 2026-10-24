@@ -90,7 +90,16 @@ cdef bint treat_tz_as_pytz(tzinfo tz):
 
 
 cdef bint treat_tz_as_dateutil(tzinfo tz):
+    # dateutil<3 tzfile; see treat_tz_as_zoneinfo for dateutil>=3
     return hasattr(tz, "_trans_list") and hasattr(tz, "_trans_idx")
+
+
+cdef bint treat_tz_as_zoneinfo(tzinfo tz):
+    # dateutil>=3 tzfile is a backport of ZoneInfo, so it goes through the
+    #  same pure-python twin. GH#71459
+    return is_zoneinfo(tz) or (
+        isinstance(tz, _dateutil_tzfile) and not treat_tz_as_dateutil(tz)
+    )
 
 
 # Returns str or tzinfo object
@@ -118,7 +127,7 @@ cpdef inline object get_timezone(tzinfo tz):
         if zone is None:
             return tz
         return zone
-    elif treat_tz_as_dateutil(tz):
+    elif isinstance(tz, _dateutil_tzfile):
         if ".tar.gz" in tz._filename:
             raise ValueError(
                 "Bad tz filename. Dateutil on python 3 on windows has a "
@@ -144,8 +153,12 @@ cpdef inline tzinfo maybe_get_tz(object tz):
         elif tz.startswith("dateutil/"):
             zone = tz[9:]
             tz = dateutil_gettz(zone)
-            # On Python 3 on Windows, the filename is not always set correctly.
-            if isinstance(tz, _dateutil_tzfile) and ".tar.gz" in tz._filename:
+            # On Windows, the filename is the same for every zone (dateutil<3)
+            #  or a backslashed path into tzdata (dateutil>=3), neither of
+            #  which round-trips through get_timezone.
+            if isinstance(tz, _dateutil_tzfile) and (
+                ".tar.gz" in tz._filename or "\\" in tz._filename
+            ):
                 tz._filename = zone
         elif tz[0] in {"-", "+"}:
             hours = int(tz[0:3])
@@ -246,10 +259,10 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
             return 1
         else:
             return 0
-    elif is_zoneinfo(tz):
+    elif treat_tz_as_zoneinfo(tz):
         tz_py = get_zoneinfo_twin(tz)
         if tz_py is None:
-            # i.e. ZoneInfo.from_file; without a twin we cannot see the
+            # e.g. ZoneInfo.from_file; without a twin we cannot see the
             #  transitions, so report not-fixed and let callers take the
             #  tzinfo-API path.  GH#64379
             return 0
@@ -318,14 +331,33 @@ cdef tzinfo get_zoneinfo_twin(tzinfo tz):
     The stdlib documents that a ``from_file`` object cannot be pickled,
     because its data is not recoverable from its key.
 
+    A dateutil>=3 ``tzfile`` can carry any key, so the key is used only when
+    ``gettz``, which searches the same path as ``zoneinfo``, maps it to equal
+    data.
+
     Parameters
     ----------
-    tz : ZoneInfo
+    tz : ZoneInfo or dateutil.tz.tzfile
 
     Returns
     -------
     zoneinfo._zoneinfo.ZoneInfo or None
     """
+    if not is_zoneinfo(tz):
+        key = tz.key
+        if key is None:
+            return None
+        found = dateutil_gettz(key)
+        if found is not tz and found != tz:
+            # tzfile compares by value
+            return None
+        try:
+            return _ZoneInfo(key)
+        except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+            # e.g. "America/New York", which dateutil resolves to
+            #  America/New_York and zoneinfo rejects
+            return None
+
     try:
         tz.__reduce__()
     except pickle.PicklingError:
@@ -337,14 +369,14 @@ cdef tzinfo get_zoneinfo_twin(tzinfo tz):
 
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
-    Get transition times and UTC offsets for a ZoneInfo timezone.
+    Get transition times and UTC offsets for a ZoneInfo or dateutil>=3 tzfile.
 
     Uses zoneinfo's Python fallback implementation to get transition data,
     including future transitions generated from POSIX TZ rules.
 
     Parameters
     ----------
-    tz : ZoneInfo
+    tz : ZoneInfo or dateutil.tz.tzfile
 
     Returns
     -------
@@ -529,7 +561,7 @@ cdef object get_dst_info(tzinfo tz):
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
 
-        elif is_zoneinfo(tz):
+        elif treat_tz_as_zoneinfo(tz):
             trans, deltas, is_fixed, has_tz_rule = _get_zoneinfo_trans_and_deltas(tz)
             typ = "fixed" if is_fixed else "zoneinfo"
 

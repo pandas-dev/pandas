@@ -4,6 +4,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+from importlib.metadata import version
 from io import BytesIO
 import struct
 from zoneinfo import ZoneInfo
@@ -22,6 +23,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture(params=["pytz/US/Eastern", gettz("US/Eastern"), ZoneInfo("US/Eastern")])
@@ -531,6 +533,11 @@ class TestTZLocalize:
             dti.tz_localize(tz, nonexistent=shift)
 
 
+@pytest.mark.xfail(
+    Version(version("python-dateutil")) >= Version("3"),
+    reason="GH#66570 dateutil>=3 zones share the zoneinfo shift bug",
+    strict=True,
+)
 def test_dti_tz_localize_nonexistent_shift_past_last_transition():
     # GH#66550 a shift landing past the last cached DST transition indexed the
     #  deltas array out of bounds, so the same call gave a different answer
