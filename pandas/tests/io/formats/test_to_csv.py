@@ -11,7 +11,10 @@ from zipfile import ZipFile
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    PY312,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1164,3 +1167,63 @@ def test_to_csv_mi_columns_empty_frame():
     # GH#21995 no first row to check for the index line
     df = pd.DataFrame(columns=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]))
     assert df.to_csv() == tm.convert_rows_list_to_csv_str([",a,b", ",x,y"])
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([1.5, np.nan]),
+        np.array([8.57, np.nan], dtype="float32"),
+        pd.array([1.5, None], dtype="Float64"),
+        pd.arrays.IntervalArray([pd.Interval(0, 1), np.nan]),
+        pd.array(["a", None], dtype=object),
+        pd.array([pd.Timestamp("2020-01-01"), pd.NaT]),
+    ],
+)
+@pytest.mark.parametrize(
+    "index",
+    [
+        None,
+        pd.MultiIndex.from_tuples([("x", 1.0), (None, np.nan)]),
+    ],
+)
+@pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_ALL])
+def test_to_csv_na_rep_none(values, index, quoting):
+    # GH#60423 the csv writer writes None as an empty field
+    df = pd.DataFrame({"a": [1, 2], "b": values}, index=index)
+    result = df.to_csv(na_rep=None, quoting=quoting)
+    expected = df.to_csv(na_rep="", quoting=quoting)
+    assert result == expected
+
+
+def test_to_csv_na_rep_none_column_label():
+    # GH#60423
+    df = pd.DataFrame([[1, 2]], columns=[1.5, np.nan])
+    result = df.to_csv(na_rep=None, index=False)
+    assert result == tm.convert_rows_list_to_csv_str(["1.5,", "1,2"])
+
+
+@pytest.mark.skipif(not PY312, reason="QUOTE_NOTNULL and QUOTE_STRINGS are new in 3.12")
+@pytest.mark.parametrize(
+    "quoting, expected_rows",
+    [
+        ("QUOTE_NOTNULL", ['"x","y","",', ',,,"1.5"']),
+        ("QUOTE_STRINGS", ['"x","y","",', ",,,1.5"]),
+    ],
+)
+def test_to_csv_na_rep_none_unquoted(quoting, expected_rows):
+    # GH#60423
+    index = pd.MultiIndex.from_tuples([("x", "y"), (None, None)])
+    df = pd.DataFrame({"a": ["", None], "b": [np.nan, 1.5]}, index=index)
+    result = df.to_csv(quoting=getattr(csv, quoting), na_rep=None, header=False)
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
+
+
+@pytest.mark.skipif(not PY312, reason="QUOTE_NOTNULL is new in 3.12")
+def test_to_csv_na_rep_none_single_level_multiindex():
+    # GH#60423
+    df = pd.DataFrame({"a": [1, 2]}, index=pd.MultiIndex.from_arrays([["x", None]]))
+    result = df.to_csv(quoting=csv.QUOTE_NOTNULL, na_rep=None, header=False)
+    expected = tm.convert_rows_list_to_csv_str(['"x","1"', ',"2"'])
+    assert result == expected

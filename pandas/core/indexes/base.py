@@ -1641,7 +1641,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_values_for_csv(
         self,
         *,
-        na_rep: str_t = "",
+        na_rep: str_t | None = "",
         decimal: str_t = ".",
         float_format: str_t | None = None,
         date_format: str_t | None = None,
@@ -8625,7 +8625,7 @@ def get_values_for_csv(
     values: ArrayLike,
     *,
     date_format: str_t | None,
-    na_rep: str = "nan",
+    na_rep: str_t | None = "nan",
     quoting: int | None = None,
     float_format: str_t | None = None,
     decimal: str = ".",
@@ -8647,7 +8647,10 @@ def get_values_for_csv(
 
     if isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
         if values.ndim == 1:
-            result = values._format_native_types(na_rep=na_rep, date_format=date_format)
+            result = values._format_native_types(
+                na_rep=na_rep,  # type: ignore[arg-type]
+                date_format=date_format,
+            )
             result = result.astype(object, copy=False)
             return result
 
@@ -8655,7 +8658,8 @@ def get_values_for_csv(
         results_converted = []
         for i in range(len(values)):
             result = values[i, :]._format_native_types(
-                na_rep=na_rep, date_format=date_format
+                na_rep=na_rep,  # type: ignore[arg-type]
+                date_format=date_format,
             )
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
@@ -8663,7 +8667,7 @@ def get_values_for_csv(
     elif isinstance(values.dtype, IntervalDtype):
         values = cast("IntervalArray", values)
         mask = values.isna()
-        if not quoting:
+        if not quoting and na_rep is not None:
             result = np.asarray(values).astype(str)
         else:
             result = np.array(values, dtype=object, copy=True)
@@ -8678,7 +8682,8 @@ def get_values_for_csv(
         if float_format is None and decimal == ".":
             mask = isna(values)
 
-            if not quoting:
+            # a str array would store a None na_rep as "None"
+            if not quoting and na_rep is not None:
                 if isinstance(values, ExtensionArray) and values.ndim == 2:
                     # e.g. test_to_csv_2d_float_ea
                     values = np.asarray(values.to_numpy(), dtype=str)

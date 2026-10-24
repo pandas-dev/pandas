@@ -1217,7 +1217,7 @@ class DataFrame(NDFrame, OpsMixin):
         float_format: FloatFormatType | None,
         date_format: str | None,
         decimal: str,
-        na_rep: str,
+        na_rep: str | None,
         quoting,  # int csv.QUOTE_FOO from stdlib
     ) -> DataFrame:
         # helper used by to_csv
