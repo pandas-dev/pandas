@@ -180,6 +180,7 @@ Numeric
 - Fixed bug in :meth:`Series.corr` with ``method="pearson"`` returning an inaccurate result for nearly-constant data, and ``0.0`` instead of ``NaN`` for some constant data (:issue:`59652`)
 - Fixed bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` reporting false matches when ``values`` was a list of integers above ``2**53`` mixed with floats, ``NaN``, or integers outside the ``int64`` range, or a list of ``bytes`` ending in a null byte (:issue:`70217`)
 - Fixed bug in :meth:`Series.var`, :meth:`Series.std`, and :meth:`Series.sem` (and their :class:`DataFrame` counterparts) returning ``inf`` or incorrect results for ``float16`` dtypes when the variance or the number of values exceeded the ``float16`` range; these now return ``float64`` like :meth:`Series.mean` (:issue:`41277`)
+- Fixed regression in :meth:`Series.mean` and :meth:`DataFrame.mean` raising ``TypeError`` for object-dtype data containing numeric NumPy arrays (:issue:`71476`)
 
 Conversion
 ^^^^^^^^^^

@@ -245,6 +245,46 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
+@pytest.mark.parametrize("dtype", ["int64", "float64", "complex128"])
+@pytest.mark.parametrize("shape", [(3,), (2, 3)])
+@pytest.mark.parametrize("with_na", [False, True])
+def test_mean_numpy_array_elements(dtype, shape, with_na):
+    # GH#71476
+    left = np.arange(np.prod(shape), dtype=dtype).reshape(shape)
+    right = left + 3
+    if dtype == "complex128":
+        right = right + 2j
+    values = [left, right]
+    if with_na:
+        values.insert(1, None)
+    ser = pd.Series(values)
+
+    result = ser.mean()
+    expected = (left + right) / 2
+    tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(ser.to_frame().mean().iloc[0], expected)
+    tm.assert_numpy_array_equal(ser.iloc[0], left)
+    tm.assert_numpy_array_equal(ser.iloc[-1], right)
+
+
+@pytest.mark.parametrize("bad", ["1", "foo", [1, 2], np.array(["1", "2"])])
+def test_mean_numpy_array_elements_non_numeric(bad):
+    # GH#71476: accepting numeric arrays must not convert non-numeric values.
+    ser = pd.Series([np.array([1, 2]), bad], dtype=object)
+
+    with pytest.raises(TypeError, match="Could not convert"):
+        ser.mean()
+
+
+def test_mean_numpy_array_elements_skipna_false():
+    # GH#71476
+    ser = pd.Series([np.array([1.0, 2.0]), None, np.array([3.0, 4.0])])
+
+    result = ser.mean(skipna=False)
+
+    tm.assert_numpy_array_equal(result, np.array([np.nan, np.nan]))
+
+
 def test_mean_with_convertible_string_raises(using_infer_string):
     # GH#44008
     ser = pd.Series(["1", "2"])
