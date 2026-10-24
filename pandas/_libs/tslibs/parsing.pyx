@@ -912,6 +912,14 @@ class _timelex:
 _DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
+# Matches a zone name (any word, e.g. "UTC", "GMT", "EST") that is directly
+# followed by a numeric offset, e.g. "08:07:13 UTC+0300" or "08:30 EST-03:30".
+_timelex_zone_offset = re.compile(
+    r"[A-Za-z]+[ \t]*(?P<sign>[+-])(?P<hour>\d{1,2})(?::?(?P<minute>\d{2}))?"
+    r"(?::?(?P<second>\d{2}))?$"
+)
+
+
 def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     """
     Guess the datetime format of a given datetime string.
@@ -1003,6 +1011,31 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     if parsed_datetime is None:
         return None
+
+    # GH#71273 When a zone name is directly followed by a numeric offset
+    #  (e.g. "2020-01-02 08:07:13 UTC+0300", "2020-01-02 08:07:13 EST+3"),
+    #  dateutil interprets the offset with the POSIX-style (inverted) sign:
+    #  "UTC+0300" is reported as a -3h offset. The other pandas parse paths
+    #  (the Timestamp constructor, to_datetime with format="mixed", and
+    #  spellings whose hours are a single digit, where no format is guessed)
+    #  follow dateutil's convention, but a guessed format containing '%z'
+    #  would be applied by strptime with the *nominal* sign, so
+    #  to_datetime would infer the offset's opposite to what
+    #  guess_datetime_format's underlying parse gave. No strftime format can
+    #  reproduce dateutil's interpretation here, so decline to guess.
+    zone_offset_match = _timelex_zone_offset.search(dt_str)
+    if zone_offset_match is not None:
+        offset_seconds = (
+            int(zone_offset_match.group("hour")) * 3600
+            + int(zone_offset_match.group("minute") or 0) * 60
+            + int(zone_offset_match.group("second") or 0)
+        )
+        if zone_offset_match.group("sign") == "-":
+            offset_seconds = -offset_seconds
+        if offset_seconds and parsed_datetime.utcoffset() != timedelta(
+            seconds=offset_seconds
+        ):
+            return None
 
     # _DATEUTIL_LEXER_SPLIT from dateutil will never raise here
     tokens = _DATEUTIL_LEXER_SPLIT(dt_str)

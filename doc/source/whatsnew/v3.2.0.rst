@@ -169,6 +169,8 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
+- Bug in :func:`guess_datetime_format` guessing a format containing ``%z`` for strings where a timezone name is followed by a nonzero numeric offset, e.g. ``"2020-01-02 08:07:13 UTC+0300"``: no strftime format can reproduce how such strings are interpreted, so a format is no longer guessed (:issue:`71273`)
+- Bug in :func:`to_datetime` giving a different interpretation of the timezone offset than the :class:`Timestamp` constructor for strings where a timezone name is followed by a numeric offset, e.g. ``"2020-01-02 08:07:13 UTC+0300"``, leading to results six hours apart; the parsed offsets now agree in all cases (:issue:`71273`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
 -
 

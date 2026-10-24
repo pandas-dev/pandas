@@ -352,6 +352,41 @@ def test_guess_datetime_format_utc_alias(tzname, template, fmt):
         assert result.tz is UTC
 
 
+@pytest.mark.parametrize(
+    "tzname",
+    [
+        "UTC+0300",
+        "UTC+03:00",
+        "GMT+03:00",
+        "EST+0330",
+        # dateutil drops the offset entirely when it does not immediately
+        #  follow the zone name
+        "UTC +0300",
+    ],
+)
+def test_guess_datetime_format_zone_with_offset(tzname):
+    # GH 71273 dateutil applies the POSIX (inverted) sign to a numeric offset
+    #  that directly follows a zone name, while strptime('%z') applies the
+    #  nominal sign.  Since no strftime format can reproduce dateutil's
+    #  interpretation, guess_datetime_format declines to guess a format for
+    #  these strings (otherwise to_datetime would disagree with Timestamp).
+    string = f"2023-11-15 04:30:21 {tzname}"
+    assert parsing.guess_datetime_format(string) is None
+
+
+def test_guess_datetime_format_offset_without_name():
+    # offsets without a recognized zone name are interpreted with the
+    #  nominal sign everywhere, and the '%z' format reproduces this
+    string = "2023-11-15 04:30:21 +0300"
+    assert parsing.guess_datetime_format(string) == "%Y-%m-%d %H:%M:%S %z"
+
+
+def test_guess_datetime_format_zone_with_zero_offset():
+    # zero offsets are interpreted the same way by all paths (GH 66827)
+    string = "2023-11-15 04:30:21 UTC+0000"
+    assert parsing.guess_datetime_format(string) == "%Y-%m-%d %H:%M:%S UTC%z"
+
+
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
 def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ambiguous_string = "01/01/2011"
