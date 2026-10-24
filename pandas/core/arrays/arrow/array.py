@@ -1934,7 +1934,9 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            return self
+            if not copy:
+                return self
+            return self._from_pyarrow_array(self._pa_array)
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)

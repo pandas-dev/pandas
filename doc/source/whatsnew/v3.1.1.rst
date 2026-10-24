@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed a regression in :meth:`DataFrame.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.ffill` and :meth:`Series.bfill` on a PyArrow-backed column without missing values (including the default ``str`` dtype) where the result shared data with the original, so modifying one also changed the other, violating Copy-on-Write semantics (:issue:`71515`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.bugs:
