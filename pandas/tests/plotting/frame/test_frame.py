@@ -1602,6 +1602,13 @@ class TestDataFramePlots:
         with pytest.raises(ValueError, match="x must be a label or position"):
             df.plot(x=x, y=y)
 
+    def test_invalid_x_partial_multiindex_label(self):
+        # GH#19544 a partial label selects several columns, so it is not a valid x
+        columns = pd.MultiIndex.from_product([["A", "B"], [200, 300]])
+        df = pd.DataFrame(np.arange(8).reshape(2, 4), columns=columns)
+        with pytest.raises(ValueError, match="x must be a label or position"):
+            df.plot(x="A", y="B")
+
     @pytest.mark.parametrize(
         "x,y,lbl,colors",
         [
