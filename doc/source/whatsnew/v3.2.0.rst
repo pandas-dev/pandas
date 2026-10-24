@@ -232,6 +232,7 @@ MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
 - Bug in :meth:`DataFrame.sort_index`, :meth:`Series.sort_index`, :meth:`MultiIndex.sort_values` and :meth:`MultiIndex.is_monotonic_increasing` ignoring the category order of a :class:`CategoricalIndex` level (:issue:`47607`)
+- Bug in :meth:`Index.map` raising when mapping to tuples with a different number of elements than a :class:`MultiIndex` has levels, or when only some results are tuples (:issue:`24800`)
 - Bug in :meth:`MultiIndex.append`, :func:`concat`, :meth:`DataFrame.join` and :func:`merge` emitting a spurious ``RuntimeWarning`` when :class:`MultiIndex` level values could not be sorted (:issue:`61477`)
 - Bug in :meth:`MultiIndex.from_tuples` with an object ``ndarray``, :meth:`MultiIndex.append` and :meth:`Index.map` truncating or raising ``IndexError`` on tuples of different lengths; :meth:`MultiIndex.from_tuples` now raises a ``ValueError`` for an ``ndarray`` of tuples of different lengths (:issue:`50293`)
 - Bug in :meth:`MultiIndex.rename` raising ``TypeError`` for the ``name`` keyword documented by :meth:`Index.rename` (:issue:`33778`)

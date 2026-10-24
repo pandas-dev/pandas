@@ -6905,21 +6905,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
-            if isinstance(self, MultiIndex):
-                names = self.names
-            elif self.name:
-                names = [self.name] * len(new_values[0])
-            else:
-                names = None
-            # ValueError: tuples of different lengths, return a flat Index
-            #  (GH#50293); names are set afterwards so a mismatch still raises
-            try:
-                result = MultiIndex.from_tuples(new_values)
-            except ValueError:
-                pass
-            else:
-                if names is not None:
-                    result.names = names
+            width = len(new_values[0])
+            # non-tuples or tuples of different lengths give a flat Index, GH#50293
+            if all(
+                isinstance(val, tuple) and len(val) == width
+                for val in new_values[~isna(new_values)]
+            ):
+                # unlike an ndarray, list input accepts NA entries
+                result = MultiIndex.from_tuples(new_values.tolist())
+                if isinstance(self, MultiIndex):
+                    # only keep names if the number of levels is unchanged, GH#24800
+                    if self.nlevels == result.nlevels:
+                        result.names = self.names
+                elif self.name:
+                    result.names = [self.name] * result.nlevels
                 return result
 
         dtype = None
