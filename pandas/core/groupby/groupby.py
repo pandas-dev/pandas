@@ -1023,8 +1023,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def full_key(name: Hashable) -> Hashable:
             # GH#17024 expanding MultiIndex columns with a partial key is
             #  deprecated; pad the key to full length ourselves
-            if isinstance(result.columns, MultiIndex) and not isinstance(name, tuple):
-                return (name,) + ("",) * (result.columns.nlevels - 1)
+            if isinstance(result.columns, MultiIndex):
+                key = name if isinstance(name, tuple) else (name,)
+                return key + ("",) * (result.columns.nlevels - len(key))
             return name
 
         if qs is not None:
@@ -1053,7 +1054,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise ValueError(f"cannot insert {name}, already exists")
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if name not in result.columns:
+            if full_key(name) not in result.columns:
                 # if in_axis:
                 if qs is None:
                     result.insert(0, full_key(name), lev)
