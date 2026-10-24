@@ -1026,6 +1026,11 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
             offset_index = -4
 
         if offset_index is not None:
+            # A named timezone followed by an offset can be interpreted
+            # differently by dateutil and strptime (GH 71273).
+            if any(token in ("UTC", "GMT") for token in tokens[:offset_index]):
+                return None
+
             # If the input string has a timezone offset like '+0900',
             # the offset is separated into two tokens, ex. ['+', '0900’].
             # This separation will prevent subsequent processing
