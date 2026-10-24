@@ -3128,10 +3128,7 @@ def _adjust_dates_anchored(
         sub_freq_times = (origin_last._value - first._value) // freq_value
         if closed == "left":
             sub_freq_times += 1
-        #  error: Incompatible types in assignment (expression has type
-        # "Timestamp | NaTType", variable has type "Timestamp")
-        first = origin_last - sub_freq_times * freq  # type: ignore[assignment]
-        origin_timestamp = first._value
+        origin_timestamp = origin_last._value - sub_freq_times * freq_value
     origin_timestamp += offset._value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
