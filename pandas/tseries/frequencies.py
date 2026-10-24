@@ -391,12 +391,15 @@ class _FrequencyInferer:
         if monthly_rule:
             return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
+        if self.is_unique:
+            return self._get_daily_rule()
+
+        # GH#45819 only reached with more than one distinct delta, so an
+        #  evenly spaced index that also fits SMS (e.g. 1st/15th across a
+        #  28-day February) keeps its fixed-delta rule such as "2W-MON"
         semi_monthly_rule = self._get_semi_monthly_rule()
         if semi_monthly_rule:
             return semi_monthly_rule
-
-        if self.is_unique:
-            return self._get_daily_rule()
 
         if self._is_business_daily():
             return "B"

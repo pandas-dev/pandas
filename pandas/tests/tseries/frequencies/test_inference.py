@@ -138,6 +138,15 @@ def test_infer_freq_semi_monthly_leap_february():
     assert frequencies.infer_freq(index) == "SME"
 
 
+def test_infer_freq_semi_monthly_evenly_spaced_keeps_weekly():
+    # GH#45819 across a 28-day February the SMS anchors are all 14 days
+    #  apart, so the index is also 2W-MON; the fixed-delta rule takes
+    #  precedence, as before semi-monthly inference existed
+    index = pd.DatetimeIndex(["2021-02-01", "2021-02-15", "2021-03-01", "2021-03-15"])
+
+    assert frequencies.infer_freq(index) == "2W-MON"
+
+
 @pytest.mark.parametrize(
     "dates",
     [
