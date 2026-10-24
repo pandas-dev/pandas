@@ -305,3 +305,37 @@ def test_str_dtype():
     result = df.explode(column="a")
     assert result is not df
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("ignore_index", [True, False])
+@pytest.mark.parametrize(
+    "column, exploded",
+    [
+        (("B", "C"), [("B", "C")]),
+        ([("B", "C")], [("B", "C")]),
+        ([("E", "F")], [("E", "F")]),
+        ([("B", "C"), ("E", "F")], [("B", "C"), ("E", "F")]),
+    ],
+)
+def test_explode_tuple_label_flat_columns(column, exploded, ignore_index):
+    # GH 55142
+    df = pd.DataFrame(
+        {"A": [1, 2], ("B", "C"): [[3, 4], [5]], ("E", "F"): [[6, 7], [8]]},
+        index=list("ab"),
+    )
+    result = df.explode(column, ignore_index=ignore_index)
+    expected = pd.DataFrame(
+        {
+            "A": [1, 1, 2],
+            ("B", "C"): np.array([3, 4, 5], dtype=object)
+            if ("B", "C") in exploded
+            else [[3, 4], [3, 4], [5]],
+            ("E", "F"): np.array([6, 7, 8], dtype=object)
+            if ("E", "F") in exploded
+            else [[6, 7], [6, 7], [8]],
+        },
+        index=list("aab"),
+    )
+    if ignore_index:
+        expected = expected.reset_index(drop=True)
+    tm.assert_frame_equal(result, expected)
