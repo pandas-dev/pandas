@@ -591,9 +591,9 @@ def test_zoneinfo_from_file_without_key_ambiguous_infer():
     )
 
 
+_dateutil_lt_3 = Version(importlib.metadata.version("python-dateutil")) < Version("3")
 _skip_if_dateutil_lt_3 = pytest.mark.skipif(
-    Version(importlib.metadata.version("python-dateutil")) < Version("3"),
-    reason="tzfile key added in 3.0",
+    _dateutil_lt_3, reason="tzfile key added in 3.0"
 )
 
 
@@ -608,7 +608,13 @@ _skip_if_dateutil_lt_3 = pytest.mark.skipif(
             marks=_skip_if_dateutil_lt_3,
         ),
         # dateutil accepts this key but zoneinfo does not
-        lambda: dateutil.tz.gettz("America/New York"),
+        pytest.param(
+            lambda: dateutil.tz.gettz("America/New York"),
+            marks=pytest.mark.skipif(
+                _dateutil_lt_3 and is_platform_windows(),
+                reason="dateutil<3 resolves spaced keys only on a system TZPATH",
+            ),
+        ),
         # a key naming a different zone than the data
         pytest.param(
             lambda: dateutil.tz.tzfile(

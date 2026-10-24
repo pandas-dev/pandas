@@ -153,8 +153,12 @@ cpdef inline tzinfo maybe_get_tz(object tz):
         elif tz.startswith("dateutil/"):
             zone = tz[9:]
             tz = dateutil_gettz(zone)
-            # On Python 3 on Windows, the filename is not always set correctly.
-            if isinstance(tz, _dateutil_tzfile) and ".tar.gz" in tz._filename:
+            # On Windows, the filename is the same for every zone (dateutil<3)
+            #  or a backslashed path into tzdata (dateutil>=3), neither of
+            #  which round-trips through get_timezone.
+            if isinstance(tz, _dateutil_tzfile) and (
+                ".tar.gz" in tz._filename or "\\" in tz._filename
+            ):
                 tz._filename = zone
         elif tz[0] in {"-", "+"}:
             hours = int(tz[0:3])
