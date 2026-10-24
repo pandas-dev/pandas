@@ -1698,3 +1698,9 @@ class RangeIndex(Index):
         if was_scalar:
             return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)
+
+    def isin(
+        self, values: Axes | set[Any], level: str | int | None = None
+    ) -> npt.NDArray[np.bool_]:
+        # GH#66263: work in progress, for now hand everything to the parent
+        return super().isin(values, level=level)
