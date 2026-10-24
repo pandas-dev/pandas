@@ -1764,8 +1764,38 @@ class RangeIndex(Index):
             return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)
 
-    def isin(
-        self, values: Axes | set[Any], level: str | int | None = None
-    ) -> npt.NDArray[np.bool_]:
-        # GH#66263: work in progress, for now hand everything to the parent
-        return super().isin(values, level=level)
+
+    def isin(self, values: Axes | set[Any], level: str | int | None = None) -> npt.NDArray[np.bool_]:
+        # GH#66263: match values against the range with integer arithmetic,
+        # instead of building the full int64 array that Index.isin works on
+        if level is not None:
+            self._validate_index_level(level)
+        if not lib.is_list_like(values):
+            # let Index.isin raise its usual error
+            return super().isin(values, level=level)
+
+        targets = _exact_int64_targets(values)
+        if targets is None:
+            return super().isin(values, level=level)
+
+        result = np.zeros(len(self), dtype=bool)
+        if len(self) == 0 or len(targets) == 0:
+            return result
+
+        rng = self._range
+        lo, hi = min(rng[0], rng[-1]), max(rng[0], rng[-1])
+        int64 = np.iinfo(np.int64)
+        if not (
+            int64.min <= lo
+            and hi <= int64.max
+            and hi - lo <= int64.max
+            and abs(rng.step) <= int64.max
+        ):
+            # bounds that the int64 arithmetic below cannot represent
+            return super().isin(values, level=level)
+
+        # drop targets outside the range first, so the subtraction cannot overflow
+        targets = targets[(targets >= lo) & (targets <= hi)]
+        pos, rem = np.divmod(targets - rng.start, rng.step)
+        result[pos[rem == 0]] = True
+        return result
