@@ -302,6 +302,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.agg` with a list of reductions and ``numeric_only=True`` raising ``TypeError`` when the :class:`DataFrame` has non-numeric columns, instead of excluding them as a single reduction does (:issue:`53839`)
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` (and Series variants) on ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` data treating ``NaT`` as a regular value and losing precision when the group key contains ``NA`` (:issue:`69923`)
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` raising ``NotImplementedError``, often with no message, instead of ``TypeError`` on columns that do not support them, e.g. ``object`` columns and :class:`ArrowDtype` date, time and binary columns (:issue:`69791`)
 - Bug in :meth:`.DataFrameGroupBy.max`, :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.cummin` (and Series variants) on nullable float data with the ``future.distinguish_nan_and_na`` option enabled returning ``inf`` or ``-inf`` for all-``NaN`` groups and ignoring ``NaN`` in other groups; ``NaN`` now propagates as in :meth:`.DataFrameGroupBy.sum`; under the default option, :class:`ArrowDtype` float data containing ``NaN`` now gives ``NA`` instead of ignoring the ``NaN`` (:issue:`59106`)

@@ -122,6 +122,29 @@ _frame_reduction_names = frozenset(
     }
 )
 
+# DataFrameGroupBy reductions that accept numeric_only and return one row per
+# group, making them eligible for the fast path in
+# GroupByApply._agg_list_like_groupby_reductions.
+_groupby_reduction_names = frozenset(
+    {
+        "first",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "last",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "prod",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    }
+)
+
 
 def _stack_as_object(dtypes: list[DtypeObj]) -> bool:
     """
@@ -1883,8 +1906,72 @@ class GroupByApply(Apply):
         with com.temp_setattr(
             obj, "as_index", True, condition=hasattr(obj, "as_index")
         ):
+            if op_name == "agg":
+                fast_result = self._agg_list_like_groupby_reductions(selected_obj)
+                if fast_result is not None:
+                    return fast_result
             keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
+        return result
+
+    def _agg_list_like_groupby_reductions(
+        self, selected_obj: DataFrame | Series
+    ) -> DataFrame | None:
+        """
+        Aggregate a list of named reductions with numeric_only=True using
+        DataFrameGroupBy-level reductions.
+
+        The per-column path calls each reduction on a SeriesGroupBy, which
+        raises for non-numeric columns when numeric_only=True (GH#53839).
+        Calling the reductions on the DataFrameGroupBy drops those columns
+        instead, as it does for a single reduction.
+
+        Returns None if the fast path cannot be used.
+        """
+        from pandas import (
+            Index,
+            MultiIndex,
+        )
+        from pandas.core.groupby.generic import DataFrameGroupBy
+
+        obj = self.obj
+        func = cast("list[AggFuncTypeBase]", self.func)
+
+        if (
+            not isinstance(obj, DataFrameGroupBy)
+            or selected_obj.ndim != 2
+            or not self.kwargs.get("numeric_only")
+            # Positional args map to different parameters across reductions
+            or self.args
+            or not func
+            or not all(
+                isinstance(f, str) and f in _groupby_reduction_names for f in func
+            )
+            # Duplicate labels would survive into the result, which fails
+            # when the frame has allows_duplicate_labels=False
+            or len(set(func)) != len(func)
+            or not selected_obj.columns.is_unique
+        ):
+            return None
+
+        func_names = cast("list[str]", func)
+        pieces = [getattr(obj, f)(**self.kwargs) for f in func_names]
+        columns = pieces[0].columns
+        n_columns, n_funcs = len(columns), len(func_names)
+
+        # Reorder to (column, func) by position, which also handles MultiIndex
+        # columns; keys= avoids duplicate labels in the intermediate concat.
+        indexer = [
+            func_pos * n_columns + col_pos
+            for col_pos in range(n_columns)
+            for func_pos in range(n_funcs)
+        ]
+        result = concat(pieces, axis=1, keys=func_names).iloc[:, indexer]
+        repeated = columns.repeat(n_funcs)
+        result.columns = MultiIndex.from_arrays(
+            [repeated.get_level_values(i) for i in range(columns.nlevels)]
+            + [Index(func_names).take(list(range(n_funcs)) * n_columns)]
+        )
         return result
 
     def agg_or_apply_dict_like(
