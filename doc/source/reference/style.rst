@@ -84,5 +84,6 @@ Style export and import
    Styler.to_typst
    Styler.to_excel
    Styler.to_string
+   Styler.to_frame
    Styler.export
    Styler.use
