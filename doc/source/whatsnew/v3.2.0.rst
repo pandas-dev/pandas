@@ -137,6 +137,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
+- Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
 - Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
 
