@@ -63,7 +63,7 @@ class TestTimedeltaIndexRendering:
         idx3 = pd.TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = pd.TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
         idx5 = pd.TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
-        idx6 = pd.TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
+        idx6 = pd.TimedeltaIndex(["-1 days 00:00:01", "2 days", "3 days"])
 
         exp1 = """Series([], dtype: timedelta64[ns])"""
 
