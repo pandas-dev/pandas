@@ -72,6 +72,20 @@ def test_series_equal(data):
     _assert_series_equal_both(pd.Series(data), pd.Series(data))
 
 
+def test_series_equal_masked_array(check_exact, check_dtype):
+    # GH#56132
+    data = np.ma.masked_all(3)
+    data[0] = 0
+    data[2] = 2
+    data[1] = 1
+    left = pd.Series(data)
+    right = pd.Series([0, 1, 2], dtype=float)
+
+    _assert_series_equal_both(
+        left, right, check_exact=check_exact, check_dtype=check_dtype
+    )
+
+
 @pytest.mark.parametrize(
     "data1,data2",
     [
