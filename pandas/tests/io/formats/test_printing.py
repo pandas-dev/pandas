@@ -98,6 +98,14 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265 + 1j]) == "[(3.142+1.0j)]"
 
+    @pytest.mark.parametrize(
+        "value", ["a\xa0b", "a\u200bb", "\ufeffid", "a\x00b", "a\x1b[0mb", "a\u2028b"]
+    )
+    def test_repr_escapes_non_printable(self, value):
+        # GH#14579
+        assert printing.pprint_thing(value, quote_strings=True) == repr(value)
+        assert printing.pprint_thing(value, quote_strings=False) == value
+
     def test_repr_0d_array(self):
         # GH#64638 0-d arrays are not iterable and must fall through to str()
         assert printing.pprint_thing(np.array(5)) == "5"
