@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import inspect
 import re
 from typing import (
@@ -660,9 +661,7 @@ class Block(PandasObject, libinternals.Block):
         refs: BlockValuesRefs | None
         if deep:
             if isinstance(values, np.ndarray):
-                # "K" preserves memory layout; default "C" flips contiguity
-                # for non-C-order blocks (GH#60469).
-                values = values.copy(order="K")
+                values = copy.deepcopy(values)
             else:
                 values = values.copy()
             refs = None
