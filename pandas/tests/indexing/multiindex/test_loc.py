@@ -540,6 +540,19 @@ def test_loc_getitem_unique_key_in_nonunique_multiindex():
     assert isinstance(result, pd.Series)
 
 
+@pytest.mark.parametrize(
+    "keys", [[("a", "b"), ("a", "b", "z")], [("a", "b"), ("a",)], [("a", "b", "z")]]
+)
+def test_loc_getitem_nonunique_multiindex_tuples_of_other_lengths(keys):
+    # GH#50293
+    mi = pd.MultiIndex.from_tuples([("a", "b"), ("a", "b"), ("c", "d")])
+    ser = pd.Series(range(3), index=mi)
+    key = pd.Index(keys, tupleize_cols=False)
+    msg = "|".join(["not in index", r"are in the \[index\]"])
+    with pytest.raises(KeyError, match=msg):
+        ser.loc[key]
+
+
 def test_loc_getitem_tuple_plus_slice():
     # GH 671
     df = pd.DataFrame(

@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
@@ -278,6 +280,14 @@ class TestDataFrameSetItem:
         result[ea_name] = [1]
         expected = pd.DataFrame({0: [0], ea_name: [1]})
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_structured_ndarray_deprecated(self):
+        # GH#49388
+        arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
+        df = pd.DataFrame({"a": [1, 2]})
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"] = arr
 
     def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
         # GH#7492
@@ -1553,6 +1563,51 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
     )
     with pytest.raises(ValueError, match=msg):
         df[select_df] = [3, 3]
+
+
+@pytest.mark.parametrize(
+    "value, ncols",
+    [
+        (np.arange(3).reshape(3, 1), 1),
+        (np.arange(9).reshape(3, 3), 3),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_mismatched_value(value, ncols, columns):
+    # GH#68445 the broadcast in _set_item skips these, so they used to leave a block
+    #  narrower than its placement, or drop columns of value, rather than raise
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    expected = df.copy()
+    msg = f"Got 2 positions but value has {ncols} columns"
+    with pytest.raises(ValueError, match=msg):
+        df["a"] = value
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [["a", "a", "b"], ["a", "b", "a"]],
+)
+def test_setitem_key_matching_several_columns_matching_width(columns):
+    # GH#68445 positive control for the check above; the boolean-mask loc is the
+    #  one where the value's columns could be placed out of order
+    df = pd.DataFrame(np.zeros((3, 3), dtype=int), columns=columns)
+    value = np.arange(6).reshape(3, 2)
+
+    df["a"] = value
+
+    expected_arr = np.zeros((3, 3), dtype=int)
+    positions = [i for i, col in enumerate(columns) if col == "a"]
+    expected_arr[:, positions] = value
+    expected = pd.DataFrame(expected_arr, columns=columns)
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
