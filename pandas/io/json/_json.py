@@ -1599,7 +1599,7 @@ class Parser:
                 pass
 
         # don't coerce 0-len data
-        if len(data) and data.dtype in ("float", "object"):
+        if len(data) and data.dtype == "object":
             # coerce ints if we can
             try:
                 new_data = org_data.astype("int64")
