@@ -236,6 +236,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.from_tuples` with an object ``ndarray``, :meth:`MultiIndex.append` and :meth:`Index.map` truncating or raising ``IndexError`` on tuples of different lengths; :meth:`MultiIndex.from_tuples` now raises a ``ValueError`` for an ``ndarray`` of tuples of different lengths (:issue:`50293`)
 - Bug in :meth:`MultiIndex.rename` raising ``TypeError`` for the ``name`` keyword documented by :meth:`Index.rename` (:issue:`33778`)
 - Bug in :meth:`Series.map`, :meth:`Index.get_indexer`, :meth:`DataFrame.reindex` and :attr:`DataFrame.loc` with a :class:`MultiIndex` raising ``IndexError`` or matching on a prefix when looking up tuples whose length differs from the number of levels (:issue:`50293`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with a partial :class:`MultiIndex` key (e.g. ``df.loc[:, "a"] = df.loc[:, "a"] * 2``) setting ``NaN`` (or raising) instead of the value (:issue:`10440`, :issue:`15310`, :issue:`40186`, :issue:`43719`, :issue:`45751`, :issue:`46837`)
 -
 
 I/O
