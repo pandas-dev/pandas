@@ -370,6 +370,8 @@ Other
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
 
+- Bug in :meth:`DataFrame.shift` and :meth:`Series.shift` returning an unshifted copy for empty objects when ``periods`` is an iterable (:issue:`71507`)
+
 .. ***DO NOT USE THIS SECTION***
 
 -
