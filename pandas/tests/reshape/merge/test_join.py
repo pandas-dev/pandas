@@ -1187,3 +1187,20 @@ def test_join_multiindex_with_none_as_label():
         index=pd.MultiIndex.from_tuples([(3, 3)], names=[None, "X"]),
     )
     tm.assert_frame_equal(result21, expected21)
+
+
+def test_join_on_suffixed_key_keeps_other_column():
+    # GH#39192 the right's "B" must keep its own values
+    left = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    right = pd.DataFrame({"B": [11, 12, 13], "C": [14, 15, 16]}, index=[2, 3, 4])
+    result = left.join(right, on="B", how="right", suffixes=("_left", None))
+    expected = pd.DataFrame(
+        {
+            "A": [np.nan, np.nan, 1.0],
+            "B_left": [np.nan, np.nan, 4.0],
+            "B": [11, 12, 13],
+            "C": [14, 15, 16],
+        },
+        index=[np.nan, np.nan, 0.0],
+    )
+    tm.assert_frame_equal(result, expected)
