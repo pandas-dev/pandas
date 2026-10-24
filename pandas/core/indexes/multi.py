@@ -2301,6 +2301,8 @@ class MultiIndex(Index):
         """
         Return True if the codes are lexicographically sorted.
 
+        Missing values may sort last instead of first, see _lexsort_info.
+
         Returns
         -------
         bool
@@ -2347,9 +2349,51 @@ class MultiIndex(Index):
         -------
         int
         """
+        return self._lexsort_info[0]
+
+    @cache_readonly
+    def _lexsort_info(self) -> tuple[int, frozenset[int]]:
+        """
+        The lexsort depth, and the levels on which missing values sort last.
+
+        Missing values are coded -1, which sorts first, but ``sort_index`` puts
+        them last by default. On a level where only the latter order extends the
+        lexsort depth, lexsort searches use ``len(level)`` in place of -1.
+        """
         if self.sortorder is not None:
-            return self.sortorder
-        return _lexsort_depth(self.codes, self.nlevels)
+            return self.sortorder, frozenset()
+        codes = [ensure_int64(level_codes) for level_codes in self.codes]
+        depth = _lexsort_depth(codes, self.nlevels)
+        na_last_levels = set()
+        while depth < self.nlevels:
+            mask = codes[depth] == -1
+            if not mask.any():
+                break
+            codes[depth] = np.where(mask, len(self.levels[depth]), codes[depth])
+            new_depth = _lexsort_depth(codes, self.nlevels)
+            if new_depth == depth:
+                break
+            na_last_levels.add(depth)
+            depth = new_depth
+        return depth, frozenset(na_last_levels)
+
+    @cache_readonly
+    def _lexsort_codes(self) -> list[np.ndarray]:
+        """
+        Codes as ordered for lexsort searches, see _lexsort_info.
+        """
+        codes = list(self.codes)
+        for k in self._lexsort_info[1]:
+            level_codes = codes[k].astype(np.intp)
+            level_codes[level_codes == -1] = len(self.levels[k])
+            codes[k] = level_codes
+        return codes
+
+    def _lexsort_na_code(self, level: int) -> int:
+        """
+        The code a missing value has in self._lexsort_codes[level].
+        """
+        return len(self.levels[level]) if level in self._lexsort_info[1] else -1
 
     def _sort_levels_monotonic(self, raise_if_incomparable: bool = False) -> MultiIndex:
         """
@@ -3546,7 +3590,7 @@ class MultiIndex(Index):
 
         n = len(tup)
         start, end = 0, len(self)
-        zipped = zip(tup, self.levels, self.codes, strict=True)
+        zipped = zip(tup, self.levels, self._lexsort_codes, strict=True)
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
@@ -3570,6 +3614,8 @@ class MultiIndex(Index):
                 return start + algos.searchsorted(section, loc, side=side)
 
             idx = self._get_loc_single_level_index(lev, lab)
+            if is_integer(idx) and idx == -1:
+                idx = self._lexsort_na_code(k)
             if isinstance(idx, slice) and k < n - 1:
                 # Get start and end value from slice, necessary when a non-integer
                 # interval is given as input GH#37707
@@ -4082,8 +4128,9 @@ class MultiIndex(Index):
                 return convert_indexer(start, stop, step)
             else:
                 # sorted, so can return slice object -> view
-                i = algos.searchsorted(level_codes, start, side="left")
-                j = algos.searchsorted(level_codes, stop, side="right")
+                sorted_codes = self._lexsort_codes[level]
+                i = algos.searchsorted(sorted_codes, start, side="left")
+                j = algos.searchsorted(sorted_codes, stop, side="right")
                 return slice(i, j, step)
 
         else:
@@ -4119,14 +4166,17 @@ class MultiIndex(Index):
                     raise KeyError(key)
                 return locs
 
+            sorted_codes = self._lexsort_codes[level]
             if isinstance(idx, slice):
                 # e.g. test_partial_string_timestamp_multiindex
-                start = algos.searchsorted(level_codes, idx.start, side="left")
+                start = algos.searchsorted(sorted_codes, idx.start, side="left")
                 # NB: "left" here bc of slice semantics
-                end = algos.searchsorted(level_codes, idx.stop, side="left")
+                end = algos.searchsorted(sorted_codes, idx.stop, side="left")
             else:
-                start = algos.searchsorted(level_codes, idx, side="left")
-                end = algos.searchsorted(level_codes, idx, side="right")
+                if idx == -1:
+                    idx = self._lexsort_na_code(level)
+                start = algos.searchsorted(sorted_codes, idx, side="left")
+                end = algos.searchsorted(sorted_codes, idx, side="right")
 
             if start == end:
                 # The label is present in self.levels[level] but unused:
@@ -4359,15 +4409,7 @@ class MultiIndex(Index):
                         # NaN labels are stored as code -1 and are absent
                         # from levels, so get_indexer returns -1 for them.
                         # Separate true missing labels from NaN labels.
-                        k_isna = np.asarray(
-                            isna(list(k) if isinstance(k, MultiIndex) else k)
-                        )
-                        if k_isna.shape != k_codes.shape:
-                            # GH#64807 k holds tuple-like labels, so isna() gave
-                            #  a result per tuple *element*. Left alone that
-                            #  either broadcasts against the codes silently or
-                            #  fails to; a tuple is never NA, so flatten it out.
-                            k_isna = np.zeros(len(k_codes), dtype=bool)
+                        k_isna = _key_isna(k, len(k_codes))
                         na_count = k_isna.sum()
                         missing_mask = k_codes == -1
                         # GH#64807 The non-NA labels the level does not have.
@@ -4477,7 +4519,10 @@ class MultiIndex(Index):
                     # If the index is lexsorted and the list_like label
                     # in seq are sorted then we do not need to sort
                     k_codes = self.levels[i].get_indexer(k)
-                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
+                    k_isna = _key_isna(k, len(k_codes))
+                    # NA keys match the -1 codes, which may sort last
+                    k_codes[k_isna] = self._lexsort_na_code(i)
+                    k_codes = k_codes[(k_codes >= 0) | k_isna]  # Filter absent keys
                     # True if the given codes are not ordered
                     need_sort = (k_codes[:-1] > k_codes[1:]).any()
                 else:
@@ -4578,7 +4623,8 @@ class MultiIndex(Index):
         new_levels[0] = new_levels[0][i:j]
 
         new_codes = [level_codes[left:right] for level_codes in self.codes]
-        new_codes[0] = new_codes[0] - i
+        # NaN rows sorted last keep code -1, GH#17931
+        new_codes[0] = np.where(new_codes[0] == -1, -1, new_codes[0] - i)
 
         return MultiIndex(
             levels=new_levels,
@@ -5144,6 +5190,19 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
         if libalgos.is_lexsorted(int64_codes[:k]):
             return k
     return 0
+
+
+def _key_isna(key, length: int) -> np.ndarray:
+    """
+    Boolean mask of the NA labels in a list-like key of ``length`` labels.
+    """
+    key_isna = np.asarray(isna(list(key) if isinstance(key, MultiIndex) else key))
+    if key_isna.shape != (length,):
+        # GH#64807 key holds tuple-like labels, so isna() gave a result per
+        #  tuple *element*. Left alone that either broadcasts against the codes
+        #  silently or fails to; a tuple is never NA, so flatten it out.
+        key_isna = np.zeros(length, dtype=bool)
+    return key_isna
 
 
 def sparsify_labels(label_list, codes, start: int = 0, sentinel: object = ""):

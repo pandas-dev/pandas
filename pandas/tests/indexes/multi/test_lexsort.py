@@ -1,3 +1,6 @@
+import numpy as np
+import pytest
+
 import pandas as pd
 
 
@@ -44,3 +47,13 @@ class TestLexsortDepth:
             levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=0
         )
         assert index._lexsort_depth == 0
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_lexsort_depth_sorted_with_nan(na_position):
+    # GH#17931
+    mi = pd.MultiIndex.from_arrays(
+        [["a", None, "b", "a"], [np.nan, 1, 1, 2], [1, 2, None, 4]]
+    )
+    result = mi.sort_values(na_position=na_position)
+    assert result._lexsort_depth == 3
