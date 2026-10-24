@@ -368,6 +368,7 @@ Other
 - Bug in :func:`eval`, :meth:`DataFrame.eval`, and :meth:`DataFrame.query` raising on some ``datetime64`` and ``timedelta64`` operations, e.g. ``df.query("time > @now - @delta")``, and returning ``float32`` for a ``float32`` column times a ``np.timedelta64`` (:issue:`30729`, :issue:`52559`)
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
+- Bug in :meth:`DataFrame.shift` raising ``NotImplementedError`` when called with ``freq`` on an empty :class:`DataFrame` (:issue:`71188`)
 
 .. ***DO NOT USE THIS SECTION***
 
