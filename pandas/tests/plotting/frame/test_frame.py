@@ -2376,6 +2376,26 @@ class TestDataFramePlots:
             kws={"x": "a", "y": "b"},
         )
 
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh", "hist", "box"])
+    @pytest.mark.parametrize(
+        "rc, expected",
+        [
+            ({"axes.grid.axis": "x"}, (True, False)),
+            ({"axes.grid.axis": "y"}, (False, True)),
+            ({"axes.grid.which": "minor"}, (False, False)),
+        ],
+    )
+    def test_grid_rcparams_axis_and_which(self, kind, rc, expected):
+        # GH#17725
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+        with mpl.rc_context({"axes.grid": True, **rc}):
+            ax = df.plot(kind=kind)
+        result = tuple(
+            any(tick.gridline.get_visible() for tick in axis.get_major_ticks())
+            for axis in [ax.xaxis, ax.yaxis]
+        )
+        assert result == expected
+
     def test_plain_axes(self):
         # supplied ax itself is a SubplotAxes, but figure contains also
         # a plain Axes object (GH11556)
