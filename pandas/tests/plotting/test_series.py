@@ -140,6 +140,15 @@ class TestSeriesPlots:
         assert xmin <= lines[0].get_data(orig=False)[0][0]
         assert xmax >= lines[0].get_data(orig=False)[0][-1]
 
+    def test_sharex_xlim_keeps_sibling_data(self):
+        # GH#14074
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series([1, 2, 3]).plot(ax=ax1)
+        pd.Series([0.5, 0.1]).plot(ax=ax2)
+        xmin, xmax = ax1.get_xlim()
+        assert xmin <= 0
+        assert xmax >= 2
+
     def test_ts_area_lim(self, ts):
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.area(stacked=False, ax=ax)

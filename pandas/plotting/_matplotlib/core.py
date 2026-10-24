@@ -1682,6 +1682,18 @@ class LinePlot(MPLPlot):
                 format_dateaxis(ax, ax.freq, index)  # type: ignore[attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
+                # don't cut off data on sharex siblings; siblings at another
+                # freq hold x-values in other units, GH#14074
+                for sibling in ax.get_shared_x_axes().get_siblings(ax):
+                    sibling_freq = getattr(sibling, "freq", None)
+                    if (
+                        sibling is not ax
+                        and sibling_freq == ax.freq  # type: ignore[attr-defined]
+                        # set by ax.clear(), which leaves a stale dataLim
+                        and not sibling.ignore_existing_data_limits
+                    ):
+                        sib_left, sib_right = sibling.dataLim.intervalx
+                        left, right = min(left, sib_left), max(right, sib_right)
                 ax.set_xlim(left, right)
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"

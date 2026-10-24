@@ -1916,6 +1916,50 @@ class TestTSPlot:
         assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
         assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
+    @pytest.mark.parametrize("index_func", [date_range, period_range])
+    def test_regular_ts_sharex_xlim(self, index_func):
+        # GH#14074 plotting a shorter series on a sharex sibling should not
+        # truncate the longer one
+        idx = index_func("2020-01-01", periods=5, freq="D")
+        ser_long = pd.Series(range(5), index=idx)
+        ser_short = pd.Series(range(2), index=idx[:2])
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        ser_long.plot(ax=ax1)
+        # x-data in axes coordinates, must not count toward the limits
+        ax1.axhline(0)
+        ser_short.plot(ax=ax2)
+
+        expected = (ax1.lines[0].get_xdata()[0], ax1.lines[0].get_xdata()[-1])
+        assert ax1.get_xlim() == expected
+        assert ax2.get_xlim() == expected
+
+    def test_regular_ts_sharex_xlim_other_freq(self):
+        # GH#14074 a sibling plotted at another freq holds x-values in other
+        # units, so it does not widen the limits
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series(range(3), index=period_range("2020-01", periods=3, freq="M")).plot(
+            ax=ax1
+        )
+        ser = pd.Series(range(5), index=period_range("2020-01-01", periods=5, freq="D"))
+        ser.plot(ax=ax2)
+
+        assert ax2.freq == "D"
+        assert ax2.get_xlim() == (ser.index[0].ordinal, ser.index[-1].ordinal)
+
+    def test_regular_ts_sharex_xlim_cleared_sibling(self):
+        # GH#14074 a cleared sibling has no data to keep in view
+        idx = date_range("2020-01-01", periods=5, freq="D")
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series(range(5), index=idx).plot(ax=ax1)
+        ax1.clear()
+        pd.Series(range(2), index=idx[:2]).plot(ax=ax2)
+
+        assert ax2.get_xlim() == (
+            ax2.lines[0].get_xdata()[0],
+            ax2.lines[0].get_xdata()[-1],
+        )
+
     def test_secondary_y_non_ts_xlim(self):
         # GH 3490 - non-timeseries with secondary y
         index_1 = [1, 2, 3, 4]
