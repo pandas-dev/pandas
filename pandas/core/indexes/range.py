@@ -45,7 +45,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
 )
-from pandas.core.dtypes.generic import ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+    ABCTimedeltaIndex,
+)
 
 from pandas.core import ops
 import pandas.core.common as com
@@ -85,6 +90,66 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     no_steps = -(-(lower_limit - start) // abs(step))
     return start + abs(step) * no_steps
 
+def _exact_int64_targets(values: Axes | set[Any]) -> npt.NDArray[np.int64] | None:
+    """
+    Convert the values passed to ``RangeIndex.isin`` to exact int64 targets.
+
+    A RangeIndex only holds int64 integers, so ``isin`` can find matches with
+    integer arithmetic instead of building its full array (GH#66263). That is
+    only safe when every value is exactly representable as an int64.
+
+    Values that can never equal an int64 (e.g. ``1.5``, ``nan``, ``inf``, or
+    unsigned integers above the int64 maximum) are dropped. If anything else
+    cannot be converted exactly (e.g. complex numbers, strings, ``None``,
+    ``pd.NA``, extension arrays or floats at or above 2**53), None is returned
+    and the caller should fall back to ``Index.isin``.
+    """
+    if isinstance(values, (ABCIndex, ABCSeries)):
+        inner = values._values
+    else:
+        inner = values
+
+    if isinstance(inner, ABCExtensionArray):
+        # e.g. nullable "Int64" or Categorical
+        return None
+
+    if isinstance(inner, np.ndarray):
+        arr = inner
+    else:
+        try:
+            len(inner)
+        except TypeError:
+            # e.g. a generator, which can only be read once
+            return None
+        # a set would otherwise be wrapped by np.asarray as a single object
+        seq = inner if isinstance(inner, list) else list(inner)
+        try:
+            arr = np.asarray(seq)
+        except (TypeError, ValueError):
+            # e.g. a ragged nested list
+            return None
+
+    if arr.ndim != 1:
+        return None
+
+    kind = arr.dtype.kind
+    if kind in "bi" or (kind == "u" and arr.dtype.itemsize < 8):
+        return arr.astype(np.int64, copy=False)
+    if kind == "u":
+        # uint64 values above the int64 maximum can never match
+        return arr[arr <= np.iinfo(np.int64).max].astype(np.int64)
+    if kind == "f" and arr.dtype.itemsize <= 8:
+        # float16 cannot hold 2**53, so compare in float64
+        floats = arr.astype(np.float64, copy=False)
+        # nan and inf never match
+        floats = floats[np.isfinite(floats)]
+        if floats.size and np.abs(floats).max() >= 2**53:
+            # not every integer is exact as a float64 here, and a mixed list
+            # may already have been rounded, e.g. np.asarray([2**53 + 3, 1.5])
+            return None
+        # non-integral floats such as 1.5 never match
+        return floats[floats == np.trunc(floats)].astype(np.int64)
+    return None
 
 @set_module("pandas")
 class RangeIndex(Index):
