@@ -184,6 +184,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
+- Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
 - Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
 - Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting integer and boolean columns when the equal values were only in rows dropped from the result (:issue:`39899`)
 - Bug in :meth:`DataFrame.from_records` not dropping the ``exclude`` and ``index`` columns when all of their labels were falsy, such as ``0`` (:issue:`18679`)
