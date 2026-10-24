@@ -43,8 +43,11 @@ from typing import (
     overload,
 )
 from urllib.parse import (
+    quote,
     urljoin,
     urlparse as parse_url,
+    urlsplit,
+    urlunsplit,
     uses_netloc,
     uses_params,
     uses_relative,
@@ -286,6 +289,27 @@ def urlopen(*args: Any, **kwargs: Any) -> Any:
     return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
 
 
+_NON_ASCII = re.compile(r"[^\x00-\x7f]+")
+
+
+def _quote_non_ascii_url(url: str) -> str:
+    """
+    Percent-encode non-ASCII characters in an HTTP(S) URL's path, query and fragment.
+
+    Other schemes already handle non-ASCII URLs and are returned unchanged.
+    """
+    if url.isascii():
+        return url
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https"):
+        # e.g. Python 3.11 urlunsplit turns "file:sub/x" into "file:///sub/x"
+        return url
+    quoted = [
+        _NON_ASCII.sub(lambda match: quote(match.group()), part) for part in parts[2:]
+    ]
+    return urlunsplit((*parts[:2], *quoted))
+
+
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     """
     Returns true if the given URL looks like
@@ -419,8 +443,10 @@ def _get_filepath_or_buffer(
         # urlopen function defined elsewhere in this module
         import urllib.request
 
+        # GH#21499 http.client requires an ASCII request line
+        url = _quote_non_ascii_url(filepath_or_buffer)
         # assuming storage_options is to be interpreted as headers
-        req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
+        req_info = urllib.request.Request(url, headers=storage_options)
         with urlopen(req_info) as req:
             content_encoding = req.headers.get("Content-Encoding", None)
             if content_encoding == "gzip":
