@@ -1831,6 +1831,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         if min_count == 0 and skipna and isinstance(result, np.ndarray):
             return self._maybe_mask_result(result, np.zeros(result.shape, dtype=bool))
+        if min_count > 1 and isinstance(result, np.ndarray):
+            if skipna:
+                mask = (~self._mask).sum(axis=axis) < min_count
+            else:
+                mask = self._mask.any(axis=axis) | (self.shape[axis] < min_count)
+            return self._maybe_mask_result(result, mask)
         return self._wrap_reduction_result(name, result, skipna=skipna, axis=axis)
 
     def sum(

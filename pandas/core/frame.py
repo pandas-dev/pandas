@@ -17122,6 +17122,26 @@ class DataFrame(NDFrame, OpsMixin):
                     arr = concat_compat(list(df._iter_column_arrays()))
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
+                    if name in ("sum", "prod", "min", "max"):
+                        from pandas.core.arrays.arrow.array import (
+                            ArrowExtensionArray,
+                        )
+
+                        masked = arr
+                        if isinstance(dtype, ArrowDtype) and (
+                            dtype.kind in "iub"
+                            or dtype.numpy_dtype in (np.float32, np.float64)
+                        ):
+                            assert isinstance(arr, ArrowExtensionArray)
+                            masked = arr._to_masked()
+                        if isinstance(masked, BaseMaskedArray):
+                            # arr is the column-major flattened frame
+                            res_values = masked.reshape(ncols, nrows)._reduce(
+                                name, axis=0, skipna=skipna, **kwds
+                            )
+                            if isinstance(arr, ArrowExtensionArray):
+                                res_values = arr._groupby_result_to_arrow(res_values)
+                            return Series(res_values, index=df.index)
                     row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     if name in ("idxmin", "idxmax"):
                         if not skipna and arr.isna().any():
