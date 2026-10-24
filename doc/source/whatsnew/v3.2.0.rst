@@ -322,6 +322,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
+- Bug in :func:`concat` raising ``ValueError`` when tuple ``keys`` contain a missing value such as ``None`` (:issue:`57993`)
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
 - Bug in :meth:`DataFrame.pivot` and :func:`pivot` with a list of ``values`` casting the pivoted columns to a common dtype, e.g. integers to ``float64`` or ``object`` (:issue:`43547`)
