@@ -120,6 +120,7 @@ Other deprecations
 - Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, ``cummax``, ``clip``, and the comparisons ``<``, ``<=``, ``>``, ``>=`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`, :issue:`70087`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
+- Deprecated passing a list-like ``name`` to :meth:`Index.copy`; pass the label itself instead (:issue:`19171`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
 - Deprecated setting an out-of-bounds numpy scalar into an array of a numpy-nullable integer dtype. The value is currently stored altered to fit (``np.int64(-1)`` becomes ``255`` in ``UInt8``); in a future version this will raise, as it already does for a Python integer. Cast the array to a dtype that can hold the value first (:issue:`48867`)
 - Deprecated the :class:`DataFrame` constructor, :meth:`DataFrame.from_dict` with ``orient="index"``, and :meth:`DataFrame.from_records` splitting a ``str`` or ``bytes`` row into its elements when the first row is list-like; in a future version this will raise ``TypeError``. Pass ``list(row)`` instead (:issue:`50461`)
@@ -219,6 +220,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` for a ``True`` or ``False`` label present in an object-dtype :class:`Index` or the first level of a :class:`MultiIndex` (:issue:`50165`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` slicing with an integer or float bound that is not in the index: an object-dtype index of numbers (e.g. :class:`decimal.Decimal`) raised ``TypeError`` instead of slicing by sort order, and a non-monotonic index of non-string values raised ``TypeError`` instead of ``KeyError`` (:issue:`70295`)
+- Bug in :meth:`Index.copy` treating a tuple ``name`` as a list of names (:issue:`19171`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
 
 Missing
