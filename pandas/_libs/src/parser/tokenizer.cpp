@@ -932,9 +932,8 @@ typedef enum {
 static block_lane_status block_lane_finish(parser_t *self, int64_t lane_start_i,
                                            int64_t i, int64_t *ip) {
   if (i != lane_start_i) {
-    // Only reset the state when the lane consumed input; a no-progress
-    // exit must preserve states like the post-WHITESPACE_LINE
-    // START_FIELD, or the machine and the lane ping-pong forever.
+    // Only reset the state when the lane consumed input; after a
+    // no-progress exit the machine resumes in its own state.
     if (self->stream_len != (uint64_t)self->word_start) {
       self->state = IN_FIELD;
     } else if (self->line_fields[self->lines] > 0) {
@@ -1392,6 +1391,13 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       break;
 
     case WHITESPACE_LINE:
+      // Hold the line's leading blanks in the stream; backtracking over buf
+      // loses those read before a buffer refill (GH#34085).
+      if (IS_TERMINATOR(c) || IS_CARRIAGE(c) || IS_COMMENT_CHAR(c)) {
+        // the line is skipped: discard the held blanks
+        slen = self->word_start;
+        stream = self->stream + slen;
+      }
       if (IS_TERMINATOR(c)) {
         self->file_lines++;
         self->state = START_RECORD;
@@ -1404,21 +1410,18 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         self->state = EAT_LINE_COMMENT;
         break;
       } else if (!self->delim_whitespace) {
-        if (isblank(c) && c != self->delimiter) {
-        } else { // backtrack
-          // use i + 1 because buf has been incremented but not i
-          do {
-            --buf;
-            --i;
-          } while (i + 1 > self->datapos && !IS_TERMINATOR(*buf) &&
-                   !IS_CARRIAGE(*buf));
-
-          // reached a newline/carriage return rather than the beginning
-          if (IS_TERMINATOR(*buf) || IS_CARRIAGE(*buf)) {
-            ++buf; // move pointer to first char after newline
-            ++i;
+        const bool at_field_start = slen == (uint64_t)self->word_start;
+        // a blank escapechar, or quotechar opening a field, ends the blanks
+        if (isblank(c) && c != self->delimiter && !IS_ESCAPE_CHAR(c) &&
+            !(IS_QUOTE(c) && at_field_start)) {
+          // as START_FIELD would: skipinitialspace drops spaces at field start
+          if (!(IS_SKIPPABLE_SPACE(c) && at_field_start)) {
+            PUSH_CHAR(c);
           }
-          self->state = START_FIELD;
+        } else {
+          self->state = at_field_start ? START_FIELD : IN_FIELD;
+          --i;
+          --buf; // parse this character again in the field state
         }
         break;
       }
@@ -1488,7 +1491,11 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             self->state = EAT_WHITESPACE;
           }
           break;
-        } else if (c != self->delimiter && self->skip_empty_lines) {
+        } else if (c != self->delimiter && !IS_QUOTE(c) && !IS_ESCAPE_CHAR(c) &&
+                   self->skip_empty_lines) {
+          if (!IS_SKIPPABLE_SPACE(c)) {
+            PUSH_CHAR(c);
+          }
           self->state = WHITESPACE_LINE;
           break;
         }
