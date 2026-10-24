@@ -335,6 +335,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`.ArrowExtensionArray.factorize` ignoring ``use_na_sentinel=True`` for dictionary-encoded PyArrow data that stores nulls as dictionary values, keeping the null in the returned ``uniques`` or raising ``ArrowInvalid`` for chunked data (:issue:`66490`)
+- Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.aggregate` where a single callable reducing each column (or row) of a nullable- or PyArrow-backed frame to a scalar gave a NumPy-dtyped result, e.g. ``float64`` rather than ``double[pyarrow]`` (:issue:`61812`)
 - Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on PyArrow-backed dtypes raising when ``values`` held a mix of types PyArrow cannot combine (:issue:`70300`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
 - Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`)
