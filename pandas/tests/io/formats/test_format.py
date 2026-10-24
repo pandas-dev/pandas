@@ -1416,6 +1416,40 @@ class TestDataFrameFormatting:
         result = formatter.max_rows_fitted
         assert result == expected
 
+    def test_to_string_min_rows_one(self):
+        # GH#64824: room for a single row left no tail half to show, so the
+        # frame fell back to max_rows and printed five rows for min_rows=1.
+        df = pd.DataFrame({"a": [1.1] * 10})
+
+        result = df.to_string(max_rows=5, min_rows=1)
+
+        expected = "      a\n0   1.1\n..  ..."
+        assert result == expected
+
+    def test_to_string_min_rows_one_matches_series(self):
+        # GH#64824: SeriesFormatter already special-cased the single row; the
+        # two formatters should not disagree about what min_rows=1 means.
+        df = pd.DataFrame({"a": [1.1] * 10})
+        ser = pd.Series([1.1] * 10)
+
+        df_rows = df.to_string(max_rows=5, min_rows=1).count("1.1")
+        ser_rows = ser.to_string(max_rows=5, min_rows=1).count("1.1")
+
+        assert df_rows == ser_rows == 1
+
+    def test_repr_one_row_fits_terminal(self, monkeypatch):
+        # GH#64824: a terminal with room for exactly one data row hit the same
+        # branch and truncated the frame to nothing.
+        df = pd.DataFrame({"a": [1.1] * 10})
+        monkeypatch.setattr(fmt, "get_terminal_size", lambda: (80, 4))
+
+        formatter = fmt.DataFrameFormatter(
+            df, max_rows=0, min_rows=None, show_dimensions=False
+        )
+
+        assert formatter.max_rows_fitted == 1
+        assert len(formatter.tr_frame) == 1
+
 
 def gen_series_formatting():
     s1 = pd.Series(["a"] * 100)
