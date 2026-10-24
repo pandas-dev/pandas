@@ -937,3 +937,26 @@ def test_na_values_prefilter_edge_cases(all_parsers, na_values, data, expected_v
     result = parser.read_csv(StringIO("col\n" + data), na_values=na_values)
     expected = pd.DataFrame({"col": expected_values})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "key, expected", [(1, [np.nan, 3.0]), (-1, [7, 3]), (5, [7, 3])]
+)
+def test_na_values_integer_key_index_col(all_parsers, key, expected):
+    # GH#18566 negative and out-of-range keys are ignored for the index,
+    #  see GH#57944
+    parser = all_parsers
+    data = "a,b\n1,7\n2,3"
+    if parser.engine == "pyarrow":
+        msg = "The pyarrow engine doesn't support passing a dict for na_values"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), index_col=1, na_values={key: ["7"]})
+        return
+    if key == 5 and parser.engine == "python":
+        # python raises for out-of-range keys on the data columns
+        with pytest.raises(IndexError, match="out of range"):
+            parser.read_csv(StringIO(data), index_col=1, na_values={key: ["7"]})
+        return
+    result = parser.read_csv(StringIO(data), index_col=1, na_values={key: ["7"]})
+    expected = pd.DataFrame({"a": [1, 2]}, index=pd.Index(expected, name="b"))
+    tm.assert_frame_equal(result, expected)

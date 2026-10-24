@@ -181,3 +181,17 @@ def test_empty_dtype(all_parsers, dtype, expected):
 
     result = parser.read_csv(StringIO(data), header=0, dtype=dtype)
     tm.assert_frame_equal(result, expected)
+
+
+def test_empty_multi_header_pass_dtype_by_numpy_int(all_parsers):
+    # GH#18566
+    parser = all_parsers
+    data = "a,b,c\nA,B,C\n"
+    if parser.engine == "pyarrow":
+        msg = "does not support a list of integers for the 'header' argument"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), header=[0, 1], dtype={np.int64(2): "f"})
+        return
+    result = parser.read_csv(StringIO(data), header=[0, 1], dtype={np.int64(2): "f"})
+    expected = parser.read_csv(StringIO(data), header=[0, 1], dtype={("c", "C"): "f"})
+    tm.assert_frame_equal(result, expected)
