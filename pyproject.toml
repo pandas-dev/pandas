@@ -485,6 +485,8 @@ filterwarnings = [
   "ignore:Couldn't import C tracer",
   # From gcsfs, via google/auth/transport/grpc.py. Possibly removable in "October 2026" when google bumps grpcio min version.
   "ignore:.*grpcio.*Post-Quantum Cryptography:FutureWarning",
+  # From gcsfs, via google.api_core on Python 3.11; removable when we drop 3.11 support.
+  "ignore:You are using a Python version .* which Google will stop supporting:FutureWarning",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
 ]
