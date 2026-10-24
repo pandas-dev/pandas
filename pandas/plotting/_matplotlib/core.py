@@ -1924,6 +1924,8 @@ class AreaPlot(LinePlot):
 
 
 class BarPlot(MPLPlot):
+    _default_bar_width = object()
+
     @property
     def _kind(self) -> Literal["bar", "barh"]:
         return "bar"
@@ -1941,7 +1943,7 @@ class BarPlot(MPLPlot):
         align="center",
         bottom=0,
         left=0,
-        width=0.5,
+        width=_default_bar_width,
         position=0.5,
         log=False,
         **kwargs,
@@ -1949,7 +1951,8 @@ class BarPlot(MPLPlot):
         # we have to treat a series differently than a
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
-        self.bar_width = width
+        self._bar_width_is_default = width is self._default_bar_width
+        self.bar_width = 0.5 if self._bar_width_is_default else width
         self._align = align
         self._position = position
 
@@ -1975,8 +1978,62 @@ class BarPlot(MPLPlot):
                 # date tick labels placed by the dynamic locator read like
                 # those of a line plot, so match the line-plot default
                 self.rot = 0
+        elif self._numeric_index_positions is not None:
+            self.tick_pos = self._numeric_index_positions
+            if self._bar_width_is_default:
+                self.bar_width *= self._numeric_index_spacing
         else:
             self.tick_pos = np.arange(len(data))
+
+    @cache_readonly
+    def _numeric_index_positions(self) -> np.ndarray | None:
+        index = self.data.index
+        if (
+            not self.use_index
+            or index.dtype.kind == "b"
+            or not is_any_real_numeric_dtype(index.dtype)
+            or not index.is_monotonic_increasing
+        ):
+            return None
+
+        positions = index.to_numpy()
+        float_positions = index.to_numpy(dtype=np.float64, na_value=np.nan)
+        if not np.isfinite(float_positions).all():
+            return None
+
+        # Matplotlib ultimately converts coordinates to float64. At this scale,
+        # even distinct integer centers or bar edges can collapse together.
+        if is_integer_dtype(index.dtype) and np.any(np.abs(float_positions) >= 2**53):
+            return None
+        unique_positions = np.unique(float_positions)
+        if len(unique_positions) < 2:
+            spacing = 1.0
+        else:
+            with np.errstate(over="ignore"):
+                spacing = float(np.diff(unique_positions).min())
+            if not np.isfinite(spacing):
+                return None
+        if self._bar_width_is_default:
+            half_width = 0.25 * spacing
+            if np.any(float_positions - half_width == float_positions) or np.any(
+                float_positions + half_width == float_positions
+            ):
+                return None
+        if positions.dtype.kind in "iu":
+            return positions
+        return float_positions
+
+    @cache_readonly
+    def _numeric_index_spacing(self) -> float:
+        positions = self._numeric_index_positions
+        if positions is None or len(positions) < 2:
+            return 1.0
+
+        gaps = np.diff(np.unique(np.asarray(positions, dtype=np.float64)))
+        positive_gaps = gaps[gaps > 0]
+        if len(positive_gaps) == 0:
+            return 1.0
+        return float(positive_gaps.min())
 
     @cache_readonly
     def _ts_freq(self) -> BaseOffset:
@@ -2247,8 +2304,16 @@ class BarPlot(MPLPlot):
         format_dateaxis(ax, self._ts_freq, data.index, anchor=int(self.tick_pos[0]))
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
-        s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
-        e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
+        if self._numeric_index_positions is not None:
+            start = self.ax_pos.min()
+            end = self.ax_pos.max()
+            padding = 0.25 * self._numeric_index_spacing
+        else:
+            start = self.ax_pos[0]
+            end = self.ax_pos[-1]
+            padding = 0.25
+        s_edge = start - padding + self.lim_offset
+        e_edge = end + padding + self.bar_width + self.lim_offset
 
         # GH#1918: use the same dynamic date tick labeling as line plots
         if self._use_dynamic_dateaxis:
@@ -2285,12 +2350,14 @@ class BarPlot(MPLPlot):
         end_edge: float,
     ) -> None:
         ax.set_xlim((start_edge, end_edge))
-
         if self.xticks is not None:
             ax.set_xticks(np.array(self.xticks))
         else:
             ax.set_xticks(self.tick_pos)
             ax.set_xticklabels(ticklabels)
+
+        if self.xlim is not None:
+            ax.set_xlim(self.xlim)
 
         if name is not None and self.use_index:
             ax.set_xlabel(name)
@@ -2338,8 +2405,13 @@ class BarhPlot(BarPlot):
     ) -> None:
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
-        ax.set_yticks(self.tick_pos)
-        ax.set_yticklabels(ticklabels)
+        if self.yticks is not None:
+            ax.set_yticks(np.array(self.yticks))
+        else:
+            ax.set_yticks(self.tick_pos)
+            ax.set_yticklabels(ticklabels)
+        if self.ylim is not None:
+            ax.set_ylim(self.ylim)
         if name is not None and self.use_index:
             ax.set_ylabel(name)
         # error: Argument 1 to "set_xlabel" of "_AxesBase" has incompatible type
