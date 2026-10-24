@@ -4911,12 +4911,17 @@ class DataFrame(NDFrame, OpsMixin):
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
-                    # GH#71078 reshape/repeat rather than np.tile, which would
-                    #  degrade a 2-D-capable EA (tz-aware datetime64, period)
-                    #  to object. repeat(axis=) is not in the _supports_2d
-                    #  contract, only NDArrayBacked honours it; see GH#69153
+                    # GH#71078 not np.tile, which degrades a 2-D-capable EA to
+                    #  object
                     ncols = len(existing_piece.columns)
-                    value = value.reshape(1, -1).repeat(ncols, axis=0).T
+                    if isinstance(value, np.ndarray):
+                        value = value.reshape(1, -1).repeat(ncols, axis=0).T
+                    else:
+                        # not repeat(axis=), which is outside the _supports_2d
+                        #  contract (GH#69153)
+                        value = value._concat_same_type(
+                            [value.reshape(1, -1)] * ncols
+                        ).T
                     refs = None
 
         self._set_item_mgr(key, value, refs)

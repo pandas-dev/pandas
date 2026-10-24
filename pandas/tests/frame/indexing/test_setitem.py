@@ -19,7 +19,11 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import SparseArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    SparseArray,
+)
 
 from pandas.tseries.offsets import BDay
 
@@ -1643,6 +1647,19 @@ def test_setitem_key_matching_several_columns_2d_capable_ea(value, columns):
             tm.assert_series_equal(df.iloc[:, pos], value, check_names=False)
         else:
             tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
+
+
+def test_setitem_key_matching_several_columns_2d_ea_base_repeat(monkeypatch):
+    # GH#69153 a 2-D-capable EA need not accept repeat(axis=); stand in for one
+    #  that inherits the base ExtensionArray.repeat
+    monkeypatch.setattr(DatetimeArray, "repeat", ExtensionArray.repeat)
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "a", "b"])
+    value = pd.Series(pd.date_range("2030", periods=3, tz="UTC"))
+
+    df["a"] = value
+
+    tm.assert_series_equal(df.iloc[:, 0], value, check_names=False)
+    tm.assert_series_equal(df.iloc[:, 1], value, check_names=False)
 
 
 @pytest.mark.parametrize(
