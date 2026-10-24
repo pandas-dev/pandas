@@ -50,6 +50,41 @@ cdef type ZoneInfo = zoneinfo.ZoneInfo
 
 # ----------------------------------------------------------------------
 
+cdef inline tzinfo _parse_tz_offset(str offset):
+    """Parse an ISO 8601 UTC offset like +HH, +HHMM, or +HH:MM."""
+    cdef:
+        int hours, minutes
+        bint negative = offset[0] == "-"
+        str offset_body = offset[1:]
+
+    if offset_body[2:3] == ":":
+        if len(offset_body) != 5:
+            raise ValueError(f"Invalid timezone offset: {offset}")
+        offset_body = offset_body[:2] + offset_body[3:]
+
+    if (
+        len(offset_body) not in (2, 4)
+        or not offset_body.isascii()
+        or not offset_body.isdigit()
+    ):
+        raise ValueError(f"Invalid timezone offset: {offset}")
+
+    hours = int(offset_body[:2])
+    if len(offset_body) == 4:
+        minutes = int(offset_body[2:])
+    else:
+        minutes = 0
+
+    if hours > 23 or minutes > 59:
+        raise ValueError(f"Invalid timezone offset: {offset}")
+
+    if negative:
+        return timezone(-timedelta(hours=hours, minutes=minutes))
+    return timezone(timedelta(hours=hours, minutes=minutes))
+
+
+# ----------------------------------------------------------------------
+
 cdef bint is_utc_zoneinfo(tzinfo tz):
     # Workaround for cases with missing tzdata
     #  https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
@@ -148,13 +183,9 @@ cpdef inline tzinfo maybe_get_tz(object tz):
             if isinstance(tz, _dateutil_tzfile) and ".tar.gz" in tz._filename:
                 tz._filename = zone
         elif tz[0] in {"-", "+"}:
-            hours = int(tz[0:3])
-            minutes = int(tz[0] + tz[4:6])
-            tz = timezone(timedelta(hours=hours, minutes=minutes))
+            tz = _parse_tz_offset(tz)
         elif tz[0:4] in {"UTC-", "UTC+"}:
-            hours = int(tz[3:6])
-            minutes = int(tz[3] + tz[7:9])
-            tz = timezone(timedelta(hours=hours, minutes=minutes))
+            tz = _parse_tz_offset(tz[3:])
         elif tz == "UTC" or tz == "utc":
             tz = utc_stdlib
         else:

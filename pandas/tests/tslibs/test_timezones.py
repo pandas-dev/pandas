@@ -220,6 +220,46 @@ def test_maybe_get_tz_offset_only():
     assert tz == timezone(-timedelta(hours=2, minutes=45))
 
 
+@pytest.mark.parametrize(
+    "offset, expected",
+    [
+        ("+0930", timezone(timedelta(hours=9, minutes=30))),
+        ("+0545", timezone(timedelta(hours=5, minutes=45))),
+        ("-0545", timezone(-timedelta(hours=5, minutes=45))),
+        ("+09", timezone(timedelta(hours=9))),
+        ("UTC+0930", timezone(timedelta(hours=9, minutes=30))),
+        ("UTC-0545", timezone(-timedelta(hours=5, minutes=45))),
+    ],
+)
+def test_maybe_get_tz_offset_without_colon(offset, expected):
+    # GH#41865
+    result = timezones.maybe_get_tz(offset)
+    assert result == expected
+
+    # ensure the public constructor and tz_localize use the same parser
+    assert pd.Timestamp(0, tz=offset) == pd.Timestamp(0, tz=expected)
+    localized = pd.DatetimeIndex(["2020-01-01"]).tz_localize(offset)
+    assert localized[0].utcoffset() == expected.utcoffset(None)
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        "+09%30abcdef1234",
+        "UTC+09%30abcdef1234",
+        "+09:3",
+        "+093",
+        "+09:60",
+        "+24:00",
+    ],
+)
+def test_maybe_get_tz_invalid_offset(offset):
+    # GH#41865
+    msg = "Invalid timezone offset"
+    with pytest.raises(ValueError, match=msg):
+        timezones.maybe_get_tz(offset)
+
+
 def test_zoneinfo_utc_to_local_post_2037():
     # GH#64363 - verify that ZoneInfo DST transitions after 2037
     # (generated from POSIX TZ string rules) produce correct local times.
