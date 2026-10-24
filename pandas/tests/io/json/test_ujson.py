@@ -129,6 +129,25 @@ class TestUltraJSONTests:
         num = -1e-145
         assert np.allclose(num, ujson.ujson_loads(ujson.ujson_dumps(num)))
 
+    @pytest.mark.parametrize(
+        "value, double_precision, expected",
+        [
+            (np.finfo(np.float64).max, 0, "1.79769e+308"),
+            (np.finfo(np.float64).max, 10, "1.79769313486e+308"),
+            (np.finfo(np.float64).max, 15, "1.7976931348623157e+308"),
+            (1.7e308, 1, "1.7e+308"),
+            (1.5e308, 10, "1.5e+308"),
+        ],
+    )
+    @pytest.mark.parametrize("sign", [1, -1])
+    def test_encode_double_near_max(self, value, double_precision, expected, sign):
+        # GH#21454 add digits only when rounding to double_precision would
+        # overflow to inf
+        output = ujson.ujson_dumps(sign * value, double_precision=double_precision)
+        if sign == -1:
+            expected = f"-{expected}"
+        assert output == expected
+
     @pytest.mark.parametrize("unicode_key", ["key1", "بن"])
     def test_encode_dict_with_unicode_keys(self, unicode_key):
         unicode_dict = {unicode_key: "value1"}
