@@ -274,6 +274,7 @@ int parser_init(parser_t *self) {
   self->lines_cap = sz;
   self->lines = 0;
   self->file_lines = 0;
+  self->in_leading_skip = 1;
 
   if (self->stream == NULL || self->word_ends == NULL ||
       self->line_start == NULL || self->line_fields == NULL) {
@@ -1346,7 +1347,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       } else if (IS_CARRIAGE(c)) {
         self->file_lines++;
         self->state = EAT_CRNL_NOP;
-      } else if (IS_QUOTE(c)) {
+      } else if (IS_QUOTE(c) && !self->in_leading_skip) {
         self->state = IN_QUOTED_FIELD_IN_SKIP_LINE;
       } else if (IS_DELIMITER(c)) {
         // Do nothing, we're starting a new field again.
@@ -1451,7 +1452,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       if (should_skip == -1) {
         goto parsingerror;
       } else if (should_skip) {
-        if (IS_QUOTE(c)) {
+        if (IS_QUOTE(c) && !self->in_leading_skip) {
           self->state = IN_QUOTED_FIELD_IN_SKIP_LINE;
         } else {
           self->state = IN_FIELD_IN_SKIP_LINE;
@@ -1461,7 +1462,9 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
           }
         }
         break;
-      } else if (IS_TERMINATOR(c)) {
+      }
+      self->in_leading_skip = 0;
+      if (IS_TERMINATOR(c)) {
         // \n\r possible?
         if (self->skip_empty_lines) {
           self->file_lines++;
