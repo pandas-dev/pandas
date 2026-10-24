@@ -9,7 +9,7 @@ import pandas as pd
         (pd.Timedelta(10, unit="D"), "Timedelta('10 days 00:00:00')"),
         (pd.Timedelta(10, unit="s"), "Timedelta('0 days 00:00:10')"),
         (pd.Timedelta(10, unit="ms"), "Timedelta('0 days 00:00:00.010000')"),
-        (pd.Timedelta(-10, unit="ms"), "Timedelta('-1 days +23:59:59.990000')"),
+        (pd.Timedelta(-10, unit="ms"), "Timedelta('-0 days 00:00:00.010000')"),
     ],
 )
 def test_repr(td, expected_repr):
@@ -58,9 +58,9 @@ class TestReprBase:
         assert drepr(delta_1s) == "0 days 00:00:01"
         assert drepr(delta_500ms) == "0 days 00:00:00.500000"
         assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
+        assert drepr(-delta_1d + delta_1s) == "-0 days 23:59:59"
         assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
+        assert drepr(-delta_1d + delta_500ms) == "-0 days 23:59:59.500000"
 
     def test_sub_day(self):
         delta_1d = pd.Timedelta(1, unit="D")
@@ -75,9 +75,9 @@ class TestReprBase:
         assert drepr(delta_1s) == "00:00:01"
         assert drepr(delta_500ms) == "00:00:00.500000"
         assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
+        assert drepr(-delta_1d + delta_1s) == "-23:59:59"
         assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
+        assert drepr(-delta_1d + delta_500ms) == "-23:59:59.500000"
 
     def test_long(self):
         delta_1d = pd.Timedelta(1, unit="D")
@@ -87,14 +87,14 @@ class TestReprBase:
 
         drepr = lambda x: x._repr_base(format="long")
         assert drepr(delta_1d) == "1 days 00:00:00"
-        assert drepr(-delta_1d) == "-1 days +00:00:00"
+        assert drepr(-delta_1d) == "-1 days 00:00:00"
         assert drepr(delta_0d) == "0 days 00:00:00"
         assert drepr(delta_1s) == "0 days 00:00:01"
         assert drepr(delta_500ms) == "0 days 00:00:00.500000"
         assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
+        assert drepr(-delta_1d + delta_1s) == "-0 days 23:59:59"
         assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
+        assert drepr(-delta_1d + delta_500ms) == "-0 days 23:59:59.500000"
 
     def test_all(self):
         delta_1d = pd.Timedelta(1, unit="D")
@@ -103,7 +103,7 @@ class TestReprBase:
 
         drepr = lambda x: x._repr_base(format="all")
         assert drepr(delta_1d) == "1 days 00:00:00.000000000"
-        assert drepr(-delta_1d) == "-1 days +00:00:00.000000000"
+        assert drepr(-delta_1d) == "-1 days 00:00:00.000000000"
         assert drepr(delta_0d) == "0 days 00:00:00.000000000"
         assert drepr(delta_1ns) == "0 days 00:00:00.000000001"
-        assert drepr(-delta_1d + delta_1ns) == "-1 days +00:00:00.000000001"
+        assert drepr(-delta_1d + delta_1ns) == "-0 days 23:59:59.999999999"
