@@ -1719,8 +1719,10 @@ class Styler(StylerRenderer):
         0  1.2
         1  2.0
         """
-        rows = [r for r in range(len(self.index)) if r not in self.hidden_rows]
-        cols = [c for c in range(len(self.columns)) if c not in self.hidden_columns]
+        hidden_rows = set(self.hidden_rows)
+        hidden_cols = set(self.hidden_columns)
+        rows = [r for r in range(len(self.index)) if r not in hidden_rows]
+        cols = [c for c in range(len(self.columns)) if c not in hidden_cols]
 
         # iterate as _translate_body does, so formatters get the same scalars
         values = list(self.data.itertuples(index=False, name=None))
