@@ -933,7 +933,7 @@ def test_dict_keys_as_names(all_parsers):
 
 
 @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
-@xfail_pyarrow  # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0
+@xfail_pyarrow  # ValueError: The 'encoding_errors' option is not supported
 def test_encoding_surrogatepass(all_parsers, tmp_path):
     # GH39017
     parser = all_parsers
