@@ -3512,6 +3512,18 @@ class TestToDatetimeInferFormat:
         expected = pd.Series([pd.Timestamp(ts, tz=tz)])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "tz_name",
+        ["UTC+0300", "UTC-0300", "UTC+03:00", "GMT+03:00"],
+    )
+    def test_to_datetime_timezone_offset_matches_timestamp(self, tz_name):
+        # GH 71273
+        value = f"2020-01-02 08:07:13 {tz_name}"
+        result = pd.to_datetime(value)
+        expected = pd.Timestamp(value)
+
+        assert result == expected
+
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d"])
     def test_to_datetime_iso8601_noleading_0s(self, cache, format):
         # GH 11871
