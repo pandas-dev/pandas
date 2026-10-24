@@ -888,6 +888,47 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame({"a": [0, 1, 2], "b": [2, 1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.rec.fromarrays([np.arange(2.0)], names=["c"]),
+            np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [None, object])
+    def test_constructor_dict_of_structured_ndarray_deprecated(self, arr, dtype):
+        # GH#49388
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame({"c": arr}, dtype=dtype)
+
+    def test_constructor_list_of_structured_ndarray_deprecated(self):
+        # GH#49388
+        arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([arr, arr])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([arr[0:1].reshape(()), arr[1:2].reshape(())])
+
+    def test_constructor_list_of_void_ndarray_no_warning(self):
+        # GH#49388 unstructured void is not deprecated
+        arr = np.zeros(3, dtype="V8")
+        with tm.assert_produces_warning(None):
+            pd.DataFrame([arr, arr])
+
+    @pytest.mark.parametrize("wrap_in_dict", [True, False])
+    def test_constructor_masked_structured_ndarray_raises(self, wrap_in_dict):
+        # GH#49388
+        arr = ma.masked_array(
+            np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]),
+            mask=[(False, False), (True, False)],
+        )
+        data = {"c": arr} if wrap_in_dict else arr
+        msg = "Cannot construct a pandas object from a masked array with compound"
+        with pytest.raises(ValueError, match=msg):
+            pd.DataFrame(data)
+
     def test_constructor_dict_multiindex(self):
         d = {
             ("a", "a"): {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2},
@@ -2560,6 +2601,23 @@ class TestDataFrameConstructors:
         # equal-length sequences are unaffected
         with tm.assert_produces_warning(None):
             pd.DataFrame([[1, 2], [3, 4]])
+
+    @pytest.mark.parametrize(
+        "first_row",
+        [
+            ["A1", "A2"],
+            ("A1", "A2"),
+            np.array(["A1", "A2"], dtype=object),
+            np.array(["A1", "A2"]),
+            np.array([b"A1", b"A2"]),
+        ],
+    )
+    @pytest.mark.parametrize("str_row", ["BC", np.str_("BC"), b"BC", np.bytes_(b"BC")])
+    def test_construct_listlike_then_str_row_deprecated(self, first_row, str_row):
+        # GH#50461 a str or bytes row is split into its elements
+        msg = "a str or bytes row after a list-like row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([first_row, str_row])
 
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]

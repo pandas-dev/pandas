@@ -1066,7 +1066,7 @@ class _BytesTarFile(_BufferedWriter):
         name: str | None = None,
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1110,8 +1110,8 @@ class _BytesTarFile(_BufferedWriter):
         return filename.name
 
     def write_to_buffer(self) -> None:
-        # TarFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "tar"
+        # TarFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "tar")
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
@@ -1122,7 +1122,7 @@ class _BytesZipFile(_BufferedWriter):
         self,
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1152,8 +1152,8 @@ class _BytesZipFile(_BufferedWriter):
         return None
 
     def write_to_buffer(self) -> None:
-        # ZipFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "zip"
+        # ZipFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "zip")
         self.buffer.writestr(archive_name, self.getvalue())
 
 
