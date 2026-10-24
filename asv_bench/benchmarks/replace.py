@@ -36,6 +36,10 @@ class ReplaceDict:
     def time_replace_series(self, inplace):
         self.s.replace(self.to_rep, inplace=inplace)
 
+    def peakmem_replace_series(self, inplace):
+        # GH#25816
+        self.s.replace(self.to_rep, inplace=inplace)
+
 
 class ReplaceList:
     # GH#28099

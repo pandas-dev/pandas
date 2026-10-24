@@ -5,6 +5,7 @@ import gzip
 import io
 import itertools
 import os
+import re
 import string
 import struct
 import tarfile
@@ -1586,18 +1587,21 @@ class TestStata:
             original.to_stata(path)
 
     def test_repeated_column_labels(self, datapath):
-        # GH 13923, 25772
-        msg = """
+        # GH 13923, 25772, 54590
+        repeats = "-" * 80 + "\nwolof"
+        msg = f"""
 Value labels for column ethnicsn are not unique. These cannot be converted to
 pandas categoricals.
 
 Either read the file with `convert_categoricals` set to False or use the
 low level interface in `StataReader` to separately read the values and the
-value_labels.
+value_labels. This column's labels are stored under the key 'ETHNICSN' in
+`StataReader.value_labels()`.
 
-The repeated labels are:\n-+\nwolof
+The repeated labels are:
+{repeats}
 """
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=re.escape(msg)):
             read_stata(
                 datapath("io", "data", "stata", "stata15.dta"),
                 convert_categoricals=True,
@@ -2545,12 +2549,13 @@ pandas categoricals.
 
 Either read the file with `convert_categoricals` set to False or use the
 low level interface in `StataReader` to separately read the values and the
-value_labels.
+value_labels. This column's labels are stored under the key '{col}' in
+`StataReader.value_labels()`.
 
 The repeated labels are:
 {repeats}
 """
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match=re.escape(msg)):
         read_stata(temp_file, convert_categoricals=True)
 
 
@@ -2811,3 +2816,19 @@ def test_stata_elapsed_date_narrow_storage(fmt, dtype, value, expected):
     #  needs a value near its own bound to reach it.
     result = _stata_elapsed_date_to_datetime_vec(Series([value], dtype=dtype), fmt)
     tm.assert_series_equal(result, Series(np.array([expected], dtype="M8[s]")))
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_empty_categorical(temp_file, version):
+    # GH#71126 writing an empty categorical column raised, and reading it back
+    # gave int8 instead of a categorical
+    df = DataFrame({"c": pd.Categorical([], categories=["a", "b"])})
+    df.to_stata(temp_file, write_index=False, version=version)
+    with StataReader(temp_file) as reader:
+        reread = reader.read()
+        assert reader.value_labels() == {"c": {0: "a", 1: "b"}}
+    assert reread.shape == (0, 1)
+    assert reread["c"].dtype == pd.CategoricalDtype(["a", "b"], ordered=True)
+
+    reread = read_stata(temp_file, convert_categoricals=False)
+    assert reread["c"].dtype == np.int8

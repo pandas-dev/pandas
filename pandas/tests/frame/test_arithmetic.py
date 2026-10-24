@@ -2059,6 +2059,16 @@ def test_dataframe_series_extension_dtypes():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dataframe_ea_array_op_retains_dtype():
+    # GH#28527
+    df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+    arr = pd.array([1, None, 2, 3], dtype="Int64")
+    expected = pd.DataFrame([[2, None, 5, 7], [6, None, 9, 11]], dtype="Int64")
+
+    tm.assert_frame_equal(arr + df, expected)
+    tm.assert_frame_equal(df + arr, expected)
+
+
 def test_dataframe_blockwise_slicelike():
     # GH#34367
     arr = np.random.default_rng(2).integers(0, 1000, (100, 10))

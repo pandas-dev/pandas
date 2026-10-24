@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import Any
 
 import numpy as np
 import pytest
@@ -735,7 +736,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep: dict[str, list] = {}
+    rep: dict[str, list[Any]] = {}
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]

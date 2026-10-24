@@ -298,6 +298,8 @@ def test_array_multiindex_raises():
             False,
         ),
         (pd.array([0, pd.NA], dtype="Int64"), np.array([0, np.nan]), False),
+        # GH#32989 no NAs -> numpy integer dtype, not object
+        (pd.array([0, 1], dtype="Int64"), np.array([0, 1], dtype=np.int64), True),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
