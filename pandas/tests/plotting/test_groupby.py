@@ -176,6 +176,18 @@ class TestDataFrameGroupByPlots:
         assert len(ax.get_lines()) == 2
         _check_legend_labels(ax, ["y", "y"])
 
+    def test_groupby_plot_scatter_once_per_group(self):
+        # GH#21963 - each group is plotted once, so one scatter collection each
+        df = pd.DataFrame({"x": [1, 3, 5, 7], "y": [2, 4, 6, 8], "cat": [1, 2, 1, 2]})
+        _, ax = mpl.pyplot.subplots()
+
+        df.groupby("cat").plot.scatter(x="x", y="y", ax=ax)
+        assert len(ax.collections) == 2
+        for (_, group), coll in zip(df.groupby("cat"), ax.collections, strict=True):
+            tm.assert_numpy_array_equal(
+                np.asarray(coll.get_offsets()), group[["x", "y"]].to_numpy(dtype=float)
+            )
+
     def test_groupby_plot_each_group_own_data(self):
         # GH#11434 - each group gets its own axes holding only that group's data
         df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [5, 6, 7, 8], "k": [1, 1, 2, 2]})
