@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
@@ -278,6 +280,14 @@ class TestDataFrameSetItem:
         result[ea_name] = [1]
         expected = pd.DataFrame({0: [0], ea_name: [1]})
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_structured_ndarray_deprecated(self):
+        # GH#49388
+        arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
+        df = pd.DataFrame({"a": [1, 2]})
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"] = arr
 
     def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
         # GH#7492

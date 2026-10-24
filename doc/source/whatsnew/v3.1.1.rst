@@ -1,0 +1,31 @@
+.. _whatsnew_311:
+
+What's new in 3.1.1 (November XX, 2026)
+---------------------------------------
+
+These are the changes in pandas 3.1.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_311.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_311.bugs:
+
+Bug fixes
+~~~~~~~~~
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_311.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.1.0..v3.1.1|HEAD

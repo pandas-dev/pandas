@@ -1031,6 +1031,19 @@ def test_parallel_dup_names_dict_dtype_matches_serial(tmp_path, monkeypatch):
     assert result.dtypes["a"] == result.dtypes["a.1"]
 
 
+def test_parallel_object_dtype_dict_matches_serial(tmp_path, monkeypatch):
+    # an object dtype must survive DataFrame construction, see GH#56047
+    raw = b"a,b,c\n" + b"".join(f"x{i},y{i},{i}\n".encode() for i in range(500))
+    path = tmp_path / "obj.csv"
+    path.write_bytes(raw)
+
+    dtype = {"a": object, "c": "float32"}
+    result = _read_forced_parallel(path, monkeypatch, dtype=dtype)
+    expected = pd.read_csv(io.BytesIO(raw), dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+    assert result.dtypes["a"] == object
+
+
 def test_parallel_comment_before_header_matches_serial(tmp_path, monkeypatch):
     # A full-line comment above the header shifts the preamble byte offset;
     # the header row must not be ingested as data (GH#64347).
@@ -2218,6 +2231,20 @@ def test_parallel_chunk_count_follows_file_size(tmp_path, monkeypatch):
     fat_n = _planned_chunk_count(fat, monkeypatch, chunk_bytes=4096, min_chunk_rows=1)
 
     assert fat_n > lean_n
+
+
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+def test_parallel_read_many_chunks_per_worker(tmp_path, monkeypatch):
+    # Workers slicing one shared memoryview raised "released memoryview" on
+    # free-threaded builds (GH#71418).  The race is narrow, so split a single
+    # column (which gets the whole piece budget) into tiny chunks and repeat.
+    path = tmp_path / "data.csv"
+    _write_grid(path, 20_000, 1)
+    for _ in range(20):
+        n_chunks = _planned_chunk_count(
+            path, monkeypatch, chunk_bytes=16, n_workers=8, min_chunk_rows=1
+        )
+        assert n_chunks >= 1000
 
 
 @pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")

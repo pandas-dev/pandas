@@ -2599,6 +2599,46 @@ def test_warning_case_insensitive_table_name(conn, request, test_frame1):
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize(
+    "if_exists, preexisting, checked",
+    [
+        ("append", True, False),
+        ("delete_rows", True, False),
+        ("replace", True, True),
+        ("append", False, True),
+    ],
+)
+def test_to_sql_case_check_only_for_new_table(
+    conn, if_exists, preexisting, checked, monkeypatch, request, test_frame1
+):
+    # GH#52601 listing all tables can block on MSSQL, so only list them
+    # when the table was (re)created
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy.engine.reflection import Inspector
+
+    if preexisting:
+        test_frame1.to_sql(name="CaseSensitive", con=conn)
+
+    counts = {"get_table_names": 0, "check_case_sensitive": 0}
+
+    def spy(cls, attr):
+        orig = getattr(cls, attr)
+
+        def wrapper(self, *args, **kwargs):
+            counts[attr] += 1
+            return orig(self, *args, **kwargs)
+
+        monkeypatch.setattr(cls, attr, wrapper)
+
+    spy(Inspector, "get_table_names")
+    spy(sql.SQLDatabase, "check_case_sensitive")
+    test_frame1.to_sql(name="CaseSensitive", con=conn, if_exists=if_exists)
+    assert bool(counts["check_case_sensitive"]) is checked
+    if not checked:
+        assert counts["get_table_names"] == 0
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_sqlalchemy_type_mapping(conn, request):
     conn = request.getfixturevalue(conn)
     from sqlalchemy import TIMESTAMP
@@ -2859,6 +2899,30 @@ def test_delete_rows_success(conn_name, test_frame1, request):
 
         assert count_rows(conn, table_name) == 0
         assert pandasSQL.has_table(table_name)
+
+
+def test_delete_rows_temp_table(sqlite_conn):
+    # GH#52601 previously raised as MetaData.reflect doesn't see temp tables
+    sqlite_conn.exec_driver_sql("CREATE TEMP TABLE tmp (a INTEGER)")
+    sqlite_conn.exec_driver_sql("INSERT INTO tmp VALUES (5)")
+    df = pd.DataFrame({"a": [1]})
+    assert df.to_sql(name="tmp", con=sqlite_conn, if_exists="delete_rows", index=False)
+    result = sql.read_sql_query("SELECT * FROM tmp", sqlite_conn)
+    tm.assert_frame_equal(result, df)
+
+
+def test_delete_rows_schema(sqlite_conn):
+    # GH#52601 only the table in the given schema is emptied
+    sqlite_conn.exec_driver_sql("ATTACH DATABASE ':memory:' AS other")
+    df = pd.DataFrame({"a": [1]})
+    df.to_sql(name="t", con=sqlite_conn, index=False)
+    df.to_sql(name="t", con=sqlite_conn, schema="other", index=False)
+    new = pd.DataFrame({"a": [9]})
+    new.to_sql(
+        name="t", con=sqlite_conn, schema="other", if_exists="delete_rows", index=False
+    )
+    tm.assert_frame_equal(sql.read_sql_query("SELECT * FROM main.t", sqlite_conn), df)
+    tm.assert_frame_equal(sql.read_sql_query("SELECT * FROM other.t", sqlite_conn), new)
 
 
 @pytest.mark.parametrize("conn_name", all_connectable)

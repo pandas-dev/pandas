@@ -87,12 +87,13 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
-  that are not specified will be skipped (e.g. 2 in this example is
-  skipped). The levels follow the order of the list, so ``[1,0]`` puts
-  row 1 in level 0. Note that this parameter ignores commented lines
-  and empty lines if ``skip_blank_lines=True``, so header=0 denotes the
-  first line of data rather than the first line of the file.
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Rows above
+  ``min(header)``, and unlisted rows in between are skipped
+  (e.g. ``[1,2,4]`` skips rows 0 and 3). The levels follow the order
+  of the list, so ``[1,0]`` puts row 1 in level 0. Note that this
+  parameter ignores commented lines and empty lines if
+  ``skip_blank_lines=True``, so header=0 denotes the first line of
+  data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
@@ -5690,7 +5691,7 @@ documentation.
 
 Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
-Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+Examples of such drivers are `psycopg 3 <https://www.psycopg.org/psycopg3/docs/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -6133,7 +6134,7 @@ Specifying this will return an iterator through chunks of the query result:
    usage. Most database drivers fetch the complete result set into client
    memory before the first chunk is produced. Actually streaming the result
    requires a server-side cursor, which with SQLAlchemy is requested with the
-   ``stream_results`` execution option (supported by, e.g., the psycopg2 and
+   ``stream_results`` execution option (supported by, e.g., the psycopg and
    pymysql drivers; drivers without server-side cursor support ignore it):
 
    .. code-block:: python
@@ -6154,7 +6155,11 @@ connecting to.
 
    from sqlalchemy import create_engine
 
-   engine = create_engine("postgresql://scott:tiger@localhost:5432/mydatabase")
+   # PostgreSQL using the psycopg 3 driver:
+   engine = create_engine("postgresql+psycopg://scott:tiger@localhost:5432/mydatabase")
+
+   # or using the psycopg2 driver:
+   engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
 
    engine = create_engine("mysql+mysqldb://scott:tiger@localhost/foo")
 
@@ -6168,6 +6173,14 @@ connecting to.
 
    # or absolute, starting with a slash:
    engine = create_engine("sqlite:////absolute/path/to/foo.db")
+
+.. note::
+
+   The ``postgresql`` pip extra (``pip install "pandas[postgresql]"``) installs
+   psycopg2, not psycopg 3. To use the ``postgresql+psycopg`` dialect with
+   SQLAlchemy, install psycopg 3 separately, e.g.
+   ``pip install "psycopg[binary]"``. See
+   :ref:`install.optional_dependencies` for the full list of SQL dependencies.
 
 For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
