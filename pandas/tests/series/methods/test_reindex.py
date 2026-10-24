@@ -462,3 +462,23 @@ def test_reindex_multiindex_automatic_level(name, expected_match_level_a):
         )
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, expected_values",
+    [
+        ("ffill", [20.0, np.nan, 30.0]),
+        ("bfill", [30.0, np.nan, 40.0]),
+        ("nearest", [30.0, np.nan, 40.0]),
+    ],
+)
+def test_reindex_method_object_dtype_target_with_nan(method, expected_values):
+    # GH#71295 reindex with a method on an object-dtype target containing
+    # missing values must give the same result as a float64 target
+    ser = pd.Series([10, 20, 30, 40], index=[1.0, 2.0, 3.0, 4.0])
+    target = pd.Index([2.5, np.nan, 3.5], dtype=object)
+
+    result = ser.reindex(target, method=method)
+
+    expected = pd.Series(expected_values, index=target)
+    tm.assert_series_equal(result, expected)

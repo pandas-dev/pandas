@@ -4176,6 +4176,12 @@ class Index(IndexOpsMixin, PandasObject):
         # find exact matches first (this simplifies the algorithm)
         indexer = self.get_indexer(target)
         nonexact = indexer == -1
+        if nonexact.any() and target.dtype == object and target.hasnans:
+            # GH#71295 missing values in an object-dtype target violate the
+            #  sortedness/comparability assumptions of searchsorted and can
+            #  corrupt the positions of the remaining labels, so exclude them
+            #  and leave them unmatched (consistent with GH#32572)
+            nonexact = nonexact & ~np.asarray(target.isna())
         indexer[nonexact] = self._searchsorted_monotonic(target[nonexact], side)
         if side == "left":
             # searchsorted returns "indices into a sorted array such that,
@@ -4202,6 +4208,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if not len(self):
             return self._get_fill_indexer(target, "pad")
+
+        if target.dtype == object and target.hasnans:
+            # GH#71295 missing values in an object-dtype target are unmatched;
+            #  exclude them so that distances are only computed for labels
+            #  that can be compared and subtracted
+            valid = np.asarray(~target.isna())
+            indexer = np.full(len(target), -1, dtype=np.intp)
+            if valid.any():
+                indexer[valid] = self._get_nearest_indexer(
+                    target[valid], limit, tolerance
+                )
+            return indexer
 
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
