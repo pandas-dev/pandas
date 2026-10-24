@@ -21,6 +21,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Fixed ``AttributeError`` when using dateutil timezones such as ``"dateutil/US/Pacific"`` with python-dateutil 3.0 (:issue:`71459`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.contributors:
