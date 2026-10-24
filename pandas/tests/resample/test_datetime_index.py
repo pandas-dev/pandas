@@ -2167,6 +2167,55 @@ def test_resample_multiday_closed_right_43198(n, unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "start, end, freq, closed, exp_labels, exp_values",
+    [
+        (
+            "2016-09-01",
+            "2017-08-31",
+            "4ME",
+            None,
+            ["2016-12-31", "2017-04-30", "2017-08-31"],
+            [122, 120, 123],
+        ),
+        (
+            "2016-01-01",
+            "2016-12-31",
+            "2QE",
+            None,
+            ["2016-06-30", "2016-12-31"],
+            [182, 184],
+        ),
+        (
+            "2024-01-01",
+            "2024-01-28",
+            "2W",
+            None,
+            ["2024-01-14", "2024-01-28"],
+            [14, 14],
+        ),
+        (
+            "2016-09-02",
+            "2017-08-31",
+            "4MS",
+            "right",
+            ["2016-09-01", "2017-01-01", "2017-05-01"],
+            [122, 120, 122],
+        ),
+    ],
+)
+def test_resample_multiple_anchored_closed_right(
+    start, end, freq, closed, exp_labels, exp_values, unit
+):
+    # GH#17898 with n > 1, closed="right" bin edges should align with closed="left"
+    ser = pd.Series(1, index=date_range(start, end, unit=unit))
+    result = ser.resample(freq, closed=closed).sum()
+
+    exp_dti = DatetimeIndex(exp_labels, freq=freq).as_unit(unit)
+    expected = pd.Series(exp_values, index=exp_dti)
+    tm.assert_series_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
     "tz",

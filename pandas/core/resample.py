@@ -3013,7 +3013,9 @@ def _get_timestamp_range_edges(
         first = first.normalize()
         last = last.normalize()
 
-        if closed == "left":
+        # with n > 1, ``first - freq`` steps back n anchors, shifting the bins
+        #  relative to closed="left" unless ``first`` is on an anchor, GH#17898
+        if closed == "left" or not freq.is_on_offset(first):
             first = Timestamp(freq.rollback(first))
         else:
             first = Timestamp(first - freq)
