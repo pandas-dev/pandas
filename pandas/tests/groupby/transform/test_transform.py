@@ -1227,6 +1227,7 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
 
 def test_transform_lambda_with_datetimetz():
     # GH 27496
+    # GH#41090 - name pinning is deprecated
     df = pd.DataFrame(
         {
             "time": [
@@ -1236,9 +1237,11 @@ def test_transform_lambda_with_datetimetz():
             "timezone": ["Etc/GMT+4", "US/Eastern"],
         }
     )
-    result = df.groupby(["timezone"])["time"].transform(
-        lambda x: x.dt.tz_localize(x.name)
-    )
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby(["timezone"])["time"].transform(
+            lambda x: x.dt.tz_localize(x.name)
+        )
     expected = pd.Series(
         [
             pd.Timestamp("2010-07-15 03:14:45", tz="Etc/GMT+4"),
@@ -1247,6 +1250,18 @@ def test_transform_lambda_with_datetimetz():
         name="time",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_transform_frame_fast_path_pinned_name_warns():
+    # GH#41090 - when the fast path is chosen, groups after the first still warn
+    df = pd.DataFrame({"a": [1.0, 2.0, 4.0], "b": [2.0, 3.0, 5.0]})
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby([1, 1, 2]).transform(
+            lambda x: x * (x.name if isinstance(x, pd.DataFrame) else 1)
+        )
+    expected = pd.DataFrame({"a": [1.0, 2.0, 8.0], "b": [2.0, 3.0, 10.0]})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_fastpath_raises():
@@ -1311,10 +1326,12 @@ def test_transform_udf_scalar_extension_dtype_column():
 
 def test_transform_udf_scalar_none_is_nan():
     # GH#42617 a None result is NaN, as in SeriesGroupBy.transform
+    # GH#41090 the fast path probe sees the pinned key but must not warn
     df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
-    result = df.groupby([0, 0, 1]).transform(
-        lambda x: None if x.name == "a" else x.max()
-    )
+    with tm.assert_produces_warning(None):
+        result = df.groupby([0, 0, 1]).transform(
+            lambda x: None if x.name == "a" else x.max()
+        )
     expected = pd.DataFrame({"a": [np.nan] * 3, "b": [3.0, 3.0, 5.0]})
     tm.assert_frame_equal(result, expected)
 
