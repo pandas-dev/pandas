@@ -12,6 +12,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays.floating import FloatingArray
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -936,4 +937,26 @@ def test_na_values_prefilter_edge_cases(all_parsers, na_values, data, expected_v
     parser = all_parsers
     result = parser.read_csv(StringIO("col\n" + data), na_values=na_values)
     expected = pd.DataFrame({"col": expected_values})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_float64_distinguish_nan_and_na():
+    data = "key,value\na,1.0\nb,\nc,nan\n"
+
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.read_csv(
+            StringIO(data),
+            index_col="key",
+            dtype={"value": "Float64"},
+            keep_default_na=False,
+            na_values=[""],
+        )
+    expected_array = FloatingArray(
+        np.array([1.0, np.nan, np.nan]), np.array([False, True, False])
+    )
+
+    expected = pd.DataFrame(
+        {"value": expected_array},
+        index=pd.Index(["a", "b", "c"], name="key"),
+    )
     tm.assert_frame_equal(result, expected)

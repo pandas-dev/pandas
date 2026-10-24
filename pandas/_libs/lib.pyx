@@ -39,7 +39,10 @@ from cython cimport (
 )
 from libc.string cimport memcmp
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    get_option,
+    using_string_dtype,
+)
 
 from pandas._libs.missing import check_na_tuples_nonequal
 from pandas.compat import PYARROW_INSTALLED
@@ -2613,9 +2616,12 @@ def maybe_convert_numeric(
     if len(values) == 0:
         return (np.array([], dtype="i8"), None)
 
-    # fastpath for ints - try to convert all based on first value
     cdef:
+        # fastpath for ints - try to convert all based on first value
         object val = values[0]
+        # fastpath Resolved once;
+        # consulted inside the else: branch for string NaN values.
+        bint distinguish_nan_and_na = get_option("future.distinguish_nan_and_na")
 
     if util.is_integer_object(val):
         try:
@@ -2763,9 +2769,23 @@ def maybe_convert_numeric(
                 complexes[i] = val
             seen.float_ = True
         else:
+            if isinstance(val, str):
+                val_lower = val.lower()
+                if convert_to_masked_nullable and val_lower in ("nan", "-nan", "+nan"):
+                    fval = NaN
+                    seen.null_ = True
+                    if distinguish_nan_and_na:
+                        seen.float_ = True
+                    else:
+                        mask[i] = 1
+                        if not allow_null_in_int:
+                            seen.float_ = True
+                    floats[i] = fval
+                    if have_complexes:
+                        complexes[i] = fval
+                    continue
             try:
                 floatify(val, &fval, &maybe_int)
-
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = NaN

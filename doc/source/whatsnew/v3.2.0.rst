@@ -277,6 +277,7 @@ I/O
 - Bug in :func:`read_json` with ``typ="series"`` returning ``datetime64`` dtype for all-null data instead of ``float64``, matching ``DataFrame`` columns (:issue:`35464`)
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
 - Bug in :func:`read_sql_query` and :func:`read_sql_table` with a SQLAlchemy connection returning column labels that require ``sqlalchemy`` to unpickle (:issue:`52816`)
+- Bug in :func:`to_numeric` (and readers built on it such as :func:`read_csv`) where a string ``"nan"`` raised ``ValueError`` instead of being parsed as ``NA`` or ``NaN``, depending on the ``future.distinguish_nan_and_na`` option (:issue:`65237`)
 - Bug in :meth:`HDFStore.append` raising ``ValueError: Buffer dtype mismatch`` instead of the "different categories" error when appending a categorical whose categories have a different dtype than the existing ones (:issue:`71128`)
 - Bug in :meth:`HDFStore.remove` deleting unselected rows when passing unsorted row coordinates (:issue:`71276`)
 - Bug in :meth:`Series.to_json` with ``orient="table"`` writing a falsy :class:`Series` name such as ``0``, ``False`` or ``""`` as ``"values"`` (:issue:`19129`)
