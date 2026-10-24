@@ -2647,18 +2647,22 @@ class ArrowExtensionArray(
         return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
-    def _concat_same_type(cls, to_concat) -> Self:
+    def _concat_same_type(cls, to_concat, axis: AxisInt = 0) -> Self:
         """
         Concatenate multiple ArrowExtensionArrays.
 
         Parameters
         ----------
         to_concat : sequence of ArrowExtensionArrays
+        axis : int, default 0
+            Must be 0 or -1; ArrowExtensionArray is 1D-only.
 
         Returns
         -------
         ArrowExtensionArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype

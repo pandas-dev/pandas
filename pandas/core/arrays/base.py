@@ -2395,7 +2395,7 @@ class ExtensionArray:
         return self
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         """
         Concatenate multiple arrays of this dtype.
 
@@ -2407,6 +2407,9 @@ class ExtensionArray:
         ----------
         to_concat : sequence of this type
             An array of the same dtype to concatenate.
+        axis : int, default 0
+            Axis along which to concatenate. pandas only passes a non-zero
+            axis for dtypes that support 2D (``dtype._supports_2d``).
 
         Returns
         -------

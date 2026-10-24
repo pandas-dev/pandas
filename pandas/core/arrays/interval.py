@@ -1008,13 +1008,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[IntervalArray]) -> Self:
+    def _concat_same_type(
+        cls, to_concat: Sequence[IntervalArray], axis: AxisInt = 0
+    ) -> Self:
         """
         Concatenate multiple IntervalArray
 
         Parameters
         ----------
         to_concat : sequence of IntervalArray
+        axis : int, default 0
 
         Returns
         -------
@@ -1027,8 +1030,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         # concat_compat instead of np.concatenate to retain an ExtensionDtype
         #  subtype GH#64297
-        left = concat_compat([interval._left for interval in to_concat])
-        right = concat_compat([interval._right for interval in to_concat])
+        left = concat_compat([interval._left for interval in to_concat], axis=axis)
+        right = concat_compat([interval._right for interval in to_concat], axis=axis)
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 

@@ -761,3 +761,37 @@ def test_numpy_datetime_like_to_string(data, dtype, expected_data):
     )
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([1, 2, None], "Int64"),
+        ([1.5, None], "Float64"),
+        ([True, None], "boolean"),
+        (["a", "b"], "category"),
+        (["a", None], pd.StringDtype("python")),
+        ([1, 0, 0], pd.SparseDtype("int64", 0)),
+        ([pd.Interval(0, 1), pd.Interval(1, 2)], "interval"),
+        (["2020-01-01", None], "M8[ns]"),
+        (["2020-01-01", None], "M8[ns, UTC]"),
+        (["1D", None], "m8[ns]"),
+        (["2020-01", None], "period[M]"),
+        ([1, 2], "object"),
+        pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param(["a", None], "string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_concat_same_type_axis_keyword(data, dtype):
+    # GH#47514 every internal EA accepts the base class's axis keyword
+    arr = pd.array(data, dtype=dtype)
+    result = type(arr)._concat_same_type([arr, arr], axis=0)
+    expected = type(arr)._concat_same_type([arr, arr])
+    tm.assert_extension_array_equal(result, expected)
+    assert len(result) == 2 * len(arr)
+    result = type(arr)._concat_same_type([arr, arr], axis=-1)
+    tm.assert_extension_array_equal(result, expected)
+
+    # 1D arrays reject a non-zero axis rather than ignoring it
+    with pytest.raises(ValueError, match="out of bounds"):
+        type(arr)._concat_same_type([arr, arr], axis=1)
