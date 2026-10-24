@@ -449,6 +449,71 @@ def test_join_interval_index_with_categorical_of_intervals(as_list, categorical_
     tm.assert_frame_equal(result, expected[[*left.columns, *right.columns]])
 
 
+@pytest.mark.parametrize("how", ["left", "right"])
+@pytest.mark.parametrize("sort", [True, False])
+def test_join_list_keeps_dtypes(how, sort):
+    # GH#28269 keys absent from the result should not upcast the kept columns
+    kept = pd.DataFrame({"a": [1, 2], "b": [True, False]}, index=[2, 0])
+    middle = pd.Series([3, 4], index=[0, 5], name="c")
+    other = pd.DataFrame({"d": [5, 6, 7]}, index=[0, 1, 2])
+    expected = pd.DataFrame(
+        {"a": [1, 2], "b": [True, False], "c": [np.nan, 3.0], "d": [7, 5]},
+        index=[2, 0],
+    )
+    if how == "left":
+        result = kept.join([middle, other], how=how, sort=sort)
+    else:
+        result = other.join([middle, kept], how=how, sort=sort)
+        expected = expected[["d", "c", "a", "b"]]
+    if sort:
+        expected = expected.sort_index()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "left_index, right_index",
+    [
+        (["2020-01-01", "2020-01-02"], pd.date_range("2020-01-01", periods=3)),
+        ([1, 0], [True, False]),
+    ],
+)
+def test_join_list_label_matching(left_index, right_index):
+    # GH#28269 labels match as in a single join
+    left = pd.DataFrame({"a": [0, 1]}, index=left_index)
+    right = pd.DataFrame({"b": range(10, 10 + len(right_index))}, index=right_index)
+    result = left.join([right])
+    expected = left.join(right)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_join_list_tz_mismatch_raises(how):
+    # GH#28269 still raises, as in a single join
+    left = pd.DataFrame({"a": [1, 2]}, index=pd.date_range("2020", periods=2))
+    right = pd.DataFrame(
+        {"b": [1, 2]}, index=pd.date_range("2020", periods=2, tz="UTC")
+    )
+    msg = "Cannot join tz-naive with tz-aware DatetimeIndex"
+    with pytest.raises(TypeError, match=msg):
+        left.join([right], how=how)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_join_list_shared_index_raises(how):
+    # GH#28269 others sharing one index object still raise, as with concat
+    dti = pd.date_range("2020", periods=3)
+    left = pd.DataFrame(
+        {"a": [1, 2]}, index=pd.MultiIndex.from_tuples([(0, 1), (2, 3)])
+    )
+    others = [
+        pd.DataFrame({"b": [1, 2, 3]}, index=dti),
+        pd.Series(4, index=dti, name="c"),
+    ]
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
+        left.join(others, how=how)
+
+
 class TestDataFrameJoin:
     def test_join(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data

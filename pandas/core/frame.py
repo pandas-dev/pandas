@@ -156,6 +156,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     ensure_index_from_sequences,
+    get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import (
     MultiIndex,
@@ -15962,14 +15963,26 @@ class DataFrame(NDFrame, OpsMixin):
             # join indexes only using concat
             if can_concat:
                 if how in {"left", "right"}:
-                    res = concat(
-                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
-                    )
                     index = self.index if how == "left" else frames[-1].index
                     if sort:
                         index = index.sort_values()
-                    result = res.reindex(index)
-                    return result
+                    # align to the union as an outer concat would, but take only
+                    # the result's rows so keys absent from it do not upcast the
+                    # kept columns, see GH#28269
+                    union = get_objs_combined_axis(frames, sort=False)[0]
+                    target = union.reindex(index)[1]
+                    aligned = []
+                    for frame in frames:
+                        if union.equals(frame.index):
+                            indexer = target
+                        else:
+                            indexer = algorithms.take_nd(
+                                frame.index.get_indexer(union), target, fill_value=-1
+                            )
+                        aligned.append(
+                            frame._reindex_with_indexers({0: [index, indexer]})
+                        )
+                    return concat(aligned, axis=1, verify_integrity=True)
                 else:
                     if how == "outer":
                         sort = True
