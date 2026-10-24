@@ -4,6 +4,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import importlib.metadata
 import importlib.resources
 import io
 from pathlib import Path
@@ -591,7 +592,8 @@ def test_zoneinfo_from_file_without_key_ambiguous_infer():
 
 
 _skip_if_dateutil_lt_3 = pytest.mark.skipif(
-    Version(dateutil.__version__) < Version("3"), reason="tzfile key added in 3.0"
+    Version(importlib.metadata.version("python-dateutil")) < Version("3"),
+    reason="tzfile key added in 3.0",
 )
 
 
@@ -599,14 +601,19 @@ _skip_if_dateutil_lt_3 = pytest.mark.skipif(
     "make_tz",
     [
         lambda: dateutil.tz.gettz("US/Eastern"),
-        # no key with dateutil>=3, so no zoneinfo twin
-        lambda: dateutil.tz.tzfile(io.BytesIO(_tzdata_bytes("US/Eastern"))),
+        # no key with dateutil>=3, so no zoneinfo twin; dateutil<3 only reads
+        #  the empty TZif v1 block of tzdata files
+        pytest.param(
+            lambda: dateutil.tz.tzfile(io.BytesIO(_tzdata_bytes("US/Eastern"))),
+            marks=_skip_if_dateutil_lt_3,
+        ),
         # dateutil accepts this key but zoneinfo does not
         lambda: dateutil.tz.gettz("America/New York"),
         # a key naming a different zone than the data
         pytest.param(
             lambda: dateutil.tz.tzfile(
-                io.BytesIO(_tzdata_bytes("US/Eastern")), key="Europe/Paris"
+                io.BytesIO(_tzdata_bytes("US/Eastern")),
+                key="Europe/Paris",  # type: ignore[call-arg]
             ),
             marks=_skip_if_dateutil_lt_3,
         ),
