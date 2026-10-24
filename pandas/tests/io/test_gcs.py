@@ -1,3 +1,11 @@
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message="You are using a Python version.*google.api_core",
+    category=FutureWarning,
+)
+
 from io import BytesIO
 import os
 import pathlib
@@ -229,11 +237,3 @@ def test_gcs_not_present_exception():
     with tm.external_error_raised(ImportError):
         pd.read_csv("gs://test/test.csv")
 
-
-import warnings
-
-warnings.filterwarnings(
-    "ignore",
-    message="You are using a Python version.*google.api_core",
-    category=FutureWarning,
-)
