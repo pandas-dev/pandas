@@ -220,6 +220,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` slicing with an integer or float bound that is not in the index: an object-dtype index of numbers (e.g. :class:`decimal.Decimal`) raised ``TypeError`` instead of slicing by sort order, and a non-monotonic index of non-string values raised ``TypeError`` instead of ``KeyError`` (:issue:`70295`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
+- Bug in hash-based operations on object-dtype data (e.g. :meth:`Series.isin`, :func:`factorize`, :meth:`Index.get_loc` on a unique :class:`Index`) inconsistently matching a key of a different type that compares equal to a value but hashes differently, such as ``"float64"`` and ``np.dtype("float64")``; these now never match, as with a ``dict`` (:issue:`43581`)
 
 Missing
 ^^^^^^^
