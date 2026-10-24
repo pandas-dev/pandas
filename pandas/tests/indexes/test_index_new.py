@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -178,19 +179,22 @@ class TestIndexConstructorInference:
         tm.assert_index_equal(result, expected)
 
     def test_constructor_preserves_byteorder(self):
-        # GH#43042 non-native byteorder (and the values) must be preserved
+        # GH#43042 non-native byteorder (and the values) must be preserved;
+        #  GH#53234 deprecated
         arr = np.array([0, 256, 2**40], dtype=">i8")
-        expected = [0, 256, 2**40]
+        msg = "non-native byte order"
 
-        # inferred from a big-endian ndarray
-        result = pd.Index(arr)
-        assert result.dtype == np.dtype(">i8")
-        assert result.tolist() == expected
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Index(arr)
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
 
-        # explicit big-endian dtype from a python list
-        result = pd.Index([0, 256, 2**40], dtype=">i8")
-        assert result.dtype == np.dtype(">i8")
-        assert result.tolist() == expected
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Index([0, 256, 2**40], dtype=">i8")
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Index([0, 256, 2**40]).astype(">i8")
+        tm.assert_numpy_array_equal(result.to_numpy(), arr)
 
 
 class TestDtypeEnforced:

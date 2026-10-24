@@ -8,6 +8,7 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -2389,3 +2390,32 @@ def test_occurrence_rank(codes, expected):
     # GH#67446
     result = algos.occurrence_rank(np.array(codes, dtype=np.intp))
     tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+
+@pytest.mark.parametrize("dtype", [">i8", ">u2", ">f4", ">c16", ">M8[s]", ">m8[s]"])
+def test_ndarray_non_native_byteorder_raises(dtype):
+    # GH#53234 datetimelike used to give byteswapped garbage
+    arr = np.array([3, 1, 3, 2], dtype=dtype)
+    msg = "Non-native byte order is not supported"
+    with pytest.raises(ValueError, match=msg):
+        pd.unique(arr)
+    with pytest.raises(ValueError, match=msg):
+        pd.factorize(arr)
+
+
+def test_non_native_float16_not_rejected():
+    # GH#53234 float16 is cast to native float64 internally, so need not raise
+    arr = np.array([3, 1, 3], dtype=">f2")
+    assert pd.unique(arr).tolist() == [3.0, 1.0]
+    codes, uniques = pd.factorize(arr)
+    tm.assert_numpy_array_equal(codes, np.array([0, 1, 0], dtype=np.intp))
+    assert uniques.tolist() == [3.0, 1.0]
+
+    msg = "non-native byte order"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser = pd.Series(arr)
+    assert ser.rank().tolist() == [2.5, 1.0, 2.5]
+    # the result's index holds the non-native keys
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.value_counts()
+    assert result.to_dict() == {3.0: 2, 1.0: 1}
