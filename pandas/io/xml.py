@@ -355,7 +355,7 @@ class _XMLFrameParser:
 
                 if row is not None:
                     if self.names and iterparse_repeats:
-                        # Claim the element's name on "start" to keep document
+                        # Claim the element's column on "start" to keep document
                         # order, but read its text on "end", as it may not be
                         # parsed yet at "start".
                         if event == "start":
