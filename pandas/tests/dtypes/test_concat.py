@@ -87,3 +87,13 @@ def test_concat_numpy_int_with_arrow_float_rounds():
     result = pd.concat([ser, other], ignore_index=True)
     expected = pd.Series([float(2**60), 1.5], dtype="double[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+def test_index_append_arrow_uint64_with_int64_rounds():
+    # GH#58819
+    pytest.importorskip("pyarrow")
+    idx = pd.Index([2**60 + 1], dtype="uint64[pyarrow]")
+    other = pd.Index([2**60 + 1], dtype="int64[pyarrow]")
+    result = idx.append(other)
+    expected = pd.Index([float(2**60)] * 2, dtype="double[pyarrow]")
+    tm.assert_index_equal(result, expected)
