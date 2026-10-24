@@ -4827,8 +4827,15 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_multi(
-        self, other: Index, how: JoinHow
+        self, other: Index, how: JoinHow, broadcast: bool = False
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        """
+        Join on the index names shared with ``other``.
+
+        With ``broadcast=True``, a flat Index joined to a MultiIndex keeps only the
+        MultiIndex's rows, as align and arithmetic need, instead of adding rows for
+        its unmatched keys.
+        """
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
@@ -4910,11 +4917,22 @@ class Index(IndexOpsMixin, PandasObject):
             how = flip.get(how, how)
 
         level = other.names.index(jl)
-        result = self._join_level(other, level, how=how)
+        join_index, lidx, ridx = self._join_level(other, level, how=how)
+
+        if not broadcast and how in ("left", "outer") and lidx is not None:
+            # GH#34292: the level join keeps only the MultiIndex's rows; append
+            # the flat keys that `how` keeps but that matched none of them.
+            matched = np.zeros(len(self), dtype=bool)
+            matched[lidx[lidx != -1]] = True
+            unmatched = (~matched).nonzero()[0]
+            if len(unmatched):
+                join_index, lidx, ridx = _append_unmatched_keys(
+                    join_index, level, self, unmatched, lidx, ridx
+                )
 
         if flip_order:
-            return result[0], result[2], result[1]
-        return result
+            return join_index, ridx, lidx
+        return join_index, lidx, ridx
 
     @final
     def _join_non_unique(
@@ -8572,6 +8590,42 @@ def droplevel_result(
             names=new_names,
             verify_integrity=False,
         )
+
+
+def _append_unmatched_keys(
+    join_index: MultiIndex,
+    level: int,
+    flat: Index,
+    unmatched: npt.NDArray[np.intp],
+    lidx: npt.NDArray[np.intp],
+    ridx: npt.NDArray[np.intp] | None,
+) -> tuple[MultiIndex, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+    """
+    Append a row to `join_index` for each `flat` key at positions `unmatched`,
+    holding the key in `level` and missing values in the other levels.
+    """
+    from pandas.core.indexes.multi import MultiIndex
+
+    keys = flat.take(unmatched)
+    # the level join already put every flat key that `how` keeps in the level
+    key_codes = join_index.levels[level].get_indexer_for(keys)
+    key_codes[keys.isna()] = -1
+
+    codes = [
+        np.concatenate([lev_codes, key_codes if i == level else np.full(len(keys), -1)])
+        for i, lev_codes in enumerate(join_index.codes)
+    ]
+    new_index = MultiIndex(
+        levels=join_index.levels,
+        codes=codes,
+        names=join_index.names,
+        verify_integrity=False,
+    )
+    if ridx is None:
+        ridx = np.arange(len(join_index), dtype=np.intp)
+    lidx = np.concatenate([lidx, unmatched])
+    ridx = np.concatenate([ridx, np.full(len(keys), -1, dtype=np.intp)])
+    return new_index, lidx, ridx
 
 
 def _unpack_nested_dtype(other: Index) -> DtypeObj:
