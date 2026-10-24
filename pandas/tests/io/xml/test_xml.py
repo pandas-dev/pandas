@@ -1018,6 +1018,96 @@ def test_repeat_elements(parser, temp_file):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
+def test_repeat_elements_past_parser_buffer(parser, temp_file):
+    # GH#71275 text past the parser's buffer is not yet read at the "start" event
+    nrows = 5000
+    pad = "x" * 20
+    rows = "".join(
+        f"<row><a>v{i}{pad}</a><a>w{i}{pad}</a></row>\n" for i in range(nrows)
+    )
+    df_iter = read_xml_iterparse(
+        f"<data>\n{rows}</data>",
+        temp_file,
+        parser=parser,
+        iterparse={"row": ["a", "a"]},
+        names=["a1", "a2"],
+    )
+
+    df_expected = pd.DataFrame(
+        {
+            "a1": [f"v{i}{pad}" for i in range(nrows)],
+            "a2": [f"w{i}{pad}" for i in range(nrows)],
+        }
+    )
+
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+@pytest.mark.parametrize("box", [list, pd.Series])
+def test_repeat_elements_equal_values(parser, temp_file, box):
+    # GH#71275
+    xml = """\
+<data>
+  <row><a>1</a><a>1</a><a>2</a></row>
+  <row><a></a><a/><a>3</a></row>
+</data>"""
+    df_iter = read_xml_iterparse(
+        xml,
+        temp_file,
+        parser=parser,
+        iterparse={"row": box(["a", "a", "a"])},
+        names=["a1", "a2", "a3"],
+    )
+
+    df_expected = pd.DataFrame(
+        {"a1": [1.0, np.nan], "a2": [1.0, np.nan], "a3": [2, 3]},
+    )
+
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+def test_repeat_attributes_equal_values(parser, temp_file):
+    # GH#71275
+    df_iter = read_xml_iterparse(
+        '<data><row><x id="1"/><x id="1"/></row></data>',
+        temp_file,
+        parser=parser,
+        iterparse={"row": ["id", "id"]},
+        names=["i1", "i2"],
+    )
+
+    df_expected = pd.DataFrame({"i1": [1], "i2": [1]})
+
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
+@pytest.mark.parametrize(
+    "xml, cols, expected",
+    [
+        # listed element containing a listed element
+        ("<row><a>x</a><g>z<a>y</a></g></row>", ["a", "g", "a"], ["x", "z", "y"]),
+        # listed row node with text
+        ("<row>t<a>x</a><a>y</a></row>", ["row", "a", "a"], ["t", "x", "y"]),
+        # nested elements of the same name
+        ("<row><a>x<a>y</a></a></row>", ["a", "a"], ["x", "y"]),
+    ],
+)
+def test_repeat_elements_document_order(parser, temp_file, xml, cols, expected):
+    # GH#71275 columns follow start tags, though text is read at end tags
+    names = [f"c{i}" for i in range(len(cols))]
+    df_iter = read_xml_iterparse(
+        f"<data>{xml}</data>",
+        temp_file,
+        parser=parser,
+        iterparse={"row": cols},
+        names=names,
+    )
+
+    df_expected = pd.DataFrame([expected], columns=names)
+
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
 def test_names_option_wrong_length(xml_books, parser):
     with pytest.raises(ValueError, match=("names does not match length")):
         read_xml(xml_books, names=["Col1", "Col2", "Col3"], parser=parser)
