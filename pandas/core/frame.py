@@ -15959,6 +15959,15 @@ class DataFrame(NDFrame, OpsMixin):
 
             can_concat = all(df.index.is_unique for df in frames)
 
+            if can_concat:
+                if any(isinstance(df.index, MultiIndex) for df in frames):
+                    first_nlevels = frames[0].index.nlevels
+                    can_concat = all(
+                        isinstance(df.index, MultiIndex)
+                        and df.index.nlevels == first_nlevels
+                        for df in frames
+                    )
+
             # join indexes only using concat
             if can_concat:
                 if how in {"left", "right"}:
