@@ -960,6 +960,53 @@ class TestDataFrameGroupByPlots:
         for ax in axes.ravel():
             assert len(ax.patches) == 2 * 5
 
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    @pytest.mark.parametrize(
+        "by, expected",
+        [
+            ([1, 0, 1, 0, 1, 0], [101010, 10001]),
+            # the row with a NaN key is dropped along with its weight
+            ([0, 1, 0, 1, np.nan, 1], [1, 101010]),
+        ],
+    )
+    def test_grouped_hist_weights(self, box, by, expected):
+        # GH#9540 weights aligned with the data are split by group
+        obj = box([1.0, 2.0, np.nan, 4.0, 5.0, 6.0])
+        weights = np.array([1, 10, 100, 1000, 10000, 100000])
+        axes = obj.hist(by=np.array(by), weights=weights, bins=3)
+        heights = [sum(p.get_height() for p in ax.patches) for ax in axes.ravel()]
+        assert heights == expected
+
+    @pytest.mark.parametrize(
+        "weights, expected",
+        [
+            # 1D weights are used for each column
+            ([1, 10, 100, 1000], [2 * 1, 2 * 1010]),
+            ([[1, 2], [10, 20], [100, 200], [1000, 2000]], [3, 3030]),
+        ],
+    )
+    def test_grouped_hist_weights_multiple_columns(self, weights, expected):
+        # GH#9540
+        df = pd.DataFrame({"a": [1.0, 2.0, np.nan, 4.0], "b": [5.0, 6.0, 7.0, 8.0]})
+        axes = df.hist(by=[0, 1, 0, 1], weights=np.array(weights), bins=2)
+        heights = [sum(p.get_height() for p in ax.patches) for ax in axes.ravel()]
+        assert heights == expected
+
+    def test_grouped_hist_weights_by_column_name(self):
+        # GH#9540
+        df = pd.DataFrame({"key": [1, 0, 1, 0], "a": [1.0, 2.0, np.nan, 4.0]})
+        weights = np.array([1, 10, 100, 1000])
+        axes = df.hist(by="key", weights=weights, bins=2)
+        heights = [sum(p.get_height() for p in ax.patches) for ax in axes.ravel()]
+        assert heights == [1010, 1]
+
+    def test_grouped_hist_weights_per_group(self):
+        # GH#9540 weights the length of each group, not of the data, are reused
+        ser = pd.Series([1.0, 2.0, 3.0, 4.0])
+        axes = ser.hist(by=[0, 0, 1, 1], weights=[1, 10], bins=2)
+        heights = [sum(p.get_height() for p in ax.patches) for ax in axes.ravel()]
+        assert heights == [11, 11]
+
     def test_grouped_hist_multiple_axes_error(self, hist_df):
         # GH 6970, GH 7069
         df = hist_df

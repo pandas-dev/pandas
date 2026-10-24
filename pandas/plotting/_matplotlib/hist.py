@@ -20,6 +20,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     isna,
+    notna,
     remove_na_arraylike,
 )
 
@@ -304,6 +305,7 @@ def _grouped_plot(
     layout=None,
     rot: float = 0,
     ax=None,
+    weights=None,
     **kwargs,
 ):
     # error: Non-overlapping equality check (left operand type: "Optional[Tuple[float,
@@ -324,9 +326,18 @@ def _grouped_plot(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    for ax, (key, group) in zip(flatten_axes(axes), grouped, strict=False):
+    if weights is not None:
+        # split the weights positionally alongside the data, see GH#9540
+        weights = np.asarray(weights)
+        group_ids = grouped.ngroup().to_numpy()
+
+    for i, (ax, (key, group)) in enumerate(
+        zip(flatten_axes(axes), grouped, strict=False)
+    ):
         if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
+        if weights is not None:
+            kwargs["weights"] = weights[group_ids == i]
         plotf(group, ax, **kwargs)
         ax.set_title(pprint_thing(key))
 
@@ -384,8 +395,28 @@ def _grouped_hist(
         else:
             kwargs["label"] = column
 
-    def plot_group(group, ax) -> None:
-        ax.hist(np.asarray(group.dropna()._values), bins=bins, **kwargs)
+    weights = kwargs.pop("weights", None)
+    if weights is not None and not (
+        is_list_like(weights) and len(weights) == len(data)
+    ):
+        # not aligned with data, so pass it to every group unchanged
+        kwargs["weights"] = weights
+        weights = None
+
+    def plot_group(group, ax, weights=None) -> None:
+        hist_kwargs = kwargs
+        if weights is not None:
+            mask = notna(group)
+            if group.ndim == 2:
+                mask = mask.all(axis=1)
+            weights = weights[np.asarray(mask)]
+            if group.ndim == 2 and weights.ndim == 1:
+                # use the same weights for each column
+                weights = np.broadcast_to(
+                    weights[:, None], (len(weights), group.shape[1])
+                )
+            hist_kwargs = {**kwargs, "weights": weights}
+        ax.hist(np.asarray(group.dropna()._values), bins=bins, **hist_kwargs)
         if legend:
             ax.legend()
 
@@ -403,6 +434,7 @@ def _grouped_hist(
         figsize=figsize,
         layout=layout,
         rot=rot,
+        weights=weights,
     )
 
     set_ticks_props(

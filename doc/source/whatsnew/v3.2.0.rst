@@ -294,6 +294,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :func:`plotting.table` ignoring ``rowLabels`` and ``colLabels`` or raising a ``TypeError`` when they were passed (:issue:`37811`)
+- Bug in :meth:`DataFrame.hist` and :meth:`Series.hist` raising ``ValueError`` when passing ``weights`` together with ``by`` (:issue:`9540`)
 - Bug in :meth:`DataFrame.hist` with ``by`` and no ``column`` plotting the numeric grouping column alongside the other columns (:issue:`41188`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
