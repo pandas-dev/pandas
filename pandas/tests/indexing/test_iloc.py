@@ -1477,6 +1477,30 @@ class TestiLocBaseIndependent:
         result = s.iloc[np.array(0)]
         assert result == 1
 
+    def test_setitem_zerodim_np_array(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            dtype="Int64",
+        )
+        expected = df.copy()
+
+        expected.iloc[1] = 9
+        df.iloc[np.array(1)] = 9
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_zerodim_np_array_tuple(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            dtype="Int64",
+        )
+        expected = df.copy()
+        expected.iloc[1, 0] = 9
+        df.iloc[np.array(1), np.array(0)] = 9
+        tm.assert_frame_equal(df, expected)
+
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = pd.Categorical(["A", "B", "C"])
@@ -2291,7 +2315,7 @@ def test_iloc_setitem_single_column_key_empty_selection_is_noop(row_key):
     tm.assert_frame_equal(df, pd.DataFrame(np.zeros((4, 3)), columns=list("abc")))
 
 
-@pytest.mark.parametrize("row_key", [np.array(0), np.array([[0], [1]])])
+@pytest.mark.parametrize("row_key", [np.array([[0], [1]])])
 def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key):
     # GH#68021 length_of_indexer cannot measure these, so they keep taking the
     #  whole-block path and its clearer message
@@ -2299,6 +2323,21 @@ def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key
 
     with pytest.raises(ValueError, match="Cross index must be 1 dimensional"):
         df.iloc[row_key, [1]] = [1.0, 2.0]
+
+
+def test_iloc_setitem_zerodim_np_array_invalid_value():
+    # GH#70256 a 0D ndarray key behaves like its scalar equivalent.
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+
+    expected = df.copy()
+
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        expected.iloc[0, [1]] = [1.0, 2.0]
+
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        df.iloc[np.array(0), [1]] = [1.0, 2.0]
+
+    tm.assert_frame_equal(df, expected)
 
 
 def test_iloc_setitem_out_of_bounds_boolean_column_key_raises():
