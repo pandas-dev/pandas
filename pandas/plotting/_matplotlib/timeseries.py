@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date
 import functools
 from typing import (
     TYPE_CHECKING,
     Any,
+    cast,
 )
 
 import numpy as np
@@ -49,6 +51,7 @@ from pandas.tseries.frequencies import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import timedelta
 
     from matplotlib.axes import Axes
@@ -281,8 +284,15 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    # do not use tsplot if irregular was plotted first
-    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+    # do not use tsplot if irregular was plotted first, including dates on an
+    # axes sharing this x axis (secondary_y, twinx, sharex); GH#15074
+    elif ax_freq is None and (
+        len(ax.get_lines()) > 0
+        or any(
+            _has_date_lines(shared_ax)
+            for shared_ax in ax.get_shared_x_axes().get_siblings(ax)
+        )
+    ):
         return False
 
     if freq is None:
@@ -311,6 +321,16 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
         # back to index.tz raises when it is ambiguous or nonexistent (DST).
         return period.to_timestamp() == index[0].tz_localize(None)
     return True
+
+
+def _has_date_lines(ax: Axes) -> bool:
+    # A line drawn at matplotlib date numbers keeps its dates as the original
+    # x data; period-ordinal lines, bar error caps and axhline are numeric.
+    for line in ax.get_lines():
+        xdata = cast("Sequence[Any]", line.get_xdata(orig=True))
+        if len(xdata) > 0 and isinstance(xdata[0], (date, np.datetime64)):
+            return True
+    return False
 
 
 def get_period_offset(ax: Axes, index: Index) -> BaseOffset | None:
