@@ -126,6 +126,7 @@ Other deprecations
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
+- Deprecated the ``dropna`` behavior of :func:`pivot_table` and :meth:`DataFrame.pivot_table` that omits the rows with an NA value in any column before computing the margins, and that drops the rows of the result that are all NA; in a future version only the rows with an NA value in an index or column key will be omitted before computing the margins, so that the margins are computed from the same rows as the table, and the rows of the result that are all NA will be kept. Use ``pd.set_option("future.pivot_table_dropna", True)`` to opt in to the future behavior (:issue:`65765`, :issue:`53521`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
@@ -326,6 +327,7 @@ Reshaping
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
 - Bug in :meth:`DataFrame.pivot` and :func:`pivot` with a list of ``values`` casting the pivoted columns to a common dtype, e.g. integers to ``float64`` or ``object`` (:issue:`43547`)
 - Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
+- Bug in :func:`pivot_table` and :meth:`DataFrame.pivot_table` with ``margins=True`` and ``dropna=True`` computing the margins from a different set of rows than the table, so that the "All" margins did not match the cells; the margins are now computed from the same rows as the table when ``pd.set_option("future.pivot_table_dropna", True)`` is set (:issue:`65765`, :issue:`53521`)
 
 Sparse
 ^^^^^^
