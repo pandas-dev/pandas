@@ -2142,9 +2142,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # tz is re-applied below, GH#47005
         per = Period(parsed.replace(tzinfo=None), freq=freq)
         start = per.start_time
-        # Can't use end_time here bc that will subtract a microsecond
-        #  instead of a nanosecond
-        end = (per + 1).start_time - np.timedelta64(1, "ns")
+        # GH#56940 do not force coarser indexes into nanosecond arithmetic.
+        end = per.to_timestamp(freq=self.unit, how="end")
         start = start.as_unit(self.unit)
         end = end.as_unit(self.unit)
 
