@@ -490,3 +490,13 @@ class TestDataFrameInterpolate:
         result = df.interpolate(method="time")
         expected = pd.DataFrame({"a": [1.0, 1.5, 2.0]}, index=idx, dtype="Float64")
         tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_fill_value_extrapolate_time(self):
+        # GH#31949
+        index = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-04", "2020-01-08"])
+        df = pd.DataFrame({"a": [np.nan, 1.0, 3.0, np.nan]}, index=index)
+        result = df.interpolate(
+            method="time", fill_value="extrapolate", limit_direction="both"
+        )
+        expected = pd.DataFrame({"a": [0.0, 1.0, 3.0, 7.0]}, index=index)
+        tm.assert_frame_equal(result, expected)
