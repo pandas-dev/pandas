@@ -234,7 +234,9 @@ MultiIndex
 - Bug in :meth:`DataFrame.sort_index`, :meth:`Series.sort_index`, :meth:`MultiIndex.sort_values` and :meth:`MultiIndex.is_monotonic_increasing` ignoring the category order of a :class:`CategoricalIndex` level (:issue:`47607`)
 - Bug in :meth:`MultiIndex.append`, :func:`concat`, :meth:`DataFrame.join` and :func:`merge` emitting a spurious ``RuntimeWarning`` when :class:`MultiIndex` level values could not be sorted (:issue:`61477`)
 - Bug in :meth:`MultiIndex.from_tuples` with an object ``ndarray``, :meth:`MultiIndex.append` and :meth:`Index.map` truncating or raising ``IndexError`` on tuples of different lengths; :meth:`MultiIndex.from_tuples` now raises a ``ValueError`` for an ``ndarray`` of tuples of different lengths (:issue:`50293`)
+- Bug in :meth:`MultiIndex.intersection`, :meth:`MultiIndex.union`, :meth:`MultiIndex.difference` and :meth:`MultiIndex.symmetric_difference` with a list-like ``other`` holding non-tuple entries raising ``TypeError`` or splitting a string entry into level values; such entries are now treated like an :class:`Index` ``other`` (:issue:`39699`)
 - Bug in :meth:`MultiIndex.rename` raising ``TypeError`` for the ``name`` keyword documented by :meth:`Index.rename` (:issue:`33778`)
+- Bug in :meth:`MultiIndex.symmetric_difference` raising ``ValueError`` when ``other`` holds non-tuple entries (:issue:`39699`)
 - Bug in :meth:`Series.map`, :meth:`Index.get_indexer`, :meth:`DataFrame.reindex` and :attr:`DataFrame.loc` with a :class:`MultiIndex` raising ``IndexError`` or matching on a prefix when looking up tuples whose length differs from the number of levels (:issue:`50293`)
 -
 
