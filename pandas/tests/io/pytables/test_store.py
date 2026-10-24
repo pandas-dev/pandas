@@ -569,6 +569,7 @@ def test_remove(temp_hdfstore):
     ],
 )
 def test_remove_with_unsorted_coordinates(temp_hdfstore, where):
+    # GH#71276
     df = pd.DataFrame({"a": range(10)})
     temp_hdfstore.append("df", df)
 
