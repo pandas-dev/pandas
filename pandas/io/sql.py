@@ -213,14 +213,22 @@ def _convert_arrays_to_dataframe(
     # beyond 2**53; give integer targets the exact values (GH#61667)
     to_infer = []
     for i, target in enumerate(targets):
-        if (
-            target is None
-            or pandas_dtype(target).kind not in "iu"
-            or lib.infer_dtype(arrays[i], skipna=True) not in ("integer", "decimal")
-        ):
+        target_dtype = None if target is None else pandas_dtype(target)
+        if target_dtype is None or target_dtype.kind not in "iu":
             to_infer.append(i)
-        elif isinstance(pandas_dtype(target), np.dtype) and isna(arrays[i]).any():
-            # a numpy int dtype can't hold NULL; infer so the cast raises as before
+            continue
+        mask = isna(arrays[i])
+        inferred = lib.infer_dtype(arrays[i], skipna=True)
+        lossy = (inferred == "integer" and mask.any()) or (
+            # a direct cast would silently truncate non-integral Decimals
+            inferred == "decimal"
+            and all(
+                val.is_finite() and val == val.to_integral_value()
+                for val in arrays[i][~mask]
+            )
+        )
+        # a numpy int dtype can't hold NULL; infer so the cast raises as before
+        if not lossy or (isinstance(target_dtype, np.dtype) and mask.any()):
             to_infer.append(i)
     converted = convert_object_array(
         [arrays[i] for i in to_infer],
