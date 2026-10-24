@@ -1062,6 +1062,14 @@ def test_setitem_with_different_string_storage():
         (r"[\u0e00-\u0e7f]", True),
         (r"\pL\u20AC", True),  # also includes an invalid escape \p for Python
         (r"\Q\u\E", True),  # \Q..\E pattern supported by pyarrow, but prioritize \u
+        # RE2's \s misses ASCII whitespace such as "\x0b" (GH#70991)
+        (r"\s+", True),
+        (r"\S", True),
+        (r"[^\w\s]", True),
+        (r"(?:x\S)*", True),
+        (r"(a|\s)", True),
+        (r"\\s", False),
+        (r"[sS]", False),
     ],
 )
 def test_needs_python_regex_unsupported_code(pat, expected):
@@ -1099,26 +1107,6 @@ def test_needs_python_regex_unicode_classes(pat, expected):
     # all-ASCII data keeps the pyarrow path
     ascii_arr = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
     assert not ascii_arr._needs_python_regex(pat)
-
-
-@pytest.mark.parametrize(
-    "pat, expected",
-    [
-        (r"\s+", True),
-        (r"\S", True),
-        (r"[^\w\s]", True),
-        (r"(?:x\S)*", True),
-        (r"(a|\s)", True),
-        (r"\\s", False),
-        (r"[sS]", False),
-    ],
-)
-def test_needs_python_regex_whitespace(pat, expected):
-    # GH#70991 RE2's \s misses ASCII whitespace such as "\x0b", so \s and \S
-    #  use Python's re even for all-ASCII data
-    pytest.importorskip("pyarrow")
-    ascii_arr = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
-    assert ascii_arr._needs_python_regex(pat) == expected
 
 
 @pytest.mark.parametrize(

@@ -489,22 +489,25 @@ def test_contains_unicode_char(any_string_dtype):
         ser.str.contains(r"\pL\u20AC")
 
 
-@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]"])
 @pytest.mark.parametrize("pat", [r"\s", r"\S"])
-def test_fullmatch_every_python_whitespace_char(dtype, pat):
+def test_fullmatch_every_python_whitespace_char(any_string_dtype, pat):
     # GH#70991 RE2's \s only matches [\t\n\f\r ], Python's every char for which
     #  str.isspace() is True
-    pytest.importorskip("pyarrow")
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
     whitespace = [
         char for char in map(chr, range(sys.maxunicode + 1)) if char.isspace()
     ]
-    ser = pd.Series([*whitespace, "a", "\u200b"], dtype=dtype)
+    data = [*whitespace, "a", "\u200b"]
+    ser = pd.Series(data, dtype=any_string_dtype)
     result = ser.str.fullmatch(pat)
-    expected = ser.astype(object).str.fullmatch(pat)
-    assert result.tolist() == expected.tolist()
+    expected = pd.Series(
+        [re.fullmatch(pat, x) is not None for x in data], dtype=expected_dtype
+    )
+    tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]"])
 @pytest.mark.parametrize(
     "method, kwargs",
     [
@@ -535,9 +538,8 @@ def test_fullmatch_every_python_whitespace_char(dtype, pat):
         r"\\s",
     ],
 )
-def test_regex_python_whitespace(dtype, method, kwargs, pat):
+def test_regex_python_whitespace(any_string_dtype, method, kwargs, pat):
     # GH#70991
-    pytest.importorskip("pyarrow")
     data = [
         "a\x0bb",
         "a\x1cb",
@@ -553,9 +555,9 @@ def test_regex_python_whitespace(dtype, method, kwargs, pat):
         "x",
         "",
     ]
-    ser = pd.Series(data, dtype=dtype)
+    ser = pd.Series(data, dtype=any_string_dtype)
     result = getattr(ser.str, method)(pat, **kwargs)
-    expected = getattr(ser.astype(object).str, method)(pat, **kwargs)
+    expected = getattr(pd.Series(data, dtype=object).str, method)(pat, **kwargs)
     assert result.tolist() == expected.tolist()
 
 
