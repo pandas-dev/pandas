@@ -13,6 +13,15 @@ sources with Meson.
 The automated contributions policy in [contributing.rst](doc/source/development/contributing.rst)
 defines how the user may use agent-generated work.
 
+## Self-review before requesting review
+
+Run the change through [pandas-review](.claude/skills/pandas-review/SKILL.md) (`/pandas-review`
+in Claude Code) before the user opens a pull request or re-requests review. Review isn't expected
+until it reports `LGTM` or `NITS ONLY`, or the user has explained on the pull request why its
+remaining findings don't apply. `LGTM` gets reviewed sooner, so after `NITS ONLY`, fix the
+nits the user agrees with and rerun once. Don't change code to satisfy a finding the user
+disputes. Use a fresh subagent or session rather than the one that wrote the change.
+
 ## Required tooling
 
 This project supports creating a development environment using [conda](https://docs.conda.io/en/latest/) with [environment.yml](environment.yml) or
