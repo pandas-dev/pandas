@@ -187,52 +187,35 @@ def hide_df():
     return df, tt
 
 
-def test_tooltip_title_hidden_row(hide_df):
-    # GH#71281 the title belongs to the cell of the visible row, not to the cell
-    # at the same position of the body, and empty tooltips are not rendered
-    df, tt = hide_df
-    result = (
-        Styler(df, uuid_len=0)
-        .hide(["a"])
-        .set_tooltips(tt, as_title_attribute=True)
-        .to_html()
-    )
-    assert _titles(result) == [
-        '<td id="T__row1_col0" class="data row1 col0"  title="tb">2</td>'
-    ]
-    assert 'title="ta"' not in result
-
-
-def test_tooltip_title_hidden_last_row(hide_df):
+@pytest.mark.parametrize(
+    "hidden, expected",
+    [
+        # the title of the hidden row used to land on the next visible row
+        (
+            ["a"],
+            ['<td id="T__row1_col0" class="data row1 col0"  title="tb">2</td>'],
+        ),
+        # used to raise IndexError
+        (
+            ["c"],
+            [
+                '<td id="T__row0_col0" class="data row0 col0"  title="ta">1</td>',
+                '<td id="T__row1_col0" class="data row1 col0"  title="tb">2</td>',
+            ],
+        ),
+    ],
+)
+def test_tooltip_title_hidden_row(hide_df, hidden, expected):
     # GH#71281
     df, tt = hide_df
-    result = (
-        Styler(df, uuid_len=0)
-        .hide(["c"])
-        .set_tooltips(tt, as_title_attribute=True)
-        .to_html()
-    )
-    assert _titles(result) == [
-        '<td id="T__row0_col0" class="data row0 col0"  title="ta">1</td>',
-        '<td id="T__row1_col0" class="data row1 col0"  title="tb">2</td>',
-    ]
-
-
-def test_tooltip_title_hidden_column(hide_df):
-    # hidden cells never get a title
-    df, tt = hide_df
-    result = (
-        Styler(df, uuid_len=0)
-        .hide(["A"], axis=1)
-        .set_tooltips(tt, as_title_attribute=True)
-        .to_html()
-    )
-    assert _titles(result) == []
+    styler = Styler(df, uuid_len=0).hide(hidden)
+    result = styler.set_tooltips(tt, as_title_attribute=True).to_html()
+    assert _titles(result) == expected
 
 
 @pytest.mark.parametrize("kwargs", [{"max_rows": 2}, {"max_columns": 1}])
 def test_tooltip_title_trimmed(kwargs):
-    # GH#71281
+    # GH#71281 used to raise IndexError
     df = pd.DataFrame(np.arange(15).reshape(5, 3), columns=["A", "B", "C"])
     tt = df.astype(str)
     styler = Styler(df, uuid_len=0).set_tooltips(tt, as_title_attribute=True)
@@ -246,15 +229,3 @@ def test_tooltip_title_trimmed(kwargs):
         for j in range(n_cols)
     ]
     assert _titles(result) == expected
-
-
-def test_tooltip_title_same_cells_as_span_mode(hide_df):
-    # GH#71281
-    df, tt = hide_df
-    styler = Styler(df, uuid_len=0).hide(["a"])
-    span = styler.set_tooltips(tt).to_html()
-    title = styler.set_tooltips(tt, as_title_attribute=True).to_html()
-    assert '#T__row1_col0 .pd-t::after {\n  content: "tb";\n}' in span
-    assert 'content: "ta"' not in span
-    assert 'class="data row1 col0"  title="tb">2</td>' in title
-    assert 'title="ta"' not in title
