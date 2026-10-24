@@ -1863,6 +1863,8 @@ class AreaPlot(LinePlot):
 
         if self.logy or self.loglog:
             raise ValueError("Log-y scales are not supported in area plot")
+        if isinstance(self.kwds.get("hatch"), dict):
+            raise TypeError("hatch must be a string or a list of strings, not a dict")
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
@@ -1881,8 +1883,8 @@ class AreaPlot(LinePlot):
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds["label"])
 
+        line_kwds, fill_kwds = cls._split_line_fill_kwds(kwds)
         # need to remove label, because subplots uses mpl legend as it is
-        line_kwds = kwds.copy()
         line_kwds.pop("label")
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
@@ -1901,15 +1903,54 @@ class AreaPlot(LinePlot):
         else:
             start = np.zeros(len(y))
 
-        if "color" not in kwds:
-            kwds["color"] = lines[0].get_color()
+        fill_kwds = mpl.cbook.normalize_kwargs(
+            fill_kwds, mpl.collections.PolyCollection
+        )
+        # one hatch per column, as in matplotlib's stackplot
+        if is_list_like(fill_kwds.get("hatch")):
+            hatches = list(fill_kwds["hatch"])
+            fill_kwds["hatch"] = hatches[(column_num or 0) % len(hatches)]
+        # Set face and edge separately so that a passed facecolor/edgecolor wins,
+        # and leave the edge unset under a hatch, which is drawn in the edge color.
+        color = fill_kwds.pop("color", lines[0].get_color())
+        fill_kwds.setdefault("facecolor", color)
+        if not fill_kwds.get("hatch"):
+            fill_kwds.setdefault("edgecolor", color)
 
-        rect = ax.fill_between(xdata, start, y_values, **kwds)
+        rect = ax.fill_between(xdata, start, y_values, **fill_kwds)
         cls._update_stacker(ax, stacking_id, y)
 
         # LinePlot expects list of artists
         res = [rect]
         return res
+
+    @staticmethod
+    def _split_line_fill_kwds(
+        kwds: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """
+        Split kwds between the line and the fill, so that e.g. ``hatch`` or
+        ``marker`` do not raise on the artist that lacks them (GH#12354).
+        """
+        line_kwds: dict[str, Any] = {}
+        fill_kwds: dict[str, Any] = {}
+        for key, value in kwds.items():
+            on_line = hasattr(mpl.lines.Line2D, f"set_{key}")
+            on_fill = hasattr(mpl.collections.PolyCollection, f"set_{key}") or key in {
+                "where",
+                "interpolate",
+            }
+            # A kwarg both artists know, or neither (so matplotlib raises), goes to
+            # both. drawstyle goes to both too so that, like step, it keeps raising:
+            # the fill would not step with it, see GH#29451.
+            if on_line == on_fill or key in {"drawstyle", "ds"}:
+                line_kwds[key] = value
+                fill_kwds[key] = value
+            elif on_line:
+                line_kwds[key] = value
+            else:
+                fill_kwds[key] = value
+        return line_kwds, fill_kwds
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)

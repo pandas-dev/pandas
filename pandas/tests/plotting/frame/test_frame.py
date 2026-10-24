@@ -659,6 +659,75 @@ class TestDataFramePlots:
         assert unrelated_fig is not None
         assert unrelated_axes is not None
 
+    @pytest.mark.parametrize(
+        "hatch, expected",
+        [
+            ("//", ["//", "//", "//"]),
+            ("", ["", "", ""]),
+            (["/", "o"], ["/", "o", "/"]),
+            (("/", None, "x"), ["/", None, "x"]),
+            (np.array(["/", "o", "x"]), ["/", "o", "x"]),
+        ],
+    )
+    @pytest.mark.parametrize("stacked", [True, False])
+    def test_area_hatch(self, hatch, expected, stacked):
+        # GH#12354 a list gives one hatch per column, as in mpl's stackplot
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1], "c": [1, 1, 1]})
+        ax = df.plot.area(hatch=hatch, color="w", stacked=stacked)
+        assert [poly.get_hatch() for poly in ax.collections] == expected
+        for poly, expected_hatch in zip(ax.collections, expected, strict=True):
+            # an edge in the face color would hide the hatch
+            assert (len(poly.get_edgecolor()) == 0) == bool(expected_hatch)
+
+    def test_area_hatch_subplots(self):
+        # GH#12354
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
+        axes = df.plot.area(hatch=["/", "o"], subplots=True)
+        assert [ax.collections[0].get_hatch() for ax in axes] == ["/", "o"]
+
+    def test_area_hatch_dict_raises(self):
+        # GH#12354 a dict is list-like, so its keys would be taken as hatches
+        df = pd.DataFrame({"x": [1, 2], "o": [2, 1]})
+        with pytest.raises(TypeError, match="hatch"):
+            df.plot.area(hatch={"x": "/", "o": "."})
+
+    def test_area_line_only_kwds(self):
+        # GH#12354
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
+        ax = df.plot.area(marker="o", ms=3)
+        assert [line.get_marker() for line in ax.get_lines()] == ["o", "o"]
+        assert [line.get_markersize() for line in ax.get_lines()] == [3, 3]
+
+    def test_area_fill_only_kwds(self):
+        # GH#12354 where masks the fill, not the line
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        ax = df.plot.area(where=[True, True, False], interpolate=False)
+        assert len(ax.get_lines()[0].get_xdata()) == 3
+        assert ax.collections[0].get_paths()[0].vertices[:, 0].max() == 1
+
+    def test_area_facecolor_edgecolor(self):
+        # GH#12354 passed face/edge colors win over the series colors
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
+        ax = df.plot.area(fc="y", edgecolor="k")
+        for poly in ax.collections:
+            assert mpl.colors.same_color(poly.get_facecolor(), "y")
+            assert mpl.colors.same_color(poly.get_edgecolor(), "k")
+
+    @pytest.mark.parametrize("kwargs", [{"c": "r"}, {"style": "r--"}])
+    def test_area_fill_takes_line_color(self, kwargs):
+        # GH#12354
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        ax = df.plot.area(**kwargs)
+        assert mpl.colors.same_color(ax.collections[0].get_facecolor(), "r")
+        assert mpl.colors.same_color(ax.collections[0].get_edgecolor(), "r")
+
+    @pytest.mark.parametrize("kwargs", [{"drawstyle": "steps-post"}, {"step": "post"}])
+    def test_area_step_raises(self, kwargs):
+        # GH#29451 the line and the fill would not step together
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        with pytest.raises(AttributeError, match="unexpected keyword"):
+            df.plot.area(**kwargs)
+
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
