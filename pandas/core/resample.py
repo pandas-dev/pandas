@@ -32,6 +32,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -559,7 +560,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = grouped.apply(how, *args, **kwargs)
+            pass
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -569,10 +570,12 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             else:
                 raise
 
-            # we have a non-reducing function
-            # try to evaluate
-            result = grouped.apply(how, *args, **kwargs)
+        else:
+            return self._wrap_result(result)
 
+        # fall back to apply outside the except blocks so its errors are not
+        #  chained onto the aggregate error, GH#50980
+        result = grouped.apply(how, *args, **kwargs)
         return self._wrap_result(result)
 
     @final
@@ -1161,6 +1164,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    7
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1219,6 +1223,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01   12
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1276,6 +1281,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1333,6 +1339,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1387,6 +1394,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1443,6 +1451,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -2034,6 +2043,8 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
 
         self._groupby = groupby
         self._timegrouper = copy.copy(parent._timegrouper)
+        # exclude the grouping and `on` columns, GH#32162
+        self.exclusions = parent.exclusions | groupby.exclusions
 
         self.ax = parent.ax
         self.obj = parent.obj

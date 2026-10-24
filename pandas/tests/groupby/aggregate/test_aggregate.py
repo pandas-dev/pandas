@@ -509,6 +509,19 @@ def test_groupby_agg_dict_with_getitem():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_agg_dict_forwards_args_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"key": [1, 1, 2], "x": [np.nan, np.nan, 1.0]})
+    gb = df.groupby("key")
+    result = gb.agg({"x": "sum"}, min_count=1)
+    expected = pd.DataFrame({"x": [np.nan, 1.0]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+    result = gb.agg({"x": lambda ser, a, b=0: a + b}, 3, b=4)
+    expected = pd.DataFrame({"x": [7, 7]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_agg_dict_dup_columns():
     # GH#55006
     df = pd.DataFrame(
@@ -1723,13 +1736,66 @@ def test_groupby_complex(func, output):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max", "var"])
+@pytest.mark.parametrize("func", ["var", "std", "sem"])
+@pytest.mark.parametrize("ddof", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_groupby_complex_var_std_sem(func, ddof, skipna):
+    # GH#43770 match Series, including values with a NaN in only one part
+    data = pd.Series(
+        [
+            1 + 2j,
+            3 - 1j,
+            2 + 5j,
+            4 + 0j,
+            np.nan + 1j,
+            5 + 5j,
+            6 - 2j,
+            complex(1, np.nan),
+        ]
+    )
+    keys = [0, 0, 1, 1, 0, 1, 2, 2]
+    gb = data.groupby(keys)
+    result = getattr(gb, func)(ddof=ddof, skipna=skipna)
+    expected = gb.agg(lambda x: getattr(x, func)(ddof=ddof, skipna=skipna))
+    tm.assert_series_equal(result, expected)
+    assert result.dtype == np.float64
+
+    frame = data.to_frame("a")
+    result = getattr(frame.groupby(keys), func)(ddof=ddof, skipna=skipna)
+    tm.assert_frame_equal(result, expected.to_frame("a"))
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        "min",
+        "max",
+        "median",
+        "skew",
+        "kurt",
+        "idxmin",
+        "idxmax",
+        "quantile",
+        "cummin",
+        "cummax",
+        "rank",
+        "ohlc",
+    ],
+)
 def test_groupby_complex_raises(func):
-    # GH#43701
+    # GH#43701, GH#43770 median/skew/kurt must raise, not discard the
+    #  imaginary part
     data = pd.Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
-    msg = "No matching signature found"
+    msg = f"dtype 'complex128' does not support operation '{func}'"
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
+
+    with pytest.raises(TypeError, match=msg):
+        getattr(data.groupby(data.index % 2), func)()
+
+    frame = data.to_frame("a")
+    with pytest.raises(TypeError, match=msg):
+        getattr(frame.groupby(frame.index % 2), func)()
 
 
 @pytest.mark.parametrize(
@@ -1902,6 +1968,25 @@ def test_groupby_agg_as_index_false_multiindex_column_external_grouper():
         [[0, 0, 1], [1, 1, 3]],
         columns=pd.MultiIndex.from_tuples([("a", ""), ("a", "x"), ("b", "x")]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("spelling", ["dict", "named", "list"])
+def test_agg_many_columns_no_fragmentation_warning(spelling):
+    # GH#61628 per-column agg results made inserting the keys warn
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    df.insert(0, "key", [0, 0, 1, 1])
+    if spelling == "dict":
+        kwargs = {"func": dict.fromkeys(cols, "sum")}
+    elif spelling == "named":
+        kwargs = {col: pd.NamedAgg(col, "sum") for col in cols}
+    else:
+        kwargs = {"func": ["sum"]}
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("key", as_index=False).agg(**kwargs)
+        expected = df.groupby("key").agg(**kwargs).reset_index()
     tm.assert_frame_equal(result, expected)
 
 
@@ -2263,6 +2348,21 @@ def test_agg_relabel_with_name_match_duplicate_columns():
     df = pd.DataFrame(
         [[0, 1, 2], [0, 3, 4], [1, 5, 6], [1, 7, 8]], columns=["A", "B", "B"]
     )
+
+    result = df.groupby("A").agg(B=("B", "sum"))
+    expected = df.groupby("A").agg(x=("B", "sum"))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_named_columns():
+    # GH#68000 the result's columns are unnamed whether or not the output name
+    #  matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
+    df.columns.name = "metric"
 
     result = df.groupby("A").agg(B=("B", "sum"))
     expected = df.groupby("A").agg(x=("B", "sum"))

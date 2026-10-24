@@ -602,7 +602,6 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError("No tables found")
 
         result = []
-        unique_tables = set()
         tables = self._handle_hidden_tables(tables, "attrs")
 
         for table in tables:
@@ -613,9 +612,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                 for elem in table.find_all(style=re.compile(r"display:\s*none")):
                     elem.decompose()
 
-            if table not in unique_tables and table.find(string=match) is not None:
+            if table.find(string=match) is not None:
                 result.append(table)
-            unique_tables.add(table)
         if not result:
             raise ValueError(f"No tables found matching pattern {match.pattern!r}")
         return result
@@ -968,9 +966,15 @@ def _parse(
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
-    retained = None
+    retained: Exception | None = None
     for flav in flavor:
-        parser = _parser_dispatch(flav)
+        try:
+            parser = _parser_dispatch(flav)
+        except ImportError as caught:
+            # GH#30281
+            if retained is None:
+                retained = caught
+            continue
         p = parser(
             io,
             compiled_match,

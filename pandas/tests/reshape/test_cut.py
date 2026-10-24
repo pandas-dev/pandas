@@ -59,7 +59,7 @@ def test_bins_from_interval_index():
     tm.assert_categorical_equal(result, expected)
 
     expected = pd.Categorical.from_codes(
-        np.append(c.codes, -1), categories=c.categories, ordered=True
+        np.append(c.codes, np.int8(-1)), categories=c.categories, ordered=True
     )
     result = pd.cut(range(6), bins=expected.categories)
     tm.assert_categorical_equal(result, expected)

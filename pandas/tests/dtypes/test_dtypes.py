@@ -925,6 +925,18 @@ class TestCategoricalDtypeParametrized:
         assert c1 is not c2
         assert c1 == c2
 
+    @pytest.mark.parametrize("ordered2", [False, None])
+    @pytest.mark.parametrize(
+        "cats1, cats2",
+        [([1, 2, "3"], ["3", 1, 2]), ([(1, 2), "a"], ["a", (1, 2)])],
+    )
+    def test_hash_mixed_dtypes_unordered(self, cats1, cats2, ordered2):
+        # GH#51543
+        c1 = CategoricalDtype(cats1, ordered=False)
+        c2 = CategoricalDtype(cats2, ordered=ordered2)
+        assert c1 == c2
+        assert hash(c1) == hash(c2)
+
     def test_equal_empty_ordered(self):
         c1 = CategoricalDtype([], ordered=True)
         c2 = CategoricalDtype([], ordered=True)
