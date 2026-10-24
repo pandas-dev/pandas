@@ -3496,6 +3496,41 @@ class TestToDatetimeInferFormat:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "tz_name, offset",
+        [
+            # GH 71273 for these spellings dateutil applies the POSIX (inverted)
+            #  sign to the nominal offset, and to_datetime must agree with the
+            #  Timestamp constructor and with format="mixed"
+            ("UTC+3", -180),
+            ("UTC+0300", -180),
+            ("UTC+03:00", -180),
+            ("GMT+03:00", -180),
+            ("UTC-0300", 180),
+            # dateutil drops the offset entirely when it does not immediately
+            #  follow the zone name
+            ("UTC +0300", 0),
+        ],
+    )
+    def test_to_datetime_zone_with_offset(self, tz_name, offset):
+        tz = timezone(timedelta(minutes=offset))
+        expected = pd.Timestamp("2020-01-02 08:07:13").tz_localize(tz)
+        string = f"2020-01-02 08:07:13 {tz_name}"
+
+        result = pd.to_datetime(string)
+        assert result == expected
+
+        # the Series path must agree with the scalar one
+        result = pd.Series(pd.to_datetime([string]))
+        expected_series = pd.Series(expected)
+        tm.assert_series_equal(result, expected_series)
+
+        result = pd.Series(pd.to_datetime([string], format="mixed"))
+        tm.assert_series_equal(result, expected_series)
+
+        # ... and so must the Timestamp constructor
+        assert pd.Timestamp(string) == expected
+
+    @pytest.mark.parametrize(
         "ts,zero_tz",
         [
             ("2019-02-02 08:07:13", "Z"),
