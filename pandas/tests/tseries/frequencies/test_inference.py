@@ -120,6 +120,59 @@ def test_infer_freq_multi_quarter_start():
         assert frequencies.infer_freq(dates) == "2QS-JAN"
 
 
+@pytest.mark.parametrize("freq", ["SME", "SMS"])
+@pytest.mark.parametrize("start", ["2020-01-01", "2020-01-15", "2020-01-31"])
+def test_infer_freq_semi_monthly(freq, start):
+    # GH#45819 a semi-monthly index has two distinct deltas, so it never
+    #  reached the monthly or daily rules and inference returned None
+    index = pd.DatetimeIndex(pd.date_range(start, periods=10, freq=freq).values)
+
+    assert frequencies.infer_freq(index) == freq
+
+
+def test_infer_freq_semi_monthly_leap_february():
+    # GH#45819 the SME anchor is the last day of the month, which varies
+    index = pd.DatetimeIndex(pd.date_range("2024-01-15", periods=8, freq="SME").values)
+
+    assert index[3] == pd.Timestamp("2024-02-29")
+    assert frequencies.infer_freq(index) == "SME"
+
+
+def test_infer_freq_semi_monthly_evenly_spaced_keeps_weekly():
+    # GH#45819 across a 28-day February the SMS anchors are all 14 days
+    #  apart, so the index is also 2W-MON; the fixed-delta rule takes
+    #  precedence, as before semi-monthly inference existed
+    index = pd.DatetimeIndex(["2021-02-01", "2021-02-15", "2021-03-01", "2021-03-15"])
+
+    assert frequencies.infer_freq(index) == "2W-MON"
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        # both anchors present but the months do not advance
+        ["2020-01-01", "2020-01-15", "2020-02-01", "2020-02-15", "2020-02-01"],
+        # anchors do not alternate
+        ["2020-01-01", "2020-01-01", "2020-01-15", "2020-02-01"],
+        # day 15 present, but the other anchor is not the month end
+        ["2020-01-15", "2020-01-20", "2020-02-15", "2020-02-20"],
+    ],
+)
+def test_infer_freq_semi_monthly_negative(dates):
+    # GH#45819 these must not be mistaken for a semi-monthly frequency
+    index = pd.DatetimeIndex(dates)
+
+    assert frequencies.infer_freq(index) is None
+
+
+def test_infer_freq_semi_monthly_multiple_not_inferred():
+    # GH#45819 a multiple such as 2SME advances two months at a time, which
+    #  is not claimed as SME
+    index = pd.DatetimeIndex(pd.date_range("2020-01-15", periods=8, freq="2SME").values)
+
+    assert frequencies.infer_freq(index) != "SME"
+
+
 def test_raise_if_period_index():
     index = pd.period_range(start="1/1/1990", periods=20, freq="M")
     msg = "Check the `freq` attribute instead of using infer_freq"
