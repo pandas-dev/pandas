@@ -3512,7 +3512,6 @@ class TestToDatetimeInferFormat:
         expected = pd.Series([pd.Timestamp(ts, tz=tz)])
         tm.assert_series_equal(result, expected)
 
-
     @pytest.mark.parametrize(
         "tz_name",
         ["UTC+0300", "UTC-0300", "UTC+03:00", "GMT+03:00"],
