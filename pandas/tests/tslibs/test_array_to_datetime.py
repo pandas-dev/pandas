@@ -12,6 +12,7 @@ import pytest
 
 from pandas._libs import (
     NaT,
+    OutOfBoundsDatetime,
     iNaT,
     tslib,
 )
@@ -137,6 +138,52 @@ class TestArrayToDatetimeWithTZResolutionInference:
         vals2 = np.array([NaT, NaT], dtype=object)
         res2 = tslib.array_to_datetime_with_tz(vals2, tz, False, False, creso_infer)
         assert res2.dtype == "M8[s]"
+
+
+class TestArrayToDatetimeOutOfPyDatetimeRange:
+    # GH#71371 a tz-aware Timestamp with a year outside 1-9999 must not be
+    #  corrupted when converted to datetime64 storage
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_array_to_datetime_out_of_pydatetime_range(self, unit):
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize("UTC")
+        arr = np.array([ts], dtype=object)
+        result, res_tz = tslib.array_to_datetime(arr, creso=creso_infer)
+        assert res_tz == UTC
+        expected = np.array([np.datetime64("10000-03-05T12:00", unit)])
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_array_to_datetime_with_tz_out_of_pydatetime_range(self, unit):
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize("UTC")
+        arr = np.array([ts], dtype=object)
+        result = tslib.array_to_datetime_with_tz(arr, UTC, False, False, creso_infer)
+        expected = np.array([np.datetime64("10000-03-05T12:00", unit)])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_array_to_datetime_out_of_pydatetime_range_ns(self):
+        # year 10000 is out of bounds for nanosecond resolution
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", "us")).tz_localize("UTC")
+        arr = np.array([ts], dtype=object)
+        with pytest.raises(OutOfBoundsDatetime, match="without overflow"):
+            tslib.array_to_datetime(
+                arr, utc=True, creso=NpyDatetimeUnit.NPY_FR_ns.value
+            )
+
+    @pytest.mark.parametrize(
+        "constructor",
+        [
+            pd.Series,
+            pd.DatetimeIndex,
+            pd.to_datetime,
+            pd.array,
+        ],
+    )
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_public_constructors_out_of_pydatetime_range(self, constructor, unit):
+        ts = pd.Timestamp(np.datetime64("10000-03-05T12:00", unit)).tz_localize("UTC")
+        result = constructor([ts])
+        assert result[0] == ts
+        assert result[0].unit == unit
 
 
 @pytest.mark.parametrize(
