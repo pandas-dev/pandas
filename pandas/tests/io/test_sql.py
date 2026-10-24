@@ -4120,6 +4120,39 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize(
+    "dtype_backend",
+    [lib.no_default, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
+)
+def test_read_sql_dtype_nullable_int_exact(conn, request, dtype_backend):
+    # GH#61667 an integer dtype must not round through float64
+    if "adbc" in conn and dtype_backend is lib.no_default:
+        request.applymarker(
+            pytest.mark.xfail(reason="adbc converts to float64 first", strict=True)
+        )
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame(
+        {"a": pd.array([2**60 + 1, None], dtype="Int64"), "b": [1.5, 2.5]}
+    )
+    df.to_sql(name="test", con=conn, index=False, if_exists="replace")
+
+    result = read_sql_query(
+        "SELECT * FROM test", conn, dtype={"a": "Int64"}, dtype_backend=dtype_backend
+    )
+    assert result["a"].tolist() == [2**60 + 1, pd.NA]
+    expected_b = "float64" if dtype_backend is lib.no_default else "double[pyarrow]"
+    assert result["b"].dtype == expected_b
+
+    result = read_sql_query(
+        "SELECT * FROM test WHERE 1 = 0",
+        conn,
+        dtype={"a": "Int64"},
+        dtype_backend=dtype_backend,
+    )
+    assert result["a"].dtype == "Int64"
+
+
 def test_bigint_warning(sqlite_engine):
     conn = sqlite_engine
     # test no warning for BIGINT (to support int64) is raised (GH7433)
@@ -4271,6 +4304,90 @@ def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     df.to_sql("test", conn, if_exists="replace", index=False)
     result = pd.read_sql("select * from test", conn).iloc[0, 0]
     assert result == pd.Timestamp("2020-12-31 12:00:00.000000")
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int64",
+        "uint64",
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("coerce_float", [True, False])
+@pytest.mark.parametrize(
+    "dtype_backend",
+    [lib.no_default, pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
+)
+def test_read_sql_query_decimal_dtype_exact(
+    sqlite_builtin_detect_types, monkeypatch, dtype, coerce_float, dtype_backend
+):
+    # GH#61667 an integer dtype must not round Decimals through float64
+    monkeypatch.setitem(sqlite3.converters, "DEC", lambda b: Decimal(b.decode()))
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a DEC)")
+    conn.execute("INSERT INTO test VALUES (?)", ("305184080441754059",))
+    result = read_sql_query(
+        "SELECT * FROM test",
+        conn,
+        dtype={"a": dtype},
+        coerce_float=coerce_float,
+        dtype_backend=dtype_backend,
+    )
+    assert result["a"].tolist() == [305184080441754059]
+
+
+@pytest.mark.parametrize(
+    "dtype, msg",
+    [
+        ("Int64", "cannot safely cast"),
+        pytest.param("int64[pyarrow]", "truncated", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_read_sql_query_decimal_dtype_non_integral_raises(
+    sqlite_builtin_detect_types, monkeypatch, dtype, msg
+):
+    # GH#61667 a non-integral Decimal must not be truncated silently
+    monkeypatch.setitem(sqlite3.converters, "DEC", lambda b: Decimal(b.decode()))
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a DEC)")
+    conn.executemany("INSERT INTO test VALUES (?)", [("1",), ("1.5",)])
+    with pytest.raises((TypeError, ValueError), match=msg):
+        read_sql_query("SELECT * FROM test", conn, dtype={"a": dtype})
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        "Float64",
+        pytest.param("double[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_read_sql_query_dtype_still_infers(
+    sqlite_builtin_detect_types, monkeypatch, dtype
+):
+    # GH#61667 float targets and datetime columns are inferred as before, and
+    # NULL still fails an int64 cast with IntCastingNaNError
+    monkeypatch.setitem(
+        sqlite3.converters, "DT", lambda b: datetime.fromisoformat(b.decode())
+    )
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a INTEGER, b DT)")
+    conn.executemany(
+        "INSERT INTO test VALUES (?, ?)",
+        [(2**60 + 1, "2020-01-01"), (None, "2020-01-02")],
+    )
+    result = read_sql_query(
+        "SELECT * FROM test", conn, dtype={"a": dtype, "b": "int64"}
+    )
+    assert result["a"][0] == float(2**60 + 1)
+    expected = pd.Series([datetime(2020, 1, 1), datetime(2020, 1, 2)])
+    assert result["b"].tolist() == expected.astype("int64").tolist()
+
+    with pytest.raises(pd.errors.IntCastingNaNError, match="non-finite"):
+        read_sql_query("SELECT a FROM test", conn, dtype={"a": "int64"})
 
 
 @pytest.mark.parametrize(
