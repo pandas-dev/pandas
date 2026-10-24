@@ -4359,6 +4359,25 @@ def test_read_sql_query_decimal_dtype_exact(
 
 
 @pytest.mark.parametrize(
+    "dtype, msg",
+    [
+        ("Int64", "cannot safely cast"),
+        pytest.param("int64[pyarrow]", "truncated", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_read_sql_query_decimal_dtype_non_integral_raises(
+    sqlite_builtin_detect_types, monkeypatch, dtype, msg
+):
+    # GH#61667 a non-integral Decimal must not be truncated silently
+    monkeypatch.setitem(sqlite3.converters, "DEC", lambda b: Decimal(b.decode()))
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a DEC)")
+    conn.executemany("INSERT INTO test VALUES (?)", [("1",), ("1.5",)])
+    with pytest.raises((TypeError, ValueError), match=msg):
+        read_sql_query("SELECT * FROM test", conn, dtype={"a": dtype})
+
+
+@pytest.mark.parametrize(
     "dtype",
     [
         "float64",
