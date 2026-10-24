@@ -2757,6 +2757,42 @@ def test_sum_prod_object_skipna_false(axis):
     tm.assert_series_equal(df.prod(axis=axis, skipna=False), exp_prod)
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_object_skipna_per_slice(axis):
+    # GH#59764: each slice sums only its own non-NA entries; an entirely-NA
+    # slice gives 0, as for numeric data.  Non-square, so that reducing along
+    # the wrong axis is distinguishable.
+    df = pd.DataFrame(
+        {"a": ["x", None], "b": ["p", "q"], "c": [None, None]}, dtype=object
+    )
+    if axis == 0:
+        expected = pd.Series(
+            ["x", "pq", 0], index=pd.Index(["a", "b", "c"]), dtype=object
+        )
+    else:
+        expected = pd.Series(["xp", "q"], dtype=object)
+    tm.assert_series_equal(df.sum(axis=axis), expected)
+
+    result = df.sum(axis=axis, min_count=2)
+    assert result.isna().tolist() == (
+        [True, False, True] if axis == 0 else [False, True]
+    )
+
+
+def test_sum_object_skipna_axis_none_order():
+    # GH#59764: column by column, matching the frame without an NA
+    df = pd.DataFrame({"a": ["x", "y"], "b": ["p", None]}, dtype=object)
+    assert df.sum(axis=None) == "xyp"
+    assert df.fillna("").sum(axis=None) == "xyp"
+
+    # a non-contiguous view
+    df = pd.DataFrame(
+        {"a": list("xyz"), "b": list("mno"), "c": ["p", None, "q"]}, dtype=object
+    )
+    assert df.iloc[1:].sum(axis=None) == "yznoq"
+    assert df.iloc[1:].fillna("").sum(axis=None) == "yznoq"
+
+
 @pytest.mark.parametrize(
     "method, exp_skipna, exp_no_na",
     [("min", 1, 1), ("max", 4, 4), ("sum", 8, 10), ("prod", 12, 24)],
