@@ -1394,8 +1394,9 @@ class ScatterPlot(PlanePlot):
         x_data = data[x]
         s = Series(index=x_data)
         if use_dynamic_x(ax, s.index):
+            timestamps = s.index if isinstance(s.index, ABCDatetimeIndex) else None
             s, index_freq = maybe_convert_index(ax, s)
-            freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
+            freq, s, _ = prepare_ts_data(s, ax, self.kwds, index_freq, timestamps)
             x_data = s.index
 
         c_is_column = is_hashable(c) and c in self.data.columns
@@ -1613,7 +1614,7 @@ class LinePlot(MPLPlot):
             ax0 = self._get_ax(0)
             data, index_freq = maybe_convert_index(ax0, self.data)
 
-            x = data.index  # dummy, not used
+            x = self.data.index
             plotf = partial(self._ts_plot, index_freq=index_freq)
             it = data.items()
         else:
@@ -1715,18 +1716,23 @@ class LinePlot(MPLPlot):
         index_freq: str | None = None,
         **kwds,
     ):
-        # accept x to be consistent with normal plot func,
-        # x is not passed to tsplot as it uses data.index as x coordinate
+        # x is the unconverted index of data; data.index is used as x coordinate
         # column_num must be in kwds for stacking purpose
-        _freq, data = prepare_ts_data(data, ax, kwds, index_freq)
+        timestamps: Index | None = x if isinstance(x, ABCDatetimeIndex) else None
+        _freq, data, timestamps = prepare_ts_data(
+            data, ax, kwds, index_freq, timestamps
+        )
 
         # prepare_ts_data set ax.freq and returned data re-expressed at that
         # freq, so these two agree even when the series was re-expressed at
         # the axes frequency.  The frame-level index would not (GH#64311).
         self._ts_index[id(ax)] = data.index
 
+        # cache the original timestamps so a replot at a finer freq places
+        # them correctly (GH#11574)
+        cached = data if timestamps is None else data.set_axis(timestamps)
         # TODO #54485
-        ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
+        ax._plot_data.append((cached, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(
             ax, data.index, np.asarray(data._values), style=style, **kwds

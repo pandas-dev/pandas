@@ -65,11 +65,22 @@ def _asfreq_plotting(index: Index, freq: str | BaseOffset) -> Index:
     """
     Re-express a time-series plotting index at frequency ``freq``.
 
-    ``index`` is either a PeriodIndex or a plain int64 index of business-day
-    ordinals -- the representation used for BDay data to avoid the deprecated
-    Period[B].  Returns int64 business-day ordinals when ``freq`` is
+    ``index`` is a DatetimeIndex, a PeriodIndex, or a plain int64 index of
+    business-day ordinals -- the representation used for BDay data to avoid the
+    deprecated Period[B].  Returns int64 business-day ordinals when ``freq`` is
     business-daily, otherwise a PeriodIndex at ``freq``.
     """
+    if isinstance(index, ABCDatetimeIndex):
+        # Convert timestamps directly rather than via a coarser Period, which
+        # would move e.g. month-end dates to the 1st (GH#11574).
+        source_freq = _get_index_freq(index)
+        index = index.tz_localize(None)
+        if _get_period_alias(freq) == "B":
+            # Avoid creating deprecated Period[B]; use numpy business-day
+            # arithmetic to map each timestamp to its business-day ordinal.
+            dates = _roll_to_bday(index, source_freq)
+            return Index(bday_count_array(dates), dtype=np.int64)
+        return index.to_period(freq)
     if _get_period_alias(freq) == "B":
         if is_integer_dtype(index):
             # already business-day ordinals
@@ -84,10 +95,37 @@ def _asfreq_plotting(index: Index, freq: str | BaseOffset) -> Index:
     return index.asfreq(freq, how="S")  # type: ignore[attr-defined]
 
 
+def _roll_to_bday(index: DatetimeIndex, source_freq: BaseOffset | None) -> np.ndarray:
+    """
+    Move weekend dates to a business day, staying within their period at
+    ``source_freq`` where possible.
+
+    Rolls forward by default, but rolls back when only that keeps the date in
+    its own period, e.g. a Saturday month-end or a W-SUN date.
+    """
+    days = index.values.astype("datetime64[D]")
+    forward = np.busday_offset(days, 0, roll="forward")
+    alias = None if source_freq is None else _get_period_alias(source_freq)
+    if alias is None or (forward == days).all():
+        return forward
+    backward = np.busday_offset(days, 0, roll="backward")
+    periods = index.to_period(alias)
+    use_backward = (DatetimeIndex(forward).to_period(alias) != periods) & (
+        DatetimeIndex(backward).to_period(alias) == periods
+    )
+    return np.where(use_backward, backward, forward)
+
+
 def maybe_resample(
-    series: Series, ax: Axes, kwargs: dict[str, Any], index_freq: str | None = None
+    series: Series,
+    ax: Axes,
+    kwargs: dict[str, Any],
+    index_freq: str | None = None,
+    timestamps: Index | None = None,
 ):
     # resample against axes freq if necessary
+    # timestamps is the DatetimeIndex series was converted from, if any; the
+    # returned timestamps line up with the returned series, or are None
 
     if "how" in kwargs:
         raise ValueError(
@@ -103,11 +141,15 @@ def maybe_resample(
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy(deep=False)
-            series.index = _asfreq_plotting(series.index, ax_freq)
+            index = series.index if timestamps is None else timestamps
+            series.index = _asfreq_plotting(index, ax_freq)
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = "last"
-            if is_integer_dtype(series.index):
+            if timestamps is not None:
+                series = series.copy(deep=False)
+                series.index = _asfreq_plotting(timestamps, "D")
+            elif is_integer_dtype(series.index):
                 # business-day ordinals cannot be resampled; re-express them
                 # as daily Periods first (GH#66222)
                 series = series.copy(deep=False)
@@ -115,11 +157,15 @@ def maybe_resample(
             series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
+            if timestamps is not None:
+                # put each weekly bin on its last day, where the timestamps of
+                # weekly data fall
+                timestamps = series.index.asfreq("D", how="E").to_timestamp()  # type: ignore[attr-defined]
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
         else:  # pragma: no cover
             raise ValueError("Incompatible frequency conversion")
-    return freq, series
+    return freq, series, timestamps
 
 
 def _is_sub(f1: str, f2: str) -> bool:
@@ -171,10 +217,11 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     labels = []
     if data is not None:
         for series, plotf, kwds in data:
-            series = series.copy(deep=False)
-            series.index = _asfreq_plotting(series.index, freq)
+            # keep the cached index as-is so a later replot also converts from
+            # the original timestamps
             # TODO #54485
             ax._plot_data.append((series, plotf, kwds))  # type: ignore[attr-defined]
+            index = _asfreq_plotting(series.index, freq)
 
             # for tsplot
             if isinstance(plotf, str):
@@ -183,7 +230,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
                 plotf = PLOT_CLASSES[plotf]._plot
 
             values = np.asarray(series._values)
-            lines.append(plotf(ax, series.index._mpl_repr(), values, **kwds)[0])
+            lines.append(plotf(ax, index._mpl_repr(), values, **kwds)[0])
             labels.append(pprint_thing(series.name))
 
     return lines, labels
@@ -366,16 +413,10 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> tuple[NDFrameT, str | None]
         freq_str = _get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):
-            if freq_str == "B":
-                # Avoid creating deprecated Period[B]; use numpy business-day
-                # arithmetic to map each timestamp to its business-day ordinal.
-                data = data.copy(deep=False)
-                data.index = Index(
-                    bday_count_array(data.index.tz_localize(None).values),
-                    dtype=np.int64,
-                )
-            else:
-                data = data.tz_localize(None).to_period(freq=freq_str)
+            # use_dynamic_x has already rejected a freq with no period alias
+            assert freq_str is not None
+            data = data.copy(deep=False)
+            data.index = _asfreq_plotting(data.index, freq_str)
         elif isinstance(data.index, ABCPeriodIndex):
             if freq_str == "B":
                 # Extract the existing Period[B] ordinals as plain int64 to
@@ -493,9 +534,13 @@ def format_dateaxis(
 
 
 def prepare_ts_data(
-    series: Series, ax: Axes, kwargs: dict[str, Any], index_freq: str | None = None
-) -> tuple[BaseOffset | str, Series]:
-    freq, data = maybe_resample(series, ax, kwargs, index_freq)
+    series: Series,
+    ax: Axes,
+    kwargs: dict[str, Any],
+    index_freq: str | None = None,
+    timestamps: Index | None = None,
+) -> tuple[BaseOffset | str, Series, Index | None]:
+    freq, data, timestamps = maybe_resample(series, ax, kwargs, index_freq, timestamps)
 
     # Set ax with freq info
     decorate_axes(ax, freq)
@@ -505,4 +550,4 @@ def prepare_ts_data(
     if hasattr(ax, "right_ax"):
         decorate_axes(ax.right_ax, freq)
 
-    return freq, data
+    return freq, data, timestamps

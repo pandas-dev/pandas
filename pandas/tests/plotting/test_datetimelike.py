@@ -1102,7 +1102,8 @@ class TestTSPlot:
             assert ax.freq == "B"
             tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), expected)
 
-    def test_mixed_freq_bday_then_higher(self):
+    @pytest.mark.parametrize("period_index", [False, True])
+    def test_mixed_freq_bday_then_higher(self, period_index):
         # GH#64311 plotting a higher-frequency (hourly) series onto an existing
         # business-day axis previously raised AttributeError: the stored BDay
         # series has a plain int64 index with no .asfreq method.
@@ -1110,6 +1111,11 @@ class TestTSPlot:
             np.arange(10, dtype=np.float64),
             index=bdate_range("2020-01-01", periods=10),
         )
+        if period_index:
+            # only Period[B] input is still cached as business-day ordinals
+            msg = r"PeriodDtype\[B\] is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                bser.index = bser.index.to_period("B")
         hser = pd.Series(
             np.arange(48, dtype=np.float64),
             index=date_range("2020-01-01", periods=48, freq="h"),
@@ -1129,7 +1135,8 @@ class TestTSPlot:
         # aligned starts -> shared first x-coordinate
         assert line_b.get_xdata()[0] == line_h.get_xdata()[0]
 
-    def test_mixed_freq_bday_onto_lower(self):
+    @pytest.mark.parametrize("period_index", [False, True])
+    def test_mixed_freq_bday_onto_lower(self, period_index):
         # GH#64311 plotting BDay data onto an axis that already holds a
         # lower-frequency (monthly) series previously left ax.freq clobbered to
         # "B" before resampling, so the monthly line kept its month ordinals
@@ -1138,6 +1145,16 @@ class TestTSPlot:
             np.arange(12, dtype=np.float64),
             index=date_range("2020-01-01", periods=12, freq="ME"),
         )
+        # month-end timestamps stay in their month, so a weekend month-end
+        # goes on the last business day (GH#11574); Periods have no date and
+        # are placed at their start
+        bme = date_range("2020-01-01", periods=12, freq="BME")
+        expected_m = np.array([conv.bday_count(ts) for ts in bme])
+        if period_index:
+            mser.index = mser.index.to_period("M")
+            expected_m = np.array(
+                [conv.bday_count(per.to_timestamp()) for per in mser.index]
+            )
         bser = pd.Series(
             np.arange(10, dtype=np.float64),
             index=bdate_range("2020-06-01", periods=10),
@@ -1148,14 +1165,29 @@ class TestTSPlot:
         # both lines share a common business-day ordinal scale
         assert ax.freq == "B"
         line_m, line_b = ax.get_lines()
-        # the monthly line is upsampled to the business-day ordinals of its
-        # (month-start) timestamps
-        expected_m = np.array(
-            [conv.bday_count(per.to_timestamp()) for per in mser.index.to_period("M")]
-        )
         tm.assert_numpy_array_equal(line_m.get_xdata(), expected_m)
         expected_b = np.array([conv.bday_count(ts) for ts in bser.index])
         tm.assert_numpy_array_equal(line_b.get_xdata(), expected_b)
+
+    def test_mixed_freq_weekly_on_bday_axis(self):
+        # GH#11574 Sunday-ending weeks go on that week's Friday, not the
+        # following Monday
+        weekly_ser = pd.Series(
+            np.arange(4, dtype=np.float64),
+            index=date_range("2020-01-05", periods=4, freq="W-SUN"),
+        )
+        bser = pd.Series(
+            np.arange(30, dtype=np.float64),
+            index=bdate_range("2020-01-01", periods=30),
+        )
+        _, ax = mpl.pyplot.subplots()
+        bser.plot(ax=ax)
+        weekly_ser.plot(ax=ax)
+        assert ax.freq == "B"
+        line_w = ax.get_lines()[1]
+        fridays = date_range("2020-01-03", periods=4, freq="W-FRI")
+        expected = np.array([conv.bday_count(ts) for ts in fridays])
+        tm.assert_numpy_array_equal(line_w.get_xdata(), expected)
 
     @pytest.mark.parametrize("freq", ["D", "h", "min", "s"])
     def test_mixed_freq_bday_onto_finer_axis(self, freq):
@@ -1198,7 +1230,8 @@ class TestTSPlot:
         for line in ax.get_lines()[1:]:
             tm.assert_numpy_array_equal(line.get_xdata(), expected)
 
-    def test_mixed_freq_bday_onto_weekly_axis(self):
+    @pytest.mark.parametrize("period_index", [False, True])
+    def test_mixed_freq_bday_onto_weekly_axis(self, period_index):
         # GH#66222 business-day data plotted onto a weekly axis raised
         # TypeError from resampling the int64 business-day ordinal index.
         weekly_ser = pd.Series(
@@ -1209,12 +1242,17 @@ class TestTSPlot:
             np.arange(30, dtype=np.float64),
             index=bdate_range("2020-01-01", periods=30),
         )
+        # the business-day data is aggregated onto the weekly axis
+        expected = bser.resample("W-SUN").last().dropna()
+        if period_index:
+            # only Period[B] input is still converted to business-day ordinals
+            msg = r"PeriodDtype\[B\] is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                bser.index = bser.index.to_period("B")
         _, ax = mpl.pyplot.subplots()
         weekly_ser.plot(ax=ax)
         bser.plot(ax=ax)
         assert ax.freq == "W-SUN"
-        # the business-day data is aggregated onto the weekly axis
-        expected = bser.resample("W-SUN").last().dropna()
         line_b = ax.get_lines()[1]
         tm.assert_numpy_array_equal(
             line_b.get_xdata(), PeriodIndex(expected.index, freq="W-SUN").asi8
@@ -1332,6 +1370,97 @@ class TestTSPlot:
         assert ax2.freq == "M"
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
+    @pytest.mark.parametrize("case", ["coarse_first", "coarse_second", "sharex"])
+    def test_mixed_freq_month_end_on_daily_axis(self, case):
+        # GH#11574 month-end data re-expressed on a daily axis was drawn at
+        # the start of each month
+        daily = pd.Series(np.arange(100.0), index=date_range("2000-01-01", periods=100))
+        monthly = daily.resample("ME").mean()
+
+        if case == "sharex":
+            _, (ax1, ax) = mpl.pyplot.subplots(nrows=2, sharex=True)
+            daily.plot(ax=ax1)
+            monthly.plot(ax=ax)
+            line = ax.get_lines()[0]
+        else:
+            _, ax = mpl.pyplot.subplots()
+            first, second = (
+                (monthly, daily) if case == "coarse_first" else (daily, monthly)
+            )
+            first.plot(ax=ax)
+            second.plot(ax=ax)
+            line = ax.get_lines()[0 if case == "coarse_first" else 1]
+
+        assert ax.freq == "D"
+        expected = monthly.index.to_period("D").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(line.get_xdata(orig=False), expected)
+
+    @pytest.mark.parametrize("coarse_first", [True, False])
+    def test_mixed_freq_period_index_on_daily_axis(self, coarse_first):
+        # PeriodIndex data has no position within its periods, so unlike
+        # month-end timestamps it is drawn at the start of each (GH#11574)
+        daily = pd.Series(np.arange(100.0), index=date_range("2000-01-01", periods=100))
+        monthly = pd.Series(
+            [1.0, 2.0, 3.0], index=period_range("2000-01", periods=3, freq="M")
+        )
+        _, ax = mpl.pyplot.subplots()
+        first, second = (monthly, daily) if coarse_first else (daily, monthly)
+        first.plot(ax=ax)
+        second.plot(ax=ax)
+
+        assert ax.freq == "D"
+        line = ax.get_lines()[0 if coarse_first else 1]
+        expected = monthly.index.asfreq("D", how="S").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(line.get_xdata(orig=False), expected)
+
+    def test_mixed_freq_month_end_replotted_twice(self):
+        # GH#11574 each replot converts from the original timestamps
+        idx = date_range("2000-01-31", periods=4, freq="ME")
+        _, ax = mpl.pyplot.subplots()
+        pd.Series(np.arange(4.0), index=idx).plot(ax=ax)
+        pd.Series(
+            np.arange(20.0), index=date_range("2000-01-02", periods=20, freq="W")
+        ).plot(ax=ax)
+        pd.Series(
+            np.arange(48.0), index=date_range("2000-01-01", periods=48, freq="h")
+        ).plot(ax=ax)
+
+        assert ax.freq == "h"
+        expected = idx.to_period("h").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(orig=False), expected)
+
+    def test_mixed_freq_resampled_to_weekly_stays_resampled_on_replot(self):
+        # daily data resampled onto a weekly axis keeps its weekly bins, aligned
+        # with the weekly series, when a finer series replots the axes
+        weekly = pd.Series(
+            np.arange(5.0), index=date_range("2000-01-02", periods=5, freq="W")
+        )
+        daily = pd.Series(np.arange(30.0), index=date_range("2000-01-01", periods=30))
+        hourly = pd.Series(
+            np.arange(48.0), index=date_range("2000-01-01", periods=48, freq="h")
+        )
+        _, ax = mpl.pyplot.subplots()
+        weekly.plot(ax=ax)
+        daily.plot(ax=ax)
+        hourly.plot(ax=ax)
+        lines = ax.get_lines()
+        assert [len(line.get_xdata()) for line in lines] == [5, 5, 48]
+        expected = weekly.index.to_period("h").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(lines[0].get_xdata(orig=False), expected)
+        tm.assert_numpy_array_equal(lines[1].get_xdata(orig=False), expected)
+
+    def test_scatter_month_end_on_daily_axis(self):
+        # GH#11574
+        daily = pd.Series(np.arange(100.0), index=date_range("2000-01-01", periods=100))
+        dti = date_range("2000-01-31", periods=3, freq="ME")
+        df = pd.DataFrame({"t": dti, "y": [1.0, 2.0, 3.0]})
+        _, ax = mpl.pyplot.subplots()
+        daily.plot(ax=ax)
+        df.plot.scatter(x="t", y="y", ax=ax)
+        expected = dti.to_period("D").asi8.astype(np.float64)
+        offsets = np.asarray(ax.collections[0].get_offsets())
+        tm.assert_numpy_array_equal(offsets[:, 0], expected)
+
     def test_mixed_freq_shared_ax_twin_x(self):
         # GH13341, using sharex=True
         idx1 = date_range("2015-01-01", periods=3, freq="ME")
@@ -1409,10 +1538,8 @@ class TestTSPlot:
         high.plot(ax=ax)
 
         expected_h = idxh.to_period().asi8.astype(np.float64)
-        expected_l = np.array(
-            [1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549, 1553, 1558, 1562],
-            dtype=np.float64,
-        )
+        # month-end timestamps land in the week containing them, GH#11574
+        expected_l = idxl.to_period("W").asi8.astype(np.float64)
         for line in ax.get_lines():
             assert (
                 PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
@@ -1444,23 +1571,7 @@ class TestTSPlot:
         high.plot(kind=kind2, stacked=True, ax=ax)
 
         # check low dataframe result
-        expected_x = np.array(
-            [
-                1514,
-                1519,
-                1523,
-                1527,
-                1531,
-                1536,
-                1540,
-                1544,
-                1549,
-                1553,
-                1558,
-                1562,
-            ],
-            dtype=np.float64,
-        )
+        expected_x = idxl.to_period("W").asi8.astype(np.float64)
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             line = ax.lines[i]
@@ -1518,23 +1629,7 @@ class TestTSPlot:
             tm.assert_numpy_array_equal(line.get_ydata(orig=False), expected_y)
 
         # check low dataframe result
-        expected_x = np.array(
-            [
-                1514,
-                1519,
-                1523,
-                1527,
-                1531,
-                1536,
-                1540,
-                1544,
-                1549,
-                1553,
-                1558,
-                1562,
-            ],
-            dtype=np.float64,
-        )
+        expected_x = idxl.to_period("W").asi8.astype(np.float64)
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             lines = ax.lines[3 + i]
