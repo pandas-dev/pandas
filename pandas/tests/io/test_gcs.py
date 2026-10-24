@@ -1,16 +1,15 @@
+from io import BytesIO
+import os
+import pathlib
+import tarfile
 import warnings
+import zipfile
 
 warnings.filterwarnings(
     "ignore",
     message="You are using a Python version.*google.api_core",
     category=FutureWarning,
 )
-
-from io import BytesIO
-import os
-import pathlib
-import tarfile
-import zipfile
 
 import numpy as np
 import pytest
