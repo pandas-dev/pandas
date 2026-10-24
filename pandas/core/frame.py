@@ -18607,6 +18607,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         skipna: bool = ...,
         numeric_only: bool = ...,
+        bias: bool = ...,
         **kwargs,
     ) -> Series: ...
 
@@ -18617,6 +18618,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: None,
         skipna: bool = ...,
         numeric_only: bool = ...,
+        bias: bool = ...,
         **kwargs,
     ) -> Any: ...
 
@@ -18627,6 +18629,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis | None,
         skipna: bool = ...,
         numeric_only: bool = ...,
+        bias: bool = ...,
         **kwargs,
     ) -> Series | Any: ...
 
@@ -18636,12 +18639,15 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ) -> Series | Any:
         """
-        Return unbiased skew over requested axis.
+        Return skew over requested axis, optionally corrected for statistical bias.
 
-        Normalized by N-1.
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
@@ -18658,6 +18664,8 @@ class DataFrame(NDFrame, OpsMixin):
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         **kwargs
             Additional keyword arguments have no effect but might be accepted for
@@ -18666,11 +18674,12 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series or scalar
-            Unbiased skew over requested axis.
+            Skew over requested axis.
 
         See Also
         --------
-        DataFrame.kurt : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurt : Returns kurtosis over requested axis, optionally
+            corrected for statistical bias.
 
         Examples
         --------
@@ -18703,6 +18712,12 @@ class DataFrame(NDFrame, OpsMixin):
         cow     0.000000
         dtype: float64
 
+        >>> df.skew(axis=1, bias=True)
+        tiger    0.707107
+        zebra   -0.707107
+        cow      0.000000
+        dtype: float64
+
         In this case, `numeric_only` should be set to `True` to avoid
         getting an error.
 
@@ -18714,7 +18729,7 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: float64
         """
         result = super().skew(
-            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+            axis=axis, skipna=skipna, numeric_only=numeric_only, bias=bias, **kwargs
         )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="skew")
@@ -18728,6 +18743,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         skipna: bool = ...,
         numeric_only: bool = ...,
+        bias: bool = ...,
         **kwargs,
     ) -> Series: ...
 
@@ -18738,6 +18754,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: None,
         skipna: bool = ...,
         numeric_only: bool = ...,
+        bias: bool = ...,
         **kwargs,
     ) -> Any: ...
 
@@ -18748,6 +18765,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis | None,
         skipna: bool = ...,
         numeric_only: bool = ...,
+        bias: bool = ...,
         **kwargs,
     ) -> Series | Any: ...
 
@@ -18757,13 +18775,18 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ) -> Series | Any:
         """
-        Return unbiased kurtosis over requested axis.
+        Return kurtosis over requested axis, optionally corrected for statistical bias.
 
         Kurtosis obtained using Fisher's definition of
-        kurtosis (kurtosis of normal == 0.0). Normalized by N-1.
+        kurtosis (kurtosis of normal == 0.0).
+
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
@@ -18780,6 +18803,8 @@ class DataFrame(NDFrame, OpsMixin):
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         **kwargs
             Additional keyword arguments have no effect but might be accepted for
@@ -18788,11 +18813,12 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series or scalar
-            Unbiased kurtosis over requested axis.
+            Kurtosis over requested axis.
 
         See Also
         --------
-        DataFrame.kurtosis : Returns unbiased kurtosis over requested axis.
+        DataFrame.kurtosis : Returns kurtosis over requested axis,
+            optionally corrected for statistical bias.
 
         Examples
         --------
@@ -18838,9 +18864,14 @@ class DataFrame(NDFrame, OpsMixin):
         cat   -6.0
         dog   -6.0
         dtype: float64
+
+        >>> df.kurt(axis=1, bias=True)
+        cat   -2.0
+        dog   -2.0
+        dtype: float64
         """
         result = super().kurt(
-            axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
+            axis=axis, skipna=skipna, numeric_only=numeric_only, bias=bias, **kwargs
         )
         if isinstance(result, Series):
             result = result.__finalize__(self, method="kurt")

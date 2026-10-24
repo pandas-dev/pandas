@@ -1378,12 +1378,15 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ) -> Series:
         """
-        Return unbiased skew within groups.
+        Return skew, optionally corrected for statistical bias.
 
-        Normalized by N-1.
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
@@ -1392,6 +1395,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
+
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         **kwargs
             Additional keyword arguments to be passed to the function.
@@ -1403,11 +1409,11 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
-            Unbiased skew within groups.
+            Skew within groups.
 
         See Also
         --------
-        Series.skew : Return unbiased skew over requested axis.
+        Series.skew : Return skew, optionally corrected for statistical bias.
 
         Examples
         --------
@@ -1441,6 +1447,10 @@ class SeriesGroupBy(GroupBy[Series]):
         Falcon         NaN
         Parrot    1.457863
         Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).skew(bias=True)
+        Falcon    0.62265
+        Parrot    0.59517
+        Name: Max Speed, dtype: float64
         """
         if kwargs:
             warnings.warn(
@@ -1451,21 +1461,31 @@ class SeriesGroupBy(GroupBy[Series]):
             )
 
         return self._cython_agg_general(
-            "skew", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "skew",
+            alt=None,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            bias=bias,
+            **kwargs,
         )
 
     def kurt(
         self,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ) -> Series:
         """
-        Return unbiased kurtosis within groups.
+        Return kurtosis within groups.
 
         Kurtosis measures the tailedness of a distribution. This method
         computes Fisher's definition of kurtosis (normal distribution has
-        a kurtosis of zero) for each group, using the unbiased estimator.
+        a kurtosis of zero) for each group.
+
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
@@ -1475,17 +1495,20 @@ class SeriesGroupBy(GroupBy[Series]):
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
 
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
+
         **kwargs
             Additional keyword arguments to be passed to the function.
 
         Returns
         -------
         Series
-            Unbiased kurtosis within groups.
+            Kurtosis within groups.
 
         See Also
         --------
-        Series.kurt : Return unbiased kurtosis over requested axis.
+        Series.kurt : Return kurtosis, optionally corrected for statistical bias.
 
         Examples
         --------
@@ -1525,6 +1548,10 @@ class SeriesGroupBy(GroupBy[Series]):
         Falcon         NaN
         Parrot   -2.878714
         Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).kurt(bias=True)
+        Falcon   -0.983719
+        Parrot   -1.719678
+        Name: Max Speed, dtype: float64
         """
 
         def alt(obj):
@@ -1533,7 +1560,12 @@ class SeriesGroupBy(GroupBy[Series]):
             raise TypeError(f"'kurt' is not supported for dtype={obj.dtype}")
 
         return self._cython_agg_general(
-            "kurt", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "kurt",
+            alt=alt,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            bias=bias,
+            **kwargs,
         )
 
     @property
@@ -3701,12 +3733,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ) -> DataFrame:
         """
-        Return unbiased skew within groups.
+        Return skew within groups.
 
-        Normalized by N-1.
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
@@ -3715,6 +3750,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
 
         **kwargs
             Additional keyword arguments to be passed to the function.
@@ -3726,11 +3764,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         DataFrame
-            Unbiased skew within groups.
+            Skew within groups.
 
         See Also
         --------
-        DataFrame.skew : Return unbiased skew over requested axis.
+        DataFrame.skew : Return skew, optionally corrected for statistical bias.
 
         Examples
         --------
@@ -3764,6 +3802,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         class
         bird          NaN
         mammal   1.669046
+        >>> gb.skew(bias=True)
+                max_speed
+        class
+        bird     0.664749
+        mammal   0.681385
         """
         if kwargs:
             warnings.warn(
@@ -3779,21 +3822,30 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
 
         return self._cython_agg_general(
-            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "skew",
+            alt=alt,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            bias=bias,
+            **kwargs,
         )
 
     def kurt(
         self,
         skipna: bool = True,
         numeric_only: bool = False,
+        bias: bool = False,
         **kwargs,
     ) -> DataFrame:
         """
-        Return unbiased kurtosis within groups.
+        Return kurtosis within groups.
 
-        Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0),
-        normalized by N-1. Values are computed for each numeric column
-        within each group.
+        Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0).
+        Values are computed for each numeric column within each group.
+
+        By default, the result applies a small correction for bias when
+        estimating from a sample. Set ``bias=True`` to skip this correction
+        and return the raw (uncorrected) value instead.
 
         Parameters
         ----------
@@ -3803,17 +3855,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
+
         **kwargs
             Additional keyword arguments to be passed to the function.
 
         Returns
         -------
         DataFrame
-            Unbiased kurtosis within groups.
+            Kurtosis within groups.
 
         See Also
         --------
-        DataFrame.kurt : Return unbiased kurtosis over requested axis.
+        DataFrame.kurt : Return kurtosis, optionally corrected for statistical bias.
 
         Examples
         --------
@@ -3885,10 +3940,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         class
         bird          NaN
         mammal   0.204125
+        >>> gb.kurt(bias=True)
+                max_speed
+        class
+        bird    -1.932437
+        mammal  -0.948969
         """
 
         return self._cython_agg_general(
-            "kurt", alt=None, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "kurt",
+            alt=None,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            bias=bias,
+            **kwargs,
         )
 
     @property
