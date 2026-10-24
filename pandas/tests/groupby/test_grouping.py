@@ -1310,3 +1310,14 @@ def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
     else:
         expected = pd.DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_tuple_level_name():
+    # GH#21120
+    mi = pd.MultiIndex.from_product(
+        [[0, 1], [2, 3]], names=[("first", "level"), ("second", "level")]
+    )
+    df = pd.DataFrame({"v": range(4)}, index=mi)
+    result = df.groupby(level=("first", "level")).sum()
+    expected = df.groupby(level=0).sum()
+    tm.assert_frame_equal(result, expected)

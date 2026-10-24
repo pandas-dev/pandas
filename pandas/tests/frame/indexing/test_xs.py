@@ -396,3 +396,14 @@ class TestXSWithMultiIndex:
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
         with pytest.raises(KeyError, match="y"):
             df.xs(("x", "y"), drop_level=False, axis=1)
+
+
+def test_xs_tuple_level_name():
+    # GH#21120
+    mi = pd.MultiIndex.from_product(
+        [[0, 1], [2, 3]], names=[("first", "level"), ("second", "level")]
+    )
+    df = pd.DataFrame({"v": range(4)}, index=mi)
+    result = df.xs(1, level=("first", "level"))
+    expected = df.xs(1, level=0)
+    tm.assert_frame_equal(result, expected)
