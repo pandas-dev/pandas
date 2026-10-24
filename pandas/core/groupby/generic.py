@@ -3899,6 +3899,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Uses the backend specified by the option ``plotting.backend``.
         By default, matplotlib is used.
 
+        .. versionchanged:: 3.2.0
+            Each group's plot is titled with its group key unless ``title``
+            or ``ax`` is passed.
+
         Returns
         -------
         GroupByPlot
