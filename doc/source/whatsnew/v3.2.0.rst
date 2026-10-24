@@ -324,6 +324,7 @@ Reshaping
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
+- Bug in :func:`merge`, :meth:`DataFrame.join`, and :meth:`DataFrame.align` on indexes with one side empty reordering rows that share an index value when sorting the result (:issue:`37927`)
 - Bug in :meth:`DataFrame.pivot` and :func:`pivot` with a list of ``values`` casting the pivoted columns to a common dtype, e.g. integers to ``float64`` or ``object`` (:issue:`43547`)
 - Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
 

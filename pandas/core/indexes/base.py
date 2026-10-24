@@ -4762,7 +4762,7 @@ class Index(IndexOpsMixin, PandasObject):
             join_index, ridx, lidx = other._join_empty(self, how, sort)
         elif how in ["left", "outer"]:
             if sort and not self.is_monotonic_increasing:
-                lidx = self.argsort()
+                lidx = self.argsort(kind="stable")
                 join_index = self.take(lidx)
             else:
                 lidx = None
