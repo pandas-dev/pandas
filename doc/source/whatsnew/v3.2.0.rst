@@ -242,6 +242,7 @@ I/O
 ^^^
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``encoding_errors`` with bytes or file input instead of silently ignoring it (:issue:`71298`)
 - Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
+- Bug in :class:`Series`, :class:`DataFrame` and :class:`Index` repr ignoring a custom ``__repr__`` on container subclasses (including namedtuples) (:issue:`18843`)
 - Bug in :func:`read_csv` silently misparsing non-ASCII ``thousands`` and ``decimal`` markers with the C engine; these now fall back to the Python engine with a :class:`errors.ParserWarning`, or raise ``ValueError`` if ``engine="c"`` is explicitly specified (:issue:`71158`)
 - Bug in :func:`read_csv` where a ``dtype`` given for a ``parse_dates`` column undid the date parsing, returning strings, objects, integers or categories instead of datetimes (:issue:`57512`)
 - Bug in :func:`read_csv` with ``engine="c"`` and ``comment`` not skipping a line containing only whitespace before the comment character (:issue:`55916`)
