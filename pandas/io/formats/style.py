@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Concatenate,
     Self,
+    cast,
     overload,
 )
 
@@ -52,6 +53,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Mapping,
         Sequence,
     )
 
@@ -1688,6 +1690,79 @@ class Styler(StylerRenderer):
         return save_to_buffer(
             text, buf=buf, encoding=(encoding if buf is not None else None)
         )
+
+    def to_frame(self) -> DataFrame:
+        """
+        Return the displayed values of the Styler as a DataFrame.
+
+        Applies the formatting set by ``format``, ``format_index`` and
+        ``format_index_names`` and drops hidden rows, columns, levels and names.
+        Values and labels are as returned by the formatters, so need not be
+        strings. Rows of concatenated Stylers are appended under this Styler's
+        headers. Styles (CSS) are not included.
+
+        Returns
+        -------
+        DataFrame
+            The displayed values, with object dtype.
+
+        See Also
+        --------
+        Styler.format : Format the text display value of cells.
+        Styler.to_string : Write Styler to a file, buffer or string in text format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1.2345, 2.0], "B": [3, 4]})
+        >>> df.style.format({"A": "{:.1f}"}).hide(subset=["B"], axis=1).to_frame()
+             A
+        0  1.2
+        1  2.0
+        """
+        hidden_rows = set(self.hidden_rows)
+        hidden_cols = set(self.hidden_columns)
+        rows = [r for r in range(len(self.index)) if r not in hidden_rows]
+        cols = [c for c in range(len(self.columns)) if c not in hidden_cols]
+
+        # iterate as _translate_body does, so formatters get the same scalars
+        values = list(self.data.itertuples(index=False, name=None))
+        data = {
+            c: [self._display_funcs[(r, c)](values[r][c]) for r in rows] for c in cols
+        }
+        index = _formatted_labels(
+            self.index,
+            rows,
+            self.hide_index_,
+            self.hide_index_names,
+            self._display_funcs_index,
+            self._display_funcs_index_names,
+            axis=0,
+        )
+        columns = _formatted_labels(
+            self.columns,
+            cols,
+            self.hide_columns_,
+            self.hide_column_names,
+            self._display_funcs_columns,
+            self._display_funcs_column_names,
+            axis=1,
+        )
+        result = DataFrame(data, index=index, dtype=object)
+        result.columns = columns
+
+        if self.concatenated:
+            frames = [result]
+            for other in self.concatenated:
+                other = cast("Styler", other)._copy()
+                other.hide_index_ = self.hide_index_
+                other.hidden_columns = self.hidden_columns
+                frame = other.to_frame()
+                # the headers displayed are self's, as in _render
+                frame.columns = result.columns
+                frame.index = frame.index.set_names(result.index.names)
+                frames.append(frame)
+            result = pd.concat(frames, ignore_index=all(self.hide_index_))
+        return result
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
@@ -4633,3 +4708,41 @@ def _bar(
                 for i, row in enumerate(values)
             ]
         )
+
+
+def _formatted_labels(
+    labels: pd.Index,
+    positions: list[int],
+    hidden_levels: list[bool],
+    hide_names: bool,
+    label_funcs: Mapping[tuple[int, int], Callable[[Any], Any]],
+    name_funcs: Mapping[int, Callable[[Any], Any]],
+    axis: int,
+) -> pd.Index:
+    """
+    Return the displayed labels at ``positions``, without hidden levels or names.
+    """
+    levels = [lvl for lvl in range(labels.nlevels) if not hidden_levels[lvl]]
+    if not levels:
+        return RangeIndex(len(positions))
+    values = labels.tolist()
+    if not isinstance(labels, pd.MultiIndex):
+        values = [(val,) for val in values]
+    arrays = []
+    names = []
+    for lvl in levels:
+        # index formatters are keyed (position, level), column ones (level, position)
+        arrays.append(
+            [
+                label_funcs[(pos, lvl) if axis == 0 else (lvl, pos)](values[pos][lvl])
+                for pos in positions
+            ]
+        )
+        name = labels.names[lvl]
+        names.append(None if hide_names or name is None else name_funcs[lvl](name))
+    if len(arrays) == 1:
+        return pd.Index(arrays[0], name=names[0], dtype=object, tupleize_cols=False)
+    return pd.MultiIndex.from_arrays(
+        [pd.Index(arr, dtype=object, tupleize_cols=False) for arr in arrays],
+        names=names,
+    )
