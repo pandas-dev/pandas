@@ -5650,7 +5650,7 @@ class AppendableTable(Table):
         values = selection.select_coords()
 
         # delete the rows in reverse order
-        sorted_series = Series(values, copy=False).sort_values()
+        sorted_series = Series(values, copy=False).sort_values(ignore_index=True)
         ln = len(sorted_series)
 
         if ln:
