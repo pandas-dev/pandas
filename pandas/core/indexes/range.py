@@ -90,6 +90,7 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     no_steps = -(-(lower_limit - start) // abs(step))
     return start + abs(step) * no_steps
 
+
 def _exact_int64_targets(values: Axes | set[Any]) -> npt.NDArray[np.int64] | None:
     """
     Convert the values passed to ``RangeIndex.isin`` to exact int64 targets.
@@ -150,6 +151,7 @@ def _exact_int64_targets(values: Axes | set[Any]) -> npt.NDArray[np.int64] | Non
         # non-integral floats such as 1.5 never match
         return floats[floats == np.trunc(floats)].astype(np.int64)
     return None
+
 
 @set_module("pandas")
 class RangeIndex(Index):
@@ -1764,8 +1766,9 @@ class RangeIndex(Index):
             return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)
 
-
-    def isin(self, values: Axes | set[Any], level: str | int | None = None) -> npt.NDArray[np.bool_]:
+    def isin(
+        self, values: Axes | set[Any], level: str | int | None = None
+    ) -> npt.NDArray[np.bool_]:
         # GH#66263: match values against the range with integer arithmetic,
         # instead of building the full int64 array that Index.isin works on
         if level is not None:
