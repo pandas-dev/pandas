@@ -1646,6 +1646,9 @@ class Index(IndexOpsMixin, PandasObject):
         float_format: str_t | None = None,
         date_format: str_t | None = None,
         quoting: int | None = None,
+        skip_dates_only_check: (
+            bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
+        ) = False,
     ) -> npt.NDArray[np.object_]:
         return get_values_for_csv(
             self._values,
@@ -1654,6 +1657,7 @@ class Index(IndexOpsMixin, PandasObject):
             float_format=float_format,
             date_format=date_format,
             quoting=quoting,
+            skip_dates_only_check=skip_dates_only_check,
         )
 
     def _summary(self, name: str_t | None = None) -> str_t:
@@ -8629,6 +8633,9 @@ def get_values_for_csv(
     quoting: int | None = None,
     float_format: str_t | None = None,
     decimal: str = ".",
+    skip_dates_only_check: (
+        bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
+    ) = False,
 ) -> npt.NDArray[np.object_]:
     """
     Convert to types which can be consumed by the standard library's
@@ -8645,17 +8652,32 @@ def get_values_for_csv(
 
     values = ensure_wrapped_if_datetimelike(values)  # type: ignore[no-untyped-call]
 
+    # normalize: allow a per-column sequence of bools (from BlockManager) in
+    # addition to a single bool
+    if isinstance(skip_dates_only_check, (list, tuple, frozenset, set)):
+        _skip_seq = list(skip_dates_only_check)
+    else:
+        _skip_seq = None
+
     if isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
         if values.ndim == 1:
-            result = values._format_native_types(na_rep=na_rep, date_format=date_format)
+            _skip = _skip_seq[0] if _skip_seq else bool(skip_dates_only_check)
+            result = values._format_native_types(
+                na_rep=na_rep,
+                date_format=date_format,
+                skip_dates_only_check=_skip,
+            )
             result = result.astype(object, copy=False)
             return result
 
         # GH#21734 Process every column separately, they might have different formats
         results_converted = []
         for i in range(len(values)):
+            _skip = _skip_seq[i] if _skip_seq else bool(skip_dates_only_check)
             result = values[i, :]._format_native_types(
-                na_rep=na_rep, date_format=date_format
+                na_rep=na_rep,
+                date_format=date_format,
+                skip_dates_only_check=_skip,
             )
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
