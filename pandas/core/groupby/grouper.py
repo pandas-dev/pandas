@@ -101,8 +101,9 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
-    sort : bool, default False
-        Whether to sort the resulting labels.
+    sort : bool or None, default None
+        Whether to sort the resulting labels. If None, inherit the sort
+        setting from :meth:`DataFrame.groupby` or :meth:`Series.groupby`.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
     label : {'left' or 'right'}
@@ -279,13 +280,14 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        sort: bool = False,
+        sort: bool | None = None,
         dropna: bool = True,
     ) -> None:
         self.key = key
         self.level = level
         self.freq = freq
-        self.sort = sort
+        self._sort = sort
+        self.sort = True if sort is None else sort
         self.dropna = dropna
 
         self._indexer_deprecated: npt.NDArray[np.intp] | None = None
@@ -294,7 +296,11 @@ class Grouper:
         self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True, observed: bool = True
+        self,
+        obj: NDFrameT,
+        validate: bool = True,
+        observed: bool = True,
+        sort: bool | None = None,
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
@@ -306,17 +312,23 @@ class Grouper:
         observed : bool, default True
             Whether only observed groups should be in the result. Only
             has an impact when grouping on categorical data.
+        sort : bool or None, default None
+            Whether to sort the resulting groups when this Grouper does not
+            specify sort. If None, use ``self.sort``.
 
         Returns
         -------
         A tuple of grouper, obj (possibly sorted)
         """
-        obj, _, _ = self._set_grouper(obj)
+        if self._sort is not None or sort is None:
+            sort = self.sort
+
+        obj, _, _ = self._set_grouper(obj, sort=sort)
         grouper, _, obj = get_grouper(
             obj,
             [self.key],
             level=self.level,
-            sort=self.sort,
+            sort=sort,
             validate=validate,
             dropna=self.dropna,
             observed=observed,
@@ -391,8 +403,15 @@ class Grouper:
                     raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        # Only TimeGrouper needs the object itself reordered, since binning
+        # requires a monotonic axis.
+        # For a plain Grouper the group order is already handled by passing
+        # sort through to Grouping, and reordering here desynchronises the
+        # codes from the object when this result is discarded (GH#61943).
         indexer: npt.NDArray[np.intp] | None = None
-        if (self.sort or sort) and not ax.is_monotonic_increasing:
+        from pandas.core.resample import TimeGrouper
+
+        if isinstance(self, TimeGrouper) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self._indexer_deprecated = ax.array.argsort(
@@ -506,7 +525,11 @@ class Grouping:
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
             assert self.obj is not None  # for mypy
-            newgrouper, newobj = grouping_vector._get_grouper(self.obj, validate=False)
+            if grouping_vector._sort is not None:
+                self._sort = grouping_vector.sort
+            newgrouper, newobj = grouping_vector._get_grouper(
+                self.obj, validate=False, observed=observed, sort=self._sort
+            )
             self.obj = newobj
 
             if isinstance(newgrouper, ops.BinGrouper):
@@ -519,6 +542,7 @@ class Grouping:
                 #  If that were to occur, would we be throwing out information?
                 # error: Cannot determine type of "grouping_vector"  [has-type]
                 ng = newgrouper.groupings[0].grouping_vector  # type: ignore[has-type]
+                self._orig_cats = newgrouper.groupings[0]._orig_cats
                 # use Index instead of ndarray so we can recover the name
                 grouping_vector = Index(
                     ng, name=newgrouper.result_index.name, copy=False
@@ -551,10 +575,13 @@ class Grouping:
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 grouping_vector = Series(grouping_vector).to_numpy()
-        elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
+        elif (
+            isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype)
+            and self._orig_cats is None
+        ):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
-            grouping_vector = recode_for_groupby(grouping_vector, sort, observed)
+            grouping_vector = recode_for_groupby(grouping_vector, self._sort, observed)
 
         self.grouping_vector = grouping_vector
 
@@ -821,7 +848,9 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
+        grouper, obj = key._get_grouper(
+            obj, validate=False, observed=observed, sort=sort
+        )
         if key.key is None:
             return grouper, frozenset(), obj
         else:
