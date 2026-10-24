@@ -118,6 +118,9 @@ def pytest_configure(config) -> None:
     for marker in PANDAS_MARKERS:
         config.addinivalue_line("markers", marker)
 
+    # keep repr tests independent of the terminal width
+    pd.set_option("display.width", 80)
+
 
 def pytest_sessionstart(session):
     import doctest
