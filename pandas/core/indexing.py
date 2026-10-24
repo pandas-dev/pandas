@@ -2943,6 +2943,18 @@ class _iLocIndexer(_LocationIndexer):
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
         if isinstance(indexer, tuple):
+            # GH#71378 convert to ndarray so e.g. an EA key takes the cross
+            #  product below like a list key does
+            indexer = tuple(
+                np.asarray(key)
+                if is_list_like(key)
+                and not isinstance(
+                    key, (tuple, list, range, np.ndarray, ABCSeries, Index)
+                )
+                else key
+                for key in indexer
+            )
+
             # if we are setting on the info axis ONLY
             # set using those methods to avoid block-splitting
             # logic here
@@ -2983,8 +2995,8 @@ class _iLocIndexer(_LocationIndexer):
                 and is_list_like_indexer(value)
                 and getattr(value, "ndim", 1) == 1
                 # length_of_indexer below measures only these, and only in
-                #  one dimension; every other row key (masked/Categorical/tuple,
-                #  0-d or 2-D ndarray) has to keep taking the whole-block path,
+                #  one dimension; every other row key (tuple, 0-d or 2-D
+                #  ndarray) has to keep taking the whole-block path,
                 #  which reports its own, clearer errors.  GH#68021
                 and isinstance(
                     indexer[0], (slice, range, list, np.ndarray, ABCSeries, ABCIndex)
@@ -3785,7 +3797,7 @@ def maybe_convert_ix(*args):
     We likely want to take the cross-product.
     """
     for arg in args:
-        if not isinstance(arg, (np.ndarray, list, ABCSeries, Index)):
+        if not isinstance(arg, (np.ndarray, list, range, ABCSeries, Index)):
             return args
     return np.ix_(*args)
 
