@@ -2816,3 +2816,19 @@ def test_stata_elapsed_date_narrow_storage(fmt, dtype, value, expected):
     #  needs a value near its own bound to reach it.
     result = _stata_elapsed_date_to_datetime_vec(Series([value], dtype=dtype), fmt)
     tm.assert_series_equal(result, Series(np.array([expected], dtype="M8[s]")))
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119])
+def test_empty_categorical(temp_file, version):
+    # GH#71126 writing an empty categorical column raised, and reading it back
+    # gave int8 instead of a categorical
+    df = DataFrame({"c": pd.Categorical([], categories=["a", "b"])})
+    df.to_stata(temp_file, write_index=False, version=version)
+    with StataReader(temp_file) as reader:
+        reread = reader.read()
+        assert reader.value_labels() == {"c": {0: "a", 1: "b"}}
+    assert reread.shape == (0, 1)
+    assert reread["c"].dtype == pd.CategoricalDtype(["a", "b"], ordered=True)
+
+    reread = read_stata(temp_file, convert_categoricals=False)
+    assert reread["c"].dtype == np.int8
