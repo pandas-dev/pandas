@@ -21,6 +21,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Bug in :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill` and :meth:`DataFrame.bfill` on PyArrow-backed columns without missing values returning a view of the original data, so modifying the result also modified the original (:issue:`71515`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.contributors:

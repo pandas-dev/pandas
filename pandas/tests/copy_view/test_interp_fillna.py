@@ -304,3 +304,23 @@ def test_interpolate_chained_assignment(func):
     with tm.raises_chained_assignment_error():
         getattr(df[["a"]], func)(inplace=True)
     tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+@pytest.mark.parametrize(
+    "vals, dtype",
+    [([1, 2, 3], "int64[pyarrow]"), (["a", "b", "c"], "string[pyarrow]")],
+)
+def test_ffill_bfill_pyarrow_no_missing_values(func, vals, dtype):
+    # GH#71515
+    pytest.importorskip("pyarrow")
+    ser = pd.Series(vals, dtype=dtype)
+    ser_orig = ser.copy()
+
+    result = getattr(ser, func)(limit=1)
+    result.iloc[0] = ser.iloc[1]
+    tm.assert_series_equal(ser, ser_orig)
+
+    result = getattr(ser, func)()
+    ser.iloc[0] = ser.iloc[1]
+    tm.assert_series_equal(result, ser_orig)
