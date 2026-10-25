@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_period_dtype,
     is_string_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
