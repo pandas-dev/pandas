@@ -395,9 +395,12 @@ def test_hide_raises(mi_styler):
     with pytest.raises(ValueError, match=msg):
         mi_styler.hide(axis="index", subset="something", level="something else")
 
-    msg = "`level` must be of type `int`, `str` or list of such"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match="not found"):
         mi_styler.hide(axis="index", level={"bad": 1, "type": 2})
+
+    # GH#42933
+    with pytest.raises(IndexError, match="Too many levels"):
+        mi_styler.hide(axis="index", level=2)
 
 
 @pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
@@ -416,7 +419,21 @@ def test_hide_index_level(mi_styler, level):
     assert not ctx["body"][1][1]["is_visible"]
 
 
-@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+def test_hide_level_flat_index():
+    # GH#42933
+    df = pd.DataFrame({"v": [1, 2]}, index=pd.Index(["a", "b"], name="nm"))
+    assert Styler(df).hide(axis="index", level=-1).hide_index_ == [True]
+    with pytest.raises(IndexError, match="Too many levels"):
+        Styler(df).hide(axis="index", level=1)
+
+
+def test_hide_int_level_name(mi_styler):
+    # GH#42933 an int matching a level name refers to that level, as in droplevel
+    mi_styler.index.names = [1, 0]
+    assert mi_styler.hide(axis="index", level=0).hide_index_ == [False, True]
+
+
+@pytest.mark.parametrize("level", [1, -1, np.int64(1), "one", [1], [-1], ["one"]])
 @pytest.mark.parametrize("names", [True, False])
 def test_hide_columns_level(mi_styler, level, names):
     mi_styler.columns.names = ["zero", "one"]
@@ -424,6 +441,46 @@ def test_hide_columns_level(mi_styler, level, names):
         mi_styler.index.names = ["zero", "one"]
     ctx = mi_styler.hide(axis="columns", level=level)._translate(True, False)
     assert len(ctx["head"]) == (2 if names else 1)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda styler, level: styler.hide(axis=0, level=level),
+        lambda styler, level: styler.format_index("<{}>", axis=0, level=level),
+        lambda styler, level: styler.format_index_names("<{}>", axis=0, level=level),
+        lambda styler, level: styler.relabel_index(["A", "B"], axis=0, level=level),
+        lambda styler, level: styler.map_index(lambda v: "a: v;", axis=0, level=level),
+        lambda styler, level: styler.apply_index(
+            lambda s: ["a: v;"] * len(s), axis=0, level=level
+        ),
+        lambda styler, level: styler.set_sticky(axis=0, levels=level),
+    ],
+    ids=[
+        "hide",
+        "format_index",
+        "format_index_names",
+        "relabel_index",
+        "map_index",
+        "apply_index",
+        "set_sticky",
+    ],
+)
+@pytest.mark.parametrize("level", [-1, [-1], np.int64(1)])
+def test_level_number_spellings(mi_df, method, level):
+    # GH#42933
+    mi_df.index.names = ["zero", "one"]
+    expected = method(Styler(mi_df, uuid_len=0), [1]).to_html()
+    result = method(Styler(mi_df, uuid_len=0), level).to_html()
+    assert result == expected
+
+
+@pytest.mark.parametrize("levels", [0, np.int64(0)])
+def test_set_sticky_level_zero(mi_df, levels):
+    # GH#42933
+    expected = Styler(mi_df, uuid_len=0).set_sticky(axis=0, levels=[0]).to_html()
+    result = Styler(mi_df, uuid_len=0).set_sticky(axis=0, levels=levels).to_html()
+    assert result == expected
 
 
 @pytest.mark.parametrize("method", ["map", "apply"])
@@ -893,6 +950,62 @@ class TestStyler:
         # if no value, return attr and empty string
         expected = [("a", ""), ("c", "")]
         assert maybe_convert_css_to_tuples("a:;c: ") == expected
+
+    @pytest.mark.parametrize(
+        "css, expected",
+        [
+            (
+                "background-image: url('data:image/png;base64,iVBORw0=');",
+                [("background-image", "url('data:image/png;base64,iVBORw0=')")],
+            ),
+            (
+                'background: url("data:image/svg+xml;utf8,<svg></svg>"); color: red',
+                [
+                    ("background", 'url("data:image/svg+xml;utf8,<svg></svg>")'),
+                    ("color", "red"),
+                ],
+            ),
+            (
+                "background-image: url(data:image/gif;base64,R0lGOD==);a:b",
+                [
+                    ("background-image", "url(data:image/gif;base64,R0lGOD==)"),
+                    ("a", "b"),
+                ],
+            ),
+            (
+                "content: 'a;b'; font-family: \"x;y\", serif",
+                [("content", "'a;b'"), ("font-family", '"x;y", serif')],
+            ),
+            (
+                "content: 'it\\'s;fine'; a: b",
+                [("content", "'it\\'s;fine'"), ("a", "b")],
+            ),
+        ],
+    )
+    def test_maybe_convert_css_to_tuples_semicolon_in_value(self, css, expected):
+        # GH#59623
+        assert maybe_convert_css_to_tuples(css) == expected
+
+    def test_map_css_data_url_with_semicolon(self, df):
+        # GH#59623
+        css = "background-image: url('data:image/png;base64,iVBORw0='); color: red"
+        result = df.style.map(lambda x: css).to_html()
+        assert "background-image: url('data:image/png;base64,iVBORw0=');" in result
+        assert "color: red;" in result
+
+    def test_set_table_styles_data_url_with_semicolon(self, df):
+        # GH#59623
+        props = "background-image: url('data:image/png;base64,iVBORw0='); color: red"
+        styler = df.style.set_table_styles([{"selector": "td", "props": props}])
+        assert styler.table_styles == [
+            {
+                "selector": "td",
+                "props": [
+                    ("background-image", "url('data:image/png;base64,iVBORw0=')"),
+                    ("color", "red"),
+                ],
+            }
+        ]
 
     def test_maybe_convert_css_to_tuples_err(self):
         msg = (
@@ -1606,3 +1719,19 @@ def test_no_empty_apply(mi_styler):
 def test_output_buffer(mi_styler, format, temp_file):
     # gh 47053
     getattr(mi_styler, f"to_{format}")(temp_file)
+
+
+def test_repr_shows_data():
+    # GH#55908
+    df = pd.DataFrame({"A": [1.5, 2.5], "B": ["x", "y"]})
+
+    def raiser(ser):
+        raise AssertionError("repr should not render the Styler")
+
+    styler = df.style.set_caption("cap").apply(raiser)
+    assert repr(styler) == repr(df)
+    assert str(styler) == str(df)
+
+    # hidden data is left out
+    assert repr(df.style.hide([1])) == repr(df.iloc[[0]])
+    assert repr(df.style.hide(["B"], axis="columns")) == repr(df[["A"]])

@@ -117,6 +117,7 @@ class BaseReduceTests:
                     "setting an array element with a sequence",
                     "Cannot convert .* to numeric",
                     "Could not convert .* to numeric",
+                    "not allowed for this dtype",
                 ]
             )
 
@@ -175,13 +176,21 @@ class BaseReduceTests:
                     "can't multiply sequence by non-int of type",
                     r"complex\(\) first argument must be a string or a number",
                     r"complex\(\) argument must be a string or a number",
+                    "not allowed for this dtype",
                 ]
             )
             with pytest.raises((TypeError, AttributeError), match=msg):
                 getattr(ser.array, op_name)(**kwargs)
             return
 
-        res_op = getattr(ser.array, op_name)
+        # GH 68959 Catch until dedicated methods in base class
+        try:
+            res_op = getattr(ser.array, op_name)
+        except AttributeError as e:
+            pytest.skip(
+                "In a future version of pandas reductions will be implemented through"
+                f"dedicated functions: {e}"
+            )
         for call_kwargs in variants:
             expected = ser.array._reduce(op_name, **call_kwargs)
             result = res_op(**call_kwargs)

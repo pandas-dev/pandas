@@ -69,6 +69,8 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+# the _VALID_URLS schemes urllib can open; the rest (e.g. sftp) go to fsspec, GH#46765
+_URLLIB_SCHEMES = {"http", "https", "ftp", "file"}
 _FSSPEC_URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*(::[A-Za-z0-9+\-+.]+)*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
@@ -392,7 +394,22 @@ def _get_filepath_or_buffer(
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
-    if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and any(char in mode for char in "wax+"):
+        parsed = parse_url(filepath_or_buffer)
+        if parsed.scheme == "file" and parsed.netloc.lower() in ("", "localhost"):
+            # GH#55828 urlopen can only read; write to the path urllib reads from
+            import urllib.request
+
+            path = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+            filepath_or_buffer = urllib.request.url2pathname(path)
+        elif parsed.scheme in _URLLIB_SCHEMES:
+            # GH#55828 the urlopen branch below would silently discard the write
+            raise ValueError(f"Cannot write to URL: {filepath_or_buffer}")
+
+    if (
+        isinstance(filepath_or_buffer, str)
+        and parse_url(filepath_or_buffer).scheme in _URLLIB_SCHEMES
+    ):
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
@@ -955,6 +972,7 @@ def get_handle(
             handle = _BytesIOWrapper(
                 handle,
                 encoding=ioargs.encoding,
+                errors=errors,
             )
         elif is_text and (
             compression or memory_map or _is_binary_mode(handle, ioargs.mode)
@@ -1048,7 +1066,7 @@ class _BytesTarFile(_BufferedWriter):
         name: str | None = None,
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1092,8 +1110,8 @@ class _BytesTarFile(_BufferedWriter):
         return filename.name
 
     def write_to_buffer(self) -> None:
-        # TarFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "tar"
+        # TarFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "tar")
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
@@ -1104,7 +1122,7 @@ class _BytesZipFile(_BufferedWriter):
         self,
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1134,8 +1152,8 @@ class _BytesZipFile(_BufferedWriter):
         return None
 
     def write_to_buffer(self) -> None:
-        # ZipFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "zip"
+        # ZipFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "zip")
         self.buffer.writestr(archive_name, self.getvalue())
 
 
@@ -1171,9 +1189,15 @@ class _IOWrapper:
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
-    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8") -> None:
+    def __init__(
+        self,
+        buffer: StringIO | TextIOBase,
+        encoding: str = "utf-8",
+        errors: str = "strict",
+    ) -> None:
         self.buffer = buffer
         self.encoding = encoding
+        self.errors = errors
         # Because a character can be represented by more than 1 byte,
         # it is possible that reading will produce more bytes than n
         # We store the extra bytes in this overflow variable, and append the
@@ -1185,7 +1209,7 @@ class _BytesIOWrapper:
 
     def read(self, n: int | None = -1) -> bytes:
         assert self.buffer is not None
-        bytestring = self.buffer.read(n).encode(self.encoding)
+        bytestring = self.buffer.read(n).encode(self.encoding, self.errors)
         # When n=-1/n greater than remaining bytes: Read entire file/rest of file
         combined_bytestring = self.overflow + bytestring
         if n is None or n < 0 or n >= len(combined_bytestring):

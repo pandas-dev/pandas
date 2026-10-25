@@ -106,6 +106,22 @@ def test_duplicate_multiindex_codes():
         mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]])
 
 
+@pytest.mark.parametrize("level", [1, [1], "y"])
+def test_set_levels_duplicates_on_selected_level_raises(level):
+    # GH#16214 - with level=, only the replaced level is checked for duplicates
+    mi = pd.MultiIndex.from_tuples(
+        [("a", "a1"), ("b", ""), ("c", "c1")], names=["x", "y"]
+    )
+    new_level = ["", "", "c1"]
+    if isinstance(level, list):
+        new_level = [new_level]
+    msg = re.escape(
+        "Level values must be unique. Duplicate values on level 1: ['', '']"
+    )
+    with pytest.raises(ValueError, match=msg):
+        mi.set_levels(new_level, level=level)
+
+
 def test_duplicate_level_message_reports_only_duplicates():
     # GH 19432 - the message names the colliding values instead of dumping the
     # whole level, and shows both members so 1 vs 1.0 reads as a collision
