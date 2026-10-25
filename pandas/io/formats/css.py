@@ -121,9 +121,13 @@ def _border_expander(
                 # A width is a numeric length (e.g. '1px', '0.5em') or one of
                 # the thin/medium/thick keywords. Bare substring matching of
                 # units misclassifies color names containing a unit substring
-                # ('indigo' contains 'in', 'aqua' contains 'q').
-                (token[0].isdigit() or token[0] in "+-.")
-                and any(ratio in token_lower for ratio in self.BORDER_WIDTH_RATIOS)
+                # ('indigo' contains 'in', 'aqua' contains 'q'), while requiring
+                # a numeric prefix alone would drop the keywords.
+                token_lower in self.BORDER_WIDTH_RATIOS
+                or (
+                    (token[0].isdigit() or token[0] in "+-.")
+                    and any(ratio in token_lower for ratio in self.BORDER_WIDTH_RATIOS)
+                )
             ):
                 border_declarations[f"border{side}-width"] = token
             else:

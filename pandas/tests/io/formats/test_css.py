@@ -175,6 +175,10 @@ def test_css_border_shorthand_sides(shorthand, sides):
         ("1px solid linen", ("linen", "solid", "0.750000pt")),
         ("mintcream", ("mintcream", "none", "1.500000pt")),
         ("turquoise 1pt solid", ("turquoise", "solid", "1pt")),
+        # keyword widths must keep classifying as widths
+        ("thick solid", ("black", "solid", "3pt")),
+        ("thin solid red", ("red", "solid", "0.750000pt")),
+        ("medium", ("black", "none", "1.500000pt")),
     ],
 )
 def test_css_border_shorthands(prop, expected):
