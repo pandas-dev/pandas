@@ -154,8 +154,8 @@ cpdef inline tzinfo maybe_get_tz(object tz):
             zone = tz[9:]
             tz = dateutil_gettz(zone)
             # On Windows, the filename is the same for every zone (dateutil<3)
-            #  or a backslashed path into tzdata (dateutil>=3), neither of
-            #  which round-trips through get_timezone.
+            #  or a machine-specific path into tzdata (dateutil>=3); use the
+            #  zone name instead.
             if isinstance(tz, _dateutil_tzfile) and (
                 ".tar.gz" in tz._filename or "\\" in tz._filename
             ):
