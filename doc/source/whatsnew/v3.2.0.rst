@@ -36,6 +36,7 @@ Other enhancements
 - Added :meth:`Categorical.to_dense` and :meth:`Series.cat.to_dense` to get the values with the dtype of the categories, including extension dtypes (:issue:`26410`)
 - Added :meth:`DatetimeIndex.set_freq` and :meth:`TimedeltaIndex.set_freq`, which return a new index with the given ``freq`` instead of modifying it in place (:issue:`61094`)
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
+- Printing a :class:`.Styler` now shows the underlying data instead of the object's address, so the table also appears in notebooks exported to PDF with ``nbconvert`` (:issue:`55908`)
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
 
 .. ---------------------------------------------------------------------------
@@ -241,6 +242,7 @@ MultiIndex
 
 I/O
 ^^^
+- :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``encoding_errors`` with bytes or file input instead of silently ignoring it (:issue:`71298`)
 - Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
 - Bug in :func:`read_csv` silently misparsing non-ASCII ``thousands`` and ``decimal`` markers with the C engine; these now fall back to the Python engine with a :class:`errors.ParserWarning`, or raise ``ValueError`` if ``engine="c"`` is explicitly specified (:issue:`71158`)
 - Bug in :func:`read_csv` where a ``dtype`` given for a ``parse_dates`` column undid the date parsing, returning strings, objects, integers or categories instead of datetimes (:issue:`57512`)
@@ -278,10 +280,10 @@ I/O
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
 - Bug in :func:`read_sql_query` and :func:`read_sql_table` with a SQLAlchemy connection returning column labels that require ``sqlalchemy`` to unpickle (:issue:`52816`)
 - Bug in :meth:`HDFStore.append` raising ``ValueError: Buffer dtype mismatch`` instead of the "different categories" error when appending a categorical whose categories have a different dtype than the existing ones (:issue:`71128`)
+- Bug in :meth:`HDFStore.remove` deleting unselected rows when passing unsorted row coordinates (:issue:`71276`)
 - Bug in :meth:`Series.to_json` with ``orient="table"`` writing a falsy :class:`Series` name such as ``0``, ``False`` or ``""`` as ``"values"`` (:issue:`19129`)
 - Bug where the pickled bytes (e.g. for ``joblib.hash``) of a :class:`Series`, :class:`DataFrame` or :class:`Index` with datetimelike or extension-dtype data depended on which operations had previously been run on it (:issue:`49170`)
 - Fixed a segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``date_format="iso"`` when datetime conversion raises an exception (:issue:`69461`)
--
 
 Period
 ^^^^^^
@@ -337,7 +339,7 @@ ExtensionArray
 - Bug in :meth:`.ArrowExtensionArray.factorize` ignoring ``use_na_sentinel=True`` for dictionary-encoded PyArrow data that stores nulls as dictionary values, keeping the null in the returned ``uniques`` or raising ``ArrowInvalid`` for chunked data (:issue:`66490`)
 - Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on PyArrow-backed dtypes raising when ``values`` held a mix of types PyArrow cannot combine (:issue:`70300`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
-- Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`)
+- Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value, including one passed in a list (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`, :issue:`71076`)
 - Bug in arithmetic and logical operations on PyArrow-backed data raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError`` instead of ``TypeError`` when the other operand contains objects PyArrow cannot convert (:issue:`62682`)
 - Bug in comparisons between PyArrow-backed data and objects PyArrow cannot convert raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError``; ``==``/``!=`` now compare elementwise, ordered comparisons raise ``TypeError``, and a missing value on either side propagates instead of answering ``False`` (:issue:`62682`)
 
