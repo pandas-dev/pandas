@@ -50,9 +50,11 @@ from pandas._libs.portable cimport (
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
+    get_zoneinfo_twin,
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
 )
 
 
@@ -94,6 +96,15 @@ cdef class Localizer:
 
         elif is_tzlocal(tz):
             self.use_tzinfo_api = True
+
+        elif is_zoneinfo(tz) and get_zoneinfo_twin(tz) is None:
+            # GH#64379 no pure-python twin (e.g. ZoneInfo.from_file): put
+            #  last_trans below every value so all take the tzinfo-API arm.
+            #  Not use_tzinfo_api, which ignores ambiguous/nonexistent.
+            self.use_dst = True
+            self.use_zoneinfo = True
+            self.has_tz_rule = True
+            self.last_trans = NPY_NAT
 
         else:
             trans, deltas, typ, has_tz_rule = get_dst_info(tz)
@@ -159,7 +170,7 @@ cdef class Localizer:
         elif self.use_tzinfo_api or (
             self.use_zoneinfo
             and self.has_tz_rule
-            and utc_val > self.last_trans
+            and (self.tdata == NULL or utc_val > self.last_trans)
         ):
             delta = _tz_localize_using_tzinfo_api(
                 utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
@@ -620,7 +631,14 @@ cdef inline (int64_t, int64_t, bint, bint) _utc_bounds_single(
         bint left_ok = False, right_ok = False
         BoundaryStatus status_left, status_right
 
-    if info.use_zoneinfo and info.has_tz_rule and val > info.last_trans:
+    # GH#64379 a no-twin zone has no transition table, so it takes this arm
+    #  unconditionally; last_trans alone would let val == NPY_NAT fall through
+    #  to a NULL bisect below.
+    if (
+        info.use_zoneinfo
+        and info.has_tz_rule
+        and (info.tdata == NULL or val > info.last_trans)
+    ):
         # For values beyond cached transition coverage, derive the two
         # candidate UTC instants via zoneinfo and keep whichever
         # round-trip back to this wall time.
@@ -629,10 +647,10 @@ cdef inline (int64_t, int64_t, bint, bint) _utc_bounds_single(
 
         # GH#65733 a candidate that wrapped int64 fails the round-trip below
         #  and leaves both bounds NaT, which the caller reads as "nonexistent
-        #  time" instead of raising OutOfBoundsDatetime.  The cached path's
-        #  NPY_NAT check is not needed here: this branch only runs for
-        #  val > last_trans, which is always far above the sentinel.
-        if checked_sub(val, delta0, &v_left):
+        #  time" instead of raising OutOfBoundsDatetime.  GH#64379 landing
+        #  exactly on the NaT sentinel is an underflow too, and a no-twin
+        #  zone takes this arm at every value, so it can reach it.
+        if checked_sub(val, delta0, &v_left) or v_left == NPY_NAT:
             v_left = NPY_NAT
             status_left = BS_UNDERFLOW if delta0 > 0 else BS_OVERFLOW
         else:
@@ -641,7 +659,7 @@ cdef inline (int64_t, int64_t, bint, bint) _utc_bounds_single(
                 v_left, info.tz, to_utc=False, creso=creso
             ) == val
 
-        if checked_sub(val, delta1, &v_right):
+        if checked_sub(val, delta1, &v_right) or v_right == NPY_NAT:
             v_right = NPY_NAT
             status_right = BS_UNDERFLOW if delta1 > 0 else BS_OVERFLOW
         else:

@@ -387,6 +387,15 @@ class Styler(StylerRenderer):
             return self.to_latex()
         return None
 
+    def __repr__(self) -> str:
+        # Jupyter computes text/plain on every display, so avoid a full render.
+        data = self.data
+        if len(self.hidden_rows) or len(self.hidden_columns):
+            rows = np.setdiff1d(np.arange(data.shape[0]), self.hidden_rows)
+            cols = np.setdiff1d(np.arange(data.shape[1]), self.hidden_columns)
+            data = data.iloc[rows, cols]
+        return repr(data)
+
     def set_tooltips(
         self,
         ttips: DataFrame,
