@@ -37,6 +37,7 @@ from pandas._libs import (
     algos as libalgos,
     lib,
     properties,
+    reshape,
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
@@ -14541,11 +14542,27 @@ class DataFrame(NDFrame, OpsMixin):
             result = df[columns[0]].explode()
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
-            counts0 = self[columns[0]].apply(mylen)
-            for c in columns[1:]:
-                if not all(counts0 == self[c].apply(mylen)):
+            exploded = {}
+            counts0 = None
+            for c in columns:
+                series = df[c]
+                if series.dtype == object:
+                    # Reuse the per-row lengths computed by the explode kernel.
+                    values, counts = reshape.explode(np.asarray(series._values))
+                    exploded[c] = Series(
+                        values,
+                        index=df.index.repeat(counts),  # type: ignore[arg-type]
+                        copy=False,
+                    )
+                else:
+                    counts = series.apply(mylen).to_numpy()
+                    exploded[c] = series.explode()
+
+                if counts0 is None:
+                    counts0 = counts
+                elif not np.array_equal(counts0, counts):
                     raise ValueError("columns must have matching element counts")
-            result = DataFrame({c: df[c].explode() for c in columns})
+            result = DataFrame(exploded)
         result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))
