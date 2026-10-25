@@ -338,10 +338,57 @@ def test_dt_strftime(request):
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
     result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S")
-    expected = pd.Series(
-        ["2023-01-02T03:00:00.000000000", None], dtype=ArrowDtype(pa.string())
-    )
+    expected = pd.Series(["2023-01-02T03:00:00", None], dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("tz", [None, "US/Eastern"])
+@pytest.mark.parametrize("fmt", ["%Y-%m-%d %H:%M:%S", "%T", "%S.%f", "%H:%M:%S.%N %z"])
+def test_dt_strftime_matches_numpy(unit, tz, fmt, request):
+    # GH#55001 %S must not include fractional seconds; %f and %N are supported
+    _require_timezone_database(request)
+    values = [
+        "2023-04-05 13:00:01.5",
+        "1969-12-31 23:59:59.5",
+        "2023-11-05 05:30:00.5",  # ambiguous wall time in US/Eastern
+        None,
+    ]
+    if unit == "s":
+        values = [None if val is None else val[:-2] for val in values]
+    dti = pd.DatetimeIndex(values).as_unit(unit)
+    if tz is not None:
+        dti = dti.tz_localize("UTC").tz_convert(tz)
+    expected = pd.Series(dti).dt.strftime(fmt).astype(object)
+    expected = expected.where(expected.notna(), None).astype(ArrowDtype(pa.string()))
+
+    ser = pd.Series(dti).astype(ArrowDtype(pa.timestamp(unit, tz)))
+    result = ser.dt.strftime(fmt)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()])
+@pytest.mark.parametrize(
+    "fmt, exp",
+    [
+        ("%Y-%m-%d %H:%M:%S", "2023-04-05 00:00:00"),
+        ("%Y-%m-%d %H:%M:%S.%f", "2023-04-05 00:00:00.000000"),
+    ],
+)
+def test_dt_strftime_date(pa_type, fmt, exp, request):
+    # GH#55001
+    _require_timezone_database(request)
+    ser = pd.Series([date(2023, 4, 5), None], dtype=ArrowDtype(pa_type))
+    result = ser.dt.strftime(fmt)
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("fmt", ["%S", "%S.%f"])
+def test_dt_strftime_duration_raises(fmt):
+    ser = pd.Series([pd.Timedelta(1)], dtype=ArrowDtype(pa.duration("ns")))
+    with pytest.raises(pa.ArrowNotImplementedError, match=r"duration\[ns\]"):
+        ser.dt.strftime(fmt)
 
 
 @pytest.mark.parametrize("method", ["ceil", "floor", "round"])
