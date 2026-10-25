@@ -138,11 +138,16 @@ def _pprint_seq(
     # handle sets, no slicing
     r = []
     max_items_reached = False
+    use_display_precision = kwds.get("use_display_precision", True)
     for i, item in enumerate(s):
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
-        if (is_float(item) or is_complex(item)) and notna(item):
+        if (
+            use_display_precision
+            and (is_float(item) or is_complex(item))
+            and notna(item)
+        ):
             # GH#60503, GH#25920
             item = format_with_precision(item)
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
@@ -220,6 +225,8 @@ def pprint_thing(
     default_escapes: bool = False,
     quote_strings: bool = False,
     max_seq_items: int | None = None,
+    *,
+    use_display_precision: bool = True,
 ) -> str:
     """
     This function is the sanctioned way of converting objects
@@ -238,6 +245,9 @@ def pprint_thing(
         Whether the input escape characters replaces or adds to the defaults
     max_seq_items : int or None, default None
         Pass through to other pretty printers to limit sequence printing
+    use_display_precision : bool, default True
+        Whether to round floats and complex numbers in sequences using
+        ``display.precision``. If False, preserve their string representation.
 
     Returns
     -------
@@ -257,7 +267,11 @@ def pprint_thing(
         and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_dict(
-            thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
+            thing,
+            _nest_lvl,
+            quote_strings=True,
+            max_seq_items=max_seq_items,
+            use_display_precision=use_display_precision,
         )
     elif (
         # GH#61809 Only iterate over types where element-by-element formatting
@@ -291,6 +305,7 @@ def pprint_thing(
             escape_chars=escape_chars,
             quote_strings=quote_strings,
             max_seq_items=max_seq_items,
+            use_display_precision=use_display_precision,
         )
     else:
         result = _as_escaped_string(thing, escape_chars, default_escapes)

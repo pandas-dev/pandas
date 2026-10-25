@@ -230,3 +230,28 @@ def test_ansi_escapes_have_no_width(adj):
     assert adj.len("\x1b[1;31;42mab\x1b[0m") == 2
     assert adj.justify([colored, "de"], 5, mode="right") == ["  " + colored, "   de"]
     assert adj.adjoin(2, [colored, "de"], ["x", "y"]) == f"{colored}  x\nde   y"
+
+
+@pytest.mark.parametrize("precision", [0, 6, 12])
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ([1.000000001], "[1.000000001]"),
+        (np.array([1.000000001]), "[1.000000001]"),
+        ([[1.000000001]], "[[1.000000001]]"),
+        ({"a": [1.000000001]}, "{'a': [1.000000001]}"),
+        ([1.000000001 + 2.000000001j], "[(1.000000001+2.000000001j)]"),
+    ],
+)
+def test_pprint_thing_without_display_precision(precision, value, expected):
+    # GH#71509
+    with cf.option_context("display.precision", precision):
+        result = printing.pprint_thing(value, use_display_precision=False)
+    assert result == expected
+
+
+def test_pprint_thing_display_precision_default():
+    # GH#71509: ordinary display should still honor display.precision.
+    with cf.option_context("display.precision", 6):
+        result = printing.pprint_thing([1.000000001])
+    assert result == "[1.0]"
