@@ -23,6 +23,14 @@ Bug fixes
 
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_311.packaging.build:
+
+Build
+^^^^^
+- Fixed build error on unsupported ``xsimd`` architectures (:issue:`71548`)
+
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_311.contributors:
 
 Contributors
