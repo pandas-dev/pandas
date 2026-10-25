@@ -2021,7 +2021,5 @@ def test_any_all_python_scalars(
     obj = index_or_series([1, 0, 1], dtype=dtype)
     result = getattr(obj, all_boolean_reductions)()
     assert result == (all_boolean_reductions == "any")
-    if using_python_scalars:
-        assert type(result) is bool
-    else:
-        assert type(result) is np.bool_
+    expected = bool if using_python_scalars else np.bool_
+    assert type(result) is expected
