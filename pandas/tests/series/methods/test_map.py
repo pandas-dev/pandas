@@ -182,6 +182,57 @@ def test_map_datetime(datetime_series):
     tm.assert_series_equal(result, datetime_series * 2)
 
 
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_map_datetime_result_is_writeable(unit):
+    # GH#71567
+    ser = pd.Series(pd.date_range("2026-10-24", periods=3, freq="10min"))
+    ser = ser.astype(f"datetime64[{unit}]")
+    mapped = ser.map(lambda value: value.replace(year=2067))
+
+    replacement = mapped.iloc[-1] + pd.Timedelta(days=1)
+    mapped.iloc[-1] = replacement
+
+    assert mapped.iloc[-1] == replacement
+    assert ser.iloc[-1].year == 2026
+
+
+def test_map_timedelta_result_is_writeable():
+    # GH#71567
+    ser = pd.Series(pd.to_timedelta([1, 2, 3], unit="D"))
+    mapped = ser.map(lambda value: value + pd.Timedelta(hours=1))
+
+    replacement = mapped.iloc[-1] + pd.Timedelta(days=1)
+    mapped.iloc[-1] = replacement
+
+    assert mapped.iloc[-1] == replacement
+    assert ser.iloc[-1] == pd.Timedelta(days=3)
+
+
+@pytest.mark.parametrize("timezone", ["UTC", "Europe/Istanbul"])
+def test_map_timezone_aware_result_is_writeable(timezone):
+    # GH#71567
+    ser = pd.Series(pd.date_range("2026-01-01", periods=3, tz=timezone))
+    mapped = ser.map(lambda value: value + pd.Timedelta(hours=1))
+
+    replacement = mapped.iloc[-1] + pd.Timedelta(days=1)
+    mapped.iloc[-1] = replacement
+
+    assert mapped.iloc[-1] == replacement
+    assert mapped.dt.tz == ser.dt.tz
+    assert ser.iloc[-1].day == 3
+
+
+def test_map_period_result_is_writeable():
+    # GH#71567
+    ser = pd.Series(pd.period_range("2026-01", periods=3, freq="M"))
+    mapped = ser.map(lambda value: value + 1)
+
+    mapped.iloc[-1] = mapped.iloc[-1] + 1
+
+    assert mapped.iloc[-1] == pd.Period("2026-05", freq="M")
+    assert ser.iloc[-1] == pd.Period("2026-03", freq="M")
+
+
 def test_map_category():
     # GH 10324
     a = pd.Series([1, 2, 3, 4])

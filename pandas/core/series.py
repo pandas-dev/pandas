@@ -5197,7 +5197,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if callable(func):
             func = functools.partial(func, **kwargs)
         new_values = self._map_values(func, na_action=na_action)
-        return self._constructor(new_values, index=self.index, copy=False).__finalize__(
+        # Mapping can produce datetimelike arrays with a read-only flag.
+        # Do not propagate that flag to the new Series.
+        copy = bool(getattr(new_values, "_readonly", False))
+        return self._constructor(new_values, index=self.index, copy=copy).__finalize__(
             self, method="map"
         )
 
