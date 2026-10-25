@@ -420,8 +420,9 @@ def _read(
         )
 
     # For large local uncompressed files with the C engine, attempt parallel reading.
-    # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
-    # and type-conversion code in parsers.pyx runs truly in parallel.
+    # Each worker gets its own view of the mmapped file and its own TextReader so
+    # the GIL-free tokenisation and type-conversion code in parsers.pyx runs truly
+    # in parallel.
     if not iterator and chunksize is None and nrows is None:
         _n_workers = _default_n_workers()
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
@@ -1071,7 +1072,7 @@ def _read_csv_chunks(
     chunk_failed = threading.Event()
     workers_readers: list[Any] = []
 
-    def _worker() -> None:
+    def _worker(mv: memoryview) -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
         # Buffers are reused across the queued chunks and freed at close;
@@ -1158,10 +1159,15 @@ def _read_csv_chunks(
         mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
     try:
         with (
-            memoryview(mm) as mv,
+            contextlib.ExitStack() as views,
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
-            for fut in [pool.submit(_worker) for _ in range(n_workers)]:
+            # One view per worker: slicing a shared memoryview from several
+            # threads races on free-threaded builds (GH#71418).
+            worker_views = [
+                views.enter_context(memoryview(mm)) for _ in range(n_workers)
+            ]
+            for fut in [pool.submit(_worker, mv) for mv in worker_views]:
                 fut.result()
             if chunk_failed.is_set():
                 # Let the serial read raise: a chunk's error can be an artifact
@@ -3098,6 +3104,17 @@ class TextFileReader(abc.Iterator[DataFrame]):
         if engine not in mapping:
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+            )
+        if (
+            engine == "pyarrow"
+            and self.options.get("encoding_errors", "strict") != "strict"
+            and not isinstance(f, io.TextIOBase)
+        ):
+            # GH#71298 pyarrow ignores encoding_errors when it decodes bytes;
+            # text buffers are fine since pandas encodes those itself.
+            raise ValueError(
+                "The 'encoding_errors' option is not supported with the "
+                "'pyarrow' engine"
             )
         if not isinstance(f, list):
             # open file here
