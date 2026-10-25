@@ -40,6 +40,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     ensure_str,
+    is_float_dtype,
     is_string_dtype,
     pandas_dtype,
 )
@@ -1599,7 +1600,11 @@ class Parser:
                 pass
 
         # don't coerce 0-len data
-        if len(data) and org_data.dtype.kind != "f" and data.dtype in ("float", "object"):
+        if (
+            len(data)
+            and not is_float_dtype(org_data.dtype)
+            and data.dtype in ("float", "object")
+        ):
             # coerce ints if we can
             try:
                 new_data = org_data.astype("int64")
