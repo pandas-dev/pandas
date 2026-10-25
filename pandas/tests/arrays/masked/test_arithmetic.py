@@ -5,6 +5,8 @@ from typing import Any
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -271,3 +273,15 @@ def test_divmod_pdna(dtype):
 
     tm.assert_series_equal(res[0], ser // pd.NA)
     tm.assert_series_equal(res[1], ser % pd.NA)
+
+
+@pytest.mark.parametrize("other", [1j, np.complex128(1j), [1j, 2j, 3j]])
+def test_complex_ordering_cmp_deprecated(data, other):
+    # GH#43770 complex has no natural ordering
+    # drop the NA; numpy emits RuntimeWarning comparing NaN to complex
+    ser = pd.Series(data[0][:-1])
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser < other
+    with tm.assert_produces_warning(None):
+        ser == other

@@ -70,6 +70,7 @@ Modifying and computations
    Index.reindex
    Index.rename
    Index.repeat
+   Index.replace
    Index.where
    Index.take
    Index.putmask
@@ -235,6 +236,10 @@ IntervalIndex components
    IntervalIndex.right
    IntervalIndex.mid
    IntervalIndex.closed
+   IntervalIndex.closed_left
+   IntervalIndex.closed_right
+   IntervalIndex.open_left
+   IntervalIndex.open_right
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_empty
@@ -392,6 +397,7 @@ Conversion
    :toctree: api/
 
    DatetimeIndex.as_unit
+   DatetimeIndex.set_freq
    DatetimeIndex.to_period
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
@@ -434,6 +440,7 @@ Conversion
    :toctree: api/
 
    TimedeltaIndex.as_unit
+   TimedeltaIndex.set_freq
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
    TimedeltaIndex.round

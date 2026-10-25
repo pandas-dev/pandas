@@ -11,6 +11,10 @@ from typing import (
 )
 import warnings
 
+from pandas._config.config import _global_config as config
+
+from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -24,6 +28,10 @@ from pandas.core.computation.engines import ENGINES
 from pandas.core.computation.expr import (
     PARSERS,
     Expr,
+)
+from pandas.core.computation.ops import (
+    Term,
+    is_datetimelike,
 )
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
@@ -56,8 +64,17 @@ def _check_engine(engine: str | None) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from pandas.core.computation.check import (
+        NUMEXPR_BLOCKED_VERSION,
+        NUMEXPR_INSTALLED,
+        warn_numexpr_blocked,
+    )
     from pandas.core.computation.expressions import USE_NUMEXPR
+
+    if engine is None and not NUMEXPR_INSTALLED and config["compute"]["use_numexpr"]:
+        # report an unusable numexpr where we would have used it, GH#66956. An
+        #  explicit engine="numexpr" raises below, which needs no warning.
+        warn_numexpr_blocked()
 
     if engine is None:
         engine = "numexpr" if USE_NUMEXPR else "python"
@@ -72,10 +89,19 @@ def _check_engine(engine: str | None) -> str:
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
     if engine == "numexpr" and not NUMEXPR_INSTALLED:
-        raise ImportError(
-            "'numexpr' is not installed or an unsupported version. Cannot use "
-            "engine='numexpr' for query/eval if 'numexpr' is not installed"
-        )
+        if NUMEXPR_BLOCKED_VERSION is not None:
+            # the deferred warning does not fire here, so the raise names the version
+            msg = (
+                f"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can silently "
+                "return incorrect results, so pandas does not use it. Install "
+                "numexpr 2.14.2 or newer to use engine='numexpr'."
+            )
+        else:
+            msg = (
+                "'numexpr' is not installed or an unsupported version. Cannot use "
+                "engine='numexpr' for query/eval if 'numexpr' is not installed"
+            )
+        raise ImportError(msg)
 
     return engine
 
@@ -185,7 +211,7 @@ def eval(
     resolvers=(),
     level: int = 0,
     target=None,
-    inplace: bool = False,
+    inplace: bool | lib.NoDefault = lib.no_default,
 ) -> Any:
     """
     Evaluate a Python expression as a string using various backends.
@@ -228,9 +254,9 @@ def eval(
         such as floor division ``//``, in addition to built-in and user-defined
         Python functions.
 
-        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
-        :keyword:`or`, and :keyword:`not` with the same semantics as the
-        corresponding bitwise operators.
+        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`
+        and :keyword:`or` with the same semantics as the corresponding bitwise
+        operators, and :keyword:`not` as a logical negation.
     parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
@@ -274,6 +300,13 @@ def eval(
         If `target` is provided, and the expression mutates `target`, whether
         to modify `target` inplace. Otherwise, return a copy of `target` with
         the mutation.
+
+        .. deprecated:: 3.1.0
+
+            This keyword is deprecated and will be removed in pandas 4.0.
+            See the `whatsnew note on PDEP-8
+            <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
+            for more details.
 
     Returns
     -------
@@ -330,6 +363,19 @@ def eval(
     0    dog   10          20
     1    pig   20          40
     """
+    if inplace is not lib.no_default:
+        # GH#63207
+        warnings.warn(
+            "The inplace keyword in eval is deprecated and will be removed "
+            "in a future version (PDEP-8).\nSee "
+            "https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace"
+            " for more details.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        inplace = False
+
     inplace = validate_bool_kwarg(inplace, "inplace")
 
     exprs: list[str | BinOp]
@@ -357,6 +403,7 @@ def eval(
     ret = None
     first_expr = True
     target_modified = False
+    assigned: dict[str, object] = {}
 
     for expr in exprs:
         expr = _convert_expression(expr)
@@ -370,6 +417,8 @@ def eval(
             resolvers=resolvers,
             target=target,
         )
+        if assigned:
+            env.scope = env.scope.new_child(dict(assigned))
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
@@ -394,8 +443,19 @@ def eval(
             )
             engine = "python"
 
+        if engine == "numexpr" and is_datetimelike(parsed_expr.terms):
+            # numexpr has no datetime64/timedelta64 support
+            engine = "python"
+
         # construct the engine and evaluate the parsed expression
         eng = ENGINES[engine]
+        if (
+            engine == "numexpr"
+            and isinstance(parsed_expr.terms, Term)
+            and is_string_dtype(parsed_expr.terms.return_type)
+        ):
+            # numexpr can't handle a bare object or string term; see GH#27639
+            eng = ENGINES["python"]
         eng_inst = eng(parsed_expr)
         ret = eng_inst.evaluate()
 
@@ -438,7 +498,13 @@ def eval(
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
-            if not resolvers:
+            if (level == 0 or parser != "pandas") and not env.has_resolvers:
+                # GH#31952 without resolvers, bare names resolve from the scope,
+                #  so later lines must find this result there; "@" is banned at
+                #  level 0 and with the python parser, so this cannot shadow an
+                #  "@" lookup of a local
+                assigned[assigner] = ret
+            elif not resolvers:
                 resolvers = ({assigner: ret},)
             else:
                 # existing resolver needs updated to handle

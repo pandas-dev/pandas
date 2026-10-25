@@ -1,29 +1,25 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import (
-    Index,
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-    date_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 
 
 @pytest.fixture(
     params=[
-        (Index([0, 2, 4]), Index([1, 3, 5])),
-        (Index([0.0, 1.0, 2.0]), Index([1.0, 2.0, 3.0])),
-        (timedelta_range("0 days", periods=3), timedelta_range("1 day", periods=3)),
-        (date_range("20170101", periods=3), date_range("20170102", periods=3)),
+        (pd.Index([0, 2, 4]), pd.Index([1, 3, 5])),
+        (pd.Index([0.0, 1.0, 2.0]), pd.Index([1.0, 2.0, 3.0])),
         (
-            date_range("20170101", periods=3, tz="US/Eastern"),
-            date_range("20170102", periods=3, tz="US/Eastern"),
+            pd.timedelta_range("0 days", periods=3),
+            pd.timedelta_range("1 day", periods=3),
+        ),
+        (pd.date_range("20170101", periods=3), pd.date_range("20170102", periods=3)),
+        (
+            pd.date_range("20170101", periods=3, tz="US/Eastern"),
+            pd.date_range("20170102", periods=3, tz="US/Eastern"),
         ),
     ],
     ids=lambda x: str(x[0].dtype),
@@ -40,15 +36,15 @@ class TestAttributes:
         "left, right",
         [
             (0, 1),
-            (Timedelta("0 days"), Timedelta("1 day")),
-            (Timestamp("2018-01-01"), Timestamp("2018-01-02")),
+            (pd.Timedelta("0 days"), pd.Timedelta("1 day")),
+            (pd.Timestamp("2018-01-01"), pd.Timestamp("2018-01-02")),
             (
-                Timestamp("2018-01-01", tz="US/Eastern"),
-                Timestamp("2018-01-02", tz="US/Eastern"),
+                pd.Timestamp("2018-01-01", tz="US/Eastern"),
+                pd.Timestamp("2018-01-02", tz="US/Eastern"),
             ),
         ],
     )
-    @pytest.mark.parametrize("constructor", [IntervalArray, IntervalIndex])
+    @pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
     def test_is_empty(self, constructor, left, right, closed):
         # GH27219
         tuples = [(left, left), (left, right), np.nan]
@@ -68,7 +64,7 @@ class TestMethods:
     @pytest.mark.parametrize(
         "other",
         [
-            Interval(0, 1, closed="right"),
+            pd.Interval(0, 1, closed="right"),
             IntervalArray.from_breaks([1, 2, 3, 4], closed="right"),
         ],
     )
@@ -98,40 +94,66 @@ class TestMethods:
 
     def test_shift_datetime(self):
         # GH#31502, GH#31504
-        a = IntervalArray.from_breaks(date_range("2000", periods=4))
+        a = IntervalArray.from_breaks(pd.date_range("2000", periods=4))
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
+        # expected is shift's own implementation, so pin the NA positions too
+        assert result.isna().tolist() == [True, True, False]
 
         result = a.shift(-1)
         expected = a.take([1, 2, -1], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
+        assert result.isna().tolist() == [False, False, True]
 
         msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(TypeError, match=msg):
             a.shift(1, fill_value=np.timedelta64("NaT", "ns"))
 
+    @pytest.mark.parametrize(
+        "breaks",
+        [
+            pd.date_range("2020", periods=3, tz="Europe/Brussels"),
+            pd.timedelta_range("1 day", periods=3),
+            np.array([1, 2, 3], dtype="float32"),
+        ],
+        ids=["dt64tz", "td64", "float32"],
+    )
+    def test_shift_retains_subtype(self, breaks):
+        # GH#69922
+        arr = IntervalArray.from_breaks(breaks)
+        assert arr.dtype.subtype == breaks.dtype
+
+        result = arr.shift(1)
+
+        assert result.dtype == arr.dtype
+        assert result.isna()[0]
+        tm.assert_interval_array_equal(result[1:], arr[:-1])
+
+        # an all-NA result has no surviving value to re-infer the subtype from
+        assert arr.shift(len(arr)).dtype == arr.dtype
+
     def test_unique_with_negatives(self):
         # GH#61917
-        idx_pos = IntervalIndex.from_tuples(
+        idx_pos = pd.IntervalIndex.from_tuples(
             [(3, 4), (3, 4), (2, 3), (2, 3), (1, 2), (1, 2)]
         )
         result = idx_pos.unique()
-        expected = IntervalIndex.from_tuples([(3, 4), (2, 3), (1, 2)])
+        expected = pd.IntervalIndex.from_tuples([(3, 4), (2, 3), (1, 2)])
         tm.assert_index_equal(result, expected)
 
-        idx_neg = IntervalIndex.from_tuples(
+        idx_neg = pd.IntervalIndex.from_tuples(
             [(-4, -3), (-4, -3), (-3, -2), (-3, -2), (-2, -1), (-2, -1)]
         )
         result = idx_neg.unique()
-        expected = IntervalIndex.from_tuples([(-4, -3), (-3, -2), (-2, -1)])
+        expected = pd.IntervalIndex.from_tuples([(-4, -3), (-3, -2), (-2, -1)])
         tm.assert_index_equal(result, expected)
 
-        idx_mix = IntervalIndex.from_tuples(
+        idx_mix = pd.IntervalIndex.from_tuples(
             [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2), (-3, -2)]
         )
         result = idx_mix.unique()
-        expected = IntervalIndex.from_tuples(
+        expected = pd.IntervalIndex.from_tuples(
             [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2)]
         )
         tm.assert_index_equal(result, expected)
@@ -139,8 +161,8 @@ class TestMethods:
     @pytest.mark.parametrize(
         "data",
         [
-            [Interval(-np.inf, 0), Interval(-np.inf, 1)],
-            [Interval(0, np.inf), Interval(1, np.inf)],
+            [pd.Interval(-np.inf, 0), pd.Interval(-np.inf, 1)],
+            [pd.Interval(0, np.inf), pd.Interval(1, np.inf)],
         ],
     )
     def test_unique_with_infinty(self, data):
@@ -170,8 +192,8 @@ class TestSetitem:
 
         result[0] = np.nan
 
-        expected_left = Index([left._na_value, *list(left[1:])])
-        expected_right = Index([right._na_value, *list(right[1:])])
+        expected_left = pd.Index([left._na_value, *list(left[1:])])
+        expected_right = pd.Index([right._na_value, *list(right[1:])])
         expected = IntervalArray.from_arrays(expected_left, expected_right)
 
         tm.assert_extension_array_equal(result, expected)
@@ -227,7 +249,7 @@ class TestReductions:
 
         # The expected results below are only valid if monotonic
         assert left.is_monotonic_increasing
-        assert Index(arr).is_monotonic_increasing
+        assert pd.Index(arr).is_monotonic_increasing
 
         MIN = arr[0]
         MAX = arr[-1]
@@ -275,11 +297,11 @@ def test_endpoint_dtype_mismatch_raises():
     # GH 66518
     msg = "category, object, and string subtypes are not supported for IntervalArray"
     with pytest.raises(TypeError, match=msg):
-        IntervalArray([Interval(0, 2**64)])
+        IntervalArray([pd.Interval(0, 2**64)])
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.int32, np.uint32])
-@pytest.mark.parametrize("constructor", [IntervalArray, IntervalIndex])
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
 def test_sub64bit_dtype_preserved(constructor, dtype):
     # GH#45412
     left = np.array([0, 1, 2], dtype=dtype)
@@ -288,3 +310,120 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
     assert result.dtype.subtype == dtype
     assert result.left.dtype == dtype
     assert result.right.dtype == dtype
+
+
+def test_concat_empty_datetimetz_subtype():
+    # GH#64297 an empty result has no value left to re-infer the subtype from
+    arr = IntervalArray.from_breaks(pd.date_range("2020", periods=1, tz="UTC"))
+    assert len(arr) == 0
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    tm.assert_series_equal(result, pd.Series(arr))
+
+
+@pytest.mark.parametrize("subtype", ["Int64", "Float64"])
+def test_concat_retains_masked_subtype(subtype):
+    # GH#64297
+    arr = IntervalArray.from_breaks(pd.array([1, 2, 3], dtype=subtype))
+    assert arr.dtype.subtype == subtype
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    expected = pd.Series(
+        IntervalArray.from_arrays(
+            pd.array([1, 2, 1, 2], dtype=subtype),
+            pd.array([2, 3, 2, 3], dtype=subtype),
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid",
+    [
+        (np.int8, 100, 120, 110.0),
+        (np.int8, -128, -100, -114.0),
+        (np.int64, 2**63 - 2, 2**63 - 1, 2.0**63),
+        (np.int64, 10, 2**63 - 1, 2.0**62),
+        (np.uint64, 2**64 - 2, 2**64 - 1, 2.0**64),
+        (np.float64, 1e308, 1.5e308, 1.25e308),
+    ],
+)
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_no_overflow(constructor, dtype, left, right, mid):
+    # GH#25499
+    obj = constructor.from_arrays(
+        np.array([left], dtype=dtype), np.array([right], dtype=dtype)
+    )
+    tm.assert_index_equal(obj.mid, pd.Index([mid]))
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid",
+    [
+        # 0.5 * left + 0.5 * right would round each endpoint before adding
+        (np.int64, -(2**63), 2**63 - 1, -0.5),
+        (np.int64, 1600032392344190824, 1630902435275821611, 1.6154674138100063e18),
+        (np.uint64, 2**62 + 513, 2**63 + 1025, 2.0**62 + 2.0**61 + 1024),
+        (
+            np.float64,
+            2.225073858507202e-308,
+            2.225073858507202e-308,
+            2.225073858507202e-308,
+        ),
+        # left + 0.5 * (right - left) would round differently, overflow, or give nan
+        (np.float64, 0.1, 0.7, 0.39999999999999997),
+        (np.float64, -1e308, 1e308, 0.0),
+        (np.float64, np.inf, np.inf, np.inf),
+    ],
+)
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_correctly_rounded(constructor, dtype, left, right, mid):
+    # GH#25499
+    obj = constructor.from_arrays(
+        np.array([left], dtype=dtype), np.array([right], dtype=dtype)
+    )
+    tm.assert_index_equal(obj.mid, pd.Index([mid]))
+
+
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_timedelta_odd_nanoseconds(constructor):
+    # halving each endpoint before adding would truncate twice
+    obj = constructor.from_arrays(
+        pd.to_timedelta([1, 1], unit="ns"), pd.to_timedelta([1, 3], unit="ns")
+    )
+    tm.assert_index_equal(obj.mid, pd.to_timedelta([1, 2], unit="ns"))
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid, mid_dtype",
+    [
+        ("Int8", [100, None, 1], [120, None, 3], [110.0, None, 2.0], "Float64"),
+        # sum fits, but each endpoint alone rounds in float64
+        ("Int64", [-(2**63), None], [2**63 - 1, None], [-0.5, None], "Float64"),
+        pytest.param(
+            "float64[pyarrow]",
+            [1e308, None],
+            [1.5e308, None],
+            [1.25e308, None],
+            "float64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        # opposite-sign endpoints whose sum fits
+        pytest.param(
+            "int64[pyarrow]",
+            [-(2**60)],
+            [2**60 + 10],
+            [5.0],
+            "float64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_mid_no_overflow_ea(dtype, left, right, mid, mid_dtype):
+    # GH#25499
+    arr = IntervalArray.from_arrays(
+        pd.array(left, dtype=dtype), pd.array(right, dtype=dtype)
+    )
+    tm.assert_index_equal(arr.mid, pd.Index(pd.array(mid, dtype=mid_dtype)))

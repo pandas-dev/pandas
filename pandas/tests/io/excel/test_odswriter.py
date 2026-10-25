@@ -8,6 +8,7 @@ import uuid
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
 
@@ -104,3 +105,44 @@ def test_cell_value_type(
         cell = sheet_cells[0]
         assert cell.attributes.get((OFFICENS, "value-type")) == cell_value_type
         assert cell.attributes.get((OFFICENS, cell_value_attribute)) == cell_value
+
+
+def test_cell_value_with_line_break(tmp_excel):
+    # GH#55728 a newline is written as a <text:line-break/> element, since a
+    # newline in the paragraph text itself is collapsed by ODF consumers
+    from odf.table import (
+        TableCell,
+        TableRow,
+    )
+    from odf.text import (
+        LineBreak,
+        P,
+    )
+
+    table_cell_name = TableCell().qname
+
+    pd.DataFrame([["line1\nline2"]]).to_excel(tmp_excel, header=False, index=False)
+
+    with pd.ExcelFile(tmp_excel) as wb:
+        sheet = wb._reader.get_sheet_by_index(0)
+        sheet_rows = sheet.getElementsByType(TableRow)
+        sheet_cells = [
+            x
+            for x in sheet_rows[0].childNodes
+            if hasattr(x, "qname") and x.qname == table_cell_name
+        ]
+
+        paragraphs = sheet_cells[0].getElementsByType(P)
+        assert len(paragraphs) == 1
+        assert len(paragraphs[0].getElementsByType(LineBreak)) == 1
+        assert "\n" not in str(paragraphs[0])
+
+
+def test_line_break_round_trip(tmp_excel):
+    # GH#55728 writing and reading back preserves the line breaks
+    expected = pd.DataFrame({"a": ["line1\nline2", "no break", "a\nb\nc"]})
+
+    expected.to_excel(tmp_excel, index=False)
+    result = pd.read_excel(tmp_excel)
+
+    tm.assert_frame_equal(result, expected)

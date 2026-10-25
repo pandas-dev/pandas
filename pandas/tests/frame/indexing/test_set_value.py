@@ -3,10 +3,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_float_dtype
 
-from pandas import (
-    DataFrame,
-    isna,
-)
+import pandas as pd
 
 
 class TestSetValue:
@@ -38,13 +35,13 @@ class TestSetValue:
         res = float_frame.copy()
         res._set_value("foobar", "baz", 5)
         assert is_float_dtype(res["baz"])
-        assert isna(res["baz"].drop(["foobar"])).all()
+        assert pd.isna(res["baz"].drop(["foobar"])).all()
 
         with pytest.raises(TypeError, match="Invalid value"):
             res._set_value("foobar", "baz", "sam")
 
     def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(
+        df_orig = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
             index=range(3),
             columns=list("ABC"),

@@ -71,7 +71,7 @@ class Preprocessors:
         Add the current year to the context, so it can be used for the copyright
         note, or other places where it is needed.
         """
-        context["current_year"] = datetime.datetime.now().year
+        context["current_year"] = datetime.datetime.now().year  # noqa: TID251
         return context
 
     @staticmethod
@@ -461,6 +461,17 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copying them. ``.md`` files are transformed to HTML.
     """
+
+    # The target directory is removed before rendering, so it must not
+    # overlap the source directory in any way (be equal to it, or be
+    # nested inside it, or contain it).
+    src = source_path.resolve()
+    tgt = target_path.resolve()
+    if tgt.is_relative_to(src) or src.is_relative_to(tgt):
+        raise ValueError(
+            "Target path must not equal, contain, or be inside the source "
+            "path, as the source files would be removed before rendering."
+        )
 
     # Sanity check: validate that versions.json is valid JSON
     versions_path = source_path / "versions.json"

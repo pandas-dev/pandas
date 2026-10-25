@@ -1,13 +1,13 @@
 import numpy as np
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
 def test_head_tail_generic(index, frame_or_series):
     # GH#5370
 
-    ndim = 2 if frame_or_series is DataFrame else 1
+    ndim = 2 if frame_or_series is pd.DataFrame else 1
     shape = (len(index),) * ndim
     vals = np.random.default_rng(2).standard_normal(shape)
     obj = frame_or_series(vals, index=index)
@@ -52,6 +52,6 @@ def test_head_tail(float_frame):
 
 def test_head_tail_empty():
     # test empty dataframe
-    empty_df = DataFrame()
+    empty_df = pd.DataFrame()
     tm.assert_frame_equal(empty_df.tail(), empty_df)
     tm.assert_frame_equal(empty_df.head(), empty_df)

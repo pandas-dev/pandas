@@ -8,6 +8,8 @@ import math
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -33,7 +35,7 @@ def df_from_dict():
 def test_only_one_dtype(test_data, df_from_dict):
     columns = list(test_data.keys())
     df = df_from_dict(test_data)
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
 
     column_size = len(test_data[columns[0]])
@@ -56,7 +58,7 @@ def test_mixed_dtypes(df_from_dict):
             "f": ["a", "", "c"],  # dtype kind STRING = 21
         }
     )
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
     # for meanings of dtype[0] see the spec; we cannot import the spec here as this
     # file is expected to be vendored *anywhere*;
@@ -77,7 +79,7 @@ def test_mixed_dtypes(df_from_dict):
 
 def test_na_float(df_from_dict):
     df = df_from_dict({"a": [1.0, math.nan, 2.0]})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
     colX = dfX.get_column_by_name("a")
     assert colX.null_count == 1
@@ -86,7 +88,7 @@ def test_na_float(df_from_dict):
 
 def test_noncategorical(df_from_dict):
     df = df_from_dict({"a": [1, 2, 3]})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
     colX = dfX.get_column_by_name("a")
     with pytest.raises(TypeError, match=".*categorical.*"):
@@ -99,7 +101,7 @@ def test_categorical(df_from_dict):
         is_categorical=True,
     )
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         colX = df.__dataframe__().get_column_by_name("weekday")
     categorical = colX.describe_categorical
     assert isinstance(categorical["is_ordered"], bool)
@@ -110,7 +112,7 @@ def test_dataframe(df_from_dict):
     df = df_from_dict(
         {"x": [True, True, False], "y": [1, 2, 0], "z": [9.2, 10.5, 11.8]}
     )
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
 
     assert dfX.num_columns() == 3
@@ -125,7 +127,7 @@ def test_dataframe(df_from_dict):
 @pytest.mark.parametrize(["size", "n_chunks"], [(10, 3), (12, 3), (12, 5)])
 def test_df_get_chunks(size, n_chunks, df_from_dict):
     df = df_from_dict({"x": list(range(size))})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
     chunks = list(dfX.get_chunks(n_chunks))
     assert len(chunks) == n_chunks
@@ -135,7 +137,7 @@ def test_df_get_chunks(size, n_chunks, df_from_dict):
 @pytest.mark.parametrize(["size", "n_chunks"], [(10, 3), (12, 3), (12, 5)])
 def test_column_get_chunks(size, n_chunks, df_from_dict):
     df = df_from_dict({"x": list(range(size))})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
     chunks = list(dfX.get_column(0).get_chunks(n_chunks))
     assert len(chunks) == n_chunks
@@ -144,7 +146,7 @@ def test_column_get_chunks(size, n_chunks, df_from_dict):
 
 def test_get_columns(df_from_dict):
     df = df_from_dict({"a": [0, 1], "b": [2.5, 3.5]})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
     for colX in dfX.get_columns():
         assert colX.size() == 2
@@ -158,7 +160,7 @@ def test_get_columns(df_from_dict):
 def test_buffer(df_from_dict):
     arr = [0, 1, -1]
     df = df_from_dict({"a": arr})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfX = df.__dataframe__()
     colX = dfX.get_column(0)
     bufX = colX.get_buffers()

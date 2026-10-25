@@ -508,6 +508,7 @@ the ``Series.cat`` accessor.
    Series.cat.set_categories
    Series.cat.as_ordered
    Series.cat.as_unordered
+   Series.cat.to_dense
 
 
 .. _api.series.sparse:

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -65,7 +68,7 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
     _exhausted: bool
-    # When False, read() leaves deferred string columns as raw pending
+    # When False, _read_arrays() leaves deferred string columns as raw pending
     # handles for the caller to materialize (one chunked ExtensionArray per
     # column, e.g. post-gather in a parallel read).
     wrap_deferred: bool = True
@@ -103,7 +106,7 @@ class CParserWrapper(ParserBase):
             import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
         # Let the pyarrow string fast path return raw pending-column handles;
-        # read() wraps them into one ExtensionArray per column at the end.
+        # _read_arrays() wraps them into one ExtensionArray per column at the end.
         self._reader.defer_pa_wrap = True
 
         self.unnamed_cols = self._reader.unnamed_cols
@@ -252,7 +255,30 @@ class CParserWrapper(ParserBase):
         # A future extension could detect ISO-shaped formats here.
         return None
 
-    def read(
+    def _low_memory_column_labels(
+        self, chunks: list[dict[int, ArrayLike]]
+    ) -> dict[int, Hashable]:
+        """
+        Map the field positions ``read_low_memory`` keys its chunks by to labels.
+
+        The positions are those of the source row, so they skip whatever
+        ``usecols`` dropped and start past a leading implicit index column.
+        ``orig_names`` holds exactly the named columns that remain, in the same
+        order, which is how ``read`` renames these keys further down.  A leading
+        implicit index column has no name of its own and maps to ``None``.
+        """
+        assert self.orig_names is not None
+        positions = sorted(chunks[0])
+        named = dict(
+            zip(
+                positions[self._reader.leading_cols :],
+                self.orig_names,
+                strict=False,
+            )
+        )
+        return {position: named.get(position) for position in positions}
+
+    def _read_arrays(
         self,
         nrows: int | None = None,
     ) -> tuple[
@@ -270,7 +296,12 @@ class CParserWrapper(ParserBase):
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
                 # destructive to chunks
-                data = _concatenate_chunks(chunks, self.names)
+                data = _concatenate_chunks(
+                    chunks, self._low_memory_column_labels(chunks)
+                )
+                # GH#56044 category-dtype inference is deferred until after
+                #  concatenation so all chunks agree
+                self._reader._maybe_infer_categoricals(data)
             else:
                 data = self._reader.read(nrows)
                 if self.wrap_deferred:
@@ -419,16 +450,42 @@ def _wrap_deferred_pa(values):
     return values
 
 
+def _harmonize_empty_categories(arrs: list[ArrayLike]) -> list[ArrayLike]:
+    """
+    Give chunks that inferred no categories the others' categories dtype.
+
+    GH#56044 a chunk that is entirely NA yields empty object-dtype categories
+    where a populated chunk yields string ones, which union_categoricals
+    rejects.  When every chunk is empty there is nothing to match, so an
+    all-NA column keeps its object categories.
+    """
+    populated = {arr.categories.dtype for arr in arrs if len(arr.categories)}  # type: ignore[union-attr]
+    if len(populated) != 1:
+        return arrs
+    cat_dtype = populated.pop()
+    return [
+        arr
+        if len(arr.categories)  # type: ignore[union-attr]
+        else arr.set_categories(arr.categories.astype(cat_dtype))  # type: ignore[union-attr]
+        for arr in arrs
+    ]
+
+
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
-    column_names: Sequence[Hashable],
+    column_names: Sequence[Hashable] | Mapping[int, Hashable],
     warn_mixed: bool = True,
-) -> dict:
+) -> dict[Any, ArrayLike]:
     """
     Concatenate chunks of data read with low_memory=True.
 
     The tricky part is handling Categoricals, where different chunks
     may have different inferred categories.
+
+    ``column_names`` names the keys of ``chunks`` for the mixed-dtype warning,
+    so it has to be indexable by whatever those keys are: the low_memory reader
+    keys its chunks by field position and passes a mapping keyed the same way,
+    while the parallel reader keys its own by name.
 
     ``warn_mixed=False`` suppresses the mixed-dtype warning; the parallel
     reader gathers byte-range chunks (not low_memory row chunks), so a
@@ -437,7 +494,7 @@ def _concatenate_chunks(
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result: dict = {}
+    result: dict[Any, ArrayLike] = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
 
@@ -460,15 +517,19 @@ def _concatenate_chunks(
 
         dtype = dtypes.pop()
         if isinstance(dtype, CategoricalDtype):
+            arrs = _harmonize_empty_categories(arrs)
             result[name] = union_categoricals(arrs, sort_categories=False)  # type: ignore[arg-type]
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                warning_columns.append(column_names[name])
+                warning_columns.append((name, column_names[name]))
 
     if warning_columns and warn_mixed:
         warning_names = ", ".join(
-            [f"{index}: {name}" for index, name in enumerate(warning_columns)]
+            [
+                f"{position}: {label}" if label is not None else f"{position}"
+                for position, label in warning_columns
+            ]
         )
         warning_message = " ".join(
             [
@@ -490,7 +551,9 @@ def ensure_dtype_objs(
     if isinstance(dtype, defaultdict):
         # "None" not callable  [misc]
         default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
-        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        dtype_converted: defaultdict[Hashable, DtypeObj] = defaultdict(
+            lambda: default_dtype
+        )
         for key in dtype.keys():
             dtype_converted[key] = pandas_dtype(dtype[key])
         return dtype_converted

@@ -1,3 +1,8 @@
+from datetime import (
+    UTC,
+    datetime,
+    timedelta,
+)
 import decimal
 import re
 
@@ -8,14 +13,6 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    ArrowDtype,
-    DataFrame,
-    Index,
-    Series,
-    option_context,
-    to_numeric,
-)
 import pandas._testing as tm
 
 
@@ -51,13 +48,13 @@ def _to_numpy_array(x):
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*values.*", category=Pandas4Warning)
-        return np.array(Index(x).values)
+        return np.array(pd.Index(x).values)
 
 
 @pytest.fixture(
     params=[
-        (lambda x: Index(x, name="idx"), tm.assert_index_equal),
-        (lambda x: Series(x, name="ser"), tm.assert_series_equal),
+        (lambda x: pd.Index(x, name="idx"), tm.assert_index_equal),
+        (lambda x: pd.Series(x, name="ser"), tm.assert_series_equal),
         (_to_numpy_array, tm.assert_numpy_array_equal),
     ]
 )
@@ -74,10 +71,10 @@ def transform_assert_equal(request):
 )
 def test_empty(input_kwargs, result_kwargs):
     # see gh-16302
-    ser = Series([], dtype=object)
-    result = to_numeric(ser, **input_kwargs)
+    ser = pd.Series([], dtype=object)
+    result = pd.to_numeric(ser, **input_kwargs)
 
-    expected = Series([], **result_kwargs)
+    expected = pd.Series([], **result_kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -85,12 +82,15 @@ def test_empty(input_kwargs, result_kwargs):
     "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
 )
 @pytest.mark.parametrize("last_val", ["7", 7])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_series(last_val, infer_string):
-    with option_context("future.infer_string", infer_string):
-        ser = Series(["1", "-3.14", last_val])
-        result = to_numeric(ser)
+    with pd.option_context("future.infer_string", infer_string):
+        ser = pd.Series(["1", "-3.14", last_val])
+        result = pd.to_numeric(ser)
 
-    expected = Series([1, -3.14, 7])
+    expected = pd.Series([1, -3.14, 7])
     tm.assert_series_equal(result, expected)
 
 
@@ -104,9 +104,9 @@ def test_series(last_val, infer_string):
     ],
 )
 def test_series_numeric(data):
-    ser = Series(data, index=list("ABCD"), name="EFG")
+    ser = pd.Series(data, index=list("ABCD"), name="EFG")
 
-    result = to_numeric(ser)
+    result = pd.to_numeric(ser)
     tm.assert_series_equal(result, ser)
 
 
@@ -121,10 +121,10 @@ def test_series_numeric(data):
     ],
 )
 def test_error(data, msg):
-    ser = Series(data)
+    ser = pd.Series(data)
 
     with pytest.raises(ValueError, match=msg):
-        to_numeric(ser, errors="raise")
+        pd.to_numeric(ser, errors="raise")
 
 
 @pytest.mark.parametrize(
@@ -141,18 +141,28 @@ def test_error(data, msg):
 def test_error_names_the_value_exactly(value, expected):
     # GH#66524 - the message names the underlying value, so it is neither
     # widened to the type of the object holding it nor narrowed by a decode.
-    ser = Series([value], dtype=object)
+    ser = pd.Series([value], dtype=object)
 
     msg = re.escape(f"Unable to parse string {expected} at position 0")
     with pytest.raises(ValueError, match=msg):
-        to_numeric(ser)
+        pd.to_numeric(ser)
+
+
+def test_coerce_unhashable_nested_tuple():
+    # GH#69916 - an empty na_values set must not trigger a hash lookup.
+    ser = pd.Series([1, (1, [2])], dtype=object)
+
+    result = pd.to_numeric(ser, errors="coerce")
+
+    expected = pd.Series([1.0, np.nan])
+    tm.assert_series_equal(result, expected)
 
 
 def test_ignore_error():
-    ser = Series([1, -3.14, "apple"])
-    result = to_numeric(ser, errors="coerce")
+    ser = pd.Series([1, -3.14, "apple"])
+    result = pd.to_numeric(ser, errors="coerce")
 
-    expected = Series([1, -3.14, np.nan])
+    expected = pd.Series([1, -3.14, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -165,21 +175,21 @@ def test_ignore_error():
     ],
 )
 def test_bool_handling(errors, exp):
-    ser = Series([True, False, "apple"])
+    ser = pd.Series([True, False, "apple"])
 
     if isinstance(exp, str):
         with pytest.raises(ValueError, match=exp):
-            to_numeric(ser, errors=errors)
+            pd.to_numeric(ser, errors=errors)
     else:
-        result = to_numeric(ser, errors=errors)
-        expected = Series(exp)
+        result = pd.to_numeric(ser, errors=errors)
+        expected = pd.Series(exp)
 
         tm.assert_series_equal(result, expected)
 
 
 def test_list():
     ser = ["1", "-3.14", "7"]
-    res = to_numeric(ser)
+    res = pd.to_numeric(ser)
 
     expected = np.array([1, -3.14, 7])
     tm.assert_numpy_array_equal(res, expected)
@@ -195,7 +205,7 @@ def test_list():
     ],
 )
 def test_list_numeric(data, arr_kwargs):
-    result = to_numeric(data)
+    result = pd.to_numeric(data)
     expected = np.array(data, **arr_kwargs)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -204,10 +214,10 @@ def test_list_numeric(data, arr_kwargs):
 def test_numeric(kwargs):
     data = [1, -3.14, 7]
 
-    ser = Series(data, **kwargs)
-    result = to_numeric(ser)
+    ser = pd.Series(data, **kwargs)
+    result = pd.to_numeric(ser)
 
-    expected = Series(data)
+    expected = pd.Series(data)
     tm.assert_series_equal(result, expected)
 
 
@@ -222,15 +232,15 @@ def test_numeric(kwargs):
 )
 def test_numeric_df_columns(columns):
     # see gh-14827
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1.2, decimal.Decimal("3.14"), decimal.Decimal("infinity"), "0.1"],
             "b": [1.0, 2.0, 3.0, 4.0],
         }
     )
 
-    expected = DataFrame({"a": [1.2, 3.14, np.inf, 0.1], "b": [1.0, 2.0, 3.0, 4.0]})
-    df[columns] = df[columns].apply(to_numeric)
+    expected = pd.DataFrame({"a": [1.2, 3.14, np.inf, 0.1], "b": [1.0, 2.0, 3.0, 4.0]})
+    df[columns] = df[columns].apply(pd.to_numeric)
 
     tm.assert_frame_equal(df, expected)
 
@@ -247,33 +257,33 @@ def test_numeric_df_columns(columns):
 )
 def test_numeric_embedded_arr_likes(data, exp_data):
     # Test to_numeric with embedded lists and arrays
-    df = DataFrame({"a": data})
-    df["a"] = df["a"].apply(to_numeric)
+    df = pd.DataFrame({"a": data})
+    df["a"] = df["a"].apply(pd.to_numeric)
 
-    expected = DataFrame({"a": exp_data})
+    expected = pd.DataFrame({"a": exp_data})
     tm.assert_frame_equal(df, expected)
 
 
 def test_all_nan():
-    ser = Series(["a", "b", "c"])
-    result = to_numeric(ser, errors="coerce")
+    ser = pd.Series(["a", "b", "c"])
+    result = pd.to_numeric(ser, errors="coerce")
 
-    expected = Series([np.nan, np.nan, np.nan])
+    expected = pd.Series([np.nan, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
 def test_type_check(errors):
     # see gh-11776
-    df = DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
+    df = pd.DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
     kwargs = {"errors": errors} if errors is not None else {}
     with pytest.raises(TypeError, match="1-d array"):
-        to_numeric(df, **kwargs)
+        pd.to_numeric(df, **kwargs)
 
 
 @pytest.mark.parametrize("val", [1, 1.1, 20001])
 def test_scalar(val, signed, transform):
     val = -val if signed else val
-    assert to_numeric(transform(val)) == float(val)
+    assert pd.to_numeric(transform(val)) == float(val)
 
 
 def test_really_large_scalar(large_val, signed, transform, errors):
@@ -284,7 +294,7 @@ def test_really_large_scalar(large_val, signed, transform, errors):
     val = transform(val)
 
     expected = float(val) if errors == "coerce" else int(val)
-    tm.assert_almost_equal(to_numeric(val, **kwargs), expected)
+    tm.assert_almost_equal(pd.to_numeric(val, **kwargs), expected)
 
 
 def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors):
@@ -302,9 +312,9 @@ def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors
         msg = "Unable to parse string 'string' at position 1"
 
         with pytest.raises(ValueError, match=msg):
-            to_numeric(arr, **kwargs)
+            pd.to_numeric(arr, **kwargs)
     else:
-        result = to_numeric(arr, **kwargs)
+        result = pd.to_numeric(arr, **kwargs)
 
         exp_val = float(val) if (coercing) else int(val)
         expected = [exp_val]
@@ -333,7 +343,7 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
     if multiple_elts:
         arr.insert(0, large_val)
 
-    result = to_numeric(arr, **kwargs)
+    result = pd.to_numeric(arr, **kwargs)
     expected = [float(i) if errors == "coerce" else int(i) for i in arr]
     exp_dtype = float if errors == "coerce" else object
 
@@ -352,9 +362,9 @@ def test_scalar_fail(errors, checker):
 
     if isinstance(checker, str):
         with pytest.raises(ValueError, match=checker):
-            to_numeric(scalar, errors=errors)
+            pd.to_numeric(scalar, errors=errors)
     else:
-        assert checker(to_numeric(scalar, errors=errors))
+        assert checker(pd.to_numeric(scalar, errors=errors))
 
 
 @pytest.mark.parametrize("data", [[1, 2, 3], [1.0, np.nan, 3, np.nan]])
@@ -362,7 +372,7 @@ def test_numeric_dtypes(data, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
     data = transform(data)
 
-    result = to_numeric(data)
+    result = pd.to_numeric(data)
     assert_equal(result, data)
 
 
@@ -375,18 +385,17 @@ def test_numeric_dtypes(data, transform_assert_equal):
 )
 def test_str(data, exp, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
-    result = to_numeric(transform(data))
+    result = pd.to_numeric(transform(data))
 
     expected = transform(exp)
     assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
 def test_datetime_like(tz_naive_fixture, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
     idx = pd.date_range("20130101", periods=3, tz=tz_naive_fixture)
 
-    result = to_numeric(transform(idx))
+    result = pd.to_numeric(transform(idx))
     expected = transform(idx.asi8)
     assert_equal(result, expected)
 
@@ -395,25 +404,68 @@ def test_timedelta(transform_assert_equal):
     transform, assert_equal = transform_assert_equal
     idx = pd.timedelta_range("1 days", periods=3, freq="D")
 
-    result = to_numeric(transform(idx))
+    result = pd.to_numeric(transform(idx))
     expected = transform(idx.asi8)
     assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
+def test_timedelta_pyarrow():
+    # GH#69448
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series([pd.Timedelta(1), None], dtype=pd.ArrowDtype(pa.duration("ns")))
+
+    result = pd.to_numeric(ser)
+    expected = pd.Series([1, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "scalar",
     [
         pd.Timedelta(1, "D"),
         pd.Timestamp("2017-01-01T12"),
         pd.Timestamp("2017-01-01T12", tz="US/Pacific"),
+        datetime(2017, 1, 1, 12),
+        datetime(2017, 1, 1, 12, tzinfo=UTC),
+        np.datetime64("2017-01-01"),
+        np.datetime64("2017-01-01T12", "ns"),
+        timedelta(days=1),
+        np.timedelta64(5, "ms"),
     ],
 )
-def test_timedelta_timestamp_scalar(scalar):
-    # GH#59944
-    result = to_numeric(scalar)
-    expected = to_numeric(Series(scalar))[0]
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"errors": "coerce"},
+        {"downcast": "integer"},
+        pytest.param({"dtype_backend": "pyarrow"}, marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_timedelta_timestamp_scalar(scalar, kwargs):
+    # GH#59944, GH#43280
+    result = pd.to_numeric(scalar, **kwargs)
+    expected = pd.to_numeric(pd.Series(scalar), **kwargs)[0]
+    assert type(result) is type(expected)  # np.timedelta64(5, "ms") == 5 is True
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "scalar",
+    [
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        timedelta.max,
+        np.datetime64(10**12, "Y"),
+        np.timedelta64(5, "Y"),
+    ],
+)
+def test_unconvertible_datetimelike_scalar(scalar):
+    # GH#43280 NaT, out of bounds and unsupported units respect errors=
+    with pytest.raises(TypeError, match="Invalid object type"):
+        pd.to_numeric(scalar)
+    assert np.isnan(pd.to_numeric(scalar, errors="coerce"))
 
 
 def test_period(request, transform_assert_equal):
@@ -422,11 +474,11 @@ def test_period(request, transform_assert_equal):
     idx = pd.period_range("2011-01", periods=3, freq="M", name="")
     inp = transform(idx)
 
-    if not isinstance(inp, Index):
+    if isinstance(inp, np.ndarray):
         request.applymarker(
             pytest.mark.xfail(reason="Missing PeriodDtype support in to_numeric")
         )
-    result = to_numeric(inp)
+    result = pd.to_numeric(inp)
     expected = transform(idx.asi8)
     assert_equal(result, expected)
 
@@ -435,18 +487,18 @@ def test_period(request, transform_assert_equal):
     "errors,expected",
     [
         ("raise", "Invalid object type at position 0"),
-        ("coerce", Series([np.nan, 1.0, np.nan])),
+        ("coerce", pd.Series([np.nan, 1.0, np.nan])),
     ],
 )
 def test_non_hashable(errors, expected):
     # see gh-13324
-    ser = Series([[10.0, 2], 1.0, "apple"])
+    ser = pd.Series([[10.0, 2], 1.0, "apple"])
 
     if isinstance(expected, str):
         with pytest.raises(TypeError, match=expected):
-            to_numeric(ser, errors=errors)
+            pd.to_numeric(ser, errors=errors)
     else:
-        result = to_numeric(ser, errors=errors)
+        result = pd.to_numeric(ser, errors=errors)
         tm.assert_series_equal(result, expected)
 
 
@@ -457,7 +509,7 @@ def test_downcast_invalid_cast():
     msg = "invalid downcasting method provided"
 
     with pytest.raises(ValueError, match=msg):
-        to_numeric(data, downcast=invalid_downcast)
+        pd.to_numeric(data, downcast=invalid_downcast)
 
 
 def test_errors_invalid_value():
@@ -467,7 +519,7 @@ def test_errors_invalid_value():
     msg = "invalid error value specified"
 
     with pytest.raises(ValueError, match=msg):
-        to_numeric(data, errors=invalid_error_value)
+        pd.to_numeric(data, errors=invalid_error_value)
 
 
 @pytest.mark.parametrize(
@@ -492,7 +544,7 @@ def test_errors_invalid_value():
 )
 def test_downcast_basic(data, kwargs, exp_dtype):
     # see gh-13352
-    result = to_numeric(data, **kwargs)
+    result = pd.to_numeric(data, **kwargs)
     expected = np.array([1, 2, 3], dtype=exp_dtype)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -511,7 +563,7 @@ def test_signed_downcast(data, signed_downcast):
     smallest_int_dtype = np.dtype(np.typecodes["Integer"][0])
     expected = np.array([1, 2, 3], dtype=smallest_int_dtype)
 
-    res = to_numeric(data, downcast=signed_downcast)
+    res = pd.to_numeric(data, downcast=signed_downcast)
     tm.assert_numpy_array_equal(res, expected)
 
 
@@ -521,7 +573,7 @@ def test_ignore_downcast_neg_to_unsigned():
     data = ["-1", 2, 3]
     expected = np.array([-1, 2, 3], dtype=np.int64)
 
-    res = to_numeric(data, downcast="unsigned")
+    res = pd.to_numeric(data, downcast="unsigned")
     tm.assert_numpy_array_equal(res, expected)
 
 
@@ -542,7 +594,7 @@ def test_ignore_downcast_neg_to_unsigned():
 def test_ignore_downcast_cannot_convert_float(data, expected, downcast):
     # Cannot cast to an integer (signed or unsigned)
     # because we have a float number.
-    res = to_numeric(data, downcast=downcast)
+    res = pd.to_numeric(data, downcast=downcast)
     tm.assert_numpy_array_equal(res, expected)
 
 
@@ -555,7 +607,7 @@ def test_downcast_not8bit(downcast, expected_dtype):
     data = ["256", 257, 258]
 
     expected = np.array([256, 257, 258], dtype=expected_dtype)
-    res = to_numeric(data, downcast=downcast)
+    res = pd.to_numeric(data, downcast=downcast)
     tm.assert_numpy_array_equal(res, expected)
 
 
@@ -583,14 +635,14 @@ def test_downcast_not8bit(downcast, expected_dtype):
 )
 def test_downcast_limits(dtype, downcast, min_max):
     # see gh-14404: test the limits of each downcast.
-    series = to_numeric(Series(min_max), downcast=downcast)
+    series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
     assert series.dtype == dtype
 
 
 def test_downcast_float64_to_float32():
     # GH-43693: Check float64 preservation when >= 16,777,217
-    series = Series([16777217.0, np.finfo(np.float64).max, np.nan], dtype=np.float64)
-    result = to_numeric(series, downcast="float")
+    series = pd.Series([16777217.0, np.finfo(np.float64).max, np.nan], dtype=np.float64)
+    result = pd.to_numeric(series, downcast="float")
 
     assert series.dtype == result.dtype
 
@@ -598,9 +650,9 @@ def test_downcast_float64_to_float32():
 def test_downcast_uint64():
     # see gh-14422:
     # BUG: to_numeric doesn't work uint64 numbers
-    ser = Series([0, 9223372036854775808])
-    result = to_numeric(ser, downcast="unsigned")
-    expected = Series([0, 9223372036854775808], dtype=np.uint64)
+    ser = pd.Series([0, 9223372036854775808])
+    result = pd.to_numeric(ser, downcast="unsigned")
+    expected = pd.Series([0, 9223372036854775808], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
 
@@ -622,8 +674,8 @@ def test_coerce_uint64_conflict(data, exp_data):
     #
     # Still returns float despite the uint64-nan conflict,
     # which would normally force the casting to object.
-    result = to_numeric(Series(data), errors="coerce")
-    expected = Series(exp_data, dtype=float)
+    result = pd.to_numeric(pd.Series(data), errors="coerce")
+    expected = pd.Series(exp_data, dtype=float)
     tm.assert_series_equal(result, expected)
 
 
@@ -631,10 +683,10 @@ def test_non_coerce_uint64_conflict():
     # see gh-17007 and gh-17125
     #
     # For completeness.
-    ser = Series(["12345678901234567890", "1234567890", "ITEM"])
+    ser = pd.Series(["12345678901234567890", "1234567890", "ITEM"])
 
     with pytest.raises(ValueError, match="Unable to parse string"):
-        to_numeric(ser, errors="raise")
+        pd.to_numeric(ser, errors="raise")
 
 
 @pytest.mark.parametrize("dc1", ["integer", "float", "unsigned"])
@@ -643,19 +695,19 @@ def test_downcast_empty(dc1, dc2):
     # GH32493
 
     tm.assert_numpy_array_equal(
-        to_numeric([], downcast=dc1),
-        to_numeric([], downcast=dc2),
+        pd.to_numeric([], downcast=dc1),
+        pd.to_numeric([], downcast=dc2),
         check_dtype=False,
     )
 
 
 def test_failure_to_convert_uint64_string_to_NaN():
     # GH 32394
-    result = to_numeric("uint64", errors="coerce")
+    result = pd.to_numeric("uint64", errors="coerce")
     assert np.isnan(result)
 
-    ser = Series([32, 64, np.nan])
-    result = to_numeric(Series(["32", "64", "uint64"]), errors="coerce")
+    ser = pd.Series([32, 64, np.nan])
+    result = pd.to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
     tm.assert_series_equal(result, ser)
 
 
@@ -712,7 +764,7 @@ def test_failure_to_convert_uint64_string_to_NaN():
 )
 def test_precision_float_conversion(strrep):
     # GH 31364
-    result = to_numeric(strrep)
+    result = pd.to_numeric(strrep)
 
     assert result == float(strrep)
 
@@ -720,27 +772,27 @@ def test_precision_float_conversion(strrep):
 @pytest.mark.parametrize(
     "values, expected",
     [
-        (["1", "2", None], Series([1, 2, pd.NA], dtype="Int64")),
-        (["1", "2", "3"], Series([1, 2, 3], dtype="Int64")),
-        (["1", "2", 3], Series([1, 2, 3], dtype="Int64")),
-        (["1", "2", 3.5], Series([1, 2, 3.5], dtype="Float64")),
-        (["1", None, 3.5], Series([1, pd.NA, 3.5], dtype="Float64")),
-        (["1", "2", "3.5"], Series([1, 2, 3.5], dtype="Float64")),
+        (["1", "2", None], pd.Series([1, 2, pd.NA], dtype="Int64")),
+        (["1", "2", "3"], pd.Series([1, 2, 3], dtype="Int64")),
+        (["1", "2", 3], pd.Series([1, 2, 3], dtype="Int64")),
+        (["1", "2", 3.5], pd.Series([1, 2, 3.5], dtype="Float64")),
+        (["1", None, 3.5], pd.Series([1, pd.NA, 3.5], dtype="Float64")),
+        (["1", "2", "3.5"], pd.Series([1, 2, 3.5], dtype="Float64")),
     ],
 )
 def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected):
     # https://github.com/pandas-dev/pandas/issues/37262
-    s = Series(values, dtype=nullable_string_dtype)
-    result = to_numeric(s)
+    s = pd.Series(values, dtype=nullable_string_dtype)
+    result = pd.to_numeric(s)
     tm.assert_series_equal(result, expected)
 
 
 def test_to_numeric_from_nullable_string_coerce(nullable_string_dtype):
     # GH#52146
     values = ["a", "1"]
-    ser = Series(values, dtype=nullable_string_dtype)
-    result = to_numeric(ser, errors="coerce")
-    expected = Series([pd.NA, 1], dtype="Int64")
+    ser = pd.Series(values, dtype=nullable_string_dtype)
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([pd.NA, 1], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 
@@ -774,7 +826,7 @@ def test_to_numeric_from_nullable_string_coerce(nullable_string_dtype):
 )
 def test_downcast_nullable_numeric(data, input_dtype, downcast, expected_dtype):
     arr = pd.array(data, dtype=input_dtype)
-    result = to_numeric(arr, downcast=downcast)
+    result = pd.to_numeric(arr, downcast=downcast)
     expected = pd.array(data, dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
 
@@ -784,7 +836,7 @@ def test_downcast_nullable_mask_is_copied():
 
     arr = pd.array([1, 2, pd.NA], dtype="Int64")
 
-    result = to_numeric(arr, downcast="integer")
+    result = pd.to_numeric(arr, downcast="integer")
     expected = pd.array([1, 2, pd.NA], dtype="Int8")
     tm.assert_extension_array_equal(result, expected)
 
@@ -794,7 +846,7 @@ def test_downcast_nullable_mask_is_copied():
 
 def test_to_numeric_scientific_notation():
     # GH 15898
-    result = to_numeric("1.7e+308")
+    result = pd.to_numeric("1.7e+308")
     expected = np.float64(1.7e308)
     assert result == expected
 
@@ -802,8 +854,8 @@ def test_to_numeric_scientific_notation():
 @pytest.mark.parametrize("val", [9876543210.0, 2.0**128])
 def test_to_numeric_large_float_not_downcast_to_float_32(val):
     # GH 19729
-    expected = Series([val])
-    result = to_numeric(expected, downcast="float")
+    expected = pd.Series([val])
+    result = pd.to_numeric(expected, downcast="float")
     tm.assert_series_equal(result, expected)
 
 
@@ -812,9 +864,9 @@ def test_to_numeric_large_float_not_downcast_to_float_32(val):
 )
 def test_to_numeric_dtype_backend(val, dtype):
     # GH#50505
-    ser = Series([val], dtype=object)
-    result = to_numeric(ser, dtype_backend="numpy_nullable")
-    expected = Series([val], dtype=dtype)
+    ser = pd.Series([val], dtype=object)
+    result = pd.to_numeric(ser, dtype_backend="numpy_nullable")
+    expected = pd.Series([val], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -836,9 +888,9 @@ def test_to_numeric_dtype_backend_na(val, dtype):
         dtype_backend = "pyarrow"
     else:
         dtype_backend = "numpy_nullable"
-    ser = Series([val, None], dtype=object)
-    result = to_numeric(ser, dtype_backend=dtype_backend)
-    expected = Series([val, pd.NA], dtype=dtype)
+    ser = pd.Series([val, None], dtype=object)
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+    expected = pd.Series([val, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -860,9 +912,9 @@ def test_to_numeric_dtype_backend_downcasting(val, dtype, downcast):
         dtype_backend = "pyarrow"
     else:
         dtype_backend = "numpy_nullable"
-    ser = Series([val, None], dtype=object)
-    result = to_numeric(ser, dtype_backend=dtype_backend, downcast=downcast)
-    expected = Series([val, pd.NA], dtype=dtype)
+    ser = pd.Series([val, None], dtype=object)
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend, downcast=downcast)
+    expected = pd.Series([val, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -874,9 +926,9 @@ def test_to_numeric_dtype_backend_downcasting_uint(smaller, dtype_backend):
     # GH#50505
     if dtype_backend == "pyarrow":
         pytest.importorskip("pyarrow")
-    ser = Series([1, pd.NA], dtype="UInt64")
-    result = to_numeric(ser, dtype_backend=dtype_backend, downcast="unsigned")
-    expected = Series([1, pd.NA], dtype=smaller)
+    ser = pd.Series([1, pd.NA], dtype="UInt64")
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend, downcast="unsigned")
+    expected = pd.Series([1, pd.NA], dtype=smaller)
     tm.assert_series_equal(result, expected)
 
 
@@ -897,52 +949,52 @@ def test_to_numeric_dtype_backend_already_nullable(dtype):
     # GH#50505
     if "pyarrow" in dtype:
         pytest.importorskip("pyarrow")
-    ser = Series([1, pd.NA], dtype=dtype)
-    result = to_numeric(ser, dtype_backend="numpy_nullable")
-    expected = Series([1, pd.NA], dtype=dtype)
+    ser = pd.Series([1, pd.NA], dtype=dtype)
+    result = pd.to_numeric(ser, dtype_backend="numpy_nullable")
+    expected = pd.Series([1, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
 def test_to_numeric_dtype_backend_error(dtype_backend):
     # GH#50505
-    ser = Series(["a", "b", ""])
+    ser = pd.Series(["a", "b", ""])
     expected = ser.copy()
     with pytest.raises(ValueError, match="Unable to parse string"):
-        to_numeric(ser, dtype_backend=dtype_backend)
+        pd.to_numeric(ser, dtype_backend=dtype_backend)
 
-    result = to_numeric(ser, dtype_backend=dtype_backend, errors="coerce")
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend, errors="coerce")
     if dtype_backend == "pyarrow":
         dtype = "double[pyarrow]"
     else:
         dtype = "Float64"
-    expected = Series([pd.NA, pd.NA, pd.NA], dtype=dtype)
+    expected = pd.Series([pd.NA, pd.NA, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
 def test_invalid_dtype_backend():
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     msg = (
         "dtype_backend numpy is invalid, only 'numpy_nullable' and "
         "'pyarrow' are allowed."
     )
     with pytest.raises(ValueError, match=msg):
-        to_numeric(ser, dtype_backend="numpy")
+        pd.to_numeric(ser, dtype_backend="numpy")
 
 
 def test_coerce_pyarrow_backend():
     # GH 52588
     pa = pytest.importorskip("pyarrow")
-    ser = Series(list("12x"), dtype=ArrowDtype(pa.string()))
-    result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
-    expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
+    ser = pd.Series(list("12x"), dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
+    expected = pd.Series([1, 2, None], dtype=pd.ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
 def test_large_exponent_coerce():
     # GH#63650 - exponent overflow in precise_xstrtod should not segfault
-    ser = Series(["1E3000000000"])
-    result = to_numeric(ser, errors="coerce")
-    expected = Series([np.inf])
+    ser = pd.Series(["1E3000000000"])
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([np.inf])
     tm.assert_series_equal(result, expected)
 
 
@@ -963,13 +1015,13 @@ def test_embedded_nul_is_not_a_float(value):
     # GH#66524 - the float parser stopped at an embedded NUL and reported the
     # string fully consumed, so the trailing bytes were silently discarded.
     # The message must name the whole value, not just the part before the NUL.
-    ser = Series([value])
+    ser = pd.Series([value])
     msg = re.escape(f"Unable to parse string {value!r} at position 0")
     with pytest.raises(ValueError, match=msg):
-        to_numeric(ser)
+        pd.to_numeric(ser)
 
-    result = to_numeric(ser, errors="coerce")
-    tm.assert_series_equal(result, Series([np.nan]))
+    result = pd.to_numeric(ser, errors="coerce")
+    tm.assert_series_equal(result, pd.Series([np.nan]))
 
 
 @pytest.mark.parametrize(
@@ -981,5 +1033,22 @@ def test_embedded_nul_is_not_a_float(value):
 )
 def test_complex_keeps_preceding_values(data, expected):
     # GH#35051 entries seen before the first complex were left uninitialized
-    result = to_numeric(Series(data, dtype=object))
-    tm.assert_series_equal(result, Series(expected, dtype=np.complex128))
+    result = pd.to_numeric(pd.Series(data, dtype=object))
+    tm.assert_series_equal(result, pd.Series(expected, dtype=np.complex128))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "+0.0000000000000000000000005",
+        "+0.0001234567890123456789",
+    ],
+)
+def test_leading_plus_fractional_leading_zeros(value):
+    # GH#68311 a leading "+" routes the token to the same fallback converter
+    # read_csv uses for thousands=, which charged the fractional leading zeros
+    # against its 17 significant-digit budget
+    result = pd.to_numeric(pd.Series([value]))
+    # check_exact: the default atol=1e-8 compares the pre-fix 0.0 equal to the
+    # 5e-25 it should be, so without this the test passes either way
+    tm.assert_series_equal(result, pd.Series([float(value)]), check_exact=True)

@@ -26,7 +26,7 @@ from pandas._libs.tslibs.offsets import (
     WeekOfMonth,
 )
 
-from pandas import DatetimeIndex
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     WeekDay,
@@ -352,7 +352,7 @@ class TestLastWeekOfMonth:
 def test_week_apply_array_lands_on_nat_sentinel(weekday):
     # GH#66552 the sum fits in int64 but *is* iNaT, so storing it would be
     #  indistinguishable from a missing value
-    dti = DatetimeIndex([Timestamp(iNaT + 7 * 86400 * 10**9)])
+    dti = pd.DatetimeIndex([Timestamp(iNaT + 7 * 86400 * 10**9)])
     assert dti[0].weekday() == 1
 
     with pytest.raises(OverflowError, match="Overflow in int64 addition"):
@@ -362,7 +362,7 @@ def test_week_apply_array_lands_on_nat_sentinel(weekday):
 @pytest.mark.parametrize("weekday", [None, 0])
 def test_week_apply_array_out_of_bounds(weekday):
     # GH#66552 the array path wrapped where the scalar path raises
-    dti = DatetimeIndex([Timestamp.max])
+    dti = pd.DatetimeIndex([Timestamp.max])
 
     with pytest.raises(OverflowError, match="Overflow in int64 addition"):
         dti + Week(1, weekday=weekday)
@@ -371,9 +371,11 @@ def test_week_apply_array_out_of_bounds(weekday):
 @pytest.mark.parametrize("weekday", [None, 0])
 def test_week_apply_array_large_n(weekday):
     # GH#66549 n was held in a C int, so a multiple of 2**32 was a no-op
-    dti = DatetimeIndex(np.array([946857600], dtype="M8[s]"))
+    dti = pd.DatetimeIndex(np.array([946857600], dtype="M8[s]"))
     assert dti[0].weekday() == 0
 
     result = dti + Week(2**32, weekday=weekday)
-    expected = DatetimeIndex(np.array([946857600 + 2**32 * 7 * 86400], dtype="M8[s]"))
+    expected = pd.DatetimeIndex(
+        np.array([946857600 + 2**32 * 7 * 86400], dtype="M8[s]")
+    )
     tm.assert_index_equal(result, expected)

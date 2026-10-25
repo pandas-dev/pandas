@@ -73,6 +73,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PandasExtensionDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -181,6 +182,8 @@ def maybe_box_native(value: Scalar | NAType | None) -> Scalar | NAType | None:
         value = int(value)
     elif is_bool(value):
         value = bool(value)
+    elif is_complex(value):
+        value = complex(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
     elif value is NA:
@@ -275,8 +278,8 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: np.dtype) -> ArrayLike:
 
 def floats_fit_integer_dtype(values: np.ndarray, dtype: np.dtype) -> bool:
     """
-    Whether every entry of float-dtype `values` is finite and within the range
-    that casts exactly to integer dtype `dtype`.
+    Whether every entry of float- or bool-dtype `values` is finite and within
+    the range that casts exactly to integer dtype `dtype`.
 
     Casting a float outside that range to an integer dtype is undefined
     behavior in C, so numpy's result varies by platform.
@@ -285,9 +288,12 @@ def floats_fit_integer_dtype(values: np.ndarray, dtype: np.dtype) -> bool:
     # float(iinfo.max) rounds *up* for int64/uint64 (e.g. float64 has no
     # 2**63 - 1), so compare against the exactly-representable power of two
     # one past it, with a strict inequality.
-    upper = float(int(iinfo.max) + 1)
+    lower = np.float64(iinfo.min)
+    upper = np.float64(int(iinfo.max) + 1)
+    # np.float64 scalars, unlike Python floats, promote a narrower `values`
+    # (e.g. float16) instead of downcasting the bounds and overflowing.
     # NaN and +/-inf both fail these comparisons.
-    return bool(((values >= iinfo.min) & (values < upper)).all())
+    return bool(((values >= lower) & (values < upper)).all())
 
 
 @overload
@@ -445,7 +451,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
             #  overriding instead of returning object below.
             return IntervalDtype(np.float64, closed=dtype.closed)
         return _dtype_obj
-    elif dtype.kind in "bS":
+    elif dtype.kind in "bSUV":
         return _dtype_obj
     elif dtype.kind in "iu":
         return np.dtype(np.float64)
@@ -958,12 +964,14 @@ def convert_dtypes(
                     input_array.dtype, target_int_dtype
                 )
             elif input_array.dtype.kind in "fb":
-                # TODO: de-dup with maybe_cast_to_integer_array?
                 arr = input_array[notna(input_array)]
                 if len(arr) < len(input_array) and not is_nan_na():
                     # In the presence of NaNs, we cannot convert to IntegerDtype
                     pass
-                elif (arr.astype(int) == arr).all():
+                elif (
+                    floats_fit_integer_dtype(arr, np.dtype(int))
+                    and (arr.astype(int) == arr).all()
+                ):
                     inferred_dtype = target_int_dtype
                 else:
                     inferred_dtype = input_array.dtype
@@ -993,12 +1001,14 @@ def convert_dtypes(
                 # if we could also convert to integer, check if all floats
                 # are actually integers
                 if convert_integer:
-                    # TODO: de-dup with maybe_cast_to_integer_array?
                     arr = input_array[notna(input_array)]
                     if len(arr) < len(input_array) and not is_nan_na():
                         # In the presence of NaNs, we can't convert to IntegerDtype
                         inferred_dtype = inferred_float_dtype
-                    elif (arr.astype(int) == arr).all():
+                    elif (
+                        floats_fit_integer_dtype(arr, np.dtype(int))
+                        and (arr.astype(int) == arr).all()
+                    ):
                         inferred_dtype = pandas_dtype_func("Int64")
                     else:
                         inferred_dtype = inferred_float_dtype
@@ -1079,7 +1089,7 @@ def convert_dtypes(
 
 
 def maybe_cast_to_datetime(
-    value: np.ndarray | list, dtype: np.dtype
+    value: np.ndarray | list[Any], dtype: np.dtype
 ) -> DatetimeArray | TimedeltaArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
@@ -1251,7 +1261,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if lib.is_np_dtype(dtype, "iu"):
+    if lib.is_np_dtype(dtype, "iub"):
         for obj in objs:
             # We don't want to accidentally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1265,7 +1275,10 @@ def common_dtype_categorical_compat(
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
-                    dtype = np.dtype(np.float64)
+                    if dtype.kind == "b":
+                        dtype = np.dtype(object)
+                    else:
+                        dtype = np.dtype(np.float64)
                     break
     return dtype
 
@@ -1447,28 +1460,30 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> Any:
     """
     Maybe convert a NumPy scalar to its Python equivalent.
 
     If future.python_scalars is disabled or ``value`` is not a NumPy scalar, ``value``
     is returned unchanged. ``np.datetime64`` and ``np.timedelta64`` values are
     converted to ``Timestamp`` and ``Timedelta`` respectively. Converting
-    ``np.longdouble`` to ``float`` and ``np.complex256`` to ``complex`` can
+    ``np.longdouble`` to ``float`` and ``np.clongdouble`` to ``complex`` can
     lose precision.
 
     Parameters
     ----------
     value : Any
         The value to unbox.
-    dtype : DtypeObj or None, default None
-        The dtype of the data ``value`` came from. Pass this whenever
-        ``value`` is an element of the data or is derived from its elements:
-        object dtype stores arbitrary user objects, so a NumPy scalar coming
-        from object-dtype data is a stored value rather than a boxing
-        artifact, and is returned unchanged. Omit for values whose
+    object_with_dtype : object with a ``dtype`` attribute, optional
+        The data (e.g. a Series or array) that ``value`` came from. Pass this
+        whenever ``value`` is an element of the data or is derived from its
+        elements: object dtype stores arbitrary user objects, so a NumPy
+        scalar coming from object-dtype data is a stored value rather than a
+        boxing artifact, and is returned unchanged. Omit for values whose
         type does not follow the data's dtype, e.g. positions, counts, and
-        the results of any/all.
+        the results of any/all. The ``.dtype`` attribute is only accessed if
+        unboxing is actually going to happen, so passing the object rather
+        than its dtype avoids that cost on hot paths.
 
     Returns
     -------
@@ -1476,10 +1491,12 @@ def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> An
         The equivalent Python scalar, or ``value`` unchanged.
     """
     result = value
-    if dtype != object and using_python_scalars() and isinstance(value, np.generic):
+    if using_python_scalars() and isinstance(value, np.generic):
+        if object_with_dtype is not None and object_with_dtype.dtype == object:
+            return result
         if isinstance(result, np.longdouble):
             result = float(result)
-        elif isinstance(result, np.complex256):
+        elif isinstance(result, np.clongdouble):
             result = complex(result)
         elif isinstance(result, np.datetime64):
             result = Timestamp(result)
@@ -1500,7 +1517,7 @@ def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     return _maybe_unbox_datetimelike(value, dtype)
 
 
-def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: Collection[Any]) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
@@ -1523,7 +1540,9 @@ def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
     return np.fromiter(values, dtype="object", count=len(values))
 
 
-def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.ndarray:
+def maybe_cast_to_integer_array(
+    arr: list[Any] | np.ndarray, dtype: np.dtype
+) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
@@ -1770,11 +1789,18 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            if dtype.itemsize < tipo.itemsize:  # type: ignore[union-attr]
+            # A SparseDtype has the same missing itemsize as GH#68421, so
+            #  compare against its subtype rather than the SparseDtype itself.
+            if isinstance(tipo, SparseDtype):
+                tipo_itemsize = tipo.subtype.itemsize
+            else:
+                tipo_itemsize = tipo.itemsize  # type: ignore[union-attr]
+            if dtype.itemsize < tipo_itemsize:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
-                # i.e. nullable IntegerDtype; we can put this into an ndarray
-                #  losslessly iff it has no NAs and the values themselves fit
+                # i.e. an ExtensionDtype such as a nullable IntegerDtype or a
+                #  SparseDtype; we can put this into an ndarray losslessly iff it
+                #  has no NAs and the NA-free values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1784,7 +1810,16 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     raise LossySetitemError
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
-                np_can_hold_element(dtype, np.asarray(arr))
+                if isinstance(arr.dtype, SparseDtype):
+                    # np.asarray widens a SparseArray to the fill_value's dtype
+                    #  (e.g. Sparse[int8] to int64), so the check below would
+                    #  reject a set that fits; _densify keeps the subtype's dtype
+                    #  instead, and the values are already NA-free per the guard
+                    #  above.
+                    values = arr._densify()  # type: ignore[union-attr]
+                else:
+                    values = np.asarray(arr)
+                np_can_hold_element(dtype, values)
                 return element
 
             return element

@@ -97,6 +97,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        Frequency,
         JoinHow,
         TimeUnit,
         npt,
@@ -158,7 +159,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[s]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -507,17 +508,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     def _parse_with_reso(self, label: str) -> tuple[datetime, Resolution]:
         # overridden by TimedeltaIndex
-        try:
-            if self.freq is None or hasattr(self.freq, "rule_code"):
-                freq = self.freq
-        except NotImplementedError:
-            freq = getattr(self, "freqstr", getattr(self, "_inferred_freq_str", None))
-
         freqstr: str | None
-        if freq is not None and not isinstance(freq, str):
-            freqstr = freq.rule_code
+        if self.freq is None:
+            freqstr = None
         else:
-            freqstr = freq
+            try:
+                freqstr = self.freq.rule_code
+            except NotImplementedError:
+                # e.g. a generic DateOffset, which has no rule_code; it also
+                #  carries no quarter/month anchor, so None is the right answer
+                freqstr = None
 
         if isinstance(label, np.str_):
             # GH#45580
@@ -739,6 +739,66 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 raise ValueError("Cannot set freq with ndim > 1")
 
         self._freq = value
+
+    def set_freq(self, freq: Frequency | None) -> Self:
+        """
+        Return a new Index with the given frequency.
+
+        The values are unchanged; only the ``freq`` attribute differs. Unlike
+        assigning to ``freq``, this does not modify the original Index.
+
+        .. versionadded:: 3.2.0
+
+        Parameters
+        ----------
+        freq : str, DateOffset or None
+            Frequency to set. It must conform to the values of the Index.
+            ``"infer"`` sets the frequency inferred from the values, or ``None``
+            if none can be inferred. ``None`` removes the frequency.
+
+        Returns
+        -------
+        DatetimeIndex or TimedeltaIndex
+            A new Index with ``freq`` set.
+
+        Raises
+        ------
+        ValueError
+            If ``freq`` is invalid or does not conform to the values of the Index.
+        TypeError
+            If the Index is an empty TimedeltaIndex and ``freq`` is not a fixed
+            frequency.
+
+        See Also
+        --------
+        DatetimeIndex.freq : Return the frequency object if it is set.
+        DatetimeIndex.inferred_freq : Return the frequency inferred from the values.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-01", "2020-01-03", "2020-01-05"])
+        >>> idx
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq=None)
+        >>> idx.set_freq("2D")
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq='2D')
+        >>> idx.set_freq("2D").set_freq(None)
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq=None)
+        >>> idx.set_freq("infer")
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq='2D')
+        """
+        result = self._view()
+        # don't share the cache, some cached attributes depend on freq
+        result._cache = {}
+        if freq == "infer":
+            # the inferred freq conforms by construction, so skip validation
+            result._freq = to_offset(self._inferred_freq_str)
+        else:
+            result.freq = freq
+        return result
 
     def astype(self, dtype, copy: bool = True):
         result = super().astype(dtype, copy=copy)
@@ -1031,10 +1091,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 "DatetimeIndex.values returning an ndarray that drops "
                 "timezone information is deprecated. In a future version, "
                 "this will return the underlying DatetimeArray instead. "
-                "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
-                "'DatetimeIndex.array' to get the ExtensionArray.",
+                "Use 'DatetimeIndex.tz_convert(None).to_numpy()' to get a NumPy array "
+                "of UTC values, or 'DatetimeIndex.array' to get the ExtensionArray.\n"
+                "See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#whatsnew-310-deprecations-values"
+                " for more details.",
                 Pandas4Warning,
-                stacklevel=find_stack_level(),
+                # TODO bump this to stacklevel=2 in a future version
+                stacklevel=1,
             )
         data = self._data._ndarray
         data = data.view()

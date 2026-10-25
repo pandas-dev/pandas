@@ -6,7 +6,7 @@ import pytest
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas import option_context
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
@@ -109,7 +109,7 @@ class TestExpressions:
         else:
             op = getattr(operator, opname)
 
-        with option_context("compute.use_numexpr", False):
+        with pd.option_context("compute.use_numexpr", False):
             expected = op(df, other)
 
         expr.get_test_result()
@@ -172,7 +172,7 @@ class TestExpressions:
         """
         df = request.getfixturevalue(fixture)
         arith = comparison_op.__name__
-        with option_context("compute.use_numexpr", False):
+        with pd.option_context("compute.use_numexpr", False):
             other = df + 1
 
         with monkeypatch.context() as m:
@@ -231,7 +231,7 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
             assert not result
 
-        with option_context("compute.use_numexpr", False):
+        with pd.option_context("compute.use_numexpr", False):
             testit(left, right, opname, op_str)
 
         expr.set_numexpr_threads(1)
@@ -259,7 +259,7 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op, right, f22, "evaluate")
             assert not result
 
-        with option_context("compute.use_numexpr", False):
+        with pd.option_context("compute.use_numexpr", False):
             testit()
 
         expr.set_numexpr_threads(1)
@@ -279,7 +279,7 @@ class TestExpressions:
             expected = np.where(c, df.values, df.values + 1)
             tm.assert_numpy_array_equal(result, expected)
 
-        with option_context("compute.use_numexpr", False):
+        with pd.option_context("compute.use_numexpr", False):
             testit()
 
         expr.set_numexpr_threads(1)
@@ -353,7 +353,7 @@ class TestExpressions:
         )
         with monkeypatch.context() as m:
             m.setattr(expr, "_MIN_ELEMENTS", 5)
-            with option_context("compute.use_numexpr", True):
+            with pd.option_context("compute.use_numexpr", True):
                 with tm.assert_produces_warning(warning, match=msg):
                     r = f(df, df)
                     e = fe(df, df)
@@ -428,7 +428,7 @@ class TestExpressions:
 
             op_func = getattr(df, arith)
 
-            with option_context("compute.use_numexpr", False):
+            with pd.option_context("compute.use_numexpr", False):
                 expected = op_func(other, axis=axis)
 
             result = op_func(other, axis=axis)
@@ -456,7 +456,7 @@ class TestExpressions:
             result = method(scalar)
 
             # compare result with numpy
-            with option_context("compute.use_numexpr", False):
+            with pd.option_context("compute.use_numexpr", False):
                 expected = method(scalar)
 
             tm.assert_equal(result, expected)
@@ -473,3 +473,62 @@ class TestExpressions:
                     pass
                 else:
                     assert scalar_result == expected
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
+    def test_result_dtype_type_matches_numpy(self, dtype, monkeypatch):
+        # GH#17945 numexpr returns longlong for int64; ensure we get np.int64
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            ser = pd.Series(np.arange(10, dtype=dtype))
+            arith = ser - ser
+            where = ser.where(ser > 5, ser)
+
+        assert arith.dtype.type is np.dtype(dtype).type
+        assert where.dtype.type is np.dtype(dtype).type
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32", "bool"])
+    @pytest.mark.parametrize("exponent", [2, 39])
+    @pytest.mark.parametrize("box_other", [int, np.int64, lambda x: np.array([x, x])])
+    @pytest.mark.parametrize("op", ["__pow__", "__rpow__"])
+    @pytest.mark.parametrize("box", [pd.Index, pd.Series, DataFrame])
+    def test_integer_pow_matches_numpy(
+        self, dtype, exponent, box_other, op, box, monkeypatch
+    ):
+        # GH#54546 numexpr computes integer pow in float64, losing precision
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            obj = tm.box_expected(np.array([3, 39], dtype=dtype), box)
+            method = getattr(obj, op)
+            result = method(box_other(exponent))
+
+            with pd.option_context("compute.use_numexpr", False):
+                expected = method(box_other(exponent))
+
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32", "bool"])
+    def test_integer_pow_negative_exponent_raises(self, dtype, monkeypatch):
+        # GH#54546 numexpr returned 0 instead of raising like numpy
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            ser = pd.Series([3, 39], dtype=dtype)
+            with pytest.raises(ValueError, match="negative integer powers"):
+                ser**-1
+
+    @pytest.mark.parametrize(
+        "dtype,other,expected",
+        [
+            ("int64", 2, False),
+            ("int64", np.int64(2), False),
+            ("int64", 2.0, True),
+            ("float64", 2, True),
+            ("float64", np.int64(2), True),
+        ],
+    )
+    def test_can_use_numexpr_pow(self, dtype, other, expected, monkeypatch):
+        # GH#54546 only pow with a float operand goes through numexpr
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            arr = np.arange(3, dtype=dtype)
+            result = expr._can_use_numexpr(operator.pow, "**", arr, other, "evaluate")
+        assert result is expected

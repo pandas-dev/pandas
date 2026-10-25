@@ -13,7 +13,7 @@ from pandas._libs.tslibs.ccalendar import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import roll_qtrday
 
-from pandas import Timestamp
+import pandas as pd
 
 
 @pytest.fixture(params=["start", "end", "business_start", "business_end"])
@@ -64,14 +64,14 @@ def test_shift_month_dt(months, day_opt, expected):
 @pytest.mark.parametrize(
     "months,day_opt,expected",
     [
-        (1, "start", Timestamp("1929-06-01")),
-        (-3, "end", Timestamp("1929-02-28")),
-        (25, None, Timestamp("1931-06-5")),
-        (-1, 31, Timestamp("1929-04-30")),
+        (1, "start", pd.Timestamp("1929-06-01")),
+        (-3, "end", pd.Timestamp("1929-02-28")),
+        (25, None, pd.Timestamp("1931-06-5")),
+        (-1, 31, pd.Timestamp("1929-04-30")),
     ],
 )
 def test_shift_month_ts(months, day_opt, expected):
-    ts = Timestamp("1929-05-05")
+    ts = pd.Timestamp("1929-05-05")
     assert liboffsets.shift_month(ts, months, day_opt=day_opt) == expected
 
 
@@ -89,7 +89,7 @@ def test_shift_month_error():
         # Before March 1.
         (datetime(2017, 2, 10), {2: 1, -7: -7, 0: 0}),
         # After March 1.
-        (Timestamp("2014-03-15", tz="US/Eastern"), {2: 2, -7: -6, 0: 1}),
+        (pd.Timestamp("2014-03-15", tz="US/Eastern"), {2: 2, -7: -6, 0: 1}),
     ],
 )
 @pytest.mark.parametrize("n", [2, -7, 0])
@@ -106,7 +106,7 @@ def test_roll_qtrday_year(other, expected, n):
         # Before June 30.
         (datetime(1999, 6, 29), {5: 4, -7: -7, 0: 0}),
         # After June 30.
-        (Timestamp(2072, 8, 24, 6, 17, 18), {5: 5, -7: -6, 0: 1}),
+        (pd.Timestamp(2072, 8, 24, 6, 17, 18), {5: 5, -7: -6, 0: 1}),
     ],
 )
 @pytest.mark.parametrize("n", [5, -7, 0])
@@ -134,7 +134,7 @@ def test_get_day_of_month_error():
 def test_roll_qtr_day_not_mod_unequal(day_opt, month, n):
     expected = {3: {-3: -2, 4: 4}, 5: {-3: -3, 4: 3}}
 
-    other = Timestamp(2072, 10, 1, 6, 17, 18)  # Saturday.
+    other = pd.Timestamp(2072, 10, 1, 6, 17, 18)  # Saturday.
     assert roll_qtrday(other, n, month, day_opt, modby=3) == expected[month][n]
 
 
@@ -145,13 +145,13 @@ def test_roll_qtr_day_not_mod_unequal(day_opt, month, n):
         (datetime(1999, 5, 31), 2, {-1: {"start": 0, "business_start": 0}}),
         # Saturday.
         (
-            Timestamp(2072, 10, 1, 6, 17, 18),
+            pd.Timestamp(2072, 10, 1, 6, 17, 18),
             4,
             {2: {"end": 1, "business_end": 1, "business_start": 1}},
         ),
         # First business day.
         (
-            Timestamp(2072, 10, 3, 6, 17, 18),
+            pd.Timestamp(2072, 10, 3, 6, 17, 18),
             4,
             {2: {"end": 1, "business_end": 1}, -1: {"start": 0}},
         ),
