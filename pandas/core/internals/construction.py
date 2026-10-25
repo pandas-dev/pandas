@@ -5,10 +5,14 @@ constructors before passing them to a BlockManager.
 
 from __future__ import annotations
 
-from collections import abc
+from collections import (
+    abc,
+    defaultdict,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
+    overload,
 )
 import warnings
 
@@ -23,13 +27,16 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import (
     astype_array,
+    astype_array_safe,
     astype_is_view,
 )
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
+    construct_2d_arraylike_from_scalar,
     dict_compat,
     find_common_type,
+    infer_dtype_from_scalar,
     maybe_cast_to_datetime,
 )
 from pandas.core.dtypes.common import (
@@ -100,6 +107,8 @@ if TYPE_CHECKING:
         Manager,
         npt,
     )
+
+    from pandas.core.internals.managers import BlockManager
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -109,7 +118,7 @@ def arrays_to_mgr(
     columns: Index,
     index,
     *,
-    dtype: DtypeObj | None = None,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None = None,
     verify_integrity: bool = True,
     consolidate: bool = True,
 ) -> Manager:
@@ -118,6 +127,10 @@ def arrays_to_mgr(
 
     Needs to handle a lot of exceptional cases.
     """
+    columns = ensure_index(columns)
+    if len(columns) != len(arrays):
+        raise ValueError("len(arrays) must match len(columns)")
+
     if verify_integrity:
         # figure out the index, if necessary
         if index is None:
@@ -126,7 +139,7 @@ def arrays_to_mgr(
             index = ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
-        arrays, refs = _homogenize(arrays, index, dtype)
+        arrays, refs = _homogenize(arrays, index, _resolve_dtypes(dtype, columns))
         # _homogenize ensures
         #  - all(len(x) == len(index) for x in arrays)
         #  - all(x.ndim == 1 for x in arrays)
@@ -151,10 +164,6 @@ def arrays_to_mgr(
                     "with length matching len(index)"
                 )
 
-    columns = ensure_index(columns)
-    if len(columns) != len(arrays):
-        raise ValueError("len(arrays) must match len(columns)")
-
     # from BlockManager perspective
     axes = [columns, index]
 
@@ -167,7 +176,7 @@ def rec_array_to_mgr(
     data: np.rec.recarray | np.ndarray,
     index,
     columns,
-    dtype: DtypeObj | None,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None,
     copy: bool,
 ) -> Manager:
     """
@@ -202,11 +211,19 @@ def rec_array_to_mgr(
 
 
 def ndarray_to_mgr(
-    values, index, columns, dtype: DtypeObj | None, copy: bool
+    values,
+    index,
+    columns,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None,
+    copy: bool,
 ) -> Manager:
     # used in DataFrame.__init__
     # input must be an ndarray, list, Series, Index, ExtensionArray
     infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
+    dtype_map = None
+    if isinstance(dtype, abc.Mapping):
+        # GH#71142 build as for dtype=None, then cast the mapped columns
+        dtype_map, dtype = dtype, None
 
     if isinstance(values, ABCSeries):
         if columns is None:
@@ -254,7 +271,13 @@ def ndarray_to_mgr(
         else:
             columns = ensure_index(columns)
 
-        return arrays_to_mgr(values, columns, index, dtype=dtype, consolidate=copy)
+        return arrays_to_mgr(
+            values,
+            columns,
+            index,
+            dtype=dtype if dtype_map is None else dtype_map,
+            consolidate=copy,
+        )
 
     if isinstance(values, (ABCSeries, Index)):
         if not copy and (dtype is None or astype_is_view(values.dtype, dtype)):
@@ -363,9 +386,82 @@ def ndarray_to_mgr(
         # TODO: check len(values) == 0?
         block_values = []
 
-    return create_block_manager_from_blocks(
+    mgr = create_block_manager_from_blocks(
         block_values, [columns, index], verify_integrity=False
     )
+    if dtype_map is not None:
+        for i, col_dtype in enumerate(_resolve_dtypes(dtype_map, columns)):
+            # cast from values, not the inferred column, as dtype=col_dtype would
+            if col_dtype is None or (
+                values.dtype == col_dtype == mgr.iget_values(i).dtype
+            ):
+                continue
+            arr = sanitize_array(values[i], None, dtype=col_dtype, copy=copy)
+            mgr.iset(i, arr)
+    return mgr
+
+
+def astype_columns(
+    mgr: BlockManager, dtype: Mapping[Hashable, DtypeObj | None]
+) -> BlockManager:
+    """
+    Cast each column of ``mgr`` to its dtype in ``dtype``, as ``mgr.astype`` would.
+    """
+    for i, col_dtype in enumerate(_resolve_dtypes(dtype, mgr.items)):
+        values = mgr.iget_values(i)
+        if col_dtype is not None and values.dtype != col_dtype:
+            mgr.iset(i, astype_array_safe(values, col_dtype, copy=True))
+    return mgr
+
+
+def scalar_to_mgr(
+    value,
+    index: Index,
+    columns: Index,
+    dtype: Mapping[Hashable, DtypeObj | None],
+    copy: bool,
+) -> Manager:
+    """
+    Broadcast a scalar to each column, as DataFrame(value, dtype=col_dtype) would.
+    """
+    arrays: list[ArrayLike] = []
+    for col_dtype in _resolve_dtypes(dtype, columns):
+        if col_dtype is None:
+            col_dtype, _ = infer_dtype_from_scalar(value)
+        if isinstance(col_dtype, ExtensionDtype):
+            arr = construct_1d_arraylike_from_scalar(value, len(index), col_dtype)
+        else:
+            arr = construct_2d_arraylike_from_scalar(
+                value, len(index), 1, col_dtype, copy
+            )[:, 0]
+        arrays.append(arr)
+    return arrays_to_mgr(arrays, columns, index, verify_integrity=False)
+
+
+@overload
+def _resolve_dtypes(
+    dtype: Mapping[Hashable, DtypeObj | None], columns: Index
+) -> list[DtypeObj | None]: ...
+
+
+@overload
+def _resolve_dtypes(
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None, columns: Index
+) -> DtypeObj | list[DtypeObj | None] | None: ...
+
+
+def _resolve_dtypes(
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None, columns: Index
+) -> DtypeObj | list[DtypeObj | None] | None:
+    """
+    Look up each column's dtype when ``dtype`` maps column labels to dtypes.
+    """
+    if not isinstance(dtype, abc.Mapping):
+        return dtype
+    default = None
+    if isinstance(dtype, defaultdict) and dtype.default_factory is not None:
+        default = dtype.default_factory()
+    return [dtype.get(col, default) for col in columns]
 
 
 def _check_values_indices_shape_match(
@@ -391,7 +487,7 @@ def dict_to_mgr(
     index,
     columns,
     *,
-    dtype: DtypeObj | None = None,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None = None,
     copy: bool = True,
 ) -> Manager:
     """
@@ -404,11 +500,16 @@ def dict_to_mgr(
 
     if columns is not None:
         columns = ensure_index(columns)
-        if dtype is not None and not isinstance(dtype, np.dtype):
+        col_dtypes = _resolve_dtypes(dtype, columns)
+        if not isinstance(col_dtypes, list):
+            col_dtypes = [col_dtypes] * len(columns)
+        arrays = [
             # e.g. test_dataframe_from_dict_of_series
-            arrays = [dtype.na_value] * len(columns)
-        else:
-            arrays = [np.nan] * len(columns)
+            np.nan
+            if col_dtype is None or isinstance(col_dtype, np.dtype)
+            else col_dtype.na_value
+            for col_dtype in col_dtypes
+        ]
         midxs = set()
         data_keys = ensure_index(data.keys())  # type: ignore[arg-type]
         data_values = list(data.values())
@@ -436,14 +537,15 @@ def dict_to_mgr(
         else:
             index = ensure_index(index)
 
-        # no obvious "empty" int column
-        if midxs and not is_integer_dtype(dtype):
-            # GH#1783
-            for i in midxs:
+        for i in midxs:
+            col_dtype = col_dtypes[i]
+            # no obvious "empty" int column
+            if not is_integer_dtype(col_dtype):
+                # GH#1783
                 arr = construct_1d_arraylike_from_scalar(
                     arrays[i],
                     len(index),
-                    dtype if dtype is not None else np.dtype("object"),
+                    col_dtype if col_dtype is not None else np.dtype("object"),
                 )
                 arrays[i] = arr
 
@@ -478,7 +580,7 @@ def nested_data_to_arrays(
     data: Sequence[Any],
     columns: Index | None,
     index: Index | None,
-    dtype: DtypeObj | None,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None,
 ) -> tuple[list[ArrayLike], Index, Index]:
     """
     Convert a single sequence of arrays to multiple arrays.
@@ -568,17 +670,18 @@ def _ensure_2d(values: np.ndarray) -> np.ndarray:
 
 
 def _homogenize(
-    data, index: Index, dtype: DtypeObj | None
+    data, index: Index, dtype: DtypeObj | list[DtypeObj | None] | None
 ) -> tuple[list[ArrayLike], list[Any]]:
     oindex = None
     homogenized = []
     # if the original array-like in `data` is a Series, keep track of this Series' refs
     refs: list[Any] = []
 
-    for val in data:
+    dtypes = dtype if isinstance(dtype, list) else [dtype] * len(data)
+    for val, val_dtype in zip(data, dtypes, strict=True):
         if isinstance(val, (ABCSeries, Index)):
-            if dtype is not None:
-                val = val.astype(dtype)
+            if val_dtype is not None:
+                val = val.astype(val_dtype)
             if isinstance(val, ABCSeries) and val.index._id is not index._id:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
@@ -610,7 +713,7 @@ def _homogenize(
                     # Fast path: use lib.fast_multiget for dicts without missing keys
                     val = lib.fast_multiget(val, oindex._values, default=np.nan)  # type: ignore[arg-type]
 
-            val = sanitize_array(val, index, dtype=dtype, copy=False)
+            val = sanitize_array(val, index, dtype=val_dtype, copy=False)
             com.require_length_match(val, index)
             refs.append(None)
 
@@ -774,7 +877,9 @@ def dataclasses_to_dicts(data):
 
 
 def to_arrays(
-    data, columns: Index | None, dtype: DtypeObj | None = None
+    data,
+    columns: Index | None,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None = None,
 ) -> tuple[list[ArrayLike], Index]:
     """
     Return list of arrays, columns.
@@ -929,7 +1034,7 @@ def _warn_if_str_rows(row_types: set[type]) -> bool:
 def _list_of_series_to_arrays(
     data: list[Any],
     columns: Index | None,
-    dtype: DtypeObj | None,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None,
 ) -> tuple[list[ArrayLike], Index]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
@@ -954,7 +1059,9 @@ def _list_of_series_to_arrays(
         indexers.append(indexer)
 
     common_dtype = find_common_type([values.dtype for values in values_list])
-    if dtype is None and isinstance(common_dtype, ExtensionDtype):
+    if (dtype is None or isinstance(dtype, abc.Mapping)) and isinstance(
+        common_dtype, ExtensionDtype
+    ):
         # GH#56231 keep an EA common dtype, which np.vstack would lose.
         #  Cast before the take so missing keys don't upcast int rows to float.
         #  With a dtype, keep the constructor's casting (EA.astype can be lossy)
@@ -970,6 +1077,12 @@ def _list_of_series_to_arrays(
         arrays: list[ArrayLike] = [
             taken[i * nrows : (i + 1) * nrows] for i in range(ncols)
         ]
+        if isinstance(dtype, abc.Mapping):
+            # GH#71142 convert the listed columns from their numpy values, not
+            #  with EA.astype
+            for i, col_dtype in enumerate(_resolve_dtypes(dtype, columns)):
+                if col_dtype is not None:
+                    arrays[i] = np.asarray(arrays[i])
         return arrays, columns
 
     content = np.vstack(
@@ -1026,7 +1139,7 @@ def _list_of_dict_to_arrays(
 def _finalize_columns_and_data(
     content: np.ndarray,  # ndim == 2
     columns: Index | None,
-    dtype: DtypeObj | None,
+    dtype: DtypeObj | Mapping[Hashable, DtypeObj | None] | None,
 ) -> tuple[list[ArrayLike], Index]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
@@ -1040,7 +1153,7 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if contents and contents[0].dtype == np.object_:
-        contents = convert_object_array(contents, dtype=dtype)
+        contents = convert_object_array(contents, dtype=_resolve_dtypes(dtype, columns))
 
     return contents, columns
 
@@ -1080,7 +1193,7 @@ def _validate_or_indexify_columns(
 
 def convert_object_array(
     content: list[npt.NDArray[np.object_]],
-    dtype: DtypeObj | None,
+    dtype: DtypeObj | list[DtypeObj | None] | None,
     dtype_backend: str = "numpy",
     coerce_float: bool = False,
 ) -> list[ArrayLike]:
@@ -1090,7 +1203,7 @@ def convert_object_array(
     Parameters
     ----------
     content: List[np.ndarray]
-    dtype: np.dtype or ExtensionDtype
+    dtype: np.dtype or ExtensionDtype, or a list with one per array in content
     dtype_backend: Controls if nullable/pyarrow dtypes are returned.
     coerce_float: Cast floats that are integers to int.
 
@@ -1100,7 +1213,7 @@ def convert_object_array(
     """
     # provide soft conversion of object dtypes
 
-    def convert(arr):
+    def convert(arr, dtype):
         if dtype != np.dtype("O"):
             # e.g. if dtype is UInt32 then we want to cast Nones to NA instead of
             #  NaN in maybe_convert_objects.
@@ -1154,6 +1267,9 @@ def convert_object_array(
 
         return arr
 
-    arrays = [convert(arr) for arr in content]
+    dtypes = dtype if isinstance(dtype, list) else [dtype] * len(content)
+    arrays = [
+        convert(arr, arr_dtype) for arr, arr_dtype in zip(content, dtypes, strict=True)
+    ]
 
     return arrays
