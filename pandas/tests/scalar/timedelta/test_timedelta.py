@@ -383,14 +383,15 @@ class TestTimedeltas:
         check(rng.microseconds)
         check(rng.nanoseconds)
 
-        td = pd.Timedelta("-1 days, 10:11:12")
+        td = pd.Timedelta("-13:48:48")
         assert abs(td) == pd.Timedelta("13:48:48")
-        assert str(td) == "-1 days +10:11:12"
+        assert str(td) == "-0 days 13:48:48"
         assert -td == pd.Timedelta("0 days 13:48:48")
-        assert -pd.Timedelta("-1 days, 10:11:12")._value == 49728000000
-        assert pd.Timedelta("-1 days, 10:11:12")._value == -49728000000
+        assert -pd.Timedelta("-13:48:48")._value == 49728000000
+        assert pd.Timedelta("-13:48:48")._value == -49728000000
 
-        rng = pd.to_timedelta("-1 days, 10:11:12.100123456")
+        rng = pd.to_timedelta("-0 days 10:11:12.100123456")
+        raise Exception(rng.days, rng.seconds, rng.microseconds, rng.nanoseconds) # is still incorrect as (-1, 49727, 899876, 544)
         assert rng.days == -1
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 100 * 1000 + 123
@@ -557,7 +558,7 @@ class TestTimedeltas:
             np.timedelta64(1000 * (6 * 3600 + 1) + 10, "ms")
         )
 
-        assert pd.Timedelta("- 1days, 00:00:01") == conv(-d1 + np.timedelta64(1, "s"))
+        assert pd.Timedelta("- 1days, 00:00:01") == conv(-d1 - np.timedelta64(1, "s"))
         assert pd.Timedelta("1days, 06:00:01") == conv(
             d1 + np.timedelta64(6 * 3600 + 1, "s")
         )

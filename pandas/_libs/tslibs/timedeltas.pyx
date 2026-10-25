@@ -724,10 +724,6 @@ cdef int64_t parse_timedelta_string(
         # hh:mm:ss.
         elif c == ":":
 
-            # we flip this off if we have a leading value
-            if have_value:
-                neg = 0
-
             # we are in the pattern hh:mm:ss pattern
             if len(number):
                 if current_unit is None:

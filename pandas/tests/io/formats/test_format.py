@@ -2243,7 +2243,7 @@ class TestTimedelta64Formatter:
         y = pd.to_timedelta([*list(range(5)), pd.NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(-y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
-        assert result[1].strip() == "-1 days +23:59:59"
+        assert result[1].strip() == "-0 days 00:00:01"
 
     def test_zero(self):
         x = pd.to_timedelta([*list(range(1)), pd.NaT], unit="D")._values

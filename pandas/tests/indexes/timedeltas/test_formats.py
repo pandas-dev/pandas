@@ -81,9 +81,9 @@ class TestTimedeltaIndexRendering:
         )
 
         exp6 = (
-            "0  -1 days 00:00:01\n"
-            "1   2 days 00:00:00\n"
-            "2   3 days 00:00:00\n"
+            "0   -1 days 00:00:01\n"
+            "1    2 days 00:00:00\n"
+            "2    3 days 00:00:00\n"
             "dtype: timedelta64[us]"
         )
 

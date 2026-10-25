@@ -961,6 +961,7 @@ def test_construction_string_out_of_bounds(value, msg):
         ("2562047:47:16.854775807", pd.Timedelta(2**63 - 1, "ns")),
         ("-2562047:47:16.854775807", pd.Timedelta(-(2**63) + 1, "ns")),
         ("106751 days 23:47:16.854775807", pd.Timedelta(2**63 - 1, "ns")),
+        ("-106751 days 23:47:16.854775807", pd.Timedelta(-(2**63) + 1, "ns")),
         ("P106751DT23H47M16.854775807S", pd.Timedelta(2**63 - 1, "ns")),
         # GH#68560 the leading "-" applies to every term until the first ":",
         #  so the running total can leave the range and be brought back
