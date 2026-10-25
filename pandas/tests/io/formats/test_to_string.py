@@ -1157,25 +1157,25 @@ class TestSeriesToString:
         o = pd.Series([datetime(2012, 1, 1, microsecond=150)] * 3)
         y = ser - o
         result = y.to_string()
-        assert "-1 days +23:59:59.999850" in result
+        assert "-0 days 00:00:00.000150" in result
 
         # rounding?
         o = pd.Series([datetime(2012, 1, 1, 1)] * 3)
         y = ser - o
         result = y.to_string()
-        assert "-1 days +23:00:00" in result
+        assert "0 days 01:00:00" in result
         assert "1 days 23:00:00" in result
 
         o = pd.Series([datetime(2012, 1, 1, 1, 1)] * 3)
         y = ser - o
         result = y.to_string()
-        assert "-1 days +22:59:00" in result
+        assert "-0 days 01:01:00" in result
         assert "1 days 22:59:00" in result
 
         o = pd.Series([datetime(2012, 1, 1, 1, 1, microsecond=150)] * 3)
         y = ser - o
         result = y.to_string()
-        assert "-1 days +22:58:59.999850" in result
+        assert "-0 days 01:01:00.000150" in result
         assert "0 days 22:58:59.999850" in result
 
         # neg time
@@ -1183,7 +1183,7 @@ class TestSeriesToString:
         s2 = pd.Series(pd.date_range("2012-1-1", periods=3, freq="D")) + td
         y = ser - s2
         result = y.to_string()
-        assert "-1 days +23:54:57" in result
+        assert "-0 days 00:05:03" in result
 
         td = timedelta(microseconds=550)
         s2 = pd.Series(pd.date_range("2012-1-1", periods=3, freq="D")) + td

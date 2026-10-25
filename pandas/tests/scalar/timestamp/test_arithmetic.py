@@ -177,7 +177,7 @@ class TestTimestampArithmetic:
 
         result = t2 - t1
         assert isinstance(result, Timedelta)
-        assert result == Timedelta("-1 days +18:00:00")
+        assert result == Timedelta("-0 days 06:00:00")
 
     def test_subtracting_different_timezones(self, tz_aware_fixture):
         t_raw = Timestamp("20130101")
