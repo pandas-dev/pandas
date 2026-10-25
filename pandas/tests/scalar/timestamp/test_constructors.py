@@ -138,6 +138,17 @@ class TestTimestampConstructorFoldKeyword:
         with pytest.raises(ValueError, match=msg):
             pd.Timestamp(datetime(2019, 10, 27, 0, 30, 0, 0), tz=tz, fold=0)
 
+    def test_timestamp_constructor_from_timestamp_with_pytz_tz(self):
+        # GH#71371: deriving the wall-time fields from a Timestamp's _value
+        # must use the localized tzinfo's offset; the raw pytz zone resolves
+        # utcoffset to LMT (-04:56) instead of the correct offset.
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
+        result = pd.Timestamp(pd.Timestamp("2020-01-01 12:00"), tz=tz)
+        expected = pd.Timestamp("2020-01-01 12:00", tz=tz)
+        assert result == expected
+        assert result.utcoffset() == timedelta(hours=-5)
+
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize(
         "ts_input",

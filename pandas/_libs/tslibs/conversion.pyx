@@ -36,7 +36,10 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.portable cimport checked_sub
+from pandas._libs.portable cimport (
+    checked_add,
+    checked_sub,
+)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
@@ -636,11 +639,42 @@ cdef _TSObject convert_datetime_to_tsobject(
     """
     cdef:
         _TSObject obj = _TSObject()
-        int64_t pps, offset_val
+        int64_t pps, offset_val, wall_val
 
     obj.creso = reso
     obj.fold = ts.fold
-    if tz is not None:
+    if isinstance(ts, _Timestamp):
+        # GH#71371 a Timestamp's datetime fields cannot represent years
+        #  outside 1-9999 and may not match its actual value, so derive the
+        #  wall-time fields from _value and the UTC offset of the result
+        #  timezone instead of reading them off the object.
+        if tz is not None:
+            if ts.tzinfo is not None:
+                # Convert the current timezone to the passed timezone;
+                #  this changes the display timezone but not the instant
+                ts = ts.tz_convert(tz)
+            else:
+                ts = _localize_pydatetime(ts, tz)
+        # Use the localized/converted tzinfo, not the raw passed one: for
+        #  pytz the raw zone resolves utcoffset to LMT, while the bound
+        #  instance carries the correct offset for this instant.
+        obj.tzinfo = ts.tzinfo
+        ts = (<_Timestamp>ts)._as_creso(reso, round_ok=True)
+        if obj.tzinfo is not None and not is_utc(obj.tzinfo):
+            offset = get_utcoffset(obj.tzinfo, ts)
+            pps = periods_per_second(reso)
+            offset_val = int(offset.total_seconds() * pps)
+            # wall time in the result timezone, checked against wraparound
+            if checked_add((<_Timestamp>ts)._value, offset_val, &wall_val):
+                attrname = npy_unit_to_attrname[reso]
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds {attrname} timestamp") from None
+            pandas_datetime_to_datetimestruct(wall_val, reso, &obj.dts)
+        else:
+            pandas_datetime_to_datetimestruct(
+                (<_Timestamp>ts)._value, reso, &obj.dts
+            )
+    elif tz is not None:
 
         if ts.tzinfo is not None:
             # Convert the current timezone to the passed timezone
@@ -1011,12 +1045,14 @@ cdef int64_t parse_pydatetime(
         _TSObject _ts
         int64_t result
 
-    if val.tzinfo is not None:
+    if isinstance(val, _Timestamp):
+        # GH#71371 _value is authoritative; the datetime fields cannot
+        #  represent years outside 1-9999. For tz-aware Timestamps _value
+        #  is already UTC.
+        result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
+    elif val.tzinfo is not None:
         _ts = convert_datetime_to_tsobject(val, None, nanos=0, reso=creso)
         result = _ts.value
     else:
-        if isinstance(val, _Timestamp):
-            result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
-        else:
-            result = pydatetime_to_dt64(val, dts, reso=creso)
+        result = pydatetime_to_dt64(val, dts, reso=creso)
     return result
