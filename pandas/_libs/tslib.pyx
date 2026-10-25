@@ -18,6 +18,7 @@ import_datetime()
 
 cimport numpy as cnp
 from numpy cimport (
+    int32_t,
     int64_t,
     ndarray,
     uint8_t,
@@ -123,51 +124,53 @@ def _test_parse_iso8601(ts: str):
         return Timestamp(obj.value)
 
 
-_STRFTIME_FORMAT_MAP = {
-    # %Y is zero-padded to a minimum of 4 digits to match datetime.strftime
-    #  (and Timestamp.strftime) for years < 1000; see GH#58179.
-    "%Y": "{0:04d}",
-    "%m": "{1:02d}",
-    "%d": "{2:02d}",
-    "%H": "{3:02d}",
-    "%M": "{4:02d}",
-    "%S": "{5:02d}",
-    "%f": "{6:06d}",
-    "%N": "{7:09d}",
-    "%%": "%",
+_STRFTIME_FIELDS = {
+    "%Y": 0,
+    "%m": 1,
+    "%d": 2,
+    "%H": 3,
+    "%M": 4,
+    "%S": 5,
+    "%f": 6,
+    "%N": 7,
 }
 
 
 def _convert_strftime_format(str fmt):
     """
-    Convert a strftime format string to a str.format()-style template using
-    positional indices for npy_datetimestruct fields:
-        0=year, 1=month, 2=day, 3=hour, 4=min, 5=sec, 6=us
+    Split a strftime format string into literal text and npy_datetimestruct
+    field codes (see _STRFTIME_FIELDS).
 
     Returns None if the format contains unsupported directives, in which case
     the caller should fall back to the per-element Timestamp.strftime() path.
+    Otherwise returns ``(literals, fields)`` with
+    ``len(literals) == len(fields) + 1``; literal ``i`` precedes field ``i``.
     """
-    result: list[str] = []
+    literals: list[str] = []
+    fields: list[int] = []
+    current: list[str] = []
     cdef Py_ssize_t i = 0
     cdef Py_ssize_t n = len(fmt)
 
     while i < n:
         if fmt[i] == "%" and i + 1 < n:
             directive = fmt[i:i + 2]
-            replacement = _STRFTIME_FORMAT_MAP.get(directive)
-            if replacement is None:
-                return None
-            result.append(replacement)
             i += 2
-        elif fmt[i] in ("{", "}"):
-            # Escape braces for str.format()
-            result.append(fmt[i] * 2)
-            i += 1
+            if directive == "%%":
+                current.append("%")
+                continue
+            code = _STRFTIME_FIELDS.get(directive)
+            if code is None:
+                return None
+            literals.append("".join(current))
+            current = []
+            fields.append(code)
         else:
-            result.append(fmt[i])
+            current.append(fmt[i])
             i += 1
 
-    return "".join(result)
+    literals.append("".join(current))
+    return literals, np.array(fields, dtype=np.int32)
 
 
 @cython.wraparound(False)
@@ -203,8 +206,11 @@ def format_array_from_datetime(
         _Timestamp ts
         object res
         npy_datetimestruct dts
-        Py_ssize_t pos
+        Py_ssize_t pos, j, nfields = 0
+        int code
         str timespec = "auto"
+        list literals = None, parts
+        const int32_t[::1] fields
 
         # Note that `result` (and thus `result_flat`) is C-order and
         #  `it` iterates C-order as well, so the iteration matches
@@ -214,12 +220,12 @@ def format_array_from_datetime(
         object[::1] res_flat = result.ravel()     # should NOT be a copy
         cnp.flatiter it = cnp.PyArray_IterNew(values)
 
-    # Try to convert the format string to a str.format() template that uses
-    # npy_datetimestruct fields directly, avoiding per-element Timestamp
+    # Try to split the format string into literals and npy_datetimestruct
+    # fields that are formatted directly, avoiding per-element Timestamp
     # creation. For tz-aware data, the UTC value is first converted to
     # local time via a Localizer (this works because _convert_strftime_format
     # returns None for formats containing %z/%Z).
-    fmt_template = None
+    tokens = None
     localizer = None
 
     if tz is None:
@@ -265,9 +271,12 @@ def format_array_from_datetime(
                 timespec = "seconds"
 
     if format is not None and not basic_format and not basic_format_day:
-        fmt_template = _convert_strftime_format(format)
-        if fmt_template is not None and tz is not None:
-            localizer = Localizer.__new__(Localizer, tz, reso)
+        tokens = _convert_strftime_format(format)
+        if tokens is not None:
+            literals, fields = tokens
+            nfields = len(fields)
+            if tz is not None:
+                localizer = Localizer.__new__(Localizer, tz, reso)
 
     assert not (basic_format_day and basic_format)
 
@@ -296,18 +305,36 @@ def format_array_from_datetime(
             elif show_ms:
                 res += f".{dts.us // 1000:03d}"
 
-        elif fmt_template is not None:
+        elif tokens is not None:
 
             if localizer is not None:
                 val = (<Localizer>localizer).utc_val_to_local_val(
                     val, &pos
                 )
             pandas_datetime_to_datetimestruct(val, reso, &dts)
-            res = fmt_template.format(
-                dts.year, dts.month, dts.day,
-                dts.hour, dts.min, dts.sec, dts.us,
-                dts.us * 1000 + dts.ps // 1000,
-            )
+            parts = []
+            for j in range(nfields):
+                parts.append(literals[j])
+                code = fields[j]
+                if code == 0:
+                    # zero-pad like datetime.strftime, see GH#58179
+                    parts.append(f"{dts.year:04d}")
+                elif code == 1:
+                    parts.append(f"{dts.month:02d}")
+                elif code == 2:
+                    parts.append(f"{dts.day:02d}")
+                elif code == 3:
+                    parts.append(f"{dts.hour:02d}")
+                elif code == 4:
+                    parts.append(f"{dts.min:02d}")
+                elif code == 5:
+                    parts.append(f"{dts.sec:02d}")
+                elif code == 6:
+                    parts.append(f"{dts.us:06d}")
+                else:
+                    parts.append(f"{dts.us * 1000 + dts.ps // 1000:09d}")
+            parts.append(literals[nfields])
+            res = "".join(parts)
 
         else:
 
