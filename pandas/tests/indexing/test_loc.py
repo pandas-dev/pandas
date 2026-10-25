@@ -1399,6 +1399,24 @@ class TestLocBaseIndependent:
         df.loc[np.array(1)] = [9, "changed"]
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("tuple_key", [False, True])
+    def test_setitem_zerodim_np_array_callable(self, tuple_key):
+        # GH#70256
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            dtype="Int64",
+        )
+        expected = df.copy()
+
+        if tuple_key:
+            expected.loc[1, "a"] = 9
+            df.loc[lambda d: np.array(1), "a"] = 9
+        else:
+            expected.loc[1] = 9
+            df.loc[lambda d: np.array(1)] = 9
+
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_reverse_assignment(self):
         # GH26939
         data = [1, 2, 3, 4, 5, 6] + [None] * 4

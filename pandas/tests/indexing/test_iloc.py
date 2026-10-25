@@ -2340,6 +2340,25 @@ def test_iloc_setitem_zerodim_np_array_invalid_value():
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize("tuple_key", [False, True])
+def test_iloc_setitem_zerodim_np_array_callable(tuple_key):
+    # GH#70256
+    df = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6]},
+        dtype="Int64",
+    )
+    expected = df.copy()
+
+    if tuple_key:
+        expected.iloc[1, 0] = 9
+        df.iloc[lambda d: np.array(1), 0] = 9
+    else:
+        expected.iloc[1] = 9
+        df.iloc[lambda d: np.array(1)] = 9
+
+    tm.assert_frame_equal(df, expected)
+
+
 def test_iloc_setitem_out_of_bounds_boolean_column_key_raises():
     # GH#68021 a too-long boolean column key whose True lands past the last
     #  column used to be silently discarded here.  Note this pins the
