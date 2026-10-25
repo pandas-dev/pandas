@@ -6144,12 +6144,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.asof_locs(where, mask)
         array([-1,  0,  0])
         """
-        # error: No overload variant of "searchsorted" of "ndarray" matches argument
-        # types "Union[ExtensionArray, ndarray[Any, Any]]", "str"
         # TODO: will be fixed when ExtensionArray.searchsorted() is fixed
         locs = self._values[mask].searchsorted(
             where._values,  # pyright: ignore[reportArgumentType]
-            side="right",  # type: ignore[call-overload]
+            side="right",
         )
         locs = np.where(locs > 0, locs - 1, 0)
 

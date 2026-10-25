@@ -127,6 +127,7 @@ Other deprecations
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
+- Deprecated converting an :class:`~pandas.api.extensions.ExtensionArray` subclass that does not implement ``__array__`` to a NumPy array, e.g. with ``np.asarray`` or :meth:`Series.to_numpy`; this iterates over the elements and will raise in a future version. Third-party extension arrays should implement ``__array__`` (:issue:`45093`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
