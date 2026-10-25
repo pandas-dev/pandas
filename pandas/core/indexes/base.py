@@ -155,7 +155,6 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    ensure_s_converted_to_obj,
     ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
@@ -586,8 +585,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
 
-        arr = ensure_s_converted_to_obj(arr)  # type: ignore[no-untyped-call] # GH#50127
-
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
@@ -643,7 +640,10 @@ class Index(IndexOpsMixin, PandasObject):
         elif issubclass(dtype.type, str) or is_numeric_dtype(dtype):
             return Index
 
-        raise NotImplementedError(f"Index does not support dtype {dtype}")
+        if dtype.kind == "S":
+            raise TypeError("Index does not support dtype 'S'")
+
+        raise NotImplementedError(dtype)
 
     # NOTE for new Index creation:
 
