@@ -1719,3 +1719,19 @@ def test_no_empty_apply(mi_styler):
 def test_output_buffer(mi_styler, format, temp_file):
     # gh 47053
     getattr(mi_styler, f"to_{format}")(temp_file)
+
+
+def test_repr_shows_data():
+    # GH#55908
+    df = pd.DataFrame({"A": [1.5, 2.5], "B": ["x", "y"]})
+
+    def raiser(ser):
+        raise AssertionError("repr should not render the Styler")
+
+    styler = df.style.set_caption("cap").apply(raiser)
+    assert repr(styler) == repr(df)
+    assert str(styler) == str(df)
+
+    # hidden data is left out
+    assert repr(df.style.hide([1])) == repr(df.iloc[[0]])
+    assert repr(df.style.hide(["B"], axis="columns")) == repr(df[["A"]])
