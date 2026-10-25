@@ -74,6 +74,7 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
+    adopt_period_converter,
     format_dateaxis,
     get_period_offset,
     maybe_convert_index,
@@ -1397,6 +1398,9 @@ class ScatterPlot(PlanePlot):
             s, index_freq = maybe_convert_index(ax, s)
             freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
             x_data = s.index
+        elif isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex)):
+            # GH#40470
+            adopt_period_converter(ax)
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1637,8 +1641,17 @@ class LinePlot(MPLPlot):
         seen_ax_ids: set[int] = set()
         # Index actually drawn on each ts axes, keyed by id(ax); see _ts_plot.
         self._ts_index: dict[int, Index] = {}
+        # datetimes on a sharex/twinx sibling of a ts axes must be converted
+        # to its period ordinals (GH#40470)
+        adopt = (
+            not is_ts
+            and self.use_index
+            and isinstance(self.data.index, (ABCDatetimeIndex, ABCPeriodIndex))
+        )
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
+            if adopt:
+                adopt_period_converter(ax)
             kwds = self.kwds.copy()
             if self.color is not None:
                 kwds["color"] = self.color

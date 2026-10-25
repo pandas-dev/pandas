@@ -23,6 +23,7 @@ from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    NaT,
     Timestamp,
     to_offset,
 )
@@ -339,6 +340,8 @@ class PeriodConverter(mdates.DateConverter):
 
 
 def _get_datevalue(date, freq):
+    if date is NaT:
+        return np.nan
     if isinstance(date, Period):
         freq_obj = to_offset(freq, is_period=True)
         dtype_code = freq_obj._period_dtype_code
