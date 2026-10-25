@@ -136,7 +136,7 @@ class TestJoinInt64Index:
         tm.assert_index_equal(inner, expected)
 
         left = index.join(other, how="left")
-        tm.assert_index_equal(left, index.astype(object))
+        tm.assert_index_equal(left, index)
 
         left2 = other.join(index, how="left")
         tm.assert_index_equal(left2, other)
@@ -145,7 +145,7 @@ class TestJoinInt64Index:
         tm.assert_index_equal(right, other)
 
         right2 = other.join(index, how="right")
-        tm.assert_index_equal(right2, index.astype(object))
+        tm.assert_index_equal(right2, index)
 
     def test_join_outer(self):
         index = Index(range(0, 20, 2), dtype=np.int64)
@@ -322,7 +322,7 @@ class TestJoinUInt64Index:
         tm.assert_index_equal(inner, expected)
 
         left = index_large.join(other, how="left")
-        tm.assert_index_equal(left, index_large.astype(object))
+        tm.assert_index_equal(left, index_large)
 
         left2 = other.join(index_large, how="left")
         tm.assert_index_equal(left2, other)
@@ -331,7 +331,7 @@ class TestJoinUInt64Index:
         tm.assert_index_equal(right, other)
 
         right2 = other.join(index_large, how="right")
-        tm.assert_index_equal(right2, index_large.astype(object))
+        tm.assert_index_equal(right2, index_large)
 
     def test_join_outer(self, index_large):
         other = Index(2**63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))

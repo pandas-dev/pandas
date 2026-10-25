@@ -6,12 +6,7 @@ from datetime import (
 from dateutil.relativedelta import MO
 import pytest
 
-from pandas import (
-    DateOffset,
-    DatetimeIndex,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (
@@ -57,18 +52,18 @@ from pandas.tseries.holiday import (
             Holiday("July 4th Eve", month=7, day=3),
             "2001-01-01",
             "2003-03-03",
-            [Timestamp("2001-07-03 00:00:00"), Timestamp("2002-07-03 00:00:00")],
+            [pd.Timestamp("2001-07-03 00:00:00"), pd.Timestamp("2002-07-03 00:00:00")],
         ),
         (
             Holiday("July 4th Eve", month=7, day=3, days_of_week=(0, 1, 2, 3)),
             "2001-01-01",
             "2008-03-03",
             [
-                Timestamp("2001-07-03 00:00:00"),
-                Timestamp("2002-07-03 00:00:00"),
-                Timestamp("2003-07-03 00:00:00"),
-                Timestamp("2006-07-03 00:00:00"),
-                Timestamp("2007-07-03 00:00:00"),
+                pd.Timestamp("2001-07-03 00:00:00"),
+                pd.Timestamp("2002-07-03 00:00:00"),
+                pd.Timestamp("2003-07-03 00:00:00"),
+                pd.Timestamp("2006-07-03 00:00:00"),
+                pd.Timestamp("2007-07-03 00:00:00"),
             ],
         ),
         (
@@ -76,16 +71,16 @@ from pandas.tseries.holiday import (
             datetime(2011, 1, 1),
             datetime(2020, 12, 31),
             [
-                Timestamp("2011-04-25 00:00:00"),
-                Timestamp("2012-04-09 00:00:00"),
-                Timestamp("2013-04-01 00:00:00"),
-                Timestamp("2014-04-21 00:00:00"),
-                Timestamp("2015-04-06 00:00:00"),
-                Timestamp("2016-03-28 00:00:00"),
-                Timestamp("2017-04-17 00:00:00"),
-                Timestamp("2018-04-02 00:00:00"),
-                Timestamp("2019-04-22 00:00:00"),
-                Timestamp("2020-04-13 00:00:00"),
+                pd.Timestamp("2011-04-25 00:00:00"),
+                pd.Timestamp("2012-04-09 00:00:00"),
+                pd.Timestamp("2013-04-01 00:00:00"),
+                pd.Timestamp("2014-04-21 00:00:00"),
+                pd.Timestamp("2015-04-06 00:00:00"),
+                pd.Timestamp("2016-03-28 00:00:00"),
+                pd.Timestamp("2017-04-17 00:00:00"),
+                pd.Timestamp("2018-04-02 00:00:00"),
+                pd.Timestamp("2019-04-22 00:00:00"),
+                pd.Timestamp("2020-04-13 00:00:00"),
             ],
         ),
         (
@@ -93,16 +88,16 @@ from pandas.tseries.holiday import (
             datetime(2011, 1, 1),
             datetime(2020, 12, 31),
             [
-                Timestamp("2011-04-22 00:00:00"),
-                Timestamp("2012-04-06 00:00:00"),
-                Timestamp("2013-03-29 00:00:00"),
-                Timestamp("2014-04-18 00:00:00"),
-                Timestamp("2015-04-03 00:00:00"),
-                Timestamp("2016-03-25 00:00:00"),
-                Timestamp("2017-04-14 00:00:00"),
-                Timestamp("2018-03-30 00:00:00"),
-                Timestamp("2019-04-19 00:00:00"),
-                Timestamp("2020-04-10 00:00:00"),
+                pd.Timestamp("2011-04-22 00:00:00"),
+                pd.Timestamp("2012-04-06 00:00:00"),
+                pd.Timestamp("2013-03-29 00:00:00"),
+                pd.Timestamp("2014-04-18 00:00:00"),
+                pd.Timestamp("2015-04-03 00:00:00"),
+                pd.Timestamp("2016-03-25 00:00:00"),
+                pd.Timestamp("2017-04-14 00:00:00"),
+                pd.Timestamp("2018-03-30 00:00:00"),
+                pd.Timestamp("2019-04-19 00:00:00"),
+                pd.Timestamp("2020-04-10 00:00:00"),
             ],
         ),
         (
@@ -129,7 +124,7 @@ def test_holiday_dates(holiday, start_date, end_date, expected):
 
     # Verify that timezone info is preserved.
     assert list(
-        holiday.dates(Timestamp(start_date, tz=UTC), Timestamp(end_date, tz=UTC))
+        holiday.dates(pd.Timestamp(start_date, tz=UTC), pd.Timestamp(end_date, tz=UTC))
     ) == [dt.replace(tzinfo=UTC) for dt in expected]
 
 
@@ -137,46 +132,46 @@ def test_holiday_dates(holiday, start_date, end_date, expected):
     "holiday,start,expected",
     [
         (USMemorialDay, datetime(2015, 7, 1), []),
-        (USMemorialDay, "2015-05-25", [Timestamp("2015-05-25")]),
+        (USMemorialDay, "2015-05-25", [pd.Timestamp("2015-05-25")]),
         (USLaborDay, datetime(2015, 7, 1), []),
-        (USLaborDay, "2015-09-07", [Timestamp("2015-09-07")]),
+        (USLaborDay, "2015-09-07", [pd.Timestamp("2015-09-07")]),
         (USColumbusDay, datetime(2015, 7, 1), []),
-        (USColumbusDay, "2015-10-12", [Timestamp("2015-10-12")]),
+        (USColumbusDay, "2015-10-12", [pd.Timestamp("2015-10-12")]),
         (USThanksgivingDay, datetime(2015, 7, 1), []),
-        (USThanksgivingDay, "2015-11-26", [Timestamp("2015-11-26")]),
+        (USThanksgivingDay, "2015-11-26", [pd.Timestamp("2015-11-26")]),
         (USMartinLutherKingJr, datetime(2015, 7, 1), []),
-        (USMartinLutherKingJr, "2015-01-19", [Timestamp("2015-01-19")]),
+        (USMartinLutherKingJr, "2015-01-19", [pd.Timestamp("2015-01-19")]),
         (USPresidentsDay, datetime(2015, 7, 1), []),
-        (USPresidentsDay, "2015-02-16", [Timestamp("2015-02-16")]),
+        (USPresidentsDay, "2015-02-16", [pd.Timestamp("2015-02-16")]),
         (GoodFriday, datetime(2015, 7, 1), []),
-        (GoodFriday, "2015-04-03", [Timestamp("2015-04-03")]),
-        (EasterMonday, "2015-04-06", [Timestamp("2015-04-06")]),
+        (GoodFriday, "2015-04-03", [pd.Timestamp("2015-04-03")]),
+        (EasterMonday, "2015-04-06", [pd.Timestamp("2015-04-06")]),
         (EasterMonday, datetime(2015, 7, 1), []),
         (EasterMonday, "2015-04-05", []),
-        ("New Year's Day", "2015-01-01", [Timestamp("2015-01-01")]),
-        ("New Year's Day", "2010-12-31", [Timestamp("2010-12-31")]),
+        ("New Year's Day", "2015-01-01", [pd.Timestamp("2015-01-01")]),
+        ("New Year's Day", "2010-12-31", [pd.Timestamp("2010-12-31")]),
         ("New Year's Day", datetime(2015, 7, 1), []),
         ("New Year's Day", "2011-01-01", []),
-        ("Independence Day", "2015-07-03", [Timestamp("2015-07-03")]),
+        ("Independence Day", "2015-07-03", [pd.Timestamp("2015-07-03")]),
         ("Independence Day", datetime(2015, 7, 1), []),
         ("Independence Day", "2015-07-04", []),
-        ("Veterans Day", "2012-11-12", [Timestamp("2012-11-12")]),
+        ("Veterans Day", "2012-11-12", [pd.Timestamp("2012-11-12")]),
         ("Veterans Day", datetime(2015, 7, 1), []),
         ("Veterans Day", "2012-11-11", []),
-        ("Christmas Day", "2011-12-26", [Timestamp("2011-12-26")]),
+        ("Christmas Day", "2011-12-26", [pd.Timestamp("2011-12-26")]),
         ("Christmas Day", datetime(2015, 7, 1), []),
         ("Christmas Day", "2011-12-25", []),
         ("Juneteenth National Independence Day", "2020-06-19", []),
         (
             "Juneteenth National Independence Day",
             "2021-06-18",
-            [Timestamp("2021-06-18")],
+            [pd.Timestamp("2021-06-18")],
         ),
         ("Juneteenth National Independence Day", "2022-06-19", []),
         (
             "Juneteenth National Independence Day",
             "2022-06-20",
-            [Timestamp("2022-06-20")],
+            [pd.Timestamp("2022-06-20")],
         ),
     ],
 )
@@ -193,13 +188,13 @@ def test_holidays_within_dates(holiday, start, expected):
     assert list(holiday.dates(start, start)) == expected
 
     # Verify that timezone info is preserved.
-    assert list(holiday.dates(Timestamp(start, tz=UTC), Timestamp(start, tz=UTC))) == [
-        dt.replace(tzinfo=UTC) for dt in expected
-    ]
+    assert list(
+        holiday.dates(pd.Timestamp(start, tz=UTC), pd.Timestamp(start, tz=UTC))
+    ) == [dt.replace(tzinfo=UTC) for dt in expected]
 
 
 @pytest.mark.parametrize(
-    "transform", [lambda x: x.strftime("%Y-%m-%d"), lambda x: Timestamp(x)]
+    "transform", [lambda x: x.strftime("%Y-%m-%d"), lambda x: pd.Timestamp(x)]
 )
 def test_argument_types(transform):
     start_date = datetime(2011, 1, 1)
@@ -221,7 +216,7 @@ def test_argument_types(transform):
                 "day": 28,
                 "start_date": datetime(2012, 1, 1),
                 "end_date": datetime(2012, 12, 31),
-                "offset": DateOffset(weekday=MO(1)),
+                "offset": pd.DateOffset(weekday=MO(1)),
             },
         ),
     ],
@@ -266,7 +261,7 @@ def test_both_offset_observance_raises():
             "Cyber Monday",
             month=11,
             day=1,
-            offset=[DateOffset(weekday=SA(4))],
+            offset=[pd.DateOffset(weekday=SA(4))],
             observance=next_monday,
         )
 
@@ -278,7 +273,7 @@ def test_list_of_list_of_offsets_raises():
         "Holiday1",
         month=USThanksgivingDay.month,
         day=USThanksgivingDay.day,
-        offset=[USThanksgivingDay.offset, DateOffset(1)],
+        offset=[USThanksgivingDay.offset, pd.DateOffset(1)],
     )
     msg = "Only BaseOffsets and flat lists of them are supported for offset."
     with pytest.raises(ValueError, match=msg):
@@ -286,7 +281,7 @@ def test_list_of_list_of_offsets_raises():
             "Holiday2",
             month=holiday1.month,
             day=holiday1.day,
-            offset=[holiday1.offset, DateOffset(3)],
+            offset=[holiday1.offset, pd.DateOffset(3)],
         )
 
 
@@ -321,10 +316,10 @@ def test_half_open_interval_with_observance():
             USLaborDay,
         ]
 
-    start = Timestamp("2022-08-01")
-    end = Timestamp("2022-08-31")
-    year_offset = DateOffset(years=5)
-    expected_results = DatetimeIndex([], dtype="datetime64[us]", freq=None)
+    start = pd.Timestamp("2022-08-01")
+    end = pd.Timestamp("2022-08-31")
+    year_offset = pd.DateOffset(years=5)
+    expected_results = pd.DatetimeIndex([], dtype="datetime64[us]", freq=None)
     test_cal = TestHolidayCalendar()
 
     date_interval_low = test_cal.holidays(start - year_offset, end - year_offset)
@@ -340,38 +335,38 @@ def test_holidays_with_timezone_specified_but_no_occurrences():
     # GH 54580
     # _apply_rule() in holiday.py was silently dropping timezones if you passed it
     # an empty list of holiday dates that had timezone information
-    start_date = Timestamp("2018-01-01", tz="America/Chicago")
-    end_date = Timestamp("2018-01-11", tz="America/Chicago")
+    start_date = pd.Timestamp("2018-01-01", tz="America/Chicago")
+    end_date = pd.Timestamp("2018-01-11", tz="America/Chicago")
     test_case = USFederalHolidayCalendar().holidays(
         start_date, end_date, return_name=True
     )
-    expected_results = Series("New Year's Day", index=[start_date])
+    expected_results = pd.Series("New Year's Day", index=[start_date])
 
     tm.assert_equal(test_case, expected_results)
 
 
 def test_holiday_with_exclusion():
     # GH 54382
-    start = Timestamp("2020-05-01")
-    end = Timestamp("2025-05-31")
-    exclude = DatetimeIndex([Timestamp("2022-05-30")])  # Queen's platinum Jubilee
+    start = pd.Timestamp("2020-05-01")
+    end = pd.Timestamp("2025-05-31")
+    exclude = pd.DatetimeIndex([pd.Timestamp("2022-05-30")])  # Queen's platinum Jubilee
 
     queens_jubilee_uk_spring_bank_holiday = Holiday(
         "Queen's Jubilee UK Spring Bank Holiday",
         month=5,
         day=31,
-        offset=DateOffset(weekday=MO(-1)),
+        offset=pd.DateOffset(weekday=MO(-1)),
         exclude_dates=exclude,
     )
 
     result = queens_jubilee_uk_spring_bank_holiday.dates(start, end)
-    expected = DatetimeIndex(
+    expected = pd.DatetimeIndex(
         [
-            Timestamp("2020-05-25"),
-            Timestamp("2021-05-31"),
-            Timestamp("2023-05-29"),
-            Timestamp("2024-05-27"),
-            Timestamp("2025-05-26"),
+            pd.Timestamp("2020-05-25"),
+            pd.Timestamp("2021-05-31"),
+            pd.Timestamp("2023-05-29"),
+            pd.Timestamp("2024-05-27"),
+            pd.Timestamp("2025-05-26"),
         ],
         dtype="datetime64[us]",
     )
@@ -379,13 +374,13 @@ def test_holiday_with_exclusion():
 
 
 def test_holiday_with_multiple_exclusions():
-    start = Timestamp("2025-01-01")
-    end = Timestamp("2065-12-31")
-    exclude = DatetimeIndex(
+    start = pd.Timestamp("2025-01-01")
+    end = pd.Timestamp("2065-12-31")
+    exclude = pd.DatetimeIndex(
         [
-            Timestamp("2025-01-01"),
-            Timestamp("2042-01-01"),
-            Timestamp("2061-01-01"),
+            pd.Timestamp("2025-01-01"),
+            pd.Timestamp("2042-01-01"),
+            pd.Timestamp("2061-01-01"),
         ]
     )  # Yakudoshi new year
 
@@ -394,46 +389,46 @@ def test_holiday_with_multiple_exclusions():
     )
 
     result = yakudoshi_new_year.dates(start, end)
-    expected = DatetimeIndex(
+    expected = pd.DatetimeIndex(
         [
-            Timestamp("2026-01-01"),
-            Timestamp("2027-01-01"),
-            Timestamp("2028-01-01"),
-            Timestamp("2029-01-01"),
-            Timestamp("2030-01-01"),
-            Timestamp("2031-01-01"),
-            Timestamp("2032-01-01"),
-            Timestamp("2033-01-01"),
-            Timestamp("2034-01-01"),
-            Timestamp("2035-01-01"),
-            Timestamp("2036-01-01"),
-            Timestamp("2037-01-01"),
-            Timestamp("2038-01-01"),
-            Timestamp("2039-01-01"),
-            Timestamp("2040-01-01"),
-            Timestamp("2041-01-01"),
-            Timestamp("2043-01-01"),
-            Timestamp("2044-01-01"),
-            Timestamp("2045-01-01"),
-            Timestamp("2046-01-01"),
-            Timestamp("2047-01-01"),
-            Timestamp("2048-01-01"),
-            Timestamp("2049-01-01"),
-            Timestamp("2050-01-01"),
-            Timestamp("2051-01-01"),
-            Timestamp("2052-01-01"),
-            Timestamp("2053-01-01"),
-            Timestamp("2054-01-01"),
-            Timestamp("2055-01-01"),
-            Timestamp("2056-01-01"),
-            Timestamp("2057-01-01"),
-            Timestamp("2058-01-01"),
-            Timestamp("2059-01-01"),
-            Timestamp("2060-01-01"),
-            Timestamp("2062-01-01"),
-            Timestamp("2063-01-01"),
-            Timestamp("2064-01-01"),
-            Timestamp("2065-01-01"),
+            pd.Timestamp("2026-01-01"),
+            pd.Timestamp("2027-01-01"),
+            pd.Timestamp("2028-01-01"),
+            pd.Timestamp("2029-01-01"),
+            pd.Timestamp("2030-01-01"),
+            pd.Timestamp("2031-01-01"),
+            pd.Timestamp("2032-01-01"),
+            pd.Timestamp("2033-01-01"),
+            pd.Timestamp("2034-01-01"),
+            pd.Timestamp("2035-01-01"),
+            pd.Timestamp("2036-01-01"),
+            pd.Timestamp("2037-01-01"),
+            pd.Timestamp("2038-01-01"),
+            pd.Timestamp("2039-01-01"),
+            pd.Timestamp("2040-01-01"),
+            pd.Timestamp("2041-01-01"),
+            pd.Timestamp("2043-01-01"),
+            pd.Timestamp("2044-01-01"),
+            pd.Timestamp("2045-01-01"),
+            pd.Timestamp("2046-01-01"),
+            pd.Timestamp("2047-01-01"),
+            pd.Timestamp("2048-01-01"),
+            pd.Timestamp("2049-01-01"),
+            pd.Timestamp("2050-01-01"),
+            pd.Timestamp("2051-01-01"),
+            pd.Timestamp("2052-01-01"),
+            pd.Timestamp("2053-01-01"),
+            pd.Timestamp("2054-01-01"),
+            pd.Timestamp("2055-01-01"),
+            pd.Timestamp("2056-01-01"),
+            pd.Timestamp("2057-01-01"),
+            pd.Timestamp("2058-01-01"),
+            pd.Timestamp("2059-01-01"),
+            pd.Timestamp("2060-01-01"),
+            pd.Timestamp("2062-01-01"),
+            pd.Timestamp("2063-01-01"),
+            pd.Timestamp("2064-01-01"),
+            pd.Timestamp("2065-01-01"),
         ],
         dtype="datetime64[us]",
     )
@@ -445,8 +440,8 @@ def test_exclude_date_value_error():
 
     with pytest.raises(ValueError, match=msg):
         exclude = [
-            Timestamp("2025-06-10"),
-            Timestamp("2026-06-10"),
+            pd.Timestamp("2025-06-10"),
+            pd.Timestamp("2026-06-10"),
         ]
         Holiday("National Ice Tea Day", month=6, day=10, exclude_dates=exclude)
 

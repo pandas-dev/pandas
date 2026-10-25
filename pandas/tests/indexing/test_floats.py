@@ -3,23 +3,15 @@ import pytest
 
 from pandas.compat import PY315
 
-from pandas import (
-    DataFrame,
-    Index,
-    RangeIndex,
-    Series,
-    date_range,
-    period_range,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 def gen_obj(klass, index):
-    if klass is Series:
-        obj = Series(np.arange(len(index)), index=index)
+    if klass is pd.Series:
+        obj = pd.Series(np.arange(len(index)), index=index)
     else:
-        obj = DataFrame(
+        obj = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(index), len(index))),
             index=index,
             columns=index,
@@ -34,7 +26,7 @@ class TestFloatIndexers:
         we need to take care if we are indexing on a
         Series or a frame
         """
-        if isinstance(original, Series):
+        if isinstance(original, pd.Series):
             expected = original.iloc[indexer]
         elif getitem:
             expected = original.iloc[:, indexer]
@@ -46,11 +38,11 @@ class TestFloatIndexers:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("abcde")),
-            Index(list("abcde"), dtype="category"),
-            date_range("2020-01-01", periods=5),
-            timedelta_range("1 day", periods=5),
-            period_range("2020-01-01", periods=5),
+            pd.Index(list("abcde")),
+            pd.Index(list("abcde"), dtype="category"),
+            pd.date_range("2020-01-01", periods=5),
+            pd.timedelta_range("1 day", periods=5),
+            pd.period_range("2020-01-01", periods=5),
         ],
     )
     def test_scalar_non_numeric(self, index, frame_or_series, indexer_sl):
@@ -81,17 +73,17 @@ class TestFloatIndexers:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("abcde")),
-            Index(list("abcde"), dtype="category"),
-            date_range("2020-01-01", periods=5),
-            timedelta_range("1 day", periods=5),
-            period_range("2020-01-01", periods=5),
+            pd.Index(list("abcde")),
+            pd.Index(list("abcde"), dtype="category"),
+            pd.date_range("2020-01-01", periods=5),
+            pd.timedelta_range("1 day", periods=5),
+            pd.period_range("2020-01-01", periods=5),
         ],
     )
     def test_scalar_non_numeric_series_fallback(self, index):
         # starting in 3.0, integer keys are always treated as labels, no longer
         #  fall back to positional.
-        s = Series(np.arange(len(index)), index=index)
+        s = pd.Series(np.arange(len(index)), index=index)
 
         with pytest.raises(KeyError, match="3"):
             s[3]
@@ -99,8 +91,8 @@ class TestFloatIndexers:
             s[3.0]
 
     def test_scalar_with_mixed(self, indexer_sl):
-        s2 = Series([1, 2, 3], index=["a", "b", "c"])
-        s3 = Series([1, 2, 3], index=["a", "b", 1.5])
+        s2 = pd.Series([1, 2, 3], index=["a", "b", "c"])
+        s3 = pd.Series([1, 2, 3], index=["a", "b", 1.5])
 
         # lookup in a pure string index with an invalid indexer
 
@@ -132,7 +124,7 @@ class TestFloatIndexers:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+        "index", [pd.Index(np.arange(5), dtype=np.int64), pd.RangeIndex(5)]
     )
     def test_scalar_integer(self, index, frame_or_series, indexer_sl):
         getitem = indexer_sl is not tm.loc
@@ -148,7 +140,7 @@ class TestFloatIndexers:
         result = indexer_sl(obj)[3.0]
         self.check(result, obj, 3, getitem)
 
-        if isinstance(obj, Series):
+        if isinstance(obj, pd.Series):
 
             def compare(x, y):
                 assert x == y
@@ -157,9 +149,9 @@ class TestFloatIndexers:
         else:
             compare = tm.assert_series_equal
             if getitem:
-                expected = Series(100, index=range(len(obj)), name=3)
+                expected = pd.Series(100, index=range(len(obj)), name=3)
             else:
-                expected = Series(100.0, index=range(len(obj)), name=3)
+                expected = pd.Series(100.0, index=range(len(obj)), name=3)
 
         s2 = obj.copy()
         indexer_sl(s2)[3.0] = 100
@@ -171,7 +163,7 @@ class TestFloatIndexers:
         compare(result, expected)
 
     @pytest.mark.parametrize(
-        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+        "index", [pd.Index(np.arange(5), dtype=np.int64), pd.RangeIndex(5)]
     )
     def test_scalar_integer_contains_float(self, index, frame_or_series):
         # contains
@@ -183,7 +175,7 @@ class TestFloatIndexers:
 
     def test_scalar_float(self, frame_or_series):
         # scalar float indexers work on a float index
-        index = Index(np.arange(5.0))
+        index = pd.Index(np.arange(5.0))
         s = gen_obj(frame_or_series, index)
 
         # assert all operations except for iloc are ok
@@ -219,10 +211,10 @@ class TestFloatIndexers:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("abcde"), dtype=object),
-            date_range("2020-01-01", periods=5),
-            timedelta_range("1 day", periods=5),
-            period_range("2020-01-01", periods=5),
+            pd.Index(list("abcde"), dtype=object),
+            pd.date_range("2020-01-01", periods=5),
+            pd.timedelta_range("1 day", periods=5),
+            pd.period_range("2020-01-01", periods=5),
         ],
     )
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
@@ -269,12 +261,12 @@ class TestFloatIndexers:
         # oob indicates if we are out of bounds
         # of positional indexing
         for index, oob in [
-            (Index(np.arange(5, dtype=np.int64)), False),
-            (RangeIndex(5), False),
-            (Index(np.arange(5, dtype=np.int64) + 10), True),
+            (pd.Index(np.arange(5, dtype=np.int64)), False),
+            (pd.RangeIndex(5), False),
+            (pd.Index(np.arange(5, dtype=np.int64) + 10), True),
         ]:
             # s is an in-range index
-            s = Series(range(5), index=index)
+            s = pd.Series(range(5), index=index)
 
             # getitem
             for idx in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
@@ -339,13 +331,13 @@ class TestFloatIndexers:
         """make sure that we are raising on positional indexing
         w.r.t. an integer index
         """
-        s = Series(range(2, 6), index=range(2, 6))
+        s = pd.Series(range(2, 6), index=range(2, 6))
 
         result = s[2:4]
         expected = s.iloc[2:4]
         tm.assert_series_equal(result, expected)
 
-        klass = RangeIndex
+        klass = pd.RangeIndex
         msg = (
             "cannot do (slice|positional) indexing "
             rf"on {klass.__name__} with these indexers \[(2|4)\.0\] of "
@@ -357,11 +349,11 @@ class TestFloatIndexers:
             s.iloc[idx]
 
     @pytest.mark.parametrize(
-        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+        "index", [pd.Index(np.arange(5), dtype=np.int64), pd.RangeIndex(5)]
     )
     def test_slice_integer_frame_getitem(self, index):
         # similar to above, but on the getitem dim (of a DataFrame)
-        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
+        s = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # getitem
         for idx in [slice(0.0, 1), slice(0, 1.0), slice(0.0, 1.0)]:
@@ -412,11 +404,11 @@ class TestFloatIndexers:
 
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
     @pytest.mark.parametrize(
-        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+        "index", [pd.Index(np.arange(5), dtype=np.int64), pd.RangeIndex(5)]
     )
     def test_float_slice_getitem_with_integer_index_raises(self, idx, index):
         # similar to above, but on the getitem dim (of a DataFrame)
-        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
+        s = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # setitem
         sc = s.copy()
@@ -439,7 +431,7 @@ class TestFloatIndexers:
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
     def test_slice_float(self, idx, frame_or_series, indexer_sl):
         # same as above, but for floats
-        index = Index(np.arange(5.0)) + 0.1
+        index = pd.Index(np.arange(5.0)) + 0.1
         s = gen_obj(frame_or_series, index)
 
         expected = s.iloc[3:4]
@@ -456,8 +448,8 @@ class TestFloatIndexers:
         assert (result == 0).all()
 
     def test_floating_index_doc_example(self):
-        index = Index([1.5, 2, 3, 4.5, 5])
-        s = Series(range(5), index=index)
+        index = pd.Index([1.5, 2, 3, 4.5, 5])
+        s = pd.Series(range(5), index=index)
         assert s[3] == 2
         assert s.loc[3] == 2
         assert s.iloc[3] == 3
@@ -465,11 +457,11 @@ class TestFloatIndexers:
     def test_floating_misc(self, indexer_sl):
         # related 236
         # scalar/slicing of a float index
-        s = Series(np.arange(5), index=np.arange(5) * 2.5, dtype=np.int64)
+        s = pd.Series(np.arange(5), index=np.arange(5) * 2.5, dtype=np.int64)
 
         # label based slicing
         result = indexer_sl(s)[1.0:3.0]
-        expected = Series(1, index=[2.5])
+        expected = pd.Series(1, index=[2.5])
         tm.assert_series_equal(result, expected)
 
         # exact indexing when found
@@ -488,11 +480,11 @@ class TestFloatIndexers:
 
         # fancy floats/integers create the correct entry (as nan)
         # fancy tests
-        expected = Series([2, 0], index=Index([5.0, 0.0], dtype=np.float64))
+        expected = pd.Series([2, 0], index=pd.Index([5.0, 0.0], dtype=np.float64))
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
-        expected = Series([2, 0], index=Index([5, 0], dtype="float64"))
+        expected = pd.Series([2, 0], index=pd.Index([5, 0], dtype="float64"))
         for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
@@ -515,10 +507,10 @@ class TestFloatIndexers:
             indexer_sl(s)[[0, 1, 2]]
 
         result = indexer_sl(s)[[2.5, 5]]
-        tm.assert_series_equal(result, Series([1, 2], index=[2.5, 5.0]))
+        tm.assert_series_equal(result, pd.Series([1, 2], index=[2.5, 5.0]))
 
         result = indexer_sl(s)[[2.5]]
-        tm.assert_series_equal(result, Series([1], index=[2.5]))
+        tm.assert_series_equal(result, pd.Series([1], index=[2.5]))
 
     def test_floatindex_slicing_bug(self, float_numpy_dtype):
         # GH 5557, related to slicing a float index
@@ -676,7 +668,7 @@ class TestFloatIndexers:
         }
 
         # smoke test for the repr
-        s = Series(ser, dtype=dtype)
+        s = pd.Series(ser, dtype=dtype)
         result = s.value_counts()
         assert result.index.dtype == dtype
         str(result)

@@ -11,6 +11,7 @@ from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     EmptyDataError,
     Pandas4Warning,
@@ -24,9 +25,16 @@ from pandas.util._exceptions import (
 from pandas.core.dtypes.common import (
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_integer
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.core.arrays.arrow.array import to_pyarrow_type
+
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    validate_integer_cast,
+    validate_integer_casts,
+)
 from pandas.io.common import mangle_dupe_names
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -41,6 +49,47 @@ if TYPE_CHECKING:
     from pandas._typing import ReadBuffer
 
     from pandas import DataFrame
+
+
+def _pyarrow_parse_type(dtype) -> pa.DataType | None:
+    """
+    The pyarrow type a column should be parsed as in order to faithfully
+    apply the requested pandas dtype afterwards, or None to leave the
+    column to pyarrow's type inference.
+
+    GH#57666 dtypes whose conversion must start from the original text --
+    string dtypes and object -- are parsed as strings: converting an
+    inferred column instead is lossy (e.g. leading zeros are lost once a
+    column has been inferred as integer). All other dtypes are left to
+    inference and cast afterwards in _finalize_dtype, which is lossless for
+    them and keeps behavior consistent with the other engines (e.g. a column
+    of "True"/"False" values with dtype=float is inferred as boolean and
+    then cast, which pyarrow's parse-time conversion would reject).
+    """
+    pa = import_optional_dependency("pyarrow")
+
+    dtype = pandas_dtype(dtype)
+    if isinstance(dtype, CategoricalDtype):
+        if dtype.categories is None:
+            # GH#56044 the categories are inferred like any other column,
+            #  so leave the parsing to inference
+            return None
+        # explicitly typed categories behave like their own dtype
+        dtype = dtype.categories.dtype
+    if dtype == object:
+        # match the other engines: object dtype holds the raw strings
+        return pa.large_string()
+    # pass the scalar type: to_pyarrow_type accepts numpy dtypes and
+    # scalar types but not extension dtype instances like StringDtype
+    # (pa.from_numpy_dtype raises TypeError for those)
+    target_dtype = to_pyarrow_type(dtype.type)
+    if target_dtype is not None and (
+        pa.types.is_string(target_dtype) or pa.types.is_large_string(target_dtype)
+    ):
+        # the default string dtype is backed by large_string, so parsing
+        # directly as large_string avoids a cast in the conversion to pandas
+        return pa.large_string()
+    return None
 
 
 class ArrowParserWrapper(ParserBase):
@@ -183,6 +232,45 @@ class ArrowParserWrapper(ParserBase):
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
 
+        if self.dtype is not None:
+            # GH#57666 dtypes whose conversion must start from the original
+            # text are applied while parsing; see _pyarrow_parse_type
+            if isinstance(self.dtype, dict):
+                column_types = {}
+                for col, col_dtype in self.dtype.items():
+                    if not isinstance(col, str):
+                        # non-string labels are legal (e.g. positional keys,
+                        # or names=[0, 1]), but pyarrow's column_types
+                        # requires string column names; these are still
+                        # applied afterwards in _finalize_dtype
+                        continue
+                    target_dtype = _pyarrow_parse_type(col_dtype)
+                    if target_dtype is not None:
+                        column_types[col] = target_dtype
+                if column_types:
+                    self.convert_options["column_types"] = column_types
+                if (
+                    isinstance(self.dtype, defaultdict)
+                    and self.dtype.default_factory is not None
+                    and not pa_version_under25p0
+                ):
+                    # the default of a defaultdict applies to every column
+                    # not explicitly listed, like a scalar dtype; explicit
+                    # column_types entries take precedence over
+                    # default_column_type
+                    target_dtype = _pyarrow_parse_type(self.dtype.default_factory())
+                    if target_dtype is not None:
+                        self.convert_options["default_column_type"] = target_dtype
+            elif not pa_version_under25p0:
+                # a scalar dtype applies to every column, which pyarrow
+                # supports via ConvertOptions(default_column_type=...) from
+                # pyarrow 25.0 (apache/arrow#47663). With older versions the
+                # dtype is still applied afterwards in _finalize_dtype,
+                # which does not preserve the original text.
+                target_dtype = _pyarrow_parse_type(self.dtype)
+                if target_dtype is not None:
+                    self.convert_options["default_column_type"] = target_dtype
+
         header = self.header
         if isinstance(header, list):
             # GH#66059 pyarrow.csv cannot produce multi-row/MultiIndex headers
@@ -194,6 +282,10 @@ class ArrowParserWrapper(ParserBase):
                     "for the 'header' argument (MultiIndex columns are not "
                     "supported)."
                 )
+
+        # GH#48507 a negative skiprows skips nothing in the other engines;
+        # pyarrow rejects it.
+        skiprows = max(self.kwds["skiprows"] or 0, 0)
 
         if header is not None and self.names is not None:
             # GH#65862 pyarrow reads with autogenerated column names in this
@@ -209,11 +301,13 @@ class ArrowParserWrapper(ParserBase):
             # the other engines do. Use skip_rows_after_names rather than
             # skip_rows since the latter cannot skip past a final line
             # lacking a trailing newline.
-            skip_rows = header
             skip_rows_after_names = 1
         else:
-            skip_rows = self.kwds["skiprows"] if header is None else header
             skip_rows_after_names = 0
+
+        # GH#48507 pyarrow skips rows before reading the header, so the header
+        # is at row skiprows + header.
+        skip_rows = skiprows + (header or 0)
         self.read_options = {
             "autogenerate_column_names": header is None or self.names is not None,
             "skip_rows": skip_rows,
@@ -322,7 +416,8 @@ class ArrowParserWrapper(ParserBase):
                 # parse_dates for index columns: the other engines parse these
                 # while building the index, but the pyarrow path sets the index
                 # after reading, so do the conversion here.
-                if self._index_col_should_parse_dates(col_name, position):
+                parse_as_dates = self._index_col_should_parse_dates(col_name, position)
+                if parse_as_dates:
                     frame[col_name] = date_converter(
                         frame[col_name],
                         col=col_name,
@@ -339,7 +434,15 @@ class ArrowParserWrapper(ParserBase):
                         else (frame.columns[item], self.dtype.get(frame.columns[item]))
                     )
                     if new_dtype is not None:
-                        frame[key] = frame[key].astype(new_dtype)
+                        # GH#57512 don't undo a parse_dates conversion
+                        if not (
+                            frame[key].dtype.kind == "M"
+                            and pandas_dtype(new_dtype).kind != "M"
+                            and parse_as_dates
+                        ):
+                            casted = frame[key].astype(new_dtype)
+                            validate_integer_cast(frame[key], casted.dtype)
+                            frame[key] = casted
                         del self.dtype[key]
 
             if self.dtype is not None and not isinstance(self.dtype, dict):
@@ -356,7 +459,7 @@ class ArrowParserWrapper(ParserBase):
                         frame[key] = new_values
                         frame[key] = frame[key].infer_objects()
 
-            frame.set_index(index_to_set, drop=True, inplace=True)
+            frame = frame.set_index(index_to_set, drop=True)
             # Clear names if no name given for the padded leading columns
             if not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
@@ -370,35 +473,40 @@ class ArrowParserWrapper(ParserBase):
 
         return frame
 
-    def _finalize_dtype(self, frame: DataFrame) -> DataFrame:
+    def _finalize_dtype(
+        self, frame: DataFrame, parse_dates_cols: set[Hashable]
+    ) -> DataFrame:
         if self.dtype is not None:
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
             if isinstance(self.dtype, dict):
+                # GH#57512 don't undo a parse_dates conversion
                 self.dtype = {
                     k: pandas_dtype(v)
                     for k, v in self.dtype.items()
                     if k in frame.columns
+                    and not (
+                        k in parse_dates_cols
+                        and frame[k].dtype.kind == "M"
+                        and pandas_dtype(v).kind != "M"
+                    )
                 }
             else:
                 # GH#34066 a scalar dtype must not clobber the dtype produced by
                 # date parsing, so exclude parse_dates columns from the cast.
                 scalar_dtype = pandas_dtype(self.dtype)
-                parse_dates_cols = (
-                    set(self.parse_dates)
-                    if isinstance(self.parse_dates, list)
-                    else set()
-                )
                 self.dtype = {
                     col: scalar_dtype
                     for col in frame.columns
                     if col not in parse_dates_cols
                 }
             try:
-                frame = frame.astype(self.dtype)
+                casted = frame.astype(self.dtype)
             except TypeError as err:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(str(err)) from err
+            validate_integer_casts(frame, casted)
+            frame = casted
         return frame
 
     def _finalize_pandas_output(
@@ -418,10 +526,19 @@ class ArrowParserWrapper(ParserBase):
         DataFrame
             The processed DataFrame.
         """
+        parse_dates_cols: set[Hashable] = set()
+        if isinstance(self.parse_dates, list):
+            # resolve positions before index columns are removed
+            parse_dates_cols = {
+                frame.columns[col]
+                if isinstance(col, int) and col not in frame.columns
+                else col
+                for col in self.parse_dates
+            }
         frame = self._do_date_conversions(frame.columns, frame)
         frame = self._maybe_restore_string_dtype(frame)
         frame = self._finalize_index(frame, multi_index_named)
-        frame = self._finalize_dtype(frame)
+        frame = self._finalize_dtype(frame, parse_dates_cols)
         # GH#65862 tuples passed via names imply MultiIndex columns,
         # as with other engines
         frame.columns = self._maybe_make_multi_index_columns(
@@ -451,11 +568,16 @@ class ArrowParserWrapper(ParserBase):
                 "The pyarrow engine does not allow 'usecols' to be a callable."
             )
 
-    def read(self) -> DataFrame:
+    def read(self, nrows: int | None = None, row_offset: int = 0) -> DataFrame:
         """
         Reads the contents of a CSV file into a DataFrame and
         processes it according to the kwargs passed in the
         constructor.
+
+        Parameters
+        ----------
+        nrows, row_offset
+            Ignored; the pyarrow engine always reads the whole file.
 
         Returns
         -------

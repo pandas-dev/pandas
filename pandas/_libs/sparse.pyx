@@ -747,7 +747,9 @@ def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
 
     for i in range(new_length):
         value = arr[i]
-        if value == fill_value and type(value) is type(fill_value):
+        # the type check must come first: comparing e.g. pd.NA to a non-NA
+        # fill value gives a non-boolean result, see GH#68439
+        if type(value) is type(fill_value) and value == fill_value:
             mask[i] = 0
 
     return mask.view(dtype=bool)

@@ -4,10 +4,6 @@ import pytest
 from pandas._libs import lib
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-)
 import pandas._testing as tm
 
 
@@ -29,8 +25,8 @@ import pandas._testing as tm
                 [6.0, np.nan],
                 [np.nan, 7.0],
             ],
-            Index([1, 2], name="lev3"),
-            Index([1, 2, 3, 4, 5, 6, 7, 8], name="lev4"),
+            pd.Index([1, 2], name="lev3"),
+            pd.Index([1, 2, 3, 4, 5, 6, 7, 8], name="lev4"),
         ),
         (
             ["lev4"],
@@ -46,7 +42,7 @@ import pandas._testing as tm
                 [2.0, np.nan, 2.0, np.nan, 6.0, np.nan],
                 [np.nan, 2.0, np.nan, 2.0, np.nan, 7.0],
             ],
-            MultiIndex.from_tuples(
+            pd.MultiIndex.from_tuples(
                 [
                     ("lev1", 1),
                     ("lev1", 2),
@@ -57,15 +53,15 @@ import pandas._testing as tm
                 ],
                 names=[None, "lev3"],
             ),
-            Index([1, 2, 3, 4, 5, 6, 7, 8], name="lev4"),
+            pd.Index([1, 2, 3, 4, 5, 6, 7, 8], name="lev4"),
         ),
         (
             ["lev1", "lev2"],
             "lev3",
             "values",
             [[0, 1], [2, 3], [4, 5], [6, 7]],
-            Index([1, 2], name="lev3"),
-            MultiIndex.from_tuples(
+            pd.Index([1, 2], name="lev3"),
+            pd.MultiIndex.from_tuples(
                 [(1, 1), (1, 2), (2, 1), (2, 2)], names=["lev1", "lev2"]
             ),
         ),
@@ -74,11 +70,11 @@ import pandas._testing as tm
             "lev3",
             lib.no_default,
             [[1, 2, 0, 1], [3, 4, 2, 3], [5, 6, 4, 5], [7, 8, 6, 7]],
-            MultiIndex.from_tuples(
+            pd.MultiIndex.from_tuples(
                 [("lev4", 1), ("lev4", 2), ("values", 1), ("values", 2)],
                 names=[None, "lev3"],
             ),
-            MultiIndex.from_tuples(
+            pd.MultiIndex.from_tuples(
                 [(1, 1), (1, 2), (2, 1), (2, 2)], names=["lev1", "lev2"]
             ),
         ),
@@ -128,16 +124,16 @@ def test_pivot_list_like_index(
                 [6.0, np.nan],
                 [np.nan, 7.0],
             ],
-            Index([1, 2], name="lev3"),
-            Index([1, 2, 3, 4, 5, 6, 7, 8], name="lev4"),
+            pd.Index([1, 2], name="lev3"),
+            pd.Index([1, 2, 3, 4, 5, 6, 7, 8], name="lev4"),
         ),
         (
             ["lev1", "lev2"],
             ["lev3"],
             "values",
             [[0, 1], [2, 3], [4, 5], [6, 7]],
-            Index([1, 2], name="lev3"),
-            MultiIndex.from_tuples(
+            pd.Index([1, 2], name="lev3"),
+            pd.MultiIndex.from_tuples(
                 [(1, 1), (1, 2), (2, 1), (2, 2)], names=["lev1", "lev2"]
             ),
         ),
@@ -146,10 +142,10 @@ def test_pivot_list_like_index(
             ["lev2", "lev3"],
             "values",
             [[0, 1, 2, 3], [4, 5, 6, 7]],
-            MultiIndex.from_tuples(
+            pd.MultiIndex.from_tuples(
                 [(1, 1), (1, 2), (2, 1), (2, 2)], names=["lev2", "lev3"]
             ),
-            Index([1, 2], name="lev1"),
+            pd.Index([1, 2], name="lev1"),
         ),
         (
             ["lev1", "lev2"],
@@ -161,11 +157,11 @@ def test_pivot_list_like_index(
                 [np.nan, np.nan, np.nan, np.nan, 4.0, 5.0, np.nan, np.nan],
                 [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 6.0, 7.0],
             ],
-            MultiIndex.from_tuples(
+            pd.MultiIndex.from_tuples(
                 [(1, 1), (2, 2), (1, 3), (2, 4), (1, 5), (2, 6), (1, 7), (2, 8)],
                 names=["lev3", "lev4"],
             ),
-            MultiIndex.from_tuples(
+            pd.MultiIndex.from_tuples(
                 [(1, 1), (1, 2), (2, 1), (2, 2)], names=["lev1", "lev2"]
             ),
         ),
@@ -202,10 +198,10 @@ def test_pivot_multiindexed_rows_and_cols():
 
     df = pd.DataFrame(
         data=np.arange(12).reshape(4, 3),
-        columns=MultiIndex.from_tuples(
+        columns=pd.MultiIndex.from_tuples(
             [(0, 0), (0, 1), (0, 2)], names=["col_L0", "col_L1"]
         ),
-        index=MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_tuples(
             [(0, 0, 0), (0, 0, 1), (1, 1, 1), (1, 0, 0)],
             names=["idx_L0", "idx_L1", "idx_L2"],
         ),
@@ -220,10 +216,10 @@ def test_pivot_multiindexed_rows_and_cols():
 
     expected = pd.DataFrame(
         data=[[5, np.nan], [10, 7.0]],
-        columns=MultiIndex.from_tuples(
+        columns=pd.MultiIndex.from_tuples(
             [(0, 1, 0), (0, 1, 1)], names=["col_L0", "col_L1", "idx_L1"]
         ),
-        index=Index([0, 1], dtype="int64", name="idx_L0"),
+        index=pd.Index([0, 1], dtype="int64", name="idx_L0"),
     )
     expected = expected.astype("float64")
 
@@ -247,7 +243,7 @@ def test_pivot_df_multiindex_index_none():
     expected = pd.DataFrame(
         [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
         index=df.index,
-        columns=Index(["label1", "label2"], name="label"),
+        columns=pd.Index(["label1", "label2"], name="label"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -262,8 +258,8 @@ def test_pivot_df_multiindex_index_none():
                 [50.0, np.nan, 100.0, np.nan],
                 [np.nan, 100.0, np.nan, 200.0],
             ],
-            Index(data=["A", "B"], name="index"),
-            MultiIndex.from_arrays(
+            pd.Index(data=["A", "B"], name="index"),
+            pd.MultiIndex.from_arrays(
                 arrays=[[1, 1, 2, 2], [50, 100, 100, 200]], names=["col", "value"]
             ),
         ),
@@ -276,11 +272,11 @@ def test_pivot_df_multiindex_index_none():
                 [100.0, np.nan],
                 [np.nan, 200.0],
             ],
-            MultiIndex.from_arrays(
+            pd.MultiIndex.from_arrays(
                 arrays=[["A", "A", "B", "B"], [50, 100, 100, 200]],
                 names=["index", "value"],
             ),
-            Index(data=[1, 2], name="col"),
+            pd.Index(data=[1, 2], name="col"),
         ),
     ],
     ids=["values-and-columns", "values-and-index"],

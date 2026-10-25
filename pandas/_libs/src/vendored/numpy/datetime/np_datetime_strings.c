@@ -113,12 +113,16 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             int *out_tzoffset, const char *format,
                             int format_len,
                             FormatRequirement format_requirement) {
-  if (len < 0 || format_len < 0)
-    goto parse_error;
   int year_leap = 0;
   int i, numdigits;
-  const char *substr;
+  const char *substr = str;
   int sublen;
+
+  // Must come *after* substr is initialized: parse_error reports the failing
+  // position as `substr - str`, and jumping into substr's scope would skip its
+  // initializer, leaving that subtraction reading an indeterminate pointer.
+  if (len < 0 || format_len < 0)
+    goto parse_error;
   NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
   DatetimePartParseResult comparison;
 

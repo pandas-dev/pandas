@@ -2,6 +2,7 @@ from datetime import (
     date,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
@@ -10,14 +11,6 @@ from pandas._libs.tslibs.timezones import maybe_get_tz
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-)
 import pandas._testing as tm
 
 
@@ -44,10 +37,10 @@ def test_append_with_timezones(temp_hdfstore, gettz):
     # as columns
 
     # Single-tzinfo, no DST transition
-    df_est = DataFrame(
+    df_est = pd.DataFrame(
         {
             "A": [
-                Timestamp("20130102 2:00:00", tz=gettz("US/Eastern")).as_unit("ns")
+                pd.Timestamp("20130102 2:00:00", tz=gettz("US/Eastern")).as_unit("ns")
                 + timedelta(hours=1) * i
                 for i in range(5)
             ]
@@ -56,26 +49,26 @@ def test_append_with_timezones(temp_hdfstore, gettz):
 
     # frame with all columns having same tzinfo, but different sides
     #  of DST transition
-    df_crosses_dst = DataFrame(
+    df_crosses_dst = pd.DataFrame(
         {
-            "A": Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
-            "B": Timestamp("20130603", tz=gettz("US/Eastern")).as_unit("ns"),
+            "A": pd.Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
+            "B": pd.Timestamp("20130603", tz=gettz("US/Eastern")).as_unit("ns"),
         },
         index=range(5),
     )
 
-    df_mixed_tz = DataFrame(
+    df_mixed_tz = pd.DataFrame(
         {
-            "A": Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
-            "B": Timestamp("20130102", tz=gettz("EET")).as_unit("ns"),
+            "A": pd.Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
+            "B": pd.Timestamp("20130102", tz=gettz("EET")).as_unit("ns"),
         },
         index=range(5),
     )
 
-    df_different_tz = DataFrame(
+    df_different_tz = pd.DataFrame(
         {
-            "A": Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
-            "B": Timestamp("20130102", tz=gettz("CET")).as_unit("ns"),
+            "A": pd.Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
+            "B": pd.Timestamp("20130102", tz=gettz("CET")).as_unit("ns"),
         },
         index=range(5),
     )
@@ -126,10 +119,10 @@ def test_append_with_timezones(temp_hdfstore, gettz):
 def test_append_with_timezones_as_index(temp_hdfstore, gettz):
     # GH#4098 example
 
-    dti = date_range("2000-1-1", periods=3, freq="h", tz=gettz("US/Eastern"))
+    dti = pd.date_range("2000-1-1", periods=3, freq="h", tz=gettz("US/Eastern"))
     dti = dti._with_freq(None)  # freq doesn't round-trip
 
-    df = DataFrame({"A": Series(range(3), index=dti)})
+    df = pd.DataFrame({"A": pd.Series(range(3), index=dti)})
 
     temp_hdfstore.put("df", df, track_times=False)
     result = temp_hdfstore.select("df")
@@ -141,11 +134,40 @@ def test_append_with_timezones_as_index(temp_hdfstore, gettz):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("as_index", [True, False])
+@pytest.mark.parametrize(
+    "stored_tz, appended_tz", [("US/Pacific", None), (None, "US/Pacific")]
+)
+def test_append_tz_naive_aware_mismatch_raises(
+    temp_hdfstore, as_index, stored_tz, appended_tz
+):
+    # GH#68583 - the append used to be accepted, and the rows already on disk
+    # read back as different instants: one stored tz governs the whole column.
+    def frame(start, tz):
+        dti = pd.date_range(start, periods=2, tz=tz)._with_freq(None)
+        if as_index:
+            return pd.DataFrame({"v": [1.0, 2.0]}, index=dti)
+        return pd.DataFrame({"v": dti})
+
+    stored = frame("2000-01-01", stored_tz)
+    temp_hdfstore.append("df", stored)
+
+    name = "index" if as_index else "values_block_0"
+    if appended_tz is None:
+        msg = f"cannot append tz-naive data to tz-aware col [{name}]"
+    else:
+        msg = f"cannot append tz-aware data to tz-naive col [{name}]"
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        temp_hdfstore.append("df", frame("2000-01-03", appended_tz))
+
+    tm.assert_frame_equal(temp_hdfstore["df"], stored)
+
+
 def test_roundtrip_tz_aware_index(temp_hdfstore, unit):
     # GH 17618
-    ts = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
-    dti = DatetimeIndex([ts]).as_unit(unit)
-    df = DataFrame(data=[0], index=dti)
+    ts = pd.Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
+    dti = pd.DatetimeIndex([ts]).as_unit(unit)
+    df = pd.DataFrame(data=[0], index=dti)
 
     temp_hdfstore.put("frame", df, format="fixed", track_times=False)
     recons = temp_hdfstore["frame"]
@@ -158,8 +180,8 @@ def test_roundtrip_tz_aware_index(temp_hdfstore, unit):
 
 def test_store_index_name_with_tz(temp_hdfstore):
     # GH 13884
-    df = DataFrame({"A": [1, 2]})
-    df.index = DatetimeIndex([1234567890123456787, 1234567890123456788])
+    df = pd.DataFrame({"A": [1, 2]})
+    df.index = pd.DatetimeIndex([1234567890123456787, 1234567890123456788])
     df.index = df.index.tz_localize("UTC")
     df.index.name = "foo"
 
@@ -174,18 +196,18 @@ def test_tseries_select_index_column(temp_hdfstore):
     # not preserve UTC tzinfo set before storing
 
     # check that no tz still works
-    rng = date_range("1/1/2000", "1/30/2000")
-    frame = DataFrame(
+    rng = pd.date_range("1/1/2000", "1/30/2000")
+    frame = pd.DataFrame(
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
     temp_hdfstore.append("frame", frame)
     result = temp_hdfstore.select_column("frame", "index")
-    assert rng.tz == DatetimeIndex(result.values).tz
+    assert rng.tz == pd.DatetimeIndex(result.values).tz
 
     # check utc
-    rng = date_range("1/1/2000", "1/30/2000", tz="UTC")
-    frame = DataFrame(
+    rng = pd.date_range("1/1/2000", "1/30/2000", tz="UTC")
+    frame = pd.DataFrame(
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
@@ -195,8 +217,8 @@ def test_tseries_select_index_column(temp_hdfstore):
     assert rng.tz == result.dt.tz
 
     # double check non-utc
-    rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
-    frame = DataFrame(
+    rng = pd.date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
+    frame = pd.DataFrame(
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
@@ -208,9 +230,11 @@ def test_tseries_select_index_column(temp_hdfstore):
 
 def test_timezones_fixed_format_frame_non_empty(temp_hdfstore):
     # index
-    rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
+    rng = pd.date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
     rng = rng._with_freq(None)  # freq doesn't round-trip
-    df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng)
+    df = pd.DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
     temp_hdfstore["df"] = df
     result = temp_hdfstore["df"]
     tm.assert_frame_equal(result, df)
@@ -218,9 +242,9 @@ def test_timezones_fixed_format_frame_non_empty(temp_hdfstore):
 
 def test_timezones_fixed_format_frame_non_empty_as_data(temp_hdfstore):
     # GH11411
-    rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
+    rng = pd.date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
     rng = rng._with_freq(None)  # freq doesn't round-trip
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": rng,
             "B": rng.tz_convert("UTC").tz_localize(None),
@@ -239,8 +263,8 @@ def test_timezones_fixed_format_empty(temp_hdfstore, tz_aware_fixture, frame_or_
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
-    obj = Series(dtype=dtype, name="A", index=Index([]))
-    if frame_or_series is DataFrame:
+    obj = pd.Series(dtype=dtype, name="A", index=pd.Index([]))
+    if frame_or_series is pd.DataFrame:
         obj = obj.to_frame()
 
     temp_hdfstore["obj"] = obj
@@ -253,15 +277,15 @@ def test_timezones_fixed_format_series_nonempty(temp_hdfstore, tz_aware_fixture)
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
-    s = Series([0], dtype=dtype)
+    s = pd.Series([0], dtype=dtype)
     temp_hdfstore["s"] = s
     result = temp_hdfstore["s"]
     tm.assert_series_equal(result, s)
 
 
 def test_fixed_offset_tz(temp_hdfstore):
-    rng = date_range("1/1/2000 00:00:00-07:00", "1/30/2000 00:00:00-07:00")
-    frame = DataFrame(
+    rng = pd.date_range("1/1/2000 00:00:00-07:00", "1/30/2000 00:00:00-07:00")
+    frame = pd.DataFrame(
         np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
     )
 
@@ -279,7 +303,7 @@ def test_store_timezone(temp_hdfstore):
 
     # original method
     today = date(2013, 9, 10)
-    df = DataFrame([1, 2, 3], index=[today, today, today])
+    df = pd.DataFrame([1, 2, 3], index=[today, today, today])
     temp_hdfstore["obj1"] = df
     result = temp_hdfstore["obj1"]
     tm.assert_frame_equal(result, df)
@@ -287,7 +311,7 @@ def test_store_timezone(temp_hdfstore):
     # with tz setting
     with tm.set_timezone("EST5EDT"):
         today = date(2013, 9, 10)
-        df = DataFrame([1, 2, 3], index=[today, today, today])
+        df = pd.DataFrame([1, 2, 3], index=[today, today, today])
         temp_hdfstore["obj2"] = df
 
     with tm.set_timezone("CST6CDT"):
@@ -298,7 +322,7 @@ def test_store_timezone(temp_hdfstore):
 
 def test_dst_transitions(temp_hdfstore):
     # make sure we are not failing on transitions
-    times = date_range(
+    times = pd.date_range(
         "2013-10-26 23:00",
         "2013-10-27 01:00",
         tz="Europe/London",
@@ -308,7 +332,7 @@ def test_dst_transitions(temp_hdfstore):
     times = times._with_freq(None)  # freq doesn't round-trip
 
     for i in [times, times + pd.Timedelta("10min")]:
-        df = DataFrame({"A": range(len(i)), "B": i}, index=i)
+        df = pd.DataFrame({"A": range(len(i)), "B": i}, index=i)
         temp_hdfstore.append("df", df)
         result = temp_hdfstore.select("df")
         tm.assert_frame_equal(result, df)
@@ -318,9 +342,9 @@ def test_dst_transitions(temp_hdfstore):
 def test_read_with_where_tz_aware_index(temp_hdfstore):
     # GH 11926
     periods = 10
-    dts = date_range("20151201", periods=periods, freq="D", tz="UTC", unit="ns")
+    dts = pd.date_range("20151201", periods=periods, freq="D", tz="UTC", unit="ns")
     mi = pd.MultiIndex.from_arrays([dts, range(periods)], names=["DATE", "NO"])
-    expected = DataFrame({"MYCOL": 0}, index=mi)
+    expected = pd.DataFrame({"MYCOL": 0}, index=mi)
 
     key = "mykey"
     with pd.HDFStore(temp_hdfstore) as store:

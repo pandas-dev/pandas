@@ -38,6 +38,7 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
+    is_datetimelike,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -438,19 +439,21 @@ class BaseExprVisitor(ast.NodeVisitor):
             left_list, right_list = map(_is_list, (left, right))
             left_str, right_str = map(_is_str, (left, right))
 
-            # if there are any strings or lists in the expression
-            if left_list or right_list or left_str or right_str:
+            # ==/!= against a scalar string stays elementwise, since isin
+            # does not parse strings for datetimelike dtypes (GH#54199)
+            if left_list or right_list:
                 op_instance = self.rewrite_map[op_type]()
 
-            # pop the string variable out of locals and replace it with a list
-            # of one string, kind of a hack
-            if right_str:
-                name = self.env.add_tmp([right.value])
-                right = self.term_type(name, self.env)
+            if isinstance(op_instance, (ast.In, ast.NotIn)):
+                # pop the string variable out of locals and replace it with a
+                # list of one string, kind of a hack
+                if right_str:
+                    name = self.env.add_tmp([right.value])
+                    right = self.term_type(name, self.env)
 
-            if left_str:
-                name = self.env.add_tmp([left.value])
-                left = self.term_type(name, self.env)
+                if left_str:
+                    name = self.env.add_tmp([left.value])
+                    left = self.term_type(name, self.env)
 
         op = self.visit(op_instance)
         return op, op_instance, left, right
@@ -468,6 +471,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if (
             left.is_scalar
             and hasattr(left, "value")
+            and not is_datetimelike(left)
             and not right.is_scalar
             and right.return_type == f32
         ):
@@ -477,6 +481,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if (
             right.is_scalar
             and hasattr(right, "value")
+            and not is_datetimelike(right)
             and not left.is_scalar
             and left.return_type == f32
         ):
@@ -508,19 +513,15 @@ class BaseExprVisitor(ast.NodeVisitor):
     ):
         res = op(lhs, rhs)
 
+        if self.engine != "pytables" and (is_datetimelike(lhs) or is_datetimelike(rhs)):
+            # numexpr has no datetime64/timedelta64 support
+            return self._maybe_eval(res, self.binary_ops)
+
         if res.has_invalid_return_type:
             raise TypeError(
                 f"unsupported operand type(s) for {res.op}: "
                 f"'{lhs.type}' and '{rhs.type}'"
             )
-
-        if self.engine != "pytables" and (
-            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
-            or getattr(rhs, "is_datetime", False)
-        ):
-            # all date ops must be done in python bc numexpr doesn't work
-            # well with NaT
-            return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
@@ -532,9 +533,10 @@ class BaseExprVisitor(ast.NodeVisitor):
                 or getattr(rhs, "return_type", None) == object
                 or is_string_dtype(getattr(rhs, "return_type", None))
             ):
-                # evaluate "==" and "!=" in python if either of our operands
-                # has an object or string return type
-                return self._maybe_eval(res, eval_in_python + maybe_eval_in_python)
+                # numexpr can't handle object or string operands; see GH#27639
+                return self._maybe_eval(
+                    res, eval_in_python + maybe_eval_in_python + (res.op,)
+                )
         return res
 
     def visit_BinOp(self, node, **kwargs):
@@ -580,10 +582,23 @@ class BaseExprVisitor(ast.NodeVisitor):
         from pandas import eval as pd_eval
 
         value = self.visit(node.value)
+        if isinstance(node.slice, ast.Tuple):
+            # visit_Tuple builds a list, which __getitem__ reads as a single
+            #  axis-0 selector rather than a multi-axis key (GH#49905)
+            raise NotImplementedError("multi-dimensional subscripts are not supported")
         slobj = self.visit(node.slice)
-        result = pd_eval(
-            slobj, local_dict=self.env, engine=self.engine, parser=self.parser
-        )
+        if isinstance(slobj, slice):
+            # visit_Slice returns a bare slice; re-parsing it would stringify it into
+            # a slice(...) call, which is not a supported function (GH#49905)
+            result = slobj
+        elif is_term(slobj):
+            # already resolved; re-parsing pushes it back through numexpr
+            result = slobj.value
+        else:
+            # an Op still needs the engine, which aligns Series operands
+            result = pd_eval(
+                slobj, local_dict=self.env, engine=self.engine, parser=self.parser
+            )
         try:
             # a Term instance
             v = value.value[result]
@@ -600,13 +615,13 @@ class BaseExprVisitor(ast.NodeVisitor):
         """df.index[slice(4,6)]"""
         lower = node.lower
         if lower is not None:
-            lower = self.visit(lower).value
+            lower = self.visit(lower)(self.env)
         upper = node.upper
         if upper is not None:
-            upper = self.visit(upper).value
+            upper = self.visit(upper)(self.env)
         step = node.step
         if step is not None:
-            step = self.visit(step).value
+            step = self.visit(step)(self.env)
 
         return slice(lower, upper, step)
 

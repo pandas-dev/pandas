@@ -805,7 +805,7 @@ Python storage with ``pd.NA`` values
 
 The implementation uses a NumPy object array, which directly stores the
 Python string objects, hence why the storage here is called ``'python'``.
-NA values in this array are represented and behave as ``np.nan``.
+NA values in this array are represented and behave as ``pd.NA``.
 
 .. ipython:: python
 

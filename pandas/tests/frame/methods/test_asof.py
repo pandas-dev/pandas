@@ -3,16 +3,7 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import (
-    DataFrame,
-    Index,
-    Period,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -24,8 +15,8 @@ def date_range_frame():
     Columns are ['A', 'B'].
     """
     N = 50
-    rng = date_range("1/1/1990", periods=N, freq="53s")
-    return DataFrame({"A": np.arange(N), "B": np.arange(N)}, index=rng)
+    rng = pd.date_range("1/1/1990", periods=N, freq="53s")
+    return pd.DataFrame({"A": np.arange(N), "B": np.arange(N)}, index=rng)
 
 
 class TestFrameAsof:
@@ -34,7 +25,7 @@ class TestFrameAsof:
         df = date_range_frame.astype({"A": "float"})
         N = 50
         df.loc[df.index[15:30], "A"] = np.nan
-        dates = date_range("1/1/1990", periods=N * 3, freq="25s")
+        dates = pd.date_range("1/1/1990", periods=N * 3, freq="25s")
 
         result = df.asof(dates)
         assert result.notna().all(axis=1).all()
@@ -55,7 +46,7 @@ class TestFrameAsof:
         # explicitly cast to float to avoid implicit upcast when setting to np.nan
         df = date_range_frame.iloc[:N].copy().astype({"A": "float"})
         df.loc[df.index[4:8], "A"] = np.nan
-        dates = date_range("1/1/1990", periods=N * 3, freq="25s")
+        dates = pd.date_range("1/1/1990", periods=N * 3, freq="25s")
 
         # with a subset of A should be the same
         result = df.asof(dates, subset="A")
@@ -85,14 +76,14 @@ class TestFrameAsof:
 
         result = df.asof("1989-12-31")
 
-        expected = Series(
-            index=["A", "B"], name=Timestamp("1989-12-31"), dtype=np.float64
+        expected = pd.Series(
+            index=["A", "B"], name=pd.Timestamp("1989-12-31"), dtype=np.float64
         )
         tm.assert_series_equal(result, expected)
 
-        result = df.asof(to_datetime(["1989-12-31"]))
-        expected = DataFrame(
-            index=to_datetime(["1989-12-31"]), columns=["A", "B"], dtype="float64"
+        result = df.asof(pd.to_datetime(["1989-12-31"]))
+        expected = pd.DataFrame(
+            index=pd.to_datetime(["1989-12-31"]), columns=["A", "B"], dtype="float64"
         )
         tm.assert_frame_equal(result, expected)
 
@@ -100,13 +91,13 @@ class TestFrameAsof:
         #  period.ordinal for series name
         df = df.to_period("D")
         result = df.asof("1989-12-31")
-        assert isinstance(result.name, Period)
+        assert isinstance(result.name, pd.Period)
 
     def test_asof_all_nans(self, frame_or_series):
         # GH 15713
         # DataFrame/Series is all nans
         result = frame_or_series([np.nan]).asof([0])
-        expected = frame_or_series([np.nan], index=Index([0]))
+        expected = frame_or_series([np.nan], index=pd.Index([0]))
         tm.assert_equal(result, expected)
 
     def test_all_nans(self, date_range_frame):
@@ -116,36 +107,36 @@ class TestFrameAsof:
         # testing non-default indexes, multiple inputs
         N = 150
         rng = date_range_frame.index
-        dates = date_range("1/1/1990", periods=N, freq="25s")
-        result = DataFrame(np.nan, index=rng, columns=["A"]).asof(dates)
-        expected = DataFrame(np.nan, index=dates, columns=["A"])
+        dates = pd.date_range("1/1/1990", periods=N, freq="25s")
+        result = pd.DataFrame(np.nan, index=rng, columns=["A"]).asof(dates)
+        expected = pd.DataFrame(np.nan, index=dates, columns=["A"])
         tm.assert_frame_equal(result, expected)
 
         # testing multiple columns
-        dates = date_range("1/1/1990", periods=N, freq="25s")
-        result = DataFrame(np.nan, index=rng, columns=["A", "B", "C"]).asof(dates)
-        expected = DataFrame(np.nan, index=dates, columns=["A", "B", "C"])
+        dates = pd.date_range("1/1/1990", periods=N, freq="25s")
+        result = pd.DataFrame(np.nan, index=rng, columns=["A", "B", "C"]).asof(dates)
+        expected = pd.DataFrame(np.nan, index=dates, columns=["A", "B", "C"])
         tm.assert_frame_equal(result, expected)
 
         # testing scalar input
-        result = DataFrame(np.nan, index=[1, 2], columns=["A", "B"]).asof([3])
-        expected = DataFrame(np.nan, index=[3], columns=["A", "B"])
+        result = pd.DataFrame(np.nan, index=[1, 2], columns=["A", "B"]).asof([3])
+        expected = pd.DataFrame(np.nan, index=[3], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-        result = DataFrame(np.nan, index=[1, 2], columns=["A", "B"]).asof(3)
-        expected = Series(np.nan, index=["A", "B"], name=3)
+        result = pd.DataFrame(np.nan, index=[1, 2], columns=["A", "B"]).asof(3)
+        expected = pd.Series(np.nan, index=["A", "B"], name=3)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "stamp,expected",
         [
             (
-                Timestamp("2018-01-01 23:22:43.325+00:00"),
-                Series(2, name=Timestamp("2018-01-01 23:22:43.325+00:00")),
+                pd.Timestamp("2018-01-01 23:22:43.325+00:00"),
+                pd.Series(2, name=pd.Timestamp("2018-01-01 23:22:43.325+00:00")),
             ),
             (
-                Timestamp("2018-01-01 22:33:20.682+01:00"),
-                Series(1, name=Timestamp("2018-01-01 22:33:20.682+01:00")),
+                pd.Timestamp("2018-01-01 22:33:20.682+01:00"),
+                pd.Series(1, name=pd.Timestamp("2018-01-01 22:33:20.682+01:00")),
             ),
         ],
     )
@@ -153,11 +144,11 @@ class TestFrameAsof:
         # GH21194
         # Testing awareness of DataFrame index considering different
         # UTC and timezone
-        df = DataFrame(
+        df = pd.DataFrame(
             data=[1, 2],
             index=[
-                Timestamp("2018-01-01 21:00:05.001+00:00"),
-                Timestamp("2018-01-01 22:35:10.550+00:00"),
+                pd.Timestamp("2018-01-01 21:00:05.001+00:00"),
+                pd.Timestamp("2018-01-01 22:35:10.550+00:00"),
             ],
         )
 
@@ -166,8 +157,8 @@ class TestFrameAsof:
 
     def test_asof_periodindex_mismatched_freq(self):
         N = 50
-        rng = period_range("1/1/1990", periods=N, freq="h")
-        df = DataFrame(np.random.default_rng(2).standard_normal(N), index=rng)
+        rng = pd.period_range("1/1/1990", periods=N, freq="h")
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal(N), index=rng)
 
         # Mismatched freq
         msg = "Input has different freq"
@@ -176,11 +167,11 @@ class TestFrameAsof:
 
     def test_asof_preserves_bool_dtype(self):
         # GH#16063 was casting bools to floats
-        dti = date_range("2017-01-01", freq="MS", periods=4)
-        ser = Series([True, False, True], index=dti[:-1])
+        dti = pd.date_range("2017-01-01", freq="MS", periods=4)
+        ser = pd.Series([True, False, True], index=dti[:-1])
 
         ts = dti[-1]
         res = ser.asof([ts])
 
-        expected = Series([True], index=[ts])
+        expected = pd.Series([True], index=[ts])
         tm.assert_series_equal(res, expected)

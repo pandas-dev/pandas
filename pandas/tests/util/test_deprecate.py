@@ -41,7 +41,8 @@ def test_deprecate_ok():
         FutureWarning, "depr_func", new_func, "1.0", msg="Use new_func instead."
     )
 
-    with tm.assert_produces_warning(FutureWarning):
+    msg = "Use new_func instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = depr_func()
 
     assert result == "new_func called"
@@ -56,7 +57,8 @@ def test_deprecate_no_docstring():
         "1.0",
         msg="Use new_func instead.",
     )
-    with tm.assert_produces_warning(FutureWarning):
+    msg = "Use new_func instead"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = depr_func()
     assert result == "new_func_no_docstring called"
 

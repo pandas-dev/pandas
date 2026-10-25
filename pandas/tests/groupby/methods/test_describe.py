@@ -4,14 +4,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-)
 import pandas._testing as tm
 
 
@@ -21,8 +13,8 @@ def test_apply_describe_bug(multiindex_dataframe_random_data):
 
 
 def test_series_describe_multikey():
-    ts = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    ts = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
@@ -32,8 +24,8 @@ def test_series_describe_multikey():
 
 
 def test_series_describe_single():
-    ts = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    ts = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
@@ -44,7 +36,7 @@ def test_series_describe_single():
 @pytest.mark.parametrize("keys", ["key1", ["key1", "key2"]])
 def test_series_describe_as_index(as_index, keys):
     # GH#49256
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "key1": ["one", "two", "two", "three", "two"],
             "key2": ["one", "two", "two", "three", "two"],
@@ -53,7 +45,7 @@ def test_series_describe_as_index(as_index, keys):
     )
     gb = df.groupby(keys, as_index=as_index)["foo2"]
     result = gb.describe()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "key1": ["one", "three", "two"],
             "count": [1.0, 1.0, 3.0],
@@ -80,11 +72,11 @@ def test_frame_describe_multikey(tsframe):
     for col in tsframe:
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
-        group_col = MultiIndex(
-            levels=[Index([col], dtype=tsframe.columns.dtype), group.columns],
+        group_col = pd.MultiIndex(
+            levels=[pd.Index([col], dtype=tsframe.columns.dtype), group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
-        group = DataFrame(group.values, columns=group_col, index=group.index)
+        group = pd.DataFrame(group.values, columns=group_col, index=group.index)
         desc_groups.append(group)
     expected = pd.concat(desc_groups, axis=1)
     tm.assert_frame_equal(result, expected)
@@ -93,17 +85,19 @@ def test_frame_describe_multikey(tsframe):
 def test_frame_describe_tupleindex():
     # GH 14848 - regression from 0.19.0 to 0.19.1
     name = "k"
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "x": [1, 2, 3, 4, 5] * 3,
             name: [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5,
         }
     )
     result = df.groupby(name).describe()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[5.0, 3.0, 1.581139, 1.0, 2.0, 3.0, 4.0, 5.0]] * 3,
-        index=Index([(0, 0, 1), (0, 1, 0), (1, 0, 0)], tupleize_cols=False, name=name),
-        columns=MultiIndex.from_arrays(
+        index=pd.Index(
+            [(0, 0, 1), (0, 1, 0), (1, 0, 0)], tupleize_cols=False, name=name
+        ),
+        columns=pd.MultiIndex.from_arrays(
             [["x"] * 8, ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]]
         ),
     )
@@ -113,24 +107,24 @@ def test_frame_describe_tupleindex():
 def test_frame_describe_unstacked_format():
     # GH 4792
     prices = {
-        Timestamp("2011-01-06 10:59:05", tz=None): 24990,
-        Timestamp("2011-01-06 12:43:33", tz=None): 25499,
-        Timestamp("2011-01-06 12:54:09", tz=None): 25499,
+        pd.Timestamp("2011-01-06 10:59:05", tz=None): 24990,
+        pd.Timestamp("2011-01-06 12:43:33", tz=None): 25499,
+        pd.Timestamp("2011-01-06 12:54:09", tz=None): 25499,
     }
     volumes = {
-        Timestamp("2011-01-06 10:59:05", tz=None): 1500000000,
-        Timestamp("2011-01-06 12:43:33", tz=None): 5000000000,
-        Timestamp("2011-01-06 12:54:09", tz=None): 100000000,
+        pd.Timestamp("2011-01-06 10:59:05", tz=None): 1500000000,
+        pd.Timestamp("2011-01-06 12:43:33", tz=None): 5000000000,
+        pd.Timestamp("2011-01-06 12:54:09", tz=None): 100000000,
     }
-    df = DataFrame({"PRICE": prices, "VOLUME": volumes})
+    df = pd.DataFrame({"PRICE": prices, "VOLUME": volumes})
     result = df.groupby("PRICE").VOLUME.describe()
     data = [
         df[df.PRICE == 24990].VOLUME.describe().values.tolist(),
         df[df.PRICE == 25499].VOLUME.describe().values.tolist(),
     ]
-    expected = DataFrame(
+    expected = pd.DataFrame(
         data,
-        index=Index([24990, 25499], name="PRICE"),
+        index=pd.Index([24990, 25499], name="PRICE"),
         columns=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_frame_equal(result, expected)
@@ -139,7 +133,7 @@ def test_frame_describe_unstacked_format():
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_describe_with_duplicate_output_column_names(as_index, keys):
     # GH 35314
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a1": [99, 99, 99, 88, 88, 88],
             "a2": [99, 99, 99, 88, 88, 88],
@@ -153,7 +147,7 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
         df = df.drop(columns="a2")
 
     expected = (
-        DataFrame.from_records(
+        pd.DataFrame.from_records(
             [
                 ("b", "count", 3.0, 3.0),
                 ("b", "mean", 5.0, 2.0),
@@ -178,11 +172,11 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
     )
     expected.columns.names = [None, None]
     if len(keys) == 2:
-        expected.index = MultiIndex(
+        expected.index = pd.MultiIndex(
             levels=[[88, 99], [88, 99]], codes=[[0, 1], [0, 1]], names=["a1", "a2"]
         )
     else:
-        expected.index = Index([88, 99], name="a1")
+        expected.index = pd.Index([88, 99], name="a1")
 
     if not as_index:
         expected = expected.reset_index()
@@ -194,18 +188,18 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
 
 def test_describe_duplicate_columns():
     # GH#50806
-    df = DataFrame([[0, 1, 2, 3]])
+    df = pd.DataFrame([[0, 1, 2, 3]])
     df.columns = [0, 1, 2, 0]
     gb = df.groupby(df[1])
     result = gb.describe(percentiles=[])
 
     columns = ["count", "mean", "std", "min", "max"]
     frames = [
-        DataFrame([[1.0, val, np.nan, val, val]], index=[1], columns=columns)
+        pd.DataFrame([[1.0, val, np.nan, val, val]], index=[1], columns=columns)
         for val in (0.0, 2.0, 3.0)
     ]
     expected = pd.concat(frames, axis=1)
-    expected.columns = MultiIndex(
+    expected.columns = pd.MultiIndex(
         levels=[[0, 2], columns],
         codes=[5 * [0] + 5 * [1] + 5 * [0], 3 * list(range(5))],
     )
@@ -216,17 +210,17 @@ def test_describe_duplicate_columns():
 def test_describe_non_cython_paths():
     # GH#5610 non-cython calls should not include the grouper
     # Tests for code not expected to go through cython paths.
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
         columns=["A", "B", "C"],
     )
     gb = df.groupby("A")
-    expected_index = Index([1, 3], name="A")
-    expected_col = MultiIndex(
+    expected_index = pd.Index([1, 3], name="A")
+    expected_col = pd.MultiIndex(
         levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
         codes=[[0] * 8, list(range(8))],
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
             [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
@@ -254,7 +248,7 @@ def test_describe_non_cython_paths():
 )
 def test_groupby_empty_dataset(dtype, kwargs):
     # GH#41575
-    df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
+    df = pd.DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
     df["B"] = df["B"].astype(int)
     df["C"] = df["C"].astype(float)
 
@@ -268,5 +262,5 @@ def test_groupby_empty_dataset(dtype, kwargs):
         result = df.iloc[:0].groupby("A").B.describe(**kwargs)
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
-    expected.index = Index([], dtype=df.columns.dtype)
+    expected.index = pd.Index([], dtype=df.columns.dtype)
     tm.assert_frame_equal(result, expected)

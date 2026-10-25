@@ -1,28 +1,22 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    MultiIndex,
-    Series,
-    array,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestMultiIndexSorted:
     def test_getitem_multilevel_index_tuple_not_sorted(self):
         index_columns = list("abc")
-        df = DataFrame(
+        df = pd.DataFrame(
             [[0, 1, 0, "x"], [0, 0, 1, "y"]], columns=[*index_columns, "data"]
         )
         df = df.set_index(index_columns)
         query_index = df.index[:1]
         rs = df.loc[query_index, "data"]
 
-        xp_idx = MultiIndex.from_tuples([(0, 1, 0)], names=["a", "b", "c"])
-        xp = Series(["x"], index=xp_idx, name="data")
+        xp_idx = pd.MultiIndex.from_tuples([(0, 1, 0)], names=["a", "b", "c"])
+        xp = pd.Series(["x"], index=xp_idx, name="data")
         tm.assert_series_equal(rs, xp)
 
     def test_getitem_slice_not_sorted(self, multiindex_dataframe_random_data):
@@ -37,7 +31,7 @@ class TestMultiIndexSorted:
     @pytest.mark.parametrize("key", [None, lambda x: x])
     def test_frame_getitem_not_sorted2(self, key):
         # 13431
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "col1": ["b", "d", "b", "a"],
                 "col2": [3, 1, 1, 2],
@@ -66,29 +60,29 @@ class TestMultiIndexSorted:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         tuples = zip(*arrays, strict=True)
-        index = MultiIndex.from_tuples(tuples)
+        index = pd.MultiIndex.from_tuples(tuples)
         index = index.sort_values(  # sort by third letter
             key=lambda x: x.map(lambda entry: entry[2])
         )
-        result = DataFrame(range(8), index=index)
+        result = pd.DataFrame(range(8), index=index)
 
         arrays = [
             ["foo", "foo", "bar", "bar", "qux", "qux", "baz", "baz"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         tuples = zip(*arrays, strict=True)
-        index = MultiIndex.from_tuples(tuples)
-        expected = DataFrame(range(8), index=index)
+        index = pd.MultiIndex.from_tuples(tuples)
+        expected = pd.DataFrame(range(8), index=index)
 
         tm.assert_frame_equal(result, expected)
 
     def test_argsort_with_na(self):
         # GH48495
         arrays = [
-            array([2, NA, 1], dtype="Int64"),
-            array([1, 2, 3], dtype="Int64"),
+            pd.array([2, pd.NA, 1], dtype="Int64"),
+            pd.array([1, 2, 3], dtype="Int64"),
         ]
-        index = MultiIndex.from_arrays(arrays)
+        index = pd.MultiIndex.from_arrays(arrays)
         result = index.argsort()
         expected = np.array([2, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -96,19 +90,19 @@ class TestMultiIndexSorted:
     def test_sort_values_with_na(self):
         # GH48495
         arrays = [
-            array([2, NA, 1], dtype="Int64"),
-            array([1, 2, 3], dtype="Int64"),
+            pd.array([2, pd.NA, 1], dtype="Int64"),
+            pd.array([1, 2, 3], dtype="Int64"),
         ]
-        index = MultiIndex.from_arrays(arrays)
+        index = pd.MultiIndex.from_arrays(arrays)
         index = index.sort_values()
-        result = DataFrame(range(3), index=index)
+        result = pd.DataFrame(range(3), index=index)
 
         arrays = [
-            array([1, 2, NA], dtype="Int64"),
-            array([3, 1, 2], dtype="Int64"),
+            pd.array([1, 2, pd.NA], dtype="Int64"),
+            pd.array([3, 1, 2], dtype="Int64"),
         ]
-        index = MultiIndex.from_arrays(arrays)
-        expected = DataFrame(range(3), index=index)
+        index = pd.MultiIndex.from_arrays(arrays)
+        expected = pd.DataFrame(range(3), index=index)
 
         tm.assert_frame_equal(result, expected)
 
@@ -140,8 +134,8 @@ class TestMultiIndexSorted:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         tuples = zip(*arrays, strict=True)
-        index = MultiIndex.from_tuples(tuples)
-        s = Series(np.random.default_rng(2).standard_normal(8), index=index)
+        index = pd.MultiIndex.from_tuples(tuples)
+        s = pd.Series(np.random.default_rng(2).standard_normal(8), index=index)
 
         arrays = [np.array(x) for x in zip(*index.values, strict=True)]
 

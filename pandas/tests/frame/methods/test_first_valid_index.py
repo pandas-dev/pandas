@@ -5,12 +5,7 @@ Includes test for last_valid_index.
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-)
+import pandas as pd
 
 
 class TestFirstValidIndex:
@@ -22,7 +17,30 @@ class TestFirstValidIndex:
         assert obj.iloc[:0].first_valid_index() is None
 
     @pytest.mark.parametrize(
-        "empty", [DataFrame(), Series(dtype=object), Series([], index=[], dtype=object)]
+        "dtype, expected_type", [("int64", int), ("float64", float), ("Int64", int)]
+    )
+    @pytest.mark.parametrize("method", ["first_valid_index", "last_valid_index"])
+    def test_first_last_valid_result_type(
+        self, frame_or_series, dtype, expected_type, method, using_python_scalars
+    ):
+        # GH#64266
+        obj = frame_or_series(
+            [np.nan, 1.0, np.nan], index=pd.Index([10, 20, 30], dtype=dtype)
+        )
+        result = getattr(obj, method)()
+        assert result == 20
+        if using_python_scalars:
+            assert type(result) is expected_type
+        else:
+            assert isinstance(result, np.generic)
+
+    @pytest.mark.parametrize(
+        "empty",
+        [
+            pd.DataFrame(),
+            pd.Series(dtype=object),
+            pd.Series([], index=[], dtype=object),
+        ],
     )
     def test_first_valid_index_empty(self, empty):
         # GH#12800
@@ -42,20 +60,23 @@ class TestFirstValidIndex:
     )
     def test_first_last_valid_frame(self, data, idx, expected_first, expected_last):
         # GH#21441
-        df = DataFrame(data, index=idx)
+        df = pd.DataFrame(data, index=idx)
         assert expected_first == df.first_valid_index()
         assert expected_last == df.last_valid_index()
 
     @pytest.mark.parametrize(
         "index",
-        [Index([str(i) for i in range(20)]), date_range("2020-01-01", periods=20)],
+        [
+            pd.Index([str(i) for i in range(20)]),
+            pd.date_range("2020-01-01", periods=20),
+        ],
     )
     def test_first_last_valid(self, index):
         mat = np.random.default_rng(2).standard_normal(len(index))
         mat[:5] = np.nan
         mat[-5:] = np.nan
 
-        frame = DataFrame({"foo": mat}, index=index)
+        frame = pd.DataFrame({"foo": mat}, index=index)
         assert frame.first_valid_index() == frame.index[5]
         assert frame.last_valid_index() == frame.index[-6]
 
@@ -65,11 +86,14 @@ class TestFirstValidIndex:
 
     @pytest.mark.parametrize(
         "index",
-        [Index([str(i) for i in range(10)]), date_range("2020-01-01", periods=10)],
+        [
+            pd.Index([str(i) for i in range(10)]),
+            pd.date_range("2020-01-01", periods=10),
+        ],
     )
     def test_first_last_valid_all_nan(self, index):
         # GH#17400: no valid entries
-        frame = DataFrame(np.nan, columns=["foo"], index=index)
+        frame = pd.DataFrame(np.nan, columns=["foo"], index=index)
 
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None

@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -13,7 +9,7 @@ import pandas.core.common as com
 class TestSample:
     @pytest.fixture
     def obj(self, frame_or_series):
-        if frame_or_series is Series:
+        if frame_or_series is pd.Series:
             arr = np.random.default_rng(2).standard_normal(10)
         else:
             arr = np.random.default_rng(2).standard_normal((10, 10))
@@ -193,7 +189,7 @@ class TestSample:
     )
     def test_sample_random_state(self, func_str, arg, frame_or_series):
         # GH#32503
-        obj = DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
+        obj = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
         obj = tm.get_obj(obj, frame_or_series)
         result = obj.sample(n=3, random_state=eval(func_str)(arg))
         expected = obj.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
@@ -218,7 +214,7 @@ class TestSample:
     def test_sample_upsampling_without_replacement(self, frame_or_series):
         # GH#27451
 
-        obj = DataFrame({"A": list("abc")})
+        obj = pd.DataFrame({"A": list("abc")})
         obj = tm.get_obj(obj, frame_or_series)
 
         msg = (
@@ -240,7 +236,7 @@ class TestSampleDataFrame:
         easy_weight_list = [0] * 10
         easy_weight_list[5] = 1
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "col1": range(10, 20),
                 "col2": range(20, 30),
@@ -253,7 +249,7 @@ class TestSampleDataFrame:
 
         # Ensure proper error if string given as weight for Series or
         # DataFrame with axis = 1.
-        ser = Series(range(10))
+        ser = pd.Series(range(10))
         msg = "Strings cannot be passed as weights when sampling from a Series."
         with pytest.raises(ValueError, match=msg):
             ser.sample(n=3, weights="weight_column")
@@ -281,7 +277,7 @@ class TestSampleDataFrame:
         ###
 
         # Test axis argument
-        df = DataFrame({"col1": range(10), "col2": ["a"] * 10})
+        df = pd.DataFrame({"col1": range(10), "col2": ["a"] * 10})
         second_column_weight = [0, 1]
         tm.assert_frame_equal(
             df.sample(n=1, axis=1, weights=second_column_weight), df[["col2"]]
@@ -308,7 +304,7 @@ class TestSampleDataFrame:
         with pytest.raises(ValueError, match=msg):
             df.sample(n=1, axis="not_a_name")
 
-        ser = Series(range(10))
+        ser = pd.Series(range(10))
         with pytest.raises(ValueError, match="No axis named 1 for object type Series"):
             ser.sample(n=1, axis=1)
 
@@ -322,7 +318,7 @@ class TestSampleDataFrame:
         easy_weight_list = [0] * 3
         easy_weight_list[2] = 1
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
         sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
@@ -335,21 +331,21 @@ class TestSampleDataFrame:
 
     def test_sample_aligns_weights_with_frame(self):
         # Test that function aligns weights with frame
-        df = DataFrame({"col1": [5, 6, 7], "col2": ["a", "b", "c"]}, index=[9, 5, 3])
-        ser = Series([1, 0, 0], index=[3, 5, 9])
+        df = pd.DataFrame({"col1": [5, 6, 7], "col2": ["a", "b", "c"]}, index=[9, 5, 3])
+        ser = pd.Series([1, 0, 0], index=[3, 5, 9])
         tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=ser))
 
         # Weights have index values to be dropped because not in
         # sampled DataFrame
-        ser2 = Series([0.001, 0, 10000], index=[3, 5, 10])
+        ser2 = pd.Series([0.001, 0, 10000], index=[3, 5, 10])
         tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=ser2))
 
         # Weights have empty values to be filed with zeros
-        ser3 = Series([0.01, 0], index=[3, 5])
+        ser3 = pd.Series([0.01, 0], index=[3, 5])
         tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=ser3))
 
         # No overlap in weight and sampled DataFrame indices
-        ser4 = Series([1, 0], index=[1, 2])
+        ser4 = pd.Series([1, 0], index=[1, 2])
 
         with pytest.raises(ValueError, match="Invalid weights: weights sum to zero"):
             df.sample(1, weights=ser4)
@@ -357,7 +353,7 @@ class TestSampleDataFrame:
     def test_sample_is_copy(self):
         # GH#27357, GH#30784: ensure the result of sample is an actual copy and
         # doesn't track the parent dataframe
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )
         df2 = df.sample(3)
@@ -369,14 +365,14 @@ class TestSampleDataFrame:
         # GH-42843
         result = np.array([np.nan, 1, np.nan])
         expected = result.copy()
-        ser = Series([1, 2, 3])
+        ser = pd.Series([1, 2, 3])
 
         # Test numpy array weights won't be modified in place
         ser.sample(weights=result)
         tm.assert_numpy_array_equal(result, expected)
 
         # Test DataFrame column won't be modified in place
-        df = DataFrame({"values": [1, 1, 1], "weights": [1, np.nan, np.nan]})
+        df = pd.DataFrame({"values": [1, 1, 1], "weights": [1, np.nan, np.nan]})
         expected = df["weights"].copy()
 
         df.sample(frac=1.0, replace=True, weights="weights")
@@ -385,9 +381,9 @@ class TestSampleDataFrame:
 
     def test_sample_ignore_index(self):
         # GH 38581
-        df = DataFrame(
+        df = pd.DataFrame(
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
         result = df.sample(3, ignore_index=True)
-        expected_index = Index(range(3))
+        expected_index = pd.Index(range(3))
         tm.assert_index_equal(result.index, expected_index, exact=True)

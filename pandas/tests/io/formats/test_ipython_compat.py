@@ -1,36 +1,37 @@
 import numpy as np
+import pytest
 
 import pandas._config.config as cf
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-)
+import pandas as pd
 
 
 class TestTableSchemaRepr:
     def test_publishes(self, ip):
         ipython = ip.instance(config=ip.config)
-        df = DataFrame({"A": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2]})
         objects = [df["A"], df]  # dataframe / series
         expected_keys = [
             {"text/plain", "application/vnd.dataresource+json"},
             {"text/plain", "text/html", "application/vnd.dataresource+json"},
         ]
 
-        opt = cf.option_context("display.html.table_schema", True)
-        last_obj = None
         for obj, expected in zip(objects, expected_keys, strict=True):
-            last_obj = obj
             with cf.option_context("display.html.table_schema", True):
-                # Can't reuse opt on all systems GH#58055
+                # Can't reuse an option_context on all systems GH#58055
                 formatted = ipython.display_formatter.format(obj)
             assert set(formatted[0].keys()) == expected
 
-        with_latex = cf.option_context("styler.render.repr", "latex")
+    def test_publishes_latex(self, ip):
+        # the latex repr goes through Styler, which needs jinja2
+        pytest.importorskip("jinja2")
+        ipython = ip.instance(config=ip.config)
+        df = pd.DataFrame({"A": [1, 2]})
 
-        with opt, with_latex:
-            formatted = ipython.display_formatter.format(last_obj)
+        with cf.option_context(
+            "display.html.table_schema", True, "styler.render.repr", "latex"
+        ):
+            formatted = ipython.display_formatter.format(df)
 
         expected = {
             "text/plain",
@@ -43,8 +44,8 @@ class TestTableSchemaRepr:
     def test_publishes_not_implemented(self, ip):
         # column MultiIndex
         # GH#15996
-        midx = MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
-        df = DataFrame(
+        midx = pd.MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, len(midx))), columns=midx
         )
 
@@ -56,15 +57,38 @@ class TestTableSchemaRepr:
         expected = {"text/plain", "text/html"}
         assert set(formatted[0].keys()) == expected
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [b"\x00\x00\x00\x00\x00\x01\x82S"],  # UnicodeDecodeError
+            ["é".encode("latin-1")],  # OverflowError
+            pd.array([np.float16(1.5)], dtype=object),  # TypeError
+        ],
+    )
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_publishes_unserializable(self, ip, capsys, values, box):
+        # GH#16848 fall back without printing a traceback
+        obj = box(values)
+        with cf.option_context("display.html.table_schema", True):
+            formatted = ip.instance(config=ip.config).display_formatter.format(obj)
+            with pytest.raises(NotImplementedError, match="table schema"):
+                obj._repr_data_resource_()
+
+        assert "application/vnd.dataresource+json" not in formatted[0]
+        assert "text/plain" in formatted[0]
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err == ""
+
     def test_config_on(self):
-        df = DataFrame({"A": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2]})
         with cf.option_context("display.html.table_schema", True):
             result = df._repr_data_resource_()
 
         assert result is not None
 
     def test_config_default_off(self):
-        df = DataFrame({"A": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2]})
         with cf.option_context("display.html.table_schema", False):
             result = df._repr_data_resource_()
 
