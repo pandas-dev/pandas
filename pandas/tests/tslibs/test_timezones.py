@@ -4,7 +4,6 @@ from datetime import (
     timedelta,
     timezone,
 )
-import importlib.metadata
 import importlib.resources
 import io
 from pathlib import Path
@@ -591,7 +590,7 @@ def test_zoneinfo_from_file_without_key_ambiguous_infer():
     )
 
 
-_dateutil_lt_3 = Version(importlib.metadata.version("python-dateutil")) < Version("3")
+_dateutil_lt_3 = Version(dateutil.__version__) < Version("3")  # type: ignore[attr-defined]
 _skip_if_dateutil_lt_3 = pytest.mark.skipif(
     _dateutil_lt_3, reason="tzfile key added in 3.0"
 )

@@ -4,7 +4,6 @@ from datetime import (
     timedelta,
     timezone,
 )
-from importlib.metadata import version
 from io import BytesIO
 import struct
 from zoneinfo import ZoneInfo
@@ -534,7 +533,7 @@ class TestTZLocalize:
 
 
 @pytest.mark.xfail(
-    Version(version("python-dateutil")) >= Version("3"),
+    Version(dateutil.__version__) >= Version("3"),  # type: ignore[attr-defined]
     reason="GH#66570 dateutil>=3 zones share the zoneinfo shift bug",
     strict=True,
 )
