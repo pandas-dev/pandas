@@ -2960,13 +2960,6 @@ class Styler(StylerRenderer):
 
         Notes
         -----
-        .. warning::
-           This method only works with the output methods ``to_html``, ``to_string``,
-           ``to_latex`` and ``to_typst``.
-
-           Other output methods, including ``to_excel``, ignore this hiding method
-           and will display all data.
-
         This method has multiple functionality depending upon the combination
         of the ``subset``, ``level`` and ``names`` arguments (see examples). The
         ``axis`` argument is used only to control whether the method is applied to row
