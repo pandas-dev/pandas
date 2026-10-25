@@ -2352,6 +2352,9 @@ cdef class _Timedelta(timedelta):
         if self.total_seconds() < 0:
             # TODO: overwriting self with a local variable here, this might not be desired
             self = abs(self)
+            # TODO: for some reason the Timedelta object is not stored correct if we do not first print it
+            # or call __repr__() or __str() also works. It should be possible to do this differently.
+            print("self:", self)
             sign = "-"
         else:
             sign = ""
