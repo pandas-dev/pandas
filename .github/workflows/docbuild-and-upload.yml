@@ -5,12 +5,14 @@ on:
     branches:
       - main
       - 3.0.x
+      - 3.1.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
       - 3.0.x
+      - 3.1.x
     paths-ignore:
       # code-scanning workflows; checked by zizmor in security.yml
       - ".github/workflows/codeql.yml"
