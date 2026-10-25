@@ -1267,10 +1267,10 @@ def test_multi_column_dtype_assignment():
 def test_numpy_s_dtype_on_index():
     # GH#50127
     with pytest.raises(TypeError, match="Index does not support dtype 'S'"):
-        index = pd.Index(["abcd", "1234"], dtype="S3")
+        pd.Index(["abcd", "1234"], dtype="S3")
 
     with pytest.raises(TypeError, match="Index does not support dtype 'S'"):
-        index = pd.Index(["abcd", "1234"], dtype="S2")
+        pd.Index(["abcd", "1234"], dtype="S2")
 
 
 def test_loc_setitem_empty_labels_no_dtype_conversion():
