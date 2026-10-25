@@ -7880,8 +7880,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether any element is Truthy.
 
-        This is equivalent to calling ``bool(self.any())``. An empty Index
-        will return False.
+        An empty Index will return False.
 
         Parameters
         ----------
@@ -7928,8 +7927,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether all elements are Truthy.
 
-        This is equivalent to calling ``bool(self.all())``. An empty Index
-        will return True.
+        An empty Index will return True.
 
         Parameters
         ----------
