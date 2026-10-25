@@ -131,11 +131,7 @@ def concatenate_managers(
                 # _is_uniform_join_units ensures a single dtype, so
                 #  we can use np.concatenate, which is more performant
                 #  than concat_compat
-                # error: Argument 1 to "concatenate" has incompatible type
-                # "List[Union[ndarray[Any, Any], ExtensionArray]]";
-                # expected "Union[_SupportsArray[dtype[Any]],
-                # _NestedSequence[_SupportsArray[dtype[Any]]]]"
-                values = np.concatenate(vals, axis=1)  # type: ignore[arg-type]
+                values = np.concatenate(vals, axis=1)
             elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(

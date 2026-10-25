@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
 from pandas.api.types import (
@@ -68,6 +69,15 @@ class ListArray(ExtensionArray):
 
     def __len__(self) -> int:
         return len(self.data)
+
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        if dtype is None or dtype == object:
+            return construct_1d_object_array_from_listlike(list(self))
+        return np.array(list(self), dtype=dtype)
 
     def isna(self):
         return np.array(
