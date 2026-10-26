@@ -116,7 +116,7 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@b9e566a2b284570af229f6c2a33673410d0389a3 # v4.3.4
+        uses: pypa/cibuildwheel@b3395e271a35f73dad77f21802abe9b986dfe299 # v4.3.1
         with:
           package-dir: ./dist/${{ env.sdist_name }}
           only: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
