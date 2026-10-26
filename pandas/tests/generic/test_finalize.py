@@ -387,12 +387,35 @@ def test_finalize_called(ndframe_method):
 @pytest.mark.skipif(
     not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
 )
-@not_implemented_mark
 def test_finalize_called_eval_numexpr():
     df = pd.DataFrame({"A": [1, 2]})
     df.attrs["A"] = 1
     result = df.eval("A + 1", engine="numexpr")
     assert result.attrs == {"A": 1}
+
+
+@pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
+@pytest.mark.parametrize("expr", ["A + 1", "A + B", "C = A + B"])
+def test_eval_attrs_numexpr_matches_python(expr):
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+    df.attrs = {"a": 1}
+    expected = df.eval(expr, engine="python")
+    result = df.eval(expr, engine="numexpr")
+    assert result.attrs == expected.attrs == {"a": 1}
+
+
+@pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
+def test_eval_attrs_conflicting_numexpr():
+    df1 = pd.DataFrame({"A": [1, 2]})
+    df1.attrs = {"a": 1}
+    df2 = pd.DataFrame({"A": [3, 4]})
+    df2.attrs = {"a": 2}
+    result = pd.eval("df1 + df2", engine="numexpr")
+    assert result.attrs == {}
 
 
 # ----------------------------------------------------------------------------

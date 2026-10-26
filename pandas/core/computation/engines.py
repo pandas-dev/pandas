@@ -5,10 +5,14 @@ Engine classes for :func:`~pandas.eval`
 from __future__ import annotations
 
 import abc
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from pandas.errors import NumExprClobberingError
 
+from pandas.core.dtypes.generic import ABCNDFrame
+
+import pandas.core.common as com
 from pandas.core.computation.align import (
     align_terms,
     reconstruct_object,
@@ -84,13 +88,23 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
-        return reconstruct_object(
+        result = reconstruct_object(
             self.result_type,
             res,
             self.aligned_axes,
             self.expr.terms.return_type,
             self.result_name,
         )
+        if isinstance(result, ABCNDFrame):
+            # propagate attrs only if all pandas operands agree, as in concat
+            try:
+                terms = list(com.flatten(self.expr.terms))
+            except TypeError:
+                terms = [self.expr.terms]
+            attrs = [t.value.attrs for t in terms if isinstance(t.value, ABCNDFrame)]
+            if attrs and all(a == attrs[0] for a in attrs[1:]):
+                result.attrs = deepcopy(attrs[0])
+        return result
 
     @property
     def _is_aligned(self) -> bool:
