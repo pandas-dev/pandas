@@ -175,3 +175,28 @@ def test_map_to_multi_element_tuples(na_action):
     result = cat.map(mapper, na_action=na_action)
     expected = pd.Index([("x", 1), ("y", 2)], tupleize_cols=False)
     tm.assert_index_equal(result, expected)
+
+
+def test_map_to_bool_single_category():
+    # GH 61719
+    cat = pd.Categorical(["a", "a"], categories=["a"])
+    result = cat.map(lambda x: x == "c")
+    expected = pd.Index([False, False])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_bool_unique_categories():
+    # GH 61719
+    cat = pd.Categorical(["a", "a", "a", "b"], categories=["a", "b"])
+    result = cat.map(lambda x: x == "b")
+    expected = pd.Index([False, False, False, True])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_bool_ordered():
+    # GH 61719: ordered input with a bool mapping also returns a bool
+    # Index, consistent with the non-unique case
+    cat = pd.Categorical(["a", "a", "a", "b"], categories=["a", "b"], ordered=True)
+    result = cat.map(lambda x: x == "b")
+    expected = pd.Index([False, False, False, True])
+    tm.assert_index_equal(result, expected)
