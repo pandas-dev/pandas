@@ -335,7 +335,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`__
+    <https://pandas.pydata.org/docs/user_guide/categorical.html>`__
     for more.
 
     Examples
