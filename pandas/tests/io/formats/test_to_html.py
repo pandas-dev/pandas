@@ -1230,6 +1230,7 @@ def test_series_repr_html():
     "ser, footer",
     [
         (pd.Series([1.5]), "dtype: float64"),
+        (pd.Series([], dtype="int64"), "dtype: int64"),
         (
             pd.Series([1], dtype="category"),
             "dtype: category<br>Categories (1, int64): [1]",
