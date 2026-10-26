@@ -11,7 +11,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    NullFrequencyError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -30,7 +33,7 @@ from pandas.core.arrays import (
 _deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
 
 ok_for_period = PeriodArray._datetimelike_ops + list(_deprecated_dt_attrs)
-ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
+ok_for_period_methods = ["strftime", "to_timestamp", "asfreq", "shift"]
 # ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
 # directly rather than on the underlying array, so add it explicitly.
 ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq", *list(_deprecated_dt_attrs)]
@@ -48,6 +51,7 @@ ok_for_dt_methods = [
     "month_name",
     "isocalendar",
     "as_unit",
+    "shift",
 ]
 ok_for_td = [*TimedeltaArray._datetimelike_ops, "freq"]
 ok_for_td_methods = [
@@ -58,6 +62,7 @@ ok_for_td_methods = [
     "floor",
     "ceil",
     "as_unit",
+    "shift",
 ]
 
 
@@ -1064,3 +1069,52 @@ def test_deprecated_aliases(ser):
     with tm.assert_produces_warning(Pandas4Warning, match=msg.format("daysinmonth")):
         result = ser.dt.daysinmonth
     tm.assert_series_equal(result, ser.dt.days_in_month)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2020-01-01", periods=3, freq="D"),
+        pd.date_range("2020-03-07", periods=3, freq="D", tz="US/Eastern"),
+        pd.date_range("2020-01-31", periods=3, freq="ME"),
+        pd.timedelta_range("1 day", periods=3, freq="h"),
+        pd.period_range("2020-01", periods=3, freq="M"),
+    ],
+    ids=["datetime64", "datetime64tz", "month_end", "timedelta64", "period"],
+)
+@pytest.mark.parametrize("periods", [2, -1, 0])
+def test_dt_shift(values, periods):
+    # GH#31705 without freq, shift by the inferred frequency like Index.shift
+    ser = pd.Series(values, index=list("abc"), name="xxx")
+    expected = pd.Series(values.shift(periods), index=ser.index, name="xxx")
+
+    result = ser.dt.shift(periods)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.astype("category").dt.shift(periods)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        pd.Series(pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT])),
+        pd.Series(pd.to_timedelta(["1 day", "3 days", pd.NaT])),
+    ],
+    ids=["datetime64", "timedelta64"],
+)
+def test_dt_shift_freq(ser):
+    # GH#31705 an explicit freq does not require regular values
+    result = ser.dt.shift(-2, freq="h")
+    expected = ser - pd.Timedelta(hours=2)
+    tm.assert_series_equal(result, expected)
+
+    with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
+        ser.dt.shift(1)
+    tm.assert_series_equal(ser.dt.shift(0), ser)
+
+
+def test_dt_shift_period_freq_raises():
+    ser = pd.Series(pd.period_range("2020-01", periods=3, freq="M"))
+    with pytest.raises(TypeError, match="`freq` argument is not supported"):
+        ser.dt.shift(1, freq="M")
