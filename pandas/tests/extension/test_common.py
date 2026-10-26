@@ -210,7 +210,7 @@ def test_default_array_defers_to_later_base():
     arr = WithMixin(np.array([1, 2]))
     with tm.assert_produces_warning(None):
         result = np.asarray(arr)
-        copied = np.array(arr, copy=True)
+        copied = arr.__array__(copy=True)
     tm.assert_numpy_array_equal(result, np.array(["copy=None"] * 2))
     tm.assert_numpy_array_equal(copied, np.array(["copy=True"] * 2))
 
