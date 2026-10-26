@@ -155,6 +155,27 @@ def test_agg(step):
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
+@pytest.mark.parametrize(
+    "window, on, expected_min",
+    [
+        (2, [1, 3, 4], [2.0, 2.0, 4.0]),
+        (
+            "2D",
+            pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-04"]),
+            [2.0, 2.0, 8.0],
+        ),
+    ],
+)
+def test_agg_multiple_functions_on(window, on, expected_min):
+    # GH#43769
+    df = pd.DataFrame({"A": on, "B": [2, 4, 8]})
+
+    result = df.rolling(window, on="A", min_periods=1).agg({"B": ["min", "max"]})
+
+    expected = pd.DataFrame({("B", "min"): expected_min, ("B", "max"): [2.0, 4.0, 8.0]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_apply(raw):
     # passed lambda
     df = pd.DataFrame({"A": range(5), "B": range(0, 10, 2)})
