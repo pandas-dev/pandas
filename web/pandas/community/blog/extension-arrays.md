@@ -213,6 +213,6 @@ partners][partners] involved in the pandas community.
 [twitter]: https://twitter.com/pandas_dev
 [tracker]: https://github.com/pandas-dev/pandas/issues
 [partners]: https://pandas.pydata.org/about/sponsors.html
-[eco]: http://pandas.pydata.org/pandas-docs/stable/ecosystem.html#extension-data-types
+[eco]: https://pandas.pydata.org/community/ecosystem.html
 [whatsnew]: http://pandas.pydata.org/pandas-docs/version/0.24/whatsnew/v0.24.0.html
 [geopandas]: https://github.com/geopandas/geopandas

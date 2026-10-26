@@ -10,7 +10,7 @@ body:
       label: Installation check
       options:
         - label: >
-            I have read the [installation guide](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html#installing-pandas).
+            I have read the [installation guide](https://pandas.pydata.org/docs/getting_started/install.html#installing-pandas).
           required: true
   - type: input
     id: platform

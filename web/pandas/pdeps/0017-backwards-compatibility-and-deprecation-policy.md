@@ -26,7 +26,7 @@ This PDEP covers pandas' approach to backwards compatibility and the deprecation
 
 ## Background
 
-pandas uses a loose variant of semantic versioning.  
+pandas uses a loose variant of semantic versioning.
 A pandas release number is written in the format of ``MAJOR.MINOR.PATCH``.
 
 ## General policy

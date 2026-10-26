@@ -1450,7 +1450,7 @@ def read_csv(
     into chunks.
 
     Additional help can be found in the online docs for
-    `IO Tools <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+    `IO Tools <https://pandas.pydata.org/docs/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -2065,7 +2065,7 @@ def read_table(
     into chunks.
 
     Additional help can be found in the online docs for
-    `IO Tools <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+    `IO Tools <https://pandas.pydata.org/docs/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -2624,7 +2624,7 @@ def read_fwf(
     into chunks.
 
     Additional help can be found in the `online docs for IO Tools
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+    <https://pandas.pydata.org/docs/user_guide/io.html>`_.
 
     Parameters
     ----------

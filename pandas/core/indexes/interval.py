@@ -210,7 +210,7 @@ class IntervalIndex(ExtensionIndex):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__
+    <https://pandas.pydata.org/docs/user_guide/advanced.html#intervalindex>`__
     for more.
 
     Examples

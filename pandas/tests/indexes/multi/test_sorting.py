@@ -125,7 +125,7 @@ def test_unsortedindex():
 
 
 def test_unsortedindex_doc_examples():
-    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
+    # https://pandas.pydata.org/docs/advanced.html#sorting-a-multiindex
     dfm = pd.DataFrame(
         {
             "jim": [0, 0, 1, 1],

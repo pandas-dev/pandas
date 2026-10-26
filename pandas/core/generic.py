@@ -9529,11 +9529,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#resampling>`__
         for more.
 
         To learn more about the offset strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
