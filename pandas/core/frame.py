@@ -4143,7 +4143,22 @@ class DataFrame(NDFrame, OpsMixin):
 
         first_dtype = self.dtypes.iloc[0] if len(self.columns) else None
 
-        if self._can_fast_transpose:
+        if len(self) == 0 and len(self.columns) > 0:
+            # GH#44336: transposing an empty frame gives a frame with no
+            #  columns, which has no blocks to carry the dtype, so
+            #  transposing back would fall back to float64. Preserve
+            #  the dtype with a 0-column block.
+            from pandas._libs.internals import BlockPlacement
+
+            from pandas.core.internals import BlockManager
+            from pandas.core.internals.blocks import NumpyBlock
+
+            values = np.asarray(self._values)
+            blk = NumpyBlock(values, placement=BlockPlacement([]), ndim=2)
+            mgr = BlockManager([blk], axes=[self.index, self.columns])
+            result = self._constructor_from_mgr(mgr, axes=mgr.axes)
+
+        elif self._can_fast_transpose:
             # Note: tests pass without this, but this improves perf quite a bit.
             new_vals = self._values.T
 
