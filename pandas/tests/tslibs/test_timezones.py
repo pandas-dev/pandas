@@ -600,11 +600,14 @@ _skip_if_dateutil_lt_3 = pytest.mark.skipif(
     "make_tz",
     [
         lambda: dateutil.tz.gettz("US/Eastern"),
-        # no key with dateutil>=3, so no zoneinfo twin; dateutil<3 only reads
-        #  the empty TZif v1 block of tzdata files
+        # no key, so no zoneinfo twin
         pytest.param(
             lambda: dateutil.tz.tzfile(io.BytesIO(_tzdata_bytes("US/Eastern"))),
-            marks=_skip_if_dateutil_lt_3,
+            marks=pytest.mark.skipif(
+                _dateutil_lt_3,
+                reason="dateutil<3 reads only the TZif v1 block, which is empty "
+                "in slim tzdata files",
+            ),
         ),
         # dateutil accepts this key but zoneinfo does not
         pytest.param(

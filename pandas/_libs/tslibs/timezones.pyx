@@ -344,6 +344,7 @@ cdef tzinfo get_zoneinfo_twin(tzinfo tz):
     zoneinfo._zoneinfo.ZoneInfo or None
     """
     if not is_zoneinfo(tz):
+        # dateutil tzfile timezone
         key = tz.key
         if key is None:
             return None
