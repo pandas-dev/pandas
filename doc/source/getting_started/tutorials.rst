@@ -8,8 +8,34 @@ Tutorials and Books
 
 This is a guide to many pandas tutorials and books by the community, geared mainly for new users.
 
+Books
+-----
+
+Python for Data Analysis by Wes McKinney
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The book we recommend to learn pandas, by the creator of pandas.
+
+.. image:: ../_static/books/pydata_book.gif
+    :alt: Python for Data Analysis
+    :target: https://amzn.to/3DyLaJc
+
+Pandas Cookbook by William Ayd and Matthew Harrison
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: ../_static/books/pandas_cookbook_3.gif
+    :alt: Pandas Cookbook, Third Edition
+    :target: https://www.packtpub.com/en-us/product/pandas-cookbook-9781836205876?utm_medium=affiliate&utm_campaign=d6d8585f-f475-a1ee-3989-67f3faf1238a&utm_term=5b056f65-afab-5c56-1f0a-5fd88167b4b5&utm_content=B31091
+
+Effective pandas by Matt Harrison
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: ../_static/books/effective_pandas_2.gif
+    :alt: Effective pandas 2
+    :target: https://store.metasnake.com/effective-pandas-book/lhte7
+
 Pandas Workout by Reuven Lerner
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 https://www.manning.com/books/pandas-workout
 
@@ -24,14 +50,34 @@ This book provides 200 exercises with pandas. From the description:
    becoming second nature—no more trips to StackOverflow for what is now a natural part
    of your skillset.
 
+Videos
+------
+
+* `pandas in 10 minutes <https://www.youtube.com/watch?v=_T8LGqJtuGc>`_
+  by Wes McKinney
+* `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
+  (2016) (1:26)
+  `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
+* `Data analysis in Python with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5ICCsgW1MxlZ0Hq8LL5U3u9y>`_
+  (2016-2018)
+  `GitHub repo <https://github.com/justmarkham/pandas-videos>`__ and
+  `Jupyter Notebook <https://nbviewer.org/github/justmarkham/pandas-videos/blob/master/pandas.ipynb>`__
+* `Best practices with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5IBITZj_dYSFqnd_15JgqwA6>`_
+  (2018)
+  `GitHub repo <https://github.com/justmarkham/pycon-2018-tutorial>`__ and
+  `Jupyter Notebook <https://nbviewer.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`__
+
+Tutorials
+---------
+
 Bamboo Weekly by Reuven Lerner
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 `Bamboo Weekly <https://www.bambooweekly.com>`_ is a mailing list that provides weekly,
 hands on data analysis exercises to practice using pandas.
 
 pandas cookbook by Julia Evans
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The goal of this 2015 cookbook (by `Julia Evans <https://jvns.ca>`_) is to
 give you some concrete examples for getting started with pandas. These
@@ -41,12 +87,12 @@ For the table of contents, see the `pandas-cookbook GitHub
 repository <https://github.com/jvns/pandas-cookbook>`_.
 
 Learn pandas by Hernan Rojas
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A set of lessons for new pandas users: https://bitbucket.org/hrojas/learn-pandas
 
 Practical data analysis with Python
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This `guide <https://wavedatalab.github.io/datawithpython>`_ is an introduction to the data analysis process using the Python data ecosystem and an interesting open dataset.
 There are four sections covering selected topics as `munging data <https://wavedatalab.github.io/datawithpython/munge.html>`__,
@@ -56,7 +102,7 @@ and `time series <https://wavedatalab.github.io/datawithpython/timeseries.html>`
 .. _tutorial-exercises-new-users:
 
 Exercises for new users
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 Practice your skills with real data sets and exercises.
 For more resources, please visit the main `repository <https://github.com/guipsamora/pandas_exercises>`__.
 
@@ -64,7 +110,7 @@ For more resources, please visit the main `repository <https://github.com/guipsa
 .. _tutorial-modern:
 
 Modern pandas
--------------
+~~~~~~~~~~~~~
 
 Tutorial series written in 2016 by
 `Tom Augspurger <https://github.com/TomAugspurger>`_.
@@ -80,7 +126,7 @@ The source may be found in the GitHub repository
 * `Timeseries <https://tomaugspurger.github.io/modern-7-timeseries.html>`_
 
 Joyful pandas
--------------
+~~~~~~~~~~~~~
 
 A tutorial written in Chinese by Yuanhao Geng. It covers the basic operations
 for NumPy and pandas, 4 main data manipulation methods (including indexing, groupby, reshaping
@@ -89,24 +135,8 @@ data and time series data). At the end of each chapter, corresponding exercises 
 All the datasets and related materials can be found in the GitHub repository
 `datawhalechina/joyful-pandas <https://github.com/datawhalechina/joyful-pandas>`_.
 
-Video tutorials
----------------
-
-* `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_
-  (2016) (1:26)
-  `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
-* `Data analysis in Python with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5ICCsgW1MxlZ0Hq8LL5U3u9y>`_
-  (2016-2018)
-  `GitHub repo <https://github.com/justmarkham/pandas-videos>`__ and
-  `Jupyter Notebook <https://nbviewer.org/github/justmarkham/pandas-videos/blob/master/pandas.ipynb>`__
-* `Best practices with pandas <https://www.youtube.com/playlist?list=PL5-da3qGB5IBITZj_dYSFqnd_15JgqwA6>`_
-  (2018)
-  `GitHub repo <https://github.com/justmarkham/pycon-2018-tutorial>`__ and
-  `Jupyter Notebook <https://nbviewer.org/github/justmarkham/pycon-2018-tutorial/blob/master/tutorial.ipynb>`__
-
-
-Various tutorials
------------------
+Various others
+~~~~~~~~~~~~~~
 
 * `Wes McKinney's (pandas BDFL) blog <https://wesmckinney.com/archives.html>`_
 * `Pandas DataFrames Tutorial, by Karlijn Willems <https://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
