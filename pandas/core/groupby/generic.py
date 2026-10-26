@@ -1230,7 +1230,7 @@ class SeriesGroupBy(GroupBy[Series]):
             out = out.astype("float")
             d = np.diff(np.r_[idx, len(ids)])
             if dropna:
-                m = ids[lab == -1]
+                m = ids[isna(lab)]
                 np.add.at(d, m, -1)
                 acc = rep(d)[mask]
             else:
