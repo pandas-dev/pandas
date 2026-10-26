@@ -10,7 +10,7 @@ The full license is in the LICENSE file, distributed with this software.
 #pragma once
 
 #include "pandas/moments.h"
-#include "pandas/moments_common.hpp"
+#include "pandas/simd/moments_common.hpp"
 #include "xsimd/xsimd.hpp" // IWYU pragma: keep
 #include <array>
 #include <cassert>

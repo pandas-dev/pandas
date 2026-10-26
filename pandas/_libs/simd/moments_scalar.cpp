@@ -8,7 +8,7 @@ The full license is in the LICENSE file, distributed with this software.
 */
 
 #include "pandas/moments.h"
-#include "pandas/moments_common.hpp"
+#include "pandas/simd/moments_common.hpp"
 #include <cmath>
 #include <optional>
 #include <span>
