@@ -409,7 +409,23 @@ def test_eval_attrs_numexpr_matches_python(expr):
 @pytest.mark.skipif(
     not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
 )
+def test_eval_attrs_one_sided_numexpr():
+    # GH#28283 operands without attrs are ignored, matching binops (GH#51607)
+    df1 = pd.DataFrame({"A": [1, 2]})
+    df1.attrs = {"a": 1}
+    df2 = pd.DataFrame({"A": [3, 4]})
+    expected = pd.eval("df1 + df2", engine="python")
+    result = pd.eval("df1 + df2", engine="numexpr")
+    assert result.attrs == expected.attrs == {"a": 1}
+
+
+@pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
 def test_eval_attrs_conflicting_numexpr():
+    # GH#28283 conflicting attrs are dropped, as in concat. The python
+    # engine instead follows binop propagation; conflict handling for
+    # binops is still undecided upstream.
     df1 = pd.DataFrame({"A": [1, 2]})
     df1.attrs = {"a": 1}
     df2 = pd.DataFrame({"A": [3, 4]})

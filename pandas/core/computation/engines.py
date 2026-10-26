@@ -26,6 +26,9 @@ from pandas.core.computation.ops import (
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+    from typing import Any
+
     from pandas.core.computation.expr import Expr
 
 _ne_builtins = frozenset(MATHOPS + REDUCTIONS)
@@ -81,6 +84,10 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         object
             The result of the passed expression.
         """
+        # Collect before alignment: align_terms replaces term values with
+        # their underlying arrays, which drops attrs.
+        operand_attrs = self._shared_operand_attrs()
+
         if not self._is_aligned:
             self.result_type, self.aligned_axes, self.result_name = align_terms(
                 self.expr.terms
@@ -95,16 +102,29 @@ class AbstractEngine(metaclass=abc.ABCMeta):
             self.expr.terms.return_type,
             self.result_name,
         )
-        if isinstance(result, ABCNDFrame):
-            # propagate attrs only if all pandas operands agree, as in concat
-            try:
-                terms = list(com.flatten(self.expr.terms))
-            except TypeError:
-                terms = [self.expr.terms]
-            attrs = [t.value.attrs for t in terms if isinstance(t.value, ABCNDFrame)]
-            if attrs and all(a == attrs[0] for a in attrs[1:]):
-                result.attrs = deepcopy(attrs[0])
+        if operand_attrs is not None and isinstance(result, ABCNDFrame):
+            result.attrs = deepcopy(operand_attrs)
         return result
+
+    def _shared_operand_attrs(self) -> dict[Hashable, Any] | None:
+        """
+        Return the attrs shared by all pandas operands that have attrs, or None
+        if none do or their attrs conflict.
+
+        Operands without attrs are ignored, as in binary operations (GH#51607).
+        """
+        try:
+            terms = list(com.flatten(self.expr.terms))
+        except TypeError:
+            terms = [self.expr.terms]
+        all_attrs = [
+            t.value.attrs
+            for t in terms
+            if isinstance(t.value, ABCNDFrame) and t.value.attrs
+        ]
+        if all_attrs and all(a == all_attrs[0] for a in all_attrs[1:]):
+            return all_attrs[0]
+        return None
 
     @property
     def _is_aligned(self) -> bool:
