@@ -214,7 +214,7 @@ cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
 
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
-# http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
+# https://web.archive.org/web/20150408232213/http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 cdef int rdc_decompress(Buffer inbuff, Buffer outbuff) except? 0:
 
     cdef:

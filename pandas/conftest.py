@@ -1988,7 +1988,7 @@ def mpl_cleanup_context():
         mpl_units.registry.clear()
         mpl_units.registry.update(orig_units_registry)
         plt.close("all")
-        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+        # https://matplotlib.org/3.6.0/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
         gc.collect(1)
 
 
