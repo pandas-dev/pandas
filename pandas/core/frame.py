@@ -947,7 +947,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return True
 
-        d.to_string(buf=buf)
+        d.to_string(buf=buf, show_dtypes=config["display"]["show_dtypes"])
         value = buf.getvalue()
         repr_width = max(len(line) for line in value.split("\n"))
 
@@ -1012,6 +1012,7 @@ class DataFrame(NDFrame, OpsMixin):
                 min_rows=min_rows,
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
+                show_dtypes=config["display"]["show_dtypes"],
                 decimal=".",
             )
             return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
@@ -1036,6 +1037,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool = ...,
+        show_dtypes: bool = ...,
         decimal: str = ...,
         line_width: int | None = ...,
         min_rows: int | None = ...,
@@ -1061,6 +1063,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool = ...,
+        show_dtypes: bool = ...,
         decimal: str = ...,
         line_width: int | None = ...,
         min_rows: int | None = ...,
@@ -1085,6 +1088,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool = False,
+        show_dtypes: bool = False,
         decimal: str = ".",
         line_width: int | None = None,
         min_rows: int | None = None,
@@ -1152,6 +1156,10 @@ class DataFrame(NDFrame, OpsMixin):
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
             Display DataFrame dimensions (number of rows by number of columns).
+        show_dtypes : bool, default False
+            Display each column's dtype in a row below the column labels.
+
+            .. versionadded:: 3.2.0
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
         line_width : int, optional
@@ -1203,6 +1211,7 @@ class DataFrame(NDFrame, OpsMixin):
                 max_rows=max_rows,
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
+                show_dtypes=show_dtypes,
                 decimal=decimal,
             )
             return fmt.DataFrameRenderer(formatter).to_string(
@@ -3163,6 +3172,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
+        show_dtypes: bool = ...,
         decimal: str = ...,
         bold_rows: bool = ...,
         classes: str | list[str] | tuple[str, ...] | None = ...,
@@ -3192,6 +3202,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
+        show_dtypes: bool = ...,
         decimal: str = ...,
         bold_rows: bool = ...,
         classes: str | list[str] | tuple[str, ...] | None = ...,
@@ -3220,6 +3231,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool | str = False,
+        show_dtypes: bool = False,
         decimal: str = ".",
         bold_rows: bool = True,
         classes: str | list[str] | tuple[str, ...] | None = None,
@@ -3290,6 +3302,10 @@ class DataFrame(NDFrame, OpsMixin):
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
             Display DataFrame dimensions (number of rows by number of columns).
+        show_dtypes : bool, default False
+            Display each column's dtype in a row below the column labels.
+
+            .. versionadded:: 3.2.0
         decimal : str, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe.
 
@@ -3415,6 +3431,7 @@ class DataFrame(NDFrame, OpsMixin):
             max_rows=max_rows,
             max_cols=max_cols,
             show_dimensions=show_dimensions,
+            show_dtypes=show_dtypes,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
         return fmt.DataFrameRenderer(formatter).to_html(
