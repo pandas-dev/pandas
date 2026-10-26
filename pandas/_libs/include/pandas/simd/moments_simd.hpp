@@ -14,7 +14,6 @@ The full license is in the LICENSE file, distributed with this software.
 #include "xsimd/xsimd.hpp" // IWYU pragma: keep
 #include <array>
 #include <cassert>
-#include <cmath>
 #include <optional>
 #include <span>
 
@@ -345,30 +344,6 @@ accumulate_central_diffs(std::span<const double> values,
   };
 }
 
-template <class Arch>
-Moments
-accumulate_moments_simd_impl(std::span<const double> values,
-                             std::optional<std::span<const uint8_t>> mask,
-                             bool skipna, int max_moment) {
-  const auto total_acc = accumulate_mean<Arch>(values, mask, skipna);
-
-  if (!total_acc.has_value()) {
-    return {.mean = NAN, .m2 = NAN, .m3 = NAN, .m4 = NAN, .n = values.size()};
-  }
-
-  if (total_acc->count == 0) {
-    return {};
-  }
-
-  const auto count_double = static_cast<double>(total_acc->count);
-  double trial_mean = total_acc->sum / count_double;
-
-  const auto central_diffs =
-      accumulate_central_diffs<Arch>(values, mask, trial_mean, max_moment);
-
-  return compute_moments_with_correction(*total_acc, central_diffs, max_moment);
-}
-
 } // namespace detail
 
 struct accumulate_moments_simd {
@@ -382,8 +357,8 @@ template <class Arch>
 Moments accumulate_moments_simd::operator()(
     Arch /*arch*/, std::span<const double> values, bool skipna,
     std::optional<std::span<const uint8_t>> mask, int max_moment) noexcept {
-  return detail::accumulate_moments_simd_impl<Arch>(values, mask, skipna,
-                                                    max_moment);
+  return detail::accumulate_moments_impl<Arch>(values, mask, skipna,
+                                               max_moment);
 }
 
 } // namespace pandas::moments

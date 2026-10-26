@@ -121,4 +121,42 @@ static inline CentralDiffs<double> accumulate_central_diffs_scalar_direct(
   return acc;
 }
 
+/// accumulate_{mean,central_diffs} are forward declared for
+/// accumulate_moments_impl. It has a simd implementation in moments_simd.hpp
+/// and a scalar version in moments_scalar.cpp.
+
+template <class Arch>
+std::optional<MeanAcc<double, size_t>>
+accumulate_mean(std::span<const double> values,
+                std::optional<std::span<const uint8_t>> mask, bool skipna);
+
+template <class Arch>
+CentralDiffs<double>
+accumulate_central_diffs(std::span<const double> values,
+                         std::optional<std::span<const uint8_t>> mask,
+                         double mean, int max_moment);
+
+template <class Arch>
+Moments accumulate_moments_impl(std::span<const double> values,
+                                std::optional<std::span<const uint8_t>> mask,
+                                bool skipna, int max_moment) {
+  const auto total_acc = accumulate_mean<Arch>(values, mask, skipna);
+
+  if (!total_acc.has_value()) {
+    return {.mean = NAN, .m2 = NAN, .m3 = NAN, .m4 = NAN, .n = values.size()};
+  }
+
+  if (total_acc->count == 0) {
+    return {};
+  }
+
+  const auto count_double = static_cast<double>(total_acc->count);
+  double trial_mean = total_acc->sum / count_double;
+
+  const auto central_diffs =
+      accumulate_central_diffs<Arch>(values, mask, trial_mean, max_moment);
+
+  return compute_moments_with_correction(*total_acc, central_diffs, max_moment);
+}
+
 } // namespace pandas::moments::detail
