@@ -468,8 +468,14 @@ class MPLPlot(ABC):
             # support series.plot(color='green')
             color = [color]
 
-        if isinstance(color, tuple) and self.nseries == 1 and len(color) in (3, 4):
-            # support RGB and RGBA tuples in series plot
+        if (
+            isinstance(color, tuple)
+            and self.nseries == 1
+            and len(color) in (3, 4)
+            and not all(map(mpl.colors.is_color_like, color))
+        ):
+            # support RGB and RGBA tuples in series plot; a tuple of colors
+            # is a sequence of colors, GH#18449
             color = [color]
 
         if colormap is not None:
