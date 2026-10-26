@@ -520,7 +520,9 @@ def test_frame_reduction_keeps_datetime64_dtype():
         ("sem", {}),
         ("sem", {"ddof": 0}),
         ("skew", {}),
+        ("skew", {"bias": True}),
         ("kurt", {}),
+        ("kurt", {"bias": True}),
     ],
 )
 @pytest.mark.parametrize("fill_value", [0, np.nan])
