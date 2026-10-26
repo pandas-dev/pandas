@@ -359,6 +359,10 @@ def _get_datevalue(date, freq):
         if FreqGroup.from_period_dtype_code(dtype_code) == FreqGroup.FR_BUS:
             # Avoid creating deprecated Period[B]; use numpy business-day count.
             return bday_count(date)
+        if isinstance(date, datetime):
+            # wall-clock time, matching how tz-aware indexes become periods;
+            # avoids Period's tz-dropping warning
+            date = date.replace(tzinfo=None)
         return Period(date, freq).ordinal  # pyright: ignore[reportAttributeAccessIssue]
     elif is_integer(date) or is_float(date):
         return date

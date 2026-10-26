@@ -1346,7 +1346,6 @@ class TestTSPlot:
 
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
-    @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
         # GH13341, using sharex=True
         idx1 = date_range("2015-01-01", periods=3, freq="ME")
@@ -1359,12 +1358,17 @@ class TestTSPlot:
         s1.plot(ax=ax2)
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
+    @pytest.mark.parametrize("tz", [None, "UTC"])
     @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
-    def test_shared_ax_misaligned_freq_second(self, layout):
+    def test_shared_ax_misaligned_freq_second(self, layout, tz):
         # GH#40470 timestamps off the daily grid are plotted as datetimes, which
         # must land at the hourly ordinals already on the shared x-axis
-        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
-        s2 = pd.Series(range(2), date_range("2020-11-08 09:32", periods=2, freq="D"))
+        s1 = pd.Series(
+            range(48), date_range("2020-11-08 09:00", periods=48, freq="h", tz=tz)
+        )
+        s2 = pd.Series(
+            range(2), date_range("2020-11-08 09:32", periods=2, freq="D", tz=tz)
+        )
         if layout == "sharex":
             _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
         else:
@@ -1377,7 +1381,30 @@ class TestTSPlot:
         else:
             s2.plot(ax=ax2)
 
-        expected = s2.index.to_period("h").asi8.astype(np.float64)
+        expected = s2.index.tz_localize(None).to_period("h").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
+
+    @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
+    def test_shared_ax_misaligned_freq_first(self, layout):
+        # GH#40470 with the off-grid series plotted first, both are plotted as
+        # datetimes
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        s2 = pd.Series(range(2), date_range("2020-11-08 09:32", periods=2, freq="D"))
+        if layout == "sharex":
+            _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        else:
+            _, ax1 = mpl.pyplot.subplots()
+            ax2 = ax1.twinx() if layout == "twinx" else ax1
+        s2.plot(ax=ax1)
+        if layout == "secondary_y":
+            s1.plot(ax=ax2, secondary_y=True)
+            ax2 = ax1.right_ax
+        else:
+            s1.plot(ax=ax2)
+
+        expected = mpl.dates.date2num(s2.index.to_pydatetime())
+        tm.assert_numpy_array_equal(ax1.lines[0].get_xdata(orig=False), expected)
+        expected = mpl.dates.date2num(s1.index.to_pydatetime())
         tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
 
     def test_shared_ax_misaligned_freq_second_scatter(self):

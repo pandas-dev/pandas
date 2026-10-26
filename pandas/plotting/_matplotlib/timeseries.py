@@ -282,8 +282,11 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    # do not use tsplot if irregular was plotted first
-    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+    # do not use tsplot if irregular was plotted first, also on a shared-x
+    # sibling (GH#40470)
+    elif ax_freq is None and any(
+        sibling.get_lines() for sibling in ax.get_shared_x_axes().get_siblings(ax)
+    ):
         return False
 
     if freq is None:
