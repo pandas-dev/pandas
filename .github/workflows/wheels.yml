@@ -132,6 +132,19 @@ jobs:
       - name: Validate wheel RECORD
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
+      # Check [all] extra for 1 wheel
+      - name: Set up uv for extras resolution
+        if: matrix.python == 'cp311' && matrix.buildplat[1] == 'manylinux_x86_64'
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: false
+
+      - name: Resolve all extra from wheel
+        if: matrix.python == 'cp311' && matrix.buildplat[1] == 'manylinux_x86_64'
+        run: |
+          echo "pandas[all] @ file://$(ls "$PWD"/wheelhouse/*.whl)" > extras.in
+          uv pip compile extras.in --python-version 3.11 --no-header
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
