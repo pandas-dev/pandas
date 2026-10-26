@@ -5297,7 +5297,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     fill_value,
                 )
                 shifted = self._python_apply_general(
-                    f, self._selected_obj, is_transform=True
+                    f, self._obj_with_exclusions, is_transform=True
                 )
             else:
                 if fill_value is lib.no_default:
@@ -5512,7 +5512,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 freq=freq,
                 axis=0,
             )
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            return self._python_apply_general(
+                f, self._obj_with_exclusions, is_transform=True
+            )
 
         shifted = self.shift(periods=periods)
         return (self._obj_with_exclusions / shifted) - 1

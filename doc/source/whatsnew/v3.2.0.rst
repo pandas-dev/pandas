@@ -32,6 +32,7 @@ Other enhancements
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - :meth:`DataFrame.to_csv` and other writers now accept an ``os.PathLike`` such as :class:`pathlib.Path` for the ``archive_name`` entry of a zip or tar ``compression`` dict (:issue:`31934`)
+- :meth:`DataFrame.to_json`, :meth:`Series.to_json` and :meth:`DataFrame.to_xml` now warn when a compression method is requested but no path is given, since the returned string is not compressed, and raise for an unrecognized ``compression`` as they do with a path (:issue:`32326`)
 - :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
 - Added :meth:`Categorical.to_dense` and :meth:`Series.cat.to_dense` to get the values with the dtype of the categories, including extension dtypes (:issue:`26410`)
 - Added :meth:`DatetimeIndex.set_freq` and :meth:`TimedeltaIndex.set_freq`, which return a new index with the given ``freq`` instead of modifying it in place (:issue:`61094`)
@@ -96,6 +97,7 @@ Other API changes
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
+- ``range`` values are now displayed as ``range(0, 3)`` rather than as the tuple ``(0, 1, 2)``, matching :class:`.Styler` (:issue:`44799`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:
@@ -133,11 +135,13 @@ Other deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`DataFrame.explode` when exploding multiple columns (:issue:`53967`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69632`, :issue:`69748`, :issue:`70140`)
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
+- Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
 - Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
 
@@ -157,7 +161,8 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-- Bug in :func:`infer_freq` returning ``None`` for a semi-monthly :class:`DatetimeIndex`, e.g. one built with ``freq="SME"`` or ``freq="SMS"``. Such an index has two distinct deltas, so it never reached the monthly or daily inference rules (:issue:`45819`)
+- Bug in :class:`Timestamp` constructor, :func:`to_datetime`, and :func:`read_csv` with ``parse_dates`` where a comma used as a date separator was read as a decimal point, silently giving a wrong result (e.g. ``"2013,11,04"`` parsed as ``2013-04-01``); such strings now raise, and :func:`read_csv` leaves the column unparsed (:issue:`17265`)
+- Bug in :func:`infer_freq` returning ``None`` for a semi-monthly :class:`DatetimeIndex`, e.g. one built with ``freq="SME"`` or ``freq="SMS"`` (:issue:`45819`)
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)
 - Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
 - Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on datetime-like data missing ``numpy.datetime64`` or ``numpy.timedelta64`` values (``NaT``, or any value on numpy < 2.2) when ``values`` also held non-datetime-like entries (:issue:`71186`)
@@ -213,7 +218,10 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several columns and ``value`` was a timezone-aware ``datetime64`` or ``period`` scalar, or a one-dimensional :class:`Series` of either dtype; it now broadcasts across the matched columns as the other dtypes already did (:issue:`71078`)
+- Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several unique columns, e.g. a partial date string on :class:`DatetimeIndex` columns; ``value`` now broadcasts across them (:issue:`71098`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when the key matched several columns (duplicate or :class:`MultiIndex` columns) and ``value`` was a two-dimensional array without one column per matched column; it now raises ``ValueError`` (:issue:`68445`)
+- Bug in :meth:`DataFrame.__setitem__` with a key matching several columns and a one-dimensional extension array ``value`` (e.g. ``Int64``) storing one array for all of them, so a later write to one column changed the others (:issue:`71098`)
+- Bug in :meth:`DataFrame.isetitem` with several positions silently corrupting the :class:`DataFrame` when ``value`` was a scalar or a one-dimensional extension array such as ``Int64``; a scalar now fills every selected column and the array raises ``ValueError`` (:issue:`71098`)
 - Bug in :meth:`DataFrame.isetitem` with several positions silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when an arraylike ``value`` did not have one column per position; it now raises ``ValueError`` (:issue:`68445`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.at` setitem with a single row label adding a new column from a list-like value raising or setting the wrong value (:issue:`30649`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising or flattening a 2D value (e.g. a list of lists) set into a single ``object`` cell of a mixed-dtype :class:`DataFrame` (:issue:`69152`)
@@ -271,6 +279,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and their ``repr`` where values or labels containing ANSI color codes were counted toward the column width, misaligning the other rows (:issue:`55122`)
 - Bug in displaying a :class:`Series` or :class:`DataFrame` in IPython with ``display.html.table_schema`` enabled printing a traceback when the data cannot be converted to JSON, such as non-UTF-8 ``bytes`` (:issue:`16848`)
 - Bug in the display of a :class:`MultiIndex` (repr, :meth:`DataFrame.to_string`, :meth:`DataFrame.to_html`, :class:`.Styler`) where distinct labels that display identically (e.g. ``1`` and ``"1"``) were shown as a single label; :meth:`DataFrame.to_excel` merged them into one cell, losing all but the first value (:issue:`10796`)
+- Bug in the repr of a :class:`Series` or :class:`DataFrame` where values displayed as ``0`` by the ``display.chop_threshold`` option still caused the column to be shown in scientific notation (:issue:`12374`)
 - Bug in the repr of a :class:`Series` or :class:`DataFrame` with ``longdouble`` (e.g. ``float128``) dtype showing values outside the ``float64`` range as ``0`` or ``inf`` (:issue:`17809`)
 - Fixed bug in :func:`read_csv` where callable ``skiprows`` received incorrect row numbers on 32-bit big-endian architectures (:issue:`69985`)
 - Bug in :class:`ExcelWriter` with ``engine="openpyxl"`` ignoring ``date_format`` and ``datetime_format`` (:issue:`44284`, :issue:`59882`)
@@ -297,6 +306,7 @@ Plotting
 ^^^^^^^^
 - Bug in :func:`plotting.table` ignoring ``rowLabels`` and ``colLabels`` or raising a ``TypeError`` when they were passed (:issue:`37811`)
 - Bug in :meth:`DataFrame.hist` with ``by`` and no ``column`` plotting the numeric grouping column alongside the other columns (:issue:`41188`)
+- Bug in :meth:`DataFrame.plot.hist` with ``by`` raising ``TypeError`` when ``bins`` was a sequence of bin edges (:issue:`11483`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` mislabeling ticks set with ``xticks=`` or ``ax.set_xticks`` (:issue:`18881`)
@@ -308,6 +318,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` raising ``NotImplementedError``, often with no message, instead of ``TypeError`` on columns that do not support them, e.g. ``object`` columns and :class:`ArrowDtype` date, time and binary columns (:issue:`69791`)
 - Bug in :meth:`.DataFrameGroupBy.max`, :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.cummin` (and Series variants) on nullable float data with the ``future.distinguish_nan_and_na`` option enabled returning ``inf`` or ``-inf`` for all-``NaN`` groups and ignoring ``NaN`` in other groups; ``NaN`` now propagates as in :meth:`.DataFrameGroupBy.sum`; under the default option, :class:`ArrowDtype` float data containing ``NaN`` now gives ``NA`` instead of ignoring the ``NaN`` (:issue:`59106`)
 - Bug in :meth:`.DataFrameGroupBy.resample` followed by :meth:`.Resampler.aggregate` with a list of functions aggregating the grouping and ``on`` columns, raising ``TypeError`` or returning them as extra result columns (:issue:`32162`)
+- Bug in :meth:`.DataFrameGroupBy.shift` and :meth:`.DataFrameGroupBy.pct_change` with ``freq`` including the grouping columns in the result, or raising for non-numeric grouping columns (:issue:`46944`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
 - Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`42617`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)

@@ -170,7 +170,7 @@ def test_infer_freq_semi_monthly_multiple_not_inferred():
     #  is not claimed as SME
     index = pd.DatetimeIndex(pd.date_range("2020-01-15", periods=8, freq="2SME").values)
 
-    assert frequencies.infer_freq(index) != "SME"
+    assert frequencies.infer_freq(index) is None
 
 
 def test_raise_if_period_index():
