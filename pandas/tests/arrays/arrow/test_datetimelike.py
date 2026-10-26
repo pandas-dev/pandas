@@ -347,7 +347,8 @@ def test_dt_strftime(request):
 @pytest.mark.parametrize("fmt", ["%Y-%m-%d %H:%M:%S", "%T", "%S.%f", "%H:%M:%S.%N %z"])
 def test_dt_strftime_matches_numpy(unit, tz, fmt, request):
     # GH#55001 %S must not include fractional seconds; %f and %N are supported
-    _require_timezone_database(request)
+    if "%f" not in fmt and "%N" not in fmt:
+        _require_timezone_database(request)
     values = [
         "2023-04-05 13:00:01.5",
         "1969-12-31 23:59:59.5",
@@ -377,7 +378,8 @@ def test_dt_strftime_matches_numpy(unit, tz, fmt, request):
 )
 def test_dt_strftime_date(pa_type, fmt, exp, request):
     # GH#55001
-    _require_timezone_database(request)
+    if "%f" not in fmt:
+        _require_timezone_database(request)
     ser = pd.Series([date(2023, 4, 5), None], dtype=ArrowDtype(pa_type))
     result = ser.dt.strftime(fmt)
     expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
