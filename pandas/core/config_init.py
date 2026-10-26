@@ -203,6 +203,12 @@ pc_show_dimensions_doc = """
     frame is truncated (e.g. not display all rows and/or columns)
 """
 
+pc_show_dtypes_doc = """
+: boolean
+    Whether to show each column's dtype in a row below the column labels
+    in the DataFrame repr.
+"""
+
 pc_east_asian_width_doc = """
 : boolean
     Whether to use the Unicode East Asian Width to calculate the display text
@@ -375,6 +381,7 @@ with cf.config_prefix("display"):
         pc_show_dimensions_doc,
         validator=is_one_of_factory([True, False, "truncate"]),
     )
+    cf.register_option("show_dtypes", False, pc_show_dtypes_doc, validator=is_bool)
     cf.register_option("chop_threshold", None, pc_chop_threshold_doc)
     cf.register_option("max_seq_items", 100, pc_max_seq_items)
     cf.register_option(

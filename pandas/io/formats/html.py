@@ -4,6 +4,7 @@ Module for formatting output data in HTML.
 
 from __future__ import annotations
 
+import html
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -398,6 +399,18 @@ class HTMLFormatter:
 
             self.write_tr(row, indent, self.indent_delta, header=True, align=align)
 
+    def _write_dtype_header(self, indent: int) -> None:
+        dtypes = [str(dtype) for dtype in self.fmt.tr_frame.dtypes]
+        if not self.escape:
+            # ``escape`` is for user content; dtypes like struct<...> always need it
+            dtypes = [html.escape(dtype, quote=False) for dtype in dtypes]
+        row = [""] * self.row_levels + dtypes
+        if self.fmt.is_truncated_horizontally:
+            row.insert(self.row_levels + self.fmt.tr_col_num, "...")
+        # match the alignment of the column label row
+        align = None if isinstance(self.columns, MultiIndex) else self.fmt.justify
+        self.write_tr(row, indent, self.indent_delta, header=True, align=align)
+
     def _write_row_header(self, indent: int) -> None:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         row = [format_name(x) for x in self.frame.index.names] + [""] * (
@@ -410,6 +423,8 @@ class HTMLFormatter:
 
         if self.fmt.header:
             self._write_col_header(indent + self.indent_delta)
+            if self.fmt.show_dtypes:
+                self._write_dtype_header(indent + self.indent_delta)
 
         if self.show_row_idx_names:
             self._write_row_header(indent + self.indent_delta)

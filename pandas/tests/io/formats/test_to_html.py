@@ -1194,3 +1194,114 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
+
+
+def test_to_html_show_dtypes():
+    # GH#19394
+    df = pd.DataFrame(np.arange(12).reshape(2, 6), columns=list("abcdef")).astype(
+        {"a": "float32", "f": "uint8"}
+    )
+    result = df.to_html(show_dtypes=True, max_cols=2)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        '    <tr style="text-align: right;">\n'
+        "      <th></th>\n"
+        "      <th>a</th>\n"
+        "      <th>...</th>\n"
+        "      <th>f</th>\n"
+        "    </tr>\n"
+        '    <tr style="text-align: right;">\n'
+        "      <th></th>\n"
+        "      <th>float32</th>\n"
+        "      <th>...</th>\n"
+        "      <th>uint8</th>\n"
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "    <tr>\n"
+        "      <th>0</th>\n"
+        "      <td>0.0</td>\n"
+        "      <td>...</td>\n"
+        "      <td>5</td>\n"
+        "    </tr>\n"
+        "    <tr>\n"
+        "      <th>1</th>\n"
+        "      <td>6.0</td>\n"
+        "      <td>...</td>\n"
+        "      <td>11</td>\n"
+        "    </tr>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
+    assert result == expected
+
+    # no leading blank cell without an index
+    result = df.to_html(show_dtypes=True, max_cols=2, index=False)
+    expected = (
+        '    <tr style="text-align: right;">\n'
+        "      <th>float32</th>\n"
+        "      <th>...</th>\n"
+        "      <th>uint8</th>\n"
+        "    </tr>\n"
+    )
+    assert expected in result
+
+
+def test_to_html_show_dtypes_multiindex():
+    # GH#19394
+    df = pd.DataFrame(
+        [[0, 1.0], [2, 3.0]],
+        index=pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["k1", "k2"]),
+        columns=pd.MultiIndex.from_tuples([("x", 1), ("x", 2)]),
+    )
+    result = df.to_html(show_dtypes=True)
+    expected = (
+        "  <thead>\n"
+        "    <tr>\n"
+        "      <th></th>\n"
+        "      <th></th>\n"
+        '      <th colspan="2" halign="left">x</th>\n'
+        "    </tr>\n"
+        "    <tr>\n"
+        "      <th></th>\n"
+        "      <th></th>\n"
+        "      <th>1</th>\n"
+        "      <th>2</th>\n"
+        "    </tr>\n"
+        "    <tr>\n"
+        "      <th></th>\n"
+        "      <th></th>\n"
+        "      <th>int64</th>\n"
+        "      <th>float64</th>\n"
+        "    </tr>\n"
+        "    <tr>\n"
+        "      <th>k1</th>\n"
+        "      <th>k2</th>\n"
+        "      <th></th>\n"
+        "      <th></th>\n"
+        "    </tr>\n"
+        "  </thead>\n"
+    )
+    assert expected in result
+
+    # the dtype row is part of the header
+    assert df.to_html(show_dtypes=True, header=False) == df.to_html(header=False)
+
+
+def test_to_html_show_dtypes_escape_false():
+    # GH#19394 dtype strings are escaped even when user content is not
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(pa.struct([("f", pa.int64())]))
+    df = pd.DataFrame({"<b>s</b>": pd.array([{"f": 1}], dtype=dtype)})
+    result = df.to_html(escape=False, show_dtypes=True)
+    assert "<th><b>s</b></th>" in result
+    assert "<th>struct&lt;f: int64&gt;[pyarrow]</th>" in result
+
+
+def test_repr_html_show_dtypes_option():
+    # GH#19394
+    df = pd.DataFrame({"a": [1, 2]})
+    with pd.option_context("display.show_dtypes", True):
+        assert "<th>int64</th>" in df._repr_html_()
+    assert "<th>int64</th>" not in df._repr_html_()
