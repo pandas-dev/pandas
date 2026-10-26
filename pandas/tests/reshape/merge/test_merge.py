@@ -2200,6 +2200,8 @@ class TestMergeCategorical:
         result = merged.dtypes.sort_index()
         dtype = np.dtype("O") if not using_infer_string else "str"
         expected = pd.Series([dtype, dtype, np.dtype("int64")], index=["X", "Y", "Z"])
+        if join_type == "right" and right["X"].dtype == np.dtype("O"):
+            expected["X"] = np.dtype("O")
         tm.assert_series_equal(result, expected)
 
     def test_self_join_multiple_categories(self):
@@ -3046,11 +3048,72 @@ def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
     result = left.merge(right, how=join_type)
     expected = pd.DataFrame(
         {
-            "a": pd.Series([1, 2, 3], dtype=any_numeric_ea_dtype),
+            "a": pd.Series(
+                [1, 2, 3],
+                dtype=(
+                    any_numeric_ea_dtype.lower()
+                    if join_type == "right"
+                    else any_numeric_ea_dtype
+                ),
+            ),
             "b": pd.Series([1, 1, 1], dtype=any_numeric_ea_dtype),
             "c": pd.Series([2, 2, 2], dtype=any_numeric_ea_dtype.lower()),
         }
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "left_dtype,right_dtype",
+    [("float64", "int64"), ("int64", "float64"), ("Int64", "int64")],
+)
+@pytest.mark.parametrize("left_keys", [[1, 2], [2, 1, 1], [1, 3]])
+@pytest.mark.parametrize("sort", [True, False])
+def test_merge_right_preserves_key_dtype(left_dtype, right_dtype, left_keys, sort):
+    # GH#56454
+    left = pd.DataFrame(
+        {"value": range(len(left_keys)), "key": pd.Series(left_keys, dtype=left_dtype)}
+    )
+    right = pd.DataFrame(
+        {"key": pd.Series([2, 1], dtype=right_dtype), "other": [20, 10]}
+    )
+
+    result = left.merge(right, on="key", how="right", sort=sort)
+    expected = right.merge(left, on="key", how="left", sort=sort)[
+        ["value", "key", "other"]
+    ]
+    tm.assert_frame_equal(result, expected)
+    assert result["key"].dtype == right["key"].dtype
+
+
+@pytest.mark.parametrize("left_unit,right_unit", [("ns", "s"), ("s", "ns")])
+def test_merge_right_key_common_datetime_resolution(left_unit, right_unit):
+    # GH#56454: retaining the right key must still reconcile resolutions.
+    dates = pd.date_range("2023-05-12", periods=2)
+    left = pd.DataFrame({"key": dates.take([0, 0, 1]).as_unit(left_unit)})
+    right = pd.DataFrame({"key": dates.as_unit(right_unit)})
+    result = left.merge(right, how="right")
+    expected = pd.DataFrame({"key": dates.take([0, 0, 1]).as_unit("ns")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_right_key_different_categories():
+    # GH#56454: unequal categories still require coercion.
+    left = pd.DataFrame({"key": pd.Categorical(["a", "b"], categories=["a", "b", "c"])})
+    right = pd.DataFrame(
+        {"key": pd.Categorical(["a", "b"], categories=["a", "b", "d"])}
+    )
+    result = left.merge(right, how="right")
+    expected = pd.DataFrame({"key": ["a", "b"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_right_key_column_order():
+    # GH#56454: key order can differ from the original column order.
+    left = pd.DataFrame({"value": [3], "b": [2.0], "a": [1.0]})
+    right = pd.DataFrame({"a": [1], "b": [2], "value": [4]})
+    result = left.merge(right, on=["a", "b"], how="right")
+    expected = pd.DataFrame({"value_x": [3], "b": [2], "a": [1], "value_y": [4]})
     tm.assert_frame_equal(result, expected)
 
 

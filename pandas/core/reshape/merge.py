@@ -1090,10 +1090,6 @@ class _MergeOperation:
         left = self.left[:]
         right = self.right[:]
 
-        llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, self.right._info_axis, self.suffixes
-        )
-
         if left_indexer is not None and not is_range_indexer(left_indexer, len(left)):
             # Pinning the index here (and in the right code just below) is not
             #  necessary, but makes the `.take` more performant if we have e.g.
@@ -1122,6 +1118,17 @@ class _MergeOperation:
             )
             right = right._constructor_from_mgr(rmgr, axes=rmgr.axes)
         right.index = join_index
+
+        if self.how == "right":
+            # Shared keys come from the preserved side, but keep their
+            # original position among the left frame's columns.
+            for i, name in enumerate(self.orig_left.columns):
+                if name in self.join_names and name not in left and name in right:
+                    left.insert(i, name, right.pop(name))
+
+        llabels, rlabels = _items_overlap_with_suffix(
+            left._info_axis, right._info_axis, self.suffixes
+        )
 
         from pandas import concat
 
@@ -1639,7 +1646,14 @@ class _MergeOperation:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
                         if lk is not None and lk == rk:  # FIXME: what about other NAs?
-                            right_drop.append(rk)
+                            if (
+                                self.how == "right"
+                                and lk in left.columns
+                                and rk in right.columns
+                            ):
+                                left_drop.append(lk)
+                            else:
+                                right_drop.append(rk)
                     else:
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
