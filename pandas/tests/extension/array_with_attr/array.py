@@ -82,6 +82,7 @@ class FloatAttrArray(ExtensionArray):
     def copy(self):
         return type(self)(self.data.copy(), self.attr)
 
+    # no axis keyword, to test third-party EAs that lack it (GH#47514)
     @classmethod
     def _concat_same_type(cls, to_concat):
         data = np.concatenate([x.data for x in to_concat])
