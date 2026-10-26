@@ -58,7 +58,9 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     IntervalDtype,
 )
@@ -80,6 +82,7 @@ from pandas.core.algorithms import (
     take,
     unique,
 )
+from pandas.core.array_algos.putmask import extract_bool_array
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
@@ -216,7 +219,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ) -> Self:
-        data = extract_array(data, extract_numpy=True)
+        data = extract_array(data, extract_numpy=True, extract_range=True)
 
         if isinstance(data, cls):
             left: IntervalSide = data._left
@@ -234,6 +237,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # might need to convert empty or purely na data
             data = _maybe_convert_platform_interval(data)
+            if isinstance(data, ExtensionArray):
+                # GH#68343 non-interval EA, e.g. from astype
+                data = np.asarray(data)
             left, right, infer_closed = intervals_to_interval_bounds(
                 data, validate_closed=closed is None
             )
@@ -677,6 +683,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170. Keep the cython reconstructor so these load in older pandas.
+        reduced = super().__reduce__()
+        attrs = {key: val for key, val in self.__dict__.items() if key != "_cache"}
+        return reduced[0], reduced[1], (attrs,)
+
     @overload
     def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 
@@ -1012,8 +1025,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
 
-        left: IntervalSide = np.concatenate([interval.left for interval in to_concat])
-        right: IntervalSide = np.concatenate([interval.right for interval in to_concat])
+        # concat_compat instead of np.concatenate to retain an ExtensionDtype
+        #  subtype GH#64297
+        left = concat_compat([interval._left for interval in to_concat])
+        right = concat_compat([interval._right for interval in to_concat])
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 
@@ -1341,10 +1356,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Index([0.5, 3.0], dtype='float64')
         """
         try:
-            return 0.5 * (self.left + self.right)
+            mid = 0.5 * (self.left + self.right)
         except TypeError:
             # datetime safe version
             return self.left + 0.5 * self.length
+        subtype = self.dtype.subtype
+        # pyarrow ints already raise on overflow, and comparing them with a
+        #  float mid raises past 2**53
+        if subtype.kind == "f" or (
+            subtype.kind in "iu" and not isinstance(subtype, ArrowDtype)
+        ):
+            # an overflowing sum lands outside the interval; there, halve before
+            #  adding, which cannot overflow but rounds more, see GH#25499
+            outside = extract_bool_array(
+                (mid._values < self._left) | (mid._values > self._right)
+            )
+            if outside.any():
+                mid = mid.putmask(outside, 0.5 * self.left + 0.5 * self.right)
+        return mid
 
     def overlaps(self, other):
         """

@@ -1192,16 +1192,39 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
         self._set_default_format(vmin, vmax)
 
     def __call__(self, x, pos: int | None = 0) -> str:
+        # error: "BaseOffset" has no attribute "_period_dtype_code"
+        dtype_code = self.freq._period_dtype_code  # type: ignore[attr-defined]
+        freq_group = FreqGroup.from_period_dtype_code(dtype_code)
+        is_bday = freq_group == FreqGroup.FR_BUS
+
+        if self.isminor:
+            # our minor labels assume our own ticks, e.g. "Feb" next to "Jan\n2015"
+            if not isinstance(
+                self.axis.get_major_locator(), TimeSeries_DateLocator
+            ) or not isinstance(self.axis.get_minor_locator(), TimeSeries_DateLocator):
+                return ""
+        elif not isinstance(self.axis.get_major_locator(), TimeSeries_DateLocator):
+            # user-placed ticks (e.g. ax.set_xticks) mostly miss formatdict,
+            # so label each one in full, GH#18881
+            ordinal = round(x)
+            if abs(x - ordinal) > 1e-6:
+                # e.g. MaxNLocator after zooming in; between periods, so no label
+                return ""
+            if is_bday:
+                return bday_to_datetime(ordinal).strftime("%Y-%m-%d")
+            period = Period(ordinal=ordinal, freq=self.freq)
+            if freq_group == FreqGroup.FR_WK:
+                # str() of a weekly period is a "start/end" range
+                return period.strftime("%Y-%m-%d")
+            return str(period)
+
         if self.formatdict is None:
             return ""
         else:
             fmt = self.formatdict.pop(x, "")
             if isinstance(fmt, np.bytes_):
                 fmt = fmt.decode("utf-8")
-            # error: "BaseOffset" has no attribute "_period_dtype_code"
-            dtype_code = self.freq._period_dtype_code  # type: ignore[attr-defined]
-            freq_group = FreqGroup.from_period_dtype_code(dtype_code)
-            if freq_group == FreqGroup.FR_BUS:
+            if is_bday:
                 # Use bday_to_datetime to avoid (deprecated) Period[B]
                 return bday_to_datetime(int(x)).strftime(fmt)
             period = Period(ordinal=int(x), freq=self.freq)

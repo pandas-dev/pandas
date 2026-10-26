@@ -8,6 +8,7 @@ import re
 import sys
 import time
 import tracemalloc
+from typing import Any
 import weakref
 
 import dateutil
@@ -1194,7 +1195,7 @@ class _Plain:
     attr = 1
 
 
-class _OrderedSet(set):
+class _OrderedSet(set[Any]):
     # a plain one-element set would be exhausted before the guard in
     # Set_iterNext is reached, so drive the iteration order explicitly
     def __iter__(self):
@@ -1236,6 +1237,22 @@ def _deeply_nested():
     return outer
 
 
+def _traced_growth(func, n):
+    # tracemalloc is process-wide, so count only blocks allocated from this
+    # file (which is where it attributes the C encoder's allocations); other
+    # threads and pytest internals would otherwise add noise
+    this_file = (tracemalloc.Filter(True, __file__),)
+    tracemalloc.start()
+    try:
+        before = tracemalloc.take_snapshot().filter_traces(this_file)
+        for _ in range(n):
+            func()
+        after = tracemalloc.take_snapshot().filter_traces(this_file)
+    finally:
+        tracemalloc.stop()
+    return sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+
+
 @pytest.mark.parametrize(
     "bad, error",
     [
@@ -1252,16 +1269,12 @@ def test_encode_failure_frees_grown_buffer(bad, error):
     # with. The buffer is allocated with PyObject_Malloc, so tracemalloc sees
     # it; a leak here would be ~50 * 256 KiB.
     payload = ["x" * 1000] * 200 + [bad]
-    tracemalloc.start()
-    before = tracemalloc.take_snapshot()
-    for _ in range(50):
+
+    def dumps():
         with pytest.raises(error):
             ujson.ujson_dumps(payload)
-    after = tracemalloc.take_snapshot()
-    tracemalloc.stop()
 
-    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
-    assert grew < 100_000
+    assert _traced_growth(dumps, 50) < 100_000
 
 
 def test_to_json_bad_label_frees_values():
@@ -1362,13 +1375,6 @@ def test_to_json_datetime64_scalar_frees_dtype():
     # stands out against the allocations the loop itself makes.
     payload = [np.datetime64("2020-01-01T00:00:00", "s")]
 
-    tracemalloc.start()
-    before = tracemalloc.take_snapshot()
-    for _ in range(20_000):
-        ujson.ujson_dumps(payload, iso_dates=True)
-    after = tracemalloc.take_snapshot()
-    tracemalloc.stop()
-
-    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+    grew = _traced_growth(lambda: ujson.ujson_dumps(payload, iso_dates=True), 20_000)
     # a leak here would be ~3.2 MiB over this loop
     assert grew < 1_000_000

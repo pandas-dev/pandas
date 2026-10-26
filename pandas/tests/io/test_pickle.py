@@ -203,7 +203,7 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
-def flatten(data: dict) -> list[tuple[str, Any]]:
+def flatten(data: dict[str, dict[str, Any]]) -> list[tuple[str, Any]]:
     """Flatten create_pickle_data"""
     return [
         (typ, example)
@@ -535,6 +535,27 @@ def test_pickle_timeseries_periodindex(temp_file):
 
 
 @pytest.mark.parametrize(
+    "constructor, populate_cache",
+    [
+        (lambda: pd.Series([1, 2], index=pd.to_datetime(["2014", "2021"])), repr),
+        (
+            lambda: pd.arrays.IntervalArray.from_breaks([0, 1, 2]),
+            lambda obj: obj._can_hold_na,
+        ),
+        (lambda: pd.array([1, None], dtype="Int64"), lambda obj: obj._can_hold_na),
+        (pd.Int64Dtype, lambda obj: obj.numpy_dtype),
+    ],
+    ids=["DatetimeIndex", "IntervalArray", "IntegerArray", "Int64Dtype"],
+)
+def test_pickle_excludes_cached_properties(constructor, populate_cache):
+    # GH#49170 pickles should not depend on which cached properties were accessed
+    expected = pickle.dumps(constructor())
+    obj = constructor()
+    populate_cache(obj)
+    assert pickle.dumps(obj) == expected
+
+
+@pytest.mark.parametrize(
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name, temp_file):
@@ -706,7 +727,7 @@ def test_unpickle_keeps_instance_level_metadata():
     assert pickle.loads(pickle.dumps(result)).copy().myattr == "keepme"
 
 
-def _legacy_timestamp_pickle(args: tuple) -> bytes:
+def _legacy_timestamp_pickle(args: tuple[Any, ...]) -> bytes:
     # Emulate pandas<=1.2, whose Timestamp.__reduce__ returned
     #  (Timestamp, (value, freq, tz)).
     inner = pickle.dumps(args, protocol=0)

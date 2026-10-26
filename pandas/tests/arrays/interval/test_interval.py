@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -308,3 +310,120 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
     assert result.dtype.subtype == dtype
     assert result.left.dtype == dtype
     assert result.right.dtype == dtype
+
+
+def test_concat_empty_datetimetz_subtype():
+    # GH#64297 an empty result has no value left to re-infer the subtype from
+    arr = IntervalArray.from_breaks(pd.date_range("2020", periods=1, tz="UTC"))
+    assert len(arr) == 0
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    tm.assert_series_equal(result, pd.Series(arr))
+
+
+@pytest.mark.parametrize("subtype", ["Int64", "Float64"])
+def test_concat_retains_masked_subtype(subtype):
+    # GH#64297
+    arr = IntervalArray.from_breaks(pd.array([1, 2, 3], dtype=subtype))
+    assert arr.dtype.subtype == subtype
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    expected = pd.Series(
+        IntervalArray.from_arrays(
+            pd.array([1, 2, 1, 2], dtype=subtype),
+            pd.array([2, 3, 2, 3], dtype=subtype),
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid",
+    [
+        (np.int8, 100, 120, 110.0),
+        (np.int8, -128, -100, -114.0),
+        (np.int64, 2**63 - 2, 2**63 - 1, 2.0**63),
+        (np.int64, 10, 2**63 - 1, 2.0**62),
+        (np.uint64, 2**64 - 2, 2**64 - 1, 2.0**64),
+        (np.float64, 1e308, 1.5e308, 1.25e308),
+    ],
+)
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_no_overflow(constructor, dtype, left, right, mid):
+    # GH#25499
+    obj = constructor.from_arrays(
+        np.array([left], dtype=dtype), np.array([right], dtype=dtype)
+    )
+    tm.assert_index_equal(obj.mid, pd.Index([mid]))
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid",
+    [
+        # 0.5 * left + 0.5 * right would round each endpoint before adding
+        (np.int64, -(2**63), 2**63 - 1, -0.5),
+        (np.int64, 1600032392344190824, 1630902435275821611, 1.6154674138100063e18),
+        (np.uint64, 2**62 + 513, 2**63 + 1025, 2.0**62 + 2.0**61 + 1024),
+        (
+            np.float64,
+            2.225073858507202e-308,
+            2.225073858507202e-308,
+            2.225073858507202e-308,
+        ),
+        # left + 0.5 * (right - left) would round differently, overflow, or give nan
+        (np.float64, 0.1, 0.7, 0.39999999999999997),
+        (np.float64, -1e308, 1e308, 0.0),
+        (np.float64, np.inf, np.inf, np.inf),
+    ],
+)
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_correctly_rounded(constructor, dtype, left, right, mid):
+    # GH#25499
+    obj = constructor.from_arrays(
+        np.array([left], dtype=dtype), np.array([right], dtype=dtype)
+    )
+    tm.assert_index_equal(obj.mid, pd.Index([mid]))
+
+
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
+def test_mid_timedelta_odd_nanoseconds(constructor):
+    # halving each endpoint before adding would truncate twice
+    obj = constructor.from_arrays(
+        pd.to_timedelta([1, 1], unit="ns"), pd.to_timedelta([1, 3], unit="ns")
+    )
+    tm.assert_index_equal(obj.mid, pd.to_timedelta([1, 2], unit="ns"))
+
+
+@pytest.mark.parametrize(
+    "dtype, left, right, mid, mid_dtype",
+    [
+        ("Int8", [100, None, 1], [120, None, 3], [110.0, None, 2.0], "Float64"),
+        # sum fits, but each endpoint alone rounds in float64
+        ("Int64", [-(2**63), None], [2**63 - 1, None], [-0.5, None], "Float64"),
+        pytest.param(
+            "float64[pyarrow]",
+            [1e308, None],
+            [1.5e308, None],
+            [1.25e308, None],
+            "float64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        # opposite-sign endpoints whose sum fits
+        pytest.param(
+            "int64[pyarrow]",
+            [-(2**60)],
+            [2**60 + 10],
+            [5.0],
+            "float64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_mid_no_overflow_ea(dtype, left, right, mid, mid_dtype):
+    # GH#25499
+    arr = IntervalArray.from_arrays(
+        pd.array(left, dtype=dtype), pd.array(right, dtype=dtype)
+    )
+    tm.assert_index_equal(arr.mid, pd.Index(pd.array(mid, dtype=mid_dtype)))

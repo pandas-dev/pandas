@@ -1,4 +1,8 @@
 import contextlib
+from datetime import (
+    date,
+    datetime,
+)
 from pathlib import Path
 import re
 import uuid
@@ -35,6 +39,40 @@ def tmp_excel(ext, tmp_path):
     tmp = tmp_path / f"{uuid.uuid4()}{ext}"
     tmp.touch()
     return str(tmp)
+
+
+@pytest.mark.parametrize("ext", [".xlsx", ".xlsm"])
+@pytest.mark.parametrize("mode", ["w", "a"])
+@pytest.mark.parametrize("date_format", [None, "DD/MM/YYYY"])
+@pytest.mark.parametrize("datetime_format", [None, "DD/MM/YYYY HH:MM"])
+def test_date_datetime_format(tmp_excel, mode, date_format, datetime_format):
+    # GH#44284
+    if mode == "a":
+        pd.DataFrame({"existing": [1]}).to_excel(
+            tmp_excel, engine="openpyxl", sheet_name="existing"
+        )
+    df = pd.DataFrame(
+        {
+            "date": [date(2021, 11, 2)],
+            "datetime": [datetime(2021, 11, 2, 13, 14, 15)],
+        }
+    )
+
+    with ExcelWriter(
+        tmp_excel,
+        engine="openpyxl",
+        mode=mode,
+        date_format=date_format,
+        datetime_format=datetime_format,
+    ) as writer:
+        df.to_excel(writer, sheet_name="dates", index=False)
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as workbook:
+        sheet = workbook["dates"]
+        assert sheet["A2"].number_format == (date_format or "YYYY-MM-DD")
+        assert sheet["B2"].number_format == (datetime_format or "YYYY-MM-DD HH:MM:SS")
+        if mode == "a":
+            assert workbook["existing"]["B2"].value == 1
 
 
 def test_to_excel_styleconverter():
