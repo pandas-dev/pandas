@@ -1020,6 +1020,17 @@ def test_pct_change(frame_or_series, freq, periods):
     tm.assert_equal(result, expected)
 
 
+def test_pct_change_freq_excludes_grouping_column():
+    # GH#46944
+    df = pd.DataFrame(
+        {"a": ["x", "x", "y", "y"], "b": [1.0, 2.0, 4.0, 8.0]},
+        index=pd.date_range("2020-01-01", periods=4),
+    )
+    result = df.groupby("a").pct_change(freq="D")
+    expected = pd.DataFrame({"b": [np.nan, 1.0, np.nan, 1.0]}, index=df.index)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, expected_status",
     [
