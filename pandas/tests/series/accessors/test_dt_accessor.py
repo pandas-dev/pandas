@@ -633,6 +633,8 @@ class TestSeriesDatetimeValues:
             ("%Y%", "2024%"),
             ("%d日%H時", "01日05時"),
             ("%S.%f", "00.123456"),
+            ("100%%", "100%"),
+            ("abc", "abc"),
         ],
     )
     def test_strftime_literals(self, tz, fmt, expected):
