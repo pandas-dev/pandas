@@ -51,8 +51,8 @@ class DatetimeStrftime:
     def time_frame_datetime_formatting_custom(self, nobs):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
 
-    def time_frame_datetime_tz_formatting_default(self, nobs):
-        self.data["dt_tz"].dt.strftime(date_format=None)
+    def time_frame_datetime_tz_formatting_default_explicit(self, nobs):
+        self.data["dt_tz"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S")
 
     def time_frame_datetime_tz_formatting_custom(self, nobs):
         self.data["dt_tz"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
