@@ -1670,6 +1670,28 @@ def _is_type_compatible(a, b) -> bool:
     )
 
 
+def _integer_breaks(start, end, freq, dtype: np.dtype) -> np.ndarray | None:
+    """
+    Helper for interval_range to generate integer breaks with exact arithmetic.
+
+    np.arange with a float ``stop`` and np.linspace both compute in float64, which
+    can't represent every integer above 2**53, and the float nudge used to include
+    ``end`` is lost for large ``end``. Returns None if the inputs aren't all integers
+    or don't fit in ``dtype``, so the caller can fall back to the float path.
+    """
+    if not all(is_integer(x) for x in (start, end, freq)) or dtype.kind not in "iu":
+        return None
+    start, end, freq = int(start), int(end), int(freq)
+    info = np.iinfo(dtype)
+    if freq <= 0 or start < info.min or end > info.max:
+        return None
+    # count the breaks with Python ints; numpy's own length computation for
+    # arange is a float division, so give it a stop that's an exact multiple
+    # of freq away from start
+    periods = max((end - start) // freq + 1, 0)
+    return np.arange(start, start + periods * freq, freq, dtype=dtype)
+
+
 @set_module("pandas")
 def interval_range(
     start=None,
@@ -1831,9 +1853,13 @@ def interval_range(
                 or isinstance(freq, (float, np.floating))
             ):
                 dtype = np.dtype("float64")
-            # 0.1 ensures we capture end
-            breaks = np.arange(start, end + (freq * 0.1), freq)
-            breaks = maybe_downcast_numeric(breaks, dtype)
+            int_breaks = _integer_breaks(start, end, freq, dtype)
+            if int_breaks is not None:
+                breaks = int_breaks
+            else:
+                # 0.1 ensures we capture end
+                breaks = np.arange(start, end + (freq * 0.1), freq)
+                breaks = maybe_downcast_numeric(breaks, dtype)
         else:
             # compute the period/start/end if unspecified (at most one)
             if periods is None:
@@ -1843,7 +1869,20 @@ def interval_range(
             elif end is None:
                 end = start + (periods - 1) * freq
 
-            breaks = np.linspace(start, end, periods)
+            step = freq
+            if step is None and periods > 1 and is_integer(start) and is_integer(end):
+                # start/end/periods with evenly spaced integer breaks; use
+                # Python ints so the span of NumPy integers can't overflow
+                span = int(end) - int(start)
+                if span % (periods - 1) == 0:
+                    step = span // (periods - 1)
+            int_breaks = None
+            if step is not None:
+                int_breaks = _integer_breaks(start, end, step, dtype)
+            if int_breaks is not None:
+                breaks = int_breaks
+            else:
+                breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
             breaks = maybe_downcast_numeric(breaks, dtype)

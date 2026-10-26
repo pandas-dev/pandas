@@ -67,6 +67,7 @@ from pandas.io.common import (
     get_handle,
     is_potential_multi_index,
     stringify_path,
+    warn_unused_compression,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import (
@@ -269,6 +270,7 @@ def to_json(
         ) as handles:
             handles.handle.write(s)
     else:
+        warn_unused_compression(compression)
         return s
     return None
 
