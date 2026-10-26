@@ -8243,9 +8243,11 @@ class DataFrame(NDFrame, OpsMixin):
         if level is not None:
             if not isinstance(level, (tuple, list)):
                 level = [level]
-            level = [self.index._get_level_number(lev) for lev in level]
+            level = self.index._get_level_numbers(level)
             if len(level) < self.index.nlevels:
-                new_index = self.index.droplevel(level)  # type: ignore[assignment]
+                new_index = self.index._drop_level_numbers(  # type: ignore[assignment]
+                    sorted(level, reverse=True)
+                )
 
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]

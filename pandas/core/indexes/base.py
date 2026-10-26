@@ -2284,6 +2284,15 @@ class Index(IndexOpsMixin, PandasObject):
         self._validate_index_level(level)
         return 0
 
+    def _get_level_numbers(self, levels: Sequence[Hashable]) -> list[int]:
+        level_numbers = [self._get_level_number(level) for level in levels]
+        if len(level_numbers) != len(set(level_numbers)):
+            raise ValueError(
+                "level should not contain duplicate values, "
+                f"got level numbers {level_numbers}"
+            )
+        return level_numbers
+
     def sortlevel(
         self,
         level: Level | None = None,
@@ -2426,7 +2435,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(level, (tuple, list)):
             level = [level]
 
-        levnums = sorted((self._get_level_number(lev) for lev in level), reverse=True)
+        levnums = sorted(self._get_level_numbers(level), reverse=True)
 
         return self._drop_level_numbers(levnums)
 
