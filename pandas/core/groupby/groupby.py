@@ -3850,8 +3850,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         from pandas.core.window import RollingGroupBy
 
+        obj = self._selected_obj
+        if obj.ndim == 2 and self._selection is None:
+            obj = obj.drop(columns=self.exclusions, errors="ignore")
+
         return RollingGroupBy(
-            self._selected_obj,
+            obj,
             window=window,
             min_periods=min_periods,
             center=center,
@@ -3929,8 +3933,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         from pandas.core.window import ExpandingGroupBy
 
+        obj = self._selected_obj
+        if obj.ndim == 2 and self._selection is None:
+            obj = obj.drop(columns=self.exclusions, errors="ignore")
+
         return ExpandingGroupBy(
-            self._selected_obj,
+            obj,
             min_periods=min_periods,
             method=method,
             _grouper=self._grouper,
@@ -4031,8 +4039,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         from pandas.core.window import ExponentialMovingWindowGroupBy
 
+        obj = self._selected_obj
+        if obj.ndim == 2 and self._selection is None:
+            obj = obj.drop(columns=self.exclusions, errors="ignore")
+
         return ExponentialMovingWindowGroupBy(
-            self._selected_obj,
+            obj,
             com=com,
             span=span,
             halflife=halflife,
