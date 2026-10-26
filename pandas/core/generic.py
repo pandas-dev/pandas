@@ -86,6 +86,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -239,6 +240,31 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
+
+
+def _fill_bool_ea_na(cond):
+    """
+    Treat NA in a nullable boolean `where`/`mask` condition as False.
+
+    This matches boolean indexing (GH#35429). It must happen before `mask`
+    inverts the condition, so it cannot be left to `_where`.
+    """
+
+    def is_bool_ea(dtype) -> bool:
+        return isinstance(dtype, ExtensionDtype) and dtype.kind == "b"
+
+    if isinstance(cond, ABCDataFrame):
+        if not any(is_bool_ea(dtype) for dtype in cond._blk_dtypes):
+            return cond
+        cond = cond.copy(deep=False)
+        for loc, dtype in enumerate(cond._mgr.get_dtypes()):
+            if is_bool_ea(dtype):
+                cond.isetitem(loc, cond.iloc[:, loc].fillna(False))
+        return cond
+    # cond may also be an ndarray or list, which pass through unchanged
+    if is_bool_ea(getattr(cond, "dtype", None)):
+        return cond.fillna(False)
+    return cond
 
 
 class NDFrame(PandasObject, indexing.IndexingMixin):
@@ -2110,7 +2136,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if config["display"]["html"]["table_schema"]:
             data = self.head(config["display"]["max_rows"])
 
-            as_json = data.to_json(orient="table")
+            try:
+                as_json = data.to_json(orient="table")
+            except (TypeError, ValueError, OverflowError) as err:
+                # IPython skips a mimetype quietly only on NotImplementedError,
+                # see GH#16848
+                raise NotImplementedError(
+                    "Cannot represent this object as a table schema"
+                ) from err
             as_json = cast("str", as_json)
             return loads(as_json, object_pairs_hook=collections.OrderedDict)
 
@@ -5701,11 +5734,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
             DataFrame and is only supported with ``axis=0``.
+
+            .. versionadded:: 3.1.0
+
         na : {"raise", True, False}, default False
             How to treat missing values in a boolean mask. ``True`` or
             ``False`` treats missing values as that value, matching
             ``obj[mask]`` for a mask with nullable boolean dtype; ``"raise"``
             raises a ``ValueError``. Ignored when selecting labels.
+
+            .. versionadded:: 3.1.0
 
         Returns
         -------
@@ -7301,6 +7339,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area
             ).T
+            if inplace:
+                self._update_inplace(result)
+                return self
 
             return result
 
@@ -9189,7 +9230,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            lower, upper = min(lower, upper), max(lower, upper)
+            dtypes = set(self._mgr.get_dtypes())
+            dtype = dtypes.pop() if len(dtypes) == 1 else None
+            if isinstance(dtype, CategoricalDtype) and dtype.ordered:
+                # GH#49217 order by category position, not by value
+                pos = dtype.categories.get_indexer([lower, upper])
+                if pos.min() >= 0 and pos[0] > pos[1]:
+                    lower, upper = upper, lower
+            else:
+                lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
@@ -10070,19 +10119,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mask = ~((self == other) | (self.isna() & other.isna()))  # type: ignore[operator]
         mask.fillna(True, inplace=True)
 
-        if not keep_equal:
-            self = self.where(mask)
-            other = other.where(mask)
-
+        # drop rows/columns before masking so that values in dropped
+        # positions do not force an upcast, see GH#39899
         if not keep_shape:
             if isinstance(self, ABCDataFrame):
                 cmask = mask.any()
                 rmask = mask.any(axis=1)
                 self = self.loc[rmask, cmask]
                 other = other.loc[rmask, cmask]
+                mask = mask.loc[rmask, cmask]
             else:
                 self = self[mask]
                 other = other[mask]
+                mask = mask[mask]
+
+        if not keep_equal:
+            self = self.where(mask)
+            other = other.where(mask)
+
         if not isinstance(result_names, tuple):
             raise TypeError(
                 f"Passing 'result_names' as a {type(result_names)} is not "
@@ -10581,16 +10635,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True, extract_range=True)
+            if (
+                self.ndim == 1
+                and is_list_like(other)
+                # a dict is keyed and a set unordered, so neither lines up by position
+                and not isinstance(other, (np.ndarray, ExtensionArray, set, frozenset))
+                and not is_dict_like(other)
+                # outside numeric and bool dtypes a tuple is one element, as
+                #  for object dtype (GH#37681)
+                and (
+                    not isinstance(other, tuple)
+                    or is_numeric_dtype(self.dtype)
+                    or is_bool_dtype(self.dtype)
+                )
+            ):
+                # GH#63842 line up a list against the mask like an ndarray
+                other = common.asarray_tuplesafe(other)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
+            if self.ndim == 1 and other.ndim == 1 and len(other) == 1:
+                # broadcast like a scalar (GH#2745, GH#4192)
+                other = other.repeat(len(self))
+
             if other.shape != self.shape:
                 if self.ndim != 1:
-                    # In the ndim == 1 case we may have
-                    #  other length 1, which we treat as scalar (GH#2745, GH#4192)
-                    #  or len(other) == icond.sum(), which we treat like
-                    #  __setitem__ (GH#3235)
                     raise ValueError(
                         "other must be the same shape as self when an ndarray"
+                    )
+                if other.ndim == 1 and not (inplace and len(other) == cond.sum()):
+                    # inplace with one value per selected position is treated
+                    #  like __setitem__ (GH#3235)
+                    raise ValueError(
+                        f"Length of values ({len(other)}) does not match length "
+                        f"of index ({len(self)})"
                     )
 
             # we are the same shape, so create an actual object for alignment
@@ -10650,6 +10727,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is True, keep the original value. Where
             False, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10796,6 +10875,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
 
@@ -10821,6 +10901,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is False, keep the original value. Where
             True, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10967,7 +11049,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
-        cond = common.apply_if_callable(cond, self)
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
 
         # see gh-21891

@@ -387,6 +387,15 @@ class Styler(StylerRenderer):
             return self.to_latex()
         return None
 
+    def __repr__(self) -> str:
+        # Jupyter computes text/plain on every display, so avoid a full render.
+        data = self.data
+        if len(self.hidden_rows) or len(self.hidden_columns):
+            rows = np.setdiff1d(np.arange(data.shape[0]), self.hidden_rows)
+            cols = np.setdiff1d(np.arange(data.shape[1]), self.hidden_columns)
+            data = data.iloc[rows, cols]
+        return repr(data)
+
     def set_tooltips(
         self,
         ttips: DataFrame,
@@ -625,6 +634,15 @@ class Styler(StylerRenderer):
         and cell character count does not exceed Excel's limitations.
         All other limitations must be checked by the user.
 
+        Styles from :meth:`Styler.set_table_styles` and
+        :meth:`Styler.set_td_classes` are not exported, and only a subset of CSS
+        properties is supported; see
+        `Table Visualization <../../user_guide/style.ipynb>`_.
+        Display formatting from :meth:`Styler.format` and hiding from
+        :meth:`Styler.hide` are ignored. To control how values are displayed in
+        Excel, set an Excel format code with the ``number-format`` property,
+        writing ``§`` in place of Excel's ``;`` section separator.
+
         Examples
         --------
 
@@ -659,6 +677,15 @@ class Styler(StylerRenderer):
         automatically chosen depending on the file extension):
 
         >>> df1.to_excel("output1.xlsx", engine="xlsxwriter")  # doctest: +SKIP
+
+        To set Excel number formats, here showing negative totals in red:
+
+        >>> df3 = pd.DataFrame({"share": [0.25, -0.1], "total": [1234.5, -99.0]})
+        >>> styler = df3.style.map(lambda v: "number-format: 0.0%;", subset=["share"])
+        >>> styler = styler.map(
+        ...     lambda v: "number-format: #,##0.00§[Red]-#,##0.00;", subset=["total"]
+        ... )
+        >>> styler.to_excel("styled.xlsx")  # doctest: +SKIP
         """
         from pandas.io.formats.excel import ExcelFormatter
 

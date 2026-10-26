@@ -21,7 +21,11 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     iNaT,
 )
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -284,6 +288,15 @@ def astype_array_safe(
     if isinstance(dtype, NumpyEADtype):
         # Ensure we don't end up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
+
+    if isinstance(dtype, np.dtype) and dtype.kind == "V" and values.dtype != dtype:
+        # GH#49388 the Series and DataFrame constructors already reject this dtype
+        warnings.warn(
+            "astype to a compound (structured or void) dtype is deprecated and "
+            "will raise in a future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     try:
         new_values = astype_array(values, dtype, copy=copy)

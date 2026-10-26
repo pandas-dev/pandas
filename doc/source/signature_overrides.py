@@ -63,6 +63,16 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default="17:00",
     ),
+    "weekday": inspect.Parameter(
+        "weekday",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=None,
+    ),
+    "method": inspect.Parameter(
+        "method",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=3,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -93,6 +103,16 @@ _OFFSET_SIGNATURES = {
         "n",
         "normalize",
         "month",
+    ),
+    pd.tseries.offsets.QuarterEnd: (
+        "n",
+        "normalize",
+        "startingMonth",
+    ),
+    pd.tseries.offsets.QuarterBegin: (
+        "n",
+        "normalize",
+        "startingMonth",
     ),
     pd.tseries.offsets.HalfYearEnd: (
         "n",
@@ -184,6 +204,37 @@ _OFFSET_SIGNATURES = {
     pd.tseries.offsets.BusinessMonthBegin: (
         "n",
         "normalize",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthEnd: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.CustomBusinessMonthBegin: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.YearEnd: (
+        "n",
+        "normalize",
+        "month",
+    ),
+    pd.tseries.offsets.Week: (
+        "n",
+        "normalize",
+        "weekday",
+    ),
+    pd.tseries.offsets.Easter: (
+        "n",
+        "normalize",
+        "method",
     ),
 }
 

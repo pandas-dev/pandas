@@ -91,6 +91,11 @@ class HistPlot(LinePlot):
                 bins = [self._calculate_bins(group, bins) for key, group in grouped]
             else:
                 bins = self._calculate_bins(self.data, bins)
+        # error: Item "int" of "int | ndarray[...] | list[ndarray[...]]" has no
+        # attribute "__iter__" (not iterable)
+        elif self.by is not None and not any(is_list_like(edges) for edges in bins):  # type: ignore[union-attr]
+            # explicit bin edges are shared by every group
+            bins = [np.asarray(bins)] * len(self._grouped)
         return bins
 
     def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:

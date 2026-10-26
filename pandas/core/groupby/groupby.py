@@ -914,10 +914,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         from pandas.core.reshape.concat import concat
 
+        # GH#12824 apply may return None for a group to drop it
+        mask = np.array([value is not None for value in values], dtype=bool)
+        if not mask.all():
+            values = [value for value in values if value is not None]
+
         if self.group_keys and not is_transform:
             if self.as_index:
                 # possible MI return case
                 group_keys = self._grouper.result_index
+                if not mask.all():
+                    group_keys = group_keys[mask]
                 group_levels = self._grouper.levels
                 group_names = self._grouper.names
 
@@ -5290,7 +5297,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     fill_value,
                 )
                 shifted = self._python_apply_general(
-                    f, self._selected_obj, is_transform=True
+                    f, self._obj_with_exclusions, is_transform=True
                 )
             else:
                 if fill_value is lib.no_default:
@@ -5505,13 +5512,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 freq=freq,
                 axis=0,
             )
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            return self._python_apply_general(
+                f, self._obj_with_exclusions, is_transform=True
+            )
 
-        # fill_method is None (validated above); GH30463
-        filled = self.ffill(limit=0)
-        fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
-        return (filled / shifted) - 1
+        shifted = self.shift(periods=periods)
+        return (self._obj_with_exclusions / shifted) - 1
 
     @final
     def head(self, n: int = 5) -> NDFrameT:

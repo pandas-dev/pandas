@@ -1020,6 +1020,17 @@ def test_pct_change(frame_or_series, freq, periods):
     tm.assert_equal(result, expected)
 
 
+def test_pct_change_freq_excludes_grouping_column():
+    # GH#46944
+    df = pd.DataFrame(
+        {"a": ["x", "x", "y", "y"], "b": [1.0, 2.0, 4.0, 8.0]},
+        index=pd.date_range("2020-01-01", periods=4),
+    )
+    result = df.groupby("a").pct_change(freq="D")
+    expected = pd.DataFrame({"b": [np.nan, 1.0, np.nan, 1.0]}, index=df.index)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, expected_status",
     [
@@ -1277,6 +1288,81 @@ def test_transform_fastpath_raises():
 
     expected = pd.DataFrame([2, -2, 2, 4], columns=["B"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys, expected_values",
+    [([0, 0, 0], [3, 3, 3]), ([0, 0, 1], [1, 1, 0])],
+)
+def test_transform_udf_reduction_keeps_column_dtypes(keys, expected_values):
+    # GH#42617 per-column scalar results are not coerced to a common dtype
+    df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
+    result = df.groupby(keys).transform(lambda x: x.max() - x.min())
+    expected = pd.DataFrame(
+        {"a": expected_values, "b": np.array(expected_values, dtype=np.float64)}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_scalar_extension_dtype_column():
+    # GH#42617 only a later group's results have mixed dtypes
+    df = pd.DataFrame(
+        {"a": [1, 2, 4, 8, 16, 32], "b": pd.array([1, 2, None, 8, 16, 32], "Int64")}
+    )
+    result = df.groupby([0, 0, 1, 1, 1, 2]).transform(lambda x: x.iloc[0])
+    # object for "b" matches SeriesGroupBy.transform
+    expected = pd.DataFrame(
+        {
+            "a": [1, 1, 4, 4, 4, 32],
+            "b": np.array([1, 1, pd.NA, pd.NA, pd.NA, 32], dtype=object),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_scalar_none_is_nan():
+    # GH#42617 a None result is NaN, as in SeriesGroupBy.transform
+    df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
+    result = df.groupby([0, 0, 1]).transform(
+        lambda x: None if x.name == "a" else x.max()
+    )
+    expected = pd.DataFrame({"a": [np.nan] * 3, "b": [3.0, 3.0, 5.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_scalar_user_defined_class():
+    # GH#42617 a non-list-like result that pandas does not treat as a scalar
+    class Box:
+        def __init__(self, value):
+            self.value = value
+
+        def __eq__(self, other):
+            return isinstance(other, Box) and self.value == other.value
+
+    df = pd.DataFrame({"a": [1, 2, 4], "b": [2.0, 3.0, 5.0]})
+    result = df.groupby([0, 0, 1]).transform(
+        lambda x: Box(x.max()) if x.name == "b" else x.max()
+    )
+    expected = pd.DataFrame(
+        {
+            "a": [2, 2, 4],
+            "b": np.array([Box(3.0), Box(3.0), Box(5.0)], dtype=object),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_scalar_same_dtypes_uses_fast_path():
+    # GH#42617 frames whose results share one dtype keep the fast path
+    df = pd.DataFrame({"a": [1.0, 2.0, 4.0], "b": [2.0, 3.0, 5.0]})
+    ndims = []
+
+    def func(x):
+        ndims.append(x.ndim)
+        return x.max() - x.min()
+
+    df.groupby([0, 0, 1]).transform(func)
+    assert ndims[-1] == 2
 
 
 def test_transform_lambda_indexing():

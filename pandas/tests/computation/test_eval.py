@@ -1968,7 +1968,7 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     if column in ["True", "False"]:
         request.applymarker(
             pytest.mark.xfail(
-                raises=KeyError,
+                raises=ValueError,
                 reason=f"{column} is a keyword literal; use backticks",
             )
         )

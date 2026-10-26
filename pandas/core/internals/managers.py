@@ -198,7 +198,8 @@ class BaseBlockManager(PandasObject):
 
     _blknos: npt.NDArray[np.intp]
     _blklocs: npt.NDArray[np.intp]
-    _dtypes_cache: npt.NDArray[np.object_] | None
+    # (blocks, value): an entry is valid only while its blocks are self.blocks
+    _dtypes_cache: tuple[tuple[Block, ...], npt.NDArray[np.object_]] | None
     blocks: tuple[Block, ...]
     axes: list[Index]
 
@@ -344,16 +345,17 @@ class BaseBlockManager(PandasObject):
         return algos.unique(np.array([blk.dtype for blk in self.blocks], dtype=object))
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
+        blocks = self.blocks
         cache = self._dtypes_cache
-        if cache is None:
-            blocks = self.blocks
+        # Validate on read rather than on store: a reader racing a write may
+        # store an entry for blocks that are already gone (GH#68446). Keying on
+        # blocks alone relies on writes that change column dtypes rebinding
+        # blocks after they update blknos.
+        if cache is None or cache[0] is not blocks:
             dtypes = np.array([blk.dtype for blk in blocks], dtype=object)
-            cache = dtypes.take(self.blknos)
-            # An invalidating write that landed while we computed has already
-            # cleared the cache, so storing now would leave the stale array for good.
-            if blocks is self.blocks:
-                self._dtypes_cache = cache
-        return cache.copy()
+            cache = (blocks, dtypes.take(self.blknos))
+            self._dtypes_cache = cache
+        return cache[1].copy()
 
     @property
     def arrays(self) -> list[ArrayLike]:
@@ -596,33 +598,27 @@ class BaseBlockManager(PandasObject):
                     )
 
                     indexer = list(indexer)
-                    # first block equals values we are setting to -> set to all columns
-                    if lib.is_integer(indexer[1]):
-                        col_indexer = 0
-                    elif len(inverse) > 1 and lib.is_range_indexer(
-                        inverse, len(blk_loc)
-                    ):
-                        col_indexer = slice(None)  # type: ignore[assignment]
+                    # The column indexer has to keep the kind the caller used:
+                    # a slice takes the cross product with the row indexer,
+                    # while an array broadcasts against it (GH#65446)
+                    if indexer[1] is Ellipsis or indexer[1] is None:
+                        # the new block holds every column in order, so the
+                        # key applies unchanged
+                        pass
+                    elif lib.is_integer(indexer[1]):
+                        indexer[1] = 0
+                    elif isinstance(indexer[1], slice):
+                        # the new block holds the columns sorted, so a slice
+                        # over them differs from the caller's only in direction
+                        step = -1 if (indexer[1].step or 1) < 0 else None
+                        indexer[1] = slice(None, None, step)
                     else:
-                        col_indexer = inverse  # type: ignore[assignment]
-                    indexer[1] = col_indexer
+                        indexer[1] = inverse
 
-                    row_indexer = indexer[0]
-                    if isinstance(col_indexer, np.ndarray):
-                        if (
-                            isinstance(row_indexer, np.ndarray)
-                            and row_indexer.ndim == 1
-                        ):
-                            # GH#65446: Make the row indexer 2d to take a cross product
-                            row_indexer = row_indexer[:, None]
-                    elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
-                        # numpy cannot handle a 2d indexer in combo with a slice
-                        row_indexer = np.squeeze(row_indexer, axis=1)
-                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
+                    if isinstance(indexer[0], np.ndarray) and len(indexer[0]) == 0:
                         # numpy does not like empty indexer combined with slice
                         # and we are setting nothing anyway
                         return self
-                    indexer[0] = row_indexer
                     self.blocks[0].setitem(tuple(indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
@@ -1163,6 +1159,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Indexing
 
+    def _get_interleaved_dtype(self) -> DtypeObj | None:
+        blocks = self.blocks
+        cache = self._interleaved_dtype
+        # validated on read for the same reason as in get_dtypes
+        if cache is None or cache[0] is not blocks:
+            cache = (blocks, interleaved_dtype([blk.dtype for blk in blocks]))
+            self._interleaved_dtype = cache
+        return cache[1]
+
     def fast_xs(self, loc: int) -> SingleBlockManager:
         """
         Return the array corresponding to `frame.iloc[loc]`.
@@ -1193,10 +1198,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         # GH#62263 cache interleaved_dtype to avoid recomputing on
         # repeated fast_xs calls
-        dtype = self._interleaved_dtype
-        if dtype is None:
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-            self._interleaved_dtype = dtype
+        dtype = self._get_interleaved_dtype()
 
         n = len(self)
 
@@ -1373,6 +1375,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
+        # GH#68445, GH#71098 value needs one column per position; callers do any
+        #  broadcasting. An empty loc writes nothing, so it stays a no-op.
+        ncols = 1 if value_is_extension_type else len(value)
+        if len(blknos) and ncols != len(blknos):
+            raise ValueError(
+                f"Got {len(blknos)} positions but value has {ncols} columns."
+            )
+
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
@@ -1449,8 +1459,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blknos[unfit_idxr] = len(self.blocks)
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
-            # Invalidate the caches before swapping blocks; see get_dtypes
-            # for the window this ordering leaves open.
+            # Not needed for correctness (see get_dtypes); releases the old blocks
             self._interleaved_dtype = None
             self._dtypes_cache = None
             self._known_consolidated = False
@@ -1501,6 +1510,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         )
         self.blocks = blocks_tup
         self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb.mgr_locs))
+        self._interleaved_dtype = None
+        self._dtypes_cache = None
 
         if not nbs_tup and value is not None:
             # No need to update _blknos if split did not happen
@@ -1537,8 +1548,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
-        # Invalidate the caches before swapping blocks; see get_dtypes
-        # for the window this ordering leaves open.
+        # Not needed for correctness (see get_dtypes); releases the old blocks
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self.blocks = new_blocks
@@ -1610,8 +1620,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
-        # Invalidate the caches before swapping blocks; see get_dtypes
-        # for the window this ordering leaves open.
+        # Not needed for correctness (see get_dtypes); releases the old blocks
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self._known_consolidated = False
@@ -1978,12 +1987,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # "Optional[Union[dtype[Any], ExtensionDtype]]", variable has
             # type "Optional[dtype[Any]]")
             # GH#62263 use cached interleaved_dtype
-            dtype = self._interleaved_dtype  # type: ignore[assignment]
-            if dtype is None:
-                dtype = interleaved_dtype(  # type: ignore[assignment]
-                    [blk.dtype for blk in self.blocks]
-                )
-                self._interleaved_dtype = dtype
+            dtype = self._get_interleaved_dtype()  # type: ignore[assignment]
             # not cached since it depends on the values, GH#38240
             dtype = common_dtype_categorical_compat(  # type: ignore[assignment]
                 [blk.values for blk in self.blocks],
