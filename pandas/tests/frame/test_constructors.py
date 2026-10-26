@@ -3893,3 +3893,25 @@ def test_dtype_dict_frame_input(copy):
 
     result.iloc[0, 1] = 100
     tm.assert_frame_equal(df, pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index])
+@pytest.mark.parametrize("dtype", ["Int64", "M8[ns]"])
+def test_dtype_dict_series_index_input(box, dtype):
+    # GH#71142 writing to the result does not modify the input
+    obj = box([1, 2])
+    result = pd.DataFrame(obj, dtype={0: dtype})
+    tm.assert_frame_equal(result, pd.DataFrame(obj, dtype=dtype))
+
+    result.iloc[0, 0] = result.iloc[1, 0]
+    tm.assert_equal(obj, box([1, 2]))
+
+
+@pytest.mark.parametrize("box", [np.array, pd.DataFrame])
+def test_dtype_dict_interleaved_columns(box):
+    # GH#71142 columns sharing a dtype need not be adjacent
+    values = np.arange(8).reshape(2, 4)
+    dtype = {0: "int8", 1: "Int64", 2: "int8"}
+    result = pd.DataFrame(box(values), dtype=dtype)
+    expected = pd.DataFrame(values).astype(dtype)
+    tm.assert_frame_equal(result, expected)

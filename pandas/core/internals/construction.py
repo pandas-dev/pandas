@@ -27,7 +27,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import (
     astype_array,
-    astype_array_safe,
     astype_is_view,
 )
 from pandas.core.dtypes.cast import (
@@ -97,10 +96,12 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Iterator,
         Mapping,
         Sequence,
     )
 
+    from pandas._libs.internals import BlockValuesRefs
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -108,6 +109,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.internals.blocks import Block
     from pandas.core.internals.managers import BlockManager
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -386,19 +388,52 @@ def ndarray_to_mgr(
         # TODO: check len(values) == 0?
         block_values = []
 
-    mgr = create_block_manager_from_blocks(
+    if dtype_map is not None:
+        block_values = _cast_from_values(
+            block_values, values, _resolve_dtypes(dtype_map, columns), copy, refs
+        )
+
+    return create_block_manager_from_blocks(
         block_values, [columns, index], verify_integrity=False
     )
-    if dtype_map is not None:
-        for i, col_dtype in enumerate(_resolve_dtypes(dtype_map, columns)):
-            # cast from values, not the inferred column, as dtype=col_dtype would
-            if col_dtype is None or (
-                values.dtype == col_dtype == mgr.iget_values(i).dtype
-            ):
-                continue
-            arr = sanitize_array(values[i], None, dtype=col_dtype, copy=copy)
-            mgr.iset(i, arr)
-    return mgr
+
+
+def _cast_from_values(
+    blocks: list[Block],
+    values: ArrayLike,
+    col_dtypes: list[DtypeObj | None],
+    copy: bool,
+    refs: BlockValuesRefs | None,
+) -> list[Block]:
+    """
+    Cast each column with a dtype in ``col_dtypes`` from ``values`` (one row per
+    column), as ``dtype=col_dtype`` would, rather than from the inferred block.
+    """
+    new_blocks: list[Block] = []
+    for blk in blocks:
+        for col_dtype, sub in _split_by_dtype(blk, col_dtypes):
+            if col_dtype is None or values.dtype == col_dtype == sub.dtype:
+                new_blocks.append(sub)
+            elif is_1d_only_ea_dtype(col_dtype):
+                new_blocks.extend(
+                    new_block(
+                        sanitize_array(values[loc], None, dtype=col_dtype, copy=copy),
+                        BlockPlacement(slice(loc, loc + 1)),
+                        ndim=2,
+                        refs=refs,
+                    )
+                    for loc in sub.mgr_locs
+                )
+            else:
+                arr = sanitize_array(
+                    values[sub.mgr_locs.indexer],
+                    None,
+                    dtype=col_dtype,
+                    copy=copy,
+                    allow_2d=True,
+                )
+                new_blocks.append(new_block_2d(arr, sub.mgr_locs, refs=refs))
+    return new_blocks
 
 
 def astype_columns(
@@ -407,11 +442,44 @@ def astype_columns(
     """
     Cast each column of ``mgr`` to its dtype in ``dtype``, as ``mgr.astype`` would.
     """
-    for i, col_dtype in enumerate(_resolve_dtypes(dtype, mgr.items)):
-        values = mgr.iget_values(i)
-        if col_dtype is not None and values.dtype != col_dtype:
-            mgr.iset(i, astype_array_safe(values, col_dtype, copy=True))
-    return mgr
+    col_dtypes = _resolve_dtypes(dtype, mgr.items)
+    new_blocks: list[Block] = []
+    for blk in mgr.blocks:
+        for col_dtype, sub in _split_by_dtype(blk, col_dtypes):
+            if col_dtype is None or sub.dtype == col_dtype:
+                new_blocks.append(sub)
+            elif is_1d_only_ea_dtype(col_dtype) and sub.values.ndim == 2:
+                new_blocks.extend(
+                    col_blk.astype(col_dtype, squeeze=True) for col_blk in sub._split()
+                )
+            else:
+                new_blocks.append(sub.astype(col_dtype))
+    return type(mgr)(tuple(new_blocks), mgr.axes, verify_integrity=False)
+
+
+def _split_by_dtype(
+    blk: Block, col_dtypes: list[DtypeObj | None]
+) -> Iterator[tuple[DtypeObj | None, Block]]:
+    """
+    Split ``blk`` into one block per distinct ``col_dtypes`` entry of its columns.
+
+    Used instead of a per-column ``iset``, which is quadratic in wide frames.
+    """
+    blk_locs_by_dtype: defaultdict[DtypeObj | None, list[int]] = defaultdict(list)
+    for blk_loc, mgr_loc in enumerate(blk.mgr_locs):
+        blk_locs_by_dtype[col_dtypes[mgr_loc]].append(blk_loc)
+    if len(blk_locs_by_dtype) == 1:
+        yield next(iter(blk_locs_by_dtype)), blk
+        return
+    for col_dtype, blk_locs in blk_locs_by_dtype.items():
+        locs = np.array(blk_locs, dtype=np.intp)
+        new_mgr_locs = BlockPlacement(blk.mgr_locs.as_array[locs])
+        indexer = lib.maybe_indices_to_slice(locs, len(blk.mgr_locs))
+        if isinstance(indexer, slice):
+            # a view, keeping the block's refs
+            yield col_dtype, blk.getitem_block_columns(indexer, new_mgr_locs)
+        else:
+            yield col_dtype, blk.take_nd(locs, axis=0, new_mgr_locs=new_mgr_locs)
 
 
 def scalar_to_mgr(
