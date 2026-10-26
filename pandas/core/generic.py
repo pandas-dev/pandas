@@ -5,7 +5,6 @@ import collections
 from copy import deepcopy
 import datetime as dt
 from functools import partial
-from itertools import pairwise
 from json import loads
 import operator
 import pickle
@@ -32,7 +31,6 @@ import pandas._config.config as cf
 from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
-from pandas._libs.internals import BlockPlacement
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
@@ -6800,95 +6798,68 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
-            def cast_column(loc: int, column_dtype) -> Series:
-                try:
-                    return self._ixs(loc, axis=1).astype(column_dtype, errors=errors)
-                except ValueError as ex:
-                    ex.args = (
-                        f"{ex}: Error while type casting for column "
-                        f"'{self.columns[loc]}'",
-                    )
-                    raise
+            def cast_by_column(locs, column_dtypes) -> list[Block]:
+                results = []
+                for loc, column_dtype in zip(locs, column_dtypes, strict=True):
+                    try:
+                        res = self._ixs(loc, axis=1).astype(column_dtype, errors=errors)
+                    except ValueError as ex:
+                        ex.args = (
+                            f"{ex}: Error while type casting for column "
+                            f"'{self.columns[loc]}'",
+                        )
+                        raise
+                    results.append(res)
+                return list(concat(results, axis=1)._mgr.blocks)
 
-            # GH#63433: cast columns going to the same numeric/bool numpy dtype
-            #  together, and every other column on its own as Series.astype does.
-            batches: dict[np.dtype, list[tuple[int, Any]]] = {}
-            one_by_one: list[tuple[int, Any]] = []
-            resolved: dict[tuple[type, Any], np.dtype | None] = {}
             mgr = self._mgr
             assert isinstance(mgr, BlockManager)  # Series case is handled above
             current = mgr.get_dtypes()
-            mask = dtype_ser.notna()
-            for loc, column_dtype in zip(
-                np.flatnonzero(mask), dtype_ser[mask], strict=True
-            ):
-                target = None
-                if isinstance(column_dtype, (str, np.dtype, type)):
-                    spec = (type(column_dtype), column_dtype)
-                    if spec not in resolved:
-                        resolved[spec] = block_cast_dtype(column_dtype)
-                    target = resolved[spec]
+            mask = dtype_ser.notna().to_numpy()
+            locs = np.flatnonzero(mask)
+            column_dtypes = dtype_ser.to_numpy()[mask]
+
+            # GH#63433: cast columns going to the same numeric/bool numpy dtype
+            #  together, and every other column on its own as Series.astype does.
+            batches: dict[np.dtype, list[int]] = {}
+            by_column = np.ones(len(locs), dtype=bool)
+            resolved: dict[str | np.dtype | type, np.dtype | None] = {}
+            for i, column_dtype in enumerate(column_dtypes):
+                if not isinstance(column_dtype, (str, np.dtype, type)):
+                    continue
+                if column_dtype not in resolved:
+                    resolved[column_dtype] = block_cast_dtype(column_dtype)
+                target = resolved[column_dtype]
                 if target is None:
-                    one_by_one.append((int(loc), column_dtype))
-                elif current[loc] != target:
+                    continue
+                by_column[i] = False
+                if current[locs[i]] != target:
                     # a column already of the target dtype stays as it is, a view
-                    batches.setdefault(target, []).append((int(loc), column_dtype))
-            pieces: list[tuple[npt.NDArray[np.intp], Sequence[Block]]] = []
-            groups = list(batches.items())
-            for k, (target, items) in enumerate(groups):
-                by_loc = dict(items)
-                failed = False
-                # Per source block: cast each run of adjacent columns straight from
-                #  the block, or take the columns first when they are scattered in
-                #  many small runs (one cast instead of many tiny ones).
-                locs = np.array([i for i, _ in items], dtype=np.intp)
-                order = np.lexsort((mgr.blklocs[locs], mgr.blknos[locs]))
-                locs = locs[order]
-                blknos, blklocs = mgr.blknos[locs], mgr.blklocs[locs]
-                bounds = np.flatnonzero(np.diff(blknos, prepend=-1, append=-1))
-                for g0, g1 in pairwise(bounds):
-                    pos, bl = locs[g0:g1], blklocs[g0:g1]
-                    starts = np.flatnonzero(np.diff(bl, prepend=-2) != 1)
-                    ends = np.append(starts[1:], len(bl))
-                    src = mgr.blocks[blknos[g0]]
-                    if len(starts) <= 8:
-                        parts = [
-                            (
-                                pos[a:b],
-                                src.getitem_block_columns(
-                                    slice(bl[a], bl[a] + b - a),
-                                    BlockPlacement(slice(0, b - a)),
-                                ),
-                            )
-                            for a, b in zip(starts, ends, strict=True)
-                        ]
-                    else:
-                        parts = [(pos, blk) for blk in self.iloc[:, pos]._mgr.blocks]
-                    for part_locs, blk in parts:
-                        # A one-column block casts exactly as its column would,
-                        #  errors included, so it is never cast a second time.
-                        multi = len(blk.mgr_locs) > 1
-                        blk_errors = "raise" if multi and errors == "ignore" else errors
-                        try:
-                            nb = blk.astype(target, errors=blk_errors)
-                        except Exception:
-                            # Cast these columns one by one below, so the error
-                            #  names the first failing column; with errors="raise"
-                            #  the batches not tried yet go there too.
-                            one_by_one += [
-                                (j, by_loc[j]) for j in part_locs[blk.mgr_locs.as_array]
-                            ]
-                            failed = True
-                            continue
-                        pieces.append((part_locs, [nb]))
-                if failed and errors == "raise":
-                    one_by_one += [item for _, rest in groups[k + 1 :] for item in rest]
-                    break
-            if one_by_one:
-                one_by_one.sort(key=lambda item: item[0])
-                casted = concat([cast_column(i, d) for i, d in one_by_one], axis=1)
-                locs_arr = np.array([i for i, _ in one_by_one], dtype=np.intp)
-                pieces.append((locs_arr, casted._mgr.blocks))
+                    batches.setdefault(target, []).append(locs[i])
+
+            if errors not in ("raise", "ignore"):
+                # let Series.astype reject an invalid errors value, as before
+                batches.clear()
+                by_column[:] = True
+            try:
+                pieces = [
+                    (
+                        np.asarray(batch, dtype=np.intp),
+                        self.iloc[:, batch].astype(target)._mgr.blocks,
+                    )
+                    for target, batch in batches.items()
+                ]
+                if by_column.any():
+                    pieces.append(
+                        (
+                            locs[by_column],
+                            cast_by_column(locs[by_column], column_dtypes[by_column]),
+                        )
+                    )
+            except Exception:
+                # Redo every column on its own, so the error (or errors="ignore")
+                #  is the same as when casting column by column.
+                pieces = [(locs, cast_by_column(locs, column_dtypes))]
 
             new_mgr = mgr.replace_columns(pieces)
             new = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
