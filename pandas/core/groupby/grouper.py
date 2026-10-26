@@ -323,7 +323,7 @@ class Grouper:
         if self._sort is not None or sort is None:
             sort = self.sort
 
-        obj, _, _ = self._set_grouper(obj, sort=sort)
+        obj, _, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
             obj,
             [self.key],
@@ -337,7 +337,7 @@ class Grouper:
         return grouper, obj
 
     def _set_grouper(
-        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+        self, obj: NDFrameT, *, gpr_index: Index | None = None
     ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
         """
         given an object and the specifications, setup the internal grouper
@@ -346,8 +346,6 @@ class Grouper:
         Parameters
         ----------
         obj : Series or DataFrame
-        sort : bool, default False
-            whether the resulting grouper should be sorted
         gpr_index : Index or None, default None
 
         Returns

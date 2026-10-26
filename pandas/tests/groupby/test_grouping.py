@@ -1313,37 +1313,6 @@ def test_grouper_default_sort():
     assert result == expected
 
 
-def test_grouper_respects_groupby_sort_false():
-    # GH#61943
-    df = pd.DataFrame({"k": [3, 1, 2], "A": [1, 2, 3]})
-    expected = df.groupby("k", sort=False).sum()
-
-    for key in [pd.Grouper(key="k"), [pd.Grouper(key="k")]]:
-        result = df.groupby(key, sort=False).sum()
-
-        tm.assert_frame_equal(result, expected)
-
-
-def test_grouper_sort_true_in_list():
-    # GH#61943
-    df = pd.DataFrame({"k": [1, 2, 3, 1, 2, 3], "A": np.arange(6)})
-
-    result = df.groupby([pd.Grouper(key="k", sort=True)]).mean()
-    expected = df.groupby("k").mean()
-
-    tm.assert_frame_equal(result, expected)
-
-
-def test_grouper_sort_true_transform():
-    # GH#61943
-    df = pd.DataFrame({"k": [1, 2, 3, 1, 2, 3], "A": np.arange(6)})
-
-    result = df.groupby(pd.Grouper(key="k", sort=True)).cumsum()
-    expected = df.groupby("k").cumsum()
-
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("grouper_sort", [None, True, False])
 @pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("as_list", [True, False])

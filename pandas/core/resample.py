@@ -173,7 +173,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         self.as_index = True
 
         self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
-            self._convert_obj(obj), sort=True, gpr_index=gpr_index
+            self._convert_obj(obj), gpr_index=gpr_index
         )
         self.binner, self._grouper = self._get_binner()
         self._selection = selection
@@ -2910,9 +2910,9 @@ class TimeGrouper(Grouper):
         return binner, bins, labels
 
     def _set_grouper(
-        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+        self, obj: NDFrameT, *, gpr_index: Index | None = None
     ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
-        obj, ax, indexer = super()._set_grouper(obj, sort, gpr_index=gpr_index)
+        obj, ax, indexer = super()._set_grouper(obj, gpr_index=gpr_index)
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
