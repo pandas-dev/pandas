@@ -1,5 +1,6 @@
 """Test cases for DataFrame.plot"""
 
+import pickle
 import re
 
 import numpy as np
@@ -16,6 +17,426 @@ from pandas.tests.plotting.common import (
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
+
+
+@pytest.mark.parametrize("as_column", [False, True])
+@pytest.mark.parametrize(
+    "values",
+    [
+        [0, 0, 0],
+        [1, 1, 1],
+        [-5, -5, -5],
+        [5, 5, 5],
+        [1e16, 1e16, 1e16],
+        [0, 1, 0],
+        [np.nan, np.nan, np.nan],
+        [1, 2, np.inf],
+        [5, 5, np.inf],
+        [5, np.nan, 5],
+        [1e-300, 1e-300, 1e-300],
+        pd.array([1, pd.NA, 1], dtype="Int64"),
+        [5],
+    ],
+)
+def test_scatter_colorbar_consistent_mapping(values, as_column):
+    # GH 64980: adding a colorbar must preserve the scatter's color mapping.
+    df = pd.DataFrame({"x": np.arange(len(values)) + 1, "c": values})
+    cmap = mpl.colors.ListedColormap(["blue", "red"])
+    with tm.assert_produces_warning(False):
+        expected_fig, expected_ax = plt.subplots()
+        expected = expected_ax.scatter(df["x"], df["x"], c=df["c"], cmap=cmap)
+        expected_fig.canvas.draw()
+
+        ax = df.plot.scatter(
+            "x", "x", c="c" if as_column else df["c"], cmap=cmap, colorbar=True
+        )
+        ax.figure.canvas.draw()
+
+    result = ax.collections[0]
+    assert result.get_clim() == expected.get_clim()
+    tm.assert_numpy_array_equal(result.get_facecolors(), expected.get_facecolors())
+    assert len(ax.figure.axes) == 2
+    assert result.colorbar.mappable is result
+    assert result.colorbar.norm is result.norm
+    if result.norm.vmin == result.norm.vmax:
+        tm.assert_numpy_array_equal(
+            result.colorbar.solids.get_facecolors(), np.array([cmap(0.0)])
+        )
+        tm.assert_numpy_array_equal(
+            result.colorbar.get_ticks(), np.array([result.norm.vmin])
+        )
+
+
+@pytest.mark.parametrize("values", [[1, 2, 3], [5, 5, 5]])
+@pytest.mark.parametrize(
+    "limits",
+    [
+        {"vmin": 0, "vmax": 10},
+        {"vmin": 0},
+        {"vmax": 10},
+        {"vmin": 0, "vmax": 0},
+        {"vmin": 5, "vmax": 5},
+    ],
+)
+def test_scatter_colorbar_explicit_limits(values, limits):
+    # GH 64980: do not introduce a norm alongside vmin/vmax.
+    df = pd.DataFrame({"x": [1, 2, 3], "c": values})
+    ax = df.plot.scatter("x", "x", c="c", colorbar=True, **limits)
+    ax.figure.canvas.draw()
+    expected = (limits.get("vmin", min(values)), limits.get("vmax", max(values)))
+    assert ax.collections[0].get_clim() == expected
+
+
+@pytest.mark.parametrize(
+    "norm_factory",
+    [
+        lambda: mpl.colors.Normalize(),
+        lambda: mpl.colors.Normalize(1, 100),
+        lambda: mpl.colors.Normalize(5, 5),
+        lambda: mpl.colors.Normalize(0, 0),
+        lambda: mpl.colors.LogNorm(),
+        lambda: mpl.colors.LogNorm(1, 100),
+        lambda: mpl.colors.LogNorm(5, 5),
+        lambda: mpl.colors.LogNorm(0, 0),
+        lambda: mpl.colors.CenteredNorm(),
+        lambda: mpl.colors.SymLogNorm(linthresh=1),
+        lambda: mpl.colors.PowerNorm(1),
+        lambda: mpl.colors.AsinhNorm(),
+        lambda: mpl.colors.TwoSlopeNorm(vcenter=0),
+    ],
+)
+def test_scatter_colorbar_custom_norm(norm_factory):
+    # GH 64980: preserve the user's norm and its mapping, including log scales.
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [5, 5, 5]})
+    norm = norm_factory()
+    limits = (norm.vmin, norm.vmax) if norm.scaled() else None
+    expected_fig, expected_ax = plt.subplots()
+    expected = expected_ax.scatter(
+        df["x"], df["x"], c=df["c"], cmap="viridis", norm=norm_factory()
+    )
+    expected_fig.canvas.draw()
+
+    ax = df.plot.scatter("x", "x", c="c", cmap="viridis", norm=norm, colorbar=True)
+    ax.figure.canvas.draw()
+    result = ax.collections[0]
+    assert result.norm is norm
+    assert result.get_clim() == expected.get_clim()
+    tm.assert_numpy_array_equal(result.get_facecolors(), expected.get_facecolors())
+    if limits is not None:
+        assert (norm.vmin, norm.vmax) == limits
+
+
+@pytest.mark.parametrize("value", [0, -5, np.nan, 1e-300])
+def test_scatter_no_colorbar_log_norm(value):
+    # Preserve matplotlib's handling of nonpositive, missing, and tiny values
+    # in a scatter plot without a colorbar.
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [value] * 3})
+    expected_fig, expected_ax = plt.subplots()
+    expected = expected_ax.scatter(
+        df["x"], df["x"], c=df["c"], cmap="viridis", norm=mpl.colors.LogNorm()
+    )
+    expected_fig.canvas.draw()
+
+    ax = df.plot.scatter(
+        "x", "x", c="c", cmap="viridis", norm=mpl.colors.LogNorm(), colorbar=False
+    )
+    ax.figure.canvas.draw()
+    assert ax.collections[0].get_clim() == expected.get_clim()
+    tm.assert_numpy_array_equal(
+        ax.collections[0].get_facecolors(), expected.get_facecolors()
+    )
+
+
+@pytest.mark.parametrize("colorbar", [False, True])
+def test_scatter_colorbar_categorical_mapping(colorbar):
+    # GH 64980: do not change categorical BoundaryNorm or its labels.
+    df = pd.DataFrame({"x": [1, 2, 3], "c": pd.Categorical(["a", "b", "a"])})
+    ax = df.plot.scatter("x", "x", c="c", cmap="viridis", colorbar=colorbar)
+    ax.figure.canvas.draw()
+    scatter = ax.collections[0]
+    assert isinstance(scatter.norm, mpl.colors.BoundaryNorm)
+    tm.assert_numpy_array_equal(scatter.norm.boundaries, np.array([0.0, 1.0, 2.0]))
+    expected = mpl.colormaps["viridis"](np.array([0, 255, 0]))
+    tm.assert_numpy_array_equal(scatter.get_facecolors(), expected)
+    if colorbar:
+        assert type(scatter.colorbar) is mpl.colorbar.Colorbar
+        labels = [label.get_text() for label in scatter.colorbar.ax.get_yticklabels()]
+        assert labels == ["a", "b"]
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"c": [0, 1, 0]},
+        {"c": [0, 0, 0], "vmin": 0, "vmax": 10},
+        {"c": [1, 5, 10], "norm": mpl.colors.LogNorm(1, 10)},
+        {"c": [0, 1, 0], "norm": mpl.colors.BoundaryNorm([0, 1, 2], 256)},
+        {"c": [0, 0, 0], "norm": mpl.colors.NoNorm(0, 0)},
+        {"c": ["red", "blue", "red"]},
+    ],
+)
+def test_scatter_colorbar_standard_class(kwargs):
+    # Only a singular continuous norm needs pandas' custom colorbar.
+    df = pd.DataFrame({"x": [1, 2, 3]})
+    ax = df.plot.scatter("x", "x", colorbar=True, **kwargs)
+    ax.figure.canvas.draw()
+    scatter = ax.collections[0]
+    assert type(scatter.colorbar) is mpl.colorbar.Colorbar
+    assert scatter.colorbar.mappable is scatter
+
+
+def _constant_scatter():
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [0, 0, 0]})
+    ax = df.plot.scatter("x", "x", c="c", cmap="viridis")
+    scatter = ax.collections[0]
+    return ax, scatter, scatter.colorbar
+
+
+def test_scatter_colorbar_constant_to_range():
+    # GH 64980: widening the norm switches from a swatch to a gradient.
+    ax, scatter, colorbar = _constant_scatter()
+    assert colorbar.mappable is scatter
+    assert colorbar.ax.get_ylabel() == "c"
+
+    scatter.set_clim(0, 10)
+    ax.figure.canvas.draw()
+    assert colorbar.norm is scatter.norm
+    assert colorbar.ax.get_ylim() == (0, 10)
+    assert colorbar.ax.get_ylabel() == "c"
+
+    scatter.set_clim(0, 0)
+    ax.figure.canvas.draw()
+    with scatter.norm.callbacks.blocked():
+        scatter.set_clim(0, 10)
+    colorbar.update_normal()
+    ax.figure.canvas.draw()
+    assert colorbar.norm is scatter.norm
+    assert colorbar.ax.get_ylim() == (0, 10)
+    assert colorbar.values is None
+
+
+def test_scatter_colorbar_manual_update_range_to_constant():
+    # GH 64980: a manual update_normal applies a blocked return to a constant.
+    cmap = mpl.colors.ListedColormap(["blue", "red"])
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [0, 0, 0]})
+    ax = df.plot.scatter("x", "x", c="c", cmap=cmap)
+    scatter = ax.collections[0]
+    colorbar = scatter.colorbar
+
+    scatter.set_clim(0, 10)
+    scatter.set_array(np.array([5, 5, 5]))
+    with scatter.norm.callbacks.blocked():
+        scatter.set_clim(5, 5)
+    ax.figure.canvas.draw()
+    colorbar.update_normal()
+    ax.figure.canvas.draw()
+
+    assert scatter.get_clim() == (5, 5)
+    tm.assert_numpy_array_equal(scatter.get_facecolors(), np.array([cmap(0.0)] * 3))
+    tm.assert_numpy_array_equal(colorbar.solids.get_facecolors(), np.array([cmap(0.0)]))
+    assert colorbar.get_ticks().tolist() == [5]
+
+
+def test_scatter_colorbar_pickle_manual_refresh():
+    # GH 64980: manual update_normal still refreshes a colorbar after pickling.
+    ax, *_ = _constant_scatter()
+    ax.figure.canvas.draw()
+    fig2 = pickle.loads(pickle.dumps(ax.figure))
+    scatter2 = fig2.axes[0].collections[0]
+    colorbar2 = scatter2.colorbar
+
+    scatter2.set_clim(0, 10)
+    colorbar2.update_normal()
+    fig2.canvas.draw()
+    assert colorbar2.ax.get_ylim() == (0, 10)
+
+    scatter2.set_clim(5, 5)
+    colorbar2.update_normal()
+    fig2.canvas.draw()
+    assert scatter2.get_clim() == (5, 5)
+    assert colorbar2.get_ticks().tolist() == [5]
+
+
+def test_scatter_colorbar_range_to_constant():
+    # A later constant range must not be expanded by the callback either.
+    ax, scatter, colorbar = _constant_scatter()
+    scatter.set_clim(0, 10)
+    scatter.set_clim(5, 5)
+    scatter.set_array(np.array([5, 5, 5]))
+    ax.figure.canvas.draw()
+    assert scatter.get_clim() == (5, 5)
+    assert colorbar.ax.get_ylabel() == "c"
+    tm.assert_numpy_array_equal(
+        colorbar.solids.get_facecolors(), np.array([scatter.cmap(0.0)])
+    )
+    assert colorbar.get_ticks().tolist() == [5]
+
+    scatter.set_array(np.array([0, 1, 0]))
+    scatter.autoscale()
+    ax.figure.canvas.draw()
+    assert scatter.get_clim() == (0, 1)
+    assert colorbar.ax.get_ylim() == (0, 1)
+
+
+def test_scatter_colorbar_cmap_keeps_formatter():
+    ax, scatter, colorbar = _constant_scatter()
+    colorbar.formatter = mpl.ticker.FuncFormatter(lambda value, pos: "constant")
+    scatter.set_cmap("plasma")
+    ax.figure.canvas.draw()
+    assert colorbar.ax.get_yticklabels()[0].get_text() == "constant"
+    tm.assert_numpy_array_equal(
+        colorbar.solids.get_facecolors(), np.array([scatter.cmap(0.0)])
+    )
+
+
+def test_scatter_colorbar_set_norm_log():
+    ax, scatter, colorbar = _constant_scatter()
+    values = np.array([1, 10, 100])
+    norm = mpl.colors.LogNorm(1, 100)
+    scatter.set_array(values)
+    scatter.set_norm(norm)
+    scatter.set_cmap("plasma")
+    ax.figure.canvas.draw()
+    assert colorbar.ax.get_yscale() == "log"
+    assert colorbar.norm is norm
+    assert colorbar.cmap is scatter.cmap
+    tm.assert_almost_equal(colorbar.ax.get_ylim(), (1, 100))
+    tm.assert_numpy_array_equal(
+        scatter.get_facecolors(), mpl.colormaps["plasma"](norm(values))
+    )
+
+
+def test_scatter_colorbar_remove():
+    ax, scatter, colorbar = _constant_scatter()
+    colorbar.remove()
+    assert scatter.colorbar is None
+    assert not scatter.callbacks.callbacks.get("changed")
+    scatter.set_clim(0, 0)
+    ax.figure.canvas.draw()
+    assert scatter.get_clim() == (0, 0)
+
+
+@pytest.mark.parametrize(
+    "layout", [None, "constrained", "tight", "manual", "subfigure"]
+)
+def test_scatter_colorbar_layout(layout):
+    # The custom colorbar must use Figure.colorbar's axes placement rules.
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [0, 0, 0]})
+    positions = []
+    for use_pandas in [False, True]:
+        fig = plt.figure(layout=layout if layout in ["constrained", "tight"] else None)
+        if layout == "manual":
+            ax = fig.add_axes([0.15, 0.15, 0.7, 0.7])
+        elif layout == "subfigure":
+            ax = fig.subfigures(1, 1).subplots()
+        else:
+            ax = fig.subplots()
+        if use_pandas:
+            df.plot.scatter("x", "x", c="c", ax=ax)
+        else:
+            scatter = ax.scatter(df["x"], df["x"], c=df["c"])
+            ax.set_xlabel("x")
+            ax.set_ylabel("x")
+            lower, upper = mpl.ticker.AutoLocator().nonsingular(0, 0)
+            fig.colorbar(
+                scatter,
+                ax=ax,
+                boundaries=[lower, upper],
+                values=[0],
+                ticks=[0],
+                label="c",
+            )
+        colorbar = ax.collections[0].colorbar
+        assert ax.get_figure(root=False).gca() is ax
+        fig.canvas.draw()
+        positions.append((ax.get_position().bounds, colorbar.ax.get_position().bounds))
+        colorbar.remove()
+        fig.canvas.draw()
+    tm.assert_almost_equal(positions[0], positions[1])
+
+
+@pytest.mark.parametrize("norm_type", [mpl.colors.Normalize, mpl.colors.LogNorm])
+def test_scatter_colorbar_replaces_unscaled_norm(norm_type):
+    # GH 64980: replacing the norm with an unscaled one must autoscale to the
+    # data before the colorbar decides whether the range is constant.
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [5, 5, 5]})
+    cmap = mpl.colors.ListedColormap(["blue", "red"])
+
+    def plotted(norm, *, colorbar):
+        ax = df.plot.scatter("x", "x", c="c", cmap=cmap, colorbar=colorbar)
+        scatter = ax.collections[0]
+        scatter.set_norm(norm)
+        ax.figure.canvas.draw()
+        return scatter
+
+    norm = norm_type()
+    expected = plotted(norm_type(), colorbar=False)
+    result = plotted(norm, colorbar=True)
+    assert result.norm is norm
+    assert result.get_clim() == expected.get_clim()
+    tm.assert_numpy_array_equal(result.get_facecolors(), expected.get_facecolors())
+
+    result.norm.vmin = result.norm.vmax = None
+    result.autoscale_None()
+    result.axes.figure.canvas.draw()
+    expected.norm.vmin = expected.norm.vmax = None
+    expected.autoscale_None()
+    expected.axes.figure.canvas.draw()
+    assert result.norm is norm
+    assert result.get_clim() == expected.get_clim()
+    tm.assert_numpy_array_equal(result.get_facecolors(), expected.get_facecolors())
+
+
+def test_scatter_colorbar_set_norm_without_array():
+    # GH 64980: clearing the array must not make autoscale raise.
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [5, 5, 5]})
+    cmap = mpl.colors.ListedColormap(["blue", "red"])
+
+    expected_fig, expected_ax = plt.subplots()
+    expected = expected_ax.scatter(df["x"], df["x"], c=df["c"], cmap=cmap)
+    expected_fig.colorbar(expected, ax=expected_ax)
+    expected.set_array(None)
+    expected.set_norm(mpl.colors.Normalize())
+    expected_fig.canvas.draw()
+
+    ax = df.plot.scatter("x", "x", c="c", cmap=cmap)
+    result = ax.collections[0]
+    result.set_array(None)
+    result.set_norm(mpl.colors.Normalize())
+    ax.figure.canvas.draw()
+    assert result.get_clim() == expected.get_clim()
+    tm.assert_numpy_array_equal(result.get_facecolors(), expected.get_facecolors())
+
+
+def test_scatter_no_colorbar_near_constant():
+    # Numerically close but distinct values must not be expanded when no
+    # colorbar is requested (a regression in an earlier GH 64980 proposal).
+    values = [1e16, 1e16 + 2, 1e16]
+    df = pd.DataFrame({"x": [1, 2, 3], "c": values})
+    norm = mpl.colors.Normalize(min(values), max(values))
+    ax = df.plot.scatter("x", "x", c="c", norm=norm, colorbar=False)
+    ax.figure.canvas.draw()
+    assert ax.collections[0].norm is norm
+    assert (norm.vmin, norm.vmax) == (min(values), max(values))
+
+
+@pytest.mark.parametrize("extend", ["neither", "min", "max", "both"])
+def test_scatter_colorbar_constant_extensions(extend):
+    # Colorbar extensions need their own boundaries and color values.
+    cmap = mpl.colors.ListedColormap(["blue", "red"])
+    cmap.colorbar_extend = extend
+    df = pd.DataFrame({"x": [1, 2, 3], "c": [0, 0, 0]})
+    ax = df.plot.scatter("x", "x", c="c", cmap=cmap)
+    scatter = ax.collections[0]
+    colorbar = scatter.colorbar
+    for value in [0, 5]:
+        scatter.set_clim(value, value)
+        ax.figure.canvas.draw()
+        assert colorbar.extend == extend
+        assert scatter.get_clim() == (value, value)
+        tm.assert_numpy_array_equal(
+            colorbar.solids.get_facecolors(), np.array([cmap(0.0)])
+        )
 
 
 def _check_colors_box(bp, box_c, whiskers_c, medians_c, caps_c="k", fliers_c=None):
