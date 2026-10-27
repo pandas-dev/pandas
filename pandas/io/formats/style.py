@@ -1984,7 +1984,7 @@ class Styler(StylerRenderer):
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         data = self.data.loc[subset]
         if data.empty:
             result = DataFrame()
@@ -2060,7 +2060,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -2307,7 +2307,7 @@ class Styler(StylerRenderer):
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
             subset = IndexSlice[:]
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         result = self.data.loc[subset].map(func)
         self._update_ctx(result)
         return self
@@ -2324,7 +2324,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a string.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -2952,7 +2952,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 1d input or single key along the axis within
             `DataFrame.loc[<subset>, :]` or `DataFrame.loc[:, <subset>]` depending
             upon ``axis``, to limit ``data`` to select hidden rows / columns.
@@ -3127,12 +3127,12 @@ class Styler(StylerRenderer):
                 subset_1 = IndexSlice[
                     subset, :
                 ]  # separate var so mypy reads different type
-                subset = non_reducing_slice(subset_1)
+                subset = non_reducing_slice(subset_1, self.data)
             else:
                 subset_2 = IndexSlice[
                     :, subset
                 ]  # separate var so mypy reads different type
-                subset = non_reducing_slice(subset_2)
+                subset = non_reducing_slice(subset_2, self.data)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             setattr(self, f"hidden_{alt}", h_els)
@@ -3186,7 +3186,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3343,7 +3343,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3468,7 +3468,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3526,7 +3526,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3650,7 +3650,7 @@ class Styler(StylerRenderer):
         ----------
         color : str, default 'red'
            Background color to use for highlighting.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3701,7 +3701,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3760,7 +3760,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3822,7 +3822,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3943,7 +3943,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -4010,7 +4010,7 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/hq_props.png
         """
         subset_ = slice(None) if subset is None else subset
-        subset_ = non_reducing_slice(subset_)
+        subset_ = non_reducing_slice(subset_, self.data)
         data = self.data.loc[subset_]
 
         # after quantile is found along axis, e.g. along rows,
