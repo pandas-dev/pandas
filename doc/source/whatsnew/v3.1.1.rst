@@ -14,6 +14,8 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed a regression in :meth:`DataFrame.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.ffill` and :meth:`Series.bfill` with pyarrow-backed data returning a view of the original data when there were no missing values, so that modifying the result also modified the original object (:issue:`71515`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.bugs:

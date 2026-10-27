@@ -1934,7 +1934,11 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            return self
+            # GH#71515 the block layer does not register a Copy-on-Write
+            #  reference for the array we return, so returning self would let
+            #  a write through the result be seen by the original (and vice
+            #  versa).  Honor ``copy`` as the base class does.
+            return self.copy() if copy else self
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
