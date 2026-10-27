@@ -1928,6 +1928,44 @@ class TestDataFramePlots:
         ax = _check_plot_works(df.plot, y=0, yerr=1)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
+    @pytest.mark.parametrize("subplots", [True, False])
+    @pytest.mark.parametrize("err_kw", ["xerr", "yerr"])
+    def test_errorbar_style(self, subplots, err_kw):
+        # GH#7023
+        df = pd.DataFrame({"a": [1.0, 3.0, 2.0], "b": [2.0, 1.0, 4.0]})
+        plotted = df.plot(style=["or:", "vg--"], subplots=subplots, **{err_kw: df / 10})
+        axes = list(plotted) if subplots else [plotted]
+        _check_has_errorbars(axes, **{err_kw: 1 if subplots else 2})
+        lines = [line for ax in axes for line in ax.get_lines()]
+        result = [(ln.get_marker(), ln.get_linestyle(), ln.get_color()) for ln in lines]
+        assert result == [("o", ":", "r"), ("v", "--", "g")]
+
+    def test_errorbar_style_column_name(self):
+        # GH#7023
+        df = pd.DataFrame({"a": [1.0, 3.0, 2.0], "b": [2.0, 1.0, 4.0], "e": 0.1})
+        ax = df.plot(x="a", y="b", style="o", yerr="e")
+        line = ax.get_lines()[0]
+        assert (line.get_marker(), line.get_linestyle()) == ("o", "None")
+
+    def test_errorbar_style_ts(self):
+        # GH#7023
+        dti = pd.date_range("2020", periods=3)
+        df = pd.DataFrame({"a": [1.0, 3.0, 2.0]}, index=dti)
+        ax = df.plot(style="or:", yerr=df / 10)
+        line = ax.get_lines()[0]
+        assert (line.get_marker(), line.get_linestyle(), line.get_color()) == (
+            "o",
+            ":",
+            "r",
+        )
+
+    def test_errorbar_explicit_fmt_overrides_style(self):
+        # GH#7023
+        df = pd.DataFrame({"a": [1.0, 3.0, 2.0]})
+        ax = df.plot(style="or:", fmt="v--", yerr=df / 10)
+        line = ax.get_lines()[0]
+        assert (line.get_marker(), line.get_linestyle()) == ("v", "--")
+
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar"])
     def test_errorbar_with_partial_columns_kind(self, kind):
