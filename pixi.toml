@@ -17,7 +17,8 @@ pip = ">=26"
 pkg-config = "*"
 
 # Required dependencies
-python-dateutil = ">=2.9.0"
+# TODO: Remove the upper bound once python-dateutil 3.0 is supported (GH#71459)
+python-dateutil = ">=2.9.0,<3"
 
 [feature.default-compiler.dependencies]
 c-compiler = "*"
@@ -152,9 +153,8 @@ zstandard = ">=0.23.0"
 solve-strategy = "lowest-direct"
 
 [feature.minimum-versions.dependencies]
-# Avoid 3.11.0, which segfaults formatting tracebacks for unraisable
-# exceptions under PYTHONDEVMODE (CPython gh-99729, fixed in 3.11.1).
-python = ">=3.11.1,<3.12"
+# Avoid <3.11.5, soupsieve>=3.0 (for bs4) uses regex pattern supported by Python 3.11.5
+python = ">=3.11.5,<3.12"
 
 [feature.downstream.dependencies]
 cftime = "*"
