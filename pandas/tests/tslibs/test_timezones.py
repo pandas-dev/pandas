@@ -662,6 +662,22 @@ def test_dateutil_tzfile_fast_path_detection():
     assert not timezones.is_fixed_offset(dateutil.tz.tzfile(data, key="Etc/GMT+5"))
 
 
+@_skip_if_dateutil_lt_3
+def test_dateutil_tzfile_get_timezone_uses_key():
+    # GH#71459 _filename is a machine-specific path, so Timestamp repr and
+    #  serialized zones use the key instead, when it matches the data
+    tz = dateutil.tz.gettz("US/Eastern")
+    assert timezones.get_timezone(tz) == "dateutil/US/Eastern"
+    ts = pd.Timestamp("2025-01-01", tz=tz)
+    assert "tz='dateutil/US/Eastern'" in repr(ts)
+
+    mislabeled = dateutil.tz.tzfile(
+        io.BytesIO(_tzdata_bytes("US/Eastern")),
+        key="Europe/Paris",  # type: ignore[call-arg]
+    )
+    assert timezones.get_timezone(mislabeled) == "dateutil/" + mislabeled._filename
+
+
 def test_zoneinfo_fast_path_detection():
     # GH#64379 is_fixed_offset needs the pure-python twin, so it shows which
     #  ZoneInfo objects keep the cached transition fast path.

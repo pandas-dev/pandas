@@ -102,6 +102,25 @@ cdef bint treat_tz_as_zoneinfo(tzinfo tz):
     )
 
 
+cdef object get_dateutil_key(tzinfo tz):
+    """
+    Return the key of a dateutil>=3 ``tzfile``, or None if it has no
+    trustworthy key.
+
+    ``tzfile(fileobj, key=...)`` accepts any key, so trust it only when
+    ``gettz``, which searches the same path as ``zoneinfo``, maps it to equal
+    data.
+    """
+    key = getattr(tz, "key", None)
+    if key is None:
+        return None
+    found = dateutil_gettz(key)
+    if found is not tz and found != tz:
+        # tzfile compares by value
+        return None
+    return key
+
+
 # Returns str or tzinfo object
 cpdef inline object get_timezone(tzinfo tz):
     """
@@ -128,6 +147,10 @@ cpdef inline object get_timezone(tzinfo tz):
             return tz
         return zone
     elif isinstance(tz, _dateutil_tzfile):
+        key = get_dateutil_key(tz)
+        if key is not None:
+            # unlike _filename, the same on every machine
+            return "dateutil/" + key
         if ".tar.gz" in tz._filename:
             raise ValueError(
                 "Bad tz filename. Dateutil on python 3 on windows has a "
@@ -153,12 +176,8 @@ cpdef inline tzinfo maybe_get_tz(object tz):
         elif tz.startswith("dateutil/"):
             zone = tz[9:]
             tz = dateutil_gettz(zone)
-            # On Windows, the filename is the same for every zone (dateutil<3)
-            #  or a machine-specific path into tzdata (dateutil>=3); use the
-            #  zone name instead.
-            if isinstance(tz, _dateutil_tzfile) and (
-                ".tar.gz" in tz._filename or "\\" in tz._filename
-            ):
+            # On Python 3 on Windows, the filename is not always set correctly.
+            if isinstance(tz, _dateutil_tzfile) and ".tar.gz" in tz._filename:
                 tz._filename = zone
         elif tz[0] in {"-", "+"}:
             hours = int(tz[0:3])
@@ -331,9 +350,8 @@ cdef tzinfo get_zoneinfo_twin(tzinfo tz):
     The stdlib documents that a ``from_file`` object cannot be pickled,
     because its data is not recoverable from its key.
 
-    A dateutil>=3 ``tzfile`` can carry any key, so the key is used only when
-    ``gettz``, which searches the same path as ``zoneinfo``, maps it to equal
-    data.
+    A dateutil>=3 ``tzfile`` uses its key only when `get_dateutil_key` accepts
+    it.
 
     Parameters
     ----------
@@ -345,12 +363,8 @@ cdef tzinfo get_zoneinfo_twin(tzinfo tz):
     """
     if not is_zoneinfo(tz):
         # dateutil tzfile timezone
-        key = tz.key
+        key = get_dateutil_key(tz)
         if key is None:
-            return None
-        found = dateutil_gettz(key)
-        if found is not tz and found != tz:
-            # tzfile compares by value
             return None
         try:
             return _ZoneInfo(key)
