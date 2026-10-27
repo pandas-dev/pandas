@@ -351,6 +351,9 @@ def _get_datevalue(date, freq):
             return bday_count(date.to_timestamp())
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, np.datetime64)):
+        if isinstance(date, datetime) and date.tzinfo is not None:
+            # match maybe_convert_index, which plots tz-aware data at wall time
+            date = date.replace(tzinfo=None)
         freq_obj = to_offset(freq, is_period=True)
         dtype_code = freq_obj._period_dtype_code
         if FreqGroup.from_period_dtype_code(dtype_code) == FreqGroup.FR_BUS:

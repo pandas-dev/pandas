@@ -1,18 +1,12 @@
 [build-system]
-# Minimum requirements for the build system to execute.
-# See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
     "meson-python>=0.19.0,<1",
     "meson>=1.2.3,<2",
-    "wheel",
-    # "<4", not "<4.0.0a0": a pre-release in the bound makes pip eligible to
-    # install Cython pre-releases (that pulled the 3.3.0a1 alpha into 3.0.4).
+    # Do not include alpha specifiers in Cython version pins
     "Cython>3.1.0,<4",  # Note: sync with environment.yml and asv.conf.json
-    # numpy >= 2.0 keeps wheels compatible with numpy 1 and 2. Exclude 2.5.0:
-    # wheels built against it segfault on older numpy (GH#66086; numpy GH#31804,
-    # fixed in 2.5.1).
+    # Wheels built against 2.5.0 segfault on older numpy (GH#66086; numpy GH#31804).
     "numpy>=2.0.0,!=2.5.0",
-    "versioneer[toml]"
+    "versioneer"
 ]
 
 build-backend = "mesonpy"
@@ -94,8 +88,8 @@ fss = ['fsspec>=2025.7.0']
 aws = ['s3fs>=2025.7.0']
 gcp = ['gcsfs>=2025.7.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.5', 'python-calamine>=0.4.0', 'pyxlsb>=1.0.10', 'xlrd>=2.0.2', 'xlsxwriter>=3.2.5']
-parquet = ['pyarrow>=13.0.0']
-feather = ['pyarrow>=13.0.0']
+parquet = ['pandas[pyarrow]']
+feather = ['pandas[pyarrow]']
 iceberg = ['pyiceberg>=0.9.1']
 hdf5 = ['tables>=3.10.2']
 spss = ['pyreadstat>=1.3.0']
@@ -109,42 +103,8 @@ output-formatting = ['jinja2>=3.1.6', 'tabulate>=0.9.0']
 clipboard = ['PyQt5>=5.15.11', 'qtpy>=2.4.3']
 compression = ['zstandard>=0.23.0']
 timezone = ['pytz>=2020.1']
-all = ['adbc-driver-postgresql>=1.7.0',
-       'adbc-driver-sqlite>=1.7.0',
-       'beautifulsoup4>=4.13.4',
-       'bottleneck>=1.5.0',
-       'fastparquet>=2024.11.0',
-       'fsspec>=2025.7.0',
-       'gcsfs>=2025.7.0',
-       'html5lib>=1.1',
-       'jinja2>=3.1.6',
-       'lxml>=6.0.0',
-       'matplotlib>=3.10.5',
-       'numba>=0.61.2',
-       'numexpr>=2.11.0,!=2.14.1',
-       'odfpy>=1.4.1',
-       'openpyxl>=3.1.5',
-       'psycopg2>=2.9.10',
-       'pyarrow>=16.0.0',
-       'pyiceberg>=0.9.1',
-       'pymysql>=1.1.1',
-       'PyQt5>=5.15.11',
-       'pyreadstat>=1.3.0',
-       'pytest>=8.3.4',
-       'pytest-xdist>=3.6.1',
-       'python-calamine>=0.4.0',
-       'pytz>=2020.1',
-       'pyxlsb>=1.0.10',
-       'qtpy>=2.4.3',
-       'scipy>=1.16.1',
-       's3fs>=2025.7.0',
-       'SQLAlchemy>=2.0.42',
-       'tables>=3.10.2',
-       'tabulate>=0.9.0',
-       'xarray>=2025.7.1',
-       'xlrd>=2.0.2',
-       'xlsxwriter>=3.2.5',
-       'zstandard>=0.23.0']
+all = ['pandas[test,pyarrow,performance,computation,fss,aws,gcp,excel,parquet,feather,iceberg,hdf5,spss,postgresql,mysql,sql-other,html,xml,plot,output-formatting,clipboard,compression,timezone]',
+       'fastparquet>=2024.11.0']
 
 # See the docstring in versioneer.py for instructions. Note that you must
 # re-run 'versioneer.py setup' after changing this section, and commit the
@@ -161,39 +121,28 @@ parentdir_prefix = "pandas-"
 dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
-skip = ["*_i686", "*_ppc64le", "*_s390x"]
 enable = ["pyodide-eol"]
 build-verbosity = 1
 config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
+audit-requires = ["wheel"]
+audit-command = "python -m wheel unpack --dest build/wheel-unpack {wheel}"
 test-extras = "test"
 test-requires = ["python-dateutil<3"]
-test-command = """
-  python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
-  """
-
-[tool.cibuildwheel.windows]
-config-settings = { setup-args = ["--vsenv"] }
-environment = {}
-# powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
 
-[[tool.cibuildwheel.overrides]]
-select = "*-musllinux*"
-before-test = "apk update && apk add musl-locales"
+[tool.cibuildwheel.windows]
+config-settings = { setup-args = ["--vsenv"] }
+environment = {}
 
-[[tool.cibuildwheel.overrides]]
-select = "*-macosx*"
+[tool.cibuildwheel.macos]
 environment = {CFLAGS="-g0"}
 
-[[tool.cibuildwheel.overrides]]
-select = "*pyodide*"
+[tool.cibuildwheel.pyodide]
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
 # nocacheprovider is needed to avoid cleaning up pytest cache failing with PermissionError
@@ -201,6 +150,10 @@ test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files", "-p no:cacheprovider"]);' \
   """
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-test = "apk update && apk add musl-locales"
 
 [tool.ruff]
 line-length = 88
@@ -485,6 +438,8 @@ filterwarnings = [
   "ignore:Couldn't import C tracer",
   # From gcsfs, via google/auth/transport/grpc.py. Possibly removable in "October 2026" when google bumps grpcio min version.
   "ignore:.*grpcio.*Post-Quantum Cryptography:FutureWarning",
+  # From gcsfs, via google.api_core on Python 3.11; removable when we drop 3.11 support.
+  "ignore:You are using a Python version .* which Google will stop supporting:FutureWarning",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
 ]
