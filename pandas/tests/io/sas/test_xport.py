@@ -224,23 +224,6 @@ class TestXport:
         with XportReader(path, encoding="infer") as reader:
             tm.assert_frame_equal(reader.read(), expected)
 
-    def test_convert_dates_false(self, datapath):
-        # GH#70876 the raw SAS day and second counts
-        path = datapath("io", "sas", "data", "dates.xpt")
-        with XportReader(path, encoding="infer", convert_dates=False) as reader:
-            result = reader.read()
-
-        expected = pd.DataFrame(
-            {
-                "ID": [1.0, 2.0, 3.0, 4.0],
-                "DT": [0.0, 22327.0, np.nan, -21915.0],
-                "DTTM": [0.0, 22327.0 * 86400 + 36475, np.nan, -1.0],
-                "NUM": [1.5, -2.25, np.nan, 1e10],
-                "TXT": ["a", "bb", "", "dddd"],
-            }
-        )
-        tm.assert_frame_equal(result, expected)
-
     def test_convert_dates_chunked(self, datapath):
         # GH#70876 every chunk is converted, not only the first
         path = datapath("io", "sas", "data", "dates.xpt")

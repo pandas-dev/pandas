@@ -82,11 +82,7 @@ encoding : str
     Encoding for text data.  XPORT files do not record an encoding, so
     'infer' is equivalent to the default ISO-8859-1.
 chunksize : int
-    Read file `chunksize` lines at a time, returns iterator.
-convert_dates : bool, default True
-    Convert numeric columns whose SAS format is a date format (e.g. DATE9.)
-    or a datetime format (e.g. DATETIME20.) to datetime64.  Note that some
-    rarely used SAS date formats may be unsupported."""
+    Read file `chunksize` lines at a time, returns iterator."""
 
 _format_params_doc = """\
 format : str
@@ -262,7 +258,6 @@ class XportReader(SASReader):
         encoding: str | lib.NoDefault | None = _default_encoding,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
-        convert_dates: bool = True,
     ) -> None:
         # lib.no_default is only passed by read_sas, whose default is still
         # None (raw bytes) but is deprecated in favor of _default_encoding.
@@ -277,7 +272,6 @@ class XportReader(SASReader):
         self._lines_read = 0
         self._index = index
         self._chunksize = chunksize
-        self._convert_dates = convert_dates
 
         self.handles = get_handle(
             filepath_or_buffer,
@@ -420,7 +414,7 @@ class XportReader(SASReader):
         # writes, and a non-ascii name simply matches no date format.
         self._column_convert_types: list[str | None] = [
             convert_type_for_format(field["nform"].decode(self._default_encoding))
-            if self._convert_dates and field["ntype"] == "numeric"
+            if field["ntype"] == "numeric"
             else None
             for field in self.fields
         ]
