@@ -992,6 +992,32 @@ def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
         del lines[:]
 
 
+# Examples that need local files or I/O backends unavailable in the browser.
+# pandas.io also covers Styler, whose jinja2 import is not loaded by Pyodide.
+_TRY_EXAMPLES_SKIP = re.compile(
+    r"^pandas\.(read_|HDFStore|Excel(Writer|File)|io\.)"
+    r"|\.to_(csv|excel|parquet|sql|hdf|pickle|feather|orc|stata|clipboard|xml"
+    r"|iceberg)$"
+)
+
+
+def disable_try_examples(app, what, name, obj, options, lines) -> None:
+    """
+    Opt I/O API pages out of the "Try it in your browser!" button.
+
+    jupyterlite-sphinx skips an Examples section whose first line is
+    ``.. disable_try_examples``. Doing this at build time rather than with
+    try_examples.json ignore_patterns keeps the button hidden, since the
+    extension's resize handler unhides buttons hidden at runtime.
+    """
+    if not _TRY_EXAMPLES_SKIP.search(name):
+        return
+    for i, line in enumerate(lines):
+        if line.strip() == ".. rubric:: Examples":
+            lines[i + 1 : i + 1] = ["", ".. disable_try_examples", ""]
+            break
+
+
 def process_class_docstrings(app, what, name, obj, options, lines) -> None:
     """
     For those classes for which we use ::
@@ -1093,6 +1119,7 @@ def rstjinja(app, docname, source) -> None:
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
+    app.connect("autodoc-process-docstring", disable_try_examples)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
     app.add_autodocumenter(AccessorDocumenter)
