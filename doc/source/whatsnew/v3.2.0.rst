@@ -30,7 +30,6 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
-- :func:`read_sas` with ``format="xport"`` now converts numeric columns whose SAS format is a date format (e.g. ``DATE9.``) or a datetime format (e.g. ``DATETIME20.``) to ``datetime64``, as it already did for SAS7BDAT files; ``XportReader`` gained a ``convert_dates`` argument to turn this off (:issue:`70876`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - :meth:`DataFrame.to_csv` and other writers now accept an ``os.PathLike`` such as :class:`pathlib.Path` for the ``archive_name`` entry of a zip or tar ``compression`` dict (:issue:`31934`)
 - :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
@@ -94,6 +93,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
+- :func:`read_sas` with ``format="xport"`` now converts numeric columns whose SAS format is a date format (e.g. ``DATE9.``) or a datetime format (e.g. ``DATETIME20.``) to ``datetime64`` instead of returning them as floats, as it already did for SAS7BDAT files (:issue:`70876`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
 
