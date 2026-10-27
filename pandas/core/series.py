@@ -5120,11 +5120,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         value:
 
         >>> s = pd.Series([1, 2.5, "abc"])
-        >>> s.map(lambda x: len(str(x)))
-        0    1
-        1    3
-        2    3
-        dtype: int64
+        >>> s.map(lambda x: type(x).__name__)
+        0      int
+        1    float
+        2      str
+        dtype: str
         """
         if func is None:
             if "arg" in kwargs:
