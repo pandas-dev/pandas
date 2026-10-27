@@ -1137,7 +1137,7 @@ class TestParquetPyArrow(Base):
                 [b"foo", b"bar"],
                 marks=pytest.mark.xfail(
                     pa_version_under20p0,
-                    raises=NotImplementedError,
+                    raises=TypeError,
                     reason="https://github.com/apache/arrow/pull/44171",
                 ),
             ),
