@@ -966,7 +966,7 @@ def test_construction_string_out_of_bounds(value, msg):
         # GH#68560 the leading "-" applies to every term until the first ":",
         #  so the running total can leave the range and be brought back
         (
-            "-106751 days 23:00:00", # "-106751 days 106751 days 2562001:00:00",
+            "-106751 days 23:00:00",  # "-106751 days 106751 days 2562001:00:00",
             pd.Timedelta(-9223369200000000000, "ns"),
         ),
     ],

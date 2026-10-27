@@ -390,7 +390,7 @@ class TestTimedeltas:
         assert -pd.Timedelta("-13:48:48")._value == 49728000000
         assert pd.Timedelta("-13:48:48")._value == -49728000000
         assert td.days == -1
-        assert td.seconds == 24*3600 - (13 * 3600 + 48 * 60 + 48) # 36672
+        assert td.seconds == 24 * 3600 - (13 * 3600 + 48 * 60 + 48)  # 36672
 
         rng = pd.to_timedelta("-0 days 10:11:12.100123456")
         assert abs(rng) == pd.Timedelta("10:11:12.100123456")
@@ -399,9 +399,9 @@ class TestTimedeltas:
         assert -pd.to_timedelta("-10:11:12.100123456")._value == 36672100123456
         assert pd.to_timedelta("-10:11:12.100123456")._value == -36672100123456
         assert rng.days == -1
-        assert rng.seconds == 24*3600 - 1 - (10 * 3600 + 11 * 60 + 12) # 49727
-        assert rng.microseconds == 1000000 - 1 - (100 * 1000 + 123) # 899876
-        assert rng.nanoseconds == 1000 - 456 # 544
+        assert rng.seconds == 24 * 3600 - 1 - (10 * 3600 + 11 * 60 + 12)  # 49727
+        assert rng.microseconds == 1000000 - 1 - (100 * 1000 + 123)  # 899876
+        assert rng.nanoseconds == 1000 - 456  # 544
         msg = "'Timedelta' object has no attribute '{}'"
         with pytest.raises(AttributeError, match=msg.format("hours")):
             rng.hours
