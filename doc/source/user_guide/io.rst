@@ -6441,10 +6441,10 @@ The top-level function :func:`read_sas` can read (but not write) SAS
 XPORT (.xpt) and SAS7BDAT (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
-values (usually 8 bytes but sometimes truncated).  For xport files,
-there is no automatic type conversion to integers, dates, or
-categoricals.  For SAS7BDAT files, the format codes may allow date
-variables to be automatically converted to dates.  By default the
+values (usually 8 bytes but sometimes truncated).  :func:`read_sas`
+converts numeric variables with a SAS date or datetime format (for
+example ``DATE9.`` or ``DATETIME20.``) to ``datetime64``.  There is no
+automatic conversion to integers or categoricals.  By default the
 whole file is read and returned as a ``DataFrame``.
 
 Specify a ``chunksize`` or use ``iterator=True`` to obtain reader

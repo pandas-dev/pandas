@@ -24,6 +24,10 @@ from pandas.util._exceptions import find_stack_level
 import pandas as pd
 
 from pandas.io.common import get_handle
+from pandas.io.sas.sas_dates import (
+    convert_datetimes,
+    convert_type_for_format,
+)
 from pandas.io.sas.sasreader import SASReader
 
 if TYPE_CHECKING:
@@ -405,6 +409,16 @@ class XportReader(SASReader):
         self.nobs = self._record_count()
         self.columns = [x["name"].decode() for x in self.fields]
 
+        # The format name (nform) is recorded without its width or decimals,
+        # so DATE9. is stored as b"DATE"; it is ascii in any XPORT file SAS
+        # writes, and a non-ascii name simply matches no date format.
+        self._column_convert_types: list[str | None] = [
+            convert_type_for_format(field["nform"].decode(self._default_encoding))
+            if field["ntype"] == "numeric"
+            else None
+            for field in self.fields
+        ]
+
         # Setup the dtype.
         dtypel = [
             ("s" + str(i), "S" + str(field["field_length"]))
@@ -515,6 +529,9 @@ class XportReader(SASReader):
                 miss = self._missing_double(vec)
                 v = _parse_float_vec(vec)
                 v[miss] = np.nan
+                convert_type = self._column_convert_types[j]
+                if convert_type is not None:
+                    v = convert_datetimes(v, convert_type)
             elif self.fields[j]["ntype"] == "char":
                 v = [y.rstrip() for y in vec]
 
