@@ -54,7 +54,10 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -3449,9 +3452,49 @@ def _concatenate(arrays, axis=0, out=None, dtype=None, casting="same_kind"):
     return cls._concat_same_type(arrays)
 
 
+def _where(condition, *args):
+    if len(args) != 2:
+        # np.where(condition) is np.nonzero(condition)
+        return NotImplemented
+    x, y = args
+    cond = np.asarray(condition)
+    if cond.dtype != bool:
+        # includes a boolean ExtensionArray holding NA
+        return NotImplemented
+    if isinstance(x, ExtensionArray):
+        arr, other = x, y
+    elif isinstance(y, ExtensionArray):
+        arr, other, cond = y, x, ~cond
+    else:
+        return NotImplemented
+    if isinstance(other, (ABCSeries, ABCIndex)):
+        other = other._values
+    if (
+        arr.ndim != 1
+        or cond.shape != arr.shape
+        or not (is_scalar(other) or getattr(other, "shape", None) == arr.shape)
+        or (isinstance(other, ExtensionArray) and other.dtype != arr.dtype)
+        # ArrowDtype setitem casts ndarrays lossily, e.g. 0.5 to True
+        or (isinstance(arr.dtype, ArrowDtype) and isinstance(other, np.ndarray))
+        # numpy-typed values that don't cast safely follow numpy's promotion
+        or (
+            isinstance(other, (np.ndarray, np.generic))
+            and (np_dtype := getattr(arr.dtype, "numpy_dtype", None)) is not None
+            and not np.can_cast(other.dtype, np_dtype, casting="safe")
+        )
+    ):
+        return NotImplemented
+    try:
+        return arr._where(cond, other)
+    except (TypeError, ValueError, OverflowError):
+        # other can't be held by arr.dtype, e.g. 1.5 for Int64; numpy upcasts
+        return NotImplemented
+
+
 _ARRAY_FUNCTION_OVERRIDES: dict[Callable[..., Any], Callable[..., Any]] = {
     np.delete: _delete,
     np.concatenate: _concatenate,
+    np.where: _where,
 }
 
 
