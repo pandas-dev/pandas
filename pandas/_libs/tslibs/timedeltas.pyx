@@ -1343,7 +1343,6 @@ cdef int64_t parse_iso_format_string(
                     reso = spec_reso
                 result += timedelta_as_neg(r, neg)
 
-                neg = 0
                 unit, number = [], [c]
         else:
             if c == "P" or c == "T":
@@ -1366,7 +1365,6 @@ cdef int64_t parse_iso_format_string(
                     reso = spec_reso
                 result += timedelta_as_neg(r, neg)
 
-                neg = 0
                 unit, number = [], []
             elif c == ".":
                 # append any seconds

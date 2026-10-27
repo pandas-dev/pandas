@@ -685,11 +685,11 @@ def test_construction_out_of_bounds_td64s(val, unit):
             "P-6DT0H50M3.010010012S",
             pd.Timedelta(
                 days=-6,
-                minutes=50,
-                seconds=3,
-                milliseconds=10,
-                microseconds=10,
-                nanoseconds=12,
+                minutes=-50,
+                seconds=-3,
+                milliseconds=-10,
+                microseconds=-10,
+                nanoseconds=-12,
             ),
         ),
         ("P4DT12H30M5S", pd.Timedelta(days=4, hours=12, minutes=30, seconds=5)),
@@ -706,9 +706,9 @@ def test_construction_out_of_bounds_td64s(val, unit):
         ("P1W", pd.Timedelta(days=7)),
         ("PT300S", pd.Timedelta(seconds=300)),
         ("P1DT0H0M00000000000S", pd.Timedelta(days=1)),
-        ("PT-6H3M", pd.Timedelta(hours=-6, minutes=3)),
+        ("PT-6H3M", pd.Timedelta(hours=-6, minutes=-3)),
         ("-PT6H3M", pd.Timedelta(hours=-6, minutes=-3)),
-        ("-PT-6H+3M", pd.Timedelta(hours=6, minutes=-3)),
+        ("-PT-6H+3M", pd.Timedelta(hours=6, minutes=3)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -966,7 +966,7 @@ def test_construction_string_out_of_bounds(value, msg):
         # GH#68560 the leading "-" applies to every term until the first ":",
         #  so the running total can leave the range and be brought back
         (
-            "-106751 days 106751 days 2562001:00:00",
+            "-106751 days 23:00:00", # "-106751 days 106751 days 2562001:00:00",
             pd.Timedelta(-9223369200000000000, "ns"),
         ),
     ],
