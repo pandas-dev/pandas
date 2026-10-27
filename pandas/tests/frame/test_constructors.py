@@ -3140,11 +3140,17 @@ class TestDataFrameConstructorWithDtypeCoercion:
         colors = [Color.BLUE, Color.RED]
 
         result = pd.DataFrame(colors, columns=["color"], dtype=object)
+        assert result["color"].dtype == object
         assert all(isinstance(v, Color) for v in result["color"])
 
         # Series with dtype=object correctly preserves IntEnum
         ser = pd.Series(colors, dtype=object)
         assert all(isinstance(v, Color) for v in ser)
+
+        # GH#59380 - mixed-type data with dtype=object preserves the
+        # original Python scalar types instead of converting them
+        mixed = pd.DataFrame([1, 2.5, 3], dtype=object)
+        assert [type(v) for v in mixed[0]] == [int, float, int]
 
 
 class TestDataFrameConstructorWithDatetimeTZ:
