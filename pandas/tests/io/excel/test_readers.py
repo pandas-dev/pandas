@@ -764,13 +764,35 @@ class TestReaders:
         df = pd.DataFrame({"a": [1, 2], "b": values})
         df.to_excel(tmp_excel, sheet_name="test", index=False)
         result = pd.read_excel(tmp_excel, sheet_name="test", dtype_backend="pyarrow")
-        # Column "b" has mixed types, which pyarrow cannot convert; the dtype
-        #  is object regardless of the order of the values, matching the
-        #  default behaviour without dtype_backend="pyarrow"
         expected = pd.DataFrame(
             {
                 "a": pd.Series([1, 2], dtype="int64[pyarrow]"),
                 "b": pd.Series(values, dtype=object),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_dtype_backend_numpy_nullable_mixed_types(self, read_ext, tmp_excel):
+        # GH#63830
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df = pd.DataFrame(
+            {
+                "m1": [1, "a"],
+                "m2": ["a", 1],
+                "t": [time(1, 2), time(3, 4)],
+            }
+        )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
+        )
+        expected = pd.DataFrame(
+            {
+                "m1": pd.Series([1, "a"], dtype=object),
+                "m2": pd.Series(["a", 1], dtype=object),
+                "t": pd.Series([time(1, 2), time(3, 4)], dtype=object),
             }
         )
         tm.assert_frame_equal(result, expected)
