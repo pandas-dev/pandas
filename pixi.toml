@@ -12,9 +12,13 @@ cython = ">3.1.0,<4.0.0a0"
 meson = ">=1.2.3,<2"
 meson-python = ">=0.19.0,<1"
 pip = ">=26"
+# https://github.com/mesonbuild/meson/issues/15740#issuecomment-5406526307
+# maybe removeable once issue is closed
+pkg-config = "*"
 
 # Required dependencies
-python-dateutil = ">=2.9.0"
+# TODO: Remove the upper bound once python-dateutil 3.0 is supported (GH#71459)
+python-dateutil = ">=2.9.0,<3"
 
 [feature.default-compiler.dependencies]
 c-compiler = "*"
@@ -70,8 +74,8 @@ python = "3.13.*"
 [feature.py314.dependencies]
 python = "3.14.*"
 
-[feature.py313-freethreading.dependencies]
-python-freethreading = "3.13.*"
+[feature.py314-freethreading.dependencies]
+python-freethreading = "3.14.*"
 
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
@@ -149,9 +153,8 @@ zstandard = ">=0.23.0"
 solve-strategy = "lowest-direct"
 
 [feature.minimum-versions.dependencies]
-# Avoid 3.11.0, which segfaults formatting tracebacks for unraisable
-# exceptions under PYTHONDEVMODE (CPython gh-99729, fixed in 3.11.1).
-python = ">=3.11.1,<3.12"
+# Avoid <3.11.5, soupsieve>=3.0 (for bs4) uses regex pattern supported by Python 3.11.5
+python = ">=3.11.5,<3.12"
 
 [feature.downstream.dependencies]
 cftime = "*"
@@ -204,8 +207,7 @@ pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
 pre-commit = ">=4.2.0"
 ipython = "*"
 mypy = "==2.1.0"
-# TODO: Investigate why Pixi is downgrading e.g. https://github.com/pandas-dev/pandas/pull/66147
-scipy-stubs = ">=1.17.1.5"
+scipy-stubs = "*"
 types-python-dateutil = "*"
 types-PyMySQL = "*"
 types-pytz = "*"
@@ -218,7 +220,7 @@ py313 = { features = ["py313", "numpy24", "test-base", "test-clipboard", "test-n
 py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "default-compiler"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions", "default-compiler"] }
-py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base", "default-compiler"] }
+py314-freethreading = { features = ["py314-freethreading", "numpy", "test-base", "default-compiler"] }
 numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "default-compiler"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly", "default-compiler"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream", "default-compiler"] }
@@ -239,8 +241,6 @@ args = [
   { "arg" = "editable", "default" = "" },
   { "arg" = "werror", "default" = "" },
 ]
-# https://github.com/pandas-dev/pandas/pull/65228, changed with Meson 1.11
-env = { PKG_CONFIG_PATH = "$CONDA_PREFIX/lib/pkgconfig" }
 cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps --config-settings builddir=build/$PIXI_ENVIRONMENT_NAME {{ werror }}"
 depends-on = ["uninstall-pandas"]
 
