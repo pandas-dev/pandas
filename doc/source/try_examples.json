@@ -1,3 +1,4 @@
 {
-  "global_min_height": 600
+  "global_min_height": 600,
+  "ignore_patterns": []
 }
