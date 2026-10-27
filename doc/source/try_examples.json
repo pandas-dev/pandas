@@ -2,9 +2,9 @@
   "global_min_height": 600,
   "ignore_patterns": [
     ".*pandas\\.read_.*",
-    ".*\\.to_(csv|excel|parquet|sql|hdf|pickle|feather|orc|stata|clipboard|xml)\\.html",
+    ".*\\.to_(csv|excel|parquet|sql|hdf|pickle|feather|orc|stata|clipboard|xml|iceberg)\\.html",
     ".*pandas\\.HDFStore.*",
-    ".*pandas\\.ExcelWriter.*",
+    ".*pandas\\.Excel(Writer|File).*",
     ".*pandas\\.io\\..*"
   ]
 }
