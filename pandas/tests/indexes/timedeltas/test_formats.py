@@ -53,7 +53,6 @@ class TestTimedeltaIndexRendering:
                 strict=True,
             ):
                 result = getattr(idx, method)()
-                print(result)
                 assert result == expected
 
     # TODO: this is a Series.__repr__ test
