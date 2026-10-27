@@ -621,6 +621,113 @@ class TestRangeIndex:
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.RangeIndex(10),
+            pd.RangeIndex(0, 20, 3),
+            pd.RangeIndex(20, 0, -3),
+            pd.RangeIndex(-1000, 1000, 7),
+            pd.RangeIndex(5, 5),
+            pd.RangeIndex(-(2**62), 2**62, 2**60),
+            pd.RangeIndex(2**63 - 5, 2**63 - 1),
+            pd.RangeIndex(-(2**63), -(2**63) + 4),
+            pd.RangeIndex(-(2**63), 2**63 - 1, 2**62),
+            pd.RangeIndex(2**53 + 1, 2**53 + 11),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [5, 42],
+            [0, 3, 6, 9, 21],
+            [True, False],
+            [1.0, 3.0, np.nan],
+            [5, 2.5],
+            [np.inf, -np.inf, 6.0],
+            [np.int8(5)],
+            [np.uint64(5)],
+            np.array([1, -3, 120], dtype=np.int8),
+            np.array([4.0, 4.5], dtype=np.float32),
+            np.array([2**63 + 5, 7], dtype=np.uint64),
+            {2, 3, 8, 9},
+            (1, 2),
+            range(-10, 10),
+            pd.Series([1.0, None, 6.0]),
+            pd.Index([4, 5]),
+            [],
+            [-1000, -993, 999, 1000],
+            [2**62, 2**60, -(2**62), 2**63 - 2, -(2**63)],
+            [float(2**53 + 2)],
+            [2**53 + 3, 1.5],
+            [1 + 0j],
+            ["a"],
+            [5, "a"],
+            [5, None],
+            [5, pd.NA],
+            pd.array([5, None], dtype="Int64"),
+            pd.Categorical([5, 6]),
+        ],
+    )
+    def test_isin_matches_index(self, index, values):
+        # GH#66263 the RangeIndex.isin fast path must agree with Index.isin
+        expected = pd.Index(np.asarray(index)).isin(values)
+        result = index.isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values, positions",
+        [
+            ([5, 9_999_999], [5, 9_999_999]),
+            (np.array([7, 8]), [7, 8]),
+            ({4, 250_000}, [4, 250_000]),
+            ([1.0, 2.5, np.nan], [1]),
+            (pd.Series([3, -1, 10**7]), [3]),
+            (range(3), [0, 1, 2]),
+            ([np.int8(5), np.uint64(6)], [5, 6]),
+            ([np.float16(5)], [5]),
+        ],
+    )
+    def test_isin_does_not_materialize(self, values, positions):
+        # GH#66263 integer-like values are matched with arithmetic on the range,
+        # without building the int64 array of the index
+        index = pd.RangeIndex(10_000_000)
+        result = index.isin(values)
+        assert "_data" not in index._cache
+        expected = np.zeros(len(index), dtype=bool)
+        expected[positions] = True
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_generator(self):
+        # GH#66263 a generator can only be read once, so it goes to Index.isin
+        result = pd.RangeIndex(5).isin(x for x in [1, 3])
+        expected = np.array([False, True, False, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_level(self):
+        # GH#66263
+        index = pd.RangeIndex(5, name="a")
+        expected = np.array([False, True, False, True, False])
+        tm.assert_numpy_array_equal(index.isin([1, 3], level=0), expected)
+        tm.assert_numpy_array_equal(index.isin([1, 3], level="a"), expected)
+        with pytest.raises(KeyError, match="does not match index name"):
+            index.isin([1, 3], level="b")
+        with pytest.raises(IndexError, match="Too many levels"):
+            index.isin([1, 3], level=1)
+
+    @pytest.mark.parametrize("values", [1, "abc", None])
+    def test_isin_not_list_like_raises(self, values):
+        # GH#66263
+        with pytest.raises(TypeError, match="only list-like objects are allowed"):
+            pd.RangeIndex(5).isin(values)
+
+    def test_isin_out_of_int64_bounds(self):
+        # GH#66263 a range beyond the int64 bounds is left to Index.isin, which
+        # raises when building the int64 array; the wording differs by platform
+        index = pd.RangeIndex(2**62, 2**64, 2**62)
+        with pytest.raises(OverflowError, match="too (large|big) to convert"):
+            index.isin([2**62])
+
     def test_sort_values_key(self):
         # GH#43666, GH#52764
         sort_order = {8: 2, 6: 0, 4: 8, 2: 10, 0: 12}
