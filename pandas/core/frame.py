@@ -4154,7 +4154,11 @@ class DataFrame(NDFrame, OpsMixin):
             from pandas.core.internals.blocks import NumpyBlock
 
             values = np.asarray(self._values)
-            blk = NumpyBlock(values, placement=BlockPlacement([]), ndim=2)
+            blk = NumpyBlock(
+                values,
+                placement=BlockPlacement(np.array([], dtype=np.intp)),
+                ndim=2,
+            )
             mgr = BlockManager([blk], axes=[self.index, self.columns])
             result = self._constructor_from_mgr(mgr, axes=mgr.axes)
 
