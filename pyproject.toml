@@ -1,18 +1,12 @@
 [build-system]
-# Minimum requirements for the build system to execute.
-# See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
     "meson-python>=0.19.0,<1",
     "meson>=1.2.3,<2",
-    "wheel",
-    # "<4", not "<4.0.0a0": a pre-release in the bound makes pip eligible to
-    # install Cython pre-releases (that pulled the 3.3.0a1 alpha into 3.0.4).
+    # Do not include alpha specifiers in Cython version pins
     "Cython>3.1.0,<4",  # Note: sync with environment.yml and asv.conf.json
-    # numpy >= 2.0 keeps wheels compatible with numpy 1 and 2. Exclude 2.5.0:
-    # wheels built against it segfault on older numpy (GH#66086; numpy GH#31804,
-    # fixed in 2.5.1).
+    # Wheels built against 2.5.0 segfault on older numpy (GH#66086; numpy GH#31804).
     "numpy>=2.0.0,!=2.5.0",
-    "versioneer[toml]"
+    "versioneer"
 ]
 
 build-backend = "mesonpy"
@@ -127,39 +121,28 @@ parentdir_prefix = "pandas-"
 dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
-skip = ["*_i686", "*_ppc64le", "*_s390x"]
 enable = ["pyodide-eol"]
 build-verbosity = 1
 config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
+audit-requires = ["wheel"]
+audit-command = "python -m wheel unpack --dest build/wheel-unpack {wheel}"
 test-extras = "test"
 test-requires = ["python-dateutil<3"]
-test-command = """
-  python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
-  """
-
-[tool.cibuildwheel.windows]
-config-settings = { setup-args = ["--vsenv"] }
-environment = {}
-# powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
 
-[[tool.cibuildwheel.overrides]]
-select = "*-musllinux*"
-before-test = "apk update && apk add musl-locales"
+[tool.cibuildwheel.windows]
+config-settings = { setup-args = ["--vsenv"] }
+environment = {}
 
-[[tool.cibuildwheel.overrides]]
-select = "*-macosx*"
+[tool.cibuildwheel.macos]
 environment = {CFLAGS="-g0"}
 
-[[tool.cibuildwheel.overrides]]
-select = "*pyodide*"
+[tool.cibuildwheel.pyodide]
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
 # nocacheprovider is needed to avoid cleaning up pytest cache failing with PermissionError
@@ -167,6 +150,10 @@ test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files", "-p no:cacheprovider"]);' \
   """
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-test = "apk update && apk add musl-locales"
 
 [tool.ruff]
 line-length = 88

@@ -2182,6 +2182,21 @@ Because ``freq`` represents a span of ``Period``, it cannot be negative like "-3
 
    pd.Period("2012-1-1 19:00", freq="5h")
 
+A ``Period`` starts at the beginning of its frequency's base unit, so any finer
+time information is discarded: a ``"D"`` period always starts at midnight.
+To represent a day-long span starting at another time, use a multiple of a finer
+frequency such as ``"24h"``; to group timestamps into days starting at 08:00, use
+``resample("D", offset="8h")`` instead. ``pd.DateOffset`` objects such as
+``pd.DateOffset(days=1)`` are not supported as a ``Period`` frequency.
+
+.. ipython:: python
+
+   period = pd.Period("2012-1-1 08:00", freq="D")
+   period.start_time, period.end_time
+
+   period = pd.Period("2012-1-1 08:00", freq="24h")
+   period.start_time, period.end_time
+
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).
 
