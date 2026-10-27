@@ -650,7 +650,7 @@ class Index(IndexOpsMixin, PandasObject):
             return Index
 
         if dtype.kind == "S":
-            raise TypeError("Index does not support dtype 'S'")
+            raise TypeError("Index does not support numpy fixed-width string dtypes")
 
         raise NotImplementedError(dtype)
 
