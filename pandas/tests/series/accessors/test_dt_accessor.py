@@ -1116,5 +1116,5 @@ def test_dt_shift_freq(ser):
 
 def test_dt_shift_period_freq_raises():
     ser = pd.Series(pd.period_range("2020-01", periods=3, freq="M"))
-    with pytest.raises(TypeError, match="`freq` argument is not supported"):
+    with pytest.raises(TypeError, match="not supported for Series.dt.shift"):
         ser.dt.shift(1, freq="M")

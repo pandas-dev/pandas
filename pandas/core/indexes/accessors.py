@@ -151,13 +151,22 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             can be positive or negative.
         freq : pandas.DateOffset, pandas.Timedelta or str, optional
             Frequency increment to shift by. If None, the frequency inferred
-            from the values (see :attr:`Series.dt.freq`) is used. Must be None
-            for period values, which are shifted by their own frequency.
+            from the values (see :attr:`Series.dt.freq`) is used, so values in
+            descending order move backward for positive ``periods``. Must be
+            None for period values, which are shifted by their own frequency.
 
         Returns
         -------
         Series
             Series with the shifted values, indexed like the original Series.
+
+        Raises
+        ------
+        NullFrequencyError
+            If ``freq`` is None, ``periods`` is nonzero, and no frequency can
+            be inferred from the values.
+        TypeError
+            If ``freq`` is passed for period values.
 
         See Also
         --------
@@ -183,6 +192,11 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         values = self._get_values()
         if isinstance(values, PeriodArray):
+            if freq is not None:
+                raise TypeError(
+                    "`freq` argument is not supported for Series.dt.shift "
+                    "with period values"
+                )
             values = PeriodIndex(values, copy=False)
         elif freq is None:
             freq = values._inferred_freq_str
