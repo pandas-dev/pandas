@@ -370,9 +370,8 @@ class _XMLFrameParser:
                                 elif col in elem.attrib and col not in used_attrs:
                                     row[nm] = elem.attrib[col]
                                     used_attrs.add(col)
-                            if curr_elem in cols:
-                                open_slots.append(slot)
-                        elif curr_elem in cols:
+                            open_slots.append(slot)
+                        else:
                             slot = open_slots.pop()
                             if slot is not None:
                                 row[slot] = elem.text if elem.text else None

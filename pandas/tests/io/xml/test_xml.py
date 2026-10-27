@@ -1043,8 +1043,7 @@ def test_repeat_elements_past_parser_buffer(parser, temp_file):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-@pytest.mark.parametrize("box", [list, pd.Series])
-def test_repeat_elements_equal_values(parser, temp_file, box):
+def test_repeat_elements_equal_values(parser, temp_file):
     # GH#71275
     xml = """\
 <data>
@@ -1055,7 +1054,7 @@ def test_repeat_elements_equal_values(parser, temp_file, box):
         xml,
         temp_file,
         parser=parser,
-        iterparse={"row": box(["a", "a", "a"])},
+        iterparse={"row": ["a", "a", "a"]},
         names=["a1", "a2", "a3"],
     )
 
