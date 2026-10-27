@@ -649,6 +649,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif issubclass(dtype.type, str) or is_numeric_dtype(dtype):
             return Index
 
+        if dtype.kind == "S":
+            raise TypeError("Index does not support numpy fixed-width string dtypes")
+
         raise NotImplementedError(dtype)
 
     # NOTE for new Index creation:
