@@ -291,7 +291,8 @@ def test_sparse_fillna_extension_array_value():
 
 def test_numpy_extension_array_where_extension_array_value():
     # GH#26380 NDArrayBackedExtensionArray._where calls np.where on value
-    arr = NumpyExtensionArray(np.arange(4))
+    arr = NumpyExtensionArray(np.arange(4, dtype=np.int64))
     mask = np.array([True, False, True, False])
     result = arr._where(mask, pd.array([4, 5, 6, 7], dtype="Int64"))
-    tm.assert_extension_array_equal(result, NumpyExtensionArray(np.array([0, 5, 2, 7])))
+    expected = NumpyExtensionArray(np.array([0, 5, 2, 7], dtype=np.int64))
+    tm.assert_extension_array_equal(result, expected)
