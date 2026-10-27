@@ -591,7 +591,7 @@ class ExcelFormatter:
         self._css_index_levels = np.arange(df.index.nlevels)
         self._css_column_levels = np.arange(df.columns.nlevels)
         if self.styler is not None:
-            index, header, index_label = self._drop_hidden(index, header, index_label)
+            index, header = self._drop_hidden(index, header)
 
         self.columns = self.df.columns
         self.float_format = float_format
@@ -606,34 +606,17 @@ class ExcelFormatter:
         self.autofilter = autofilter
 
     def _drop_hidden(
-        self,
-        index: bool,
-        header: Sequence[Hashable] | bool,
-        index_label: IndexLabel | None,
-    ) -> tuple[bool, Sequence[Hashable] | bool, IndexLabel | None]:
+        self, index: bool, header: Sequence[Hashable] | bool
+    ) -> tuple[bool, Sequence[Hashable] | bool]:
         """
         Remove the rows, columns, levels and names hidden with ``Styler.hide``.
-
-        ``header`` aliases and a list-like ``index_label`` describe the columns
-        and index levels before hiding, and are filtered to the visible ones.
         """
         styler = self.styler
-        df = self.df
-        if len(styler.hidden_rows) or len(styler.hidden_columns):
-            rows = np.setdiff1d(self._css_rows, styler.hidden_rows)
-            col_mask = ~np.isin(self._css_cols, styler.hidden_columns)
-            if is_list_like(header) and not col_mask.all():
-                header = cast("Sequence[Hashable]", header)
-                if len(header) != len(col_mask):
-                    raise ValueError(
-                        f"Writing {len(col_mask)} cols but got {len(header)} aliases"
-                    )
-                header = [
-                    alias for alias, keep in zip(header, col_mask, strict=True) if keep
-                ]
-            df = df.iloc[rows, col_mask]
-            self._css_rows = rows
-            self._css_cols = self._css_cols[col_mask]
+        rows = np.setdiff1d(self._css_rows, styler.hidden_rows)
+        col_mask = ~np.isin(self._css_cols, styler.hidden_columns)
+        df = self.df.iloc[rows, col_mask]
+        self._css_rows = rows
+        self._css_cols = self._css_cols[col_mask]
 
         new_index = df.index
         if all(styler.hide_index_):
@@ -641,12 +624,6 @@ class ExcelFormatter:
         elif any(styler.hide_index_):
             new_index = new_index.droplevel(list(np.flatnonzero(styler.hide_index_)))
             self._css_index_levels = np.flatnonzero(~np.array(styler.hide_index_))
-            if isinstance(index_label, (list, tuple, np.ndarray, Index)):
-                index_label = [
-                    index_label[level]
-                    for level in self._css_index_levels
-                    if level < len(index_label)
-                ]
         if styler.hide_index_names:
             new_index = new_index.set_names([None] * new_index.nlevels)
 
@@ -662,7 +639,7 @@ class ExcelFormatter:
             new_columns = new_columns.set_names([None] * new_columns.nlevels)
 
         self.df = df.set_axis(new_index, axis=0).set_axis(new_columns, axis=1)
-        return index, header, index_label
+        return index, header
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):

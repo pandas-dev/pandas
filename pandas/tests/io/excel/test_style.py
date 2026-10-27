@@ -460,44 +460,6 @@ def test_styler_to_excel_hidden_index_names():
     assert result == _expected_cells([[None, "A"], ["x", 1]])
 
 
-@pytest.mark.parametrize(
-    "level, expected",
-    [
-        (1, [["x0", "x2", "A"], ["a", "p", 1]]),
-        ([0, 1], [["x2", "A"], ["p", 1]]),
-    ],
-)
-def test_styler_to_excel_hidden_levels_index_label(level, expected):
-    # GH#42276 index_label names every level, including hidden ones
-    index = pd.MultiIndex.from_tuples([("a", "i", "p")], names=["L0", "L1", "L2"])
-    df = pd.DataFrame({"A": [1]}, index=index)
-    styler = df.style.hide(axis=0, level=level)
-    formatter = ExcelFormatter(styler, index_label=["x0", "x1", "x2"])
-    result = {
-        (cell.row, cell.col): cell.val for cell in formatter.get_formatted_cells()
-    }
-    assert result == {
-        (row, col): val
-        for row, vals in enumerate(expected)
-        for col, val in enumerate(vals)
-    }
-
-
-def test_styler_to_excel_hidden_columns_header_aliases():
-    # GH#42276 header aliases name every column, including hidden ones
-    df = pd.DataFrame({"A": [1], "B": [2], "C": [3]})
-    styler = df.style.hide(["B"], axis=1)
-    formatter = ExcelFormatter(styler, header=["a", "b", "c"])
-    result = {
-        (cell.row, cell.col): cell.val for cell in formatter.get_formatted_cells()
-    }
-    assert result == {(0, 1): "a", (0, 2): "c", (1, 0): 0, (1, 1): 1, (1, 2): 3}
-
-    msg = "Writing 3 cols but got 2 aliases"
-    with pytest.raises(ValueError, match=msg):
-        ExcelFormatter(styler, header=["a", "c"])
-
-
 def test_styler_to_excel_hidden_column_names():
     # GH#42276
     columns = pd.MultiIndex.from_tuples([("X", "u")], names=["n0", "n1"])
