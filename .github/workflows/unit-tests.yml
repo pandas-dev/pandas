@@ -573,6 +573,9 @@ jobs:
               )
               print("added", meta)
           '
-          # do not import pandas from the checked out repo
+          # do not import pandas from the checked out repo. pytest then
+          # does not read pyproject.toml, where addopts sets --capture=no.
+          # Pyodide 0.27.1 drops pytest's fd-capture temp file, and pytest 9
+          # crashes in capture.py while stating it.
           cd ../..
-          pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' --capture=no --pyargs pandas
