@@ -781,7 +781,6 @@ class TestReaders:
             {
                 "m1": [1, "a"],
                 "m2": ["a", 1],
-                "t": [time(1, 2), time(3, 4)],
             }
         )
         df.to_excel(tmp_excel, sheet_name="test", index=False)
@@ -792,8 +791,32 @@ class TestReaders:
             {
                 "m1": pd.Series([1, "a"], dtype=object),
                 "m2": pd.Series(["a", 1], dtype=object),
-                "t": pd.Series([time(1, 2), time(3, 4)], dtype=object),
             }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_dtype_backend_numpy_nullable_time(self, read_ext, tmp_excel):
+        # GH#63830
+        # A to_excel round-trip cannot test time preservation: the Excel
+        #  writer stringifies datetime.time, so the file would contain
+        #  strings, not time cells. Write real time cells instead.
+        if read_ext != ".xlsx":
+            pytest.skip("Real time cells only tested for .xlsx")
+        openpyxl = pytest.importorskip("openpyxl")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "test"
+        ws.append(["t"])
+        ws.append([time(1, 2)])
+        ws.append([time(3, 4)])
+        wb.save(tmp_excel)
+
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
+        )
+        expected = pd.DataFrame(
+            {"t": pd.Series([time(1, 2), time(3, 4)], dtype=object)}
         )
         tm.assert_frame_equal(result, expected)
 
