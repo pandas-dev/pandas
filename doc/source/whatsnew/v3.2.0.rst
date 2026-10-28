@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`Series`, :class:`DataFrame`, :class:`Index`, and :class:`ExtensionArray` now support NumPy's ``np.minmax`` reduction (NumPy 2.6+), returning the same types as ``np.minimum.reduce`` and ``np.maximum.reduce`` (:issue:`71380`)
 - :func:`numpy.delete` on an :class:`ExtensionArray`, and :func:`numpy.concatenate` on :class:`ExtensionArray` objects of the same dtype, now return an :class:`ExtensionArray` of that dtype instead of a NumPy array (:issue:`26380`)
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
@@ -35,7 +36,6 @@ Other enhancements
 - :meth:`DataFrame.to_csv` and other writers now accept an ``os.PathLike`` such as :class:`pathlib.Path` for the ``archive_name`` entry of a zip or tar ``compression`` dict (:issue:`31934`)
 - :meth:`DataFrame.to_json`, :meth:`Series.to_json` and :meth:`DataFrame.to_xml` now warn when a compression method is requested but no path is given, since the returned string is not compressed, and raise for an unrecognized ``compression`` as they do with a path (:issue:`32326`)
 - :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
-- :class:`Series`, :class:`DataFrame`, :class:`Index` and :class:`ExtensionArray` now support NumPy's ``np.minmax`` reduction (NumPy 2.6+), returning the same types as ``np.minimum.reduce`` and ``np.maximum.reduce`` (:issue:`71380`)
 - Added :meth:`Categorical.to_dense` and :meth:`Series.cat.to_dense` to get the values with the dtype of the categories, including extension dtypes (:issue:`26410`)
 - Added :meth:`DatetimeIndex.set_freq` and :meth:`TimedeltaIndex.set_freq`, which return a new index with the given ``freq`` instead of modifying it in place (:issue:`61094`)
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).

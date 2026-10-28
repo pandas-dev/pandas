@@ -578,4 +578,4 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
     results = tuple(
         getattr(self, name)(skipna=False, **kwargs) for name in method_names
     )
-    return results if len(results) > 1 else results[0]
+    return results[0] if len(results) == 1 else results
