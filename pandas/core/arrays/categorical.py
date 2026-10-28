@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
+    from typing import Any
 
     from pandas._typing import (
         ArrayLike,
@@ -133,8 +134,9 @@ def _cat_compare_op(op):
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
         hashable = is_hashable(other)
-        if is_list_like(other) and len(other) != len(self) and not hashable:
-            # in hashable case we may have a tuple that is itself a category
+        if not hashable and is_list_like(other) and len(other) != len(self):
+            # in hashable case we may have a tuple that is itself a category;
+            #  an iterator is hashable too, so it is scalar-like (GH#31646)
             raise ValueError("Lengths must match.")
 
         if not self.ordered:
@@ -315,6 +317,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     remove_unused_categories
     map
     __array__
+    to_dense
 
     Raises
     ------
@@ -1324,14 +1327,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...     ["a", "b", "c", None], categories=["a", "b", "c"], ordered=True
         ... )
         >>> ci
-        CategoricalIndex(['a', 'b', 'c', nan], categories=['a', 'b', 'c'],
+        CategoricalIndex(['a', 'b', 'c', NaN], categories=['a', 'b', 'c'],
                          ordered=True, dtype='category')
 
         >>> ci.set_categories(["A", "b", "c"])
-        CategoricalIndex([nan, 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex([NaN, 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         >>> ci.set_categories(["A", "b", "c"], rename=True)
-        CategoricalIndex(['A', 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex(['A', 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         """
 
@@ -1399,6 +1402,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+        Series.replace : Replace values, e.g. to merge several categories into one.
 
         Examples
         --------
@@ -1765,7 +1769,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         the result is an :class:`~pandas.Index`:
 
         >>> cat.map({"a": "first", "b": "second"}, na_action=None)
-        Index(['first', 'second', nan], dtype='str')
+        Index(['first', 'second', NaN], dtype='str')
 
         The mapping function is applied to categories, not to each value. It is
         therefore only called once per unique category, and the result reused for
@@ -1930,13 +1934,46 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Unable to avoid copy while creating an array as requested."
             )
 
-        ret = take_nd(self.categories._values, self._codes)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
         # ndarray.
 
-        # `take_nd` should already make a copy, so don't force again.
-        return np.asarray(ret, dtype=dtype)
+        # `to_dense` already makes a copy, so don't force again.
+        return np.asarray(self.to_dense(), dtype=dtype)
+
+    def to_dense(self) -> ArrayLike:
+        """
+        Return the values as an array with the dtype of the categories.
+
+        Unlike ``np.asarray``, this keeps extension dtypes such as ``Int64``,
+        ``period`` or timezone-aware datetimes. Unlike
+        ``astype(categories.dtype)``, it does not raise when there are missing
+        values and the categories' dtype cannot hold them; the result is then
+        upcast as in :meth:`Series.reindex` (e.g. ``int64`` to ``float64``).
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+            The decoded values.
+
+        See Also
+        --------
+        Categorical.astype : Cast to a specified dtype.
+        Categorical.__array__ : Convert to a NumPy array.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(pd.array([1, 2, None], dtype="Int64"))
+        >>> cat.to_dense()
+        <IntegerArray>
+        [1, 2, <NA>]
+        Length: 3, dtype: Int64
+
+        >>> cat = pd.Categorical([1, 2, None])
+        >>> cat.to_dense()
+        array([ 1.,  2., nan])
+        """
+        return take_nd(self.categories._values, self._codes)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
@@ -2429,7 +2466,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Returns an Iterator over the values of this Categorical.
         """
@@ -2533,7 +2570,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             vals,
             None,
             float_format=None,
-            na_rep="NaN",
             quoting=QUOTE_NONNUMERIC,
         )
         return [val.strip() for val in fmt_values]
@@ -2805,7 +2841,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> Self:
-        func: Callable
+        func: Callable[..., Any]
         if name == "cummin":
             func = np.minimum.accumulate
         elif name == "cummax":
@@ -3008,8 +3044,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ):
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         dtype = self.dtype
         if how in ["sum", "prod", "cumsum", "cumprod", "skew", "kurt"]:
@@ -3030,7 +3065,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "idxmin",
             "idxmax",
         ]:
-            if kind == "transform":
+            if op.kind == "transform":
                 raise TypeError(f"{dtype} type does not support {how} operations")
             raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
 
@@ -3080,6 +3115,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         "set_categories",
         "as_ordered",
         "as_unordered",
+        "to_dense",
     ],
     typ="method",
 )
@@ -3253,7 +3289,8 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         method = getattr(self._parent, name)
         res = method(*args, **kwargs)
         if res is not None:
-            return Series(res, index=self._index, name=self._name)
+            # dtype keeps to_dense's object result from being inferred as str
+            return Series(res, index=self._index, name=self._name, dtype=res.dtype)
 
 
 # utility routines

@@ -722,7 +722,7 @@ def test_apply_groupby_datetimeindex():
     result = df.groupby("Name").sum()
 
     expected = pd.DataFrame({"Name": ["A", "B", "C"], "Value": [10, 50, 90]})
-    expected.set_index("Name", inplace=True)
+    expected = expected.set_index("Name")
 
     tm.assert_frame_equal(result, expected)
 
@@ -822,6 +822,15 @@ def test_groupby_apply_none_first(in_data, out_idx, out_data):
     index1 = pd.MultiIndex.from_arrays(out_idx, names=["groups", None])
     expected1 = pd.DataFrame(out_data, index=index1)
     tm.assert_frame_equal(result1, expected1)
+
+
+def test_seriesgroupby_apply_none_later_group():
+    # GH#57846 dropping None results must not emit concat's deprecation warning
+    ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
+    keys = np.array([1, 1, 2, 2], dtype=np.int64)
+    result = ser.groupby(keys).apply(lambda x: None if x.iloc[0] == 3 else x)
+    expected = pd.Series([1, 2], index=pd.MultiIndex.from_arrays([[1, 1], ["a", "b"]]))
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_apply_return_empty_chunk():
@@ -1412,6 +1421,14 @@ def test_include_groups():
     gb = df.groupby("a")
     with pytest.raises(ValueError, match="include_groups=True is no longer allowed"):
         gb.apply(lambda x: x.sum(), include_groups=True)
+
+
+def test_apply_error_not_chained():
+    # GH#50980
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        df.groupby("a").apply(lambda x: x["b"] < "taco")
+    assert err.value.__context__ is None
 
 
 @pytest.mark.parametrize("func, value", [(max, 2), (min, 1), (sum, 3)])

@@ -127,6 +127,16 @@ class TestPeriodArray(base.ExtensionTests):
         # PeriodArray currently cannot be serialized to JSON
         super().test_json_roundtrip(data)
 
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # PeriodArray can be plotted on the x-axis, but on the y-axis `freq` is not set
+        # leading to a ConversionError when trying to set the y-axis limits. Therefore
+        # it is not considered plottable at the moment and the PeriodConverter is set
+        # directly and not through the dtypes PeriodDtype._get_plot_converter() method,
+        # which would register the converter also for the y-axis.
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(plot_data)
+
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     pass

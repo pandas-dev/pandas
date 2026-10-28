@@ -151,8 +151,15 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
     cls = dtype_cls().construct_array_type()
     if isinstance(values, cls):
         values, mask = values._data, values._mask
-        if dtype is not None:
-            values = values.astype(dtype.numpy_dtype, copy=False)
+        if dtype is not None and values.dtype != dtype.numpy_dtype:
+            if mask.any():
+                # values behind the mask are meaningless, so exclude them from
+                #  the lossiness check below
+                values = values.copy()
+                values[mask] = dtype_cls._internal_fill_value
+            # GH#55232 raise instead of silently wrapping around, matching
+            #  the behavior when constructing from a list or ndarray
+            values = dtype_cls._safe_cast(values, dtype.numpy_dtype, copy=False)
 
         if copy:
             values = values.copy()

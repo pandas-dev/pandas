@@ -738,6 +738,34 @@ class TestDataFrameShift:
         s = df["a"]
         tm.assert_frame_equal(s.shift(shifts), df.shift(shifts))
 
+    def test_shift_with_iterable_series_suffix(self):
+        # GH#54806
+        ser = pd.Series([1, 2, 3], name="a")
+        result = ser.shift([0, 1], suffix="_suffix")
+        expected = pd.DataFrame(
+            {"a_suffix_0": [1, 2, 3], "a_suffix_1": [np.nan, 1.0, 2.0]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("periods", [0, 1, -1])
+    def test_shift_with_int_periods_series_suffix_raises(self, periods):
+        # GH#54806
+        ser = pd.Series([1, 2, 3], name="a")
+        msg = "Cannot specify `suffix` if `periods` is an int."
+        with pytest.raises(ValueError, match=msg):
+            ser.shift(periods, suffix="_suffix")
+
+    @pytest.mark.parametrize(
+        "periods",
+        [np.array([0]), pd.Index([0]), pd.Series([0]), np.array([0, 1])],
+    )
+    def test_shift_with_array_like_periods_series(self, periods):
+        # GH#68942 an ndarray/Index of shifts returned an unshifted copy for a
+        # single 0 and raised for more than one; a Series of shifts always raised
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        ser = df["a"]
+        tm.assert_frame_equal(ser.shift(periods), df.shift(list(periods)))
+
     def test_shift_with_iterable_freq_and_fill_value(self):
         # GH#44424
         df = pd.DataFrame(

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
+import warnings
 import zoneinfo
 
 import numpy as np
@@ -17,16 +20,21 @@ from pandas._libs.tslibs import timezones
 from pandas.compat import (
     pa_version_under18p0,
     pa_version_under19p0,
+    pa_version_under25p0,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
         Sequence,
     )
@@ -36,13 +44,35 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeArg,
         DtypeBackend,
+        DtypeObj,
     )
+
+    from pandas.core.dtypes.base import ExtensionDtype
 
 
 pytz = import_optional_dependency("pytz", errors="ignore")
 
 
-def _arrow_dtype_mapping() -> dict:
+@contextlib.contextmanager
+def suppress_pyarrow_values_warning() -> Generator[None]:
+    """
+    Suppress the deprecation warning pyarrow triggers by calling ``.values``
+    on timezone-aware data when converting pandas objects.
+
+    Remove once the minimum pyarrow (26.0) no longer does this, see GH#68426 and
+    apache/arrow#51302.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            r"(Series|DatetimeIndex)\.values returning an ndarray that drops "
+            "timezone information",
+            Pandas4Warning,
+        )
+        yield
+
+
+def _arrow_dtype_mapping() -> dict[pyarrow.DataType, Any]:
     pa = import_optional_dependency("pyarrow")
     return {
         pa.int8(): pd.Int8Dtype(),
@@ -62,7 +92,7 @@ def _arrow_dtype_mapping() -> dict:
     }
 
 
-def _arrow_string_types_mapper() -> Callable:
+def _arrow_string_types_mapper() -> Callable[[pyarrow.DataType], ExtensionDtype | None]:
     pa = import_optional_dependency("pyarrow")
 
     mapping = {
@@ -79,7 +109,7 @@ def arrow_table_to_pandas(
     table: pyarrow.Table,
     dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
     null_to_int64: bool = False,
-    to_pandas_kwargs: dict | None = None,
+    to_pandas_kwargs: dict[str, Any] | None = None,
     dtype: DtypeArg | None = None,
     names: Sequence[Hashable] | None = None,
 ) -> pd.DataFrame:
@@ -87,7 +117,9 @@ def arrow_table_to_pandas(
 
     to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
 
-    types_mapper: type[pd.ArrowDtype] | Callable | None
+    types_mapper: (
+        type[pd.ArrowDtype] | Callable[[pyarrow.DataType], ExtensionDtype | None] | None
+    )
     if dtype_backend == "numpy_nullable":
         mapping = _arrow_dtype_mapping()
         if null_to_int64:
@@ -184,10 +216,12 @@ def _post_convert_dtypes(
             dtype = pandas_dtype(dtype)
 
         try:
-            df = df.astype(dtype)
+            casted = df.astype(dtype)
         except TypeError as err:
             # GH#44901 reraise to keep api consistent
             raise ValueError(str(err)) from err
+        validate_integer_casts(df, casted)
+        df = casted
 
         # GH#56136 IntegerDtype was used above to avoid lossy float64
         #  conversion in pyarrow; convert back to numpy now that the data
@@ -240,6 +274,61 @@ def _post_convert_dtypes(
             df.columns = new_cols
 
     return df
+
+
+def _numpy_dtype(dtype: DtypeObj) -> np.dtype | None:
+    # the numpy dtype underlying a column's dtype, if any
+    if isinstance(dtype, np.dtype):
+        return dtype
+    if isinstance(dtype, pd.SparseDtype):
+        return dtype.subtype
+    if isinstance(dtype, (BaseMaskedDtype, pd.ArrowDtype)):
+        return dtype.numpy_dtype
+    return None
+
+
+def _can_wrap(old: DtypeObj, new: DtypeObj) -> bool:
+    """
+    Whether casting from ``old`` to ``new`` can wrap around an integer value.
+    """
+    old_np = _numpy_dtype(old)
+    new_np = _numpy_dtype(new)
+    if old_np is None or new_np is None:
+        return False
+    if new_np.kind not in "iu" or old_np.kind not in "iuf":
+        return False
+    # NA cannot wrap, so e.g. Int64 -> int64 is as safe as int64 -> int64
+    return not np.can_cast(old_np, new_np)
+
+
+def validate_integer_casts(original: pd.DataFrame, casted: pd.DataFrame) -> None:
+    """
+    Apply validate_integer_cast to each column of a DataFrame cast.
+    """
+    for i, (old, new) in enumerate(zip(original.dtypes, casted.dtypes, strict=True)):
+        # check dtypes first; iloc on every column is slow for wide frames
+        if _can_wrap(old, new):
+            validate_integer_cast(original.iloc[:, i], new)
+
+
+def validate_integer_cast(original: pd.Series, dtype: DtypeObj) -> None:
+    """
+    Raise if casting a column to an integer ``dtype`` wrapped around (GH#38013).
+
+    Discarding a float's fractional part is allowed, as in the python engine.
+    """
+    if not _can_wrap(original.dtype, dtype):
+        return
+    lo, hi = original.min(), original.max()
+    if isna(lo):
+        return
+    info = np.iinfo(_numpy_dtype(dtype))
+    # int() truncates exactly, so e.g. 2.0**63 does not equal int64 max
+    if int(lo) < info.min or int(hi) > info.max:
+        raise ValueError(
+            f"cannot safely convert passed user dtype of {dtype} for "
+            f"{_numpy_dtype(original.dtype)} dtyped data in column {original.name}"
+        )
 
 
 def _maybe_convert_string_to_object(
@@ -332,13 +421,13 @@ def _normalize_timezone_index(index: pd.Index) -> pd.Index:
 
 def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     """
-    PyArrow uses pytz by default for timezones, but pandas uses
+    PyArrow below version 25 uses pytz by default for timezones, but pandas uses
     zoneinfo / datetime.timezone since pandas 3.0.
 
-    TODO: Starting with pyarrow 25, it will use zoneinfo by default, and then
-    this normalization can be skipped (https://github.com/apache/arrow/pull/49694).
+    Can be dropped once the minimum supported pyarrow is 25, which uses zoneinfo
+    itself (https://github.com/apache/arrow/pull/49694).
     """
-    if pytz is not None:
+    if pytz is not None and pa_version_under25p0:
         # Convert any pytz timezones to zoneinfo / fixed offset timezones
         if any(
             isinstance(dtype, pd.DatetimeTZDtype)

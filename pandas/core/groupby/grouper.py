@@ -561,7 +561,7 @@ class Grouping:
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Hashable]:
         return iter(self.indices)
 
     @cache_readonly
@@ -966,7 +966,7 @@ def _is_label_like(val) -> bool:
 def _factorize_monotonic(
     grouping_vector,
     sort: bool,
-) -> tuple | None:
+) -> tuple[npt.NDArray[np.intp], np.ndarray] | None:
     """
     Fast-path factorization for monotonic (sorted) grouping vectors.
 

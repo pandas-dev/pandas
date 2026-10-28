@@ -330,14 +330,18 @@ class _FrequencyInferer:
             return _maybe_add_count("ns", delta)
 
     @cache_readonly
-    def day_deltas(self) -> list[int]:
+    def day_deltas(self) -> list[float]:
+        # NB: must be true division; flooring would let a fractional gap
+        #  match the exact [1, 3] check in _is_business_daily
         ppd = periods_per_day(self._creso)
-        return [x // ppd for x in self.deltas]
+        return [x / ppd for x in self.deltas]
 
     @cache_readonly
-    def hour_deltas(self) -> list[int]:
+    def hour_deltas(self) -> list[float]:
+        # NB: must be true division, as in day_deltas; this one feeds the
+        #  exact [1, 17]/[1, 65] check in get_freq
         pph = periods_per_day(self._creso) // 24
-        return [x // pph for x in self.deltas]
+        return [x / pph for x in self.deltas]
 
     @cache_readonly
     def fields(self) -> np.ndarray:  # structured array of fields
@@ -345,7 +349,8 @@ class _FrequencyInferer:
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
-        return Timestamp(self.i8values[0], unit=self.index.unit)
+        # creating a Timestamp preserving the i8 unit
+        return Timestamp._from_value_and_reso(self.i8values[0], self._creso, None)
 
     def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.day_of_week)
@@ -388,6 +393,13 @@ class _FrequencyInferer:
 
         if self.is_unique:
             return self._get_daily_rule()
+
+        # GH#45819 only reached with more than one distinct delta, so an
+        #  evenly spaced index that also fits SMS (e.g. 1st/15th across a
+        #  28-day February) keeps its fixed-delta rule such as "2W-MON"
+        semi_monthly_rule = self._get_semi_monthly_rule()
+        if semi_monthly_rule:
+            return semi_monthly_rule
 
         if self._is_business_daily():
             return "B"
@@ -436,6 +448,32 @@ class _FrequencyInferer:
             return None
         else:
             return {"cs": "QS", "bs": "BQS", "ce": "QE", "be": "BQE"}.get(pos_check)
+
+    def _get_semi_monthly_rule(self) -> str | None:
+        """
+        Infer "SMS" or "SME" if the index alternates between the two anchors
+        of a semi-month frequency.
+
+        These never reach the monthly or daily rules above, because a
+        semi-month index has more than one distinct delta.
+        """
+        days = self.fields["D"]
+
+        if np.all(np.isin(days, [1, 15])) and np.any(days == 1):
+            rule = "SMS"
+        elif np.all((days == 15) | self.index.is_month_end) and np.any(days == 15):
+            rule = "SME"
+        else:
+            return None
+
+        # the two anchors must strictly alternate, advancing one month each
+        # time the day of month drops back to the earlier anchor
+        nmonths = (self.fields["Y"] * 12 + self.fields["M"]).astype("i8")
+        rolls_over = (days[1:] < days[:-1]).astype("i8")
+        if not np.array_equal(np.diff(nmonths), rolls_over):
+            return None
+
+        return rule
 
     def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:

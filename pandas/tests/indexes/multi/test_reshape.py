@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    date,
+    datetime,
+)
 import zoneinfo
 
 import numpy as np
@@ -31,7 +34,7 @@ def test_insert(idx):
         idx.insert(0, ("foo2",))
 
     left = pd.DataFrame([["a", "b", 0], ["b", "d", 1]], columns=["1st", "2nd", "3rd"])
-    left.set_index(["1st", "2nd"], inplace=True)
+    left = left.set_index(["1st", "2nd"])
     ts = left["3rd"].copy(deep=True)
 
     left.loc[("b", "x"), "3rd"] = 2
@@ -61,7 +64,7 @@ def test_insert(idx):
         ],
         columns=["1st", "2nd", "3rd"],
     )
-    right.set_index(["1st", "2nd"], inplace=True)
+    right = right.set_index(["1st", "2nd"])
     tm.assert_frame_equal(left, right)
     tm.assert_series_equal(ts, right["3rd"])
 
@@ -144,6 +147,15 @@ def test_append_index():
     tm.assert_index_equal(result, expected)
 
 
+def test_append_tuples_of_different_lengths():
+    # GH#50293
+    mi = pd.MultiIndex.from_tuples([("a", "b")])
+    other = pd.Index([("x", "y", "z")], tupleize_cols=False)
+    result = mi.append(other)
+    expected = pd.Index([("a", "b"), ("x", "y", "z")], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("name, exp", [("b", "b"), ("c", None)])
 def test_append_names_match(name, exp):
     # GH#48288
@@ -161,6 +173,42 @@ def test_append_names_dont_match():
     result = midx.append(midx2)
     expected = pd.MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
     tm.assert_index_equal(result, expected)
+
+
+def test_append_mixed_date_tzaware_timestamp():
+    # GH#68577 the combined level cannot be converted to datetime64, so it
+    #  stays object instead of raising "Mixed timezones detected"
+    ts = pd.Timestamp("2001-01-01", tz="UTC")
+    mi1 = pd.MultiIndex.from_arrays(
+        [pd.Index([date(2001, 1, 1)], dtype=object), pd.Index(["foo"], dtype=object)]
+    )
+    mi2 = pd.MultiIndex.from_arrays([pd.Index([ts]), pd.Index(["bar"], dtype=object)])
+
+    result = mi1.append(mi2)
+
+    expected = pd.MultiIndex.from_arrays(
+        [
+            pd.Index([date(2001, 1, 1), ts], dtype=object),
+            pd.Index(["foo", "bar"], dtype=object),
+        ]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_append_unorderable_levels_no_warning():
+    # GH#61477
+    mi1 = pd.MultiIndex.from_tuples([("a", "A"), ("a", "B"), ("b", ("x", "y"))])
+    mi2 = pd.MultiIndex.from_tuples([("c", 1), ("c", 2)])
+    with tm.assert_produces_warning(False):
+        result = mi1.append(mi2)
+    expected = pd.MultiIndex.from_tuples([*mi1, *mi2])
+    tm.assert_index_equal(result, expected)
+
+    df1 = pd.DataFrame([[0, 0, 0]], columns=mi1)
+    df2 = pd.DataFrame([[1, 1]], columns=mi2)
+    with tm.assert_produces_warning(False):
+        result = pd.concat([df1, df2], axis=1)
+    tm.assert_index_equal(result.columns, expected)
 
 
 def test_append_overlapping_interval_levels():

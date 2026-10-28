@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays.sparse import SparseArray
 
 
 @pytest.fixture(params=[0, np.nan])
@@ -108,8 +109,9 @@ class TestSparseGroupby:
         # GH#64758 the NaN fill_value must be materialized rather than
         #  unsafely cast to the int64 subtype
         keys = ["a", "a", "b", "b"]
-        sparse_ser = pd.Series([1, 0, 1, 0]).astype("Sparse[int64]")
-        sparse_ser = sparse_ser.astype(pd.SparseDtype(np.int64, np.nan))
+        sparse_ser = pd.Series(
+            SparseArray([1, np.nan, 1, np.nan], dtype=pd.SparseDtype(np.int64, np.nan))
+        )
         assert sparse_ser.array.sp_index.ngaps == 2
 
         dense_ser = pd.Series([1.0, np.nan, 1.0, np.nan])
@@ -122,10 +124,8 @@ class TestSparseGroupby:
         # GH#64758 a NaN fill_value on a bool subtype was cast to True; the gaps
         #  are missing values, so the dense equivalent is object dtype
         keys = ["a", "a", "b", "b"]
-        sparse_ser = pd.Series([True, False, True, False]).astype(
-            pd.SparseDtype(bool, False)
-        )
-        sparse_ser = sparse_ser.astype(pd.SparseDtype(bool, np.nan))
+        dtype = pd.SparseDtype(bool, np.nan)
+        sparse_ser = pd.Series(SparseArray([True, np.nan, True, np.nan], dtype=dtype))
         assert sparse_ser.array.sp_index.ngaps == 2
 
         dense_ser = pd.Series([True, np.nan, True, np.nan])
@@ -161,6 +161,41 @@ class TestSparseGroupby:
 
         result = getattr(sparse_ser.groupby(keys), op)()
         expected = getattr(dense_ser.groupby(keys), op)()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("op", ["first", "last"])
+    @pytest.mark.parametrize(
+        "subtype", ["int8", "int32", "uint16", "uint64", "float32"]
+    )
+    def test_sparse_groupby_first_last_preserves_subtype(self, subtype, op):
+        # GH#68469 first/last keep the SparseDtype rather than densifying, so
+        #  they reach the gaps through take
+        keys = ["a", "a", "b", "b", "a", "b"]
+        big = 2**63 + 12345 if subtype == "uint64" else 3
+        dense_ser = pd.Series(np.array([0, 1, big, 0, big, 0], dtype=subtype))
+        sparse_ser = dense_ser.astype(pd.SparseDtype(subtype, 0))
+        assert sparse_ser.array.sp_index.ngaps == 3
+
+        result = getattr(sparse_ser.groupby(keys), op)()
+        expected = getattr(dense_ser.groupby(keys), op)()
+        expected = expected.astype(pd.SparseDtype(subtype, 0))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("op", ["first", "last"])
+    @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]", "m8[s]", "m8[ns]"])
+    def test_sparse_groupby_first_last_datetimelike(self, unit, op):
+        # GH#68469 same for a datetimelike subtype: a nanosecond unit was
+        #  promoted to object and read back as raw integers, a coarser one
+        #  was widened
+        keys = ["a", "a", "b", "b", "a", "b"]
+        dense_ser = pd.Series(np.array([3, 1, 5, 3, 5, 3], dtype=unit))
+        fill = dense_ser[0] if unit[0] == "M" else pd.Timedelta(dense_ser[0])
+        sparse_ser = dense_ser.astype(pd.SparseDtype(unit, fill))
+        assert sparse_ser.array.sp_index.ngaps == 3
+
+        result = getattr(sparse_ser.groupby(keys), op)()
+        expected = getattr(dense_ser.groupby(keys), op)()
+        expected = expected.astype(pd.SparseDtype(unit, fill))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("nat_fill", [None, pd.NaT])

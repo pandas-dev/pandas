@@ -43,6 +43,13 @@ def test_qcut_specify_quantiles():
     tm.assert_categorical_equal(factor, expected)
 
 
+@pytest.mark.parametrize("q", [0, -1, -3, True, False, 2.0, 0.5, "2", None])
+def test_qcut_invalid_q(q):
+    msg = "`q` should be a positive integer"
+    with pytest.raises(ValueError, match=msg):
+        pd.qcut([1, 2, 3, 4], q)
+
+
 def test_qcut_all_bins_same():
     with pytest.raises(ValueError, match="edges.*unique"):
         pd.qcut([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)

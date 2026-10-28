@@ -73,12 +73,16 @@ from pandas.core.tools.datetimes import (
     to_datetime,
 )
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Generator,
+        Hashable,
         Iterator,
         Mapping,
     )
@@ -186,6 +190,12 @@ def _convert_arrays_to_dataframe(
     coerce_float: bool = True,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
+    if data and is_dict_like(data[0]) and not isinstance(data[0], (list, tuple)):
+        # DBAPI cursors returning dict rows, e.g. pymysql's DictCursor. Use
+        # values() rather than lookup by column name, since such cursors may
+        # rename duplicate columns (GH#53028). Skip list-based rows like
+        # psycopg2's DictRow, whose values() drops duplicate columns.
+        data = [tuple(row.values()) for row in data]
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
     arrays = convert_object_array(
@@ -466,6 +476,10 @@ def read_sql_query(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -621,6 +635,10 @@ def read_sql(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -723,6 +741,8 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
 
+    >>> conn.close()
+
     pandas supports reading via ADBC drivers:
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
@@ -790,7 +810,7 @@ def to_sql(
     index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    method: Literal["multi"] | Callable | None = None,
+    method: Literal["multi"] | Callable[..., Any] | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -1023,21 +1043,27 @@ class SQLTable(PandasObject):
         with self.pd_sql.run_transaction():
             self.table.create(bind=self.pd_sql.con)
 
-    def create(self) -> None:
+    def create(self) -> bool:
+        """
+        Create the table if needed; return whether a table was (re)created.
+        """
         if self.exists():
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
             elif self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
+                return True
             elif self.if_exists == "append":
                 pass
             elif self.if_exists == "delete_rows":
                 self.pd_sql.delete_rows(self.name, self.schema)
             else:
                 raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
+            return False
         else:
             self._execute_create()
+            return True
 
     def _execute_insert(self, conn, keys: list[str], data_iter) -> int:
         """
@@ -1124,7 +1150,7 @@ class SQLTable(PandasObject):
     def insert(
         self,
         chunksize: int | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
     ) -> int | None:
         # set insert method
         if method is None:
@@ -1201,7 +1227,7 @@ class SQLTable(PandasObject):
                 )
 
                 if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+                    self.frame = self.frame.set_index(self.index)
 
                 yield self.frame
 
@@ -1225,7 +1251,8 @@ class SQLTable(PandasObject):
         else:
             sql_select = select(self.table)
         result = self.pd_sql.execute(sql_select)
-        column_names = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        column_names = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             return self._query_iterator(
@@ -1248,7 +1275,7 @@ class SQLTable(PandasObject):
             )
 
             if self.index is not None:
-                self.frame.set_index(self.index, inplace=True)
+                self.frame = self.frame.set_index(self.index)
 
             return self.frame
 
@@ -1392,7 +1419,7 @@ class SQLTable(PandasObject):
     def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast("dict", dtype)
+            dtype = cast("Mapping[Hashable, Any]", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -1400,6 +1427,7 @@ class SQLTable(PandasObject):
         # Needed for inserting typed data containing NULLs, GH 8778.
         col_type = lib.infer_dtype(col, skipna=True)
 
+        from sqlalchemy.dialects import mysql
         from sqlalchemy.types import (
             TIMESTAMP,
             BigInteger,
@@ -1413,19 +1441,24 @@ class SQLTable(PandasObject):
             Time,
         )
 
+        # GH#48435 MySQL defaults to whole seconds, dropping fractional ones
+        mysql_dialects = ("mysql", "mariadb")
+
         if col_type in ("datetime64", "datetime"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
                 # error: Item "Index" of "Union[Index, Series]" has no attribute "dt"
-                if col.dt.tz is not None:  # type: ignore[union-attr]
-                    return TIMESTAMP(timezone=True)
+                is_tz_aware = col.dt.tz is not None  # type: ignore[union-attr]
             except AttributeError:
                 # The column is actually a DatetimeIndex
                 # GH 26761 or an Index with date-like data e.g. 9999-01-01
-                if getattr(col, "tz", None) is not None:
-                    return TIMESTAMP(timezone=True)
-            return DateTime
+                is_tz_aware = getattr(col, "tz", None) is not None
+            if is_tz_aware:
+                return TIMESTAMP(timezone=True).with_variant(
+                    mysql.TIMESTAMP(timezone=True, fsp=6), *mysql_dialects
+                )
+            return DateTime().with_variant(mysql.DATETIME(fsp=6), *mysql_dialects)
         if col_type == "timedelta64":
             warnings.warn(
                 "the 'timedelta' type is not supported, and will be "
@@ -1454,7 +1487,7 @@ class SQLTable(PandasObject):
         elif col_type == "date":
             return Date
         elif col_type == "time":
-            return Time
+            return Time().with_variant(mysql.TIME(fsp=6), *mysql_dialects)
         elif col_type == "complex":
             raise ValueError("Complex datatypes not supported")
 
@@ -1547,14 +1580,14 @@ class PandasSQL(PandasObject, ABC):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         pass
 
     @abstractmethod
-    def execute(self, sql: str | Select | TextClause, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause, params=None):
         pass
 
     @abstractmethod
@@ -1710,18 +1743,23 @@ class SQLDatabase(PandasSQL):
         else:
             yield self.con
 
-    def execute(self, sql: str | Select | TextClause | Delete, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause | Delete, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
         from sqlalchemy.exc import SQLAlchemyError
 
         args = [] if params is None else [params]
+        kwargs: dict[str, Any] = {}
         if isinstance(sql, str):
             execute_function = self.con.exec_driver_sql
+            if params is None and "%" in sql.replace("%%", ""):
+                # GH#49561 a driver that %-formats empty params rejects or mangles
+                # an unescaped "%", so pass the query to it unchanged
+                kwargs["execution_options"] = {"no_parameters": True}
         else:
             execute_function = self.con.execute
 
         try:
-            return execute_function(sql, *args)
+            return execute_function(sql, *args, **kwargs)
         except SQLAlchemyError as exc:
             raise DatabaseError(f"Execution failed on sql '{sql}': {exc}") from exc
 
@@ -1899,7 +1937,8 @@ class SQLDatabase(PandasSQL):
 
         """
         result = self.execute(sql, params)
-        columns = result.keys()
+        # SQLAlchemy keys are str subclasses that need it to unpickle (GH#52816)
+        columns = [str(col) for col in result.keys()]
 
         if chunksize is not None:
             self.returns_generator = True
@@ -1938,9 +1977,11 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
-    ) -> SQLTable:
+    ) -> tuple[SQLTable, bool]:
         """
         Prepares table in the database for data insertion. Creates it if needed, etc.
+
+        Returns the table and whether it was (re)created.
         """
         if dtype:
             if not is_dict_like(dtype):
@@ -1952,7 +1993,7 @@ class SQLDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast("dict", dtype)
+                dtype = cast("Mapping[Hashable, Any]", dtype)
 
             from sqlalchemy.types import TypeEngine
 
@@ -1974,8 +2015,8 @@ class SQLDatabase(PandasSQL):
             schema=schema,
             dtype=dtype,
         )
-        table.create()
-        return table
+        created = table.create()
+        return table, created
 
     def check_case_sensitive(
         self,
@@ -2016,7 +2057,7 @@ class SQLDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2069,7 +2110,7 @@ class SQLDatabase(PandasSQL):
         """
         sql_engine = get_engine(engine)
 
-        table = self.prep_table(
+        table, created = self.prep_table(
             frame=frame,
             name=name,
             if_exists=if_exists,
@@ -2091,7 +2132,10 @@ class SQLDatabase(PandasSQL):
             **engine_kwargs,
         )
 
-        self.check_case_sensitive(name=name, schema=schema)
+        if created:
+            # the case warning only applies to a table we just created; listing
+            # every table can block on MSSQL (GH#52601)
+            self.check_case_sensitive(name=name, schema=schema)
         return total_inserted
 
     @property
@@ -2106,6 +2150,7 @@ class SQLDatabase(PandasSQL):
 
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
         from sqlalchemy import (
+            Float,
             Numeric,
             Table,
         )
@@ -2113,7 +2158,8 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         tbl = Table(table_name, self.meta, autoload_with=self.con, schema=schema)
         for column in tbl.columns:
-            if isinstance(column.type, Numeric):
+            # Float is not a Numeric subclass in SQLAlchemy>=2.1
+            if isinstance(column.type, (Numeric, Float)):
                 column.type.asdecimal = False
         return tbl
 
@@ -2128,14 +2174,14 @@ class SQLDatabase(PandasSQL):
             self.meta.clear()
 
     def delete_rows(self, table_name: str, schema: str | None = None) -> None:
+        # No reflection: MetaData.reflect lists every table in the schema,
+        # which can block on MSSQL (GH#52601)
+        from sqlalchemy import table as sqlalchemy_table
+
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
-            self.meta.reflect(
-                bind=self.con, only=[table_name], schema=schema, views=True
-            )
-            table = self.get_table(table_name, schema)
+            table = sqlalchemy_table(table_name, schema=schema)
             self.execute(table.delete()).close()
-            self.meta.clear()
 
     def _create_sql_schema(
         self,
@@ -2183,7 +2229,7 @@ class ADBCDatabase(PandasSQL):
                 raise
             self.con.commit()
 
-    def execute(self, sql: str | Select | TextClause, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause, params=None):
         from adbc_driver_manager import Error
 
         if not isinstance(sql, str):
@@ -2378,7 +2424,7 @@ class ADBCDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2455,7 +2501,8 @@ class ADBCDatabase(PandasSQL):
                 self.delete_rows(name, schema)
 
         try:
-            tbl = pa.Table.from_pandas(frame, preserve_index=index)
+            with suppress_pyarrow_values_warning():
+                tbl = pa.Table.from_pandas(frame, preserve_index=index)
         except pa.ArrowNotImplementedError as exc:
             raise ValueError("datatypes not supported") from exc
 
@@ -2721,7 +2768,7 @@ class SQLiteTable(SQLTable):
     def _sql_type_name(self, col):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast("dict", dtype)
+            dtype = cast("Mapping[Hashable, Any]", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -2779,7 +2826,7 @@ class SQLiteDatabase(PandasSQL):
         finally:
             cur.close()
 
-    def execute(self, sql: str | Select | TextClause, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause, params=None):
         from sqlite3 import Error
 
         if not isinstance(sql, str):
@@ -2907,7 +2954,7 @@ class SQLiteDatabase(PandasSQL):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2960,7 +3007,7 @@ class SQLiteDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast("dict", dtype)
+                dtype = cast("Mapping[Hashable, Any]", dtype)
 
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):

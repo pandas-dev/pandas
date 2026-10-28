@@ -193,3 +193,12 @@ def test_cast_from_unit_vectorized_near_int64_boundary(unit):
                 conversion.cast_from_unit_vectorized(arr, unit)
         else:
             assert conversion.cast_from_unit_vectorized(arr, unit)[0] == expected
+
+
+@pytest.mark.parametrize("unit", ["Y", "M"])
+@pytest.mark.parametrize("value", [-1e19, 1e19, -1e30, 1e30])
+def test_cast_from_unit_vectorized_year_month_oob(unit, value):
+    # GH#68640 the Y/M branch cast to M8 without checking the int64 domain
+    arr = np.array([value], dtype="float64")
+    with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+        conversion.cast_from_unit_vectorized(arr, unit)

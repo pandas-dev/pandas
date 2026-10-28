@@ -229,7 +229,7 @@ Dependency                                                         Minimum Versi
 ================================================================== ================== =============== =============================================================
 `xlrd <https://github.com/python-excel/xlrd>`__                    2.0.2              excel           Reading for xls files (deprecated; use python-calamine)
 `xlsxwriter <https://github.com/jmcnamara/XlsxWriter>`__           3.2.5              excel           Writing for xlsx files
-`openpyxl <https://github.com/theorchard/openpyxl>`__              3.1.5              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
+`openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__          3.1.5              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
 `pyxlsb <https://github.com/willtrnr/pyxlsb>`__                    1.0.10             excel           Reading for xlsb files (deprecated; use python-calamine)
 `python-calamine <https://github.com/dimastbk/python-calamine>`__  0.4.0              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
 `odfpy <https://github.com/eea/odfpy>`__                           1.4.1              excel           Reading / writing for OpenDocument 1.2 files
@@ -353,7 +353,7 @@ Dependency                                                                      
 
 .. note::
 
-   Depending on operating system, system-level packages may need to installed.
+   Depending on operating system, system-level packages may need to be installed.
    For clipboard to operate on Linux one of the CLI tools ``xclip`` or ``xsel`` must be installed on your system.
 
 

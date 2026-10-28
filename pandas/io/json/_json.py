@@ -67,6 +67,7 @@ from pandas.io.common import (
     get_handle,
     is_potential_multi_index,
     stringify_path,
+    warn_unused_compression,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import (
@@ -202,7 +203,8 @@ def to_json(
         raise ValueError(msg)
 
     if orient == "table" and isinstance(obj, Series):
-        obj = obj.to_frame(name=obj.name or "values")
+        # GH#19129 only a None name is a missing name; 0 and False are labels
+        obj = obj.to_frame(name="values" if obj.name is None else obj.name)
 
     if date_format == "epoch":
         # for epoch (numeric) format, convert datetime-likes to the desired
@@ -268,6 +270,7 @@ def to_json(
         ) as handles:
             handles.handle.write(s)
     else:
+        warn_unused_compression(compression)
         return s
     return None
 
@@ -653,7 +656,7 @@ def read_json(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine: JSONEngine = "ujson",
-) -> DataFrame | Series | JsonReader:
+) -> DataFrame | Series | JsonReader[Any]:
     """
     Convert a JSON string to pandas object.
 
@@ -1018,7 +1021,7 @@ def read_json(
 
 
 @set_module("pandas.api.typing")
-class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
+class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
     """
     JsonReader provides an interface for reading in a JSON file.
 
@@ -1202,19 +1205,14 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             2. file-like object (e.g. open file object, StringIO)
         """
         filepath_or_buffer = stringify_path(filepath_or_buffer)
-        try:
-            self.handles = get_handle(
-                filepath_or_buffer,
-                "r",
-                encoding=self.encoding,
-                compression=self.compression,
-                storage_options=self.storage_options,
-                errors=self.encoding_errors,
-            )
-        except OSError as err:
-            raise FileNotFoundError(
-                f"File {filepath_or_buffer} does not exist"
-            ) from err
+        self.handles = get_handle(
+            filepath_or_buffer,
+            "r",
+            encoding=self.encoding,
+            compression=self.compression,
+            storage_options=self.storage_options,
+            errors=self.encoding_errors,
+        )
         filepath_or_buffer = self.handles.handle
         return filepath_or_buffer
 
@@ -1492,7 +1490,7 @@ class Parser:
         self.dtype_backend = dtype_backend
 
     @final
-    def check_keys_split(self, decoded: dict) -> None:
+    def check_keys_split(self, decoded: dict[str, Any]) -> None:
         """
         Checks that dict has only the appropriate keys for orient='split'.
         """
@@ -1591,7 +1589,7 @@ class Parser:
             try:
                 data = data.astype("float64")
                 converted = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         if data.dtype.kind == "f" and data.dtype != "float64":
@@ -1801,7 +1799,10 @@ class SeriesParser(Parser):
             return Series(data)
 
     def _try_convert_types(self, obj: Series) -> Series:
-        obj, _ = self._try_convert_data("data", obj, convert_dates=self.convert_dates)
+        # unlike frame columns, there is no name to suggest dates, and
+        #  all-missing values are no evidence of them (GH#35464)
+        convert_dates = False if obj.isna().all() else self.convert_dates
+        obj, _ = self._try_convert_data("data", obj, convert_dates=convert_dates)
         return obj
 
 

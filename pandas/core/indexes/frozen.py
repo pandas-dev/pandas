@@ -28,7 +28,7 @@ from pandas.io.formats.printing import pprint_thing
 
 
 @set_module("pandas.api.typing")
-class FrozenList(PandasObject, list):
+class FrozenList(PandasObject, list[Any]):
     """
     Container that doesn't allow setting item *but*
     because it's technically hashable, will be used
@@ -38,7 +38,7 @@ class FrozenList(PandasObject, list):
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 
-    def union(self, other: list | tuple) -> FrozenList:
+    def union(self, other: list[Any] | tuple[Any, ...]) -> FrozenList:
         """
         Returns a FrozenList with other concatenated to the end of self.
 
@@ -56,7 +56,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return type(self)(super().__add__(other))
 
-    def difference(self, other: Iterable) -> FrozenList:
+    def difference(self, other: Iterable[Any]) -> FrozenList:
         """
         Returns a FrozenList with elements from other removed from self.
 
@@ -83,7 +83,7 @@ class FrozenList(PandasObject, list):
             return type(self)(super().__getitem__(n))
         return super().__getitem__(n)
 
-    def __radd__(self, other: list | tuple) -> Self:
+    def __radd__(self, other: list[Any] | tuple[Any, ...]) -> Self:
         if isinstance(other, tuple):
             other = list(other)
         return type(self)(other + list(self))

@@ -6,7 +6,10 @@ from pandas.errors import Pandas4Warning
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.sas.sas_xport import XportReader
+from pandas.io.sas.sas_xport import (
+    XportReader,
+    _parse_float_vec,
+)
 from pandas.io.sas.sasreader import read_sas
 
 # CSV versions of test xpt files were obtained using the R foreign library
@@ -169,6 +172,26 @@ class TestXport:
 
         data = read_sas(file04, format="xport")
         tm.assert_frame_equal(data.astype("int64"), data_csv)
+
+    @pytest.mark.parametrize("fname", ["DEMO_G.xpt", "paxraw_d_short.xpt"])
+    def test_zero_read_exactly(self, datapath, fname):
+        # GH#50670 IBM zero was read as 5.397605e-79, which assert_frame_equal's
+        # default tolerance hides; paxraw_d_short.xpt has truncated floats
+        path = datapath("io", "sas", "data", fname)
+        expected = pd.read_csv(path.replace(".xpt", ".csv"))
+
+        result = read_sas(path, format="xport", encoding="infer")
+        assert (expected == 0).any(axis=None)
+        tm.assert_frame_equal(result == 0, expected == 0)
+
+    def test_parse_float_vec_zero(self):
+        # GH#50670 negative zero and a zero fraction with nonzero exponent
+        vec = np.array(
+            [b"\x00" * 8, b"\x80" + b"\x00" * 7, b"\x40" + b"\x00" * 7], dtype="S8"
+        )
+        result = _parse_float_vec(vec)
+        tm.assert_numpy_array_equal(result, np.zeros(3))
+        assert list(np.signbit(result)) == [False, True, False]
 
     def test_cport_header_found_raises(self, datapath):
         # Test with DEMO_PUF.cpt, the beginning of puf2019_1_fall.xpt

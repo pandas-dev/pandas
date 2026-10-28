@@ -66,13 +66,12 @@ filepath_or_buffer : various
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. ``sep=None`` detects the separator from the first valid row
-  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
-  is supported only by the Python parsing engine, which will be used
-  automatically. In addition, separators longer than 1 character
-  and different from ``'\s+'`` will be interpreted as regular expressions and
-  will force the use of the Python parsing engine. Note that regex
+  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`;
+  the pyarrow engine does not support it. In addition, separators longer than
+  1 character and different from ``'\s+'`` will be interpreted as regular
+  expressions and will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
+delimiter : str, optional
   Alternative argument name for sep.
 
 Column and index locations and names
@@ -88,11 +87,13 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
-  that are not specified will be skipped (e.g. 2 in this example is
-  skipped). Note that this parameter ignores commented lines and empty
-  lines if ``skip_blank_lines=True``, so header=0 denotes the first
-  line of data rather than the first line of the file.
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Rows above
+  ``min(header)``, and unlisted rows in between are skipped
+  (e.g. ``[1,2,4]`` skips rows 0 and 3). The levels follow the order
+  of the list, so ``[1,0]`` puts row 1 in level 0. Note that this
+  parameter ignores commented lines and empty lines if
+  ``skip_blank_lines=True``, so header=0 denotes the first line of
+  data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
@@ -178,9 +179,8 @@ engine : {``'c'``, ``'python'``, ``'pyarrow'``}
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels. The function is applied to the raw text read from the
-  file, before any missing-value detection: an empty field is passed as an empty
-  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
-  column that has a converter.
+  file, so an empty field is passed as an empty string ``''``; ``na_values`` and
+  ``keep_default_na`` are then applied to the value the function returns.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -273,6 +273,9 @@ cache_dates : boolean, default True
   If True, use a cache of unique, converted dates to apply the datetime
   conversion. May produce significant speed-up when parsing duplicate
   date strings, especially ones with timezone offsets.
+
+  .. deprecated:: 3.2.0
+     The ``cache_dates`` argument will be removed in a future version.
 
 Iteration
 +++++++++
@@ -1431,15 +1434,13 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None``. Passing
-``engine='python'`` as well avoids the ``ParserWarning`` raised by the
-fallback.
+class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv("tmp2.csv", sep=":", index=False)
-   pd.read_csv("tmp2.csv", sep=None, engine="python")
+   pd.read_csv("tmp2.csv", sep=None)
 
 .. ipython:: python
    :suppress:
@@ -1513,7 +1514,7 @@ three engines:
    "Relative speed","fast","slowest","fastest on large workloads"
    "Multithreaded",":ref:`for large files <io.csv.parallel>`","no","yes"
    "Regex or multi-character ``sep``","no","yes","no"
-   "``sep=None`` (auto-detect the separator)","no","yes","no"
+   "``sep=None`` (auto-detect the separator)","yes","yes","no"
    "``skipfooter``","no","yes","no"
    "``low_memory``","yes","no","no"
    "``lineterminator``","yes","no","no"
@@ -1549,15 +1550,14 @@ considerably. This happens automatically when all of the following hold:
 * more than one thread is in use -- see ``mode.max_threads`` below, which
   defaults to ``1`` when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
-  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
-  ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
-  non-UTF-8 encodings
+  ``iterator``, ``chunksize``, ``nrows``, ``parse_dates``,
+  list/callable ``skiprows``, multi-row headers, or non-UTF-8 encodings
 
 Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
 The number of threads is controlled with the ``mode.max_threads`` option, which
-defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+defaults to the number of CPU cores, capped at ``6`` and limited to the CPUs
 available to the process -- CPU affinity, and the cgroup CPU quota when the
 process runs in its own cgroup namespace, as it does under Docker and
 Kubernetes. Set the option to ``1`` to disable parallel reading, e.g. when
@@ -1891,13 +1891,13 @@ fall back in the following manner:
 * if an object is unsupported it will attempt the following:
 
 
-    - check if the object has defined a ``toDict`` method and call it.
-      A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
+  - check if the object has defined a ``toDict`` method and call it.
+    A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
 
-    - invoke the ``default_handler`` if one was provided.
+  - invoke the ``default_handler`` if one was provided.
 
-    - convert the object to a ``dict`` by traversing its contents. However this will often fail
-      with an ``OverflowError`` or give unexpected results.
+  - convert the object to a ``dict`` by traversing its contents. However this will often fail
+    with an ``OverflowError`` or give unexpected results.
 
 In general the best approach for unsupported objects or dtypes is to provide a ``default_handler``.
 For example:
@@ -2288,13 +2288,13 @@ A few notes on the generated table schema:
 
 * The default naming roughly follows these rules:
 
-    - For series, the ``object.name`` is used. If that's none, then the
-      name is ``values``
-    - For ``DataFrames``, the stringified version of the column name is used
-    - For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
-      fallback to ``index`` if that is None.
-    - For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
-      then ``level_<i>`` is used.
+  - For series, the ``object.name`` is used. If that's none, then the
+    name is ``values``
+  - For ``DataFrames``, the stringified version of the column name is used
+  - For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    fallback to ``index`` if that is None.
+  - For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    then ``level_<i>`` is used.
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
@@ -2696,22 +2696,22 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    - |lxml|_ is very fast.
+  - |lxml|_ is very fast.
 
-    - |lxml|_ requires Cython to install correctly.
+  - |lxml|_ requires Cython to install correctly.
 
 * Drawbacks
 
-    - |lxml|_ does *not* make any guarantees about the results of its parse
-      *unless* it is given |svm|_.
+  - |lxml|_ does *not* make any guarantees about the results of its parse
+    *unless* it is given |svm|_.
 
-    - In light of the above, we have chosen to allow you, the user, to use the
-      |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
-      fails to parse
+  - In light of the above, we have chosen to allow you, the user, to use the
+    |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
+    fails to parse
 
-    - It is therefore *highly recommended* that you install both
-      |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
-      result (provided everything else is valid) even if |lxml|_ fails.
+  - It is therefore *highly recommended* that you install both
+    |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
+    result (provided everything else is valid) even if |lxml|_ fails.
 
 **Issues with** |BeautifulSoup4|_ **using** |lxml|_ **as a backend**
 
@@ -2722,27 +2722,27 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    - |html5lib|_ is far more lenient than |lxml|_ and consequently deals
-      with *real-life markup* in a much saner way rather than just, e.g.,
-      dropping an element without notifying you.
+  - |html5lib|_ is far more lenient than |lxml|_ and consequently deals
+    with *real-life markup* in a much saner way rather than just, e.g.,
+    dropping an element without notifying you.
 
-    - |html5lib|_ *generates valid HTML5 markup from invalid markup
-      automatically*. This is extremely important for parsing HTML tables,
-      since it guarantees a valid document. However, that does NOT mean that
-      it is "correct", since the process of fixing markup does not have a
-      single definition.
+  - |html5lib|_ *generates valid HTML5 markup from invalid markup
+    automatically*. This is extremely important for parsing HTML tables,
+    since it guarantees a valid document. However, that does NOT mean that
+    it is "correct", since the process of fixing markup does not have a
+    single definition.
 
-    - |html5lib|_ is pure Python and requires no additional build steps beyond
-      its own installation.
+  - |html5lib|_ is pure Python and requires no additional build steps beyond
+    its own installation.
 
 * Drawbacks
 
-    - The biggest drawback to using |html5lib|_ is that it is slow as
-      molasses.  However consider the fact that many tables on the web are not
-      big enough for the parsing algorithm runtime to matter. It is more
-      likely that the bottleneck will be in the process of reading the raw
-      text from the URL over the web, i.e., IO (input-output). For very large
-      tables, this might not be true.
+  - The biggest drawback to using |html5lib|_ is that it is slow as
+    molasses.  However consider the fact that many tables on the web are not
+    big enough for the parsing algorithm runtime to matter. It is more
+    likely that the bottleneck will be in the process of reading the raw
+    text from the URL over the web, i.e., IO (input-output). For very large
+    tables, this might not be true.
 
 
 .. |svm| replace:: **strictly valid markup**
@@ -4298,8 +4298,9 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 .. note::
 
    Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
-   ``append`` is a no-op: the store is not modified and a ``UserWarning`` is
-   emitted. Use ``format='fixed'`` to store an empty object.
+   ``append`` is a no-op: nothing is written for that key and a ``UserWarning``
+   is emitted, though ``to_hdf(..., mode='w')`` still truncates the file. Use
+   ``format='fixed'`` to store an empty object.
 
 .. _io.hdf5-keys:
 
@@ -4379,9 +4380,9 @@ at appending longer strings will raise a ``ValueError``.
 Passing ``min_itemsize={`values`: size}`` as a parameter to append
 will set a larger minimum for the string columns. Storing ``floats,
 strings, ints, bools, datetime64`` are currently supported. For string
-columns, passing ``nan_rep = 'nan'`` to append will change the default
-nan representation on disk (which converts to/from ``np.nan``), this
-defaults to ``nan``.
+columns, passing ``nan_rep`` to append will change the representation used
+on disk for missing values (which converts to/from ``np.nan``); see
+:ref:`nan_rep <io.hdf5-nan-rep>` below.
 
 .. ipython:: python
 
@@ -5180,21 +5181,30 @@ Passing a ``min_itemsize`` dict will cause all passed columns to be created as *
    store.append("dfs2", dfs, min_itemsize={"A": 30})
    store.get_storer("dfs2").table
 
+.. _io.hdf5-nan-rep:
+
 **nan_rep**
 
-String columns will serialize a ``np.nan`` (a missing value) with the ``nan_rep`` string representation. This defaults to the string value ``nan``.
-You could inadvertently turn an actual ``nan`` value into a missing value.
+String columns serialize a missing value as a sentinel string. By default that
+sentinel is chosen so it collides with no value in the column, so a literal
+``"nan"`` and an actual missing value both round-trip.
 
 .. ipython:: python
 
-   dfss = pd.DataFrame({"A": ["foo", "bar", "nan"]})
+   dfss = pd.DataFrame({"A": ["foo", "bar", "nan", np.nan]})
    dfss
 
    store.append("dfss", dfss)
    store.select("dfss")
 
-   # here you need to specify a different nan rep
-   store.append("dfss2", dfss, nan_rep="_nan_")
+Pass ``nan_rep`` to pin the on-disk representation instead, for example so that
+another reader of the file recognizes it. A value equal to the ``nan_rep`` you
+passed is then read back as a missing value, so pick one your data cannot
+contain.
+
+.. ipython:: python
+
+   store.append("dfss2", dfss, nan_rep="nan")
    store.select("dfss2")
 
 
@@ -5681,7 +5691,7 @@ documentation.
 
 Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
-Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+Examples of such drivers are `psycopg 3 <https://www.psycopg.org/psycopg3/docs/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -6006,9 +6016,9 @@ Example of a callable using PostgreSQL `COPY clause
 
           columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
-              table_name = '{}.{}'.format(table.schema, table.name)
+              table_name = '"{}"."{}"'.format(table.schema, table.name)
           else:
-              table_name = table.name
+              table_name = '"{}"'.format(table.name)
 
           sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
               table_name, columns)
@@ -6124,7 +6134,7 @@ Specifying this will return an iterator through chunks of the query result:
    usage. Most database drivers fetch the complete result set into client
    memory before the first chunk is produced. Actually streaming the result
    requires a server-side cursor, which with SQLAlchemy is requested with the
-   ``stream_results`` execution option (supported by, e.g., the psycopg2 and
+   ``stream_results`` execution option (supported by, e.g., the psycopg and
    pymysql drivers; drivers without server-side cursor support ignore it):
 
    .. code-block:: python
@@ -6145,7 +6155,11 @@ connecting to.
 
    from sqlalchemy import create_engine
 
-   engine = create_engine("postgresql://scott:tiger@localhost:5432/mydatabase")
+   # PostgreSQL using the psycopg 3 driver:
+   engine = create_engine("postgresql+psycopg://scott:tiger@localhost:5432/mydatabase")
+
+   # or using the psycopg2 driver:
+   engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
 
    engine = create_engine("mysql+mysqldb://scott:tiger@localhost/foo")
 
@@ -6159,6 +6173,14 @@ connecting to.
 
    # or absolute, starting with a slash:
    engine = create_engine("sqlite:////absolute/path/to/foo.db")
+
+.. note::
+
+   The ``postgresql`` pip extra (``pip install "pandas[postgresql]"``) installs
+   psycopg2, not psycopg 3. To use the ``postgresql+psycopg`` dialect with
+   SQLAlchemy, install psycopg 3 separately, e.g.
+   ``pip install "psycopg[binary]"``. See
+   :ref:`install.optional_dependencies` for the full list of SQL dependencies.
 
 For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
@@ -6514,6 +6536,15 @@ with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
 .. _xarray: https://xarray.pydata.org/en/stable/
+
+R data files
+''''''''''''
+
+rdata_ and pyreadr_ read and write R's ``.rds`` and ``.RData``/``.rda``
+formats, converting R data frames to and from pandas ``DataFrame`` objects.
+
+.. _rdata: https://rdata.readthedocs.io/en/stable/
+.. _pyreadr: https://github.com/ofajardo/pyreadr
 
 .. _io.perf:
 

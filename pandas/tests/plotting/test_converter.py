@@ -49,6 +49,12 @@ def test_registry_mpl_resets():
     subprocess.check_output(call)
 
 
+def test_plottable_types_no_duplicates():
+    """Check that no type is registered twice through different EAs"""
+    types = converter.plottable_types()
+    assert len(types) == len(set(types)), "plottable_types() has duplicates"
+
+
 def test_timtetonum_accepts_unicode():
     assert converter.time2num("00:01") == converter.time2num("00:01")
 
@@ -299,7 +305,8 @@ class TestPeriodConverter:
         rs = pc.convert("2012-01-01", None, axis)
         assert rs == xp
 
-        rs = pc.convert("2012-01-01 00:00:00+0000", None, axis)
+        with tm.assert_produces_warning(UserWarning, match="drop timezone"):
+            rs = pc.convert("2012-01-01 00:00:00+0000", None, axis)
         assert rs == xp
 
         rs = pc.convert(

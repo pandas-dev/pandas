@@ -358,6 +358,9 @@ def test_categorical_dtype_non_default_dtype_backend_str(all_parsers, dtype_back
 
 
 @pytest.mark.parametrize("ordered", [True, False])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_categorical_dtype_infer_string_disabled(all_parsers, ordered):
     # GH#56044 with the string dtype disabled the categories are object dtype,
     #  including for an ordered dtype, where CategoricalDtype.__eq__ ignores

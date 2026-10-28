@@ -1,4 +1,5 @@
 import copy
+import re
 
 import numpy as np
 import pytest
@@ -112,6 +113,20 @@ numpy array values are different \\(25\\.0 %\\)
         )
 
 
+def test_assert_numpy_array_equal_value_mismatch_2d_percentage():
+    # GH#68366 the percentage counts differing values, not differing rows
+    msg = """numpy array are different
+
+numpy array values are different \\(100\\.0 %\\)
+\\[left\\]:  \\[\\[1, 2\\], \\[3, 4\\]\\]
+\\[right\\]: \\[\\[9, 9\\], \\[9, 9\\]\\]"""
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(
+            np.array([[1, 2], [3, 4]]), np.array([[9, 9], [9, 9]])
+        )
+
+
 def test_assert_numpy_array_equal_shape_mismatch_override():
     msg = """Index are different
 
@@ -191,7 +206,7 @@ numpy array values are different \\(50.0 %\\)
 \\[right\\]: \\[True, <NA>\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_numpy_array_equal(a, b)
+        tm.assert_numpy_array_equal(a, b, check_dtype=False)
 
 
 def test_numpy_array_equal_identical_na(nulls_fixture):
@@ -220,3 +235,35 @@ numpy array values are different \\(100.0 %\\)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_numpy_array_equal(a, b)
+
+
+@pytest.mark.parametrize("left_dtype", ["m8[s]", "M8[s]"])
+@pytest.mark.parametrize("right_dtype", ["m8[us]", "M8[us]"])
+def test_numpy_array_equal_nat_different_unit(left_dtype, right_dtype):
+    # GH#68459 report the dtype mismatch, not a value difference
+    left = np.array(["NaT"], dtype=left_dtype)
+    right = np.array(["NaT"], dtype=right_dtype)
+
+    msg = f"""numpy array are different
+
+Attribute "dtype" are different
+\\[left\\]:  {re.escape(str(left.dtype))}
+\\[right\\]: {re.escape(str(right.dtype))}"""
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(left, right)
+
+
+def test_numpy_array_equal_different_dtype_err_msg():
+    # GH#68459 a custom err_msg still takes precedence over the dtype message
+    with pytest.raises(AssertionError, match="^custom$"):
+        tm.assert_numpy_array_equal(
+            np.array([1, 2]), np.array([1.0, 3.0]), err_msg="custom"
+        )
+
+
+def test_numpy_array_equal_different_dtype_and_shape():
+    # GH#68459 shape mismatch is reported before the dtype mismatch
+    msg = "numpy array shapes are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(np.array([1, 2, 3]), np.array([1.0, 2.0]))

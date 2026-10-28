@@ -176,9 +176,11 @@ def apply_wraps(func):
 
     def wrapper(self, other):
         if not isinstance(other, _Timestamp):
-            # BaseOffset.__add__ has already converted, but rollback and
-            #  rollforward are public and take any datetime-like.
+            # rollback and rollforward are public and take any datetime-like;
+            #  NaT also arrives here from __add__ via np.datetime64("NaT")
             other = Timestamp(other)
+            if other is NaT:
+                return NaT
 
         tz = other.tzinfo
         nano = other.nanosecond
@@ -1436,7 +1438,10 @@ cdef class Tick(SingleConstructorOffset):
         return self._as_pd_timedelta == other
 
     def __ne__(self, other):
-        return not (self == other)
+        if isinstance(other, str):
+            return not (self == other)
+        # __eq__ can return an array or NA, which `not` rejects
+        return self._as_pd_timedelta != other
 
     def __le__(self, other):
         return self._as_pd_timedelta.__le__(other)
@@ -2033,6 +2038,20 @@ cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
     return i8result.view(dt64arr.dtype)
 
 
+# relativedelta keywords the vectorized _apply_array path supports
+_relativedelta_fast = frozenset({
+    "years",
+    "months",
+    "weeks",
+    "days",
+    "hours",
+    "minutes",
+    "seconds",
+    "microseconds",
+    "milliseconds",
+})
+
+
 cdef class RelativeDeltaOffset(BaseOffset):
     """
     DateOffset subclass backed by a dateutil relativedelta object.
@@ -2121,33 +2140,48 @@ cdef class RelativeDeltaOffset(BaseOffset):
         # Coerce to that resolution when lossless so the scalar result
         # matches the vectorized DatetimeIndex/Series path; apply_wraps
         # then narrows back to ``other``'s unit where that is also lossless.
-        try:
-            offset_unit = self._pd_timedelta.unit
-        except NotImplementedError:
+        # There is nothing to do when the offset has no Timedelta
+        # representation (unit None, e.g. ``weekday``), or when its unit is
+        # "s": Timestamp(other) is never coarser than "us", so apply_wraps
+        # would undo that coercion anyway.
+        offset_unit = self._pd_timedelta_unit
+        if offset_unit is None or offset_unit == "s":
             return result
         result2 = result.as_unit(offset_unit)
         if result == result2:
             result = result2
         return result
 
+    @property
+    def _pd_timedelta_unit(self) -> str | None:
+        """
+        The unit _pd_timedelta has, None if it would raise NotImplementedError.
+
+        Determined from the keyword names alone, so it is cheap even when
+        the _pd_timedelta cache is cold.
+        """
+        kwds = self.kwds
+        if self._use_relativedelta:
+            if not set(kwds).issubset(_relativedelta_fast):
+                return None
+        elif not hasattr(self, "_offset"):
+            return None
+
+        if getattr(self, "nanoseconds", 0) != 0:
+            return "ns"
+        elif "microseconds" in kwds:
+            return "us"
+        elif "milliseconds" in kwds:
+            return "ms"
+        return "s"
+
     @cache_readonly
     def _pd_timedelta(self) -> Timedelta:
         # components of _offset that can be cast to pd.Timedelta
 
         kwds = self.kwds
-        relativedelta_fast = {
-            "years",
-            "months",
-            "weeks",
-            "days",
-            "hours",
-            "minutes",
-            "seconds",
-            "microseconds",
-            "milliseconds",
-        }
         # relativedelta/_offset path only valid for base DateOffset
-        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+        if self._use_relativedelta and set(kwds).issubset(_relativedelta_fast):
             td_args = {
                 "days",
                 "hours",
@@ -2166,13 +2200,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 td_kwds["days"] = days + 7 * kwds["weeks"]
 
             if td_kwds:
-                delta = Timedelta(**td_kwds)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
+                delta = Timedelta(**td_kwds).as_unit(self._pd_timedelta_unit)
             elif not kwds:
                 # GH#61870: bare DateOffset(n) with no keywords defaults to
                 # n days (matching the scalar path); without this branch it
@@ -2191,17 +2219,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self._n)
             else:
                 delta = Timedelta(self._offset * self._n)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
+                delta = delta.as_unit(self._pd_timedelta_unit)
             return delta
 
         else:
             # relativedelta with other keywords
-            kwd = set(kwds) - relativedelta_fast
+            kwd = set(kwds) - _relativedelta_fast
             raise NotImplementedError(
                 "DateOffset with relativedelta "
                 f"keyword(s) {kwd} not able to be "
@@ -3986,25 +4009,8 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
-# The pair of classes `_YearEnd` and `YearEnd` exist because of
-# https://github.com/cython/cython/issues/3873
 
-cdef class _YearEnd(YearOffset):
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
-
-
-class YearEnd(_YearEnd):
+cdef class YearEnd(YearOffset):
     """
     DateOffset increments between calendar year end dates.
 
@@ -4052,8 +4058,18 @@ class YearEnd(_YearEnd):
     None
     """
 
-    def __new__(cls, n=1, normalize=False, month=None):
-        return _YearEnd.__new__(cls, n, normalize, month)
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 cdef class YearBegin(YearOffset):

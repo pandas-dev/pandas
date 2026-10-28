@@ -348,3 +348,124 @@ def test_format_hierarchical_rows_periodindex(merge_cells):
             assert isinstance(cell.val, pd.Timestamp), (
                 "Period should be converted to Timestamp"
             )
+
+
+@pytest.mark.parametrize("cols", [["B"], ["C", "A"], ["B", "B"], ["A", "B", "C"]])
+def test_styler_to_excel_columns_subset(cols):
+    # GH#42276 styles must follow their column when `columns` subsets or reorders
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+    styler = df.style.map(lambda x: f"color: {x}").map_index(
+        lambda x: f"color: {x}", axis=1
+    )
+    formatter = ExcelFormatter(styler, cols=cols, style_converter=dict)
+    styles = {
+        (cell.row, cell.col): cell.style for cell in formatter.get_formatted_cells()
+    }
+
+    for col_num, col in enumerate(cols, start=1):
+        assert styles[0, col_num] == {"color": col}
+        for row_num, val in enumerate(df[col], start=1):
+            assert styles[row_num, col_num] == {"color": str(val)}
+
+
+def test_styler_to_excel_columns_all_duplicate_labels():
+    # selecting every column of a frame with duplicate labels is a no-op reindex
+    df = pd.DataFrame([[1, 2, 3]], columns=["A", "A", "B"])
+    styler = df.style.map_index(lambda x: f"color: {x}", axis=1)
+    formatter = ExcelFormatter(styler, cols=["A", "A", "B"], style_converter=dict)
+    cells = formatter.get_formatted_cells()
+    styles = {cell.col: cell.style for cell in cells if cell.row == 0}
+    assert styles == {1: {"color": "A"}, 2: {"color": "A"}, 3: {"color": "B"}}
+
+
+@pytest.mark.parametrize("merge_cells", [True, False])
+def test_styler_to_excel_columns_subset_multiindex(merge_cells):
+    # GH#42276
+    columns = pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")])
+    df = pd.DataFrame([[1, 2]], columns=columns)
+    styler = df.style.map_index(lambda x: f"color: {x}", axis=1)
+    formatter = ExcelFormatter(
+        styler, cols=[("b", "y")], merge_cells=merge_cells, style_converter=dict
+    )
+    styles = {
+        (cell.row, cell.col): cell.style
+        for cell in formatter.get_formatted_cells()
+        if cell.row < 2 and cell.col == 1
+    }
+    assert styles == {(0, 1): {"color": "b"}, (1, 1): {"color": "y"}}
+
+
+def _styled_cells(styler, **kwargs):
+    # style every cell "color: <its value>" so misplaced styles are detectable
+    styler = (
+        styler.map(lambda x: f"color: {x}")
+        .map_index(lambda x: f"color: {x}", axis=0)
+        .map_index(lambda x: f"color: {x}", axis=1)
+    )
+    formatter = ExcelFormatter(styler, style_converter=dict, **kwargs)
+    return {
+        (cell.row, cell.col): (cell.val, cell.style)
+        for cell in formatter.get_formatted_cells()
+    }
+
+
+def _expected_cells(grid):
+    return {
+        (row, col): (val, {"color": str(val)})
+        for row, vals in enumerate(grid)
+        for col, val in enumerate(vals)
+        if val is not None
+    }
+
+
+@pytest.mark.parametrize(
+    "cols, header", [(None, ["A", "C"]), (["C", "B", "A"], ["C", "A"])]
+)
+def test_styler_to_excel_hidden_rows_and_columns(cols, header):
+    # GH#42276
+    df = pd.DataFrame(
+        {"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]}, index=["x", "y", "z"]
+    )
+    styler = df.style.hide(["y"]).hide(["B"], axis=1)
+    result = _styled_cells(styler, cols=cols)
+    body = df.loc[["x", "z"], header]
+    grid = [[None, *header]] + [[label, *row] for label, row in body.iterrows()]
+    assert result == _expected_cells(grid)
+
+
+@pytest.mark.parametrize("merge_cells", [True, False])
+def test_styler_to_excel_hidden_levels(merge_cells):
+    # GH#42276
+    index = pd.MultiIndex.from_tuples([("a", "i", "p"), ("b", "j", "q")])
+    columns = pd.MultiIndex.from_tuples([("X", "u"), ("Y", "v")])
+    df = pd.DataFrame([[1, 2], [3, 4]], index=index, columns=columns)
+    styler = df.style.hide(axis=0, level=1).hide(axis=1, level=0)
+    result = _styled_cells(styler, merge_cells=merge_cells)
+    grid = [[None, None, "u", "v"], ["a", "p", 1, 2], ["b", "q", 3, 4]]
+    assert result == _expected_cells(grid)
+
+
+def test_styler_to_excel_hidden_index_and_header():
+    # GH#42276
+    df = pd.DataFrame({"A": [1, 2]}, index=["x", "y"])
+    result = _styled_cells(df.style.hide(axis=0).hide(axis=1))
+    assert result == _expected_cells([[1], [2]])
+
+
+def test_styler_to_excel_hidden_index_names():
+    # GH#42276
+    df = pd.DataFrame({"A": [1]}, index=pd.Index(["x"], name="name"))
+    assert _styled_cells(df.style)[0, 0] == ("name", None)
+    result = _styled_cells(df.style.hide(axis=0, names=True))
+    assert result == _expected_cells([[None, "A"], ["x", 1]])
+
+
+def test_styler_to_excel_hidden_column_names():
+    # GH#42276
+    columns = pd.MultiIndex.from_tuples([("X", "u")], names=["n0", "n1"])
+    df = pd.DataFrame([[1]], index=["x"], columns=columns)
+    assert _styled_cells(df.style)[0, 0] == ("n0", None)
+    result = _styled_cells(df.style.hide(axis=1, names=True))
+    # row 2 is left blank for the index names
+    expected = _expected_cells([[None, "X"], [None, "u"], [], ["x", 1]])
+    assert result == {**expected, (0, 0): ("", None), (1, 0): ("", None)}

@@ -118,7 +118,6 @@ JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
 JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
   int intNeg = 1;
   JSUINT64 intValue;
-  JSUINT64 prevIntValue;
   int chr;
   int decimalCount = 0;
   double frcValue = 0.0;
@@ -135,7 +134,7 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
   } else if (*(offset) == '-') {
     offset++;
     intNeg = -1;
-    overflowLimit = LLONG_MIN;
+    overflowLimit = (JSUINT64)LLONG_MIN;
     if (*(offset) == 'I') {
       goto DECODE_INF;
     }
@@ -158,16 +157,15 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     case '7':
     case '8':
     case '9': {
-      // PERF: Don't do 64-bit arithmetic here unless we have to
-      prevIntValue = intValue;
+      if (intValue > ULLONG_MAX / 10 ||
+          (intValue == ULLONG_MAX / 10 &&
+           (JSUINT64)(chr - 48) > ULLONG_MAX % 10)) {
+        goto DECODE_BIG;
+      }
       intValue = intValue * 10ULL + (JSLONG)(chr - 48);
 
-      if (intNeg == 1 && prevIntValue > intValue) {
-        return SetError(ds, -1, "Value is too big!");
-      } else if (intNeg == -1 && intValue > overflowLimit) {
-        return SetError(ds, -1,
-                        overflowLimit == LLONG_MAX ? "Value is too big!"
-                                                   : "Value is too small");
+      if (intNeg == -1 && intValue > overflowLimit) {
+        goto DECODE_BIG;
       }
 
       offset++;
@@ -200,9 +198,24 @@ BREAK_INT_LOOP:
   if (intNeg == 1 && (intValue & 0x8000000000000000ULL) != 0)
     return ds->dec->newUnsignedLong(ds->prv, intValue);
   else if ((intValue >> 31))
-    return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSINT64)intNeg));
+    return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSUINT64)intNeg));
   else
-    return ds->dec->newInt(ds->prv, (JSINT32)(intValue * intNeg));
+    return ds->dec->newInt(ds->prv, (JSINT32)(intValue * (JSUINT64)intNeg));
+
+DECODE_BIG:
+  // Integer part overflows int64/uint64, see GH#20599
+  while (*offset >= '0' && *offset <= '9') {
+    offset++;
+  }
+  if (*offset == '.' || *offset == 'e' || *offset == 'E') {
+    return decodePreciseFloat(ds);
+  }
+  {
+    JSOBJ ret = ds->dec->newBigNum(ds->prv, ds->start, offset);
+    ds->lastType = JT_INT;
+    ds->start = offset;
+    return ret;
+  }
 
 DECODE_FRACTION:
 
@@ -823,7 +836,7 @@ JSOBJ FASTCALL_MSVC decode_string(struct DecoderState *ds) {
           case '7':
           case '8':
           case '9':
-            sur[iSur] = (sur[iSur] << 4) + (JSUTF16)(*inputOffset - '0');
+            sur[iSur] = (JSUTF16)((sur[iSur] << 4) + (*inputOffset - '0'));
             break;
 
           case 'a':
@@ -832,7 +845,7 @@ JSOBJ FASTCALL_MSVC decode_string(struct DecoderState *ds) {
           case 'd':
           case 'e':
           case 'f':
-            sur[iSur] = (sur[iSur] << 4) + 10 + (JSUTF16)(*inputOffset - 'a');
+            sur[iSur] = (JSUTF16)((sur[iSur] << 4) + 10 + (*inputOffset - 'a'));
             break;
 
           case 'A':
@@ -841,7 +854,7 @@ JSOBJ FASTCALL_MSVC decode_string(struct DecoderState *ds) {
           case 'D':
           case 'E':
           case 'F':
-            sur[iSur] = (sur[iSur] << 4) + 10 + (JSUTF16)(*inputOffset - 'A');
+            sur[iSur] = (JSUTF16)((sur[iSur] << 4) + 10 + (*inputOffset - 'A'));
             break;
           }
 

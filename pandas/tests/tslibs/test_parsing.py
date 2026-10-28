@@ -6,6 +6,7 @@ from datetime import (
     UTC,
     datetime,
 )
+import locale
 import re
 
 from dateutil.parser import parse as du_parse
@@ -23,7 +24,6 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.errors import Pandas4Warning
-import pandas.util._test_decorators as td
 
 # Usually we wouldn't want this import in this test file (which is targeted at
 #  tslibs.parsing), but it is convenient to test the Timestamp constructor at
@@ -259,6 +259,59 @@ def test_parsers_quarter_invalid(date_str):
 
 
 @pytest.mark.parametrize(
+    "date_str",
+    [
+        "2013,11,04",
+        "2013,11, 04",
+        "2013, 11,04",
+        "2013,11",
+        "Nov 14,2013",
+        "20131104,5",
+        "12,30",
+        # the "." is its own token here, so the comma is still folded in
+        "Nov .14,2013",
+        ".11,04",
+        # a preceding label across a space counts only if the number ends the string
+        "2013-11-04 10h 12,5 AM",
+    ],
+)
+def test_parsers_decimal_comma_in_date(date_str):
+    # GH#17265 a comma between digits is read as a decimal point, so the
+    #  fraction used to be dropped silently, e.g. "2013,11,04" -> 2013-04-01
+    msg = re.escape(f'Unable to parse "{date_str}"')
+    with pytest.raises(ValueError, match=msg):
+        parsing.py_parse_datetime_string(date_str)
+
+
+@pytest.mark.parametrize(
+    "date_str,expected",
+    [
+        # the comma stays punctuation: too few digits before it, or a space after
+        ("Nov 4,2013", datetime(2013, 11, 4)),
+        ("2013, 11, 04", datetime(2013, 11, 4)),
+        ("14 Nov,2013", datetime(2013, 11, 14)),
+        # ISO 8601 decimal comma, extended and basic format
+        ("2013-11-04 01:02:03,456", datetime(2013, 11, 4, 1, 2, 3, 456000)),
+        ("20131104T010203,456", datetime(2013, 11, 4, 1, 2, 3, 456000)),
+        ("2013-11-04 01:02,5", datetime(2013, 11, 4, 1, 2, 30)),
+        # the digits continue a "Sep.12" token, so the comma ends it
+        ("Sep.12,2013", datetime(2013, 9, 12)),
+        # a unit label spends the fraction on the unit below it, whether the
+        #  label follows the number or precedes it
+        ("2013-11-04 12,5h", datetime(2013, 11, 4, 12, 30)),
+        ("2013-11-04 10h36,5s", datetime(2013, 11, 4, 10, 0, 36, 500000)),
+        ("2013-11-04 10h36,5", datetime(2013, 11, 4, 10, 36, 30)),
+        ("2013-11-04 10h\t36,5", datetime(2013, 11, 4, 10, 36, 30)),
+        # the trailing "." splits the token, leaving the comma as punctuation
+        ("Nov 14,2013.", datetime(2013, 11, 14)),
+    ],
+)
+def test_parsers_comma_not_decimal_in_date(date_str, expected):
+    # GH#17265
+    assert parsing.py_parse_datetime_string(date_str) == expected
+
+
+@pytest.mark.parametrize(
     "date_str,expected",
     [("201101", datetime(2011, 1, 1, 0, 0)), ("200005", datetime(2000, 5, 1, 0, 0))],
 )
@@ -267,7 +320,6 @@ def test_parsers_month_freq(date_str, expected):
     assert result == expected
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -317,15 +369,15 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    msg = r"when dayfirst=False \(the default\) was specified"
-    with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
-    ):
-        result = parsing.guess_datetime_format(string)
-    assert result == fmt
+    with tm.set_locale("C", locale.LC_TIME):
+        msg = r"when dayfirst=False \(the default\) was specified"
+        with tm.maybe_produces_warning(
+            UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
+        ):
+            result = parsing.guess_datetime_format(string)
+        assert result == fmt
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize("tzname", ["UTC", "GMT"])
 @pytest.mark.parametrize(
     "template, fmt",
@@ -337,19 +389,20 @@ def test_guess_datetime_format_with_parseable_formats(string, fmt):
     ],
 )
 def test_guess_datetime_format_utc_alias(tzname, template, fmt):
-    # GH#68193 the "GMT" spelling used to survive as a literal, so to_datetime
-    #  silently returned a naive result where Timestamp was tz-aware
-    dtstr = template.format(tz=tzname)
-    assert parsing.guess_datetime_format(dtstr) == fmt
+    with tm.set_locale("C", locale.LC_TIME):
+        # GH#68193 the "GMT" spelling used to survive as a literal, so to_datetime
+        #  silently returned a naive result where Timestamp was tz-aware
+        dtstr = template.format(tz=tzname)
+        assert parsing.guess_datetime_format(dtstr) == fmt
 
-    expected = pd.Timestamp("2020-01-15 08:30", tz="UTC")
-    assert pd.Timestamp(dtstr) == expected
-    # the scalar arg shape infers a format too, unlike the Timestamp constructor
-    assert pd.to_datetime(dtstr) == expected
+        expected = pd.Timestamp("2020-01-15 08:30", tz="UTC")
+        assert pd.Timestamp(dtstr) == expected
+        # the scalar arg shape infers a format too, unlike the Timestamp constructor
+        assert pd.to_datetime(dtstr) == expected
 
-    result = pd.to_datetime([dtstr])
-    assert result[0] == expected
-    assert result.tz is UTC
+        result = pd.to_datetime([dtstr])
+        assert result[0] == expected
+        assert result.tz is UTC
 
 
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
@@ -359,7 +412,6 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -369,8 +421,9 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ],
 )
 def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
-    result = parsing.guess_datetime_format(string)
-    assert result == fmt
+    with tm.set_locale("C", locale.LC_TIME):
+        result = parsing.guess_datetime_format(string)
+        assert result == fmt
 
 
 @pytest.mark.parametrize(
@@ -476,7 +529,7 @@ def test_parse_datetime_string_with_reso_check_instance_type_raise_exception():
 )
 def test_is_iso_format(fmt, expected):
     # see gh-41047
-    result = strptime._test_format_is_iso(fmt)
+    result = strptime.format_is_iso(fmt)
     assert result == expected
 
 

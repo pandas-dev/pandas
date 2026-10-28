@@ -88,7 +88,8 @@ Date offsets            ``DateOffset``     ``None``              ``None``       
 
 The default resolution for date times and time deltas is microsecond ("us"), though second ("s"),
 millisecond ("ms"), and nanosecond ("ns") are also supported. The resolution can be changed using
-:meth:`~Series.dt.as_unit`.
+:meth:`~Series.dt.as_unit`. Arithmetic keeps the resolution of its operands, see
+:ref:`Timedelta arithmetic <timedeltas.unit_preserving_arithmetic>`.
 
 For time series data, it's conventional to represent the time component in the index of a :class:`Series` or :class:`DataFrame`
 so manipulations can be performed with respect to the time element.
@@ -1570,6 +1571,9 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+For a calendar step that is not anchored, such as yearly from an arbitrary
+date, pass a :class:`DateOffset` like ``freq=pd.DateOffset(years=1)``.
+
 Anchored offset semantics
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1812,7 +1816,8 @@ financial applications.
 on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
-The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
+The ``resample()`` method can be used directly from
+:class:`~pandas.api.typing.DataFrameGroupBy` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 Basics
@@ -2176,6 +2181,21 @@ Because ``freq`` represents a span of ``Period``, it cannot be negative like "-3
    pd.Period("2012-1-1 19:00", freq="h")
 
    pd.Period("2012-1-1 19:00", freq="5h")
+
+A ``Period`` starts at the beginning of its frequency's base unit, so any finer
+time information is discarded: a ``"D"`` period always starts at midnight.
+To represent a day-long span starting at another time, use a multiple of a finer
+frequency such as ``"24h"``; to group timestamps into days starting at 08:00, use
+``resample("D", offset="8h")`` instead. ``pd.DateOffset`` objects such as
+``pd.DateOffset(days=1)`` are not supported as a ``Period`` frequency.
+
+.. ipython:: python
+
+   period = pd.Period("2012-1-1 08:00", freq="D")
+   period.start_time, period.end_time
+
+   period = pd.Period("2012-1-1 08:00", freq="24h")
+   period.start_time, period.end_time
 
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).

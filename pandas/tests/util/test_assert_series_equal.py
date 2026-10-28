@@ -493,6 +493,27 @@ def test_ea_and_numpy_no_dtype_check(val, check_exact, dtype):
     tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)
 
 
+@pytest.mark.parametrize("check_exact", [True, False])
+def test_ea_and_object_na_no_dtype_check(any_numeric_ea_dtype, check_exact):
+    # GH#61473
+    left = pd.Series([pd.NA, 1], dtype=any_numeric_ea_dtype)
+    right = pd.Series([pd.NA, 1], dtype=object)
+    tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)
+    tm.assert_series_equal(right, left, check_dtype=False, check_exact=check_exact)
+
+    # mismatched null-like values are not equal, see GH#18463
+    right = pd.Series([np.nan, 1], dtype=object)
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)
+
+
+def test_datetime_and_object_nat_no_dtype_check():
+    # GH#61473
+    left = pd.Series([pd.NaT])
+    right = pd.Series([pd.NaT], dtype=object)
+    tm.assert_series_equal(left, right, check_dtype=False, check_exact=True)
+
+
 def test_assert_series_equal_int_tol():
     # GH#56646
     left = pd.Series([81, 18, 121, 38, 74, 72, 81, 81, 146, 81, 81, 170, 74, 74])
@@ -613,6 +634,25 @@ def test_assert_series_equal_large_mixed_integer_float_rtol():
     )
 
 
+@pytest.mark.parametrize(
+    "left_values,right_values,left_dtype,right_dtype",
+    [
+        ([2**60], [float(2**60)], "int64", "float64"),
+        ([2**63], [float(2**63)], "uint64", "float64"),
+    ],
+)
+def test_assert_series_equal_large_mixed_integer_float_equal(
+    left_values, right_values, left_dtype, right_dtype
+):
+    # GH#66699 the same equal-direction guarantee, at Series level
+    left = pd.Series(left_values, dtype=left_dtype)
+    right = pd.Series(right_values, dtype=right_dtype)
+
+    _assert_series_equal_both(
+        left, right, check_dtype=False, check_exact=False, rtol=0, atol=0
+    )
+
+
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_assert_series_equal_large_int_atol(dtype):
     # GH#66400 an explicitly passed atol must be honored above 2**53 too;
@@ -629,6 +669,32 @@ def test_assert_series_equal_large_int_atol(dtype):
         tm.assert_series_equal(
             ser, pd.Series([val + 100], dtype=dtype), check_exact=False, rtol=0, atol=10
         )
+
+
+@pytest.mark.parametrize(
+    "left_values,right_values",
+    [
+        (
+            pd.arrays.IntervalArray.from_tuples([(1.0, 2.0)]),
+            pd.arrays.IntervalArray.from_tuples([(1.5, 2.0)]),
+        ),
+        (pd.to_datetime(["2020-01-01"]), pd.to_datetime(["2020-01-02"])),
+        (pd.to_timedelta([1], unit="D"), pd.to_timedelta([2], unit="D")),
+        (
+            pd.period_range("2020-01-01", periods=1, freq="D"),
+            pd.period_range("2020-01-02", periods=1, freq="D"),
+        ),
+        (pd.array(["a"], dtype="str"), pd.array(["b"], dtype="str")),
+    ],
+)
+def test_assert_series_equal_tolerance_numeric_only(left_values, right_values):
+    # GH#43913 rtol/atol are documented as numeric-only; non-numeric dtypes
+    #  compare exactly no matter how large the tolerance
+    left = pd.Series(left_values)
+    right = pd.Series(right_values)
+
+    with pytest.raises(AssertionError, match="are different"):
+        tm.assert_series_equal(left, right, check_exact=False, rtol=10, atol=10)
 
 
 def test_assert_series_equal_check_like_check_freq():

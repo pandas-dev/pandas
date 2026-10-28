@@ -1221,6 +1221,50 @@ def test_select_integer_column_non_integer_string_value(temp_hdfstore):
     tm.assert_frame_equal(result, df.loc[[1, 2]])
 
 
+@pytest.mark.parametrize("op", ["==", "!=", "<", ">"])
+@pytest.mark.parametrize(
+    "values",
+    [
+        [1, 2, 3],
+        [1.5, 2.5, 3.5],
+        ["a", "b", "c"],
+        [True, False, True],
+        pd.to_datetime(["2020-01-01", None, "2020-01-03"]),
+        pd.to_timedelta([1, None, 3], unit="D"),
+        pd.Categorical(["a", None, "c"]),
+    ],
+)
+def test_select_none_value_raises(temp_hdfstore, values, op):
+    # GH#64348 None equals no stored value, so the query must raise instead of
+    #  comparing against a coerced stand-in
+    df = pd.DataFrame({"a": values})
+    temp_hdfstore.append("t", df, data_columns=True)
+
+    with pytest.raises(TypeError, match=r"Cannot compare \[a\] to None"):
+        temp_hdfstore.select("t", where=f"a {op} None")
+
+
+@pytest.mark.parametrize("op", ["==", "!="])
+def test_select_none_value_raises_on_filter_path(temp_hdfstore, op):
+    # GH#64348 a column selection is filtered after the read rather than
+    #  converted, so it needs the same guard
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]})
+    temp_hdfstore.append("t", df, data_columns=True)
+
+    with pytest.raises(TypeError, match=r"Cannot compare \[columns\] to None"):
+        temp_hdfstore.select("t", where=f"columns {op} None")
+
+
+def test_remove_none_value_raises(temp_hdfstore):
+    # GH#68642 remove deleted rows instead of raising
+    df = pd.DataFrame({"a": [True, False, True], "b": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True)
+
+    with pytest.raises(TypeError, match=r"Cannot compare \[a\] to None"):
+        temp_hdfstore.remove("t", where="a == None")
+    tm.assert_frame_equal(temp_hdfstore.select("t"), df)
+
+
 def test_select_large_integer(temp_hdfstore):
     df = pd.DataFrame(
         zip(

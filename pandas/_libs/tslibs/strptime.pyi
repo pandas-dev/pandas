@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas._typing import npt
 
+def format_is_iso(f: str) -> bool: ...
 def array_strptime(
     values: npt.NDArray[np.object_],
     fmt: str | None,

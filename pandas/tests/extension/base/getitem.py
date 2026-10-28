@@ -118,7 +118,10 @@ class BaseGetitemTests:
         assert isinstance(result, data.dtype.type)
 
         result = pd.Series(data)[0]
-        assert isinstance(result, data.dtype.type)
+        if pd.options.future.python_scalars and isinstance(data[0], np.generic):
+            assert type(result) is type(data[0].item())
+        else:
+            assert isinstance(result, data.dtype.type)
 
     def test_getitem_invalid(self, data):
         # TODO: box over scalar, [scalar], (scalar,)?

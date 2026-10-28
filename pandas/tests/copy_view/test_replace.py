@@ -162,6 +162,16 @@ def test_replace_list_inplace_refs_categorical():
     tm.assert_frame_equal(df_orig, view)
 
 
+def test_replace_regex_inplace_refs_categorical():
+    # GH#38447 the regex path mutates the Categorical in place
+    df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype="category")
+    view = df[:]
+    df_orig = df.copy()
+    df.replace(regex={"^c": "a"}, inplace=True)
+    tm.assert_frame_equal(df_orig, view)
+    assert df["a"].tolist() == ["a", "b", "a"]
+
+
 @pytest.mark.parametrize("to_replace", [1.5, [1.5], []])
 def test_replace_inplace(to_replace):
     df = pd.DataFrame({"a": [1.5, 2, 3]})

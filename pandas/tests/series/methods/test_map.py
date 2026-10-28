@@ -296,6 +296,15 @@ def test_map_dict_with_tuple_keys():
     tm.assert_series_equal(df["labels"], df["expected_labels"], check_names=False)
 
 
+@pytest.mark.parametrize("box", [dict, pd.Series])
+def test_map_tuples_of_different_lengths(box):
+    # GH#50293
+    ser = pd.Series([("a", "b"), ("b",), ("a", "b", "c")])
+    result = ser.map(box({("a", "b"): "x"}))
+    expected = pd.Series(["x", np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_counter():
     s = pd.Series(["a", "b", "c"], index=[1, 2, 3])
     counter = Counter()
@@ -759,3 +768,28 @@ def test_map_datetime_series_passes_scalar_timestamps():
         seen = []
         getattr(ser, method)(lambda ts: seen.append(type(ts).__name__))
         assert set(seen) == {"Timestamp"}
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.StringDtype(na_value=np.nan),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_result_overflows_int64(dtype):
+    # GH#70233 used to raise OverflowError instead of inferring object
+    ser = pd.Series([1, 0], dtype=dtype)
+    result = ser.map(lambda x: 2**70)
+    expected = pd.Series([2**70, 2**70], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_map_masked_result_all_nat(dtype):
+    # GH#70233 used to raise TypeError trying to cast NaT to the masked dtype
+    ser = pd.Series([1, 0], dtype=dtype)
+    result = ser.map(lambda x: pd.NaT)
+    expected = pd.Series([pd.NaT, pd.NaT], dtype="M8[s]")
+    tm.assert_series_equal(result, expected)

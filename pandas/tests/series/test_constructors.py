@@ -800,12 +800,16 @@ class TestSeriesConstructors:
             [np.uint64(1)],
         ],
     )
-    def test_constructor_numpy_uints(self, values):
+    def test_constructor_numpy_uints(self, values, using_python_scalars):
         # GH#47294
         value = values[0]
         result = pd.Series(values)
 
-        assert result[0].dtype == value.dtype
+        assert result.dtype == value.dtype
+        if using_python_scalars:
+            assert type(result[0]) is int
+        else:
+            assert result[0].dtype == value.dtype
         assert result[0] == value
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
@@ -1113,7 +1117,9 @@ class TestSeriesConstructors:
 
         # export
         depr_msg = "Series.values returning an ndarray that drops timezone information"
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=depr_msg, check_stacklevel=False
+        ):
             result = s.values
         assert isinstance(result, np.ndarray)
         assert result.dtype == "datetime64[ns]"
@@ -1213,6 +1219,19 @@ class TestSeriesConstructors:
         assert expected.dtype == "M8[ms]"
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["D", "h", "s", "ms", "us", "ns", "ps", "fs"])
+    def test_constructor_timedelta64_bigendian(self, unit):
+        # GH#68342 the byteswap also turned NaT into an ordinary duration; ps/fs
+        #  are load-bearing, only the finer->coarser cast views i8 unswapped
+        arr = np.array([1000, "NaT"], dtype=f">m8[{unit}]")
+
+        result = pd.Series(arr)
+        expected = pd.Series(arr.astype(f"<m8[{unit}]"))
+        assert result.dtype.byteorder != ">"
+        assert result.isna().tolist() == [False, True]
+        tm.assert_series_equal(result, expected)
+        tm.assert_index_equal(pd.to_timedelta(arr), pd.Index(expected))
+
     @pytest.mark.parametrize("interval_constructor", [pd.IntervalIndex, IntervalArray])
     def test_construction_interval(self, interval_constructor):
         # construction from interval & array of intervals
@@ -1220,9 +1239,7 @@ class TestSeriesConstructors:
         result = pd.Series(intervals)
         expected_subtype = np.dtype(np.intp)
         assert result.dtype == f"interval[{expected_subtype}, right]"
-        msg = "Series.values returning an object-dtype ndarray for IntervalDtype"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            tm.assert_index_equal(pd.Index(result.values), pd.Index(intervals))
+        tm.assert_index_equal(pd.Index(result), pd.Index(intervals))
 
     @pytest.mark.parametrize(
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
@@ -1256,25 +1273,20 @@ class TestSeriesConstructors:
         result = pd.Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
-        depr_msg = "Series.values returning an ndarray that drops timezone information"
-
         # Pre-2.0 dt64 values were treated as utc, which was inconsistent
         #  with DatetimeIndex, which treats them as wall times, see GH#33401
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = pd.Series(ser.values, dtype=ser.dtype)
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            expected = pd.Series(ser.values).dt.tz_localize(ser.dtype.tz)
+        data = ser.array._ndarray
+        result = pd.Series(data, dtype=ser.dtype)
+        expected = pd.Series(data).dt.tz_localize(ser.dtype.tz)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            # one suggested alternative to the deprecated (changed in 2.0) usage
-            middle = pd.Series(ser.values).dt.tz_localize("UTC")
-            result = middle.dt.tz_convert(ser.dtype.tz)
+        # one suggested alternative to the deprecated (changed in 2.0) usage
+        middle = pd.Series(data).dt.tz_localize("UTC")
+        result = middle.dt.tz_convert(ser.dtype.tz)
         tm.assert_series_equal(result, ser)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            # the other suggested alternative to the deprecated usage
-            result = pd.Series(ser.values.view("int64"), dtype=ser.dtype)
+        # the other suggested alternative to the deprecated usage
+        result = pd.Series(data.view("int64"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
     @pytest.mark.parametrize(
@@ -1977,6 +1989,14 @@ class TestSeriesConstructors:
         expected = pd.Series(pd.to_timedelta(data, unit="s").as_unit("s"))
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dtype_timedelta_mixed_honors_unit(self):
+        # GH#68639 numbers mixed with timedelta-like objects are interpreted in
+        #  the dtype's unit, not as nanoseconds
+        data = [pd.Timedelta(1, "s"), 2]
+        result = pd.Series(data, dtype="timedelta64[s]")
+        expected = pd.Series(pd.to_timedelta([1, 2], unit="s").as_unit("s"))
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = pd.Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
@@ -2066,6 +2086,9 @@ class TestSeriesConstructors:
         ser.iloc[0] = 100
         tm.assert_index_equal(idx, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference(self):
         # GH#54430
         with pd.option_context("future.infer_string", True):
@@ -2079,6 +2102,9 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_with_na_inference(self, na_value):
         # GH#54430
         with pd.option_context("future.infer_string", True):
@@ -2087,6 +2113,9 @@ class TestSeriesConstructors:
         expected = pd.Series(["a", None], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_scalar(self):
         # GH#54430
         with pd.option_context("future.infer_string", True):
@@ -2095,6 +2124,9 @@ class TestSeriesConstructors:
         expected = pd.Series("a", index=[1], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_array_string_dtype(self):
         # GH#54496
         with pd.option_context("future.infer_string", True):
@@ -2103,6 +2135,9 @@ class TestSeriesConstructors:
         expected = pd.Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_storage_definition(self):
         # https://github.com/pandas-dev/pandas/issues/54793
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
@@ -2120,6 +2155,9 @@ class TestSeriesConstructors:
             result = pd.Series(["a", "b"], dtype="str")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_constructor_infer_string_scalar(self):
         # GH#55537
         with pd.option_context("future.infer_string", True):
@@ -2128,6 +2166,9 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
         assert ser.dtype.storage == "python"
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_na_first(self):
         # GH#55655
         with pd.option_context("future.infer_string", True):
@@ -2280,6 +2321,15 @@ def test_constructor_from_series_with_incompatible_dtype_raises():
     ser = pd.Series([1, 2, "x", 4, 5])
     with pytest.raises(ValueError, match="invalid literal"):
         pd.Series(ser, dtype=int)
+
+
+@pytest.mark.parametrize("ncols", [1, 2])
+@pytest.mark.parametrize("index", [None, [0, 1, 2], [0, 1]])
+def test_constructor_from_dataframe_raises(ncols, index):
+    # GH#20658
+    df = pd.DataFrame(np.arange(3 * ncols).reshape(3, ncols))
+    with pytest.raises(ValueError, match="Cannot construct a Series from a DataFrame"):
+        pd.Series(df, index=index)
 
 
 def test_constructor_preserves_byteorder():

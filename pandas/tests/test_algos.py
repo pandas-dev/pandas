@@ -26,6 +26,7 @@ import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     DatetimeArray,
+    SparseArray,
     TimedeltaArray,
 )
 import pandas.core.common as com
@@ -1030,6 +1031,29 @@ class TestIsin:
         exp = np.array([True, False, False], dtype=bool)
         tm.assert_numpy_array_equal(res, exp)
 
+    @pytest.mark.parametrize(
+        "cls",
+        [
+            pd.Timestamp,
+            pd.Timedelta,
+            pd.Period,
+            pd.Interval,
+            type(pd.NaT),
+            pd.offsets.Day,
+            pd.DateOffset,
+        ],
+    )
+    def test_isin_scalar_classes(self, cls):
+        # GH#31080 the classes themselves, not instances
+        comps = np.array([cls, object], dtype=object)
+        expected = np.array([True, False])
+
+        result = np.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])
@@ -1240,9 +1264,8 @@ class TestIsin:
 
     @pytest.mark.parametrize("dtype", ["float32", "complex128"])
     def test_isin_mixed_int_float_targets_no_precision_loss(self, dtype):
-        # GH#46485: a mixed int/float targets list is cast to float64 by
-        # _ensure_arraylike, rounding 2**53 + 1 before the exact-range check
-        # can see it; we must still object-cast and compare exactly.
+        # GH#46485: 2**53 + 1 in a mixed int/float targets list must not be
+        # rounded to 2**53 by a float64 cast.
         ser = pd.Series([2**53], dtype="int64").astype(dtype)
         result = ser.isin([2**53 + 1, 1.5])
         expected = pd.Series([False])
@@ -2282,6 +2305,28 @@ class TestMode:
         expected = pd.Series([1], name="foo")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("subtype", ["float16", "float32", "float64"])
+    def test_mode_sparse_float(self, subtype):
+        # GH#68421 SparseDtype has no itemsize for _ensure_data to read
+        ser = pd.Series(SparseArray(np.array([1, 2, 2, 3], dtype=subtype)))
+        result = ser.mode()
+        expected = pd.Series([2], dtype=ser.dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_mode_sparse_bool(self):
+        # GH#68421 bool goes through _ensure_data's non-ndarray bool branch
+        arr = SparseArray([True, True, True, False])
+        result = pd.Series(arr).mode()
+        tm.assert_series_equal(result, pd.Series([True], dtype=arr.dtype))
+
+    @pytest.mark.parametrize("dropna, expected", [(True, 1.0), (False, np.nan)])
+    def test_mode_sparse_counts_fill_value(self, dropna, expected):
+        # GH#68421 the fill value is a value like any other, so the implicit
+        # entries count toward the mode
+        arr = SparseArray([np.nan, np.nan, np.nan, 1.0, 1.0])
+        result = pd.Series(arr).mode(dropna=dropna)
+        tm.assert_series_equal(result, pd.Series([expected], dtype=arr.dtype))
+
 
 class TestDiff:
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
@@ -2327,3 +2372,20 @@ def test_union_with_duplicates(op):
     else:
         result = algos.union_with_duplicates(lvals, rvals)
         tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "codes, expected",
+    [
+        ([0, 1, 0, 0, 1], [0, 0, 1, 2, 1]),
+        ([0, 1, 2], [0, 0, 0]),
+        ([3, 3, 3], [0, 1, 2]),
+        ([], []),
+        ([5], [0]),
+        ([-1, 0, -1], [0, 0, 1]),
+    ],
+)
+def test_occurrence_rank(codes, expected):
+    # GH#67446
+    result = algos.occurrence_rank(np.array(codes, dtype=np.intp))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
