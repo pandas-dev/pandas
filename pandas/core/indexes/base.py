@@ -8,6 +8,8 @@ from datetime import (
 import functools
 from itertools import zip_longest
 import operator
+import os
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -989,7 +991,11 @@ class Index(IndexOpsMixin, PandasObject):
                 self, ufunc, method, *inputs, **kwargs
             )
 
-        if method == "reduce":
+        if method == "reduce" and not (
+            # Index.sum/prod reject numpy-only keywords such as dtype, GH#50021
+            ufunc in (np.add, np.multiply)
+            and any(val is not None for key, val in kwargs.items() if key != "axis")
+        ):
             result = arraylike.dispatch_reduction_ufunc(
                 self, ufunc, method, *inputs, **kwargs
             )
@@ -8273,27 +8279,101 @@ class Index(IndexOpsMixin, PandasObject):
         )
 
     @final
-    def _reduce(
-        self, op: Callable[..., Any], name: str_t, *, skipna: bool = True, **kwargs: Any
+    def _validate_numpy_reduction(
+        self,
+        name: str_t,
+        validate: Callable[..., None],
+        axis: AxisInt | None,
+        numpy_kwargs: dict[str_t, Any],
+        **op_kwargs: Any,
     ) -> Any:
         """
-        Reduce with ``ExtensionArray._reduce``, or with ``op`` for numpy values.
+        Validate numpy-compat arguments, or return the deprecated numpy result.
+
+        Returns ``lib.no_default`` when the caller should compute its own result.
+        """
+        if numpy_kwargs["out"] is lib.no_default:
+            # numpy always passes ``out``, so this is a direct call
+            numpy_kwargs["out"] = None
+        else:
+            result = self._deprecated_numpy_reduction(
+                name, axis, numpy_kwargs, **op_kwargs
+            )
+            if result is not lib.no_default:
+                return result
+        validate((), numpy_kwargs, fname=name)
+        nv.validate_minmax_axis(axis)
+        return lib.no_default
+
+    @final
+    def _deprecated_numpy_reduction(
+        self,
+        name: str_t,
+        axis: AxisInt | None,
+        numpy_kwargs: dict[str_t, Any],
+        **op_kwargs: Any,
+    ) -> Any:
+        """
+        Return numpy's old result for ``np.<name>(index)``, or ``lib.no_default``.
+
+        Before GH#50021 numpy did not call the Index method, so did not skip
+        missing values and accepted numpy-only keywords.
         """
         if self._is_multi:
-            raise TypeError(f"cannot perform {name} with {type(self).__name__}")
-        vals = self._values
-        if isinstance(vals, ExtensionArray):
-            result = vals._reduce(name, skipna=skipna, **kwargs)
-        else:
-            result = op(vals, skipna=skipna, **kwargs)
-        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+            return lib.no_default
+        changed = {
+            key: val
+            for key, val in numpy_kwargs.items()
+            if val is not None and val is not False
+        }
+        if not changed and not self.hasnans:
+            return lib.no_default
+        try:
+            if name in ("sum", "prod"):
+                # the call numpy made when Index had no sum/prod
+                ufunc = np.add if name == "sum" else np.multiply
+                # error: Argument 1 to "reduce" of "_UFunc_Nin2_Nout1" has
+                # incompatible type "ExtensionArray | ndarray[...]"
+                result = ufunc.reduce(
+                    self._values,  # type: ignore[arg-type]
+                    **{"axis": axis, "dtype": None, **changed},
+                )
+                result = maybe_unbox_numpy_scalar(
+                    lib.item_from_zerodim(result), object_with_dtype=self
+                )
+            else:
+                result = getattr(np, name)(
+                    np.asarray(self), axis=axis, **changed, **op_kwargs
+                )
+        except TypeError:
+            # numpy raised here too, so there is no behavior to keep
+            return lib.no_default
+
+        # find_stack_level stops at the numpy function that called the method
+        stacklevel = find_stack_level()
+        frame = sys._getframe(stacklevel - 1)
+        numpy_dir = os.path.dirname(np.__file__) + os.sep
+        while frame.f_back is not None and frame.f_code.co_filename.startswith(
+            numpy_dir
+        ):
+            frame = frame.f_back
+            stacklevel += 1
+        warnings.warn(
+            f"In a future version, np.{name}(index) will call Index.{name}, which "
+            "skips missing values and does not accept numpy-only keywords such as "
+            f"'dtype', matching Series. Use np.{name}(np.asarray(index)) to keep "
+            "the current behavior.",
+            Pandas4Warning,
+            stacklevel=stacklevel,
+        )
+        return result
 
     def sum(
         self,
         *,
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
-        out: None = None,
+        out: lib.NoDefault | None = lib.no_default,
         initial: None = None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -8337,19 +8417,24 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1.0, np.nan]).sum(min_count=2)
         nan
         """
-        nv.validate_sum(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
+        result = self._validate_numpy_reduction(
+            "sum",
+            nv.validate_sum,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial},
         )
-        nv.validate_minmax_axis(axis)
+        if result is not lib.no_default:
+            return result
         min_count = validate_min_count(min_count)
-        return self._reduce(nanops.nansum, "sum", skipna=skipna, min_count=min_count)
+        result = self.array._reduce("sum", skipna=skipna, min_count=min_count)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def prod(
         self,
         *,
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
-        out: None = None,
+        out: lib.NoDefault | None = lib.no_default,
         initial: None = None,
         keepdims: bool = False,
         skipna: bool = True,
@@ -8390,19 +8475,24 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 2, 3, 4]).prod()
         24
         """
-        nv.validate_prod(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
+        result = self._validate_numpy_reduction(
+            "prod",
+            nv.validate_prod,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial},
         )
-        nv.validate_minmax_axis(axis)
+        if result is not lib.no_default:
+            return result
         min_count = validate_min_count(min_count)
-        return self._reduce(nanops.nanprod, "prod", skipna=skipna, min_count=min_count)
+        result = self.array._reduce("prod", skipna=skipna, min_count=min_count)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def mean(
         self,
         *,
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
-        out: None = None,
+        out: lib.NoDefault | None = lib.no_default,
         keepdims: bool = False,
         skipna: bool = True,
     ) -> Any:
@@ -8438,9 +8528,16 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 2, 3, 4]).mean()
         2.5
         """
-        nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
-        nv.validate_minmax_axis(axis)
-        return self._reduce(nanops.nanmean, "mean", skipna=skipna)
+        result = self._validate_numpy_reduction(
+            "mean",
+            nv.validate_mean,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims},
+        )
+        if result is not lib.no_default:
+            return result
+        result = self.array._reduce("mean", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def median(
         self,
@@ -8480,14 +8577,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_median((), kwargs)
         nv.validate_minmax_axis(axis)
-        return self._reduce(nanops.nanmedian, "median", skipna=skipna)
+        result = self.array._reduce("median", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def std(
         self,
         *,
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
-        out: None = None,
+        out: lib.NoDefault | None = lib.no_default,
         keepdims: bool = False,
         ddof: int = 1,
         skipna: bool = True,
@@ -8527,18 +8625,24 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 2, 3]).std()
         1.0
         """
-        nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
+        result = self._validate_numpy_reduction(
+            "std",
+            nv.validate_stat_ddof_func,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims},
+            ddof=ddof,
         )
-        nv.validate_minmax_axis(axis)
-        return self._reduce(nanops.nanstd, "std", skipna=skipna, ddof=ddof)
+        if result is not lib.no_default:
+            return result
+        result = self.array._reduce("std", skipna=skipna, ddof=ddof)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def var(
         self,
         *,
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
-        out: None = None,
+        out: lib.NoDefault | None = lib.no_default,
         keepdims: bool = False,
         ddof: int = 1,
         skipna: bool = True,
@@ -8578,11 +8682,17 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 2, 3]).var()
         1.0
         """
-        nv.validate_stat_ddof_func(
-            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
+        result = self._validate_numpy_reduction(
+            "var",
+            nv.validate_stat_ddof_func,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims},
+            ddof=ddof,
         )
-        nv.validate_minmax_axis(axis)
-        return self._reduce(nanops.nanvar, "var", skipna=skipna, ddof=ddof)
+        if result is not lib.no_default:
+            return result
+        result = self.array._reduce("var", skipna=skipna, ddof=ddof)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def sem(
         self,
@@ -8622,7 +8732,8 @@ class Index(IndexOpsMixin, PandasObject):
         0.5773502691896258
         """
         nv.validate_minmax_axis(axis)
-        return self._reduce(nanops.nansem, "sem", skipna=skipna, ddof=ddof)
+        result = self.array._reduce("sem", skipna=skipna, ddof=ddof)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def skew(
         self,
@@ -8658,7 +8769,8 @@ class Index(IndexOpsMixin, PandasObject):
         0.0
         """
         nv.validate_minmax_axis(axis)
-        return self._reduce(nanops.nanskew, "skew", skipna=skipna)
+        result = self.array._reduce("skew", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def kurt(
         self,
@@ -8695,9 +8807,8 @@ class Index(IndexOpsMixin, PandasObject):
         1.5
         """
         nv.validate_minmax_axis(axis)
-        return self._reduce(nanops.nankurt, "kurt", skipna=skipna)
-
-    kurtosis = kurt
+        result = self.array._reduce("kurt", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     # --------------------------------------------------------------------
 

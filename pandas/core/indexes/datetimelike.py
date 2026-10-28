@@ -122,7 +122,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         *,
         axis: AxisInt | None = None,
         dtype: NpDtype | None = None,
-        out: None = None,
+        out: lib.NoDefault | None = None,
         keepdims: bool = False,
         skipna: bool = True,
     ) -> Any:

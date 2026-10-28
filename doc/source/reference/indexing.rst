@@ -76,7 +76,6 @@ Modifying and computations
    Index.sem
    Index.skew
    Index.kurt
-   Index.kurtosis
    Index.reindex
    Index.rename
    Index.repeat

@@ -691,7 +691,7 @@ class TestIndexReductions:
     def test_reductions_multiindex_raise(self, opname):
         # GH#50021
         mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
-        with pytest.raises(TypeError, match=f"cannot perform {opname} with MultiIndex"):
+        with pytest.raises(ValueError, match="MultiIndex has no single backing array"):
             getattr(mi, opname)()
 
     def test_reduction_kwargs(self):
@@ -703,44 +703,48 @@ class TestIndexReductions:
             idx.sum(axis=1)
         with pytest.raises(TypeError, match="unexpected keyword argument"):
             idx.mean(foo=1)
+        with pytest.raises(ValueError, match="the 'dtype' parameter is not supported"):
+            idx.sum(dtype="float64")
 
-    @pytest.mark.parametrize(
-        "func, expected",
-        [(np.sum, 4.0), (np.prod, 3.0), (np.mean, 2.0), (np.std, 1.0), (np.var, 1.0)],
-    )
-    def test_numpy_reductions_dispatch(self, func, expected):
-        # GH#50021 numpy dispatches to the Index method, which skips NaN like Series
-        idx = pd.Index([1.0, np.nan, 3.0])
-        assert func(idx) == expected
-        assert func(idx) == func(idx.to_series())
-
-    def test_numpy_reductions_dispatch_masked(self):
+    @pytest.mark.parametrize("func", [np.sum, np.prod, np.mean, np.std, np.var])
+    def test_numpy_reductions_dispatch(self, func):
         # GH#50021
-        idx = pd.Index([1, None, 3], dtype="Int64")
-        assert np.sum(idx) == 4
+        idx = pd.Index([1.0, 2.0, 4.0])
+        with tm.assert_produces_warning(None):
+            result = func(idx)
+        assert result == func(idx.to_series())
+
+    @pytest.mark.parametrize("func", [np.sum, np.prod, np.mean, np.std, np.var])
+    @pytest.mark.parametrize("dtype", ["float64", "Int64"])
+    def test_numpy_reductions_missing_deprecated(self, func, dtype):
+        # GH#50021 the Index methods skip missing values, numpy does not
+        idx = pd.Index([1, None, 3], dtype=dtype)
+        msg = rf"np\.{func.__name__}\(index\) will call Index\.{func.__name__}"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = func(idx)
+        assert pd.isna(result)
 
     @pytest.mark.parametrize(
-        "kwargs, exc, msg",
+        "kwargs, expected",
         [
-            (
-                {"dtype": "float64"},
-                ValueError,
-                "the 'dtype' parameter is not supported",
-            ),
-            (
-                {"keepdims": True},
-                ValueError,
-                "the 'keepdims' parameter is not supported",
-            ),
-            ({"initial": 5}, ValueError, "the 'initial' parameter is not supported"),
-            ({"where": np.array([True, False])}, TypeError, "unexpected keyword"),
+            ({"dtype": "float32"}, 3.0),
+            ({"keepdims": True}, np.array([3.0])),
+            ({"initial": 5}, 8.0),
         ],
     )
-    def test_numpy_reductions_reject_numpy_kwargs(self, kwargs, exc, msg):
-        # GH#50021 like Series, the Index methods do not support these
+    def test_numpy_reductions_numpy_kwargs_deprecated(self, kwargs, expected):
+        # GH#50021 the Index methods do not support these, like Series
         idx = pd.Index([1.0, 2.0])
-        with pytest.raises(exc, match=msg):
-            np.sum(idx, **kwargs)
+        with tm.assert_produces_warning(Pandas4Warning, match="will call Index.sum"):
+            result = np.sum(idx, **kwargs)
+        tm.assert_almost_equal(result, expected)
+
+    def test_ufunc_reduce_numpy_kwargs(self):
+        # GH#50021 np.add.reduce keeps numpy's handling of dtype
+        idx = pd.Index([1, 2])
+        with tm.assert_produces_warning(None):
+            result = np.add.reduce(idx, dtype="float32")
+        assert result == 3.0
 
 
 class TestSeriesReductions:
