@@ -2594,3 +2594,25 @@ def test_ts_plot_tz_aware_period_start_nonexistent():
     result = ax.get_lines()[0].get_xdata()
     expected = index.astype(object).to_numpy()
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["h", "B"])
+def test_ts_plot_tz_aware_off_grid_onto_regular(freq):
+    # GH#12047 the off-grid series goes through PeriodConverter, which warned
+    #  about dropping the tz and put "B" points on their UTC day, not wall day
+    index = date_range("2015-02-23", periods=10, freq=freq)
+    off_grid = index + pd.Timedelta(hours=22, minutes=30)
+    _, ax = mpl.pyplot.subplots()
+    pd.DataFrame(np.arange(10), index=index.tz_localize("US/Eastern")).plot(ax=ax)
+
+    with tm.assert_produces_warning(None):
+        pd.DataFrame(np.arange(10), index=off_grid.tz_localize("US/Eastern")).plot(
+            ax=ax
+        )
+
+    result = ax.get_lines()[1].get_xdata(orig=False)
+    if freq == "B":
+        expected = conv.bday_count_array(off_grid.values)
+    else:
+        expected = off_grid.to_period(freq).asi8
+    tm.assert_numpy_array_equal(result, expected.astype(np.float64))

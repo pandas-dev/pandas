@@ -846,6 +846,10 @@ def assert_numpy_array_equal(
                     obj, f"{obj} shapes are different", left.shape, right.shape
                 )
 
+            # report e.g. a datetime unit mismatch as a dtype difference, GH#68459
+            if check_dtype:
+                assert_attr_equal("dtype", left, right, obj=obj)
+
             diff = 0.0
             # ravel so the count is over values, matching the `left.size` total
             for left_val, right_val in zip(left.ravel(), right.ravel(), strict=True):
