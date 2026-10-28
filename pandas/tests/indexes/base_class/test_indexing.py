@@ -157,6 +157,26 @@ def test_get_indexer_nat_matches_nan():
         expected = np.array([0], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    # Explicit string dtype (same na_value=np.nan semantics as inference).
+    s = pd.Index([None, "b"], dtype="string")
+    assert s.get_loc(pd.NaT) == 0
+    tm.assert_numpy_array_equal(s.get_indexer([pd.NaT]), np.array([0], dtype=np.intp))
+    tm.assert_numpy_array_equal(
+        s.get_indexer(pd.DatetimeIndex([pd.NaT])), np.array([0], dtype=np.intp)
+    )
+
+    # Non-string indexes keep pre-existing NaT semantics (no match).
+    object_idx = pd.Index([np.nan, "b"], dtype=object)
+    tm.assert_numpy_array_equal(
+        object_idx.get_indexer(pd.Index([pd.NaT], dtype=object)),
+        np.array([-1], dtype=np.intp),
+    )
+    float_idx = pd.Index([1.0, np.nan])
+    tm.assert_numpy_array_equal(
+        float_idx.get_indexer(pd.DatetimeIndex([pd.NaT])),
+        np.array([-1], dtype=np.intp),
+    )
+
 
 def test_get_indexer_monotonic_above_size_cutoff(monkeypatch):
     # GH#14273 get_indexer should avoid building a hash table for large

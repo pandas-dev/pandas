@@ -7200,6 +7200,7 @@ class Index(IndexOpsMixin, PandasObject):
             and self.dtype.na_value is np.nan
             and using_string_dtype()
             and not isinstance(target_index, ABCMultiIndex)
+            and self.hasnans
             and target_index.hasnans
         ):
             # Fill missing values to ensure consistent missing value
@@ -7207,7 +7208,9 @@ class Index(IndexOpsMixin, PandasObject):
             # which ``fillna(np.nan)`` leaves in place, so coerce those to
             # object first to normalize it to np.nan and match the scalar
             # ``get_loc`` semantics (GH#65419). Every other dtype already holds
-            # np.nan, and coercing it would only pay for a copy.
+            # np.nan, and coercing it would only pay for a copy. Gated on
+            # ``self.hasnans`` so a non-missing string index skips the copy
+            # when the target happens to contain NA/NaT.
             if needs_i8_conversion(target_index.dtype):
                 target_index = target_index.astype(object).fillna(np.nan)
             else:
