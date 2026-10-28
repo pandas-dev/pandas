@@ -598,33 +598,27 @@ class BaseBlockManager(PandasObject):
                     )
 
                     indexer = list(indexer)
-                    # first block equals values we are setting to -> set to all columns
-                    if lib.is_integer(indexer[1]):
-                        col_indexer = 0
-                    elif len(inverse) > 1 and lib.is_range_indexer(
-                        inverse, len(blk_loc)
-                    ):
-                        col_indexer = slice(None)  # type: ignore[assignment]
+                    # The column indexer has to keep the kind the caller used:
+                    # a slice takes the cross product with the row indexer,
+                    # while an array broadcasts against it (GH#65446)
+                    if indexer[1] is Ellipsis or indexer[1] is None:
+                        # the new block holds every column in order, so the
+                        # key applies unchanged
+                        pass
+                    elif lib.is_integer(indexer[1]):
+                        indexer[1] = 0
+                    elif isinstance(indexer[1], slice):
+                        # the new block holds the columns sorted, so a slice
+                        # over them differs from the caller's only in direction
+                        step = -1 if (indexer[1].step or 1) < 0 else None
+                        indexer[1] = slice(None, None, step)
                     else:
-                        col_indexer = inverse  # type: ignore[assignment]
-                    indexer[1] = col_indexer
+                        indexer[1] = inverse
 
-                    row_indexer = indexer[0]
-                    if isinstance(col_indexer, np.ndarray):
-                        if (
-                            isinstance(row_indexer, np.ndarray)
-                            and row_indexer.ndim == 1
-                        ):
-                            # GH#65446: Make the row indexer 2d to take a cross product
-                            row_indexer = row_indexer[:, None]
-                    elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
-                        # numpy cannot handle a 2d indexer in combo with a slice
-                        row_indexer = np.squeeze(row_indexer, axis=1)
-                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
+                    if isinstance(indexer[0], np.ndarray) and len(indexer[0]) == 0:
                         # numpy does not like empty indexer combined with slice
                         # and we are setting nothing anyway
                         return self
-                    indexer[0] = row_indexer
                     self.blocks[0].setitem(tuple(indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
@@ -1381,12 +1375,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
-        if not value_is_extension_type and len(blklocs) and len(value) != len(blklocs):
-            # Otherwise value_getitem below silently drops value columns, or
-            #  yields a block narrower than its placement, GH#68445.  An empty
-            #  loc writes nothing, so it stays a no-op.
+        # GH#68445, GH#71098 value needs one column per position; callers do any
+        #  broadcasting. An empty loc writes nothing, so it stays a no-op.
+        ncols = 1 if value_is_extension_type else len(value)
+        if len(blknos) and ncols != len(blknos):
             raise ValueError(
-                f"Got {len(blklocs)} positions but value has {len(value)} columns."
+                f"Got {len(blknos)} positions but value has {ncols} columns."
             )
 
         unfit_mgr_locs = []

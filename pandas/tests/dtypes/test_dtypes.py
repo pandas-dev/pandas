@@ -1268,6 +1268,21 @@ def test_multi_column_dtype_assignment():
     tm.assert_frame_equal(df, expected)
 
 
+def test_numpy_s_dtype_on_index():
+    # GH#50127
+    with pytest.raises(
+        TypeError,
+        match="Index does not support numpy fixed-width string dtypes",
+    ):
+        pd.Index(["abcd", "1234"], dtype="S3")
+
+    with pytest.raises(
+        TypeError,
+        match="Index does not support numpy fixed-width string dtypes",
+    ):
+        pd.Index(["abcd", "1234"]).astype("S3")
+
+
 def test_loc_setitem_empty_labels_no_dtype_conversion():
     # GH 29707
 
