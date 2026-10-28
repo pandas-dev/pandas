@@ -1695,6 +1695,39 @@ class TestDataFrameAnalytics:
         expected = pd.Series([False, False], index=["a", "b"], dtype=object)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype_a, dtype_b",
+        [
+            ("bool[pyarrow]", "boolean"),
+            ("bool[pyarrow]", "bool[pyarrow]"),
+            ("boolean", "boolean"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "data, op, expected",
+        [
+            ([False, None], "any", pd.NA),
+            ([False, None], "all", False),
+            ([True, None], "any", True),
+            ([True, None], "all", pd.NA),
+            ([True, False], "any", True),
+            ([True, False], "all", False),
+        ],
+    )
+    def test_any_all_skipna_false_axis_none_pyarrow_and_nullable(
+        self, dtype_a, dtype_b, data, op, expected
+    ):
+        # GH#70685
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {"a": pd.array(data, dtype=dtype_a), "b": pd.array(data, dtype=dtype_b)}
+        )
+        result = getattr(df, op)(skipna=False, axis=None)
+        if expected is pd.NA:
+            assert result is pd.NA
+        else:
+            assert result == expected
+
     # ---------------------------------------------------------------------
     # Unsorted
 
