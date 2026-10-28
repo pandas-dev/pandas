@@ -187,6 +187,18 @@ class TestGetIndexer:
         expected = np.array([-1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    @pytest.mark.parametrize("null", [np.nan, None])
+    def test_get_indexer_object_dtype_target_with_nan(self, method, null):
+        # GH#71295 missing values in an object-dtype target must not corrupt
+        # the matched positions of the remaining labels and are not matched
+        index = pd.Index([1.0, 2.0, 3.0])
+        target = pd.Index([1.5, null, 2.5], dtype=object)
+
+        result = index.get_indexer(target, method=method)
+        expected = index.get_indexer(pd.Index([1.5, np.nan, 2.5]), method=method)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer_nearest_error(self):
         index = pd.Index(np.arange(10))
         with pytest.raises(ValueError, match="limit argument"):
