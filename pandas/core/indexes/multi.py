@@ -23,6 +23,7 @@ from typing import (
 import warnings
 
 import numpy as np
+from typing_extensions import override
 
 from pandas._config.config import _global_config as config
 
@@ -2172,6 +2173,34 @@ class MultiIndex(Index):
         else:
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
+
+    @override
+    def to_list(self) -> list:  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
+        """
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period).
+
+        For a MultiIndex, the elements are tuples.
+
+        Returns
+        -------
+        list
+            A list of tuples representing the MultiIndex elements.
+
+        See Also
+        --------
+        Index.to_list : Return a list of the values for an Index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_product([["a", "b"], ["apple", "banana"]])
+        >>> mi.to_list()
+        [('a', 'apple'), ('a', 'banana'), ('b', 'apple'), ('b', 'banana')]
+        """
+        return self.tolist()
 
     def to_frame(
         self,
