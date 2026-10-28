@@ -75,6 +75,13 @@ def data_for_grouping():
 
 
 class TestCategorical(base.ExtensionTests):
+    def test_memory_usage(self, data):
+        # Categorical construction can cache the categories' lookup engine.
+        # memory_usage includes this storage in addition to the array's nbytes.
+        series = pd.Series(data)
+        expected = data.codes.nbytes + data.categories.memory_usage()
+        assert series.memory_usage(index=False) == expected
+
     def test_contains(self, data, data_missing):
         # GH-37867
         # na value handling in Categorical.__contains__ is deprecated.
