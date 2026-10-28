@@ -2,9 +2,12 @@ from copy import (
     copy,
     deepcopy,
 )
+import re
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -169,6 +172,25 @@ class TestGeneric:
         f("int64")
         f("float64")
         f("M8[ns]")
+
+    @pytest.mark.parametrize(
+        "dtype", [np.dtype([("a", "i4"), ("b", "f4")]), np.dtype("V8")]
+    )
+    def test_astype_compound_dtype_deprecated(self, frame_or_series, dtype):
+        # GH#4464, GH#49388
+        obj = construct(frame_or_series, shape=3, value=1)
+        msg = r"astype to a compound \(structured or void\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            obj.astype(dtype)
+        if frame_or_series is pd.DataFrame:
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                obj.astype({obj.columns[0]: dtype})
+
+    def test_astype_void_same_dtype_no_warning(self, frame_or_series):
+        # GH#49388 unstructured void is not deprecated
+        obj = frame_or_series(np.zeros(3, dtype="V8"))
+        with tm.assert_produces_warning(None):
+            obj.astype("V8")
 
     def test_metadata_propagation(self, frame_or_series):
         # check that the metadata matches up on the resulting ops
@@ -487,3 +509,12 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
+
+
+@pytest.mark.parametrize("box", [pd.DataFrame, pd.Series, pd.Index])
+def test_nonzero_suggests_bitwise_operators(box):
+    # GH#35037
+    obj = box([1, 2, 3])
+    msg = re.escape("use '&', '|' and '~' instead of 'and', 'or' and 'not'")
+    with pytest.raises(ValueError, match=msg):
+        obj and obj

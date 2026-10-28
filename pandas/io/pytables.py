@@ -3008,9 +3008,7 @@ class IndexCol:
             if (
                 new_metadata is not None
                 and cur_metadata is not None
-                and not array_equivalent(
-                    new_metadata, cur_metadata, strict_nan=True, dtype_equal=True
-                )
+                and not array_equivalent(new_metadata, cur_metadata, strict_nan=True)
             ):
                 raise ValueError(
                     "cannot append a categorical with different categories "
@@ -5652,7 +5650,7 @@ class AppendableTable(Table):
         values = selection.select_coords()
 
         # delete the rows in reverse order
-        sorted_series = Series(values, copy=False).sort_values()
+        sorted_series = Series(values, copy=False).sort_values(ignore_index=True)
         ln = len(sorted_series)
 
         if ln:

@@ -1476,6 +1476,17 @@ class TestPandasContainer:
         with pytest.raises(AttributeError, match="_creso"):
             ser.to_json(date_format="iso")
 
+    def test_to_json_iso_datetime_conversion_failure_raises(self):
+        # GH#69461 PyDateTimeToIso returned NULL without setting errorMsg,
+        # which segfaulted instead of propagating the Python exception
+        class BadTZ(datetime.tzinfo):
+            def utcoffset(self, dt):
+                raise RuntimeError("boom")
+
+        ser = pd.Series([datetime.datetime(2020, 1, 1, tzinfo=BadTZ())], dtype=object)
+        with pytest.raises(RuntimeError, match="boom"):
+            ser.to_json(date_format="iso")
+
     def test_default_handler(self):
         value = object()
         frame = pd.DataFrame({"a": [7, value]})
@@ -1836,17 +1847,39 @@ class TestPandasContainer:
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
-    def test_read_json_large_numbers(self, bigNum):
-        # GH20599, 26068
-        json = StringIO('{"articleId":' + str(bigNum) + "}")
-        msg = "|".join(["Value is too small", "Value is too big"])
-        with pytest.raises(ValueError, match=msg):
-            pd.read_json(json)
+    def test_read_json_int_beyond_float_range(self):
+        # GH#20599
+        big_num = 10**400
+        json = '{"0":{"articleId":' + str(big_num) + "}}"
+        result = pd.read_json(StringIO(json))
+        expected = pd.DataFrame(big_num, dtype=object, index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
 
-        json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
-        with pytest.raises(ValueError, match=msg):
-            pd.read_json(json)
+    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64, 5 * 2**63])
+    def test_read_json_large_numbers(self, bigNum):
+        # GH#20599, GH#26068
+        json = '{"0":{"articleId":' + str(bigNum) + "}}"
+        result = pd.read_json(StringIO(json), dtype=False)
+        expected = pd.DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.read_json(StringIO(json))
+        expected = pd.DataFrame(float(bigNum), index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [str(2**64), f'"{2**64}"'])
+    def test_read_json_large_numbers_explicit_dtype_raises(self, value):
+        # GH#20599 an explicit dtype that cannot hold the value is not ignored
+        json = '{"a":{"0":' + value + ',"1":1}}'
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            pd.read_json(StringIO(json), dtype={"a": "int64"})
 
     def test_read_json_large_numbers2(self):
         # GH18842
@@ -2735,6 +2768,32 @@ def test_to_json_unsupported_object_gh36211():
     msg = "Unable to serialize object to JSON: encountered an unsupported object type"
     with pytest.raises(ValueError, match=msg):
         df.to_json()
+
+
+class _RaisingTZ(datetime.tzinfo):
+    def utcoffset(self, dt):
+        raise RuntimeError("boom")
+
+
+class _DatetimeSubclass(datetime.datetime):
+    pass
+
+
+@pytest.mark.parametrize("dt_cls", [datetime.datetime, _DatetimeSubclass])
+@pytest.mark.parametrize(
+    "box",
+    [
+        lambda val: pd.Series([{"a": val}], dtype=object),
+        lambda val: pd.DataFrame({"a": pd.Series([val], dtype=object)}),
+        lambda val: pd.Series([1], index=pd.Index([val], dtype=object)),
+        lambda val: pd.DataFrame([[1]], columns=pd.Index([val], dtype=object)),
+    ],
+)
+def test_to_json_iso_utcoffset_raises(dt_cls, box):
+    # GH#69461 an error raised by utcoffset should propagate
+    obj = box(dt_cls(2020, 1, 1, tzinfo=_RaisingTZ()))
+    with pytest.raises(RuntimeError, match="boom"):
+        obj.to_json(date_format="iso")
 
 
 @pytest.mark.parametrize("other", ['"notadate"', "true"])

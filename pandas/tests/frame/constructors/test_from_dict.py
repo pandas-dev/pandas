@@ -200,6 +200,20 @@ class TestFromDict:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("missing", [None, float("nan")])
+    @pytest.mark.parametrize("box", [pd.Series, dict])
+    def test_from_dict_orient_index_tuple_keys_with_missing(self, missing, box):
+        # GH#28390 a missing value in a tuple key should not turn the row into NaN
+        keys = [("a", 1), (missing, 1)]
+        data = {keys[0]: box({"x": 1, "y": 2}), keys[1]: box({"x": 3, "y": 4})}
+        result = pd.DataFrame.from_dict(data, orient="index")
+        expected = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            index=pd.MultiIndex.from_tuples(keys),
+            columns=["x", "y"],
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_dict_constructor_empty_series(self):
         s1 = pd.Series(
             [1, 2, 3, 4],
@@ -224,6 +238,19 @@ class TestFromDict:
 
         with pytest.raises(ValueError, match=msg):
             pd.DataFrame.from_dict({"b": 8, "a": 6})
+
+    @pytest.mark.parametrize("value, row", [("BC", ["B", "C"]), ("B", ["B", None])])
+    def test_from_dict_orient_index_list_then_str_deprecated(self, value, row):
+        # GH#50461 the str value is split into characters; a length mismatch
+        #  does not also issue the mismatched-lengths warning
+        msg = "a str or bytes row after a list-like row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg) as record:
+            result = pd.DataFrame.from_dict(
+                {"a": ["A1", "A2"], "b": value}, orient="index"
+            )
+        assert len(record) == 1
+        expected = pd.DataFrame([["A1", "A2"], row], index=["a", "b"])
+        tm.assert_frame_equal(result, expected)
 
     def test_from_dict_orient_invalid(self):
         msg = (
