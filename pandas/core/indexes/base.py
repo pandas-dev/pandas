@@ -649,6 +649,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif issubclass(dtype.type, str) or is_numeric_dtype(dtype):
             return Index
 
+        if dtype.kind == "S":
+            raise TypeError("Index does not support numpy fixed-width string dtypes")
+
         raise NotImplementedError(dtype)
 
     # NOTE for new Index creation:
@@ -7880,8 +7883,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether any element is Truthy.
 
-        This is equivalent to calling ``bool(self.any())``. An empty Index
-        will return False.
+        An empty Index will return False.
 
         Parameters
         ----------
@@ -7921,15 +7923,14 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(vals, np.ndarray):
             # i.e. EA, call _reduce instead of "any" to get TypeError instead
             #  of AttributeError
-            return vals._reduce("any")
+            return maybe_unbox_numpy_scalar(vals._reduce("any"))
         return maybe_unbox_numpy_scalar(np.any(vals))
 
     def all(self, *args: Any, **kwargs: Any) -> Any:
         """
         Return whether all elements are Truthy.
 
-        This is equivalent to calling ``bool(self.all())``. An empty Index
-        will return True.
+        An empty Index will return True.
 
         Parameters
         ----------
@@ -7972,7 +7973,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(vals, np.ndarray):
             # i.e. EA, call _reduce instead of "all" to get TypeError instead
             #  of AttributeError
-            return vals._reduce("all")
+            return maybe_unbox_numpy_scalar(vals._reduce("all"))
         return maybe_unbox_numpy_scalar(np.all(vals))
 
     @final
