@@ -29,6 +29,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_accumulations
+from pandas.core.array_algos.take import take_nd
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -223,8 +224,7 @@ def coerce_to_array(
         # convert each category once; Categorical.astype(bool) can warn here
         cat_values, _ = coerce_to_array(values.categories._values)
         mask_values = values.codes == -1
-        values = cat_values[values.codes]
-        values[mask_values] = False
+        values = take_nd(cat_values, values.codes, fill_value=False)
     elif isinstance(values, ExtensionArray):
         mask_values = np.asarray(values.isna(), dtype=bool)
         values_bool = np.zeros(len(values), dtype=bool)

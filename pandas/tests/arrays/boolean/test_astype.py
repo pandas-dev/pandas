@@ -60,6 +60,7 @@ def test_astype_to_boolean_array():
         (["", "False", None], pd.StringDtype(na_value=np.nan), [False, True, None]),
         ([0, 2, None], "category", [False, True, None]),
         (["", "x", None], "category", [False, True, None]),
+        ([None, None], "category", [None, None]),
         ([0, 5, None], "timedelta64[ns]", [False, True, None]),
         (["1970-01-01", "2000-01-01", None], "M8[ns]", [False, True, None]),
         (["1970-01-01", "2000-01-01", None], "M8[ns, UTC]", [False, True, None]),

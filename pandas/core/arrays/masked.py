@@ -216,8 +216,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if isna(values).all():
             # NA validity depends only on type, so check one value per type
             by_type = dict(zip(map(type, values), values, strict=True))
+            # otherwise (e.g. NaT) go through inference below, GH#70233
             if all(is_valid_na_for_dtype(x, self.dtype) for x in by_type.values()):
-                # e.g. NaT goes through inference instead, GH#70233
                 return type(self)._from_sequence(values, dtype=self.dtype)
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)

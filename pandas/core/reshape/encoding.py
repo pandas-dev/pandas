@@ -547,14 +547,9 @@ def from_dummies(
             f"Dummy DataFrame contains NA value in column: '{col_isna_mask.idxmax()}'"
         )
 
-    # index data with a list of all columns that are dummies
-    try:
-        data_to_decode = data.astype("boolean")
-    except TypeError as err:
-        raise TypeError("Passed DataFrame contains non-dummy data") from err
-    # astype("boolean") accepts any value, so check the values were 0s and 1s
-    if not (data_to_decode == data).all().all():
+    if not data.isin([0, 1]).all().all():
         raise TypeError("Passed DataFrame contains non-dummy data")
+    data_to_decode = data.astype("boolean")
 
     # collect prefixes and get lists to slice data for each prefix
     variables_slice = defaultdict(list)
