@@ -302,6 +302,14 @@ pandas-gbq provides high performance reads and writes to and from
 these methods were exposed as `pandas.read_gbq` and `DataFrame.to_gbq`.
 Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
 
+#### [Redis ADBC driver](https://github.com/redis/redis-adbc-driver)
+
+The Redis ADBC driver reads SQL query results into pandas DataFrames and writes
+DataFrames with `DataFrame.to_sql` through pandas' native ADBC path. Redis must
+run separately with the Query Engine (Search); writes autocommit without rollback.
+See the dedicated [Redis integration guide](https://github.com/redis/redis-adbc-driver/blob/f78bcb7/docs/integrations/pandas.md)
+for installation, a complete read/write example, nullable Arrow dtypes and limits.
+
 #### [sdmx1](https://sdmx1.readthedocs.io)
 
 sdmx1 is a library to retrieve and acquire statistical data and
