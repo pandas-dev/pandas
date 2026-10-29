@@ -170,7 +170,7 @@ def test_parse_datetime_string_with_reso_without_dateutil(
         # left to dateutil
         "Jan 5 0001",
         "Jan 1th 2020",
-        "Jan 13,2020 11:48 PM",
+        "Jan 3,2020 11:48 PM",
         "Sep 1 08:34:19 1970 10:00",
         "2005/11/09 10:15",
         "20010102",
