@@ -2654,6 +2654,10 @@ def maybe_convert_numeric(
 
     for i in range(n):
         val = values[i]
+        if cnp.PyArray_IsZeroDim(val) and cnp.PyArray_CheckExact(val):
+            # unbox 0-dim arrays so they dispatch like the scalar they hold, GH#47408
+            # see also: item_from_zerodim
+            val = cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
         # We only want to disable NaNs showing as float if
         # a) convert_to_masked_nullable = True
         # b) no floats have been seen ( assuming an int shows up later )
