@@ -481,6 +481,45 @@ class TestRename:
             result.columns, pd.Index([(1, 1), (2, 2)], tupleize_cols=False)
         )
 
+    def test_rename_multiindex_full_tuple_keys(self, frame_or_series):
+        # GH#4160
+        mi = pd.MultiIndex.from_tuples(
+            [("Quantity", "Carl"), ("Quantity", "Mark"), ("Price", "Carl")],
+            names=["field", "buyer"],
+        )
+        obj = frame_or_series([1, 2, 3], index=mi)
+        mapper = {("Quantity", "Carl"): ("Qty", "C"), "Mark": "M"}
+
+        result = obj.rename(index=mapper)
+        expected_index = pd.MultiIndex.from_tuples(
+            [("Qty", "C"), ("Quantity", "M"), ("Price", "Carl")],
+            names=["field", "buyer"],
+        )
+        expected = frame_or_series([1, 2, 3], index=expected_index)
+        tm.assert_equal(result, expected)
+
+        # full tuple keys are found by errors="raise"
+        result = obj.rename(index={("Price", "Carl"): ("P", "C")}, errors="raise")
+        assert result.index[2] == ("P", "C")
+
+        # same through a Series mapper and on the columns axis
+        series_mapper = pd.Series(
+            [("Qty", "C")], index=pd.MultiIndex.from_tuples([("Quantity", "Carl")])
+        )
+        result = obj.rename(index=series_mapper)
+        assert result.index[0] == ("Qty", "C")
+        if frame_or_series is pd.DataFrame:
+            result = obj.T.rename(columns=mapper)
+            tm.assert_index_equal(result.columns, expected_index)
+
+    def test_rename_multiindex_full_tuple_key_scalar_value_raises(self):
+        # GH#4160
+        mi = pd.MultiIndex.from_tuples([("Quantity", "Carl"), ("Quantity", "Mark")])
+        df = pd.DataFrame([[1, 2]], columns=mi)
+        msg = "must be a tuple of length 2"
+        with pytest.raises(ValueError, match=msg):
+            df.rename(columns={("Quantity", "Carl"): "Carl_Qty"})
+
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
     @pytest.mark.filterwarnings(
         "ignore:The inplace keyword in (Series|DataFrame).rename is"
