@@ -43,7 +43,10 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    NA,
+    is_matching_na,
+)
 from pandas._libs.tslibs import (
     Period,
     Timestamp,
@@ -648,6 +651,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif issubclass(dtype.type, str) or is_numeric_dtype(dtype):
             return Index
+
+        if dtype.kind == "S":
+            raise TypeError("Index does not support numpy fixed-width string dtypes")
 
         raise NotImplementedError(dtype)
 
@@ -7780,8 +7786,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if isinstance(other, Index) and self.is_(other):
-            # fastpath
+        if (
+            isinstance(other, Index)
+            and self.is_(other)
+            and (isinstance(self.dtype, np.dtype) or self.dtype.na_value is not NA)
+        ):
+            # fastpath; dtypes whose comparisons propagate pd.NA (masked, ArrowDtype,
+            # string with pd.NA) take the full comparison below instead (GH#71022)
             if op in {operator.eq, operator.le, operator.ge}:
                 if op is not operator.eq and self.dtype.kind == "c":
                     # GH#43770 this fastpath skips the comparison_op warning
@@ -7880,8 +7891,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether any element is Truthy.
 
-        This is equivalent to calling ``bool(self.any())``. An empty Index
-        will return False.
+        An empty Index will return False.
 
         Parameters
         ----------
@@ -7921,15 +7931,14 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(vals, np.ndarray):
             # i.e. EA, call _reduce instead of "any" to get TypeError instead
             #  of AttributeError
-            return vals._reduce("any")
+            return maybe_unbox_numpy_scalar(vals._reduce("any"))
         return maybe_unbox_numpy_scalar(np.any(vals))
 
     def all(self, *args: Any, **kwargs: Any) -> Any:
         """
         Return whether all elements are Truthy.
 
-        This is equivalent to calling ``bool(self.all())``. An empty Index
-        will return True.
+        An empty Index will return True.
 
         Parameters
         ----------
@@ -7972,7 +7981,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(vals, np.ndarray):
             # i.e. EA, call _reduce instead of "all" to get TypeError instead
             #  of AttributeError
-            return vals._reduce("all")
+            return maybe_unbox_numpy_scalar(vals._reduce("all"))
         return maybe_unbox_numpy_scalar(np.all(vals))
 
     @final

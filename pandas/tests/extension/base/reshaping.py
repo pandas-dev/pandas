@@ -33,6 +33,12 @@ class BaseReshapingTests:
             assert isinstance(result._mgr.blocks[0], EABackedBlock)
         assert isinstance(result._mgr.blocks[0].values, ExtensionArray)
 
+    def test_np_concatenate(self, data):
+        # GH#26380 np.concatenate on matching dtypes keeps the dtype
+        result = np.concatenate([data, data[:3]])
+        expected = data._concat_same_type([data, data[:3]])
+        tm.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
         valid_block = pd.Series(data_missing.take([1, 1]), index=range(2))
