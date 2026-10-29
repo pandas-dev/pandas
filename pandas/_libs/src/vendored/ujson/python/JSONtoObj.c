@@ -100,6 +100,17 @@ static JSOBJ Object_newUnsignedLong(void *Py_UNUSED(prv), JSUINT64 value) {
   return PyLong_FromUnsignedLongLong(value);
 }
 
+static JSOBJ Object_newBigNum(void *Py_UNUSED(prv), const char *start,
+                              const char *end) {
+  PyObject *str = PyUnicode_FromStringAndSize(start, end - start);
+  if (str == NULL) {
+    return NULL;
+  }
+  PyObject *ret = PyLong_FromUnicodeObject(str, 10);
+  Py_DECREF(str);
+  return ret;
+}
+
 static JSOBJ Object_newDouble(void *Py_UNUSED(prv), double value) {
   return PyFloat_FromDouble(value);
 }
@@ -126,6 +137,7 @@ PyObject *JSONToObj(PyObject *Py_UNUSED(self), PyObject *args,
                            .newInt = Object_newInteger,
                            .newLong = Object_newLong,
                            .newUnsignedLong = Object_newUnsignedLong,
+                           .newBigNum = Object_newBigNum,
                            .newDouble = Object_newDouble,
                            .releaseObject = Object_releaseObject,
                            .malloc = PyObject_Malloc,

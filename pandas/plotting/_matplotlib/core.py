@@ -246,8 +246,15 @@ class MPLPlot(ABC):
             self._rot_set = False
             self.rot = self._default_rot
 
+        # Axes.grid ignores the axes.grid.axis/which rcParams, see GH#17725
+        self._grid_kwargs: dict[str, Any] = {}
         if grid is None:
             grid = False if secondary_y else mpl.rcParams["axes.grid"]
+            if grid:
+                self._grid_kwargs = {
+                    "axis": mpl.rcParams["axes.grid.axis"],
+                    "which": mpl.rcParams["axes.grid.which"],
+                }
 
         self.grid = grid
         self.legend = legend
@@ -844,7 +851,7 @@ class MPLPlot(ABC):
             if self.ylabel is not None:
                 ax.set_ylabel(pprint_thing(self.ylabel))
 
-            ax.grid(self.grid)
+            ax.grid(self.grid, **self._grid_kwargs)
 
         if self.title:
             if self.subplots:
@@ -1040,9 +1047,12 @@ class MPLPlot(ABC):
                 kwds["xerr"] = np.array(kwds.get("xerr"))
             if "yerr" in kwds:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
+            # errorbar takes the format string as ``fmt``; an explicit
+            # ``fmt`` takes precedence, GH#7023
+            if style is not None:
+                kwds.setdefault("fmt", style)
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is unsupported
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
