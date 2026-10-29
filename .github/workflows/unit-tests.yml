@@ -544,7 +544,7 @@ jobs:
 
       - name: Set up Pyodide virtual environment
         run: |
-          pyodide xbuildenv install 0.27.1
+          pyodide xbuildenv install 0.27.8
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           python -m pip install dist/*.whl
@@ -555,4 +555,5 @@ jobs:
           python -m pip install "python-dateutil<3" "pytest>=8.3.4" pytest-cov
           # do not import pandas from the checked out repo
           cd ../..
-          pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas
+          # pytest>=9.2 fd capture fstats an unlinked tmpfile, which fails on Emscripten
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' --capture=sys --pyargs pandas
