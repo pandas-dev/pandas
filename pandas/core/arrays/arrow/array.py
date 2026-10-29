@@ -272,6 +272,7 @@ if HAS_PYARROW:
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Hashable,
         Sequence,
     )
 
@@ -3470,10 +3471,12 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         if pa.types.is_integer(pa_type):
             # GH#68638 pyarrow truncates the fractional part instead of refusing
-            #  the value; the masked dtypes raise
+            #  the value; the masked dtypes raise. Its safe cast catches a numpy
+            #  array but not a list, so list-likes are checked here too
             value = lib.item_from_zerodim(value)
-            if _truncates_to_integer(value):
-                raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+            bad = _first_truncated_to_integer(value)
+            if bad is not None:
+                raise TypeError(f"Invalid value '{bad!s}' for dtype '{self.dtype}'")
         self_temporal = _is_temporal_pa_type(pa_type)
         if self_temporal is not None:
             value_temporal = _is_temporal_value(value)
@@ -4178,18 +4181,25 @@ class ArrowExtensionArray(
         self, pat: str | re.Pattern[str], flags: int = 0, expand: bool = True
     ):
         compiled = self._compile_re_fallback(pat, flags=flags)
-        groups = compiled.groupindex.keys()
-        if len(groups) == 0:
-            raise ValueError(f"{pat=} must contain a symbolic group name.")
 
-        if flags or isinstance(pat, re.Pattern):
+        from pandas.core.strings.accessor import get_group_names
+
+        labels: list[Hashable] = list(get_group_names(compiled))
+
+        if (
+            flags
+            or isinstance(pat, re.Pattern)
+            # GH#67024 pc.extract_regex addresses the struct it returns by field name,
+            #  so a pattern with any unnamed group is evaluated with `re` instead
+            or len(compiled.groupindex) != compiled.groups
+        ):
             # pc.extract_regex has no `ignore_case`, so unlike elsewhere not even
             #  IGNORECASE can be honored by the kernel
             matches = self._apply_elementwise(compiled.search)
 
-            def extract_group(name: str):
+            def extract_group(num: int):
                 chunks = [
-                    [None if match is None else match.group(name) for match in chunk]
+                    [None if match is None else match.group(num) for match in chunk]
                     for chunk in matches
                 ]
                 return self._from_pyarrow_array(
@@ -4197,14 +4207,14 @@ class ArrowExtensionArray(
                 )
 
             if not expand:
-                return extract_group(next(iter(groups)))
-            return {col: extract_group(col) for col in groups}
+                return extract_group(1)
+            return {label: extract_group(1 + i) for i, label in enumerate(labels)}
 
         result = pc.extract_regex(self._pa_array, pat)
         if expand:
             return {
-                col: self._from_pyarrow_array(pc.struct_field(result, [i]))
-                for col, i in zip(groups, range(result.type.num_fields), strict=True)
+                label: self._from_pyarrow_array(pc.struct_field(result, [i]))
+                for i, label in enumerate(labels)
             }
         else:
             return type(self)(pc.struct_field(result, [0]))
@@ -4697,7 +4707,20 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(result)
 
     def _dt_strftime(self, format: str) -> Self:
-        result = pc.strftime(self._pa_array, format=format)
+        arr = self
+        if pa.types.is_date(self._pa_array.type):
+            arr = type(self)(self._pa_array.cast(pa.timestamp("s")))
+        if not pa.types.is_timestamp(arr._pa_array.type):
+            # e.g. duration; let pyarrow raise
+            result = pc.strftime(self._pa_array, format=format)
+        elif "%f" in format or "%N" in format:
+            # not supported by pyarrow; use the DatetimeArray implementation
+            values = np.asarray(arr._to_datetimearray().strftime(format), dtype=object)
+            result = pa.array(values, type=pa.string(), from_pandas=True)
+        else:
+            # pyarrow's %S includes fractional seconds for sub-second units,
+            #  GH#55001
+            result = pc.strftime(arr._dt_as_unit("s")._pa_array, format=format)
         return self._from_pyarrow_array(result)
 
     def _round_temporally(
@@ -4842,6 +4865,61 @@ def _truncates_to_integer(value) -> bool:
         # Fraction; the integers short-circuit above rather than pay this ABC lookup
         return value.denominator != 1
     return False
+
+
+def _may_truncate_to_integer(values) -> bool:
+    """
+    Whether ``values`` could hold anything an integer-typed pyarrow column would
+    truncate. Cheaper than inspecting the entries. See GH#71076.
+    """
+    return lib.infer_dtype(values, skipna=True) not in (
+        "integer",
+        "boolean",
+        "string",
+        "empty",
+    )
+
+
+def _first_truncated_to_integer(value):
+    """
+    The first entry of ``value`` an integer-typed pyarrow column would truncate,
+    or None if there is none. See GH#71076.
+    """
+    if not is_list_like(value) or isinstance(value, (pa.Array, pa.ChunkedArray)):
+        # a pyarrow container is cast, not converted, so pyarrow rejects a lossy
+        #  value itself; see test_setitem_lossy_float_pyarrow_container_raises
+        return value if _truncates_to_integer(value) else None
+
+    dtype = getattr(value, "dtype", None)
+    if getattr(dtype, "kind", None) in ("i", "u", "b"):
+        # skip materializing a container whose own dtype has nothing to drop
+        return None
+    if isinstance(value, (list, tuple)) and not _may_truncate_to_integer(value):
+        # same, for a container that has no dtype to ask
+        return None
+
+    if isinstance(value, np.ndarray):
+        arr = value
+    else:
+        try:
+            arr = np.asarray(value)
+        except ValueError:
+            # ragged, handled the way _box_pa_array handles it
+            arr = construct_1d_object_array_from_listlike(value)
+    if arr.dtype.kind == "f":
+        lossy = ~isna(arr) & ((arr != np.trunc(arr)) | np.isinf(arr))
+        return arr[lossy].flat[0] if lossy.any() else None
+    if arr.dtype.kind != "O":
+        # pyarrow refuses every other numpy dtype that could have one
+        return None
+    flat = arr.ravel()
+    if not _may_truncate_to_integer(flat):
+        return None
+    for item in flat:
+        item = lib.item_from_zerodim(item)
+        if _truncates_to_integer(item):
+            return item
+    return None
 
 
 def transpose_homogeneous_pyarrow(

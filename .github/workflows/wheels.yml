@@ -116,21 +116,23 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@adba99c781d3746d38b3a09b1cf797965bcb7fe6 # v4.3.0
+        uses: pypa/cibuildwheel@b9e566a2b284570af229f6c2a33673410d0389a3 # v4.3.4
         with:
           package-dir: ./dist/${{ env.sdist_name }}
           only: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
 
-      - name: Set up Python for validation
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      # Check [all] extra for 1 wheel
+      - name: Set up uv for extras resolution
+        if: matrix.python == 'cp311' && matrix.buildplat[1] == 'manylinux_x86_64'
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          python-version: '3.14'
+          enable-cache: false
 
-      - name: Install wheel
-        run: python -m pip install wheel
-
-      - name: Validate wheel RECORD
-        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
+      - name: Resolve all extra from wheel
+        if: matrix.python == 'cp311' && matrix.buildplat[1] == 'manylinux_x86_64'
+        run: |
+          echo "pandas[all] @ file://$(ls "$PWD"/wheelhouse/*.whl)" > extras.in
+          uv pip compile extras.in --python-version 3.11 --no-header
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -359,7 +361,7 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       - name: Publish to **PyPI** (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: upload
           skip-existing: true

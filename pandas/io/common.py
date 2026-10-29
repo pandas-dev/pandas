@@ -354,11 +354,9 @@ def _get_filepath_or_buffer(
     compression_method = infer_compression(filepath_or_buffer, compression_method)
 
     # GH21227 internal compression is not used for non-binary handles.
-    if compression_method and hasattr(filepath_or_buffer, "write") and "b" not in mode:
-        warnings.warn(
-            "compression has no effect when passing a non-binary object as input.",
-            RuntimeWarning,
-            stacklevel=find_stack_level(),
+    if hasattr(filepath_or_buffer, "write") and "b" not in mode:
+        warn_unused_compression(
+            compression_method, "passing a non-binary object as input"
         )
         compression_method = None
 
@@ -554,7 +552,7 @@ _supported_compressions = set(extension_to_compression.values())
 
 
 def get_compression_method(
-    compression: CompressionOptions,
+    compression: str | CompressionDict | None,
 ) -> tuple[str | None, CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
@@ -657,6 +655,27 @@ def infer_compression(
         f"Valid compression types are {valid}"
     )
     raise ValueError(msg)
+
+
+def warn_unused_compression(
+    compression: str | CompressionDict | None,
+    reason: str = "no path or buffer is given; the returned string is not compressed",
+) -> None:
+    """
+    Warn that ``compression`` has no effect because of ``reason``.
+
+    An unrecognized compression method still raises, as it would if it were used.
+    """
+    compression_method, _ = get_compression_method(compression)
+    if compression_method is None or compression_method == "infer":
+        return
+    # the path is only consulted for "infer"; here this only validates the method
+    infer_compression("", compression_method)
+    warnings.warn(
+        f"compression has no effect when {reason}.",
+        RuntimeWarning,
+        stacklevel=find_stack_level(),
+    )
 
 
 def check_parent_directory(path: Path | str) -> None:
@@ -1066,7 +1085,7 @@ class _BytesTarFile(_BufferedWriter):
         name: str | None = None,
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1110,8 +1129,8 @@ class _BytesTarFile(_BufferedWriter):
         return filename.name
 
     def write_to_buffer(self) -> None:
-        # TarFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "tar"
+        # TarFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "tar")
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
@@ -1122,7 +1141,7 @@ class _BytesZipFile(_BufferedWriter):
         self,
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1152,8 +1171,8 @@ class _BytesZipFile(_BufferedWriter):
         return None
 
     def write_to_buffer(self) -> None:
-        # ZipFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "zip"
+        # ZipFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "zip")
         self.buffer.writestr(archive_name, self.getvalue())
 
 

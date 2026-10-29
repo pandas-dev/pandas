@@ -2009,3 +2009,17 @@ def test_negative_min_count_deprecated_timedelta_index():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = tdi.sum(min_count=-1)
     assert result == tdi.sum(min_count=0)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64", "Int64", "Float64", "boolean", "timedelta64[ns]"]
+)
+def test_any_all_python_scalars(
+    index_or_series, all_boolean_reductions, dtype, using_python_scalars
+):
+    # GH#71475
+    obj = index_or_series([1, 0, 1], dtype=dtype)
+    result = getattr(obj, all_boolean_reductions)()
+    assert result == (all_boolean_reductions == "any")
+    expected = bool if using_python_scalars else np.bool_
+    assert type(result) is expected

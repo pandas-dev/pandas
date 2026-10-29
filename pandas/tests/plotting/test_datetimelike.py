@@ -350,6 +350,19 @@ class TestTSPlot:
         assert labels == ["Jan\n2015", "Jan\n2016", "Jan\n2017"]
         assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
 
+    def test_daily_mpl_dates_locator_formatter(self):
+        # GH#21860 daily period ordinals and matplotlib date numbers share the
+        #  1970 epoch, so matplotlib.dates tickers label daily data correctly
+        idx = date_range("2018-01-01", periods=4, freq="D")
+        ax = pd.Series(range(4), index=idx).plot()
+        ax.set_xlim(datetime(2018, 1, 1), datetime(2018, 4, 1))
+        ax.xaxis.set_major_locator(mpl.dates.MonthLocator())
+        ax.xaxis.set_major_formatter(mpl.dates.DateFormatter("%b %Y"))
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018"]
+
     def test_bday_set_xlim_with_strings_or_datetimes(self):
         # GH#64244 - After a BDay plot, ax.set_xlim() with string or datetime
         # arguments should convert them to business-day ordinals via
@@ -2581,3 +2594,25 @@ def test_ts_plot_tz_aware_period_start_nonexistent():
     result = ax.get_lines()[0].get_xdata()
     expected = index.astype(object).to_numpy()
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["h", "B"])
+def test_ts_plot_tz_aware_off_grid_onto_regular(freq):
+    # GH#12047 the off-grid series goes through PeriodConverter, which warned
+    #  about dropping the tz and put "B" points on their UTC day, not wall day
+    index = date_range("2015-02-23", periods=10, freq=freq)
+    off_grid = index + pd.Timedelta(hours=22, minutes=30)
+    _, ax = mpl.pyplot.subplots()
+    pd.DataFrame(np.arange(10), index=index.tz_localize("US/Eastern")).plot(ax=ax)
+
+    with tm.assert_produces_warning(None):
+        pd.DataFrame(np.arange(10), index=off_grid.tz_localize("US/Eastern")).plot(
+            ax=ax
+        )
+
+    result = ax.get_lines()[1].get_xdata(orig=False)
+    if freq == "B":
+        expected = conv.bday_count_array(off_grid.values)
+    else:
+        expected = off_grid.to_period(freq).asi8
+    tm.assert_numpy_array_equal(result, expected.astype(np.float64))

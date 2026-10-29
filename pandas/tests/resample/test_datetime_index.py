@@ -974,6 +974,73 @@ def test_resample_dst_midnight_last_nonexistent():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dates, days",
+    [
+        # the bin edge for the first value falls in the DST gap
+        (["2024-04-26 01:00", "2024-04-27 00:00"], ["2024-04-26", "2024-04-27"]),
+        # all values are before the gap, the end edge falls in it
+        (["2024-04-24 00:00", "2024-04-25 00:00"], ["2024-04-24", "2024-04-25"]),
+    ],
+)
+def test_resample_day_tzaware_dst_midnight_nonexistent(dates, days, unit):
+    # GH#62601: Africa/Cairo skips 2024-04-26 00:00 (clocks go 23:59 -> 01:00),
+    # so a daily bin edge lands on a wall-clock time that does not exist
+    tz = "Africa/Cairo"
+    index = DatetimeIndex(dates).tz_localize(tz).as_unit(unit)
+    ser = pd.Series([1.0, 2.0], index=index)
+
+    result = ser.resample("D").mean()
+
+    expected_index = date_range(
+        days[0], days[1], freq="D", tz=tz, nonexistent="shift_forward", unit=unit
+    )
+    expected = pd.Series([1.0, 2.0], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_anchored_tzaware_dst_midnight_nonexistent(unit):
+    # GH#62601: 2024-04-26 is a Friday and its midnight does not exist in
+    # Africa/Cairo, so the W-FRI end edge falls in the DST gap; the Friday bin
+    # still ends at the end of Friday, so Saturday 00:30 is in the next bin
+    tz = "Africa/Cairo"
+    index = DatetimeIndex(
+        ["2024-04-22", "2024-04-25", "2024-04-27 00:30", "2024-04-27 02:00"]
+    )
+    index = index.tz_localize(tz).as_unit(unit)
+    ser = pd.Series([1, 2, 10, 100], index=index)
+
+    result = ser.resample("W-FRI").sum()
+
+    expected_index = date_range(
+        "2024-04-26",
+        "2024-05-03",
+        freq="W-FRI",
+        tz=tz,
+        nonexistent="shift_forward",
+        unit=unit,
+    )
+    expected = pd.Series([3, 110], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_day_tzaware_dst_midnight_ambiguous(unit):
+    # GH#62601: America/Havana repeats 2018-11-04 00:00-01:00; the first value
+    # is in the second occurrence, so normalizing it hits an ambiguous midnight
+    index = DatetimeIndex(["2018-11-04 05:30", "2018-11-05 06:00"], tz="UTC")
+    index = index.tz_convert("America/Havana").as_unit(unit)
+    ser = pd.Series([1, 2], index=index)
+
+    result = ser.resample("D").sum()
+
+    expected_index = DatetimeIndex(["2018-11-04", "2018-11-05"]).tz_localize(
+        "America/Havana", ambiguous=True
+    )
+    expected_index = DatetimeIndex(expected_index, freq="D").as_unit(unit)
+    expected = pd.Series([1, 2], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_daily_anchored(unit):
     rng = date_range("1/1/2000 0:00:00", periods=10000, freq="min").as_unit(unit)
     ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
