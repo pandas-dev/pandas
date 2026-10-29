@@ -23,7 +23,6 @@ from typing import (
 import warnings
 
 import numpy as np
-from typing_extensions import override
 
 from pandas._config.config import _global_config as config
 
@@ -2174,8 +2173,7 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    @override
-    def to_list(self) -> list:  # type: ignore[override] # pyright: ignore[reportIncompatibleMethodOverride]
+    def to_list(self) -> list[Any]:
         """
         Return a list of the values.
 
