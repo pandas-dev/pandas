@@ -5504,8 +5504,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if fill_method is not None:
             raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
-        # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
-        #  GH#23918 is fixed
+        # with freq, dividing by self.shift(freq=freq) would align labels
+        #  across groups, so compute per group
         if freq is not None:
             f = lambda x: x.pct_change(
                 periods=periods,

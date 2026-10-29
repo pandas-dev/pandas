@@ -288,6 +288,9 @@ def _register_accessor(
       * Accessible using the @property decorator if no additional arguments are
         needed.
 
+    A new accessor instance is created on each attribute access, so state
+    stored on the accessor is not retained.
+
     """
 
     def decorator(accessor: TypeT) -> TypeT:
@@ -349,6 +352,10 @@ def register_dataframe_accessor(name: str) -> Callable[[TypeT], TypeT]:
 
       * Accessible using the @property decorator if no additional arguments are
         needed.
+
+    A new accessor instance is created on each attribute access, so state
+    stored on the accessor is not retained. Store per-object metadata in
+    :attr:`DataFrame.attrs` instead.
 
     Examples
     --------
@@ -426,6 +433,10 @@ def register_series_accessor(name: str) -> Callable[[TypeT], TypeT]:
       * Accessible using the @property decorator if no additional arguments are
         needed.
 
+    A new accessor instance is created on each attribute access, so state
+    stored on the accessor is not retained. Store per-object metadata in
+    :attr:`Series.attrs` instead.
+
     Examples
     --------
     An accessor that only accepts integers could
@@ -497,6 +508,9 @@ def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
 
       * Accessible using the @property decorator if no additional arguments are
         needed.
+
+    A new accessor instance is created on each attribute access, so state
+    stored on the accessor is not retained.
 
     Examples
     --------

@@ -544,7 +544,7 @@ jobs:
 
       - name: Set up Pyodide virtual environment
         run: |
-          pyodide xbuildenv install 0.27.1
+          pyodide xbuildenv install 0.27.8
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           python -m pip install dist/*.whl
@@ -578,4 +578,5 @@ jobs:
           # Pyodide 0.27.1 drops pytest's fd-capture temp file, and pytest 9
           # crashes in capture.py while stating it.
           cd ../..
-          pytest -m 'not slow and not network and not clipboard and not single_cpu' --capture=no --pyargs pandas
+          # pytest>=9.2 fd capture fstats an unlinked tmpfile, which fails on Emscripten
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' --capture=sys --pyargs pandas
