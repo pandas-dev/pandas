@@ -2102,8 +2102,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2209,8 +2207,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2316,8 +2312,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----

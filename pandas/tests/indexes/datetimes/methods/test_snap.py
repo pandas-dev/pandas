@@ -25,7 +25,9 @@ def test_dti_snap(name, tz, unit):
     )
     dti = dti.as_unit(unit)
 
-    result = dti.snap(freq="W-MON")
+    depr_msg = "DatetimeIndex.snap is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = dti.snap(freq="W-MON")
     msg = "'w-mon' is deprecated and will be removed in a future version."
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = pd.date_range(
@@ -38,7 +40,8 @@ def test_dti_snap(name, tz, unit):
     assert result.freq is None
     assert expected.freq is None
 
-    result = dti.snap(freq="B")
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = dti.snap(freq="B")
 
     msg = "'b' is deprecated and will be removed in a future version."
     with tm.assert_produces_warning(Pandas4Warning, match=msg):

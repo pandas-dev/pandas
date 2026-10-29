@@ -1214,7 +1214,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.ceil : Perform ceil operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -1306,7 +1305,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.ceil : Perform ceil operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -1398,7 +1396,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.floor : Perform floor operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2065,6 +2062,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Snap time stamps to nearest occurring frequency.
 
+        .. deprecated:: 3.2.0
+            Use :meth:`DatetimeIndex.round` for fixed frequencies. For other
+            offsets, pick the nearer of ``idx.map(offset.rollback)`` and
+            ``idx.map(offset.rollforward)``, with ties going to ``rollforward``.
+
         Each timestamp in the index is adjusted to the nearest occurrence of
         the specified frequency, snapping backward or forward as appropriate.
 
@@ -2096,10 +2098,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx
         DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
         dtype='datetime64[ns]', freq=None)
-        >>> idx.snap("MS")
+        >>> idx.snap("MS")  # doctest: +SKIP
         DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
         dtype='datetime64[ns]', freq=None)
         """
+        warnings.warn(
+            "DatetimeIndex.snap is deprecated and will be removed in a future "
+            "version. Use DatetimeIndex.round for fixed frequencies; for other "
+            "offsets, use the offset's rollback and rollforward methods.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
