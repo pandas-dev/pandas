@@ -552,6 +552,9 @@ def from_dummies(
         data_to_decode = data.astype("boolean")
     except TypeError as err:
         raise TypeError("Passed DataFrame contains non-dummy data") from err
+    # astype("boolean") accepts any value, so check the values were 0s and 1s
+    if not (data_to_decode == data).all().all():
+        raise TypeError("Passed DataFrame contains non-dummy data")
 
     # collect prefixes and get lists to slice data for each prefix
     variables_slice = defaultdict(list)

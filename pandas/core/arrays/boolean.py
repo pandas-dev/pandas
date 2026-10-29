@@ -5,11 +5,12 @@ from typing import (
     TYPE_CHECKING,
     ClassVar,
     Self,
-    cast,
 )
 import warnings
 
 import numpy as np
+
+from pandas._config import is_nan_na
 
 from pandas._libs import (
     lib,
@@ -20,7 +21,10 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -30,6 +34,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     import pyarrow
@@ -200,44 +205,49 @@ def coerce_to_array(
             mask = mask.copy()
         return values, mask
 
+    # Values are converted as by astype(bool), except that missing values
+    #  (NA, None, NaT, and NaN unless future.distinguish_nan_and_na) are masked
+    values = extract_array(values, extract_numpy=True)
     mask_values = None
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         if copy:
             values = values.copy()
-    elif isinstance(values, np.ndarray) and values.dtype.kind in "iufcb":
-        mask_values = isna(values)
-
+    elif isinstance(values, np.ndarray) and values.dtype.kind in "iufcmM":
+        if values.dtype.kind in "fc" and not is_nan_na():
+            mask_values = np.zeros(values.shape, dtype=bool)
+        else:
+            mask_values = isna(values)
+        values = values.astype(bool)
+        values[mask_values] = False
+    elif isinstance(getattr(values, "dtype", None), CategoricalDtype):
+        # convert each category once; Categorical.astype(bool) can warn here
+        cat_values, _ = coerce_to_array(values.categories._values)
+        mask_values = values.codes == -1
+        values = cat_values[values.codes]
+        values[mask_values] = False
+    elif isinstance(values, ExtensionArray):
+        mask_values = np.asarray(values.isna(), dtype=bool)
         values_bool = np.zeros(len(values), dtype=bool)
         values_bool[~mask_values] = values[~mask_values].astype(bool)
-
-        if not np.all(
-            values_bool[~mask_values].astype(values.dtype) == values[~mask_values]
-        ):
-            raise TypeError("Need to pass bool-like values")
-
         values = values_bool
     else:
         values_object = np.asarray(values, dtype=object)
-
-        inferred_dtype = lib.infer_dtype(values_object, skipna=True)
-        integer_like = ("floating", "integer", "mixed-integer-float")
-        if inferred_dtype not in ("boolean", "empty", *integer_like):
-            raise TypeError("Need to pass bool-like values")
-
-        # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]
-        # within this branch, it assumes it can also be None
-        mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))  # type: ignore[redundant-cast]
+        if values_object.ndim != 1:
+            raise TypeError("values must be a 1D list-like")
+        mask_values = isna(values_object)
+        if not is_nan_na():
+            # NaN is a value rather than missing, so it converts to True
+            idx = mask_values.nonzero()[0]
+            is_nan = np.array(
+                [
+                    lib.is_float(x) or lib.is_complex(x) or lib.is_decimal(x)
+                    for x in values_object[idx]
+                ],
+                dtype=bool,
+            )
+            mask_values[idx[is_nan]] = False
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
-
-        # if the values were integer-like, validate it were actually 0/1's
-        if (inferred_dtype in integer_like) and not (
-            np.all(
-                values[~mask_values].astype(float)
-                == values_object[~mask_values].astype(float)
-            )
-        ):
-            raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
         mask = np.zeros(values.shape, dtype=bool)

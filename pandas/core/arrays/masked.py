@@ -214,11 +214,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if isna(values).all():
-            try:
-                return type(self)._from_sequence(values, dtype=self.dtype)
-            except TypeError:
+            # NA validity depends only on type, so check one value per type
+            by_type = dict(zip(map(type, values), values, strict=True))
+            if all(is_valid_na_for_dtype(x, self.dtype) for x in by_type.values()):
                 # e.g. NaT goes through inference instead, GH#70233
-                pass
+                return type(self)._from_sequence(values, dtype=self.dtype)
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
