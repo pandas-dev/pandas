@@ -477,14 +477,17 @@ def test_skiprows_past_end_of_file(all_parsers):
         parser.read_csv(StringIO(data), skiprows=5)
 
 
-def test_skiprows_to_final_line_without_newline(all_parsers, request):
-    # GH#48507, GH#62635
+def test_skiprows_to_final_line_without_newline(all_parsers):
+    # GH#48507 pyarrow's skip_rows cannot skip past a final line lacking a
+    # trailing newline; skip_rows_after_names covers only the header row
     parser = all_parsers
     data = "j0\na,b"
 
     if parser.engine == "pyarrow":
-        reason = "empty columns get float64 dtype instead of object"
-        request.applymarker(pytest.mark.xfail(reason=reason))
+        msg = "The 'pyarrow' engine cannot infer the number of columns"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), skiprows=1)
+        return
 
     result = parser.read_csv(StringIO(data), skiprows=1)
     expected = pd.DataFrame(columns=["a", "b"], dtype=object)

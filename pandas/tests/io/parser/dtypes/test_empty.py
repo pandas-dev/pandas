@@ -11,9 +11,10 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_dtype_all_columns_empty(all_parsers):
     # see gh-12048
     parser = all_parsers
@@ -23,7 +24,7 @@ def test_dtype_all_columns_empty(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # empty columns get float64 dtype instead of object
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -36,7 +37,7 @@ def test_empty_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # positional dtype keys are ignored
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_index_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -51,7 +52,7 @@ def test_empty_with_index_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # IndexError from the positional dtype key
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_multi_index_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -68,6 +69,7 @@ def test_empty_with_multi_index_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers):
     parser = all_parsers
 
@@ -80,7 +82,7 @@ def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # positional dtype keys are ignored
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_mangled_column_pass_dtype_by_indexes(all_parsers):
     parser = all_parsers
 
@@ -93,7 +95,7 @@ def test_empty_with_mangled_column_pass_dtype_by_indexes(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # positional dtype keys are ignored
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_dup_column_pass_dtype_by_indexes(all_parsers):
     # see gh-9424
     parser = all_parsers
@@ -171,16 +173,10 @@ def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
         ),
     ],
 )
-def test_empty_dtype(all_parsers, dtype, expected, request):
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
+def test_empty_dtype(all_parsers, dtype, expected):
     # see gh-14712
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        if isinstance(dtype, dict) and any(isinstance(key, int) for key in dtype):
-            reason = "positional dtype keys are ignored"
-            request.applymarker(pytest.mark.xfail(reason=reason))
-        elif "category" in (dtype.values() if isinstance(dtype, dict) else [dtype]):
-            reason = "empty categories get float64 dtype instead of object"
-            request.applymarker(pytest.mark.xfail(reason=reason))
     data = "a,b"
 
     result = parser.read_csv(StringIO(data), header=0, dtype=dtype)

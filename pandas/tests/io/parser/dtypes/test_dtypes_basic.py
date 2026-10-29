@@ -14,6 +14,7 @@ from pandas._libs import lib
 from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 
@@ -248,11 +249,22 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_delimiter_with_usecols_and_parse_dates(all_parsers, request):
+def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
     if all_parsers.engine == "pyarrow":
-        reason = "usecols labels together with names raise ArrowKeyError"
-        request.applymarker(pytest.mark.xfail(reason=reason))
+        # GH#62635 single line without a trailing newline
+        msg = "The 'pyarrow' engine cannot infer the number of columns"
+        with pytest.raises(ParserError, match=msg):
+            all_parsers.read_csv(
+                StringIO('"dump","-9,1","-9,1",20101010'),
+                engine="python",
+                names=["col", "col1", "col2", "col3"],
+                usecols=["col1", "col2", "col3"],
+                parse_dates=["col3"],
+                decimal=",",
+            )
+        return
+
     result = all_parsers.read_csv(
         StringIO('"dump","-9,1","-9,1",20101010'),
         engine="python",
