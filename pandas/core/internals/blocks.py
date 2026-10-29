@@ -107,6 +107,7 @@ from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import (
     check_setitem_lengths,
@@ -2444,6 +2445,8 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
+        elif isinstance(values, np.ndarray):
+            warn_non_native_byteorder(values)
 
     return values
 

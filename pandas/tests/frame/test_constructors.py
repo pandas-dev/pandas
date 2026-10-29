@@ -2331,22 +2331,39 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_dict_of_series_preserves_byteorder(self):
-        # GH#43042 same-dtype Series get consolidated into one block; the
-        #  non-native byteorder (and the values) must be preserved
-        df = pd.DataFrame(
-            {
-                "a": pd.Series([0, 256], dtype=">i8"),
-                "b": pd.Series([1, 257], dtype=">i4"),
-                "c": pd.Series([2, 258], dtype=">i8"),
-            }
-        )
+    @pytest.mark.parametrize("box", [pd.Series, np.array])
+    def test_constructor_dict_preserves_byteorder(self, box):
+        # GH#43042 same-dtype columns get consolidated into one block; the
+        #  non-native byteorder (and the values) must be preserved;
+        #  GH#53234 deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="non-native"):
+            df = pd.DataFrame(
+                {
+                    "a": box([0, 256], dtype=">i8"),
+                    "b": box([1, 257], dtype=">i4"),
+                    "c": box([2, 258], dtype=">i8"),
+                }
+            )
         assert df["a"].dtype == np.dtype(">i8")
         assert df["b"].dtype == np.dtype(">i4")
         assert df["c"].dtype == np.dtype(">i8")
         assert df["a"].tolist() == [0, 256]
         assert df["b"].tolist() == [1, 257]
         assert df["c"].tolist() == [2, 258]
+
+    def test_constructor_non_native_byteorder_deprecated(self):
+        # GH#53234
+        arr = np.array([0, 256], dtype=">i8")
+        df = pd.DataFrame({"a": [1, 2]})
+        msg = "non-native byte order"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame(arr.reshape(1, 2))
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame.from_records(np.array([(1,)], dtype=[("a", ">i4")]))
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.astype(">i8")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"] = arr
 
     def test_constructor_list_of_ragged_arrays_first_shortest(self):
         # GH#64958 the uniform-dtype fast path must not silently truncate
