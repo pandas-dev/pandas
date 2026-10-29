@@ -35,6 +35,7 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
@@ -266,7 +267,10 @@ def to_numeric(
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
-        pass
+        if dtype_backend is not lib.no_default and not isinstance(
+            values_dtype, ArrowDtype
+        ):
+            new_mask = np.asarray(isna(values), dtype=np.bool_)
     elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
@@ -330,6 +334,8 @@ def to_numeric(
             mask = new_mask
         else:
             mask = mask.copy()
+            if new_mask is not None:
+                mask[~mask] = new_mask
         assert isinstance(mask, np.ndarray)
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
@@ -350,7 +356,14 @@ def to_numeric(
             klass = FloatingArray
         values = klass(data, mask)
 
-        if dtype_backend == "pyarrow" or isinstance(values_dtype, ArrowDtype):
+        if dtype_backend == "pyarrow" or (
+            isinstance(values_dtype, ArrowDtype)
+            and (
+                dtype_backend is lib.no_default
+                or is_numeric_dtype(values_dtype)
+                or is_bool_dtype(values_dtype)
+            )
+        ):
             values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:
