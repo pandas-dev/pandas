@@ -172,21 +172,21 @@ def test_int64_overflow(all_parsers, conv, request):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
 )
-def test_int64_uint64_range(all_parsers, val, request):
+def test_int64_uint64_range(all_parsers, val):
     # These numbers fall right inside the int64-uint64
     # range, so they should be parsed as integer.
     parser = all_parsers
-    if parser.engine == "pyarrow" and val > np.iinfo(np.int64).max:
-        request.applymarker(pytest.mark.xfail(reason="parsed as float64"))
     result = parser.read_csv(StringIO(str(val)), header=None)
 
     expected = pd.DataFrame([val])
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val",
     [
@@ -206,8 +206,6 @@ def test_outside_int64_uint64_range(all_parsers, val, request):
     # These numbers fall just outside the int64-uint64
     # range, so they should be parsed as object.
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        request.applymarker(pytest.mark.xfail(reason="parsed as float64"))
 
     result = parser.read_csv(StringIO(str(val)), header=None)
 
@@ -215,6 +213,7 @@ def test_outside_int64_uint64_range(all_parsers, val, request):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
 )
