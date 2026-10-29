@@ -218,11 +218,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             by_type = dict(zip(map(type, values), values, strict=True))
             # otherwise (e.g. NaT) go through inference below, GH#70233
             if all(is_valid_na_for_dtype(x, self.dtype) for x in by_type.values()):
-                result = type(self)._from_sequence(values, dtype=self.dtype)
+                arr = type(self)._from_sequence(values, dtype=self.dtype)
                 # under future.distinguish_nan_and_na NaN is a value: keep it
                 #  for Float64, but don't let boolean convert it to True
-                if result._mask.all() or self.dtype.kind == "f":
-                    return result
+                if arr._mask.all() or self.dtype.kind == "f":
+                    return arr
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
