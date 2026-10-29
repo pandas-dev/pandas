@@ -724,6 +724,22 @@ class TestIndexReductions:
             result = func(idx)
         assert pd.isna(result)
 
+    @pytest.mark.parametrize("func", [np.mean, np.std, np.var])
+    def test_numpy_reductions_categorical_deprecated(self, func):
+        # GH#50021 numpy computes these, Index.mean/std/var raise for categorical
+        idx = pd.CategoricalIndex([1, 2, 4])
+        msg = rf"np\.{func.__name__}\(index\) will call Index\.{func.__name__}"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = func(idx)
+        assert result == func(np.array([1, 2, 4]))
+
+    @pytest.mark.parametrize("func", [np.sum, np.prod])
+    def test_numpy_reductions_categorical_raises(self, func):
+        # GH#50021 numpy raised here before Index.sum/prod existed
+        idx = pd.CategoricalIndex([1, 2, 4])
+        with pytest.raises(TypeError, match="does not support operation"):
+            func(idx)
+
     @pytest.mark.parametrize(
         "kwargs, expected",
         [

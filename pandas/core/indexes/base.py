@@ -8326,7 +8326,12 @@ class Index(IndexOpsMixin, PandasObject):
             for key, val in numpy_kwargs.items()
             if val is not None and val is not False
         }
-        if not changed and not self.hasnans:
+        if (
+            not changed
+            and not self.hasnans
+            and not isinstance(self.dtype, CategoricalDtype)
+        ):
+            # numpy computes mean/std/var on numeric categoricals; Categorical raises
             return lib.no_default
         try:
             if name in ("sum", "prod"):
