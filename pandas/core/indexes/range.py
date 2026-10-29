@@ -45,7 +45,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
 )
-from pandas.core.dtypes.generic import ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+    ABCTimedeltaIndex,
+)
 
 from pandas.core import ops
 import pandas.core.common as com
@@ -84,6 +89,68 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     """Returns the smallest element greater than or equal to the limit"""
     no_steps = -(-(lower_limit - start) // abs(step))
     return start + abs(step) * no_steps
+
+
+def _exact_int64_targets(values: Axes | set[Any]) -> npt.NDArray[np.int64] | None:
+    """
+    Convert the values passed to ``RangeIndex.isin`` to exact int64 targets.
+
+    A RangeIndex only holds int64 integers, so ``isin`` can find matches with
+    integer arithmetic instead of building its full array (GH#66263). That is
+    only safe when every value is exactly representable as an int64.
+
+    Values that can never equal an int64 (e.g. ``1.5``, ``nan``, ``inf``, or
+    unsigned integers above the int64 maximum) are dropped. If anything else
+    cannot be converted exactly (e.g. complex numbers, strings, ``None``,
+    ``pd.NA``, extension arrays or floats at or above 2**53), None is returned
+    and the caller should fall back to ``Index.isin``.
+    """
+    if isinstance(values, (ABCIndex, ABCSeries)):
+        inner = values._values
+    else:
+        inner = values
+
+    if isinstance(inner, ABCExtensionArray):
+        # e.g. nullable "Int64" or Categorical
+        return None
+
+    if isinstance(inner, np.ndarray):
+        arr = inner
+    else:
+        try:
+            len(inner)
+        except TypeError:
+            # e.g. a generator, which can only be read once
+            return None
+        # a set would otherwise be wrapped by np.asarray as a single object
+        seq = inner if isinstance(inner, list) else list(inner)
+        try:
+            arr = np.asarray(seq)
+        except (TypeError, ValueError):
+            # e.g. a ragged nested list
+            return None
+
+    if arr.ndim != 1:
+        return None
+
+    kind = arr.dtype.kind
+    if kind in "bi" or (kind == "u" and arr.dtype.itemsize < 8):
+        return arr.astype(np.int64, copy=False)
+    if kind == "u":
+        # uint64 values above the int64 maximum can never match
+        return arr[arr <= np.iinfo(np.int64).max].astype(np.int64)
+    if kind == "f" and arr.dtype.itemsize <= 8:
+        # float16 cannot hold 2**53, so compare in float64
+        floats = arr.astype(np.float64, copy=False)
+        # nan and inf never match
+        floats = floats[np.isfinite(floats)]
+        if floats.size and np.abs(floats).max() >= 2**53:
+            # not every integer is exact as a float64 here, and a mixed list
+            # may already have been rounded, e.g. np.asarray([2**53 + 3, 1.5])
+            return None
+        # non-integral floats such as 1.5 never match
+        return floats[floats == np.trunc(floats)].astype(np.int64)
+    return None
 
 
 @set_module("pandas")
@@ -303,7 +370,7 @@ class RangeIndex(Index):
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
-    def __reduce__(self) -> tuple:
+    def __reduce__(self) -> tuple[Any, ...]:
         d = {"name": self._name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
@@ -596,13 +663,6 @@ class RangeIndex(Index):
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
 
-    @cache_readonly
-    def _should_fallback_to_positional(self) -> bool:
-        """
-        Should an integer key be treated as positional?
-        """
-        return False
-
     # --------------------------------------------------------------------
 
     def tolist(self) -> list[int]:
@@ -848,7 +908,7 @@ class RangeIndex(Index):
         return_indexer: Literal[False] = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self: ...
 
     @overload
@@ -858,7 +918,7 @@ class RangeIndex(Index):
         return_indexer: Literal[True],
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> tuple[Self, np.ndarray]: ...
 
     @overload
@@ -868,7 +928,7 @@ class RangeIndex(Index):
         return_indexer: bool = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
@@ -877,7 +937,7 @@ class RangeIndex(Index):
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
-        key: Callable | None = None,
+        key: Callable[..., Any] | None = None,
     ) -> Self | tuple[Self, np.ndarray]:
         if key is not None:
             return super().sort_values(
@@ -1461,13 +1521,13 @@ class RangeIndex(Index):
         else:
             return super().round(decimals=decimals)
 
-    def _cmp_method(self, other: object, op: Callable) -> Any:
+    def _cmp_method(self, other: object, op: Callable[..., Any]) -> Any:
         if isinstance(other, RangeIndex) and self._range == other._range:
             # Both are immutable so if ._range attr. are equal, shortcut is possible
             return super()._cmp_method(self, op)
         return super()._cmp_method(other, op)
 
-    def _arith_method(self, other: object, op: Callable) -> Index:
+    def _arith_method(self, other: object, op: Callable[..., Any]) -> Index:
         """
         Parameters
         ----------
@@ -1499,7 +1559,7 @@ class RangeIndex(Index):
         ]:
             return super()._arith_method(other, op)
 
-        step: Callable | None = None
+        step: Callable[..., Any] | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
@@ -1705,3 +1765,40 @@ class RangeIndex(Index):
         if was_scalar:
             return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)
+
+    def isin(
+        self, values: Axes | set[Any], level: str | int | None = None
+    ) -> npt.NDArray[np.bool_]:
+        # GH#66263: match values against the range with integer arithmetic,
+        # instead of building the full int64 array that Index.isin works on
+        if level is not None:
+            self._validate_index_level(level)
+        if not lib.is_list_like(values):
+            # let Index.isin raise its usual error
+            return super().isin(values, level=level)
+
+        targets = _exact_int64_targets(values)
+        if targets is None:
+            return super().isin(values, level=level)
+
+        result = np.zeros(len(self), dtype=bool)
+        if len(self) == 0 or len(targets) == 0:
+            return result
+
+        rng = self._range
+        lo, hi = min(rng[0], rng[-1]), max(rng[0], rng[-1])
+        int64 = np.iinfo(np.int64)
+        if not (
+            int64.min <= lo
+            and hi <= int64.max
+            and hi - lo <= int64.max
+            and abs(rng.step) <= int64.max
+        ):
+            # bounds that the int64 arithmetic below cannot represent
+            return super().isin(values, level=level)
+
+        # drop targets outside the range first, so the subtraction cannot overflow
+        targets = targets[(targets >= lo) & (targets <= hi)]
+        pos, rem = np.divmod(targets - rng.start, rng.step)
+        result[pos[rem == 0]] = True
+        return result

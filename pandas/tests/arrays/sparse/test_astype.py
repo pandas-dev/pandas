@@ -379,3 +379,33 @@ def test_astype_object_target_distinguishes_type():
 
     assert result.sp_index.npoints == 3
     tm.assert_numpy_array_equal(np.asarray(result), np.array([0, 1, 2], dtype=object))
+
+
+@pytest.mark.parametrize(
+    "fill_value",
+    [
+        pd.Timestamp("2016-01-01 00:00:00.000000001"),
+        pd.Timestamp("2016-01-01", tz="US/Pacific"),
+        pd.Timedelta(1),
+    ],
+)
+@pytest.mark.parametrize("target", [object, str, pd.SparseDtype(object, np.nan)])
+def test_astype_object_subtype_boxed_fill_value(fill_value, target):
+    # GH#70225 an object subtype keeps a boxed fill_value as-is in the gaps
+    values = np.array([fill_value, 1, "a", fill_value], dtype=object)
+    arr = SparseArray(values, fill_value=fill_value)
+
+    result = arr.astype(target)
+    expected = pd.array(values).astype(target)
+    tm.assert_equal(result, expected)
+
+
+def test_astype_object_timedelta_subtype_string_fill_value():
+    # GH#70225 a string fill_value is converted to the subtype before filling the gaps
+    arr = SparseArray(["1s", "5s", "5s"], dtype=pd.SparseDtype("m8[s]", "5s"))
+
+    result = arr.astype(object)
+    expected = np.array(
+        [pd.Timedelta(1, "s"), pd.Timedelta(5, "s"), pd.Timedelta(5, "s")], dtype=object
+    )
+    tm.assert_numpy_array_equal(result, expected)

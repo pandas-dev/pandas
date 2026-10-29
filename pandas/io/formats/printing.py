@@ -10,6 +10,7 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
+import re
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -29,6 +30,7 @@ from pandas.core.dtypes.generic import (
     ABCNDFrame,
 )
 from pandas.core.dtypes.inference import (
+    is_complex,
     is_float,
     is_scalar,
 )
@@ -65,7 +67,7 @@ def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
     newLists = []
     lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
-    lengths.append(max(map(len, lists[-1])))
+    lengths.append(max(map(strlen, lists[-1])))
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = justfunc(lst, lengths[i], mode="left")
@@ -140,12 +142,9 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
-        if is_float(item) and notna(item):
-            # GH#60503
-            from pandas.io.formats.format import _trim_zeros_single_float
-
-            precision = config["display"]["precision"]
-            item = _trim_zeros_single_float(f"{item:.{precision}f}")
+        if (is_float(item) or is_complex(item)) and notna(item):
+            # GH#60503, GH#25920
+            item = format_with_precision(item)
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
@@ -155,6 +154,29 @@ def _pprint_seq(
         body += ","
 
     return fmt.format(body=body)
+
+
+def format_with_precision(item: float | complex, sign: str = "") -> str:
+    """
+    Format a float or complex scalar using the ``display.precision`` option.
+
+    Trailing zeros after the decimal point are trimmed, leaving at least one.
+
+    Parameters
+    ----------
+    item : float or complex
+    sign : {"", " ", "+"}, default ""
+        Sign option of the format spec, applied to the real part.
+    """
+    precision = config["display"]["precision"]
+
+    def _fmt(val: float, sign: str) -> str:
+        str_float = f"{val:{sign}.{precision}f}".rstrip("0")
+        return str_float + "0" if str_float.endswith(".") else str_float
+
+    if is_float(item):
+        return _fmt(item, sign)
+    return f"({_fmt(item.real, sign)}{_fmt(item.imag, '+')}j)"
 
 
 def _pprint_dict(
@@ -250,7 +272,6 @@ def pprint_thing(
                 tuple,
                 set,
                 frozenset,
-                range,
                 ABCExtensionArray,
                 ABCIndex,
                 ABCNDFrame,
@@ -562,23 +583,43 @@ class PrettyDict(dict[_KT, _VT]):
         return pprint_thing(self)
 
 
+# CSI escape sequences (e.g. terminal colors) take up no space on screen
+_ANSI_ESCAPE = r"\x1b\[[0-?]*[ -/]*[@-~]"
+
+
 class _TextAdjustment:
     def __init__(self) -> None:
         self.encoding = config["display"]["encoding"]
 
     def len(self, text: str) -> int:
+        """
+        Calculate display width, ignoring CSI escape sequences
+        """
+        if "\x1b" in text:
+            return len(re.sub(_ANSI_ESCAPE, "", text))
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
         """
         Perform ljust, center, rjust against string or list-like
         """
+        if any("\x1b" in x for x in texts):
+            return self._justify_by_width(texts, max_len, mode)
+        return _adj_justify(texts, max_len, mode)
+
+    def _justify_by_width(
+        self, texts: Iterable[str], max_len: int, mode: str
+    ) -> list[str]:
+        # pad by display width rather than character count
+        def _get_pad(t: str) -> int:
+            return max_len - self.len(t) + len(t)
+
         if mode == "left":
-            return [x.ljust(max_len) for x in texts]
+            return [x.ljust(_get_pad(x)) for x in texts]
         elif mode == "center":
-            return [x.center(max_len) for x in texts]
+            return [x.center(_get_pad(x)) for x in texts]
         else:
-            return [x.rjust(max_len) for x in texts]
+            return [x.rjust(_get_pad(x)) for x in texts]
 
     def adjoin(self, space: int, *lists: Any, **kwargs: Any) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
@@ -604,6 +645,8 @@ class _EastAsianTextAdjustment(_TextAdjustment):
         if not isinstance(text, str):
             return len(text)
 
+        if "\x1b" in text:
+            text = re.sub(_ANSI_ESCAPE, "", text)
         return sum(
             self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
         )
@@ -611,16 +654,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
     def justify(
         self, texts: Iterable[str], max_len: int, mode: str = "right"
     ) -> list[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t: str) -> int:
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
+        return self._justify_by_width(texts, max_len, mode)
 
 
 def get_adjustment() -> _TextAdjustment:

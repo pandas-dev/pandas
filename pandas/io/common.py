@@ -69,6 +69,8 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+# the _VALID_URLS schemes urllib can open; the rest (e.g. sftp) go to fsspec, GH#46765
+_URLLIB_SCHEMES = {"http", "https", "ftp", "file"}
 _FSSPEC_URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*(::[A-Za-z0-9+\-+.]+)*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
@@ -352,11 +354,9 @@ def _get_filepath_or_buffer(
     compression_method = infer_compression(filepath_or_buffer, compression_method)
 
     # GH21227 internal compression is not used for non-binary handles.
-    if compression_method and hasattr(filepath_or_buffer, "write") and "b" not in mode:
-        warnings.warn(
-            "compression has no effect when passing a non-binary object as input.",
-            RuntimeWarning,
-            stacklevel=find_stack_level(),
+    if hasattr(filepath_or_buffer, "write") and "b" not in mode:
+        warn_unused_compression(
+            compression_method, "passing a non-binary object as input"
         )
         compression_method = None
 
@@ -392,7 +392,22 @@ def _get_filepath_or_buffer(
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
-    if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and any(char in mode for char in "wax+"):
+        parsed = parse_url(filepath_or_buffer)
+        if parsed.scheme == "file" and parsed.netloc.lower() in ("", "localhost"):
+            # GH#55828 urlopen can only read; write to the path urllib reads from
+            import urllib.request
+
+            path = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+            filepath_or_buffer = urllib.request.url2pathname(path)
+        elif parsed.scheme in _URLLIB_SCHEMES:
+            # GH#55828 the urlopen branch below would silently discard the write
+            raise ValueError(f"Cannot write to URL: {filepath_or_buffer}")
+
+    if (
+        isinstance(filepath_or_buffer, str)
+        and parse_url(filepath_or_buffer).scheme in _URLLIB_SCHEMES
+    ):
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
@@ -537,7 +552,7 @@ _supported_compressions = set(extension_to_compression.values())
 
 
 def get_compression_method(
-    compression: CompressionOptions,
+    compression: str | CompressionDict | None,
 ) -> tuple[str | None, CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
@@ -640,6 +655,27 @@ def infer_compression(
         f"Valid compression types are {valid}"
     )
     raise ValueError(msg)
+
+
+def warn_unused_compression(
+    compression: str | CompressionDict | None,
+    reason: str = "no path or buffer is given; the returned string is not compressed",
+) -> None:
+    """
+    Warn that ``compression`` has no effect because of ``reason``.
+
+    An unrecognized compression method still raises, as it would if it were used.
+    """
+    compression_method, _ = get_compression_method(compression)
+    if compression_method is None or compression_method == "infer":
+        return
+    # the path is only consulted for "infer"; here this only validates the method
+    infer_compression("", compression_method)
+    warnings.warn(
+        f"compression has no effect when {reason}.",
+        RuntimeWarning,
+        stacklevel=find_stack_level(),
+    )
 
 
 def check_parent_directory(path: Path | str) -> None:
@@ -955,6 +991,7 @@ def get_handle(
             handle = _BytesIOWrapper(
                 handle,
                 encoding=ioargs.encoding,
+                errors=errors,
             )
         elif is_text and (
             compression or memory_map or _is_binary_mode(handle, ioargs.mode)
@@ -1048,7 +1085,7 @@ class _BytesTarFile(_BufferedWriter):
         name: str | None = None,
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1092,8 +1129,8 @@ class _BytesTarFile(_BufferedWriter):
         return filename.name
 
     def write_to_buffer(self) -> None:
-        # TarFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "tar"
+        # TarFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "tar")
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
@@ -1104,7 +1141,7 @@ class _BytesZipFile(_BufferedWriter):
         self,
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1134,8 +1171,8 @@ class _BytesZipFile(_BufferedWriter):
         return None
 
     def write_to_buffer(self) -> None:
-        # ZipFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "zip"
+        # ZipFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "zip")
         self.buffer.writestr(archive_name, self.getvalue())
 
 
@@ -1171,9 +1208,15 @@ class _IOWrapper:
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
-    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8") -> None:
+    def __init__(
+        self,
+        buffer: StringIO | TextIOBase,
+        encoding: str = "utf-8",
+        errors: str = "strict",
+    ) -> None:
         self.buffer = buffer
         self.encoding = encoding
+        self.errors = errors
         # Because a character can be represented by more than 1 byte,
         # it is possible that reading will produce more bytes than n
         # We store the extra bytes in this overflow variable, and append the
@@ -1185,7 +1228,7 @@ class _BytesIOWrapper:
 
     def read(self, n: int | None = -1) -> bytes:
         assert self.buffer is not None
-        bytestring = self.buffer.read(n).encode(self.encoding)
+        bytestring = self.buffer.read(n).encode(self.encoding, self.errors)
         # When n=-1/n greater than remaining bytes: Read entire file/rest of file
         combined_bytestring = self.overflow + bytestring
         if n is None or n < 0 or n >= len(combined_bytestring):

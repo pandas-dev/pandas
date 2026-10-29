@@ -102,7 +102,9 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
+    converters: dict[str, Callable[..., Any]]
+    | dict[int, Callable[..., Any]]
+    | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -111,7 +113,7 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: list | dict | bool = ...,
+    parse_dates: list[Hashable] | bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -139,7 +141,9 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable] | dict[int, Callable] | None = ...,
+    converters: dict[str, Callable[..., Any]]
+    | dict[int, Callable[..., Any]]
+    | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -148,7 +152,7 @@ def read_excel(
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
-    parse_dates: list | dict | bool = ...,
+    parse_dates: list[Hashable] | bool = ...,
     date_format: dict[Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
@@ -175,7 +179,9 @@ def read_excel(
     | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
-    converters: dict[str, Callable] | dict[int, Callable] | None = None,
+    converters: dict[str, Callable[..., Any]]
+    | dict[int, Callable[..., Any]]
+    | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
@@ -184,7 +190,7 @@ def read_excel(
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
-    parse_dates: list | dict | bool = False,
+    parse_dates: list[Hashable] | bool = False,
     date_format: dict[Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
@@ -192,7 +198,7 @@ def read_excel(
     skipfooter: int = 0,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    engine_kwargs: dict | None = None,
+    engine_kwargs: dict[str, Any] | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
     """
     Read an Excel file into a ``DataFrame``.
@@ -242,7 +248,10 @@ def read_excel(
     header : int, list of int, default 0
         Row (0-indexed) to use for the column labels of the parsed
         DataFrame. If a list of integers is passed those row positions will
-        be combined into a ``MultiIndex``. Use None if there is no header.
+        be combined into a ``MultiIndex``, with levels in the order given.
+        Rows before the first header row are skipped and do not appear in
+        the result; when a list is passed, rows between the listed positions
+        are skipped as well. Use None if there is no header.
     names : array-like, default None
         List of column names to use. If file contains no header row,
         then you should explicitly pass header=None.
@@ -564,7 +573,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         self,
         filepath_or_buffer,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -638,7 +647,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
     def _check_skiprows_func(
         self,
-        skiprows: Callable,
+        skiprows: Callable[[int], object],
         rows_to_use: int,
     ) -> int | None:
         """
@@ -702,12 +711,12 @@ class BaseExcelReader(Generic[_WorkbookT]):
             header = cast("int", header)
             header_rows = 1 + header
         else:
-            header = cast("Sequence", header)
-            header_rows = 1 + header[-1]
+            header = cast("Sequence[int]", header)
+            header_rows = 1 + max(header)
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
         if is_list_like(header) and index_col is not None:
-            header = cast("Sequence", header)
+            header = cast("Sequence[int]", header)
             if len(header) > 1:
                 header_rows += 1
         if skiprows is None:
@@ -717,10 +726,10 @@ class BaseExcelReader(Generic[_WorkbookT]):
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
 
-            def f(skiprows: Sequence, x: int) -> bool:
+            def f(skiprows: Sequence[int], x: int) -> bool:
                 return x in skiprows
 
-            skiprows = cast("Sequence", skiprows)
+            skiprows = cast("Sequence[int]", skiprows)
             return self._check_skiprows_func(partial(f, skiprows), header_rows + nrows)
         if callable(skiprows):
             return self._check_skiprows_func(
@@ -745,7 +754,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         nrows: int | None = None,
         na_values=None,
         verbose: bool = False,
-        parse_dates: list | dict | bool = False,
+        parse_dates: list[Hashable] | bool = False,
         date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
@@ -833,8 +842,8 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
     def _parse_sheet(
         self,
-        data: list,
-        output: dict,
+        data: list[list[Any]],
+        output: dict[Any, DataFrame],
         asheetname: str | int | None = None,
         header: int | Sequence[int] | None = 0,
         names: SequenceNotStr[Hashable] | range | None = None,
@@ -846,7 +855,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
         na_values=None,
-        parse_dates: list | dict | bool = False,
+        parse_dates: list[Hashable] | bool = False,
         date_format: dict[Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
@@ -873,12 +882,15 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             header_names = []
             control_row = [True] * len(data[0])
+            offset = 0
+            if is_integer(skiprows):
+                assert isinstance(skiprows, int)
+                offset = skiprows
 
-            for row in header:
-                if is_integer(skiprows):
-                    assert isinstance(skiprows, int)
-                    row += skiprows
-
+            # fill parent rows before their children, whatever order the
+            # header rows were passed in (GH#47011)
+            for row in sorted(header):
+                row += offset
                 if row > len(data) - 1:
                     raise ValueError(
                         f"header index {row} exceeds maximum index "
@@ -887,8 +899,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
                 data[row], control_row = fill_mi_header(data[row], control_row)
 
-                if index_col is not None:
-                    header_name, _ = pop_header_name(data[row], index_col)
+            if index_col is not None:
+                for row in header:
+                    header_name, _ = pop_header_name(data[row + offset], index_col)
                     header_names.append(header_name)
 
         # If there is a MultiIndex header and an index then there is also
@@ -970,7 +983,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             output[asheetname] = parser.read(nrows=nrows)
 
-            if header_names:
+            if header_names and len(output[asheetname].columns) > 0:
                 output[asheetname].columns = output[asheetname].columns.set_names(
                     header_names
                 )
@@ -1210,14 +1223,14 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     def __new__(
         cls,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
         if_sheet_exists: ExcelWriterIfSheetExists | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> Self:
         # only switch class if generic(ExcelWriter)
         if cls is ExcelWriter:
@@ -1301,7 +1314,7 @@ class ExcelWriter(Generic[_WorkbookT]):
 
     def __init__(
         self,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
@@ -1660,7 +1673,7 @@ class ExcelFile:
         path_or_buffer,
         engine: str | None = None,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -1735,7 +1748,7 @@ class ExcelFile:
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
-        parse_dates: list | dict | bool = False,
+        parse_dates: list[Hashable] | bool = False,
         date_format: str | dict[Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
@@ -1763,7 +1776,10 @@ class ExcelFile:
         header : int, list of int, default 0
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
-            be combined into a ``MultiIndex``. Use None if there is no header.
+            be combined into a ``MultiIndex``, with levels in the order given.
+            Rows before the first header row are skipped and do not appear in
+            the result; when a list is passed, rows between the listed positions
+            are skipped as well. Use None if there is no header.
         names : array-like, default None
             List of column names to use. If file contains no header row,
             then you should explicitly pass header=None.

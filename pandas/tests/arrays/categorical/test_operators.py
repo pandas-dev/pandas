@@ -206,6 +206,16 @@ class TestCategoricalOps:
         result = cat != (0, 1)
         tm.assert_numpy_array_equal(result, ~expected)
 
+    def test_comparison_with_iterator(self):
+        # GH#31646 an iterator is hashable, so it is scalar-like, like a tuple
+        cat = pd.Categorical(["a", "b"])
+
+        result = cat == iter(["a", "b"])
+        tm.assert_numpy_array_equal(result, np.array([False, False]))
+
+        result = cat != iter(["a", "b"])
+        tm.assert_numpy_array_equal(result, np.array([True, True]))
+
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
         self, compare_operators_no_eq_ne
     ):
@@ -343,6 +353,24 @@ class TestCategoricalOps:
         a = pd.Categorical(["a"], categories=["a", "b"])
         b = pd.Categorical(["b"], categories=["b", "a"])
         assert not a.equals(b)
+
+    def test_compare_unordered_mixed_dtype_categories_different_order(self):
+        # GH#51543
+        a = pd.Categorical([1, 2, "b"], categories=[1, 2, "b"])
+        b = pd.Categorical([1, "b", "b"], categories=[1, "b", 2])
+        tm.assert_numpy_array_equal(a == b, np.array([True, False, True]))
+        tm.assert_numpy_array_equal(a != b, np.array([False, True, False]))
+
+        c = pd.Categorical([1, 2, "b"], categories=["b", 2, 1])
+        assert a.equals(c)
+
+        # ordered categoricals still require the same order
+        a_ord = a.as_ordered()
+        c_ord = c.as_ordered()
+        msg = "Categoricals can only be compared if 'categories' are the same."
+        with pytest.raises(TypeError, match=msg):
+            a_ord == c_ord
+        assert not a_ord.equals(c_ord)
 
     def test_numeric_like_ops(self):
         df = pd.DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})

@@ -846,6 +846,10 @@ def assert_numpy_array_equal(
                     obj, f"{obj} shapes are different", left.shape, right.shape
                 )
 
+            # report e.g. a datetime unit mismatch as a dtype difference, GH#68459
+            if check_dtype:
+                assert_attr_equal("dtype", left, right, obj=obj)
+
             diff = 0.0
             # ravel so the count is over values, matching the `left.size` total
             for left_val, right_val in zip(left.ravel(), right.ravel(), strict=True):
@@ -1241,10 +1245,15 @@ def assert_series_equal(
         else:
             # convert both to NumPy if not, check_dtype would raise earlier
             lv, rv = left_values, right_values
+            # GH#61473 match object dtype so pd.NA is not cast to nan
             if isinstance(left_values, ExtensionArray):
-                lv = left_values.to_numpy()
+                lv = left_values.to_numpy(
+                    dtype=object if right_values.dtype == object else None
+                )
             if isinstance(right_values, ExtensionArray):
-                rv = right_values.to_numpy()
+                rv = right_values.to_numpy(
+                    dtype=object if left_values.dtype == object else None
+                )
             assert_numpy_array_equal(
                 lv,
                 rv,

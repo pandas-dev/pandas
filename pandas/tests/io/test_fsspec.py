@@ -142,6 +142,26 @@ def test_csv_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+def test_sftp_url_uses_fsspec(monkeypatch):
+    # GH#46765 urllib cannot open sftp urls, so they must go to fsspec
+    pytest.importorskip("fsspec")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    class SFTPMemoryFS(MemoryFileSystem):
+        protocol = "sftp"
+        store = {}
+        pseudo_dirs = [""]
+
+    monkeypatch.setitem(registry, "sftp", SFTPMemoryFS)
+    df = pd.DataFrame({"a": [0, 1]})
+    storage_options = {"username": "user", "password": "pass"}
+    path = "sftp://host/test.csv"
+    df.to_csv(path, storage_options=storage_options, index=False)
+    result = pd.read_csv(path, storage_options=storage_options)
+    tm.assert_frame_equal(result, df)
+
+
 def test_read_table_options(fsspectest):
     # GH #39167
     df = pd.DataFrame({"a": [0]})

@@ -25,8 +25,14 @@ if HAS_PYARROW:
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from types import ModuleType
 
     from pandas._typing import Scalar
+
+
+# Matches a `\uxxxx` (unicode escape sequence) with an odd number of preceding "\"
+# (otherwise the \\u is escaped itself). Also checks for `\U` and `\N{`.
+_escaped_unicode_char = re.compile(r"(?<!\\)(?:\\\\)*\\(?:[uU]|N{)")
 
 
 class ArrowStringArrayMixin:
@@ -50,12 +56,24 @@ class ArrowStringArrayMixin:
         raise NotImplementedError
 
     @staticmethod
-    def _has_unsupported_regex(pat: str | re.Pattern[str]) -> bool:
-        """
-        Determine if regex pattern contains features not supported by RE2 / pyarrow.
+    def _re_parser() -> ModuleType:
+        try:
+            # error: Module "re" has no attribute "_parser"
+            from re import _parser  # type: ignore[attr-defined]
+        except Exception as err:
+            raise type(err)(
+                "Incompatible version for regex; you will need to upgrade pandas "
+                "or downgrade Python"
+            ) from err
+        return _parser
 
-        This includes lookaround (lookahead or lookbehind) assertions and
-        backreferences.
+    @staticmethod
+    def _regex_nodes(pat: str) -> list[tuple[Any, Any]]:
+        """
+        Parse a regex pattern into a flat list of its (op, arg) nodes.
+
+        Nodes nested in groups, branches, repeats and character classes are
+        included.
 
         Parameters
         ----------
@@ -64,48 +82,95 @@ class ArrowStringArrayMixin:
 
         Returns
         -------
-        bool
-            Whether `pat` contains a lookahead or lookbehind.
+        list[tuple[Any, Any]]
+            The nodes of `pat`, or an empty list if Python's ``re`` cannot
+            parse it.
         """
-        try:
-            # error: Module "re" has no attribute "_parser"
-            from re import _parser  # type: ignore[attr-defined]
+        _parser = ArrowStringArrayMixin._re_parser()
+        repeats = {_parser.MAX_REPEAT, _parser.MIN_REPEAT, _parser.POSSESSIVE_REPEAT}
 
-            regex_parser = _parser.parse
-        except Exception as err:
-            raise type(err)(
-                "Incompatible version for regex; you will need to upgrade pandas "
-                "or downgrade Python"
-            ) from err
-
-        def has_unsupported_code(tokens):
-            # For certain op codes we need to recurse.
+        def walk(tokens):
             for op_code, argument in tokens:
-                if (
-                    (
-                        op_code == _parser.SUBPATTERN
-                        and has_unsupported_code(argument[3])
-                    )
-                    or (
-                        op_code == _parser.BRANCH
-                        and any(has_unsupported_code(tokens) for tokens in argument[1])
-                    )
-                    or (
-                        op_code
-                        in [_parser.ASSERT_NOT, _parser.ASSERT, _parser.GROUPREF]
-                    )
-                ):
-                    return True
-            return False
+                yield op_code, argument
+                if op_code == _parser.SUBPATTERN:
+                    yield from walk(argument[3])
+                elif op_code == _parser.BRANCH:
+                    for branch in argument[1]:
+                        yield from walk(branch)
+                elif op_code in repeats:
+                    yield from walk(argument[2])
+                elif op_code in (_parser.ATOMIC_GROUP, _parser.IN):
+                    yield from walk(argument)
 
-        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
         try:
-            tokens = regex_parser(str_pat)
+            tokens = _parser.parse(pat)
         except re.error:
             # Pattern not valid for Python's re (e.g. RE2 syntax like \x{...} or \p)
             # Let the pyarrow backend handle it.
-            return False
-        return has_unsupported_code(tokens)
+            return []
+        return list(walk(tokens))
+
+    def _needs_python_regex(self, pat: str | re.Pattern[str]) -> bool:
+        """
+        Whether a regex operation must use Python's ``re`` instead of pyarrow.
+
+        This is the case for features not supported by RE2 / pyarrow or with
+        different behaviour:
+        - Not supported: lookaround assertions and backreferences, unicode escape
+          sequences like ``\\u``, ``\\U`` and ``\\N{}``
+        - ``\\w``, ``\\d``, ``\\s`` and ``\\b`` (or their negations) on non-ASCII data,
+          since RE2 only matches them against ASCII characters while Python's ``re``
+          is Unicode-aware
+        - At-end-of-string ``$`` assertion, which Python matches at the end or just
+          before a trailing newline, while pyarrow only matches at the end
+          (only falling back if newlines are present)
+        """
+        str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
+        if re.search(_escaped_unicode_char, str_pat) is not None:
+            return True
+
+        _parser = self._re_parser()
+        unsupported_ops = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
+        unicode_sensitive = {
+            # unicode-sensitive categories and assertions
+            (_parser.CATEGORY, _parser.CATEGORY_WORD),
+            (_parser.CATEGORY, _parser.CATEGORY_NOT_WORD),
+            (_parser.CATEGORY, _parser.CATEGORY_DIGIT),
+            (_parser.CATEGORY, _parser.CATEGORY_NOT_DIGIT),
+            (_parser.CATEGORY, _parser.CATEGORY_SPACE),
+            (_parser.CATEGORY, _parser.CATEGORY_NOT_SPACE),
+            (_parser.AT, _parser.AT_BOUNDARY),
+            (_parser.AT, _parser.AT_NON_BOUNDARY),
+        }
+        newline_sensitive = {
+            # newline-sensitive behaviour of $
+            (_parser.AT, _parser.AT_END),
+        }
+
+        nodes = self._regex_nodes(str_pat)
+        if any(op_code in unsupported_ops for op_code, _ in nodes):
+            return True
+        if any(
+            (op_code, argument) in unicode_sensitive
+            for op_code, argument in nodes
+            if op_code in (_parser.CATEGORY, _parser.AT)
+        ):
+            # all-ASCII data keeps the faster pyarrow path
+            if self._has_non_ascii():
+                return True
+        if any(
+            (op_code, argument) in newline_sensitive
+            for op_code, argument in nodes
+            if op_code == _parser.AT
+        ):
+            if pc.any(pc.match_substring(self._pa_array, "\n"), min_count=0).as_py():
+                return True
+
+        return False
+
+    def _has_non_ascii(self) -> bool:
+        # min_count=0 so that an empty or all-null array reports False
+        return not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py()
 
     @staticmethod
     def _is_re_pattern_with_flags(pat: str | re.Pattern[str]) -> bool:
@@ -176,6 +241,8 @@ class ArrowStringArrayMixin:
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ) -> Self:
+        if width < 0:
+            width = 0
         if side == "left":
             pa_pad = pc.utf8_lpad
         elif side == "right":
@@ -492,9 +559,7 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        # min_count=0 so that an empty or all-null array reports True instead of
-        #  null, keeping it on the pyarrow path below
-        if not pc.all(pc.string_is_ascii(self._pa_array), min_count=0).as_py():
+        if self._has_non_ascii():
             # GH#64123 - pc.find_substring returns byte offsets instead of
             # character offsets for multi-byte UTF-8 characters, so we fall back
             # to Python str.find which correctly returns character offsets.
