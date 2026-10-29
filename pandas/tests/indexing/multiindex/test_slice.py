@@ -844,6 +844,8 @@ def test_loc_slice_after_sort_index_with_nan(
     assert ser.loc["a":"b"].tolist() == expected_labels
     assert ser.loc[("a", 2) : ("b", 1)].tolist() == expected_tuples
     assert ser.loc[pd.IndexSlice["a":"b", 1:2]].tolist() == [0, 2, 3, 4]
+    # "c" is not in the level, so this takes the GH#52714 level-0 slice path
+    assert ser.loc[pd.IndexSlice["a":"c", :]].tolist() == expected_labels
     assert ser.loc[("a", np.nan)].tolist() == [1]
     assert ser.loc[np.nan].tolist() == [5]
     assert ser.loc[("a", np.nan) :].tolist() == expected_from_nan
