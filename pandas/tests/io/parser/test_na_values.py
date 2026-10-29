@@ -12,7 +12,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.floating import FloatingArray
+from pandas.core.arrays import FloatingArray
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")

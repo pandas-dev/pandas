@@ -1027,24 +1027,38 @@ def test_embedded_nul_is_not_a_float(value):
 @pytest.mark.parametrize(
     "data, expected",
     [
-        (["1.0", "nan", None], ["1.0", np.nan, pd.NA]),
-        (["1.0", "nan"], ["1.0", np.nan]),
-        (["nan", "1.0"], [np.nan, "1.0"]),
+        ([1.0, "nan", None], [1.0, np.nan, pd.NA]),
+        ([1.0, "nan"], [1.0, np.nan]),
+        (["nan", 1.0], [np.nan, 1.0]),
         (["nan", "nan"], [np.nan, np.nan]),
-        (["1.0", None], ["1.0", pd.NA]),
+        ([1.0, None], [1.0, pd.NA]),
     ],
 )
-def test_string_nan_and_specific_na(data, expected):
+def test_string_distinguish_nan_and_specific_na_True(data, expected):
     # GH#65237 - preserve nan values and keep them distingusihable between nan and na
     ser = pd.Series(data, dtype=object)
     with pd.option_context("future.distinguish_nan_and_na", True):
         res = pd.to_numeric(ser, dtype_backend="numpy_nullable")
         expected = pd.Series(expected, dtype="Float64")
         tm.assert_series_equal(res, expected)
-        if len(data) > 1 and data[1] == "nan":
-            assert res.iloc[1] is np.nan or (
-                isinstance(res.iloc[1], (float, np.floating)) and np.isnan(res.iloc[1])
+        nan_positions = [j for j, v in enumerate(data) if v == "nan"]
+        for j in nan_positions:
+            val = res.iloc[j]
+            assert isinstance(val, float) and np.isnan(val), (
+                f"expected float NaN at position {j}, got {val!r}"
             )
+
+
+def test_string_distinguish_nan_and_specific_na_false():
+    # GH#65237 - with distinguish_nan_and_na=False (default), string "nan"
+    # is treated as a masked NA, not as float NaN
+    ser = pd.Series(["1.0", "nan", None], dtype=object)
+    res = pd.to_numeric(ser, dtype_backend="numpy_nullable")  # default option
+
+    assert res.iloc[1] is pd.NA  # "nan" → masked NA under default
+    assert res.iloc[2] is pd.NA  # None → masked NA
+    expected = pd.Series([1.0, pd.NA, pd.NA], dtype="Float64")
+    tm.assert_series_equal(res, expected)
 
 
 @pytest.mark.parametrize(

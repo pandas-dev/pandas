@@ -40,7 +40,7 @@ from cython cimport (
 from libc.string cimport memcmp
 
 from pandas._config import (
-    get_option,
+    is_nan_na,
     using_string_dtype,
 )
 
@@ -2619,9 +2619,8 @@ def maybe_convert_numeric(
     cdef:
         # fastpath for ints - try to convert all based on first value
         object val = values[0]
-        # fastpath Resolved once;
-        # consulted inside the else: branch for string NaN values.
-        bint distinguish_nan_and_na = get_option("future.distinguish_nan_and_na")
+        # Resolved once; consulted inside the else: branch for string NaN values.
+        bint distinguish_nan_and_na = not is_nan_na()
 
     if util.is_integer_object(val):
         try:
