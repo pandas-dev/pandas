@@ -675,7 +675,7 @@ def test_dateutil_tzfile_get_timezone_uses_key():
     mislabeled = dateutil.tz.tzfile(
         io.BytesIO(_tzdata_bytes("US/Eastern")),
         filename="mislabeled",
-        key="Europe/Paris",  # type: ignore[call-arg]
+        key="Europe/Paris",
     )
     assert timezones.get_timezone(mislabeled) == "dateutil/mislabeled"
 
