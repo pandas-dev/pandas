@@ -4707,7 +4707,20 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(result)
 
     def _dt_strftime(self, format: str) -> Self:
-        result = pc.strftime(self._pa_array, format=format)
+        arr = self
+        if pa.types.is_date(self._pa_array.type):
+            arr = type(self)(self._pa_array.cast(pa.timestamp("s")))
+        if not pa.types.is_timestamp(arr._pa_array.type):
+            # e.g. duration; let pyarrow raise
+            result = pc.strftime(self._pa_array, format=format)
+        elif "%f" in format or "%N" in format:
+            # not supported by pyarrow; use the DatetimeArray implementation
+            values = np.asarray(arr._to_datetimearray().strftime(format), dtype=object)
+            result = pa.array(values, type=pa.string(), from_pandas=True)
+        else:
+            # pyarrow's %S includes fractional seconds for sub-second units,
+            #  GH#55001
+            result = pc.strftime(arr._dt_as_unit("s")._pa_array, format=format)
         return self._from_pyarrow_array(result)
 
     def _round_temporally(
