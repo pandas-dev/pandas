@@ -716,7 +716,10 @@ def _postgresql_adbc_uri():
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
-    uri = "postgresql://postgres:postgres@localhost:5432/pandas"
+    uri = os.environ.get(
+        "PANDAS_TEST_POSTGRESQL_ADBC_URI",
+        "postgresql://postgres:postgres@localhost:5432/pandas",
+    )
     skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
     return uri
 
@@ -999,6 +1002,30 @@ adbc_connectable_types = [
     pytest.param("postgresql_adbc_types", marks=pytest.mark.db),
     "sqlite_adbc_types",
 ]
+
+
+@pytest.mark.db
+def test_adbc_has_table_schema_with_no_tables(postgresql_adbc_conn):
+    # GH 59841
+    conn = postgresql_adbc_conn
+    schema = f"pandas_empty_schema_{uuid.uuid4().hex}"
+    table_name = "test_table"
+
+    with conn.cursor() as cur:
+        cur.execute(f"CREATE SCHEMA {schema}")
+    conn.commit()
+
+    try:
+        pandas_sql = sql.ADBCDatabase(conn)
+        assert not pandas_sql.has_table(table_name, schema=schema)
+
+        df = pd.DataFrame({"a": [1]})
+        assert df.to_sql(table_name, conn, schema=schema, index=False) == 1
+        assert pandas_sql.has_table(table_name, schema=schema)
+    finally:
+        with conn.cursor() as cur:
+            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+        conn.commit()
 
 
 all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
