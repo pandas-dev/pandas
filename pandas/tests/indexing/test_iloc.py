@@ -2256,9 +2256,8 @@ def test_iloc_setitem_scalar_row_single_column_unchanged():
 def test_iloc_setitem_single_column_key_row_key_length_of_indexer_cannot_measure(
     row_key,
 ):
-    # GH#68021 length_of_indexer does not know these row keys and raises
-    #  AssertionError for them, so they have to keep taking the whole-block
-    #  path instead of the per-column one
+    # GH#68021 length_of_indexer raises AssertionError for these row keys as
+    #  given, so the per-column path must not see them unconverted
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
     df.iloc[row_key, [1]] = [1.0, 2.0, 3.0]
@@ -2573,3 +2572,59 @@ def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
         {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
     )
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize(
+    "box",
+    [
+        lambda mask: range(0, 3, 2),
+        lambda mask: pd.array(np.flatnonzero(mask), dtype="Int64"),
+        pytest.param(
+            lambda mask: pd.array(np.flatnonzero(mask), dtype="int64[pyarrow]"),
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        lambda mask: pd.array(mask, dtype="boolean"),
+        lambda mask: pd.Series(np.flatnonzero(mask)).array,
+        lambda mask: pytest.importorskip("pyarrow").array(np.flatnonzero(mask)),
+        lambda mask: deque(np.flatnonzero(mask)),
+    ],
+    ids=[
+        "range",
+        "Int64",
+        "int64[pyarrow]",
+        "boolean",
+        "NumpyExtensionArray",
+        "pyarrow.Array",
+        "deque",
+    ],
+)
+@pytest.mark.parametrize("value", [9.0, [1.0, 2.0], [[1.0, 2.0], [3.0, 4.0]]])
+def test_iloc_setitem_array_like_key_takes_cross_product(axis, box, value):
+    # GH#71378 these keys wrote only the diagonal of the selection on a
+    #  single-block frame
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    mask = np.array([True, False, True, False][: df.shape[axis]])
+    key, positions = box(mask), np.flatnonzero(mask)
+    if axis == 0:
+        indexer, expected_indexer = (key, [1, 2]), (positions, [1, 2])
+    else:
+        indexer, expected_indexer = ([1, 2], key), ([1, 2], positions)
+
+    df.iloc[indexer] = value
+
+    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    expected.iloc[expected_indexer] = value
+    tm.assert_frame_equal(df, expected)
+    assert (df.to_numpy() != 0).sum() == 4
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_iloc_setitem_empty_range_key_is_noop(axis):
+    # GH#71378
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    indexer = (range(0), [1, 2]) if axis == 0 else ([1, 2], range(0))
+
+    df.iloc[indexer] = 9.0
+
+    tm.assert_frame_equal(df, pd.DataFrame(np.zeros((4, 3)), columns=list("abc")))
