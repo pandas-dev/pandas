@@ -640,7 +640,9 @@ def sanitize_array(
     np.ndarray or ExtensionArray
     """
     original_dtype = dtype
-    if isinstance(data, ma.MaskedArray):
+    if isinstance(data, ma.MaskedArray) and (
+        not isinstance(dtype, BaseMaskedDtype) or data.ndim != 1
+    ):
         data = sanitize_masked_array(data)
 
     if isinstance(dtype, NumpyEADtype):
