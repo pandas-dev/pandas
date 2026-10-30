@@ -112,6 +112,35 @@ class TestResetIndex:
         expected = pd.Series(range(4))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("drop", [False, True])
+    def test_reset_index_duplicate_levels(self, drop):
+        # GH#21091
+        index = pd.MultiIndex.from_product([[0, 1], [2, 3]], names=["a", "b"])
+        ser = pd.Series(range(4), index=index)
+
+        msg = "level should not contain duplicate values"
+        with pytest.raises(ValueError, match=msg):
+            ser.reset_index(level=[0, "a"], drop=drop)
+
+    def test_reset_index_integer_level_name(self):
+        # GH#21091
+        index = pd.MultiIndex.from_product(
+            [[0, 1], [2, 3], [4, 5]], names=["x", 0, "z"]
+        )
+        ser = pd.Series(range(8), name="value", index=index)
+
+        result = ser.reset_index(level=["x", 0])
+        expected = index.to_frame(index=False)[["x", 0]]
+        expected.index = index.get_level_values("z")
+        expected["value"] = range(8)
+        tm.assert_frame_equal(result, expected)
+
+        result = ser.reset_index(level=["x", 0], drop=True)
+        expected_ser = pd.Series(
+            range(8), name="value", index=index.get_level_values("z")
+        )
+        tm.assert_series_equal(result, expected_ser)
+
     def test_reset_index_range(self):
         # GH 12071
         s = pd.Series(range(2), name="A", dtype="int64")

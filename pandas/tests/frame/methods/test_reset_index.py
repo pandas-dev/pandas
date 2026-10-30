@@ -214,6 +214,16 @@ class TestResetIndex:
         result = df.set_index(["A"]).reset_index(level=levels[0], drop=True)
         tm.assert_frame_equal(result, df[["B", "C", "D"]])
 
+    @pytest.mark.parametrize("drop", [False, True])
+    def test_reset_index_duplicate_levels(self, drop):
+        # GH#21091
+        index = pd.MultiIndex.from_product([[0, 1], [2, 3]], names=["a", "b"])
+        df = pd.DataFrame({"value": range(4)}, index=index)
+
+        msg = "level should not contain duplicate values"
+        with pytest.raises(ValueError, match=msg):
+            df.reset_index(level=[0, "a"], drop=drop)
+
     @pytest.mark.parametrize("idx_lev", [["A", "B"], ["A"]])
     def test_reset_index_level_missing(self, idx_lev):
         # Missing levels - for both MultiIndex and single-level Index:
