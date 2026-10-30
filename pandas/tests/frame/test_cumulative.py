@@ -114,6 +114,16 @@ class TestDataFrameCumulativeOps:
         tm.assert_frame_equal(result, expected)
 
 
+def test_cumsum_object_with_na():
+    # GH#59764: only "a" holds an NA, so the columns take different paths
+    df = pd.DataFrame({"a": ["x", None, "y"], "b": ["p", "q", "r"]}, dtype=object)
+    result = df.cumsum()
+    expected = pd.DataFrame(
+        {"a": ["x", np.nan, "xy"], "b": ["p", "pq", "pqr"]}, dtype=object
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_td64_cumsum_overflow():
     # GH#66551: the check applies per column
     df = pd.DataFrame(

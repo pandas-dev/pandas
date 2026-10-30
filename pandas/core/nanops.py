@@ -835,6 +835,14 @@ def nansum(
                 return _na_for_min_count(values, axis)  # type: ignore[return-value]
             values = _blank_object_na_slices(values, mask, axis, 0)
             min_count = _na_min_count(values, axis, min_count)
+    elif dtype == object:
+        if mask is None:
+            mask = isna(values)
+        if mask.any():
+            the_sum = _reduce_object_skipna(values, mask, axis, np.add)
+            return _maybe_null_out(
+                the_sum, axis, mask, values.shape, min_count=min_count
+            )
     else:
         values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
     dtype_sum = _get_dtype_max(dtype)
@@ -1437,6 +1445,40 @@ def _blank_object_na_slices(
     return np.where(any_na, fill_value, values)
 
 
+def _reduce_object_skipna(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    axis: AxisInt | None,
+    ufunc: np.ufunc,
+) -> Any:
+    """
+    Reduce the non-NA entries of each slice of an object-dtype array with
+    ``np.add`` or ``np.multiply``; an entirely-NA slice gives the ufunc identity.
+
+    Filling the NAs with 0 or 1 instead, as for other dtypes, raises for
+    elements that do not combine with an int, e.g. str or timedelta (GH#59764).
+    """
+    if values.ndim == 1 or axis is None:
+        # memory order, like values.sum(axis=None); this matters for str
+        order: Literal["C", "F"] = (
+            "F"
+            if values.ndim == 2 and abs(values.strides[0]) < abs(values.strides[1])
+            else "C"
+        )
+        return ufunc.reduce(values.ravel(order)[~mask.ravel(order)])
+    # with the reduction axis last, each slice's valid entries are contiguous
+    # in values[valid], so one reduceat call handles every slice
+    values = np.moveaxis(values, axis, -1)
+    valid = ~np.moveaxis(mask, axis, -1)
+    counts = valid.sum(axis=-1)
+    result = np.full(counts.shape, ufunc.identity, dtype=object)
+    nonempty = counts > 0
+    if nonempty.any():
+        starts = np.cumsum(counts) - counts
+        result[nonempty] = ufunc.reduceat(values[valid], starts[nonempty])
+    return result
+
+
 def _na_min_count(values: np.ndarray, axis: AxisInt, min_count: int) -> int:
     """
     ``min_count`` that nulls out any slice holding an NA, without weakening an
@@ -1841,6 +1883,11 @@ def nanprod(
                 return _na_for_min_count(values, axis)  # type: ignore[return-value]
             values = _blank_object_na_slices(values, mask, axis, 1)
             min_count = _na_min_count(values, axis, min_count)
+    elif values.dtype == object and mask is not None and mask.any():
+        result = _reduce_object_skipna(values, mask, axis, np.multiply)
+        return _maybe_null_out(  # type: ignore[return-value]
+            result, axis, mask, values.shape, min_count=min_count
+        )
     elif skipna and mask is not None:
         values = values.copy()
         values[mask] = 1
@@ -2186,7 +2233,23 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         warn_complex_unordered()
 
     # We will be applying this function to block values
-    if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
+    if skipna and isinstance(values, np.ndarray) and values.dtype == object:
+        # GH#59764: accumulate over the non-NA entries only; mask_a need not
+        # combine with arbitrary objects, e.g. str or Decimal
+        mask = isna(values)
+        if not mask.any():
+            return accum_func(values, axis=0)
+        result = np.full(values.shape, mask_b, dtype=object)
+        if values.ndim == 1:
+            result[~mask] = accum_func(values[~mask])
+        else:
+            has_na = mask.any(axis=0)
+            result[:, ~has_na] = accum_func(values[:, ~has_na], axis=0)
+            # entirely-NA columns are already filled with mask_b
+            for i in np.flatnonzero(has_na & ~mask.all(axis=0)):
+                valid = ~mask[:, i]
+                result[valid, i] = accum_func(values[valid, i])
+    elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()
         mask = isna(vals)
         vals[mask] = mask_a
