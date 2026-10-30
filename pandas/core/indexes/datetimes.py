@@ -2067,6 +2067,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             :meth:`DatetimeIndex.round` if rounding was intended. For other
             offsets, use::
 
+                offset = pd.tseries.frequencies.to_offset(freq)
                 back, fwd = idx.map(offset.rollback), idx.map(offset.rollforward)
                 fwd.where(fwd - idx <= idx - back, back)
 
