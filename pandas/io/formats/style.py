@@ -638,10 +638,10 @@ class Styler(StylerRenderer):
         :meth:`Styler.set_td_classes` are not exported, and only a subset of CSS
         properties is supported; see
         `Table Visualization <../../user_guide/style.ipynb>`_.
-        Display formatting from :meth:`Styler.format` and hiding from
-        :meth:`Styler.hide` are ignored. To control how values are displayed in
-        Excel, set an Excel format code with the ``number-format`` property,
-        writing ``§`` in place of Excel's ``;`` section separator.
+        Display formatting from :meth:`Styler.format` is ignored. To control how
+        values are displayed in Excel, set an Excel format code with the
+        ``number-format`` property, writing ``§`` in place of Excel's ``;`` section
+        separator.
 
         Examples
         --------
