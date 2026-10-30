@@ -58,16 +58,17 @@ the above guidelines. Maintainers may also ban users from contributing to pandas
 Self-review with pandas-review
 ------------------------------
 
-`pandas-review <https://github.com/pandas-dev/pandas/blob/main/.claude/skills/pandas-review/SKILL.md>`_
+`pandas-review <https://github.com/pandas-dev/pandas/blob/main/.agents/skills/pandas-review/SKILL.md>`_
 is an agent skill that reviews your change the way a maintainer would and ends with a verdict. If you used an
 automated tool, run it before you open a pull request and again before you re-request review, and don't expect a
 review until it reports ``LGTM`` or ``NITS ONLY``, or you have explained on the pull request why its remaining
 findings don't apply. Pull requests at ``LGTM`` get reviewed sooner.
 
-* **Claude Code:** from your pandas clone, run ``/pandas-review`` to review the current branch, or
-  ``/pandas-review 12345`` for an open pull request (a branch name also works).
-* **Other tools:** ask the agent to follow ``.claude/skills/pandas-review/SKILL.md``, giving it the pull request
-  number or branch if it isn't the current branch.
+* If your tool loads skills from ``.agents/skills/`` (or ``.claude/skills/``, which links to it), run it from your
+  pandas clone as a skill, e.g. ``/pandas-review`` to review the current branch or ``/pandas-review 12345`` for an
+  open pull request (a branch name also works).
+* Otherwise, ask the agent to follow ``.agents/skills/pandas-review/SKILL.md``, giving it the pull request number
+  or branch if it isn't the current branch.
 
 It needs an authenticated `GitHub CLI <https://cli.github.com/>`_ (``gh``), and works best in a built development
 environment with the branch checked out, so it can run the tests. Use the strongest model your tool offers at a high

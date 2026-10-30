@@ -3,7 +3,7 @@ name: pandas-review
 description: Self-review your own pandas PR (or your local branch before opening one) the way a pandas maintainer would. Prints findings and a verdict in the terminal; never posts to GitHub or edits files.
 disable-model-invocation: true
 argument-hint: "[PR number, URL, or branch]"
-allowed-tools: Bash(python .claude/skills/pandas-review/scripts/fetch_context.py), Bash(python .claude/skills/pandas-review/scripts/fetch_context.py *), Bash(gh pr view *), Bash(gh api -X GET *), Bash(git diff *), Bash(git rev-parse *), Bash(git show *), Bash(git log *), Bash(git status *), Bash(pytest *), Bash(python -m pytest *), Read, Grep, Glob
+allowed-tools: Bash(python .agents/skills/pandas-review/scripts/fetch_context.py), Bash(python .agents/skills/pandas-review/scripts/fetch_context.py *), Bash(gh pr view *), Bash(gh api -X GET *), Bash(git diff *), Bash(git rev-parse *), Bash(git show *), Bash(git log *), Bash(git status *), Bash(pytest *), Bash(python -m pytest *), Read, Grep, Glob
 ---
 
 Review a pandas pull request the way a pandas maintainer would, and report to its author.
@@ -23,14 +23,15 @@ what to change afterwards.
 From the repo root, run
 
 ```
-python .claude/skills/pandas-review/scripts/fetch_context.py <target>
+python .agents/skills/pandas-review/scripts/fetch_context.py <target>
 ```
 
 with no argument for the current branch, and `owner:branch` for a branch in a fork. It
 prints the PR it found (if any), where the code under review is, and the files it wrote.
 Read all of them in full, never truncated: `diff.patch`, any untracked files it lists, and
-`context.md` (the PR description, reviews, inline comments, conversation, linked issues with
-their reactions, and failing CI jobs with log excerpts).
+`context.md` (the PR description, reviews, inline comments, conversation, the issues the PR
+closes or its description references with their reactions, and failing CI jobs with log
+excerpts).
 
 - **If the script fails, stop and report its error.** A failed fetch is unknown, not empty;
   never review as if the thread were silent.

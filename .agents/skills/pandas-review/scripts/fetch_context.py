@@ -3,7 +3,7 @@ Gather what pandas-review reads from git and GitHub into a directory of files.
 
 Usage, from the root of a pandas clone::
 
-    python .claude/skills/pandas-review/scripts/fetch_context.py [TARGET] [--out DIR]
+    python .agents/skills/pandas-review/scripts/fetch_context.py [TARGET] [--out DIR]
 
 TARGET is a PR number or URL, a branch name (``owner:branch`` for a fork's PR), or
 omitted to review the current branch. Prints a summary naming the files written.
@@ -25,6 +25,9 @@ from urllib.parse import quote
 REPO = "pandas-dev/pandas"
 MAX_HEAD_FILES = 100
 MAX_CI_LOGS = 6
+MAX_REFERENCED_ISSUES = 5
+# "#123", "GH-123", "GH#123", "GH 123", or an issue URL in the PR description
+ISSUE_REF = re.compile(r"(?:(?<![\w&/])#|\bGH[- ]?#?|pandas-dev/pandas/issues/)(\d+)\b")
 # lines kept before each "##[error]" marker in a failed job's log
 LOG_WINDOW = 100
 # color codes, raw or as the literal "^[[" that gh writes
@@ -174,12 +177,15 @@ def render_thread(pr: int, pr_author: str) -> tuple[list[str], dict[str, int]]:
     return lines, counts
 
 
-def render_issue(number: int, pr_author: str) -> list[str]:
+def render_issue(number: int, pr_author: str, label: str) -> list[str] | None:
+    """Render an issue and its thread, or return None if ``number`` is a PR."""
     issue = gh_json("api", "-X", "GET", f"repos/{REPO}/issues/{number}")
+    if "pull_request" in issue:
+        return None
     comments = gh_paged(f"issues/{number}/comments")
     reactions = gh_paged(f"issues/{number}/reactions")
     lines = [
-        f"## Linked issue #{number}: {issue['title']} ({issue['state']})",
+        f"## {label} #{number}: {issue['title']} ({issue['state']})",
         "",
         f"Opened by {who(issue, pr_author)}",
         "",
@@ -364,22 +370,46 @@ def collect(target: str, out: Path) -> str:
         thread, counts = render_thread(pr, author)
         context += thread
         summary.append("Thread: " + ", ".join(f"{v} {k}" for k, v in counts.items()))
-        issues = [
+        closing = [
             ref["number"]
             for ref in meta["closingIssuesReferences"]
             if ref["repository"]["owner"]["login"] == "pandas-dev"
             and ref["repository"]["name"] == "pandas"
         ]
-        for number in issues:
-            context += render_issue(number, author)
+        for number in closing:
+            context += render_issue(number, author, "Issue it closes") or []
         summary.append(
-            "Linked issues: " + (", ".join(f"#{n}" for n in issues) or "none")
+            "Issues it closes: " + (", ".join(f"#{n}" for n in closing) or "none")
+        )
+        mentioned: list[int] = []
+        for match in ISSUE_REF.finditer(meta["body"] or ""):
+            number = int(match[1])
+            if number != pr and number not in closing and number not in mentioned:
+                mentioned.append(number)
+        referenced = []
+        for number in mentioned[:MAX_REFERENCED_ISSUES]:
+            try:
+                rendered = render_issue(number, author, "Issue it references")
+            except FetchError:
+                referenced.append(f"#{number} (fetch failed)")
+                continue
+            if rendered is not None:
+                context += rendered
+                referenced.append(f"#{number}")
+        if len(mentioned) > MAX_REFERENCED_ISSUES:
+            referenced.append(
+                f"only the first {MAX_REFERENCED_ISSUES} referenced numbers were "
+                "checked; fetch others with `gh api -X GET`"
+            )
+        summary.append(
+            "Other issues the description references: "
+            + (", ".join(referenced) or "none")
         )
         ci, failing = render_ci(meta["statusCheckRollup"] or [], out)
         context += ci
         summary.append("Failing CI checks: " + (", ".join(failing) or "none"))
         (out / "context.md").write_text("\n".join(context), encoding="utf-8")
-        summary.append(f"Description, thread, linked issues, CI: {out / 'context.md'}")
+        summary.append(f"Description, thread, issues, CI: {out / 'context.md'}")
     return "\n".join(summary)
 
 
