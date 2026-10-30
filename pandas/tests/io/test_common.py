@@ -46,6 +46,18 @@ class CustomFSPath:
         return self.path
 
 
+class PathLikeWithReadWrite(CustomFSPath):
+    """Mimics py.path.local: path-like with read/write helpers but no __iter__"""
+
+    def read(self, mode="r"):
+        with open(self.path, mode) as f:
+            return f.read()
+
+    def write(self, data, mode="w"):
+        with open(self.path, mode) as f:
+            f.write(data)
+
+
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -91,6 +103,23 @@ bar2,12,13,14,15
         fsspec = pytest.importorskip("fsspec")
         with fsspec.open(f"file://{temp_file}", mode="wb") as fsspec_obj:
             assert fsspec_obj == icom.stringify_path(fsspec_obj)
+
+    def test_stringify_path_like_with_read_write(self):
+        # GH 71769: path-like objects with read/write methods but without
+        # __iter__ (e.g. py.path.local) are paths, not buffers
+        p = PathLikeWithReadWrite("foo/bar.csv")
+        result = icom.stringify_path(p)
+        assert result == "foo/bar.csv"
+
+    def test_path_like_with_read_write_roundtrip(self, tmp_path):
+        # GH 71769
+        path = PathLikeWithReadWrite(str(tmp_path / "test.csv"))
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        df.to_csv(path, index=False)
+        with open(path, encoding="utf-8") as f:
+            assert f.read() == "a,b\n1,3\n2,4\n"
+        result = pd.read_csv(path)
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_infer_compression_from_path(self, compression_format, path_type):
