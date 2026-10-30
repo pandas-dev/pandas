@@ -131,6 +131,7 @@ from signature_overrides import apply_signature_overrides
 
 extensions = [
     "contributors",  # custom pandas extension
+    "pandas_website",  # custom pandas extension
     "rst_list_indentation",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
@@ -149,6 +150,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "nbsphinx",
+    "myst_parser",
 ]
 
 exclude_patterns = [
@@ -179,11 +181,15 @@ if pattern:
     pattern = pattern.replace(os.sep, "/")
 single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
 include_api = pattern is None or pattern == "whatsnew"
+# The website pages fetch data from GitHub and blog feeds, so they are only built
+# when building the whole documentation (with or without the API reference). The
+# other patterns exclude them below.
+pandas_website_context = pattern in (None, "-api")
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
         reldir = os.path.relpath(dirname, source_path)
         for fname in fnames:
-            if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
+            if os.path.splitext(fname)[-1] in (".rst", ".ipynb", ".md"):
                 rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
                 rel_fname = rel_fname.replace(os.sep, "/")
 
@@ -206,10 +212,16 @@ with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
             include_api=include_api,
+            include_website=pandas_website_context,
             single_doc=(pattern if single_doc else None),
         )
     )
 autosummary_generate = True if include_api else ["index"]
+
+# MyST (Markdown), used for the website pages
+# Links in the website pages are to the generated HTML files
+myst_all_links_external = True
+myst_heading_anchors = 3
 autodoc_typehints = "none"
 maximum_signature_line_length = 88
 
@@ -441,7 +453,7 @@ toggleprompt_offset_right = 35
 templates_path = ["../_templates"]
 
 # The suffix of source filenames.
-source_suffix = [".rst"]
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 
 # The encoding of source files.
 source_encoding = "utf-8"
@@ -538,7 +550,12 @@ html_theme_options = {
     },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_align": "left",
+    "header_links_before_dropdown": 7,
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    "secondary_sidebar_items": {
+        "**": ["page-toc", "edit-this-page", "sourcelink"],
+        "index": ["pandas-home-sidebar"],
+    },
     "switcher": {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
@@ -573,7 +590,7 @@ html_theme_options = {
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "../../web/pandas/static/img/pandas.svg"
+html_logo = "static/img/pandas.svg"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -588,7 +605,7 @@ html_css_files = [
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "../../web/pandas/static/img/favicon.ico"
+html_favicon = "static/img/favicon.ico"
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -1030,7 +1047,9 @@ suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
     # suppress this warning.
-    "app.add_directive"
+    "app.add_directive",
+    # Some website pages skip heading levels, for example to make text smaller
+    "myst.header",
 ]
 if pattern:
     # When building a single document we don't want to warn because references
@@ -1047,7 +1066,8 @@ def rstjinja(app, docname, source) -> None:
     if app.builder.format != "html":
         return
     src = source[0]
-    rendered = app.builder.templates.render_string(src, app.config.html_context)
+    context = dict(app.config.html_context, base_url="../" * docname.count("/"))
+    rendered = app.builder.templates.render_string(src, context)
     source[0] = rendered
 
 

@@ -1,0 +1,62 @@
+{# Sidebar of the home page: releases, social media and books #}
+{%- macro release_links(release) -%}
+  <li class="small">
+    {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
+    <a href="https://pandas.pydata.org/docs/whatsnew/{{ release.tag }}.html">changelog</a> |
+    <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.short_name }}/">docs</a> |
+    <a href="{{ release.url }}">code</a>
+  </li>
+{%- endmacro %}
+<div class="pandas-home-sidebar">
+  {% if releases %}
+  {% set latest = releases[0] %}
+  <h4>Latest version: {{ latest.name }}</h4>
+  <ul>
+    <li><a href="{{ pathto('whatsnew/v' ~ latest.name) }}">What's new in {{ latest.name }}</a></li>
+    <li>Release date:<br/>{{ latest.published.strftime("%b %d, %Y") }}</li>
+    <li><a href="{{ latest.url }}">Download source code</a></li>
+  </ul>
+  {% endif %}
+  <h4>Follow us</h4>
+  <ul class="list-inline social-buttons text-center">
+    <li class="list-inline-item">
+      <a href="https://t.me/s/pandas_dev" aria-label="Telegram"><i class="follow-us-button fa-brands fa-telegram"></i></a>
+    </li>
+    <li class="list-inline-item">
+      <a href="https://fosstodon.org/@pandas_dev" rel="me" aria-label="Mastodon"><i class="follow-us-button fa-brands fa-mastodon"></i></a>
+    </li>
+    <li class="list-inline-item">
+      <a href="https://x.com/pandas_dev" aria-label="X"><i class="follow-us-button fa-brands fa-square-x-twitter"></i></a>
+    </li>
+  </ul>
+  <h4>Recommended books</h4>
+  <p class="book">
+    <a href="https://amzn.to/3DyLaJc">
+      <img class="img-fluid" alt="Python for Data Analysis" src="{{ pathto('static/img/books/pydata_book.gif', 1) }}"/>
+    </a>
+  </p>
+  <p class="book">
+    <a href="https://www.packtpub.com/en-us/product/pandas-cookbook-9781836205876?utm_medium=affiliate&utm_campaign=d6d8585f-f475-a1ee-3989-67f3faf1238a&utm_term=5b056f65-afab-5c56-1f0a-5fd88167b4b5&utm_content=B31091">
+      <img class="img-fluid" alt="Pandas Cookbook, Third Edition" src="{{ pathto('static/img/books/pandas_cookbook_3.gif', 1) }}"/>
+    </a>
+  </p>
+  <p class="book">
+    <a href="https://store.metasnake.com/effective-pandas-book/lhte7">
+      <img class="img-fluid" alt="Effective pandas 2" src="{{ pathto('static/img/books/effective_pandas_2.gif', 1) }}"/>
+    </a>
+  </p>
+  {% if releases and releases[1:] %}
+  <h4>Previous versions</h4>
+  <ul>
+    {% for release in releases[1:5] %}{{ release_links(release) }}{% endfor %}
+  </ul>
+  {% if releases[5:] %}
+  <p class="text-center">
+    <a data-bs-toggle="collapse" href="#show-more-releases" role="button" aria-expanded="false" aria-controls="show-more-releases">Show more</a>
+  </p>
+  <ul id="show-more-releases" class="collapse">
+    {% for release in releases[5:] %}{{ release_links(release) }}{% endfor %}
+  </ul>
+  {% endif %}
+  {% endif %}
+</div>
