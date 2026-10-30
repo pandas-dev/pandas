@@ -2805,6 +2805,9 @@ class _iLocIndexer(_LocationIndexer):
                     value_col = value_col.tolist()
             self._setitem_single_column(loc, value_col, pi)
 
+        if _is_single_row_key(indexer):
+            _warn_2d_value_for_row()
+
     def _setitem_with_indexer_frame_value(
         self, indexer, value: DataFrame, name: str
     ) -> None:
@@ -2863,6 +2866,9 @@ class _iLocIndexer(_LocationIndexer):
                     val = np.nan
 
                 self._setitem_single_column(loc, val, pi)
+
+        if _is_single_row_key(indexer):
+            _warn_2d_value_for_row()
 
     def _setitem_single_column(self, loc: int, value, plane_indexer) -> None:
         """
@@ -3014,6 +3020,15 @@ class _iLocIndexer(_LocationIndexer):
 
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
+
+        if self.ndim == 2 and _is_single_row_key(indexer):
+            if getattr(value, "ndim", None) == 2 or (
+                isinstance(value, (list, tuple))
+                # an object block already stores a nested value's elements per cell
+                and not is_object_dtype(self.obj._mgr.blocks[0].dtype)
+                and _is_2d_value(list(value))
+            ):
+                _warn_2d_value_for_row()
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -3605,6 +3620,27 @@ def _is_2d_value_for_columns(value, ncols: int) -> bool:
         and ncols == 1
         and isinstance(value[0], tuple)
         and len(value[0]) != 1
+    )
+
+
+def _is_single_row_key(indexer) -> bool:
+    """Whether a positional indexer selects one row and not a single cell."""
+    key = indexer if isinstance(indexer, tuple) else (indexer,)
+    return is_integer(item_from_zerodim(key[0])) and not (
+        len(key) == 2 and is_integer(key[1])
+    )
+
+
+def _warn_2d_value_for_row() -> None:
+    # GH#70257 called only after a successful set, so spellings that already
+    #  raise do not also warn
+    warnings.warn(
+        "Setting a 2-D value into a single row is deprecated. In a future "
+        "version, a value set with a scalar row key will be treated as 1-D, "
+        "one element per selected column. Pass a 1-D value instead, e.g. "
+        "arr[0] or df.iloc[0] for a one-row value.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
     )
 
 
