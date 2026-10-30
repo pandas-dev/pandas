@@ -154,6 +154,11 @@ def test_astype_dict_dtypes():
     assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     tm.assert_frame_equal(df, df_orig)
 
+    # mutating the parent doesn't modify an untouched column of the result
+    df3 = df.astype({"a": "float64"})
+    df.iloc[0, 1] = 100
+    assert df3.iloc[0, 1] == 4
+
 
 def test_astype_different_datetime_resos():
     df = pd.DataFrame({"a": pd.date_range("2019-12-31", periods=2, freq="D")})
