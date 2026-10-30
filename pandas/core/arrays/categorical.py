@@ -1706,7 +1706,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Maps the categories to new categories. If the mapping correspondence is
         one-to-one the result is a :class:`~pandas.Categorical` which has the
         same order property as the original, otherwise a :class:`~pandas.Index`
-        is returned. NaN values are unaffected.
+        is returned. NaN values are unaffected. A mapping to boolean values
+        is an exception: it returns a plain bool Index, unless the
+        categorical contains missing values, in which case the result
+        remains a Categorical.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
         mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
@@ -1806,11 +1809,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # A MultiIndex (i.e. mapper returned tuples) can't back a
         # CategoricalDtype, so it must take the slow path below regardless
         # of uniqueness/na checks.
+        # GH 61719: a mapping to boolean values returns a plain bool
+        # Index rather than a Categorical, unless the categorical contains
+        # missing values, in which case Categorical preserves the bool +
+        # NaN combination that an Index would degrade to object dtype.
         if (
             not isinstance(new_categories, ABCMultiIndex)
             and new_categories.is_unique
             and not new_categories.hasnans
             and na_val is np.nan
+            and not (is_bool_dtype(new_categories.dtype) and not has_nans)
         ):
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
             return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
