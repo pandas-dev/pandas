@@ -134,6 +134,8 @@ from pandas.core.util.numba_ import (
     prepare_function_arguments,
 )
 
+from pandas.io.formats.printing import pprint_thing
+
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
     from pandas._libs.tslibs.timedeltas import Timedelta
@@ -164,9 +166,22 @@ class GroupByPlot(PandasObject):
     def __init__(self, groupby: GroupBy[Any]) -> None:
         self._groupby = groupby
 
+    @staticmethod
+    def _set_default_title(
+        kwargs: dict[str, Any], group: NDFrame, key: Hashable
+    ) -> None:
+        # GH#12452: without ax, each DataFrame group gets its own figure; Series
+        #  groups share one axes, so a title there would just be overwritten
+        if group.ndim == 2 and kwargs.get("ax") is None:
+            kwargs.setdefault("title", pprint_thing(key))
+
     def __call__(self, *args, **kwargs):
         def f(self, key):
-            return self.plot(*args, **kwargs)
+            local_kwargs = kwargs.copy()
+            # ax and title can also be passed positionally after x, y, kind
+            if len(args) <= 3:
+                GroupByPlot._set_default_title(local_kwargs, self, key)
+            return self.plot(*args, **local_kwargs)
 
         f.__name__ = "plot"
 
@@ -176,6 +191,7 @@ class GroupByPlot(PandasObject):
         def attr(*args, **kwargs):
             def f(self, key):
                 local_kwargs = kwargs.copy()
+                GroupByPlot._set_default_title(local_kwargs, self, key)
 
                 if name == "scatter" and kwargs.get("legend"):
                     local_kwargs.setdefault("label", key)
