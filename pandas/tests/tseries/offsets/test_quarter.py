@@ -46,22 +46,22 @@ def test_on_offset(offset, date):
 
 class TestQuarterBegin:
     def test_repr(self):
-        expected = "<QuarterBegin: startingMonth=3>"
+        expected = "<QuarterBegin: month=3>"
         assert repr(QuarterBegin()) == expected
-        expected = "<QuarterBegin: startingMonth=3>"
-        assert repr(QuarterBegin(startingMonth=3)) == expected
-        expected = "<QuarterBegin: startingMonth=1>"
-        assert repr(QuarterBegin(startingMonth=1)) == expected
+        expected = "<QuarterBegin: month=3>"
+        assert repr(QuarterBegin(month=3)) == expected
+        expected = "<QuarterBegin: month=1>"
+        assert repr(QuarterBegin(month=1)) == expected
 
     def test_offset_corner_case(self):
         # corner
-        offset = QuarterBegin(n=-1, startingMonth=1)
+        offset = QuarterBegin(n=-1, month=1)
         assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 1)
 
     offset_cases = []
     offset_cases.append(
         (
-            QuarterBegin(startingMonth=1),
+            QuarterBegin(month=1),
             {
                 datetime(2007, 12, 1): datetime(2008, 1, 1),
                 datetime(2008, 1, 1): datetime(2008, 4, 1),
@@ -77,7 +77,7 @@ class TestQuarterBegin:
 
     offset_cases.append(
         (
-            QuarterBegin(startingMonth=2),
+            QuarterBegin(month=2),
             {
                 datetime(2008, 1, 1): datetime(2008, 2, 1),
                 datetime(2008, 1, 31): datetime(2008, 2, 1),
@@ -93,7 +93,7 @@ class TestQuarterBegin:
 
     offset_cases.append(
         (
-            QuarterBegin(startingMonth=1, n=0),
+            QuarterBegin(month=1, n=0),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 1),
                 datetime(2008, 12, 1): datetime(2009, 1, 1),
@@ -110,7 +110,7 @@ class TestQuarterBegin:
 
     offset_cases.append(
         (
-            QuarterBegin(startingMonth=1, n=-1),
+            QuarterBegin(month=1, n=-1),
             {
                 datetime(2008, 1, 1): datetime(2007, 10, 1),
                 datetime(2008, 1, 31): datetime(2008, 1, 1),
@@ -127,7 +127,7 @@ class TestQuarterBegin:
 
     offset_cases.append(
         (
-            QuarterBegin(startingMonth=1, n=2),
+            QuarterBegin(month=1, n=2),
             {
                 datetime(2008, 1, 1): datetime(2008, 7, 1),
                 datetime(2008, 2, 15): datetime(2008, 7, 1),
@@ -149,22 +149,22 @@ class TestQuarterBegin:
 
 class TestQuarterEnd:
     def test_repr(self):
-        expected = "<QuarterEnd: startingMonth=3>"
+        expected = "<QuarterEnd: month=3>"
         assert repr(QuarterEnd()) == expected
-        expected = "<QuarterEnd: startingMonth=3>"
-        assert repr(QuarterEnd(startingMonth=3)) == expected
-        expected = "<QuarterEnd: startingMonth=1>"
-        assert repr(QuarterEnd(startingMonth=1)) == expected
+        expected = "<QuarterEnd: month=3>"
+        assert repr(QuarterEnd(month=3)) == expected
+        expected = "<QuarterEnd: month=1>"
+        assert repr(QuarterEnd(month=1)) == expected
 
     def test_offset_corner_case(self):
         # corner
-        offset = QuarterEnd(n=-1, startingMonth=1)
+        offset = QuarterEnd(n=-1, month=1)
         assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 31)
 
     offset_cases = []
     offset_cases.append(
         (
-            QuarterEnd(startingMonth=1),
+            QuarterEnd(month=1),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
                 datetime(2008, 1, 31): datetime(2008, 4, 30),
@@ -180,7 +180,7 @@ class TestQuarterEnd:
 
     offset_cases.append(
         (
-            QuarterEnd(startingMonth=2),
+            QuarterEnd(month=2),
             {
                 datetime(2008, 1, 1): datetime(2008, 2, 29),
                 datetime(2008, 1, 31): datetime(2008, 2, 29),
@@ -196,7 +196,7 @@ class TestQuarterEnd:
 
     offset_cases.append(
         (
-            QuarterEnd(startingMonth=1, n=0),
+            QuarterEnd(month=1, n=0),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
                 datetime(2008, 1, 31): datetime(2008, 1, 31),
@@ -212,7 +212,7 @@ class TestQuarterEnd:
 
     offset_cases.append(
         (
-            QuarterEnd(startingMonth=1, n=-1),
+            QuarterEnd(month=1, n=-1),
             {
                 datetime(2008, 1, 1): datetime(2007, 10, 31),
                 datetime(2008, 1, 31): datetime(2007, 10, 31),
@@ -229,7 +229,7 @@ class TestQuarterEnd:
 
     offset_cases.append(
         (
-            QuarterEnd(startingMonth=1, n=2),
+            QuarterEnd(month=1, n=2),
             {
                 datetime(2008, 1, 31): datetime(2008, 7, 31),
                 datetime(2008, 2, 15): datetime(2008, 7, 31),
@@ -249,36 +249,36 @@ class TestQuarterEnd:
             assert_offset_equal(offset, base, expected)
 
     on_offset_cases = [
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 12, 31), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 2, 29), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 3, 30), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 3, 31), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 4, 30), True),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 5, 30), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 5, 31), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 6, 29), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 6, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 1, 31), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 12, 31), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 2, 29), True),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 3, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 3, 31), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 4, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 5, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 5, 31), True),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 6, 29), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 6, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 1, 31), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 12, 31), True),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 2, 29), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 3, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 3, 31), True),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 4, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 5, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 5, 31), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 6, 29), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 6, 30), True),
+        (QuarterEnd(1, month=1), datetime(2008, 1, 31), True),
+        (QuarterEnd(1, month=1), datetime(2007, 12, 31), False),
+        (QuarterEnd(1, month=1), datetime(2008, 2, 29), False),
+        (QuarterEnd(1, month=1), datetime(2007, 3, 30), False),
+        (QuarterEnd(1, month=1), datetime(2007, 3, 31), False),
+        (QuarterEnd(1, month=1), datetime(2008, 4, 30), True),
+        (QuarterEnd(1, month=1), datetime(2008, 5, 30), False),
+        (QuarterEnd(1, month=1), datetime(2008, 5, 31), False),
+        (QuarterEnd(1, month=1), datetime(2007, 6, 29), False),
+        (QuarterEnd(1, month=1), datetime(2007, 6, 30), False),
+        (QuarterEnd(1, month=2), datetime(2008, 1, 31), False),
+        (QuarterEnd(1, month=2), datetime(2007, 12, 31), False),
+        (QuarterEnd(1, month=2), datetime(2008, 2, 29), True),
+        (QuarterEnd(1, month=2), datetime(2007, 3, 30), False),
+        (QuarterEnd(1, month=2), datetime(2007, 3, 31), False),
+        (QuarterEnd(1, month=2), datetime(2008, 4, 30), False),
+        (QuarterEnd(1, month=2), datetime(2008, 5, 30), False),
+        (QuarterEnd(1, month=2), datetime(2008, 5, 31), True),
+        (QuarterEnd(1, month=2), datetime(2007, 6, 29), False),
+        (QuarterEnd(1, month=2), datetime(2007, 6, 30), False),
+        (QuarterEnd(1, month=3), datetime(2008, 1, 31), False),
+        (QuarterEnd(1, month=3), datetime(2007, 12, 31), True),
+        (QuarterEnd(1, month=3), datetime(2008, 2, 29), False),
+        (QuarterEnd(1, month=3), datetime(2007, 3, 30), False),
+        (QuarterEnd(1, month=3), datetime(2007, 3, 31), True),
+        (QuarterEnd(1, month=3), datetime(2008, 4, 30), False),
+        (QuarterEnd(1, month=3), datetime(2008, 5, 30), False),
+        (QuarterEnd(1, month=3), datetime(2008, 5, 31), False),
+        (QuarterEnd(1, month=3), datetime(2007, 6, 29), False),
+        (QuarterEnd(1, month=3), datetime(2007, 6, 30), True),
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
