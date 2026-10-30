@@ -3735,3 +3735,183 @@ class TestAllowNonNano:
     def test_frame_from_dict_allow_non_nano(self, arr):
         df = pd.DataFrame({0: arr})
         assert df.dtypes[0] == arr.dtype
+
+
+@pytest.mark.parametrize(
+    "data, kwargs",
+    [
+        ({"a": [1, None], "b": [3, 4]}, {}),
+        ({"a": pd.Series([1, None]), "b": pd.Series([3, 4], index=[1, 2])}, {}),
+        ([{"a": 1, "b": 3}, {"b": 4}], {}),
+        ([[1, 3], [None, 4]], {"columns": ["a", "b"]}),
+        ([pd.Series({"a": 1, "b": 3}), pd.Series({"b": 4})], {}),
+        (np.array([[1, 3], [None, 4]], dtype=object), {"columns": ["a", "b"]}),
+        (np.array([[1.0, 2.0], [np.nan, 3.0]]), {"columns": ["a", "b"]}),
+        (np.array([(1, 2.0)], dtype=[("a", "i8"), ("b", "f8")]), {}),
+        ({"a": [1, 2]}, {"columns": ["a", "b"]}),
+        ([], {"columns": ["a", "b"]}),
+        (1, {"index": [0, 1], "columns": ["a", "b"]}),
+    ],
+)
+def test_dtype_dict(data, kwargs):
+    # GH#71142 a listed column matches dtype=<its dtype>, others are inferred,
+    #  and keys that match no column are ignored
+    result = pd.DataFrame(data, dtype={"a": "Int64", "zz": "int8"}, **kwargs)
+    expected = pd.DataFrame(data, **kwargs)
+    expected["a"] = pd.DataFrame(data, dtype="Int64", **kwargs)["a"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs",
+    [
+        ({"a": [2**53 + 1, None]}, {}),
+        ([{"a": 2**53 + 1}, {"a": None}], {}),
+        ([[2**53 + 1], [None]], {"columns": ["a"]}),
+    ],
+)
+def test_dtype_dict_int_with_missing_not_rounded(data, kwargs):
+    # GH#71142 cast from the raw values, not via float64 as astype after would
+    result = pd.DataFrame(data, dtype={"a": "Int64"}, **kwargs)
+    expected = pd.DataFrame({"a": pd.array([2**53 + 1, None], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_list_of_ea_series():
+    # GH#71142 a listed column casts as dtype=<its dtype> would, not via
+    #  EA.astype, and an unlisted one keeps the common EA dtype
+    rows = [
+        pd.Series([1.5, 1.0], index=["a", "b"], dtype="Float64"),
+        pd.Series([2.0, 3.0], index=["a", "b"], dtype="Float64"),
+    ]
+    with pytest.raises(ValueError, match="Trying to coerce float values to integers"):
+        pd.DataFrame(rows, dtype={"a": "int64"})
+
+    result = pd.DataFrame(rows, dtype={"a": "float32"})
+    expected = pd.DataFrame(
+        {
+            "a": np.array([1.5, 2.0], dtype="float32"),
+            "b": pd.array([1.0, 3.0], dtype="Float64"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype, target",
+    [
+        ([[1, 2], [3, None]], "Int64", "float64"),
+        ([[1, 2], [3, None]], "Int64", "complex128"),
+        ([[1, 2], [3, None]], "Int64", "bool"),
+        ([[1, 2], [3, None]], "Int64", "object"),
+        ([[True, False], [True, None]], "boolean", "object"),
+        ([[True, False], [True, None]], "boolean", "Int64"),
+    ],
+)
+def test_dtype_dict_list_of_ea_series_with_na(values, dtype, target):
+    # GH#71142 NA in a listed column converts as with dtype=<its dtype>
+    rows = [pd.Series(row, index=["a", "b"], dtype=dtype) for row in values]
+    result = pd.DataFrame(rows, dtype={"b": target})
+    expected = pd.DataFrame(rows)
+    expected["b"] = pd.DataFrame(rows, dtype=target)["b"]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_1d_ea_input():
+    # GH#71142
+    cat = pd.Categorical(["x", "y"])
+    result = pd.DataFrame(cat, columns=["a"], dtype={"a": "object"})
+    expected = pd.DataFrame(cat, columns=["a"], dtype="object")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs",
+    [
+        ({"a": [1], "b": [2], "c": [3]}, {}),
+        ([[1, 2, 3]], {"columns": ["a", "b", "c"]}),
+        (np.array([[1, 2, 3]]), {"columns": ["a", "b", "c"]}),
+        (pd.DataFrame({"a": [1], "b": [2], "c": [3]}), {}),
+    ],
+)
+def test_dtype_dict_defaultdict(data, kwargs):
+    # GH#71142 like read_csv, the default applies to columns not listed
+    dtype = defaultdict(lambda: "float32", a="int8")
+    result = pd.DataFrame(data, dtype=dtype, **kwargs)
+    expected = pd.DataFrame(
+        {
+            "a": np.array([1], dtype="int8"),
+            "b": np.array([2], dtype="float32"),
+            "c": np.array([3], dtype="float32"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+    assert list(dtype) == ["a"]
+
+
+def test_dtype_dict_duplicate_columns():
+    # GH#71142 a key applies to every column with that label
+    result = pd.DataFrame([[1, 2, 3]], columns=["a", "a", "b"], dtype={"a": "int8"})
+    assert list(result.dtypes) == [np.dtype("int8")] * 2 + [np.dtype("int64")]
+
+
+def test_dtype_dict_missing_column_int():
+    # GH#71142 a missing column listed as int is float, as with dtype="int64"
+    result = pd.DataFrame({"a": [1, 2]}, columns=["a", "b"], dtype={"b": "int64"})
+    expected = pd.DataFrame({"a": [1, 2], "b": [np.nan, np.nan]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_object_ndarray_not_inferred():
+    # GH#71142 a column listed as object keeps the values, as with dtype=object
+    arr = np.array([[pd.Timestamp("2020"), 1]], dtype=object)
+    result = pd.DataFrame(arr, columns=["a", "b"], dtype={"a": object})
+    expected = pd.DataFrame(arr, columns=["a", "b"], dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_columns_length_mismatch():
+    # GH#71142 the same error as without a dict
+    msg = r"len\(arrays\) must match len\(columns\)"
+    with pytest.raises(ValueError, match=msg):
+        pd.DataFrame(pd.array([1, 2]), columns=["a", "b"], dtype={"a": "Int64"})
+
+
+def test_dtype_dict_invalid_dtype():
+    # GH#71142 validated even when the key matches no column
+    with pytest.raises(TypeError, match="data type 'foo' not understood"):
+        pd.DataFrame({"a": [1]}, dtype={"b": "foo"})
+
+
+@pytest.mark.parametrize("copy", [None, False])
+def test_dtype_dict_frame_input(copy):
+    # GH#71142 writing to the result does not modify the input
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = pd.DataFrame(df, dtype={"a": "Int64"}, copy=copy)
+    expected = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64"), "b": [3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+    result.iloc[0, 1] = 100
+    tm.assert_frame_equal(df, pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index])
+@pytest.mark.parametrize("dtype", ["Int64", "M8[ns]"])
+def test_dtype_dict_series_index_input(box, dtype):
+    # GH#71142 writing to the result does not modify the input
+    obj = box([1, 2])
+    result = pd.DataFrame(obj, dtype={0: dtype})
+    tm.assert_frame_equal(result, pd.DataFrame(obj, dtype=dtype))
+
+    result.iloc[0, 0] = result.iloc[1, 0]
+    tm.assert_equal(obj, box([1, 2]))
+
+
+@pytest.mark.parametrize("box", [np.array, pd.DataFrame])
+def test_dtype_dict_interleaved_columns(box):
+    # GH#71142 columns sharing a dtype need not be adjacent
+    values = np.arange(8).reshape(2, 4)
+    dtype = {0: "int8", 1: "Int64", 2: "int8"}
+    result = pd.DataFrame(box(values), dtype=dtype)
+    expected = pd.DataFrame(values).astype(dtype)
+    tm.assert_frame_equal(result, expected)
