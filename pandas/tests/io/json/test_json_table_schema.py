@@ -956,3 +956,107 @@ class TestTableOrientReader:
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize(
+        "columns",
+        [[5, 6, 7, 8], [1.5, 2.5], [True, False], ["a", 7], pd.RangeIndex(2)],
+    )
+    def test_read_json_table_orient_non_string_columns(self, columns):
+        # GH#19129
+        df = pd.DataFrame(
+            np.arange(2 * len(columns), dtype=np.float64).reshape(2, len(columns)),
+            columns=columns,
+        )
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_read_json_table_orient_colliding_labels_raises(self):
+        # GH#19129 the writer keys both columns as "5", losing one of them
+        df = pd.DataFrame([[1.0, 2.0]], columns=[5, "5"])
+        out = StringIO(df.to_json(orient="table"))
+        with pytest.raises(ValueError, match="both are keyed as"):
+            pd.read_json(out, orient="table")
+
+    def test_read_json_table_orient_perturbed_float_labels(self):
+        # GH#19129 the default parser reads the schema's 0.3 as 0.30000000000000004
+        df = pd.DataFrame([[1.0, 2.0]], columns=[0.3, 0.7])
+        data = df.to_json(orient="table")
+        with pytest.raises(ValueError, match="try precise_float=True"):
+            pd.read_json(StringIO(data), orient="table")
+
+        result = pd.read_json(StringIO(data), orient="table", precise_float=True)
+        tm.assert_frame_equal(result, df)
+
+        # to_json writes the schema name rounded to double_precision
+        df = pd.DataFrame([[1.0]], columns=[1 / 3])
+        data = df.to_json(orient="table")
+        with pytest.raises(ValueError, match="rounded by to_json's double_precision"):
+            pd.read_json(StringIO(data), orient="table", precise_float=True)
+
+    def test_read_json_table_orient_non_string_index_names(self):
+        # GH#19129
+        df = pd.DataFrame({"a": [1, 2]}, index=pd.Index([3, 4], name=5))
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+        mi = pd.MultiIndex.from_tuples([(1, 2), (3, 4)], names=[5, "y"])
+        df = pd.DataFrame({"a": [1, 2]}, index=mi)
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize("name", [0, False, ""])
+    def test_read_json_table_orient_falsy_series_name(self, name):
+        # GH#19129
+        ser = pd.Series([1.0, 2.0], name=name)
+        out = StringIO(ser.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(ser.to_frame(), result)
+
+    @pytest.mark.parametrize("labels", [[1, 2], [5, "5"], [True, False]])
+    def test_read_json_table_orient_positional_records(self, labels):
+        # GH#19129 "data" holding arrays rather than objects is read by position
+        table = {
+            "schema": {
+                "fields": [{"name": label, "type": "integer"} for label in labels],
+            },
+            "data": [[3, 4], [5, 6]],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame([[3, 4], [5, 6]], columns=labels)
+        tm.assert_frame_equal(result, expected)
+
+        table["schema"]["primaryKey"] = labels
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = expected.set_index(labels)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("pkey", ["idx", 0])
+    def test_read_json_table_orient_scalar_primary_key(self, pkey):
+        # GH#19129 the spec allows a single field name as well as a list
+        table = {
+            "schema": {
+                "fields": [
+                    {"name": pkey, "type": "integer"},
+                    {"name": "a", "type": "integer"},
+                ],
+                "primaryKey": pkey,
+            },
+            "data": [{str(pkey): 1, "a": 2}],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame({"a": [2]}, index=pd.Index([1], name=pkey))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("name", ["idx", 0])
+    @pytest.mark.parametrize("values", [[1, 2], []])
+    def test_read_json_table_orient_no_columns(self, name, values):
+        # GH#19129 an empty column axis keeps the dtype of the field names
+        df = pd.DataFrame(index=pd.Index(values, dtype="int64", name=name))
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        assert result.index.name == name
+        assert result.columns.empty
+        assert result.columns.dtype == pd.Index([name]).dtype
