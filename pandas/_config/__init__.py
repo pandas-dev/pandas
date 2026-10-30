@@ -42,3 +42,7 @@ def is_nan_na() -> bool:
 
 def using_infer_freq_offset() -> bool | None:
     return _global_config["future"]["infer_freq_returns_offset"]
+
+
+def using_pivot_table_dropna() -> bool:
+    return _global_config["future"]["pivot_table_dropna"]
