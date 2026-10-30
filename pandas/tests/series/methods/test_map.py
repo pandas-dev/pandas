@@ -793,3 +793,19 @@ def test_map_masked_result_all_nat(dtype):
     result = ser.map(lambda x: pd.NaT)
     expected = pd.Series([pd.NaT, pd.NaT], dtype="M8[s]")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        ("boolean", pd.array([pd.NA, pd.NA], dtype="Float64")),
+        ("Float64", [np.nan, np.nan]),
+    ],
+)
+def test_map_masked_result_all_nan_distinguish_nan_and_na(dtype, expected):
+    # boolean must not convert the NaN results to True
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1, 0], dtype=dtype)
+        result = ser.map(lambda x: np.nan)
+        expected = pd.Series(pd.array(expected, dtype="Float64"))
+    tm.assert_series_equal(result, expected)

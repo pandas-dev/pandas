@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -96,25 +98,65 @@ def test_to_boolean_array_missing_indicators(a, b):
 
 
 @pytest.mark.parametrize(
-    "values",
+    "values, expected",
     [
-        ["foo", "bar"],
-        ["1", "2"],
-        # "foo",
-        [1, 2],
-        [1.0, 2.0],
-        pd.date_range("20130101", periods=2),
-        np.array(["foo"]),
-        np.array([1, 2]),
-        np.array([1.0, 2.0]),
-        [np.nan, {"a": 1}],
+        (["foo", "", "False", None], [True, False, True, None]),
+        ([0, 1, 2, -1, None], [False, True, True, True, None]),
+        ([0.0, 0.5, np.nan], [False, True, None]),
+        ([0, "a", 1.5, pd.NA, pd.NaT], [False, True, True, None, None]),
+        ([np.nan, {"a": 1}, {}], [None, True, False]),
+        # a list is treated as object dtype, where every Timestamp is truthy
+        ([pd.Timestamp(0), pd.NaT], [True, None]),
+        (np.array(["foo", ""]), [True, False]),
+        (np.array([0, 1, 2]), [False, True, True]),
+        (np.array([0.0, 0.5, np.nan]), [False, True, None]),
+        (np.array([0j, 1j, complex(np.nan, 0)]), [False, True, None]),
+        (np.array([0, 5, "NaT"], dtype="m8[ns]"), [False, True, None]),
+        (
+            np.array(["1970-01-01", "2000-01-01", "NaT"], dtype="M8[ns]"),
+            [False, True, None],
+        ),
+        (pd.date_range("1970-01-01", periods=2, tz="UTC"), [False, True]),
+        (pd.period_range("2000", periods=2), [True, True]),
     ],
 )
-def test_to_boolean_array_error(values):
-    # error in converting existing arrays to BooleanArray
-    msg = "Need to pass bool-like value"
-    with pytest.raises(TypeError, match=msg):
-        pd.array(values, dtype="boolean")
+def test_to_boolean_array_matches_astype_bool(values, expected):
+    # GH#37614 values are converted as by astype(bool), with missing values masked
+    result = pd.array(values, dtype="boolean")
+    expected = pd.array(expected, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (
+            [0.0, np.nan, None, pd.NA, pd.NaT, Decimal("nan")],
+            [False, True, None, None, None, True],
+        ),
+        (np.array([0.0, np.nan]), [False, True]),
+        (np.array([0j, complex(np.nan, 0)]), [False, True]),
+    ],
+)
+def test_to_boolean_array_distinguish_nan_and_na(values, expected):
+    # with NaN distinct from NA, NaN is a value and converts as bool(np.nan)
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.array(values, dtype="boolean")
+    expected = pd.array(expected, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_float_ea_astype_boolean_distinguish_nan_and_na():
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        arr = pd.array([0.0, np.nan, None], dtype="Float64")
+        result = arr.astype("boolean")
+    expected = pd.array([False, True, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_boolean_array_2d_raises():
+    with pytest.raises(TypeError, match="values must be a 1D list-like"):
+        pd.array([[True, False]], dtype="boolean")
 
 
 def test_to_boolean_array_from_integer_array():
