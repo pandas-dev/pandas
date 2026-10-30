@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -11,7 +12,7 @@ class TestUpdate:
     def test_update(self):
         s = pd.Series([1.5, np.nan, 3.0, 4.0, np.nan])
         s2 = pd.Series([np.nan, 3.5, np.nan, 5.0])
-        s.update(s2)
+        s.update(s2, inplace=True)
 
         expected = pd.Series([1.5, 3.5, 3.0, 5.0, np.nan])
         tm.assert_series_equal(s, expected)
@@ -24,7 +25,7 @@ class TestUpdate:
         df_orig = df.copy()
 
         with tm.raises_chained_assignment_error():
-            df["c"].update(pd.Series(["foo"], index=[0]))
+            df["c"].update(pd.Series(["foo"], index=[0]), inplace=True)
         expected = df_orig
         tm.assert_frame_equal(df, expected)
 
@@ -58,9 +59,9 @@ class TestUpdate:
         other = pd.Series(other, index=[1, 3])
         if raises:
             with pytest.raises(TypeError, match="Invalid value"):
-                ser.update(other)
+                ser.update(other, inplace=True)
         else:
-            ser.update(other)
+            ser.update(other, inplace=True)
             tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
@@ -79,7 +80,7 @@ class TestUpdate:
     def test_update_from_non_series(self, values, other, expected):
         # GH 33215
         series = pd.Series(values)
-        series.update(other)
+        series.update(other, inplace=True)
         expected = pd.Series(expected)
         tm.assert_series_equal(series, expected)
 
@@ -115,7 +116,7 @@ class TestUpdate:
         other = pd.Series(other, dtype=dtype)
         expected = pd.Series(expected, dtype=dtype)
 
-        result.update(other)
+        result.update(other, inplace=True)
         tm.assert_series_equal(result, expected)
 
     def test_update_with_categorical_type(self):
@@ -123,7 +124,23 @@ class TestUpdate:
         dtype = pd.CategoricalDtype(["a", "b", "c", "d"])
         s1 = pd.Series(["a", "b", "c"], index=[1, 2, 3], dtype=dtype)
         s2 = pd.Series(["b", "a"], index=[1, 2], dtype=dtype)
-        s1.update(s2)
+        s1.update(s2, inplace=True)
         result = s1
         expected = pd.Series(["b", "a", "c"], index=[1, 2, 3], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_update_inplace_default_deprecated(self):
+        # GH#21858
+        ser = pd.Series([1, 2, 3])
+        msg = "Series.update modifying the Series in place by default"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.update({1: 9})
+        assert result is None
+        tm.assert_series_equal(ser, pd.Series([1, 9, 3]))
+
+    def test_update_not_inplace(self):
+        # GH#21858
+        ser = pd.Series([1, 2, 3])
+        result = ser.update({1: 9}, inplace=False)
+        tm.assert_series_equal(result, pd.Series([1, 9, 3]))
+        tm.assert_series_equal(ser, pd.Series([1, 2, 3]))

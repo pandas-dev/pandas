@@ -3927,9 +3927,38 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
 
-    def update(self, other: Series | Sequence[Any] | Mapping[Any, Any]) -> None:
+    @overload
+    def update(
+        self,
+        other: Series | Sequence[Any] | Mapping[Any, Any],
+        *,
+        inplace: Literal[False],
+    ) -> Series: ...
+
+    @overload
+    def update(
+        self,
+        other: Series | Sequence[Any] | Mapping[Any, Any],
+        *,
+        inplace: Literal[True] | lib.NoDefault = ...,
+    ) -> None: ...
+
+    @overload
+    def update(
+        self,
+        other: Series | Sequence[Any] | Mapping[Any, Any],
+        *,
+        inplace: bool | lib.NoDefault = ...,
+    ) -> Series | None: ...
+
+    def update(
+        self,
+        other: Series | Sequence[Any] | Mapping[Any, Any],
+        *,
+        inplace: bool | lib.NoDefault = lib.no_default,
+    ) -> Series | None:
         """
-        Modify Series in place using values from passed Series.
+        Update Series using values from passed Series.
 
         Uses non-NA values from passed Series to make updates. Aligns
         on index.
@@ -3938,6 +3967,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         other : Series, or object coercible into Series
             Other Series that provides values to update the current Series.
+        inplace : bool, default True
+            Whether to modify the Series in place rather than returning a new
+            Series.
+
+            .. deprecated:: 3.2.0
+                Not passing ``inplace`` is deprecated. In a future version the
+                default will change to ``False``.
+
+        Returns
+        -------
+        Series or None
+            Series with the updates applied, or None if ``inplace=True``.
 
         See Also
         --------
@@ -3948,24 +3989,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
-        >>> s.update(pd.Series([4, 5, 6]))
-        >>> s
+        >>> s.update(pd.Series([4, 5, 6]), inplace=False)
         0    4
         1    5
         2    6
         dtype: int64
 
         >>> s = pd.Series(["a", "b", "c"])
-        >>> s.update(pd.Series(["d", "e"], index=[0, 2]))
-        >>> s
+        >>> s.update(pd.Series(["d", "e"], index=[0, 2]), inplace=False)
         0    d
         1    b
         2    e
         dtype: str
 
         >>> s = pd.Series([1, 2, 3])
-        >>> s.update(pd.Series([4, 5, 6, 7, 8]))
-        >>> s
+        >>> s.update(pd.Series([4, 5, 6, 7, 8]), inplace=False)
         0    4
         1    5
         2    6
@@ -3975,8 +4013,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         in the original Series.
 
         >>> s = pd.Series([1, 2, 3])
-        >>> s.update(pd.Series([4, np.nan, 6]))
-        >>> s
+        >>> s.update(pd.Series([4, np.nan, 6]), inplace=False)
         0    4
         1    2
         2    6
@@ -3986,22 +4023,33 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         that is coercible into a Series
 
         >>> s = pd.Series([1, 2, 3])
-        >>> s.update([4, np.nan, 6])
-        >>> s
+        >>> s.update([4, np.nan, 6], inplace=False)
         0    4
         1    2
         2    6
         dtype: int64
 
         >>> s = pd.Series([1, 2, 3])
-        >>> s.update({1: 9})
-        >>> s
+        >>> s.update({1: 9}, inplace=False)
         0    1
         1    9
         2    3
         dtype: int64
         """
-        if not CHAINED_WARNING_DISABLED:
+        if inplace is lib.no_default:
+            warnings.warn(
+                "Series.update modifying the Series in place by default is "
+                "deprecated. In a future version, it will return a new Series "
+                "and leave the original unchanged. Pass inplace=True to keep the "
+                "current behavior, or inplace=False to adopt the future behavior "
+                "and silence this warning.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            inplace = True
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if inplace and not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(
                 self
             ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
@@ -4017,7 +4065,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other = other.reindex_like(self)
         mask = notna(other)
 
-        self._mgr = self._mgr.putmask(mask=mask, new=other)
+        result = self if inplace else self.copy(deep=False)
+        result._mgr = result._mgr.putmask(mask=mask, new=other)
+        return None if inplace else result
 
     # ----------------------------------------------------------------------
     # Reindexing, sorting
