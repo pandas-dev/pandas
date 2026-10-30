@@ -1605,57 +1605,8 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
-        # Note: `case` must be resolved before we compile `pat` below, since
-        #  compiling would make is_re(pat) True even for a user-passed string.
-        case_specified = case is not lib.no_default
-
-        if not case_specified:
-            if is_re(pat):
-                case = not bool(pat.flags & re.IGNORECASE)
-            elif flags is not lib.no_default:
-                case = not bool(flags & re.IGNORECASE)
-            else:
-                # Case-sensitive default
-                case = True
-        elif is_re(pat):
-            implicit_case = not bool(pat.flags & re.IGNORECASE)
-            if implicit_case != case:
-                # GH#62240
-                raise ValueError(
-                    "Cannot both specify 'case' and pass a compiled regexp "
-                    "object with conflicting case-sensitivity"
-                )
-
-        if flags is not lib.no_default:
-            if case_specified and case and not is_re(pat) and flags & re.IGNORECASE:
-                raise ValueError(
-                    "Cannot both specify case=True and pass 'flags' containing "
-                    "re.IGNORECASE"
-                )
-            if not case:
-                # Bake `case` into the flags so that it survives compilation.
-                flags |= re.IGNORECASE
-            if is_re(pat):
-                # Round-trip the requested flags through re.compile so the
-                #  comparison accounts for the fixups it applies: the implicit
-                #  re.U, and any inline "(?a)"/"(?i)" in the pattern itself.
-                if re.compile(pat.pattern, flags).flags != pat.flags:
-                    raise ValueError(
-                        "Cannot both specify 'flags' and pass a compiled regexp "
-                        "object with conflicting flags"
-                    )
-            elif flags & ~(re.IGNORECASE | re.UNICODE):
-                # Only pre-compile when `flags` carries something `case` cannot.
-                #  Leaving `pat` a str otherwise keeps `flags=0` equivalent to
-                #  omitting `flags`, so patterns using RE2 syntax that `re`
-                #  rejects still reach the pyarrow kernels. GH#63108
-                pat = re.compile(pat, flags=flags)
-        # Any `flags` are now carried by `case` or baked into `pat`, so set
-        #  flags=0 to ensure that when we call re.compile(pat, flags=flags)
-        #  downstream the constructor does not raise.
-        flags = 0
-
-        result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
+        pat, case = _preprocess_regex_pattern(pat, case, flags)
+        result = self._data.array._str_match(pat, case=case, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -4957,3 +4908,71 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
         match_list, index=index, columns=columns, dtype=dtype
     )
     return result
+
+
+def _preprocess_regex_pattern(
+    pat: str | re.Pattern[str],
+    case: bool | lib.NoDefault = lib.no_default,
+    flags: int | lib.NoDefault = lib.no_default,
+) -> tuple[str | re.Pattern[str], bool]:
+    """
+    Validate and preprocess the pat, case, flags parameter combination.
+
+    Any conflicts between compiled regex pattern, case or flags are detected
+    and resolved here (raised to the user).
+
+    The result is a pattern and resolved `case`:
+    - The returned `case` can be relied upon (i.e. gets extracted from compiled
+      regex pattern or flags)
+    - The flags, if needed (i.e. not IGNORECASE which is covered by `case` or
+      UNICODE which is redundant in Python 3), are merged into the pat as a
+      compiled regex pattern.
+
+    This means that downstream functions only have to handle a compiled regex
+    pattern, or a string pattern with `case`.
+    """
+    case_specified = case is not lib.no_default
+
+    if not case_specified:
+        if is_re(pat):
+            case = not bool(pat.flags & re.IGNORECASE)
+        elif flags is not lib.no_default:
+            case = not bool(flags & re.IGNORECASE)
+        else:
+            # Case-sensitive default
+            case = True
+    elif is_re(pat):
+        implicit_case = not bool(pat.flags & re.IGNORECASE)
+        if implicit_case != case:
+            # GH#62240
+            raise ValueError(
+                "Cannot both specify 'case' and pass a compiled regex pattern "
+                "with conflicting case-sensitivity"
+            )
+
+    if flags is not lib.no_default:
+        if case_specified and case and not is_re(pat) and flags & re.IGNORECASE:
+            raise ValueError(
+                "Cannot both specify 'case=True' and pass 'flags' containing "
+                "re.IGNORECASE"
+            )
+        if not case:
+            # Bake `case` into the flags so that it survives compilation.
+            flags |= re.IGNORECASE
+        if is_re(pat):
+            # Round-trip the requested flags through re.compile so the
+            #  comparison accounts for the fixups it applies: the implicit
+            #  re.U, and any inline "(?a)"/"(?i)" in the pattern itself.
+            if re.compile(pat.pattern, flags).flags != pat.flags:
+                raise ValueError(
+                    "Cannot both specify 'flags' and pass a compiled regex "
+                    "pattern with conflicting flags"
+                )
+        elif flags & ~(re.IGNORECASE | re.UNICODE):
+            # Only pre-compile when `flags` carries something `case` cannot.
+            #  Leaving `pat` a str otherwise keeps `flags=0` equivalent to
+            #  omitting `flags`, so patterns using RE2 syntax that `re`
+            #  rejects still reach the pyarrow kernels. GH#63108
+            pat = re.compile(pat, flags=flags)
+
+    return pat, case
