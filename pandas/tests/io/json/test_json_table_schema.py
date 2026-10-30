@@ -946,6 +946,38 @@ class TestTableOrientReader:
         result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            # pandas<1.5 wrote tz-naive datetimes with a "Z" suffix
+            ["2022-09-12T11:42:33.330Z", "2022-09-13T00:00:00.000Z", None],
+            ["2022-09-12T13:42:33.330+02:00", "2022-09-13T01:00:00+01:00", None],
+        ],
+    )
+    def test_read_json_table_naive_field_with_offset(self, values):
+        # GH#52595
+        data = [{"idx": val, "a": val} for val in values]
+        df_json = json.dumps(
+            {
+                "schema": {
+                    "fields": [
+                        {"name": "idx", "type": "datetime"},
+                        {"name": "a", "type": "datetime"},
+                    ],
+                    "primaryKey": ["idx"],
+                    "pandas_version": "1.4.0",
+                },
+                "data": data,
+            }
+        )
+        result = pd.read_json(StringIO(df_json), orient="table")
+
+        dti = pd.DatetimeIndex(
+            ["2022-09-12 11:42:33.330", "2022-09-13 00:00:00", None], dtype="M8[ns]"
+        )
+        expected = pd.DataFrame({"a": dti}, index=dti.rename("idx"))
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("freq", ["M", "2M", "Q", "2Q", "Y", "2Y"])
     def test_read_json_table_orient_period_depr_freq(self, freq):
         # GH#9586
