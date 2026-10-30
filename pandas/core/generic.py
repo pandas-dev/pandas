@@ -6855,9 +6855,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         immutable, the underlying data can be safely shared and a copy
         is not needed.
 
-        Since pandas is not thread safe, see the
-        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
-        environment.
+        See the :ref:`gotchas <gotchas.thread-safety>` before sharing pandas
+        objects between threads.
 
         Copy-on-Write protects shallow copies against accidental modifications.
         This means that any changes to the copied data would make a new copy
