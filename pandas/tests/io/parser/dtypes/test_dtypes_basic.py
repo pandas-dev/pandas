@@ -13,8 +13,8 @@ import pytest
 from pandas._libs import lib
 from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
+    EmptyDataError,
     Pandas4Warning,
-    ParserError,
     ParserWarning,
 )
 
@@ -253,8 +253,8 @@ def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
     if all_parsers.engine == "pyarrow":
         # GH#62635 single line without a trailing newline
-        msg = "The 'pyarrow' engine cannot infer the number of columns"
-        with pytest.raises(ParserError, match=msg):
+        msg = "The 'pyarrow' engine also raises this for a single line"
+        with pytest.raises(EmptyDataError, match=msg):
             all_parsers.read_csv(
                 StringIO('"dump","-9,1","-9,1",20101010'),
                 engine="python",
