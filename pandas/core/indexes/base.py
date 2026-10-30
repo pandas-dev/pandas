@@ -7197,6 +7197,7 @@ class Index(IndexOpsMixin, PandasObject):
             target_index = Index(target, dtype=self.dtype)
         elif (
             isinstance(self.dtype, StringDtype)
+            and using_string_dtype()
             and not isinstance(target_index, ABCMultiIndex)
             and self.hasnans
             and target_index.hasnans
@@ -7207,7 +7208,9 @@ class Index(IndexOpsMixin, PandasObject):
             # coerce to object first. Use dtype.na_value (np.nan or pd.NA) so
             # both StringDtype variants work. Gated on self.hasnans so a
             # non-missing string index skips the copy when the target happens
-            # to contain NA/NaT.
+            # to contain NA/NaT. Under the legacy (non-inferring) string config
+            # an explicit StringDtype keeps its distinct-NA matching semantics,
+            # so the normalization only applies with using_string_dtype().
             na = self.dtype.na_value
             if needs_i8_conversion(target_index.dtype):
                 target_index = target_index.astype(object).fillna(na)
