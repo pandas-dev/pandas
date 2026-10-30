@@ -6248,7 +6248,9 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
-            Content of the inserted column.
+            Content of the inserted column. A Series is aligned to the
+            DataFrame's index: index labels missing from ``value`` become
+            missing values, and labels of ``value`` not in the index are dropped.
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
