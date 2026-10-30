@@ -285,6 +285,14 @@ class TestSeriesPlots:
 
         assert [patch.get_height() for patch in ax.patches] == [6, 6, 6, 7]
 
+    @pytest.mark.parametrize("method", ["hist", "plot.hist"])
+    def test_hist_timedelta_raises(self, method):
+        # GH#43941 used to segfault inside numpy; message depends on matplotlib
+        ser = pd.Series(pd.to_timedelta([None, "2 days", "1 day"]))
+        func = ser.hist if method == "hist" else ser.plot.hist
+        with pytest.raises(TypeError, match="(?i)timedelta"):
+            func()
+
 
 class TestDataFramePlots:
     def test_hist_df_tz_aware(self):
