@@ -94,6 +94,17 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
     return c(lhs, rhs)
 
 
+def _isin_dataframe_warning(lhs, op, rhs):
+    # GH#43460 Series.isin(DataFrame) is deprecated
+    if (
+        op in ("in", "not in")
+        and isinstance(lhs, pd.Series)
+        and isinstance(rhs, pd.DataFrame)
+    ):
+        return Pandas4Warning
+    return None
+
+
 # TODO: using range(5) here is a kludge
 @pytest.fixture(
     params=list(range(5)),
@@ -187,8 +198,12 @@ class TestEval:
                     local_dict={"lhs": lhs, "rhs": rhs},
                 )
         else:
-            expected = _eval_single_bin(lhs, cmp_op, rhs, engine)
-            result = pd.eval(ex, engine=engine, parser=parser)
+            warn = _isin_dataframe_warning(lhs, cmp_op, rhs)
+            depr_msg = "Passing a DataFrame to isin is deprecated"
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                expected = _eval_single_bin(lhs, cmp_op, rhs, engine)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = pd.eval(ex, engine=engine, parser=parser)
             tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
@@ -235,12 +250,16 @@ class TestEval:
             # compound
             if is_scalar(lhs) and is_scalar(rhs):
                 lhs, rhs = (np.array([x]) for x in (lhs, rhs))
-            expected = _eval_single_bin(lhs, op, rhs, engine)
+            warn = _isin_dataframe_warning(lhs, op, rhs)
+            depr_msg = "Passing a DataFrame to isin is deprecated"
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                expected = _eval_single_bin(lhs, op, rhs, engine)
             if is_scalar(expected):
                 expected = not expected
             else:
                 expected = ~expected
-            result = pd.eval(ex, engine=engine, parser=parser)
+            with tm.assert_produces_warning(warn, match=depr_msg):
+                result = pd.eval(ex, engine=engine, parser=parser)
             tm.assert_almost_equal(expected, result)
 
     @pytest.mark.parametrize("cmp1", ["<", ">"])

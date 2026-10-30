@@ -25,6 +25,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.missing import NA
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -58,6 +59,7 @@ from pandas.core.dtypes.dtypes import (
     NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
@@ -546,6 +548,19 @@ def _may_lose_precision_as_float64(arr: np.ndarray) -> bool:
     )
 
 
+def warn_dataframe_isin_values(values) -> None:
+    # GH#43460
+    if isinstance(values, ABCDataFrame):
+        warnings.warn(
+            "Passing a DataFrame to isin is deprecated and will raise in a "
+            "future version. Currently this checks membership in the "
+            "DataFrame's column labels; pass `df.columns` to keep that "
+            "behavior, or a column such as `df['col']` to check its values.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
@@ -570,6 +585,7 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             "only list-like objects are allowed to be passed "
             f"to isin(), you passed a `{type(values).__name__}`"
         )
+    warn_dataframe_isin_values(values)
 
     if isinstance(values, (set, frozenset)) and len(values) > 0:
         # GH#25507: for a set of values, membership can be tested directly

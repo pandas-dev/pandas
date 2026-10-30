@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCSeries,
@@ -1773,8 +1774,8 @@ class RangeIndex(Index):
         # instead of building the full int64 array that Index.isin works on
         if level is not None:
             self._validate_index_level(level)
-        if not lib.is_list_like(values):
-            # let Index.isin raise its usual error
+        if not lib.is_list_like(values) or isinstance(values, ABCDataFrame):
+            # let Index.isin raise its usual error or deprecation warning
             return super().isin(values, level=level)
 
         targets = _exact_int64_targets(values)

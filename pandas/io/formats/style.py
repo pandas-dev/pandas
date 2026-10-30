@@ -3142,7 +3142,9 @@ class Styler(StylerRenderer):
         # Returns a boolean mask indicating where `self.data` has numerical columns.
         # Choosing a mask as opposed to the column names also works for
         # boolean column labels (GH47838).
-        return self.data.columns.isin(self.data.select_dtypes(include=np.number))  # type: ignore[arg-type]
+        return self.data.columns.isin(
+            self.data.select_dtypes(include=np.number).columns
+        )
 
     def background_gradient(
         self,
