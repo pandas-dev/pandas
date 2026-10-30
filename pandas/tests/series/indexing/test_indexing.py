@@ -265,7 +265,7 @@ def test_underlying_data_conversion():
     df
 
     with tm.raises_chained_assignment_error():
-        df["val"].update(s)
+        df["val"].update(s, inplace=True)
     expected = df_original
     tm.assert_frame_equal(df, expected)
 
