@@ -546,6 +546,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             If value cannot be cast to self.dtype.
         """
         value = self._validate_setitem_value(value)
+        if isinstance(value, ExtensionArray):
+            # keep np.where from returning an ExtensionArray
+            value = np.asarray(value)
 
         res_values = np.where(mask, self._ndarray, value)
         if res_values.dtype != self._ndarray.dtype:

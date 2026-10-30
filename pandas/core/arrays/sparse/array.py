@@ -1282,6 +1282,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             #  sp_values disagreeing with the dtype
             value = _unbox_for_fill(subtype, value)
 
+        if isinstance(value, ExtensionArray):
+            # keep np.where from returning an ExtensionArray
+            value = np.asarray(value)
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
         if self._null_fill_value:
@@ -2030,7 +2033,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _where(self, mask, value):
         # NB: may not preserve dtype, e.g. result may be Sparse[float64]
         #  while self is Sparse[int64]
-        naive_implementation = np.where(mask, self, value)
+        if isinstance(value, ExtensionArray):
+            # keep np.where from returning an ExtensionArray
+            value = np.asarray(value)
+        naive_implementation = np.where(mask, np.asarray(self), value)
         dtype = SparseDtype(naive_implementation.dtype, fill_value=self.fill_value)
         result = type(self)._from_sequence(naive_implementation, dtype=dtype)
         return result
