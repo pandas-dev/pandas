@@ -46,6 +46,18 @@ class CustomFSPath:
         return self.path
 
 
+class CustomFSPathReadWrite(CustomFSPath):
+    """PathLike with read/write convenience methods, like py.path.local"""
+
+    def read(self, mode="r"):
+        with open(self.path, mode) as fh:
+            return fh.read()
+
+    def write(self, data, mode="w"):
+        with open(self.path, mode) as fh:
+            fh.write(data)
+
+
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -81,8 +93,10 @@ bar2,12,13,14,15
         redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
 
-    def test_stringify_path_fspath(self):
-        p = CustomFSPath("foo/bar.csv")
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_stringify_path_fspath(self, path_cls):
+        # GH#71769 for CustomFSPathReadWrite
+        p = path_cls("foo/bar.csv")
         result = icom.stringify_path(p)
         assert result == "foo/bar.csv"
 
@@ -91,6 +105,18 @@ bar2,12,13,14,15
         fsspec = pytest.importorskip("fsspec")
         with fsspec.open(f"file://{temp_file}", mode="wb") as fsspec_obj:
             assert fsspec_obj == icom.stringify_path(fsspec_obj)
+
+    def test_stringify_open_stream_with_fspath(self):
+        # GH#71769: an iterable buffer that also has __fspath__ (e.g. fsspec's
+        # SMBFileOpener) is read from, not reopened by path
+        class PathStream(StringIO):
+            def __fspath__(self):
+                return "nonexistent.csv"
+
+        buf = PathStream("a,b\n1,2\n")
+        assert icom.stringify_path(buf) is buf
+        result = pd.read_csv(buf)
+        tm.assert_frame_equal(result, pd.DataFrame({"a": [1], "b": [2]}))
 
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_infer_compression_from_path(self, compression_format, path_type):
@@ -318,11 +344,13 @@ Look,a snake,🐍"""
     @pytest.mark.filterwarnings(
         "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
     )
-    def test_read_fspath_all(self, reader, module, path, datapath):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_read_fspath_all(self, reader, module, path, path_cls, datapath):
+        # GH#71769 for CustomFSPathReadWrite
         pytest.importorskip(module)
         path = datapath(*path)
 
-        mypath = CustomFSPath(path)
+        mypath = path_cls(path)
         result = reader(mypath)
         expected = reader(path)
 
@@ -345,7 +373,11 @@ Look,a snake,🐍"""
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
     )
-    def test_write_fspath_all(self, writer_name, writer_kwargs, module, tmp_path):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_write_fspath_all(
+        self, writer_name, writer_kwargs, module, path_cls, tmp_path
+    ):
+        # GH#71769 for CustomFSPathReadWrite
         if writer_name in ["to_latex"]:  # uses Styler implementation
             pytest.importorskip("jinja2")
         string = str(tmp_path / "string")
@@ -353,7 +385,7 @@ Look,a snake,🐍"""
         df = pd.DataFrame({"A": [1, 2]})
 
         pytest.importorskip(module)
-        mypath = CustomFSPath(fspath)
+        mypath = path_cls(fspath)
         writer = getattr(df, writer_name)
 
         writer(string, **writer_kwargs)
@@ -370,7 +402,8 @@ Look,a snake,🐍"""
                 expected = f_path.read()
                 assert result == expected
 
-    def test_write_fspath_hdf5(self, tmp_path):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_write_fspath_hdf5(self, path_cls, tmp_path):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
         # have to read and compare equality
@@ -380,7 +413,7 @@ Look,a snake,🐍"""
         string = str(tmp_path / "string")
         fspath = str(tmp_path / "fspath")
 
-        mypath = CustomFSPath(fspath)
+        mypath = path_cls(fspath)
         df.to_hdf(mypath, key="bar")
         df.to_hdf(string, key="bar")
 

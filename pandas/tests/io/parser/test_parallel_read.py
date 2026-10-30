@@ -99,6 +99,13 @@ class TestCanParallelizeCsv:
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert _can_parallelize_csv(path, self._kwds())
 
+    def test_eligible_py_path_local(self, tmpdir, monkeypatch):
+        # GH#71769 py.path.local has read/write methods but is a path, not a buffer
+        path = tmpdir.join("big.csv")
+        _make_large_csv(path)
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert _can_parallelize_csv(path, self._kwds())
+
     def test_accepts_default_engine(self, tmp_path, monkeypatch):
         """engine=None (the default) should be treated the same as engine='c'."""
         path = tmp_path / "data.csv"
