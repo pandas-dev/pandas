@@ -204,8 +204,6 @@ class TestPandasContainer:
         )
 
         expected = df.copy()
-        if not dtype:
-            expected = expected.astype(np.int64)
 
         # index columns, and records orients cannot fully preserve the string
         # dtype for axes as the index and column labels are used as keys in
@@ -310,7 +308,6 @@ class TestPandasContainer:
         result = pd.read_json(data, orient=orient, convert_axes=convert_axes)
 
         expected = df.copy()
-        expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
         assert_json_roundtrip_equal(result, expected, orient)
 
@@ -888,7 +885,6 @@ class TestPandasContainer:
             result = pd.read_json(json, convert_dates=False)
         expected = df.copy()
         expected["date"] = expected["date"].dt.as_unit("ns").astype("int64")
-        expected["foo"] = expected["foo"].astype("int64")
         expected.index = expected.index.as_unit("ns")
         tm.assert_frame_equal(result, expected)
 
