@@ -391,7 +391,14 @@ def qcut(
     else:
         raise ValueError("`q` should be a positive integer or list-like of quantiles.")
 
-    bins = x_idx.to_series().dropna().quantile(quantiles)
+    ser = x_idx.to_series().dropna()
+    with np.errstate(invalid="ignore"):
+        bins = ser.quantile(quantiles)
+    if not ser.empty and bins.isna().any():
+        low = ser.quantile(quantiles, interpolation="lower")
+        high = ser.quantile(quantiles, interpolation="higher")
+        repl = high.where(np.isposinf(high), low)
+        bins = bins.mask(bins.isna(), repl.to_numpy())
 
     fac, bins = _bins_to_cuts(
         x_idx,
