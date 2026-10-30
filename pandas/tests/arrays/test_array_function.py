@@ -11,6 +11,7 @@ from pandas.arrays import (
     NumpyExtensionArray,
     SparseArray,
 )
+from pandas.tests.extension.array_with_attr import FloatAttrArray
 
 
 def test_delete_with_extension_array_obj():
@@ -215,6 +216,10 @@ def test_where_na_scalar(other):
         (pd.array([1, 2, 3], dtype="Int64"), pd.array([4], dtype="Int64")),
         # list-likes other than arrays
         (pd.array([1, 2, 3], dtype="Int64"), [4, 5, 6]),
+        # _where upcasts instead of raising
+        (SparseArray([1, 0, 2]), 1.5),
+        # no __setitem__
+        (FloatAttrArray(np.array([1.0, 2.0, 3.0])), 0.0),
     ],
 )
 def test_where_falls_back(x, y):

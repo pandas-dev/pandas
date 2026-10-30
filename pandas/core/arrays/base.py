@@ -3485,10 +3485,17 @@ def _where(condition, *args):
     ):
         return NotImplemented
     try:
-        return arr._where(cond, other)
+        result = arr._where(cond, other)
     except (TypeError, ValueError, OverflowError):
         # other can't be held by arr.dtype, e.g. 1.5 for Int64; numpy upcasts
         return NotImplemented
+    except NotImplementedError:
+        # read-only arrays without __setitem__
+        return NotImplemented
+    if result.dtype != arr.dtype:
+        # e.g. SparseArray._where upcasts instead of raising
+        return NotImplemented
+    return result
 
 
 _ARRAY_FUNCTION_OVERRIDES: dict[Callable[..., Any], Callable[..., Any]] = {
