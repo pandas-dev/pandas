@@ -158,6 +158,7 @@ I/O:
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
 - :func:`read_csv` now supports ``dtype="complex64"`` and ``dtype="complex128"`` with the C engine, enabling round-tripping of complex-number columns written by :meth:`DataFrame.to_csv` (:issue:`9379`)
 - :func:`read_excel` and :class:`ExcelFile` now infer ``engine`` from a workbook object created by a supported engine's library, such as an ``openpyxl.Workbook``, instead of raising (:issue:`46352`)
+- :func:`read_parquet` now accepts a ``chunksize`` parameter when ``engine="pyarrow"``, returning an iterator of DataFrames instead of reading the whole file into memory at once, matching the streaming behavior :func:`read_csv` already provides; not supported with ``engine="fastparquet"`` or together with ``filters`` (:issue:`55973`)
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 
 Groupby/resample/rolling:
