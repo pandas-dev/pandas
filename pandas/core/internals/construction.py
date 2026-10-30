@@ -935,8 +935,11 @@ def _list_of_dict_to_arrays(
     columns : Index
     """
     # assure that they are of the base dict class and not of derived
-    # classes
-    data = [d if type(d) is dict else dict(d) for d in data]
+    # classes; a null record becomes an all-NaN row, matching json_normalize
+    data = [
+        d if type(d) is dict else {} if is_scalar(d) and isna(d) else dict(d)
+        for d in data
+    ]
 
     if columns is None:
         gen = (list(x.keys()) for x in data)

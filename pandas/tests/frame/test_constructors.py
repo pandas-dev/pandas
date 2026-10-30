@@ -1498,6 +1498,17 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame(index=pd.RangeIndex(1), columns=[])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("columns", [None, ["a", "b"]])
+    def test_constructor_list_of_dicts_with_null_records(self, nulls_fixture, columns):
+        # GH#14358 null records become all-NaN rows, matching json_normalize
+        data = [{"a": 1, "b": "x"}, nulls_fixture, {"a": 2, "b": "y"}]
+        result = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame({"a": [1.0, np.nan, 2.0], "b": ["x", np.nan, "y"]})
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.DataFrame.from_records(data, columns=columns)
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_ordered_dict_nested_preserve_order(self):
         # see gh-18166
         nested1 = OrderedDict([("b", 1), ("a", 2)])
