@@ -48,8 +48,8 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=None,
     ),
-    "startingMonth": inspect.Parameter(
-        "startingMonth",
+    "starting_month": inspect.Parameter(
+        "starting_month",
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=None,
     ),
@@ -107,42 +107,42 @@ _OFFSET_SIGNATURES = {
     pd.tseries.offsets.QuarterEnd: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.QuarterBegin: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.HalfYearEnd: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.HalfYearBegin: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.BHalfYearEnd: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.BHalfYearBegin: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.BQuarterEnd: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.BQuarterBegin: (
         "n",
         "normalize",
-        "startingMonth",
+        "starting_month",
     ),
     pd.tseries.offsets.BusinessHour: (
         "n",

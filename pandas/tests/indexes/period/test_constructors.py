@@ -230,7 +230,7 @@ class TestPeriodIndex:
     def test_from_fields_quarterly_anchors(self, starting_month):
         # GH#55784 from_fields rejected any quarterly freq not anchored on
         # December, even though the equivalent scalar Period works.
-        freq = pd.offsets.QuarterEnd(startingMonth=starting_month)
+        freq = pd.offsets.QuarterEnd(starting_month=starting_month)
         result = pd.PeriodIndex.from_fields(year=[2014], quarter=[3], freq=freq)
         expected = pd.Period(year=2014, quarter=3, freq=freq)
         assert result[0] == expected

@@ -1074,88 +1074,70 @@ def test_offset_name_deprecated():
     assert result == "D"
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        offsets.QuarterEnd,
-        offsets.QuarterBegin,
-        offsets.BQuarterEnd,
-        offsets.BQuarterBegin,
-        offsets.HalfYearEnd,
-        offsets.HalfYearBegin,
-        offsets.BHalfYearEnd,
-        offsets.BHalfYearBegin,
-        FY5253,
-        FY5253Quarter,
-    ],
-)
-class TestStartingMonthDeprecation:
-    def test_starting_month_keyword_deprecated(self, cls):
-        # GH#57794
-        kwargs = {"startingMonth": 3}
-        if issubclass(cls, (FY5253, FY5253Quarter)):
-            kwargs["weekday"] = 0
-            kwargs["variation"] = "nearest"
-        with tm.assert_produces_warning(
-            Pandas4Warning, match="startingMonth.*deprecated.*starting_month"
-        ):
-            offset = cls(**kwargs)
-        assert offset.starting_month == 3
+_STARTING_MONTH_CLASSES = [
+    offsets.QuarterEnd,
+    offsets.QuarterBegin,
+    offsets.BQuarterEnd,
+    offsets.BQuarterBegin,
+    offsets.HalfYearEnd,
+    offsets.HalfYearBegin,
+    offsets.BHalfYearEnd,
+    offsets.BHalfYearBegin,
+    FY5253,
+    FY5253Quarter,
+]
 
-    def test_starting_month_property_deprecated(self, cls):
-        # GH#57794
-        kwargs = {"starting_month": 3}
-        if issubclass(cls, (FY5253, FY5253Quarter)):
-            kwargs["weekday"] = 0
-            kwargs["variation"] = "nearest"
-        offset = cls(**kwargs)
-        with tm.assert_produces_warning(
-            Pandas4Warning, match="startingMonth.*deprecated.*starting_month"
-        ):
-            result = offset.startingMonth
-        assert result == 3
 
-    def test_starting_month_both_raises(self, cls):
-        # GH#57794
-        kwargs = {"starting_month": 3, "startingMonth": 3}
-        if issubclass(cls, (FY5253, FY5253Quarter)):
-            kwargs["weekday"] = 0
-            kwargs["variation"] = "nearest"
-        with pytest.raises(TypeError, match="Cannot pass both"):
-            cls(**kwargs)
+@pytest.mark.parametrize("cls", _STARTING_MONTH_CLASSES)
+def test_starting_month_keyword_deprecated(cls):
+    # GH#57794
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="startingMonth.*deprecated.*starting_month"
+    ):
+        offset = cls(startingMonth=3)
+    assert offset.starting_month == 3
 
-    def test_starting_month_new_kwarg(self, cls):
-        # GH#57794 - new kwarg works without warning
-        kwargs = {"starting_month": 3}
-        if issubclass(cls, (FY5253, FY5253Quarter)):
-            kwargs["weekday"] = 0
-            kwargs["variation"] = "nearest"
-        with tm.assert_produces_warning(None):
-            offset = cls(**kwargs)
-        with tm.assert_produces_warning(None):
-            result = offset.starting_month
-        assert result == 3
 
-    def test_unpickle_old_starting_month_key(self, cls):
-        # GH#57794 - old pickles used "startingMonth" key in __setstate__;
-        #  verify __setstate__ accepts the old key
-        kwargs = {"starting_month": 7}
-        if issubclass(cls, (FY5253, FY5253Quarter)):
-            kwargs["weekday"] = 0
-            kwargs["variation"] = "nearest"
-        offset = cls(**kwargs)
+@pytest.mark.parametrize("cls", _STARTING_MONTH_CLASSES)
+def test_starting_month_property_deprecated(cls):
+    # GH#57794
+    offset = cls(starting_month=3)
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="startingMonth.*deprecated.*starting_month"
+    ):
+        result = offset.startingMonth
+    assert result == 3
 
-        # Simulate old-format state dict with "startingMonth" key
-        state = {"n": offset.n, "normalize": offset.normalize, "startingMonth": 7}
-        if issubclass(cls, (FY5253, FY5253Quarter)):
-            state["weekday"] = 0
-            state["variation"] = "nearest"
-        if issubclass(cls, FY5253Quarter):
-            state["qtr_with_extra_week"] = 1
 
-        new_offset = cls.__new__(cls)
-        new_offset.__setstate__(state)
-        assert new_offset.starting_month == 7
+@pytest.mark.parametrize("cls", _STARTING_MONTH_CLASSES)
+def test_starting_month_both_raises(cls):
+    # GH#57794
+    with pytest.raises(TypeError, match="Cannot pass both"):
+        cls(starting_month=3, startingMonth=3)
+
+
+@pytest.mark.parametrize("cls", _STARTING_MONTH_CLASSES)
+def test_starting_month_new_kwarg(cls):
+    # GH#57794
+    with tm.assert_produces_warning(None):
+        offset = cls(starting_month=3)
+        result = offset.starting_month
+    assert result == 3
+
+
+@pytest.mark.parametrize("cls", _STARTING_MONTH_CLASSES)
+def test_unpickle_old_starting_month_key(cls):
+    # GH#57794 legacy pickles carry a "startingMonth" key
+    state = {"n": 1, "normalize": False, "startingMonth": 7}
+    if issubclass(cls, (FY5253, FY5253Quarter)):
+        state["weekday"] = 0
+        state["variation"] = "nearest"
+    if issubclass(cls, FY5253Quarter):
+        state["qtr_with_extra_week"] = 1
+
+    new_offset = cls.__new__(cls)
+    new_offset.__setstate__(state)
+    assert new_offset.starting_month == 7
 
 
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
@@ -1525,7 +1507,7 @@ def test_month_end_n_above_int32_exact():
     "start, off, expected",
     [
         ("-19999-02-01", offsets.BMonthBegin(), "-19999-03-01"),
-        ("-19999-02-27", offsets.BQuarterEnd(startingMonth=2), "-19999-02-28"),
+        ("-19999-02-27", offsets.BQuarterEnd(starting_month=2), "-19999-02-28"),
         ("-19999-02-01", offsets.BYearBegin(month=2), "-19998-02-01"),
     ],
 )

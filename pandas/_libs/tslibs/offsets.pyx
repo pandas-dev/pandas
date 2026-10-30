@@ -58,8 +58,6 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
-_no_default = object()
-
 from pandas._libs.tslibs.ccalendar cimport (
     MONTH_TO_CAL_NUM,
     dayofweek,
@@ -112,6 +110,31 @@ from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
+
+# ---------------------------------------------------------------------
+# GH#57794 startingMonth -> starting_month deprecation
+
+_no_default = object()
+
+
+cdef _warn_starting_month(str kind):
+    from pandas.errors import Pandas4Warning
+
+    warnings.warn(
+        f"The 'startingMonth' {kind} is deprecated and will be "
+        "removed in a future version. Use 'starting_month' instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
+cdef _resolve_starting_month(starting_month, startingMonth):
+    if startingMonth is _no_default:
+        return starting_month
+    if starting_month is not None:
+        raise TypeError("Cannot pass both 'starting_month' and 'startingMonth'")
+    _warn_starting_month("keyword")
+    return startingMonth
 
 # ---------------------------------------------------------------------
 # day_opt enum: avoids repeated string comparisons in nogil loops
@@ -4147,30 +4170,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
     ):
         BaseOffset.__init__(self, n, normalize)
 
-        if startingMonth is not _no_default:
-            if starting_month is not None:
-                raise TypeError(
-                    "Cannot pass both 'starting_month' and 'startingMonth'"
-                )
-            from pandas.errors import Pandas4Warning
-
-            warnings.warn(
-                "The 'startingMonth' keyword is deprecated and will be "
-                "removed in a future version. Use 'starting_month' instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-            starting_month = startingMonth
-
+        starting_month = _resolve_starting_month(starting_month, startingMonth)
         if starting_month is None:
             starting_month = self._default_starting_month
         self._startingMonth = starting_month
 
     cpdef __setstate__(self, state):
-        if "startingMonth" in state:
-            self._startingMonth = state.pop("startingMonth")
-        else:
-            self._startingMonth = state.pop("starting_month")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
 
@@ -4212,14 +4218,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     @property
     def startingMonth(self) -> int:
-        from pandas.errors import Pandas4Warning
-
-        warnings.warn(
-            "The 'startingMonth' property is deprecated and will be "
-            "removed in a future version. Use 'starting_month' instead.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
+        _warn_starting_month("property")
         return self._startingMonth
 
     @classmethod
@@ -4577,30 +4576,13 @@ cdef class HalfYearOffset(SingleConstructorOffset):
     ):
         BaseOffset.__init__(self, n, normalize)
 
-        if startingMonth is not _no_default:
-            if starting_month is not None:
-                raise TypeError(
-                    "Cannot pass both 'starting_month' and 'startingMonth'"
-                )
-            from pandas.errors import Pandas4Warning
-
-            warnings.warn(
-                "The 'startingMonth' keyword is deprecated and will be "
-                "removed in a future version. Use 'starting_month' instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-            starting_month = startingMonth
-
+        starting_month = _resolve_starting_month(starting_month, startingMonth)
         if starting_month is None:
             starting_month = self._default_starting_month
         self._startingMonth = starting_month
 
     cpdef __setstate__(self, state):
-        if "startingMonth" in state:
-            self._startingMonth = state.pop("startingMonth")
-        else:
-            self._startingMonth = state.pop("starting_month")
+        self._startingMonth = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
 
@@ -4637,18 +4619,11 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         >>> pd.Timestamp("2022-01-15") + pd.offsets.HalfYearEnd(starting_month=2)
         Timestamp('2022-02-28 00:00:00')
         """
-        return self._starting_month
+        return self._startingMonth
 
     @property
     def startingMonth(self) -> int:
-        from pandas.errors import Pandas4Warning
-
-        warnings.warn(
-            "The 'startingMonth' property is deprecated and will be "
-            "removed in a future version. Use 'starting_month' instead.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
+        _warn_starting_month("property")
         return self._startingMonth
 
     @classmethod
@@ -6092,14 +6067,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
     @property
     def startingMonth(self):
-        from pandas.errors import Pandas4Warning
-
-        warnings.warn(
-            "The 'startingMonth' property is deprecated and will be "
-            "removed in a future version. Use 'starting_month' instead.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
+        _warn_starting_month("property")
         return self._startingMonth
 
     @property
@@ -6164,21 +6132,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     ):
         BaseOffset.__init__(self, n, normalize)
 
-        if startingMonth is not _no_default:
-            if starting_month is not None:
-                raise TypeError(
-                    "Cannot pass both 'starting_month' and 'startingMonth'"
-                )
-            from pandas.errors import Pandas4Warning
-
-            warnings.warn(
-                "The 'startingMonth' keyword is deprecated and will be "
-                "removed in a future version. Use 'starting_month' instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
-            starting_month = startingMonth
-
+        starting_month = _resolve_starting_month(starting_month, startingMonth)
         if starting_month is None:
             starting_month = 1
         self._startingMonth = starting_month
@@ -6194,10 +6148,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
-        if "startingMonth" in state:
-            self._startingMonth = state.pop("startingMonth")
-        else:
-            self._startingMonth = state.pop("starting_month")
+        self._startingMonth = state.pop("startingMonth")
         self._weekday = state.pop("weekday")
         self._variation = state.pop("variation")
 
