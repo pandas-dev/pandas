@@ -42,6 +42,7 @@ from pandas.core.computation.ops import (
     is_term,
 )
 from pandas.core.computation.parsing import (
+    backtick_quoted_assign_target,
     clean_backtick_quoted_toks,
     tokenize_string,
 )
@@ -405,9 +406,12 @@ class BaseExprVisitor(ast.NodeVisitor):
         self.parser = parser
         self.preparser = preparser
         self.assigner = None
+        self.assigner_label = None
+        self._source = ""
 
     def visit(self, node, **kwargs):
         if isinstance(node, str):
+            self._source = node
             clean = self.preparser(node)
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))
@@ -652,6 +656,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             raise SyntaxError(
                 "left hand side of an assignment must be a single resolvable name"
             )
+        self.assigner_label = backtick_quoted_assign_target(self._source, self.assigner)
 
         return self.visit(node.value, **kwargs)
 
@@ -852,6 +857,10 @@ class Expr:
     @property
     def assigner(self):
         return getattr(self._visitor, "assigner", None)
+
+    @property
+    def assigner_label(self):
+        return getattr(self._visitor, "assigner_label", None)
 
     def __call__(self):
         return self.terms(self.env)
