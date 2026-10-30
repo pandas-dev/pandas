@@ -114,6 +114,11 @@ def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
                 if hasattr(o, "dtype"):
                     dtypes |= {o.dtype.name}
 
+            if "float32" in dtypes and dtypes & {"int32", "int64"}:
+                # numexpr computes int with float32 in float32, numpy in float64,
+                #  losing precision GH#71272
+                return False
+
             # allowed are a superset
             if not len(dtypes) or _ALLOWED_DTYPES[dtype_check] >= dtypes:
                 return True
