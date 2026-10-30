@@ -201,6 +201,7 @@ static inline int complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b);
+static inline khuint32_t kh_python_hash_func(PyObject *key);
 
 // replacing PyObject_RichCompareBool (NaN!=NaN) with pyobject_cmp (NaN==NaN),
 // which treats NaNs as equivalent
@@ -246,6 +247,11 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     PyErr_Clear();
     return 0;
   }
+  if (result && Py_TYPE(a) != Py_TYPE(b)) {
+    // equal objects with different hashes, e.g. np.dtype("int64") == "int64",
+    // would otherwise match only when probing happens to reach them, GH#43581
+    return kh_python_hash_func(a) == kh_python_hash_func(b);
+  }
   return result;
 }
 
@@ -276,8 +282,6 @@ static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
   }
   return (Py_hash_t)combined;
 }
-
-static inline khuint32_t kh_python_hash_func(PyObject *key);
 
 // we could use any hashing algorithm, this is the original CPython's for tuples
 
