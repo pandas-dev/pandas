@@ -252,8 +252,8 @@ def test_boolean_dtype(all_parsers):
 def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
     if all_parsers.engine == "pyarrow":
-        # pyarrow cannot parse this single-line input with these options
-        msg = "No columns to parse from file"
+        # GH#62635 single line without a trailing newline
+        msg = "The 'pyarrow' engine also raises this for a single line"
         with pytest.raises(EmptyDataError, match=msg):
             all_parsers.read_csv(
                 StringIO('"dump","-9,1","-9,1",20101010'),
