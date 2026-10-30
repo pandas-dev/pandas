@@ -26,7 +26,7 @@ from pandas.tseries.offsets import (
 _ANCHORS = [
     *((klass, {}) for klass in (MonthBegin, MonthEnd, BMonthBegin, BMonthEnd)),
     *(
-        (klass, {"startingMonth": month})
+        (klass, {"month": month})
         for klass in (QuarterBegin, QuarterEnd, BQuarterBegin, BQuarterEnd)
         for month in (1, 2, 3)
     ),
