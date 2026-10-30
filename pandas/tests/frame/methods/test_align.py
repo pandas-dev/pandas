@@ -283,6 +283,41 @@ class TestDataFrameAlign:
         tm.assert_frame_equal(result_l, df)
         tm.assert_series_equal(result_r, expected_r)
 
+    @pytest.mark.parametrize("names", [[None, None], [None, "a"]])
+    def test_multiindex_align_to_series_unnamed_levels(self, names):
+        # GH#34292 align broadcasts along the level rather than joining rows,
+        # including when Index.join matches on an unnamed level
+        index = pd.MultiIndex.from_product([[0, 1]] * 2, names=names)
+        df = pd.DataFrame({"col": range(4)}, index=index)
+        series = pd.Series([1.0, 2.0, 3.0], index=[0, 1, 5])
+
+        result_l, result_r = df.align(series, axis=0)
+
+        tm.assert_frame_equal(result_l, df)
+        tm.assert_series_equal(result_r, pd.Series([1.0, 1.0, 2.0, 2.0], index=index))
+        tm.assert_frame_equal(
+            df.add(series, axis=0),
+            pd.DataFrame({"col": [1.0, 2.0, 4.0, 5.0]}, index=index),
+        )
+
+    def test_multiindex_columns_align_to_flat(self):
+        # GH#34292 same broadcasting along columns
+        cols = pd.MultiIndex.from_product([["a", "b"], [1, 2]], names=["k", "n"])
+        df = pd.DataFrame([[1.0, 2.0, 3.0, 4.0]], columns=cols)
+        series = pd.Series([1.0, 2.0, 3.0], index=pd.Index(["a", "b", "z"], name="k"))
+        broadcast = pd.Series([1.0, 1.0, 2.0, 2.0], index=cols)
+
+        result_l, result_r = df.align(series, axis=1)
+        tm.assert_frame_equal(result_l, df)
+        tm.assert_series_equal(result_r, broadcast)
+        tm.assert_frame_equal(
+            df.sub(series, axis=1), pd.DataFrame([[0.0, 1.0, 1.0, 2.0]], columns=cols)
+        )
+
+        result_l, result_r = df.align(series.to_frame().T, axis=1)
+        tm.assert_frame_equal(result_l, df)
+        tm.assert_frame_equal(result_r, broadcast.to_frame().T)
+
     def test_multiindex_align_to_series_with_common_index_level_non_unique_cols(self):
         #  GH-46001
         foo_index = pd.Index([1, 2, 3], name="foo")

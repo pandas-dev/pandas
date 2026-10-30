@@ -10301,8 +10301,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         is_series = isinstance(self, ABCSeries)
 
         if (axis is None or axis == 0) and not self.index.equals(other.index):
-            join_index, ilidx, iridx = self.index.join(
-                other.index, how=join, level=level, return_indexers=True
+            join_index, ilidx, iridx = join_for_align(
+                self.index, other.index, join, level
             )
 
         if (
@@ -10310,8 +10310,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and not is_series
             and not self.columns.equals(other.columns)
         ):
-            join_columns, clidx, cridx = self.columns.join(
-                other.columns, how=join, level=level, return_indexers=True
+            join_columns, clidx, cridx = join_for_align(
+                self.columns, other.columns, join, level
             )
 
         if is_series:
@@ -10353,8 +10353,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if self.index.equals(other.index):
                 join_index, lidx, ridx = None, None, None
             else:
-                join_index, lidx, ridx = self.index.join(
-                    other.index, how=join, level=level, return_indexers=True
+                join_index, lidx, ridx = join_for_align(
+                    self.index, other.index, join, level
                 )
 
             if is_series:
@@ -10373,8 +10373,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             join_index = self.axes[1]
             lidx, ridx = None, None
             if not join_index.equals(other.index):
-                join_index, lidx, ridx = join_index.join(
-                    other.index, how=join, level=level, return_indexers=True
+                join_index, lidx, ridx = join_for_align(
+                    join_index, other.index, join, level
                 )
 
             if lidx is not None:
@@ -13077,3 +13077,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         If DataFrame is empty, returns None.
         """
         return self._find_valid_index(how="last")
+
+
+def join_for_align(
+    left: Index, right: Index, how: AlignJoin, level: Level | None
+) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+    """
+    Index.join with return_indexers=True, but a flat Index joined to a MultiIndex
+    keeps only the MultiIndex's rows instead of adding its unmatched keys (GH#34292).
+    """
+    if (
+        level is None
+        and left._is_multi != right._is_multi
+        and left.names != right.names
+    ):
+        return left._join_multi(right, how=how, broadcast=True)
+    return left.join(right, how=how, level=level, return_indexers=True)
