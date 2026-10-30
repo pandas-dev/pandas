@@ -622,6 +622,37 @@ class TestRolling:
         expected = expected.drop(columns="foo")
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_rolling_no_sort_multiple_keys_order(self):
+        # GH 50296 with sort=False the groups must keep their order of
+        # appearance, also when a key combination is missing
+        index = pd.MultiIndex.from_product(
+            [[580, 546], [520, 655, 529], pd.date_range("2020-11-01", periods=2)],
+            names=["machine_id", "product_id", "sample_date"],
+        )
+        df = pd.DataFrame(
+            {"sales_qty": np.arange(12, dtype=np.float64)}, index=index
+        ).reset_index()
+        df = df.sort_values(by=["machine_id", "product_id", "sample_date"])
+        df = df[df["machine_id"].ne(546) | df["product_id"].ne(529)]
+        result = (
+            df.groupby(["machine_id", "product_id"], sort=False)["sales_qty"]
+            .rolling(2, center=True)
+            .sum()
+        )
+        expected = pd.Series(
+            [np.nan, 13.0, np.nan, 17.0, np.nan, 1.0, np.nan, 9.0, np.nan, 5.0],
+            index=pd.MultiIndex.from_arrays(
+                [
+                    [546, 546, 546, 546, 580, 580, 580, 580, 580, 580],
+                    [520, 520, 655, 655, 520, 520, 529, 529, 655, 655],
+                    [6, 7, 8, 9, 0, 1, 4, 5, 2, 3],
+                ],
+                names=["machine_id", "product_id", None],
+            ),
+            name="sales_qty",
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_groupby_rolling_count_closed_on(self, unit):
         # GH 35869
         df = pd.DataFrame(
