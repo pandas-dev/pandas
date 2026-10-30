@@ -6,7 +6,7 @@ It has been extended and improved by Skipper Seabold from the Statsmodels
 project who also developed the StataWriter and was finally added to pandas in
 a once again improved version.
 
-You can find more information on http://presbrey.mit.edu/PyDTA and
+You can find more information on https://web.archive.org/web/20220817151054/http://presbrey.mit.edu/PyDTA and
 https://www.statsmodels.org/devel/
 """
 
