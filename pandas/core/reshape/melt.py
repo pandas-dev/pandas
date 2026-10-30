@@ -562,11 +562,11 @@ def wide_to_long(
              X  A(weekly)  B(weekly)
     id year
     0  2010  0   0.548814   0.437587
+       2011  0   0.544883   0.383442
     1  2010  1   0.715189   0.891773
+       2011  1   0.423655   0.791725
     2  2010  1   0.602763   0.963663
-    0  2011  0   0.544883   0.383442
-    1  2011  1   0.423655   0.791725
-    2  2011  1   0.645894   0.528895
+       2011  1   0.645894   0.528895
 
     If we have many columns, we could also use a regex to find our
     stubnames and pass that list on to wide_to_long
