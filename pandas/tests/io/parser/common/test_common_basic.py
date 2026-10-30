@@ -977,8 +977,8 @@ def test_single_line_without_line_terminator(all_parsers):
     parser = all_parsers
     data = "1,2,3"
     if parser.engine == "pyarrow":
-        msg = "The 'pyarrow' engine cannot infer the number of columns"
-        with pytest.raises(ParserError, match=msg):
+        msg = "The 'pyarrow' engine also raises this for a single line"
+        with pytest.raises(EmptyDataError, match=msg):
             parser.read_csv(StringIO(data), names=["a", "b", "c"])
         return
     result = parser.read_csv(StringIO(data), names=["a", "b", "c"])

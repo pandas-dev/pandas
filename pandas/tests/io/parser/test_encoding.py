@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
-    ParserError,
+    EmptyDataError,
     ParserWarning,
 )
 
@@ -416,8 +416,8 @@ def test_not_readable(all_parsers, mode):
                     parser.read_csv(handle)
             else:
                 # GH#62635 single line without a trailing newline
-                msg = "The 'pyarrow' engine cannot infer the number of columns"
-                with pytest.raises(ParserError, match=msg):
+                msg = "The 'pyarrow' engine also raises this for a single line"
+                with pytest.raises(EmptyDataError, match=msg):
                     parser.read_csv(handle)
             return
         df = parser.read_csv(handle)
