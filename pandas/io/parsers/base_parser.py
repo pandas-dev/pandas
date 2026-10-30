@@ -107,6 +107,9 @@ class ParserBase:
 
         self.names = kwds.get("names")
         self.orig_names: Sequence[Hashable] | None = None
+        # file position -> name of each column read; None falls back to orig_names
+        self._position_names: dict[int, Hashable] | None = None
+        self._num_file_columns = 0
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set[Any] = set()
@@ -359,6 +362,28 @@ class ParserBase:
         return index, columns
 
     @final
+    def _position_to_name(self, col: int) -> Hashable | None:
+        """
+        Resolve an integer key of a per-column mapping to a column name.
+
+        Non-negative keys are field positions in the file, as in the C reader,
+        so they count columns dropped by ``usecols``. Returns None for a column
+        that is not read and raises IndexError past the last column. Negative
+        keys, or any key when there is no position map, index ``orig_names``.
+        see GH#18566
+        """
+        assert self.orig_names is not None
+        if col < 0 or self._position_names is None:
+            return self.orig_names[col]
+        if col not in self._position_names and col >= self._num_file_columns:
+            # keep raising until GH#57944 decides what out-of-range keys do
+            raise IndexError(
+                f"Integer key {col} is out of range for {self._num_file_columns} "
+                "columns"
+            )
+        return self._position_names.get(col)
+
+    @final
     def _clean_mapping(self, mapping):
         """converts col numbers to names"""
         if not isinstance(mapping, dict):
@@ -369,7 +394,9 @@ class ParserBase:
 
         for col, v in mapping.items():
             if isinstance(col, int) and col not in self.orig_names:
-                col = self.orig_names[col]
+                col = self._position_to_name(col)
+                if col is None:
+                    continue
             clean[col] = v
         if isinstance(mapping, defaultdict):
             remaining_cols = set(self.orig_names) - set(clean.keys())
@@ -381,6 +408,25 @@ class ParserBase:
         arrays = []
         converters = self._clean_mapping(self.converters)
         clean_dtypes = self._clean_mapping(self.dtype)
+        if isinstance(self.na_values, dict):
+            assert self.orig_names is not None
+            # skip keys TextReader ignores (negative or past the last column)
+            #  until GH#57944
+            na_keys = [
+                key
+                for key in self.na_values
+                if not (
+                    is_integer(key)
+                    and key not in self.orig_names
+                    and not 0 <= key < self._num_file_columns
+                )
+            ]
+            clean_na_values = self._clean_mapping(
+                {key: self.na_values[key] for key in na_keys}
+            )
+            clean_na_fvalues = self._clean_mapping(
+                {key: self.na_fvalues[key] for key in na_keys}
+            )
 
         if self.index_names is not None:
             names: Iterable[Hashable | None] = self.index_names
@@ -412,7 +458,10 @@ class ParserBase:
                 col_name = self.index_names[i]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = get_na_values(
-                        col_name, self.na_values, self.na_fvalues, self.keep_default_na
+                        col_name,
+                        clean_na_values,
+                        clean_na_fvalues,
+                        self.keep_default_na,
                     )
                 else:
                     col_na_values, col_na_fvalues = set(), set()
@@ -801,10 +850,13 @@ class ParserBase:
             dtype_dict = defaultdict(lambda: dtype)
         else:
             dtype = cast("dict[Hashable, Dtype]", dtype)
-            dtype_dict = defaultdict(
-                lambda: None,
-                {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
-            )
+            dtype_dict = defaultdict(lambda: None)
+            for k, v in dtype.items():
+                if is_integer(k) and int(k) not in columns:
+                    k = self._position_to_name(int(k))
+                    if k is None:
+                        continue
+                dtype_dict[k] = v
 
         # Even though we have no data, the "index" of the empty DataFrame
         # could for example still be an empty MultiIndex. Thus, we need to
