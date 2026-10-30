@@ -33,6 +33,7 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer,
+    is_object_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -269,7 +270,13 @@ def asarray_tuplesafe(values: Iterable[Any], dtype: NpDtype | None = None) -> Ar
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
 
-    if result.ndim == 2:
+    if result.ndim == 2 or (
+        # nested tuples, GH#43780
+        result.ndim > 2
+        and isinstance(values, (list, tuple))
+        and isinstance(values[0], tuple)
+        and (dtype is None or is_object_dtype(dtype))
+    ):
         # Avoid building an array of arrays:
         values = [tuple(x) for x in values]
         result = construct_1d_object_array_from_listlike(values)
