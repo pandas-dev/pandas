@@ -190,7 +190,7 @@ def merge(
         First pandas object to merge.
     right : DataFrame or named Series
         Second pandas object to merge.
-    how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti},
+    how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
         default 'inner'
         Type of merge to be performed.
 
@@ -208,6 +208,9 @@ def merge(
           to SQL left anti join; preserve key order.
         * right_anti: use only keys from right frame that are not in left frame, similar
           to SQL right anti join; preserve key order.
+
+        Rows sharing a key are ordered by their position in the left frame, then
+        in the right frame (for 'right', the right frame first).
     on : Hashable or a sequence of the previous
         Column or index level names to join on. These must be found in both
         DataFrames. If `on` is None and not merging on indexes then this defaults
