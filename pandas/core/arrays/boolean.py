@@ -401,10 +401,18 @@ class BooleanArray(BaseMaskedArray):
                     stacklevel=find_stack_level(),
                 )
 
-            other = np.asarray(other, dtype="bool")
+            other = np.asarray(other)
             if other.ndim > 1:
                 return NotImplemented
-            other, mask = coerce_to_array(other, copy=False)
+            # GH#71478: treat missing values (e.g. NaN introduced by alignment)
+            # as NA instead of casting them to True with np.asarray(..., bool)
+            mask = isna(other)
+            if mask.any():
+                values = np.zeros(other.shape, dtype=bool)
+                values[~mask] = other[~mask].astype(bool)
+                other = values
+            else:
+                other = other.astype(bool, copy=False)
         elif isinstance(other, np.bool_):
             other = other.item()
 
