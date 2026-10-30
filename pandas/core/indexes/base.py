@@ -8363,10 +8363,16 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             frame = frame.f_back
             stacklevel += 1
+        if isinstance(self.dtype, CategoricalDtype):
+            reason = "raises for categorical dtype"
+        else:
+            reason = (
+                "skips missing values and does not accept numpy-only keywords "
+                "such as 'dtype'"
+            )
         warnings.warn(
             f"In a future version, np.{name}(index) will call Index.{name}, which "
-            "skips missing values and does not accept numpy-only keywords such as "
-            f"'dtype', matching Series. Use np.{name}(np.asarray(index)) to keep "
+            f"{reason}, matching Series. Use np.{name}(np.asarray(index)) to keep "
             "the current behavior.",
             Pandas4Warning,
             stacklevel=stacklevel,

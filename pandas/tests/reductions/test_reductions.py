@@ -728,7 +728,10 @@ class TestIndexReductions:
     def test_numpy_reductions_categorical_deprecated(self, func):
         # GH#50021 numpy computes these, Index.mean/std/var raise for categorical
         idx = pd.CategoricalIndex([1, 2, 4])
-        msg = rf"np\.{func.__name__}\(index\) will call Index\.{func.__name__}"
+        msg = (
+            rf"np\.{func.__name__}\(index\) will call Index\.{func.__name__}, "
+            "which raises for categorical dtype"
+        )
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = func(idx)
         assert result == func(np.array([1, 2, 4]))
