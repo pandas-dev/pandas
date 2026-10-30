@@ -18,7 +18,10 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
@@ -468,11 +471,11 @@ def wide_to_long(
                     X  A    B
     id year
     0  1970 -1.085631  a  2.5
-    0  1980 -1.085631  d  3.2
+       1980 -1.085631  d  3.2
     1  1970  0.997345  b  1.2
-    1  1980  0.997345  e  1.3
+       1980  0.997345  e  1.3
     2  1970  0.282978  c  0.7
-    2  1980  0.282978  f  0.1
+       1980  0.282978  f  0.1
 
     With multiple id columns
 
