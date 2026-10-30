@@ -346,7 +346,8 @@ cdef tzinfo get_zoneinfo_twin(tzinfo tz):
     tzdata).  In those cases we have no way to see the transitions and callers
     must fall back to the tzinfo API.  GH#64379
 
-    Whether the key describes the object is decided by asking it to pickle.
+    For a ZoneInfo, whether the key describes the object is decided by asking
+    it to pickle.
     The stdlib documents that a ``from_file`` object cannot be pickled,
     because its data is not recoverable from its key.
 

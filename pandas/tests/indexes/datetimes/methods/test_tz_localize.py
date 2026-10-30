@@ -539,7 +539,7 @@ def test_dti_tz_localize_nonexistent_shift_past_last_transition(tz):
     # GH#66550 a shift landing past the last cached DST transition indexed the
     #  deltas array out of bounds, so the same call gave a different answer
     #  each time.  Phoenix stopped observing DST, so its transitions end for
-    #  every tz implementation; a negative offset is needed to reach the bug.
+    #  every tz implementation; a negative UTC offset is needed to reach the bug.
     if isinstance(tz, str):
         pytz = pytest.importorskip("pytz")
         tz = pytz.timezone(tz.removeprefix("pytz/"))

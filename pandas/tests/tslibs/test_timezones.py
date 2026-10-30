@@ -671,7 +671,8 @@ def test_dateutil_tzfile_get_timezone_uses_key():
     ts = pd.Timestamp("2025-01-01", tz=tz)
     assert "tz='dateutil/US/Eastern'" in repr(ts)
 
-    # without filename=, _filename defaults to the key
+    # a key that doesn't match the data is ignored; filename= is passed
+    #  because _filename otherwise defaults to the key
     mislabeled = dateutil.tz.tzfile(
         io.BytesIO(_tzdata_bytes("US/Eastern")),
         filename="mislabeled",
