@@ -206,6 +206,9 @@ Conversion
 - Fixed bug in :func:`to_numeric` with ``errors="coerce"`` raising ``TypeError`` for object values containing unhashable nested elements, such as a tuple containing a list, instead of coercing them to ``NaN`` (:issue:`69916`)
 -
 
+- Bug in :class:`DataFrame` constructor silently converting ``IntEnum`` members to plain :class:`int` when ``dtype=object`` was specified; constructing from mixed-type data with ``dtype=object`` now also preserves the original Python types instead of converting them (:issue:`59380`)
+-
+
 Strings
 ^^^^^^^
 - Bug in :class:`StringDtype` with PyArrow storage rejecting a PyArrow string scalar in item assignment and :meth:`Series.fillna`, and :meth:`Series.where` with one storing a character code (:issue:`71075`)
