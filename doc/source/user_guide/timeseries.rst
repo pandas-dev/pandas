@@ -1159,6 +1159,9 @@ If the offset class maps directly to a ``Timedelta`` (``Hour``,
 ``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
 used exactly like a ``Timedelta`` - see the
 :ref:`Timedelta section<timedeltas.operations>` for more examples.
+One exception: multiplying such an offset by a numeric array or ``Series``
+returns an object-dtype result of offsets, while dividing returns ``timedelta64``.
+Convert with ``pd.Timedelta(offset)`` first to get ``timedelta64`` from both.
 
 .. ipython:: python
 
