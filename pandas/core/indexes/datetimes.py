@@ -2063,9 +2063,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Snap time stamps to nearest occurring frequency.
 
         .. deprecated:: 3.2.0
-            Use :meth:`DatetimeIndex.round` for fixed frequencies. For other
-            offsets, pick the nearer of ``idx.map(offset.rollback)`` and
-            ``idx.map(offset.rollforward)``, with ties going to ``rollforward``.
+            For fixed frequencies ``snap`` returns the values unchanged; use
+            :meth:`DatetimeIndex.round` if rounding was intended. For other
+            offsets, use::
+
+                back, fwd = idx.map(offset.rollback), idx.map(offset.rollforward)
+                fwd.where(fwd - idx <= idx - back, back)
 
         Each timestamp in the index is adjusted to the nearest occurrence of
         the specified frequency, snapping backward or forward as appropriate.
@@ -2104,8 +2107,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         warnings.warn(
             "DatetimeIndex.snap is deprecated and will be removed in a future "
-            "version. Use DatetimeIndex.round for fixed frequencies; for other "
-            "offsets, use the offset's rollback and rollforward methods.",
+            "version. For non-fixed offsets, use the offset's rollback and "
+            "rollforward methods. For fixed frequencies snap returns the values "
+            "unchanged; use DatetimeIndex.round if rounding was intended.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
