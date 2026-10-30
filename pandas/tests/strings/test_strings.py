@@ -194,6 +194,14 @@ def test_repeat(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_repeat_negative(any_string_dtype):
+    # negative counts are treated as zero, matching `str * n`
+    ser = pd.Series(["a", "b"], dtype=any_string_dtype)
+    result = ser.str.repeat(-1)
+    expected = pd.Series(["", ""], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_repeat_mixed_object():
     ser = pd.Series(["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0])
     result = ser.str.repeat(3)
