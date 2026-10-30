@@ -253,6 +253,38 @@ class TestSeriesPlots:
         assert len(lines) == 1
         _check_colors(lines, ["r"])
 
+    @pytest.mark.parametrize(
+        "tz, dtype",
+        [
+            (None, None),
+            ("US/Eastern", None),
+            (None, "timestamp[us][pyarrow]"),
+            ("UTC", "timestamp[us, tz=UTC][pyarrow]"),
+        ],
+    )
+    def test_plot_hist_datetime(self, tz, dtype):
+        # GH#17372
+        ser = pd.Series(pd.date_range("2011-01-01", periods=72, freq="h", tz=tz))
+        if dtype is not None:
+            pytest.importorskip("pyarrow")
+            ser = ser.astype(dtype)
+        ser[5] = pd.NaT
+        _, ax = mpl.pyplot.subplots()
+        ax = ser.plot.hist(ax=ax)
+
+        expected, edges = np.histogram(mpl.dates.date2num(ser.dropna()))
+        assert [patch.get_height() for patch in ax.patches] == expected.tolist()
+        assert ax.patches[0].get_x() == edges[0]
+
+    def test_plot_hist_datetime_range(self):
+        # GH#17372
+        ser = pd.Series(pd.date_range("2011-01-01", periods=72, freq="h"))
+        bin_range = (pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02"))
+        _, ax = mpl.pyplot.subplots()
+        ax = ser.plot.hist(bins=4, range=bin_range, ax=ax)
+
+        assert [patch.get_height() for patch in ax.patches] == [6, 6, 6, 7]
+
 
 class TestDataFramePlots:
     def test_hist_df_tz_aware(self):
@@ -268,6 +300,21 @@ class TestDataFramePlots:
 
         ax = np.ravel(axes)[0]
         assert ax.patches[0].get_x() == mpl.dates.date2num(df["a"].min())
+
+    @pytest.mark.parametrize("by", [None, "g"])
+    def test_plot_hist_datetime_columns(self, by):
+        # GH#17372
+        dti = pd.date_range("2011-01-01", periods=72, freq="h")
+        df = pd.DataFrame({"a": dti, "b": dti + pd.Timedelta(days=1), "g": 1})
+        _, ax = mpl.pyplot.subplots()
+        axes = df.plot.hist(column=["a", "b"], by=by, ax=ax)
+        ax = np.ravel(axes)[0]
+
+        values = mpl.dates.date2num(pd.concat([df["a"], df["b"]]))
+        expected = np.histogram(
+            mpl.dates.date2num(df["a"]), np.histogram_bin_edges(values)
+        )
+        assert [patch.get_height() for patch in ax.patches[:10]] == expected[0].tolist()
 
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
