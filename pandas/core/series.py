@@ -1575,7 +1575,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_index = default_index(len(self))
             if level is not None:
                 level_list: Sequence[Hashable]
-                if not isinstance(level, (tuple, list)):
+                if not isinstance(
+                    level, (tuple, list)
+                ) or self.index._is_tuple_level_name(level):
                     level_list = [level]
                 else:
                     level_list = level

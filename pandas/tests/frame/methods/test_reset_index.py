@@ -854,3 +854,14 @@ def test_reset_index_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         df.reset_index(inplace=True)
     tm.assert_frame_equal(df, expected)
+
+
+def test_reset_index_tuple_level_name():
+    # GH#21120
+    mi = pd.MultiIndex.from_product(
+        [[0, 1], [2, 3]], names=[("first", "level"), ("second", "level")]
+    )
+    df = pd.DataFrame({"v": range(4)}, index=mi)
+    result = df.reset_index(level=("first", "level"))
+    expected = df.reset_index(level=0)
+    tm.assert_frame_equal(result, expected)
