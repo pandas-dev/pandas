@@ -2181,7 +2181,8 @@ class MultiIndex(Index):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period).
 
-        For a MultiIndex, the elements are tuples.
+        For a MultiIndex, the elements are tuples. This method returns a
+        list of tuples representing the MultiIndex elements.
 
         Returns
         -------
