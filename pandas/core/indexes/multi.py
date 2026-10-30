@@ -2202,14 +2202,7 @@ class MultiIndex(Index):
 
     def to_list(self) -> list[Any]:
         """
-        Return a list of the values.
-
-        These are each a scalar type, which is a Python scalar
-        (for str, int, float) or a pandas scalar
-        (for Timestamp/Timedelta/Interval/Period).
-
-        For a MultiIndex, the elements are tuples. This method returns a
-        list of tuples representing the MultiIndex elements.
+        Return a list of the elements of the MultiIndex as a list of tuples.
 
         Returns
         -------
