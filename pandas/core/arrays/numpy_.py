@@ -315,8 +315,11 @@ class NumpyExtensionArray(
                     # specify dtype to preserve storage/na_value
                     return type(self)(result, dtype=self.dtype)
                 except ValueError:
-                    # if validation of input fails (no strings)
-                    # -> fallback to returning raw numpy array
+                    # if validation of input fails (no strings), infer
+                    # the result dtype instead of assuming the input
+                    # dtype (GH#40800)
+                    if isinstance(result, np.ndarray):
+                        return self._cast_pointwise_result(result)
                     return result
             # one return value; re-box array-like results
             return type(self)(result)

@@ -657,8 +657,18 @@ def test_numpy_array_ufunc(dtype, box):
     str_len_ufunc = np.frompyfunc(lambda x: len(x), 1, 1)
     result = str_len_ufunc(arr)
     expected_cls = pd.Series if box is pd.Series else np.array
-    # TODO we should infer int64 dtype here?
-    expected = expected_cls([1, 2, 3], dtype=object)
+    if dtype.storage == "python":
+        # GH#40800 result dtype is inferred for python-backed strings
+        expected = expected_cls([1, 2, 3], dtype="int64")
+    else:
+        # TODO we should infer int64 dtype here?
+        expected = expected_cls([1, 2, 3], dtype=object)
+    tm.assert_equal(result, expected)
+
+    # Mixed object results cannot be inferred to a more specific dtype
+    mixed_ufunc = np.frompyfunc(lambda x: len(x) if len(x) == 1 else x, 1, 1)
+    result = mixed_ufunc(arr)
+    expected = expected_cls([1, "bb", "ccc"], dtype=object)
     tm.assert_equal(result, expected)
 
     # custom ufunc returning strings
