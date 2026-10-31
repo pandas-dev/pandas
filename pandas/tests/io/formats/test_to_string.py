@@ -1386,7 +1386,9 @@ def test_to_string_show_dtypes():
 
 def test_to_string_show_dtypes_truncated():
     # GH#19394
-    df = pd.DataFrame(np.arange(30).reshape(5, 6)).astype({0: "float32"})
+    df = pd.DataFrame(np.arange(30, dtype=np.int64).reshape(5, 6)).astype(
+        {0: "float32"}
+    )
     result = df.to_string(show_dtypes=True, max_rows=2, max_cols=2)
     expected = dedent(
         """\
