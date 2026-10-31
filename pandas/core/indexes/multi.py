@@ -2200,6 +2200,30 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
+    def to_list(self) -> list[Any]:
+        """
+        Return a list of the elements of the MultiIndex.
+
+        The list will be a list of tuples, with the length of each tuple corresponding
+        to the number of levels in the MultiIndex.
+
+        Returns
+        -------
+        list
+            A list of tuples representing the MultiIndex elements.
+
+        See Also
+        --------
+        Index.to_list : Return a list of the values for an Index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_product([["a", "b"], ["apple", "banana"]])
+        >>> mi.to_list()
+        [('a', 'apple'), ('a', 'banana'), ('b', 'apple'), ('b', 'banana')]
+        """
+        return self.tolist()
+
     def to_frame(
         self,
         index: bool = True,
