@@ -738,7 +738,7 @@ class MPLPlot(ABC):
             include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = []
+        exclude_type: list[type] = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
