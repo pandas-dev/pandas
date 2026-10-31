@@ -4,6 +4,7 @@ from datetime import (
     timedelta,
 )
 from decimal import Decimal
+import re
 
 import numpy as np
 import pytest
@@ -274,6 +275,38 @@ class TestReductions:
         expected = pd.Series({"A": pd.Timedelta(3), "B": 3})
         result = df.sum()
         tm.assert_series_equal(result, expected)
+
+
+INDEX_REDUCTIONS = [
+    "sum",
+    "prod",
+    "mean",
+    "median",
+    "std",
+    "var",
+    "sem",
+    "skew",
+    "kurt",
+]
+
+
+def check_reduction_matches_series(index, opname, skipna):
+    # not to_series, which infers str from object dtype
+    ser = pd.Series(index)
+    warn = None
+    if index.dtype.kind == "c" and opname == "median":
+        warn = Pandas4Warning
+    try:
+        with tm.assert_produces_warning(warn, match="deprecated on complex data"):
+            expected = getattr(ser, opname)(skipna=skipna)
+    except TypeError as err:
+        with pytest.raises(TypeError, match=re.escape(str(err))):
+            getattr(index, opname)(skipna=skipna)
+        return
+    with tm.assert_produces_warning(warn, match="deprecated on complex data"):
+        result = getattr(index, opname)(skipna=skipna)
+    assert type(result) is type(expected)
+    tm.assert_almost_equal(result, expected)
 
 
 class TestIndexReductions:
@@ -632,6 +665,105 @@ class TestIndexReductions:
         else:
             assert isinstance(result[0], np.integer)
             assert isinstance(result[1], np.floating)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_match_series(self, index_flat, opname, skipna):
+        # GH#50021
+        check_reduction_matches_series(index_flat, opname, skipna)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_match_series_with_missing(
+        self, index_with_missing, opname, skipna
+    ):
+        # GH#50021
+        check_reduction_matches_series(index_with_missing, opname, skipna)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_match_series_float_nan(self, opname, skipna):
+        # GH#50021 index_with_missing excludes numpy float
+        idx = pd.Index([1.0, np.nan, 3.0, 7.0])
+        check_reduction_matches_series(idx, opname, skipna)
+
+    @pytest.mark.parametrize("opname", INDEX_REDUCTIONS)
+    def test_reductions_multiindex_raise(self, opname):
+        # GH#50021
+        mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
+        with pytest.raises(ValueError, match="MultiIndex has no single backing array"):
+            getattr(mi, opname)()
+
+    def test_reduction_kwargs(self):
+        # GH#50021
+        idx = pd.Index([1.0, np.nan, 3.0])
+        assert np.isnan(idx.sum(min_count=3))
+        assert idx.var(ddof=0) == 1.0
+        with pytest.raises(ValueError, match="`axis` must be fewer than"):
+            idx.sum(axis=1)
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            idx.mean(foo=1)
+        with pytest.raises(ValueError, match="the 'dtype' parameter is not supported"):
+            idx.sum(dtype="float64")
+
+    @pytest.mark.parametrize("func", [np.sum, np.prod, np.mean, np.std, np.var])
+    def test_numpy_reductions_dispatch(self, func):
+        # GH#50021
+        idx = pd.Index([1.0, 2.0, 4.0])
+        with tm.assert_produces_warning(None):
+            result = func(idx)
+        assert result == func(idx.to_series())
+
+    @pytest.mark.parametrize("func", [np.sum, np.prod, np.mean, np.std, np.var])
+    @pytest.mark.parametrize("dtype", ["float64", "Int64"])
+    def test_numpy_reductions_missing_deprecated(self, func, dtype):
+        # GH#50021 the Index methods skip missing values, numpy does not
+        idx = pd.Index([1, None, 3], dtype=dtype)
+        msg = rf"np\.{func.__name__}\(index\) will call Index\.{func.__name__}"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = func(idx)
+        assert pd.isna(result)
+
+    @pytest.mark.parametrize("func", [np.mean, np.std, np.var])
+    def test_numpy_reductions_categorical_deprecated(self, func):
+        # GH#50021 numpy computes these, Index.mean/std/var raise for categorical
+        idx = pd.CategoricalIndex([1, 2, 4])
+        msg = (
+            rf"np\.{func.__name__}\(index\) will call Index\.{func.__name__}, "
+            "which raises for categorical dtype"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = func(idx)
+        assert result == func(np.array([1, 2, 4]))
+
+    @pytest.mark.parametrize("func", [np.sum, np.prod])
+    def test_numpy_reductions_categorical_raises(self, func):
+        # GH#50021 numpy raised here before Index.sum/prod existed
+        idx = pd.CategoricalIndex([1, 2, 4])
+        with pytest.raises(TypeError, match="does not support operation"):
+            func(idx)
+
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            ({"dtype": "float32"}, 3.0),
+            ({"keepdims": True}, np.array([3.0])),
+            ({"initial": 5}, 8.0),
+        ],
+    )
+    def test_numpy_reductions_numpy_kwargs_deprecated(self, kwargs, expected):
+        # GH#50021 the Index methods do not support these, like Series
+        idx = pd.Index([1.0, 2.0])
+        with tm.assert_produces_warning(Pandas4Warning, match="will call Index.sum"):
+            result = np.sum(idx, **kwargs)
+        tm.assert_almost_equal(result, expected)
+
+    def test_ufunc_reduce_numpy_kwargs(self):
+        # GH#50021 np.add.reduce keeps numpy's handling of dtype
+        idx = pd.Index([1, 2])
+        with tm.assert_produces_warning(None):
+            result = np.add.reduce(idx, dtype="float32")
+        assert result == 3.0
 
 
 class TestSeriesReductions:
@@ -2023,3 +2155,25 @@ def test_any_all_python_scalars(
     assert result == (all_boolean_reductions == "any")
     expected = bool if using_python_scalars else np.bool_
     assert type(result) is expected
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        "Int64",
+        pytest.param(
+            "float64[pyarrow]",
+            marks=pytest.mark.skipif(not HAS_PYARROW, reason="requires pyarrow"),
+        ),
+    ],
+)
+def test_negative_min_count_deprecated_index(how, dtype):
+    # GH#50022
+    idx = pd.Index([2, None, 3], dtype=dtype)
+    expected = getattr(idx, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(idx, how)(min_count=-1)
+    assert result == expected

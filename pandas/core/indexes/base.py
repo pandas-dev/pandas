@@ -9,6 +9,8 @@ from datetime import (
 import functools
 from itertools import zip_longest
 import operator
+import os
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -68,6 +70,7 @@ from pandas.util._exceptions import (
     find_stack_level,
     rewrite_exception,
 )
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -212,6 +215,7 @@ if TYPE_CHECKING:
         JoinHow,
         Level,
         NaPosition,
+        NpDtype,
         ReindexMethod,
         Shape,
         SliceType,
@@ -991,7 +995,11 @@ class Index(IndexOpsMixin, PandasObject):
                 self, ufunc, method, *inputs, **kwargs
             )
 
-        if method == "reduce":
+        if method == "reduce" and not (
+            # Index.sum/prod reject numpy-only keywords such as dtype, GH#50021
+            ufunc in (np.add, np.multiply)
+            and any(val is not None for key, val in kwargs.items() if key != "axis")
+        ):
             result = arraylike.dispatch_reduction_ufunc(
                 self, ufunc, method, *inputs, **kwargs
             )
@@ -8264,6 +8272,554 @@ class Index(IndexOpsMixin, PandasObject):
         return maybe_unbox_numpy_scalar(
             nanops.nanmax(self._values, skipna=skipna), object_with_dtype=self
         )
+
+    @final
+    def _validate_numpy_reduction(
+        self,
+        name: str_t,
+        validate: Callable[..., None],
+        axis: AxisInt | None,
+        numpy_kwargs: dict[str_t, Any],
+        **op_kwargs: Any,
+    ) -> Any:
+        """
+        Validate numpy-compat arguments, or return the deprecated numpy result.
+
+        Returns ``lib.no_default`` when the caller should compute its own result.
+        """
+        if numpy_kwargs["out"] is lib.no_default:
+            # numpy always passes ``out``, so this is a direct call
+            numpy_kwargs["out"] = None
+        else:
+            result = self._deprecated_numpy_reduction(
+                name, axis, numpy_kwargs, **op_kwargs
+            )
+            if result is not lib.no_default:
+                return result
+        validate((), numpy_kwargs, fname=name)
+        nv.validate_minmax_axis(axis)
+        return lib.no_default
+
+    @final
+    def _deprecated_numpy_reduction(
+        self,
+        name: str_t,
+        axis: AxisInt | None,
+        numpy_kwargs: dict[str_t, Any],
+        **op_kwargs: Any,
+    ) -> Any:
+        """
+        Return numpy's old result for ``np.<name>(index)``, or ``lib.no_default``.
+
+        Before GH#50021 numpy did not call the Index method, so did not skip
+        missing values and accepted numpy-only keywords.
+        """
+        if self._is_multi:
+            return lib.no_default
+        changed = {
+            key: val
+            for key, val in numpy_kwargs.items()
+            if val is not None and val is not False
+        }
+        if (
+            not changed
+            and not self.hasnans
+            and not isinstance(self.dtype, CategoricalDtype)
+        ):
+            # numpy computes mean/std/var on numeric categoricals; Categorical raises
+            return lib.no_default
+        try:
+            if name in ("sum", "prod"):
+                # the call numpy made when Index had no sum/prod
+                ufunc = np.add if name == "sum" else np.multiply
+                reduce_kwargs: dict[str_t, Any] = {
+                    "axis": axis,
+                    "dtype": None,
+                    **changed,
+                }
+                # error: Argument 1 to "reduce" of "_UFunc_Nin2_Nout1" has
+                # incompatible type "ExtensionArray | ndarray[...]"
+                result = ufunc.reduce(
+                    self._values,  # type: ignore[arg-type]
+                    **reduce_kwargs,
+                )
+                result = maybe_unbox_numpy_scalar(
+                    lib.item_from_zerodim(result), object_with_dtype=self
+                )
+            else:
+                result = getattr(np, name)(
+                    np.asarray(self), axis=axis, **changed, **op_kwargs
+                )
+        except TypeError:
+            # numpy raised here too, so there is no behavior to keep
+            return lib.no_default
+
+        # find_stack_level stops at the numpy function that called the method
+        stacklevel = find_stack_level()
+        frame = sys._getframe(stacklevel - 1)
+        numpy_dir = os.path.dirname(np.__file__) + os.sep
+        while frame.f_back is not None and frame.f_code.co_filename.startswith(
+            numpy_dir
+        ):
+            frame = frame.f_back
+            stacklevel += 1
+        if isinstance(self.dtype, CategoricalDtype):
+            reason = "raises for categorical dtype"
+        else:
+            reason = (
+                "skips missing values and does not accept numpy-only keywords "
+                "such as 'dtype'"
+            )
+        warnings.warn(
+            f"In a future version, np.{name}(index) will call Index.{name}, which "
+            f"{reason}, matching Series. Use np.{name}(np.asarray(index)) to keep "
+            "the current behavior.",
+            Pandas4Warning,
+            stacklevel=stacklevel,
+        )
+        return result
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out: lib.NoDefault | None = lib.no_default,
+        initial: None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        min_count: int = 0,
+    ) -> Any:
+        """
+        Return the sum of the values in the Index.
+
+        NA/null values are excluded by default.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        dtype, out, initial : None
+            Not implemented; kept for compatibility with :func:`numpy.sum`,
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        scalar
+            The sum of the values.
+
+        See Also
+        --------
+        Index.prod : Return the product of the values.
+        Series.sum : Return the sum of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3]).sum()
+        6
+
+        >>> pd.Index([1.0, np.nan]).sum(min_count=2)
+        nan
+        """
+        result = self._validate_numpy_reduction(
+            "sum",
+            nv.validate_sum,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial},
+        )
+        if result is not lib.no_default:
+            return result
+        min_count = validate_min_count(min_count)
+        result = self.array._reduce("sum", skipna=skipna, min_count=min_count)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def prod(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out: lib.NoDefault | None = lib.no_default,
+        initial: None = None,
+        keepdims: bool = False,
+        skipna: bool = True,
+        min_count: int = 0,
+    ) -> Any:
+        """
+        Return the product of the values in the Index.
+
+        NA/null values are excluded by default.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        dtype, out, initial : None
+            Not implemented; kept for compatibility with :func:`numpy.prod`,
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        scalar
+            The product of the values.
+
+        See Also
+        --------
+        Index.sum : Return the sum of the values.
+        Series.prod : Return the product of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3, 4]).prod()
+        24
+        """
+        result = self._validate_numpy_reduction(
+            "prod",
+            nv.validate_prod,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial},
+        )
+        if result is not lib.no_default:
+            return result
+        min_count = validate_min_count(min_count)
+        result = self.array._reduce("prod", skipna=skipna, min_count=min_count)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def mean(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out: lib.NoDefault | None = lib.no_default,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ) -> Any:
+        """
+        Return the mean of the values in the Index.
+
+        NA/null values are excluded by default.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        dtype, out : None
+            Not implemented; kept for compatibility with :func:`numpy.mean`,
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        scalar
+            The mean of the values.
+
+        See Also
+        --------
+        Index.median : Return the median of the values.
+        Series.mean : Return the mean of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3, 4]).mean()
+        2.5
+        """
+        result = self._validate_numpy_reduction(
+            "mean",
+            nv.validate_mean,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims},
+        )
+        if result is not lib.no_default:
+            return result
+        result = self.array._reduce("mean", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def median(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Return the median of the values in the Index.
+
+        NA/null values are excluded by default.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        **kwargs
+            Additional keywords for compatibility with numpy.
+
+        Returns
+        -------
+        scalar
+            The median of the values.
+
+        See Also
+        --------
+        Index.mean : Return the mean of the values.
+        Series.median : Return the median of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 10]).median()
+        2.0
+        """
+        nv.validate_median((), kwargs)
+        nv.validate_minmax_axis(axis)
+        result = self.array._reduce("median", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def std(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out: lib.NoDefault | None = lib.no_default,
+        keepdims: bool = False,
+        ddof: int = 1,
+        skipna: bool = True,
+    ) -> Any:
+        """
+        Return the sample standard deviation of the values in the Index.
+
+        Normalized by N-1 by default. This can be changed using ``ddof``.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        dtype, out : None
+            Not implemented; kept for compatibility with :func:`numpy.std`,
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is
+            ``N - ddof``, where ``N`` represents the number of elements.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        scalar
+            The standard deviation of the values.
+
+        See Also
+        --------
+        Index.var : Return the variance of the values.
+        Series.std : Return the standard deviation of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3]).std()
+        1.0
+        """
+        result = self._validate_numpy_reduction(
+            "std",
+            nv.validate_stat_ddof_func,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims},
+            ddof=ddof,
+        )
+        if result is not lib.no_default:
+            return result
+        result = self.array._reduce("std", skipna=skipna, ddof=ddof)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def var(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out: lib.NoDefault | None = lib.no_default,
+        keepdims: bool = False,
+        ddof: int = 1,
+        skipna: bool = True,
+    ) -> Any:
+        """
+        Return the unbiased variance of the values in the Index.
+
+        Normalized by N-1 by default. This can be changed using ``ddof``.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        dtype, out : None
+            Not implemented; kept for compatibility with :func:`numpy.var`,
+            which calls this method. Must be left at the default.
+        keepdims : bool, default False
+            Not implemented; must be left at the default.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is
+            ``N - ddof``, where ``N`` represents the number of elements.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        scalar
+            The variance of the values.
+
+        See Also
+        --------
+        Index.std : Return the standard deviation of the values.
+        Series.var : Return the variance of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3]).var()
+        1.0
+        """
+        result = self._validate_numpy_reduction(
+            "var",
+            nv.validate_stat_ddof_func,
+            axis,
+            {"dtype": dtype, "out": out, "keepdims": keepdims},
+            ddof=ddof,
+        )
+        if result is not lib.no_default:
+            return result
+        result = self.array._reduce("var", skipna=skipna, ddof=ddof)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def sem(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        ddof: int = 1,
+        skipna: bool = True,
+    ) -> Any:
+        """
+        Return the unbiased standard error of the mean of the values in the Index.
+
+        Normalized by N-1 by default. This can be changed using ``ddof``.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        ddof : int, default 1
+            Delta Degrees of Freedom. The divisor used in calculations is
+            ``N - ddof``, where ``N`` represents the number of elements.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        scalar
+            The standard error of the mean.
+
+        See Also
+        --------
+        Index.std : Return the standard deviation of the values.
+        Series.sem : Return the standard error of the mean of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3]).sem()
+        0.5773502691896258
+        """
+        nv.validate_minmax_axis(axis)
+        result = self.array._reduce("sem", skipna=skipna, ddof=ddof)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def skew(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+    ) -> Any:
+        """
+        Return the unbiased skew of the values in the Index.
+
+        Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        scalar
+            The skew of the values.
+
+        See Also
+        --------
+        Index.kurt : Return the kurtosis of the values.
+        Series.skew : Return the skew of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3]).skew()
+        0.0
+        """
+        nv.validate_minmax_axis(axis)
+        result = self.array._reduce("skew", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
+
+    def kurt(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+    ) -> Any:
+        """
+        Return the unbiased kurtosis of the values in the Index.
+
+        Kurtosis obtained using Fisher's definition of kurtosis (kurtosis of
+        normal == 0.0). Normalized by N-1.
+
+        Parameters
+        ----------
+        axis : {None, 0}
+            Unused. Parameter needed for compatibility with numpy.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        scalar
+            The kurtosis of the values.
+
+        See Also
+        --------
+        Index.skew : Return the skew of the values.
+        Series.kurt : Return the kurtosis of the values of a Series.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 2, 3]).kurt()
+        1.5
+        """
+        nv.validate_minmax_axis(axis)
+        result = self.array._reduce("kurt", skipna=skipna)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     # --------------------------------------------------------------------
 
