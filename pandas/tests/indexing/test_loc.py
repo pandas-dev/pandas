@@ -1352,38 +1352,28 @@ class TestLocBaseIndependent:
         result = s.loc[np.array(0)]
         assert result == 1
 
-    def test_setitem_zerodim_np_array(self):
-        # GH#70256
-        df = pd.DataFrame(
-            {"a": [1, 2, 3], "b": [4, 5, 6]},
-            dtype="Int64",
-        )
-        expected = df.copy()
-        expected.loc[1] = 9
-        df.loc[np.array(1)] = 9
-        tm.assert_frame_equal(df, expected)
-
-    def test_setitem_zerodim_np_array_tuple(self):
-        # GH#70256
-        df = pd.DataFrame(
-            {"a": [1, 2, 3], "b": [4, 5, 6]},
-            dtype="Int64",
-        )
-        expected = df.copy()
-        expected.loc[1, "a"] = 9
-        df.loc[np.array(1), "a"] = 9
-        tm.assert_frame_equal(df, expected)
-
-    def test_setitem_zerodim_np_array_both_axes(self):
+    @pytest.mark.parametrize(
+        "key, scalar_key, columns",
+        [
+            (np.array(1), 1, ["a", "b"]),
+            ((np.array(1), "a"), (1, "a"), ["a", "b"]),
+            ((np.array(1), np.array(10)), (1, 10), [10, 20]),
+            (lambda d: np.array(1), 1, ["a", "b"]),
+            ((lambda d: np.array(1), "a"), (1, "a"), ["a", "b"]),
+        ],
+    )
+    def test_setitem_zerodim_np_array(self, key, scalar_key, columns):
         # GH#70256
         df = pd.DataFrame(
             [[1, 4], [2, 5], [3, 6]],
-            columns=[10, 20],
+            columns=columns,
             dtype="Int64",
         )
         expected = df.copy()
-        expected.loc[1, 10] = 9
-        df.loc[np.array(1), np.array(10)] = 9
+
+        expected.loc[scalar_key] = 9
+        df.loc[key] = 9
+
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_zerodim_np_array_mixed_dtype(self):
@@ -1395,25 +1385,9 @@ class TestLocBaseIndependent:
             }
         )
         expected = df.copy()
+
         expected.loc[1] = [9, "changed"]
         df.loc[np.array(1)] = [9, "changed"]
-        tm.assert_frame_equal(df, expected)
-
-    @pytest.mark.parametrize("tuple_key", [False, True])
-    def test_setitem_zerodim_np_array_callable(self, tuple_key):
-        # GH#70256
-        df = pd.DataFrame(
-            {"a": [1, 2, 3], "b": [4, 5, 6]},
-            dtype="Int64",
-        )
-        expected = df.copy()
-
-        if tuple_key:
-            expected.loc[1, "a"] = 9
-            df.loc[lambda d: np.array(1), "a"] = 9
-        else:
-            expected.loc[1] = 9
-            df.loc[lambda d: np.array(1)] = 9
 
         tm.assert_frame_equal(df, expected)
 

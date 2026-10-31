@@ -2326,13 +2326,14 @@ def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key
 
 
 def test_iloc_setitem_zerodim_np_array_invalid_value():
-    # GH#70256 a 0D ndarray key behaves like its scalar equivalent.
+    # GH#70256
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-
     expected = df.copy()
 
     with pytest.raises(ValueError, match="setting an array element with a sequence"):
         expected.iloc[0, [1]] = [1.0, 2.0]
+
+    tm.assert_frame_equal(df, expected)
 
     with pytest.raises(ValueError, match="setting an array element with a sequence"):
         df.iloc[np.array(0), [1]] = [1.0, 2.0]
