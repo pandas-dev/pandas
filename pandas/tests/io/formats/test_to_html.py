@@ -784,6 +784,16 @@ def test_to_html_render_links(render_links, expected, datapath):
     assert result == expected
 
 
+def test_to_html_render_links_escapes_href():
+    # GH 66080: quotes and ampersands in the URL must be escaped in the
+    # href attribute so they cannot break out of it
+    url = 'http://example.com/search?q=a"b&lang=en'
+    df = pd.DataFrame({"url": [url]})
+    result = df.to_html(render_links=True, escape=True)
+    assert 'href="http://example.com/search?q=a&quot;b&amp;lang=en"' in result
+    assert 'href="http://example.com/search?q=a"b&lang=en"' not in result
+
+
 @pytest.mark.parametrize(
     "method,expected",
     [
