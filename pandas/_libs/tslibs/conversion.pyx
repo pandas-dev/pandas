@@ -661,6 +661,13 @@ cdef _TSObject convert_datetime_to_tsobject(
 
     if isinstance(ts, _Timestamp):
         obj.dts.ps = ts.nanosecond * 1000
+        # GH#71371: For Timestamps with years outside Python's datetime range (1-9999),
+        # the underlying datetime structure may have a fake year (1970 or 1972) to avoid
+        # ValueError from datetime construction. When converting tz-aware Timestamps to
+        # datetime64 storage, pydatetime_to_dtstruct may extract this fake year instead
+        # of the actual year stored in _year. Always use ts._year to ensure correctness.
+        if obj.tzinfo is not None:
+            obj.dts.year = ts._year
 
     if nanos:
         obj.dts.ps = nanos * 1000
