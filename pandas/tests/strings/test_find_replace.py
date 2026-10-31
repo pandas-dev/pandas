@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -486,6 +487,78 @@ def test_contains_unicode_char(any_string_dtype):
 
     with pytest.raises(re.error, match=r"bad escape \\p"):
         ser.str.contains(r"\pL\u20AC")
+
+
+@pytest.mark.parametrize("pat", [r"\s", r"\S"])
+def test_fullmatch_every_python_whitespace_char(any_string_dtype, pat):
+    # GH#70991 RE2's \s only matches [\t\n\f\r ], Python's every char for which
+    #  str.isspace() is True
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    whitespace = [
+        char for char in map(chr, range(sys.maxunicode + 1)) if char.isspace()
+    ]
+    data = [*whitespace, "a", "\u200b"]
+    ser = pd.Series(data, dtype=any_string_dtype)
+    result = ser.str.fullmatch(pat)
+    expected = pd.Series(
+        [re.fullmatch(pat, x) is not None for x in data], dtype=expected_dtype
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [
+        ("contains", {}),
+        ("match", {}),
+        ("fullmatch", {}),
+        ("count", {}),
+        ("replace", {"repl": "_", "regex": True}),
+    ],
+)
+@pytest.mark.parametrize(
+    "pat",
+    [
+        r"\s",
+        r"\S",
+        r"a\s+b",
+        r"\S\s\S",
+        r"[\s,]",
+        r"[^\s]",
+        r"[\S]",
+        r"[\S\d]",
+        r"[^\S,]",
+        r"[\s\S]",
+        r"[^\s\S]",
+        r"[]\s]",
+        r"[^^\S]",
+        r"[^]\S]",
+        r"\\s",
+    ],
+)
+def test_regex_python_whitespace(any_string_dtype, method, kwargs, pat):
+    # GH#70991
+    data = [
+        "a\x0bb",
+        "a\x1cb",
+        "a\x1fb",
+        "a b",
+        "a,b",
+        "a1b",
+        "a]b",
+        "a^b",
+        r"a\sb",
+        "ab",
+        "\x0b",
+        "x",
+        "",
+    ]
+    ser = pd.Series(data, dtype=any_string_dtype)
+    result = getattr(ser.str, method)(pat, **kwargs)
+    expected = getattr(pd.Series(data, dtype=object).str, method)(pat, **kwargs)
+    assert result.tolist() == expected.tolist()
 
 
 # --------------------------------------------------------------------------------------
