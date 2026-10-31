@@ -993,12 +993,16 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 )
 
         check_dict_or_set_indexers(key)
+        # GH#70256 - Treat zero-dimensional ndarray keys as scalars.
         if isinstance(key, tuple):
             key = (list(x) if is_iterator(x) else x for x in key)
-            key = tuple(com.apply_if_callable(x, self.obj) for x in key)
+            key = tuple(
+                item_from_zerodim(com.apply_if_callable(x, self.obj)) for x in key
+            )
         else:
             maybe_callable = com.apply_if_callable(key, self.obj)
             key = self._raise_callable_usage(key, maybe_callable)
+            key = item_from_zerodim(key)
         # Capture the row count before _get_setitem_indexer which may add
         # columns (but not rows).
         orig_nrows = self.obj.shape[0]
