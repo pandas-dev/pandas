@@ -421,6 +421,13 @@ class TestFromIndices:
         ):
             SparseArray.from_indices([1], indices=[10], length=5)
 
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    @pytest.mark.parametrize("indices", [[3, 1], [1, 1]])
+    def test_unsorted_or_duplicate_indices_raise(self, kind, indices):
+        # GH#64808 kind="block" accepted these silently
+        with pytest.raises(ValueError, match="Indices must be strictly increasing"):
+            SparseArray.from_indices([1, 2], indices=indices, length=5, kind=kind)
+
     def test_deprecation_sparse_index_parameter(self):
         msg = "The 'sparse_index' parameter of SparseArray.__init__ is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):

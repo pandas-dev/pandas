@@ -781,6 +781,17 @@ def test_mul_timedelta64_operand():
     tm.assert_numpy_array_equal(result.to_dense(), np.arange(1, 4) * tda)
 
 
+@pytest.mark.parametrize("unit", ["W", "D", "h", "m"])
+def test_mul_timedelta64_scalar_unsupported_unit(unit):
+    # GH#64808 cast to a supported resolution, as the constructor does
+    values = np.array([1, 2, 0])
+    other = np.timedelta64(1, unit)
+    result = SparseArray(values, fill_value=0) * other
+    expected = SparseArray(values * other, fill_value=np.timedelta64(0, unit))
+    assert result.dtype.subtype == np.dtype("m8[s]")
+    tm.assert_sp_array_equal(result, expected)
+
+
 _NO_COMMON_SUBTYPE_VALUES = {
     "i8": np.array([1, 2, 3]),
     "f8": np.array([1.0, np.nan, 3.0]),

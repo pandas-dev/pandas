@@ -458,6 +458,9 @@ def _wrap_result(
         data = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
     else:
         data = np.asarray(data)
+    if lib.is_np_dtype(data.dtype, "mM") and not is_supported_dtype(data.dtype):
+        # GH#68522 e.g. int * np.timedelta64(1, "D"), cast as the constructor does
+        data = np.asarray(ensure_wrapped_if_datetimelike(data))
     sparse_dtype = SparseDtype(data.dtype, fill_value)
     return SparseArray._simple_new(data, sparse_index, sparse_dtype)
 
@@ -910,6 +913,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 f"length of indices ({len(indices)})."
             )
 
+        if kind == "block":
+            # validate the indices; get_blocks accepts unsorted or duplicate ones
+            IntIndex(length, indices)
         sparse_index = make_sparse_index(length, indices, kind)
 
         if fill_value is None:
