@@ -15,6 +15,8 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.astype`, :meth:`Series.astype` and :meth:`DataFrame.convert_dtypes` with ``dtype_backend="pyarrow"`` overwriting missing values of the original datetime data with the Unix epoch when converting to a pyarrow timestamp type (:issue:`71743`)
 
+- Fixed a regression in :meth:`DataFrame.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.ffill` and :meth:`Series.bfill` with pyarrow-backed data returning a view of the original data when there were no missing values, so that modifying the result also modified the original object (:issue:`71515`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.bugs:

@@ -46,6 +46,73 @@ def test_interp_fill_functions(func):
 
 @pytest.mark.parametrize("func", ["ffill", "bfill"])
 @pytest.mark.parametrize(
+    "dtype, values",
+    [
+        ("int64[pyarrow]", [1, 2, 3]),
+        ("double[pyarrow]", [1.0, 2.0, 3.0]),
+        ("bool[pyarrow]", [True, False, True]),
+        ("string[pyarrow]", ["a", "b", "c"]),
+        ("large_string[pyarrow]", ["a", "b", "c"]),
+        (
+            "timestamp[ns][pyarrow]",
+            [
+                pd.Timestamp("2020-01-01"),
+                pd.Timestamp("2020-01-02"),
+                pd.Timestamp("2020-01-03"),
+            ],
+        ),
+        ("str", ["a", "b", "c"]),  # default str dtype (pyarrow storage)
+    ],
+)
+@pytest.mark.parametrize("kwargs", [{}, {"limit": 1}, {"limit_area": "inside"}])
+def test_interp_fill_functions_no_missing_arrow(dtype, values, kwargs, func):
+    # GH#71515 ffill/bfill must not return a view when nothing is missing
+    if dtype != "str":
+        pytest.importorskip("pyarrow")
+
+    df = pd.DataFrame({"a": values}, dtype=dtype)
+    df_orig = df.copy()
+
+    result = getattr(df, func)(**kwargs)
+
+    assert not tm.shares_memory(get_array(result, "a"), get_array(df, "a"))
+
+    # modifying the result does not modify the original
+    result.iloc[0, 0] = values[1]
+    tm.assert_frame_equal(df, df_orig)
+
+    # modifying the original does not modify the result
+    df.iloc[0, 0] = values[2]
+    assert result.iloc[0, 0] == values[1]
+
+
+def test_interp_fill_functions_no_missing_frame():
+    # GH#71515 only the score column has a missing value, name must not change
+    df = pd.DataFrame({"name": ["alice", "bob", "carol"], "score": [1.0, None, 3.0]})
+    df_orig = df.copy()
+
+    result = df.ffill()
+    result.loc[0, "name"] = "MALLORY"
+
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+def test_interp_fill_functions_no_missing_series(func):
+    # GH#71515 the Series variant, modifying the source must not change result
+    pytest.importorskip("pyarrow")
+    dtype = "int64[pyarrow]"
+
+    ser = pd.Series([1, 2, 3], dtype=dtype)
+
+    result = getattr(ser, func)(limit=1)
+    ser.iloc[0] = 100
+
+    tm.assert_series_equal(result, pd.Series([1, 2, 3], dtype=dtype))
+
+
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+@pytest.mark.parametrize(
     "vals",
     [[1, np.nan, 2], [pd.Timestamp("2019-12-31"), pd.NaT, pd.Timestamp("2020-12-31")]],
 )
