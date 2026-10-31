@@ -559,12 +559,7 @@ class TestUltraJSONTests:
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
         encoding = ujson.ujson_dumps(bigNum)
         assert str(bigNum) == encoding
-
-        with pytest.raises(
-            ValueError,
-            match="|".join(["Value is too big", "Value is too small"]),
-        ):
-            assert ujson.ujson_loads(encoding) == bigNum
+        assert ujson.ujson_loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
         "int_exp", ["1337E40", "1.337E40", "1337E+9", "1.337e+40", "1.337E-4"]
@@ -1008,13 +1003,38 @@ class TestPandasJSONTests:
     def test_decode_extreme_numbers(self, extreme_num):
         assert extreme_num == ujson.ujson_loads(str(extreme_num))
 
-    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-(2**63) - 1}"])
-    def test_decode_too_extreme_numbers(self, too_extreme_num):
-        with pytest.raises(
-            ValueError,
-            match="|".join(["Value is too big", "Value is too small"]),
-        ):
-            ujson.ujson_loads(too_extreme_num)
+    @pytest.mark.parametrize(
+        "big_num",
+        [
+            2**64,
+            -(2**63) - 1,
+            # wraps around to 2**63 in 64-bit arithmetic
+            5 * 2**63,
+            -5 * 2**63,
+            10**30,
+        ],
+    )
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_decode_big_int(self, big_num, precise_float):
+        # GH#20599
+        result = ujson.ujson_loads(str(big_num), precise_float=precise_float)
+        assert result == big_num
+        assert type(result) is int
+
+    @pytest.mark.parametrize(
+        "float_str",
+        [
+            "100000000000000000000.5",
+            "-100000000000000000000.5",
+            "100000000000000000000e0",
+            "18446744073709551616.5E+3",
+        ],
+    )
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_decode_float_with_big_int_part(self, float_str, precise_float):
+        # GH#20599
+        result = ujson.ujson_loads(float_str, precise_float=precise_float)
+        assert result == json.loads(float_str)
 
     def test_decode_with_trailing_whitespaces(self):
         assert {} == ujson.ujson_loads("{}\n\t ")
@@ -1023,13 +1043,10 @@ class TestPandasJSONTests:
         with pytest.raises(ValueError, match="Trailing data"):
             ujson.ujson_loads("{}\n\t a")
 
-    @pytest.mark.parametrize("value", [f"{2**64}", f"{-(2**63) - 1}"])
-    def test_decode_array_with_big_int(self, value):
-        with pytest.raises(
-            ValueError,
-            match="|".join(["Value is too big", "Value is too small"]),
-        ):
-            ujson.ujson_loads(value)
+    def test_decode_array_with_big_int(self):
+        # GH#20599
+        value = f'[1, {2**64}, {{"a": {-(2**63) - 1}}}]'
+        assert ujson.ujson_loads(value) == json.loads(value)
 
     @pytest.mark.parametrize(
         "float_number",

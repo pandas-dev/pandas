@@ -1847,17 +1847,39 @@ class TestPandasContainer:
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
-    def test_read_json_large_numbers(self, bigNum):
-        # GH20599, 26068
-        json = StringIO('{"articleId":' + str(bigNum) + "}")
-        msg = "|".join(["Value is too small", "Value is too big"])
-        with pytest.raises(ValueError, match=msg):
-            pd.read_json(json)
+    def test_read_json_int_beyond_float_range(self):
+        # GH#20599
+        big_num = 10**400
+        json = '{"0":{"articleId":' + str(big_num) + "}}"
+        result = pd.read_json(StringIO(json))
+        expected = pd.DataFrame(big_num, dtype=object, index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
 
-        json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
-        with pytest.raises(ValueError, match=msg):
-            pd.read_json(json)
+    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64, 5 * 2**63])
+    def test_read_json_large_numbers(self, bigNum):
+        # GH#20599, GH#26068
+        json = '{"0":{"articleId":' + str(bigNum) + "}}"
+        result = pd.read_json(StringIO(json), dtype=False)
+        expected = pd.DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.read_json(StringIO(json))
+        expected = pd.DataFrame(float(bigNum), index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [str(2**64), f'"{2**64}"'])
+    def test_read_json_large_numbers_explicit_dtype_raises(self, value):
+        # GH#20599 an explicit dtype that cannot hold the value is not ignored
+        json = '{"a":{"0":' + value + ',"1":1}}'
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            pd.read_json(StringIO(json), dtype={"a": "int64"})
 
     def test_read_json_large_numbers2(self):
         # GH18842
