@@ -7186,13 +7186,26 @@ class Index(IndexOpsMixin, PandasObject):
             # is object dtype (coercing to string dtype will alter the missing values)
             target_index = Index(target, dtype=self.dtype)
         elif (
-            not hasattr(target, "dtype")
-            and isinstance(self.dtype, StringDtype)
-            and self.dtype.na_value is np.nan
+            isinstance(self.dtype, StringDtype)
             and using_string_dtype()
+            and not isinstance(target_index, ABCMultiIndex)
+            and self.hasnans
+            and target_index.hasnans
         ):
-            # Fill missing values to ensure consistent missing value representation
-            target_index = target_index.fillna(np.nan)
+            # Fill missing values to the index's own NA sentinel so get_indexer
+            # matches scalar get_loc for NaT/NA targets (GH#65419). Datetime-like
+            # / period targets hold NaT, which fillna leaves in place unless we
+            # coerce to object first. Use dtype.na_value (np.nan or pd.NA) so
+            # both StringDtype variants work. Gated on self.hasnans so a
+            # non-missing string index skips the copy when the target happens
+            # to contain NA/NaT. Under the legacy (non-inferring) string config
+            # an explicit StringDtype keeps its distinct-NA matching semantics,
+            # so the normalization only applies with using_string_dtype().
+            na = self.dtype.na_value
+            if needs_i8_conversion(target_index.dtype):
+                target_index = target_index.astype(object).fillna(na)
+            else:
+                target_index = target_index.fillna(na)
         return target_index
 
     @final
