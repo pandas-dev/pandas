@@ -85,7 +85,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-|                 |                 |    X    |
+| tabulate        | 0.10.0          |    X    |
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -160,6 +160,7 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :attr:`DataFrame.values`, :meth:`DataFrame.to_numpy` and :meth:`DataFrame.transpose` silently converting missing values in a :class:`Categorical` column with integer or boolean categories to arbitrary integers or ``True`` (:issue:`38240`)
 - Bug in :meth:`Series.clip` and :meth:`DataFrame.clip` with ordered categorical data ordering ``lower`` and ``upper`` by value instead of by category position (:issue:`49217`)
+- Bug in :meth:`Categorical.map`, :meth:`CategoricalIndex.map` and :meth:`Series.map` raising ``TypeError`` or returning incorrect results when the mapper returned unhashable values such as lists or dicts; these now give an object-dtype result (:issue:`40892`, :issue:`54359`)
 - Bug in comparing a :class:`Categorical` with an iterator raising ``TypeError`` instead of treating it as a scalar, as with a tuple (:issue:`31646`)
 - Bug in comparing unordered :class:`Categorical` objects with mixed-type categories in a different order raising ``TypeError``; :meth:`Categorical.equals` and :func:`merge` were also affected (:issue:`51543`)
 -
@@ -188,6 +189,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
+- Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)
 - Bug in integer exponentiation (``**``, :meth:`Series.pow`, :meth:`DataFrame.pow`) on large inputs returning imprecise results, ``0`` for negative exponents, or an upcast dtype when numexpr is installed (:issue:`54546`)
 - Fixed bug in :meth:`Series.corr` with ``method="pearson"`` returning an inaccurate result for nearly-constant data, and ``0.0`` instead of ``NaN`` for some constant data (:issue:`59652`)
 - Fixed bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` reporting false matches when ``values`` was a list of integers above ``2**53`` mixed with floats, ``NaN``, or integers outside the ``int64`` range, or a list of ``bytes`` ending in a null byte (:issue:`70217`)
@@ -240,6 +242,7 @@ Indexing
 - Bug in :meth:`Index.copy` treating a tuple ``name`` as a list of names (:issue:`19171`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
 - Bug in comparison operators between an :class:`Index` and itself with a nullable or :class:`ArrowDtype` dtype returning a NumPy boolean array with ``False`` or ``True`` at missing positions instead of propagating ``NA``, inconsistent with comparing against a copy of the same :class:`Index` (:issue:`71022`)
+- Bug in hash-based operations on object-dtype data (e.g. :meth:`Series.isin`, :func:`factorize`, :meth:`Index.get_loc` on a unique :class:`Index`) inconsistently matching a key of a different type that compares equal to a value but hashes differently, such as ``"float64"`` and ``np.dtype("float64")``; these now never match, as with a ``dict`` (:issue:`43581`)
 
 Missing
 ^^^^^^^
@@ -278,6 +281,7 @@ I/O
 - Bug in :func:`read_sas` exhausting memory instead of raising ``ValueError`` on a SAS7BDAT file that claims more rows than it can hold, when read from an uncompressed file, a zip archive, or a ``BytesIO`` (:issue:`70721`)
 - Bug in :func:`read_sas` returning rows that were deleted from an uncompressed SAS7BDAT file (:issue:`15963`)
 - Bug in :func:`read_sas` with ``format="xport"`` reading zeros as ``5.397605e-79`` (:issue:`50670`)
+- Bug in :func:`read_xml` with ``names`` and an ``iterparse`` list repeating a name, where values were shifted into the wrong column or dropped in large files or when repeated values were equal or empty (:issue:`71275`)
 - Bug in :meth:`DataFrame.to_csv` with :class:`MultiIndex` columns and an unnamed index or ``index_label=False`` where a first row of missing values was read back by :func:`read_csv` as the index names and dropped; an empty index-names line is now written in this case (:issue:`21995`)
 - Bug in :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle` and similar writers where writing to a ``file://`` URL raised for a new file and silently left an existing file unchanged; writing to other URLs such as ``http://`` now raises instead of silently discarding the data (:issue:`55828`)
 - Bug in :meth:`DataFrame.to_excel` where a ``NaN`` label in :class:`MultiIndex` columns was written as the last value of that level instead of an empty cell (:issue:`62340`)
@@ -326,7 +330,9 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` mislabeling ticks set with ``xticks=`` or ``ax.set_xticks`` (:issue:`18881`)
+- Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` drawing datetimes outside the visible range when they share the x-axis (``sharex=True``, ``twinx``, or ``secondary_y=True``) with a time-series plot (:issue:`14322`, :issue:`40470`)
 - Bug in :meth:`Series.plot.hist` and :meth:`DataFrame.plot.hist` with ``datetime64`` data drawing only empty bars (:issue:`17372`)
+- Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` raising when a datetime index containing ``NaT`` is drawn on a time-series axes (:issue:`40470`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` with a timezone-aware index raising ``ValueError`` when the first timestamp falls in a daylight saving time transition, e.g. the repeated hour of a fall-back day (:issue:`62936`)
 
 Groupby/resample/rolling
@@ -398,10 +404,12 @@ Other
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where ``==`` and ``!=`` against a string gave different results than the same comparison outside of ``query``, e.g. returning no rows for a ``datetime64``, ``timedelta64``, or :class:`PeriodDtype` column, or raising ``NotImplementedError`` with ``parser="python"`` (:issue:`54199`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where a column named ``inf`` or ``Inf`` was ignored in favor of ``np.inf``, raising ``KeyError`` or silently returning wrong results (:issue:`47859`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` with ``engine="numexpr"`` raising ``AttributeError`` for some comparisons and ``in``/``not in`` checks whose operand is a math function or unary operator, e.g. ``abs(a) in [1, 2]`` (:issue:`31848`)
+- Bug in :meth:`Index.get_loc`, :meth:`Series.value_counts`, :meth:`Series.duplicated`, :meth:`Series.isin` and other object-dtype operations where a ``SystemExit`` raised by a custom ``__hash__`` or ``__eq__`` was silently suppressed (:issue:`57052`)
 - Bug in calling a generalized ufunc on a :class:`Series` raising ``AttributeError`` when it reduced ``object`` data to a single object pandas does not recognize as a scalar, e.g. ``shapely.geometrycollections`` returning a geometry (:issue:`71109`)
 - Bug in :func:`eval`, :meth:`DataFrame.eval`, and :meth:`DataFrame.query` raising on some ``datetime64`` and ``timedelta64`` operations, e.g. ``df.query("time > @now - @delta")``, and returning ``float32`` for a ``float32`` column times a ``np.timedelta64`` (:issue:`30729`, :issue:`52559`)
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
+- Bug where configuration options and pandas' C extension modules could be left uninitialized when running under Python's global lazy imports mode (``-X lazy_imports=all``) (:issue:`71173`)
 
 .. ***DO NOT USE THIS SECTION***
 
