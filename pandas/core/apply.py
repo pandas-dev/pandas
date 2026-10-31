@@ -2017,6 +2017,9 @@ def reconstruct_func(
 
     columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
+    invalid_named_agg_msg = (
+        "Named aggregation {!r} must be a tuple of (column, aggfunc) or a NamedAgg."
+    )
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
@@ -2027,6 +2030,9 @@ def reconstruct_func(
             )
         if func is None:
             # nicer error message
+            for key, val in kwargs.items():
+                if not (isinstance(val, tuple) and len(val) == 2):
+                    raise TypeError(invalid_named_agg_msg.format(key))
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
@@ -2046,6 +2052,9 @@ def reconstruct_func(
                         x, *a, **kw
                     )
             else:
+                # GH#43838 invalid values only get here when mixed with a NamedAgg
+                if not is_list_like(val) or len(val) != 2:
+                    raise TypeError(invalid_named_agg_msg.format(key))
                 column, aggfunc = val
 
             # The un-normalized {column: aggfunc} form only matches the normalized
