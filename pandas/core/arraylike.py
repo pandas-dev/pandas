@@ -548,15 +548,17 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     if ufunc.__name__ == "minimummaximum":
         # NumPy's fused minimum/maximum reduction behind np.minmax
+        if not hasattr(self, "min") or not hasattr(self, "max"):
+            return NotImplemented
         method_names = ["min", "max"]
     elif ufunc.__name__ in REDUCTION_ALIASES:
-        method_names = [REDUCTION_ALIASES[ufunc.__name__]]
+        method_name = REDUCTION_ALIASES[ufunc.__name__]
+        # NB: we are assuming that min/max represent minimum/maximum methods,
+        #  which would not be accurate for e.g. Timestamp.min
+        if not hasattr(self, method_name):
+            return NotImplemented
+        method_names = [method_name]
     else:
-        return NotImplemented
-
-    # NB: we are assuming that min/max represent minimum/maximum methods,
-    #  which would not be accurate for e.g. Timestamp.min
-    if not all(hasattr(self, name) for name in method_names):
         return NotImplemented
 
     if self.ndim > 1:
