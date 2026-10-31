@@ -1347,3 +1347,121 @@ def test_to_string_ansi_escapes_aligned(east_asian_width):
         for obj, plain in [(colored, df), (colored.iloc[:, 0], df["a"])]:
             result = re.sub(r"\x1b\[\d+m", "", obj.to_string())
             assert result == plain.to_string()
+
+
+def test_to_string_show_dtypes():
+    # GH#19394
+    df = pd.DataFrame(
+        {
+            "a": [1, 2],
+            "b": [1.5, 2.5],
+            "c": pd.Categorical(["x", "y"]),
+            "d": [True, False],
+        }
+    )
+    result = df.to_string(show_dtypes=True)
+    expected = dedent(
+        """\
+              a       b        c      d
+          int64 float64 category   bool
+        0     1     1.5        x   True
+        1     2     2.5        y  False"""
+    )
+    assert result == expected
+
+    # the dtype row sits between the column labels and the index names
+    result = df.rename_axis(index="idx", columns="cols").to_string(show_dtypes=True)
+    expected = (
+        "cols     a       b        c      d\n"
+        "     int64 float64 category   bool\n"
+        "idx                               \n"
+        "0        1     1.5        x   True\n"
+        "1        2     2.5        y  False"
+    )
+    assert result == expected
+
+    # the dtype row is part of the header
+    assert df.to_string(show_dtypes=True, header=False) == df.to_string(header=False)
+
+
+def test_to_string_show_dtypes_truncated():
+    # GH#19394
+    df = pd.DataFrame(np.arange(30, dtype=np.int64).reshape(5, 6)).astype(
+        {0: "float32"}
+    )
+    result = df.to_string(show_dtypes=True, max_rows=2, max_cols=2)
+    expected = dedent(
+        """\
+                 0  ...     5
+           float32  ... int64
+        0      0.0  ...     5
+        ..     ...  ...   ...
+        4     24.0  ...    29"""
+    )
+    assert result == expected
+
+
+def test_to_string_show_dtypes_fits_terminal_height(monkeypatch):
+    # GH#19394 max_rows=0 leaves room for the dtype row and the prompt
+    height = 11
+    monkeypatch.setattr(
+        "pandas.io.formats.format.get_terminal_size", lambda: (80, height)
+    )
+    df = pd.DataFrame({"a": np.arange(40)})
+    result = df.to_string(max_rows=0, show_dtypes=True)
+    assert len(result.splitlines()) <= height - 1
+
+
+def test_to_string_show_dtypes_header_list_truncated():
+    # GH#19394
+    df = pd.DataFrame({"a": [1], "b": [2.5], "c": [3.5], "d": [4]})
+    result = df.to_string(header=list("WXYZ"), max_cols=2, show_dtypes=True)
+    assert result.splitlines()[1].split() == ["int64", "...", "int64"]
+
+
+def test_to_string_show_dtypes_multiindex():
+    # GH#19394
+    df = pd.DataFrame(
+        [[0, 1.0], [2, 3.0]],
+        index=pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["k1", "k2"]),
+        columns=pd.MultiIndex.from_tuples([("x", 1), ("x", 2)]),
+    )
+    result = df.to_string(show_dtypes=True)
+    expected = (
+        "          x        \n"
+        "          1       2\n"
+        "      int64 float64\n"
+        "k1 k2              \n"
+        "a  1      0     1.0\n"
+        "b  2      2     3.0"
+    )
+    assert result == expected
+
+    result = df.to_string(show_dtypes=True, index=False)
+    expected = (
+        "    x        \n    1       2\nint64 float64\n    0     1.0\n    2     3.0"
+    )
+    assert result == expected
+
+
+def test_repr_show_dtypes_option():
+    # GH#19394
+    df = pd.DataFrame({"a": [1, 2]})
+    with pd.option_context("display.show_dtypes", True):
+        result = repr(df)
+    assert result == df.to_string(show_dtypes=True)
+    assert "int64" in result
+    assert repr(df) == df.to_string()
+
+
+def test_repr_fits_horizontal_show_dtypes(monkeypatch):
+    # GH#19394 the dtype row counts toward the repr width
+    monkeypatch.setattr(
+        "pandas.io.formats.console.in_interactive_session", lambda: True
+    )
+    monkeypatch.setattr("pandas.io.formats.console.get_console_size", lambda: (50, 30))
+    df = pd.DataFrame(np.zeros((2, 12), dtype=np.int64))
+    with pd.option_context("display.max_columns", None):
+        assert df._repr_fits_horizontal_()
+        with pd.option_context("display.show_dtypes", True):
+            assert not df._repr_fits_horizontal_()
