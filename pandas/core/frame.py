@@ -13448,7 +13448,7 @@ class DataFrame(NDFrame, OpsMixin):
     def update(
         self,
         other,
-        join: UpdateJoin = "left",
+        join: UpdateJoin | lib.NoDefault = lib.no_default,
         overwrite: bool = True,
         filter_func=None,
         errors: IgnoreRaise = "ignore",
@@ -13468,6 +13468,10 @@ class DataFrame(NDFrame, OpsMixin):
         join : {'left'}, default 'left'
             Only left join is implemented, keeping the index and columns of the
             original object.
+
+            .. deprecated:: 3.2.0
+                The ``join`` keyword is deprecated and will be removed in a
+                future version.
         overwrite : bool, default True
             How to handle non-NA values for overlapping keys:
 
@@ -13494,7 +13498,7 @@ class DataFrame(NDFrame, OpsMixin):
             * When `errors='raise'` and there's overlapping non-NA data.
             * When `errors` is not either `'ignore'` or `'raise'`
         NotImplementedError
-            * If `join != 'left'`
+            * If `join` is passed and is not `'left'`
 
         See Also
         --------
@@ -13570,9 +13574,17 @@ class DataFrame(NDFrame, OpsMixin):
                     stacklevel=2,
                 )
 
-        # TODO: Support other joins
-        if join != "left":  # pragma: no cover
-            raise NotImplementedError("Only left join is supported")
+        if join is not lib.no_default:
+            if join != "left":
+                raise NotImplementedError("Only left join is supported")
+            # GH#21855
+            warnings.warn(
+                "The 'join' keyword in DataFrame.update is deprecated and will be "
+                "removed in a future version. Only 'left' was ever supported; "
+                "omit the keyword instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         if errors not in ["ignore", "raise"]:
             raise ValueError("The parameter errors must be either 'ignore' or 'raise'")
 
