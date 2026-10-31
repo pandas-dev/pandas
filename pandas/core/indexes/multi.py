@@ -2202,7 +2202,10 @@ class MultiIndex(Index):
 
     def to_list(self) -> list[Any]:
         """
-        Return a list of the elements of the MultiIndex as a list of tuples.
+        Return a list of the elements of the MultiIndex.
+
+        The list will be a list of tuples, with the length of each tuple corresponding
+        to the number of levels in the MultiIndex.
 
         Returns
         -------
