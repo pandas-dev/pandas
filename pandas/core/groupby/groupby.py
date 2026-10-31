@@ -304,6 +304,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     @final
     @property
     def ngroups(self) -> int:
+        """
+        Number of groups in the resampler.
+        """
         return self._grouper.ngroups
 
     @final
@@ -3599,7 +3602,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaResampler
+        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaIndexResampler
             Resampler object for the type of the index.
 
         See Also
