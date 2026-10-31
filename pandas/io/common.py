@@ -265,10 +265,16 @@ def stringify_path(
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    if not convert_file_like and is_file_like(filepath_or_buffer):
+    if (
+        not convert_file_like
+        and is_file_like(filepath_or_buffer)
+        and hasattr(filepath_or_buffer, "__iter__")
+    ):
         # GH 38125: some fsspec objects implement os.PathLike but have already opened a
         # file. This prevents opening the file a second time. infer_compression calls
         # this function with convert_file_like=True to infer the compression.
+        # Requiring __iter__ keeps py.path.local, whose read/write are convenience
+        # methods, on the path branch (GH#71769).
         return cast("BaseBufferT", filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, os.PathLike):
