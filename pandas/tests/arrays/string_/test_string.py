@@ -686,6 +686,16 @@ def test_numpy_array_ufunc(dtype, box):
     tm.assert_equal(result, expected)
 
 
+def test_numpy_array_ufunc_outer(dtype):
+    # GH#40800: multi-dimensional ufunc results (e.g. ufunc.outer)
+    # are returned as-is; dtype inference applies to 1-D results only
+    arr = pd.array(["a", "bb"], dtype=dtype)
+    outer_ufunc = np.frompyfunc(lambda x, y: len(x) + len(y), 2, 1)
+    result = outer_ufunc.outer(arr, arr)
+    expected = np.array([[2, 3], [3, 4]], dtype=object)
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
 def test_numpy_random_permute(dtype, box):
     # https://github.com/pandas-dev/pandas/issues/63935
