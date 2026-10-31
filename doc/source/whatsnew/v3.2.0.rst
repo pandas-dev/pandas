@@ -371,6 +371,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`.ArrowExtensionArray.factorize` ignoring ``use_na_sentinel=True`` for dictionary-encoded PyArrow data that stores nulls as dictionary values, keeping the null in the returned ``uniques`` or raising ``ArrowInvalid`` for chunked data (:issue:`66490`)
+- Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` raising ``TypeError`` instead of returning ``pd.NA`` for :class:`ArrowDtype` columns containing missing values. :meth:`DataFrame.any` and :meth:`DataFrame.all` on a frame with :class:`ArrowDtype` columns now return ``bool[pyarrow]`` instead of ``bool``, including when mixed with numpy columns, and ``object`` when mixed with nullable or sparse columns (:issue:`70685`)
 - Bug in :meth:`Series.dt.strftime` on PyArrow-backed timestamp and date data where ``%S`` included fractional seconds and ``%f`` and ``%N`` were not supported (:issue:`55001`)
 - Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on PyArrow-backed dtypes raising when ``values`` held a mix of types PyArrow cannot combine (:issue:`70300`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
