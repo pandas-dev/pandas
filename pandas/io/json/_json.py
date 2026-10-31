@@ -1839,9 +1839,14 @@ class FrameParser(Parser):
             return parse_table_schema(json, precise_float=self.precise_float)
         else:
             # includes orient == "columns"
-            return DataFrame(
-                ujson_loads(json, precise_float=self.precise_float), dtype=None
-            )
+            records = ujson_loads(json, precise_float=self.precise_float)
+            if isinstance(records, list) and records and records[0] is None:
+                # GH#14358 a leading null record would otherwise make the
+                #  constructor build a single object column instead of records
+                first = next((x for x in records if x is not None), None)
+                if isinstance(first, dict):
+                    records = [{} if x is None else x for x in records]
+            return DataFrame(records, dtype=None)
 
     def _try_convert_types(self, obj: DataFrame) -> DataFrame:
         arrays = []

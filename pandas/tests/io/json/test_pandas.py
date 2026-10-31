@@ -2462,6 +2462,28 @@ class TestPandasContainer:
             result = pd.DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
 
+    @pytest.mark.parametrize("values", [[1, None, 2], [None, 1, 2], [1, None, None, 2]])
+    @pytest.mark.parametrize(
+        "lines, chunksize", [(False, None), (True, None), (True, 2)]
+    )
+    def test_read_json_null_records(self, values, lines, chunksize):
+        # GH#14358 null records become all-NaN rows wherever they sit, including at
+        #  the start of the data or of a chunk
+        records = ["null" if val is None else f'{{"a": {val}}}' for val in values]
+        data = "\n".join(records) if lines else f"[{', '.join(records)}]"
+        result = pd.read_json(StringIO(data), lines=lines, chunksize=chunksize)
+        if chunksize:
+            with result:
+                result = pd.concat(result)
+        expected = pd.DataFrame({"a": values}, dtype="float64")
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_json_leading_null_non_records(self):
+        # GH#14358 a leading null is only treated as a record when the data are records
+        result = pd.read_json(StringIO("[null, 1, 2]"))
+        expected = pd.DataFrame([np.nan, 1.0, 2.0])
+        tm.assert_frame_equal(result, expected)
+
     def test_readjson_bool_series(self):
         # GH31464
         result = pd.read_json(StringIO("[true, true, false]"), typ="series")
