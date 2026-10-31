@@ -286,11 +286,14 @@ class TestSeriesPlots:
         assert [patch.get_height() for patch in ax.patches] == [6, 6, 6, 7]
 
     @pytest.mark.parametrize("method", ["hist", "plot.hist"])
-    def test_hist_timedelta_raises(self, method):
-        # GH#43941 used to segfault inside numpy; message depends on matplotlib
-        ser = pd.Series(pd.to_timedelta([None, "2 days", "1 day"]))
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "duration[ns][pyarrow]"])
+    def test_hist_timedelta_raises(self, method, dtype):
+        # GH#43941 used to segfault inside numpy
+        if "pyarrow" in dtype:
+            pytest.importorskip("pyarrow")
+        ser = pd.Series(pd.to_timedelta([None, "2 days", "1 day"])).astype(dtype)
         func = ser.hist if method == "hist" else ser.plot.hist
-        with pytest.raises(TypeError, match="(?i)timedelta"):
+        with pytest.raises(TypeError, match="no numeric data to plot"):
             func()
 
 

@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from datetime import timedelta
 from decimal import Decimal
 from functools import partial
 from typing import (
@@ -742,6 +743,9 @@ class MPLPlot(ABC):
             # TODO: change after solving issue 27881
             include_type = [np.number]
             exclude_type = [np.timedelta64]
+        elif self._kind == "hist":
+            # GH#43941 match the frame path, which skips timedelta columns
+            exclude_type = [np.timedelta64, timedelta]
 
         # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":

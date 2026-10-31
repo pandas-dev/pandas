@@ -330,6 +330,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` mislabeling ticks set with ``xticks=`` or ``ax.set_xticks`` (:issue:`18881`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` drawing datetimes outside the visible range when they share the x-axis (``sharex=True``, ``twinx``, or ``secondary_y=True``) with a time-series plot (:issue:`14322`, :issue:`40470`)
+- Bug in :meth:`Series.hist` and :meth:`Series.plot.hist` with ``timedelta64`` data raising a matplotlib error instead of the ``TypeError`` raised for a :class:`DataFrame` (:issue:`43941`)
 - Bug in :meth:`Series.plot.hist` and :meth:`DataFrame.plot.hist` with ``datetime64`` data drawing only empty bars (:issue:`17372`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` raising when a datetime index containing ``NaT`` is drawn on a time-series axes (:issue:`40470`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` with a timezone-aware index raising ``ValueError`` when the first timestamp falls in a daylight saving time transition, e.g. the repeated hour of a fall-back day (:issue:`62936`)
