@@ -8337,11 +8337,16 @@ class Index(IndexOpsMixin, PandasObject):
             if name in ("sum", "prod"):
                 # the call numpy made when Index had no sum/prod
                 ufunc = np.add if name == "sum" else np.multiply
+                reduce_kwargs: dict[str_t, Any] = {
+                    "axis": axis,
+                    "dtype": None,
+                    **changed,
+                }
                 # error: Argument 1 to "reduce" of "_UFunc_Nin2_Nout1" has
                 # incompatible type "ExtensionArray | ndarray[...]"
                 result = ufunc.reduce(
                     self._values,  # type: ignore[arg-type]
-                    **{"axis": axis, "dtype": None, **changed},
+                    **reduce_kwargs,
                 )
                 result = maybe_unbox_numpy_scalar(
                     lib.item_from_zerodim(result), object_with_dtype=self
