@@ -43,6 +43,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import notna
@@ -671,7 +672,8 @@ class BaseWindowGroupBy(BaseWindow):
 
     _grouper: BaseGrouper
     _as_index: bool
-    _attributes: list[str] = ["_grouper"]
+    _selection_from_groupby: Any
+    _attributes: list[str] = ["_grouper", "_as_index", "_selection_from_groupby"]
 
     def __init__(
         self,
@@ -679,6 +681,8 @@ class BaseWindowGroupBy(BaseWindow):
         *args,
         _grouper: BaseGrouper,
         _as_index: bool = True,
+        _selection_from_groupby=None,
+        selection=None,
         **kwargs,
     ) -> None:
         from pandas.core.groupby.ops import BaseGrouper
@@ -687,15 +691,36 @@ class BaseWindowGroupBy(BaseWindow):
             raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper
         self._as_index = _as_index
+        self._selection_from_groupby = _selection_from_groupby
         # GH 32262: It's convention to keep the grouping column in
         # groupby.<agg_func>, but unexpected to users in
         # groupby.rolling.<agg_func>
+        # GH 56705: Keep grouping column if explicitly selected
         if obj.ndim == 2:
-            obj = obj.drop(columns=self._grouper.names, errors="ignore")
+            effective_selection = (
+                _selection_from_groupby
+                if _selection_from_groupby is not None
+                else selection
+            )
+            if effective_selection is None:
+                drop_cols = self._grouper.names
+            else:
+                if not isinstance(
+                    effective_selection,
+                    (list, tuple, ABCSeries, ABCIndex, Index, np.ndarray),
+                ):
+                    selection_list = [effective_selection]
+                else:
+                    selection_list = list(effective_selection)
+                drop_cols = [
+                    key for key in self._grouper.names if key not in selection_list
+                ]
+            if drop_cols:
+                obj = obj.drop(columns=drop_cols, errors="ignore")
         # GH 15354
         if kwargs.get("step") is not None:
             raise NotImplementedError("step not implemented for groupby")
-        super().__init__(obj, *args, **kwargs)
+        super().__init__(obj, *args, selection=selection, **kwargs)
 
     def _apply(
         self,
@@ -726,6 +751,21 @@ class BaseWindowGroupBy(BaseWindow):
             if key not in self.obj.index.names or key is None
         ]
 
+        effective_selection = (
+            self._selection
+            if self._selection is not None
+            else self._selection_from_groupby
+        )
+        if effective_selection is not None:
+            if not isinstance(
+                effective_selection,
+                (list, tuple, ABCSeries, ABCIndex, Index, np.ndarray),
+            ):
+                selection_list = [effective_selection]
+            else:
+                selection_list = list(effective_selection)
+            drop_columns = [key for key in drop_columns if key not in selection_list]
+
         if len(drop_columns) != len(groupby_keys) and result.ndim == 2:
             # Our result will have still kept the column in the result
             result = result.drop(columns=drop_columns, errors="ignore")
@@ -755,7 +795,10 @@ class BaseWindowGroupBy(BaseWindow):
 
         result.index = result_index
         if not self._as_index:
-            result = result.reset_index(level=list(range(len(groupby_keys))))
+            result = result.reset_index(
+                level=list(range(len(groupby_keys))),
+                allow_duplicates=True,
+            )
         return result
 
     def _apply_pairwise(
@@ -771,7 +814,26 @@ class BaseWindowGroupBy(BaseWindow):
         """
         if target.ndim == 2:
             # Manually drop the grouping column first
-            target = target.drop(columns=self._grouper.names, errors="ignore")
+            effective_selection = (
+                self._selection
+                if self._selection is not None
+                else self._selection_from_groupby
+            )
+            if effective_selection is None:
+                drop_cols = self._grouper.names
+            else:
+                if not isinstance(
+                    effective_selection,
+                    (list, tuple, ABCSeries, ABCIndex, Index, np.ndarray),
+                ):
+                    selection_list = [effective_selection]
+                else:
+                    selection_list = list(effective_selection)
+                drop_cols = [
+                    key for key in self._grouper.names if key not in selection_list
+                ]
+            if drop_cols:
+                target = target.drop(columns=drop_cols, errors="ignore")
         result = super()._apply_pairwise(target, other, pairwise, func, numeric_only)
         # 1) Determine the levels + codes of the groupby levels
         if other is not None and not all(

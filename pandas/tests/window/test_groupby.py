@@ -856,6 +856,72 @@ class TestRolling:
         assert "A" not in result.columns
         tm.assert_frame_equal(g.obj, original_obj)
 
+    @pytest.mark.parametrize("method", ["rolling", "expanding", "ewm"])
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            ["group"],
+            ["group", "other"],
+        ],
+    )
+    def test_groupby_window_selected_grouping_column(self, method, columns):
+        # GH 56705
+        df = pd.DataFrame({"group": [1, 2, 2, 3, 3, 3], "other": [1, 1, 1, 1, 1, 1]})
+        gb = df.groupby(["group"])[columns]
+        if method == "rolling":
+            window = gb.rolling(2, min_periods=1)
+            expected_group = (
+                df.groupby(["group"])["group"].rolling(2, min_periods=1).mean()
+            )
+            expected_other = (
+                df.groupby(["group"])["other"].rolling(2, min_periods=1).mean()
+            )
+        elif method == "expanding":
+            window = gb.expanding(min_periods=1)
+            expected_group = (
+                df.groupby(["group"])["group"].expanding(min_periods=1).mean()
+            )
+            expected_other = (
+                df.groupby(["group"])["other"].expanding(min_periods=1).mean()
+            )
+        else:
+            window = gb.ewm(span=2)
+            expected_group = df.groupby(["group"])["group"].ewm(span=2).mean()
+            expected_other = df.groupby(["group"])["other"].ewm(span=2).mean()
+
+        result = window.mean()
+        if columns == ["group"]:
+            expected = expected_group.to_frame()
+        else:
+            expected = pd.concat([expected_group, expected_other], axis=1)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_window_selected_grouping_column_as_index_false(self):
+        # GH 56705
+        df = pd.DataFrame({"group": [1, 2, 2, 3, 3, 3], "other": [1, 1, 1, 1, 1, 1]})
+        result = (
+            df.groupby(["group"], as_index=False)[["group"]]
+            .rolling(2, min_periods=1)
+            .mean()
+        )
+        expected = pd.DataFrame(
+            {"group": [1, 2, 2, 3, 3, 3], "group_agg": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0]}
+        )
+        expected.columns = ["group", "group"]
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_subset_indexing_after_selection(self):
+        # GH 56705
+        df = pd.DataFrame({"group": [1, 2, 2, 3, 3, 3], "other": [1, 1, 1, 1, 1, 1]})
+        result = (
+            df.groupby(["group"])[["group", "other"]]
+            .rolling(2, min_periods=1)["group"]
+            .mean()
+        )
+        expected = df.groupby(["group"])["group"].rolling(2, min_periods=1).mean()
+        tm.assert_series_equal(result, expected)
+
     def test_groupby_level(self):
         # GH 38523, 38787
         arrays = [
