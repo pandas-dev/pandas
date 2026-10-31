@@ -39,8 +39,8 @@ class TestCaching:
         # loop through df to update out
         six = pd.Timestamp("5/7/2014")
         eix = pd.Timestamp("5/9/2014")
-        for ix, row in df.iterrows():
-            out.loc[six:eix, row["C"]] = out.loc[six:eix, row["C"]] + row["D"]
+        for row in df.itertuples():
+            out.loc[six:eix, row.C] = out.loc[six:eix, row.C] + row.D
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
@@ -51,10 +51,10 @@ class TestCaching:
             {"A": [0, 0, 0]}, index=pd.date_range("5/7/2014", "5/9/2014")
         )
         out_original = out.copy()
-        for ix, row in df.iterrows():
-            v = out[row["C"]][six:eix] + row["D"]
+        for row in df.itertuples():
+            v = out[row.C][six:eix] + row.D
             with tm.raises_chained_assignment_error():
-                out[row["C"]][six:eix] = v
+                out[row.C][six:eix] = v
 
         tm.assert_frame_equal(out, out_original)
         tm.assert_series_equal(out["A"], out_original["A"])
@@ -62,8 +62,8 @@ class TestCaching:
         out = pd.DataFrame(
             {"A": [0, 0, 0]}, index=pd.date_range("5/7/2014", "5/9/2014")
         )
-        for ix, row in df.iterrows():
-            out.loc[six:eix, row["C"]] += row["D"]
+        for row in df.itertuples():
+            out.loc[six:eix, row.C] += row.D
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
