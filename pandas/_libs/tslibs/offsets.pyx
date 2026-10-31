@@ -4218,6 +4218,12 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     @property
     def startingMonth(self) -> int:
+        """
+        Deprecated alias for ``starting_month``.
+
+        .. deprecated:: 3.2.0
+            Use ``starting_month`` instead.
+        """
         _warn_starting_month("property")
         return self._startingMonth
 
@@ -4623,6 +4629,12 @@ cdef class HalfYearOffset(SingleConstructorOffset):
 
     @property
     def startingMonth(self) -> int:
+        """
+        Deprecated alias for ``starting_month``.
+
+        .. deprecated:: 3.2.0
+            Use ``starting_month`` instead.
+        """
         _warn_starting_month("property")
         return self._startingMonth
 
@@ -6067,6 +6079,12 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
     @property
     def startingMonth(self):
+        """
+        Deprecated alias for ``starting_month``.
+
+        .. deprecated:: 3.2.0
+            Use ``starting_month`` instead.
+        """
         _warn_starting_month("property")
         return self._startingMonth
 

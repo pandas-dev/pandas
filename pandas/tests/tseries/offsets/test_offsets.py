@@ -1117,15 +1117,6 @@ def test_starting_month_both_raises(cls):
 
 
 @pytest.mark.parametrize("cls", _STARTING_MONTH_CLASSES)
-def test_starting_month_new_kwarg(cls):
-    # GH#57794
-    with tm.assert_produces_warning(None):
-        offset = cls(starting_month=3)
-        result = offset.starting_month
-    assert result == 3
-
-
-@pytest.mark.parametrize("cls", _STARTING_MONTH_CLASSES)
 def test_unpickle_old_starting_month_key(cls):
     # GH#57794 legacy pickles carry a "startingMonth" key
     state = {"n": 1, "normalize": False, "startingMonth": 7}

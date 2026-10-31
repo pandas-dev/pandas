@@ -229,7 +229,7 @@ numpydoc_validation_exclude = {
     # Offset class docstrings - parameters (PR02) and order (GL07)
     # Note: the order is ignored intentionally (to put Attributes/Methods at the end)
     r"pandas\.tseries\.offsets\.[a-zA-Z0-9]+$",
-    # Deprecated startingMonth properties (GL08)
+    # Deprecated startingMonth properties
     r"\.startingMonth$",
     # Offset .base properties
     r"pandas\.tseries\.offsets\.BaseOffset\.base$",
