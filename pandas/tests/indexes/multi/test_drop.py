@@ -100,6 +100,9 @@ def test_droplevel_list():
     expected = index[:2].droplevel(2).droplevel(0)
     assert dropped.equals(expected)
 
+    dropped = index[:2].droplevel([0, "three"])
+    assert dropped.equals(expected)
+
     dropped = index[:2].droplevel([])
     expected = index[:2]
     assert dropped.equals(expected)
@@ -113,6 +116,18 @@ def test_droplevel_list():
 
     with pytest.raises(KeyError, match="'Level four not found'"):
         index[:2].droplevel(["one", "four"])
+
+
+@pytest.mark.parametrize("level", [[0, 0], ["one", "one"], [0, "one"], [2, -1]])
+def test_droplevel_duplicate_levels(level):
+    # GH#21091
+    index = pd.MultiIndex.from_product(
+        [[0, 1], [2, 3], [4, 5]], names=["one", "two", "three"]
+    )
+
+    msg = "level should not contain duplicate values"
+    with pytest.raises(ValueError, match=msg):
+        index.droplevel(level)
 
 
 def test_drop_not_lexsorted(performance_warning):

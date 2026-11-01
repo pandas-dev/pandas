@@ -1579,9 +1579,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     level_list = [level]
                 else:
                     level_list = level
-                level_list = [self.index._get_level_number(lev) for lev in level_list]
+                level_list = self.index._get_level_numbers(level_list)
                 if len(level_list) < self.index.nlevels:
-                    new_index = self.index.droplevel(level_list)  # type: ignore[assignment]
+                    new_index = self.index._drop_level_numbers(  # type: ignore[assignment]
+                        sorted(level_list, reverse=True)
+                    )
 
             if inplace:
                 self.index = new_index
