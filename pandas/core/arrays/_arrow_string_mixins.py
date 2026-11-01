@@ -183,7 +183,7 @@ class ArrowStringArrayMixin:
 
     @staticmethod
     def _unwrap_re_pattern(
-        pat: str | re.Pattern[str], case: bool, flags: int
+        pat: str | re.Pattern[str], case: bool, flags: int = 0
     ) -> tuple[str, bool, int]:
         """
         Reduce `pat` to the (pattern, case, flags) triple the pyarrow kernels take.
@@ -528,11 +528,10 @@ class ArrowStringArrayMixin:
         self,
         pat: str | re.Pattern[str],
         case: bool = True,
-        flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
         # GH#63108 the accessor pre-compiles `pat` whenever the user passes `flags`
-        pattern, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        pattern, case, flags = self._unwrap_re_pattern(pat, case)
 
         if pattern.startswith("^"):
             pattern = pattern[1:]
@@ -549,6 +548,8 @@ class ArrowStringArrayMixin:
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
         pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        if flags:
+            raise NotImplementedError(f"fullmatch not implemented with {flags=}")
 
         if (not pat.endswith("$") or pat.endswith("\\$")) and not pat.startswith("^"):
             pat = f"^({pat})$"
@@ -556,7 +557,7 @@ class ArrowStringArrayMixin:
             pat = f"^({pat[1:]})$"
         elif not pat.startswith("^"):
             pat = f"^({pat[0:-1]})$"
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+        return ArrowStringArrayMixin._str_match(self, pat, case, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if self._has_non_ascii():

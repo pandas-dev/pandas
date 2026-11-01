@@ -1284,7 +1284,7 @@ def test_match_compiled_regex(any_string_dtype):
 
     msg = (
         "Cannot both specify 'case' and pass a compiled "
-        "regexp object with conflicting case-sensitivity"
+        "regex pattern with conflicting case-sensitivity"
     )
     with pytest.raises(ValueError, match=msg):
         values.str.match(re.compile("ab"), case=False)
@@ -1295,7 +1295,7 @@ def test_match_compiled_regex(any_string_dtype):
 
     msg = (
         "Cannot both specify 'flags' and pass a compiled "
-        "regexp object with conflicting flags"
+        "regex pattern with conflicting flags"
     )
     with pytest.raises(ValueError, match=msg):
         values.str.match(re.compile("ab"), flags=re.IGNORECASE)
@@ -1376,7 +1376,7 @@ def test_match_non_ignorecase_flags_with_case(any_string_dtype):
     result = values.str.match(re.compile("^ab", re.MULTILINE | re.IGNORECASE))
     tm.assert_series_equal(result, pd.Series([True, False], dtype=expected_dtype))
 
-    msg = "Cannot both specify case=True and pass 'flags' containing re.IGNORECASE"
+    msg = "Cannot both specify 'case=True' and pass 'flags' containing re.IGNORECASE"
     with pytest.raises(ValueError, match=re.escape(msg)):
         values.str.match("ab", flags=re.IGNORECASE, case=True)
 
@@ -1395,10 +1395,21 @@ def test_match_inline_flags_survive(any_string_dtype):
     tm.assert_series_equal(values.str.match("(?i)ab", flags=re.MULTILINE), expected)
 
 
-def test_match_inline_ascii_flag():
+def test_match_inline_ascii_flag(request, any_string_dtype):
     # GH#63108 an inline "(?a)" must not collide with the implicit re.U
-    values = pd.Series(["ab", "1b"], dtype=object)
-    expected = pd.Series([True, True], dtype=np.bool_)
+    if (
+        isinstance(any_string_dtype, pd.StringDtype)
+        and any_string_dtype.storage == "pyarrow"
+    ):
+        # TODO (https://github.com/pandas-dev/pandas/issues/63683)
+        mark = pytest.mark.xfail(reason="inline flags fails with pyarrow")
+        request.applymarker(mark)
+
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    values = pd.Series(["ab", "1b"], dtype=any_string_dtype)
+    expected = pd.Series([True, True], dtype=expected_dtype)
 
     tm.assert_series_equal(values.str.match(r"(?a)\wb"), expected)
     tm.assert_series_equal(values.str.match(r"(?a)\wb", flags=0), expected)
