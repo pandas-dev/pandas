@@ -418,6 +418,13 @@ class TestDataFrameEval:
         result = pd.eval("'abc'", engine=engine, parser=parser)
         assert result == "abc"
 
+    def test_eval_assign_string_literal(self, engine, parser):
+        # GH#15320
+        df = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
+        result = df.eval("c = 'foo'\nd = a + b", engine=engine, parser=parser)
+        expected = df.assign(c="foo", d=df["a"] + df["b"])
+        tm.assert_frame_equal(result, expected)
+
     def test_eval_object_dtype_numeric_parts_unchanged(self, engine, parser):
         # GH#27639 evaluating object operands in python must not change how
         #  numeric subexpressions or later lines are evaluated
