@@ -543,6 +543,41 @@ class TestTableOrient:
         }
         assert result == expected
 
+    def test_convert_pandas_type_to_json_field_interval_categorical(self):
+        # GH#55544 enum matches the string form used for the serialized values
+        ser = pd.Series(pd.cut([1, 5], [0, 2, 6]), name="cats")
+        result = convert_pandas_type_to_json_field(ser)
+        expected = {
+            "name": "cats",
+            "type": "any",
+            "constraints": {"enum": ["(0, 2]", "(2, 6]"]},
+            "ordered": True,
+        }
+        assert result == expected
+
+    def test_to_json_interval(self):
+        # GH#55544
+        df = pd.DataFrame(
+            {"a": pd.cut([1, 5, np.nan], [0, 2, 6])},
+            index=pd.interval_range(0, 3),
+        )
+        df.columns = pd.IntervalIndex.from_breaks([0, 1], name=None)
+        result = json.loads(df.to_json(orient="table"))
+        assert result["schema"]["fields"] == [
+            {"name": "index", "type": "any", "extDtype": "interval"},
+            {
+                "name": "(0, 1]",
+                "type": "any",
+                "constraints": {"enum": ["(0, 2]", "(2, 6]"]},
+                "ordered": True,
+            },
+        ]
+        assert result["data"] == [
+            {"index": "(0, 1]", "(0, 1]": "(0, 2]"},
+            {"index": "(1, 2]", "(0, 1]": "(2, 6]"},
+            {"index": "(2, 3]", "(0, 1]": None},
+        ]
+
     @pytest.mark.parametrize(
         "inp,exp",
         [

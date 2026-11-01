@@ -1223,6 +1223,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         #  "Interval(0, 1, closed='right')"
         return str
 
+    def _values_for_json(self) -> np.ndarray:
+        # GH#55544 render as e.g. "(0, 1]" like repr/to_csv instead of letting
+        #  the encoder dump the attributes of each Interval; NA stays null
+        mask = self.isna()
+        result = np.empty(len(self), dtype=object)
+        result[~mask] = [str(x) for x in self[~mask]]
+        result[mask] = None
+        return result
+
     # ---------------------------------------------------------------------
     # Vectorized Interval Properties/Attributes
 
