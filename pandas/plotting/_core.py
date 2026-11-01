@@ -2118,7 +2118,9 @@ class PlotAccessor(PandasObject):
         **kwargs
             Additional keyword arguments, such as ``ax``, ``figsize``,
             ``title`` and ``legend``, are documented in
-            :meth:`DataFrame.plot`.
+            :meth:`DataFrame.plot`. Properties of the filled areas, such as
+            ``hatch`` or ``edgecolor``, can also be passed; ``hatch`` also
+            accepts a list with one hatch per column.
 
         Returns
         -------
