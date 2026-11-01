@@ -44,11 +44,14 @@ from pandas.core.base import (
     PandasObject,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from pandas._typing import Frequency
+
     from pandas import (
         DataFrame,
         Series,
@@ -133,6 +136,74 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         return Series(result, index=self._parent.index, name=self.name).__finalize__(
             self._parent
         )
+
+    def shift(self, periods: int = 1, freq: Frequency | None = None) -> Series:
+        """
+        Shift the values by desired number of time frequency increments.
+
+        Unlike :meth:`Series.shift`, which moves values to different positions,
+        this adds ``periods * freq`` to each value, like :meth:`DatetimeIndex.shift`.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+        freq : pandas.DateOffset, pandas.Timedelta or str, optional
+            Frequency increment to shift by. If None, the frequency inferred
+            from the values (see :attr:`Series.dt.freq`) is used, so values in
+            descending order move backward for positive ``periods``. Must be
+            None for period values, which are shifted by their own frequency.
+
+        Returns
+        -------
+        Series
+            Series with the shifted values, indexed like the original Series.
+
+        Raises
+        ------
+        NullFrequencyError
+            If ``freq`` is None, ``periods`` is nonzero, and no frequency can
+            be inferred from the values.
+        TypeError
+            If ``freq`` is passed for period values.
+
+        See Also
+        --------
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
+        Series.shift : Shift values by desired number of positions.
+
+        Examples
+        --------
+        >>> ser = pd.Series(pd.date_range("2020-01-01", periods=3, freq="D"))
+        >>> ser.dt.shift(1)
+        0   2020-01-02
+        1   2020-01-03
+        2   2020-01-04
+        dtype: datetime64[us]
+
+        >>> ser.dt.shift(2, freq="h")
+        0   2020-01-01 02:00:00
+        1   2020-01-02 02:00:00
+        2   2020-01-03 02:00:00
+        dtype: datetime64[us]
+        """
+        from pandas import Series
+
+        values = self._get_values()
+        if isinstance(values, PeriodArray):
+            if freq is not None:
+                raise TypeError(
+                    "`freq` argument is not supported for Series.dt.shift "
+                    "with period values"
+                )
+            values = PeriodIndex(values, copy=False)
+        elif freq is None:
+            freq = values._inferred_freq_str
+        result = values.shift(periods, freq)
+        return Series(
+            result._values, index=self._parent.index, name=self.name
+        ).__finalize__(self._parent)
 
 
 @delegate_names(

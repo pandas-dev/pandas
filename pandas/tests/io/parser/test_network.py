@@ -62,6 +62,17 @@ def test_url_encoding_csv(httpserver, datapath):
     assert df.loc[15, 1] == "Á köldum klaka (Cold Fever) (1994)"
 
 
+@pytest.mark.network
+@pytest.mark.single_cpu
+def test_url_non_ascii(httpserver):
+    # GH#21499 non-ASCII characters are percent-encoded, matching browsers
+    httpserver.serve_content(content="a\n1\n")
+    result = read_csv(httpserver.url + "/München%20Daten?q=é#ü")
+    tm.assert_frame_equal(result, pd.DataFrame({"a": [1]}))
+    raw_uri = httpserver.requests[-1].environ["RAW_URI"]
+    assert raw_uri == "/M%C3%BCnchen%20Daten?q=%C3%A9"
+
+
 @pytest.fixture
 def tips_df(datapath):
     """DataFrame with the tips dataset."""
