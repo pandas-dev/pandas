@@ -433,6 +433,20 @@ class TestPandasContainer:
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
+    @pytest.mark.parametrize("precise_float", [True, False])
+    @pytest.mark.parametrize("orient", ["table", "split", "columns"])
+    def test_frame_float_max_roundtrip(self, orient, precise_float):
+        # GH#21454
+        df = pd.DataFrame({"A": [np.finfo(np.float64).max, -1.7976931348e308]})
+        result = pd.read_json(
+            StringIO(df.to_json(orient=orient)),
+            orient=orient,
+            precise_float=precise_float,
+        )
+        # the fewest digits from double_precision=10 up that stay finite
+        expected = pd.DataFrame({"A": [1.79769313486e308, -1.7976931348e308]})
+        tm.assert_frame_equal(result, expected, check_exact=precise_float)
+
     def test_frame_to_json_except(self):
         df = pd.DataFrame([1, 2, 3])
         msg = "Invalid value 'garbage' for option 'orient'"
