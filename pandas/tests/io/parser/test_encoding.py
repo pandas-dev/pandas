@@ -410,13 +410,13 @@ def test_not_readable(all_parsers, mode):
         handle.write(content)
         handle.seek(0)
         if parser.engine == "pyarrow":
-            # pyarrow's CSV reader cannot read from a SpooledTemporaryFile
             if "t" in mode:
                 msg = "The 'pyarrow' engine can only read from a binary file object"
                 with pytest.raises(TypeError, match=msg):
                     parser.read_csv(handle)
             else:
-                msg = "No columns to parse from file"
+                # GH#62635 single line without a trailing newline
+                msg = "The 'pyarrow' engine also raises this for a single line"
                 with pytest.raises(EmptyDataError, match=msg):
                     parser.read_csv(handle)
             return
