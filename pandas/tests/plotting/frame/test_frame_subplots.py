@@ -486,6 +486,18 @@ class TestDataFramePlotsSubplots:
         result2 = ax[1].yaxis.get_ticklocs()
         tm.assert_almost_equal(result2, expected, rtol=1e-12, atol=0)
 
+    @pytest.mark.parametrize("kind", ["bar", "barh", "line"])
+    @pytest.mark.parametrize("subplots", [True, [("A", "B")]])
+    def test_subplots_no_default_title(self, kind, subplots):
+        # GH#15693
+        df = pd.DataFrame(np.random.default_rng(2).random((5, 3)), columns=list("ABC"))
+        axes = df.plot(kind=kind, subplots=subplots)
+        assert [ax.get_title() for ax in axes] == [""] * len(axes)
+
+        titles = [f"title{i}" for i in range(len(axes))]
+        axes = df.plot(kind=kind, subplots=subplots, title=titles)
+        assert [ax.get_title() for ax in axes] == titles
+
     def test_boxplot_subplots_return_type_default(self, hist_df):
         df = hist_df
 
