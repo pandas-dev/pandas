@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_arm
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -206,8 +207,51 @@ def test_apply_axis1_masked_heterogeneous_dtypes():
 def test_agg_axis1_duplicate_index(data, dtype):
     # GH 42380
     expected = pd.DataFrame([[data], [data]], index=["a", "a"], dtype=dtype)
-    result = expected.agg(lambda x: x, axis=1)
+    msg = "DataFrame.agg with a single callable producing a DataFrame result"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = expected.agg(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, axis",
+    [
+        (lambda x: x + 1, 0),
+        (lambda x: x + 1, 1),
+        (np.sqrt, 0),
+        (np.sqrt, 1),
+        (lambda x: list(x), 0),
+        (lambda x: x.to_numpy(), 0),
+    ],
+)
+def test_agg_non_reducing_func_deprecated(func, axis):
+    # GH#49673
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    msg = "DataFrame.agg with a single callable producing a DataFrame result"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.agg(func, axis=axis)
+    expected = df.apply(func, axis=axis)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, axis",
+    [
+        (lambda x: x.sum(), 0),
+        (lambda x: x.sum(), 1),
+        (np.mean, 0),
+        (lambda x: {"k": 1}, 0),
+        # list-likes are not expanded along axis=1
+        (lambda x: list(x), 1),
+        (lambda x: x.to_numpy(), 1),
+    ],
+)
+def test_agg_series_result_no_warning(func, axis):
+    # GH#49673
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    with tm.assert_produces_warning(None):
+        result = df.agg(func, axis=axis)
+    assert isinstance(result, pd.Series)
 
 
 def test_apply_mixed_datetimelike():
@@ -1911,7 +1955,9 @@ def test_agg_mapping_func_deprecated():
         return x + b + c
 
     # single func already takes the vectorized path
-    result = df.agg(foo1, 0, 3, c=4)
+    msg = "DataFrame.agg with a single callable producing a DataFrame result"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.agg(foo1, 0, 3, c=4)
     expected = df + 7
     tm.assert_frame_equal(result, expected)
 

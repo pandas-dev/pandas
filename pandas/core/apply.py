@@ -12,16 +12,21 @@ from typing import (
     TypeAlias,
     cast,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs.internals import BlockValuesRefs
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -1142,6 +1147,16 @@ class FrameApply(NDFrameApply):
 
         if result is None:
             result = self.obj.apply(self.func, axis, args=self.args, **self.kwargs)
+            if isinstance(result, ABCDataFrame):
+                # GH#49673
+                warnings.warn(
+                    "DataFrame.agg with a single callable producing a DataFrame "
+                    "result is deprecated. In a future version, this will return "
+                    "a Series with one entry per column (per row with axis=1). "
+                    "Use DataFrame.apply instead to retain the current behavior.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
         return result
 
