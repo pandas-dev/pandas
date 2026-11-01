@@ -54,7 +54,7 @@ def test_reduction_axis_valid(method, axis):
 def test_reduction_axis_out_of_bounds(method, axis):
     # axis beyond the array's dimensions is rejected rather than silently ignored
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
-    msg = "`axis` must be fewer than the number of dimensions"
+    msg = "`axis` must be less than the number of dimensions"
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
 
