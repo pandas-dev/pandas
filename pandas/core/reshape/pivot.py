@@ -397,12 +397,13 @@ def __internal_pivot_table(
             table = table.astype(np.int64)
 
     if margins:
+        margins_values = [] if aggfunc == "size" else values
         if dropna:
-            data = data[data.notna().all(axis=1)]
+            data = data.dropna(subset=keys + margins_values)
         table = _add_margins(
             table,
             data,
-            values,
+            margins_values,
             rows=index,
             cols=columns,
             aggfunc=aggfunc,
