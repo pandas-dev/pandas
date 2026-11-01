@@ -154,7 +154,8 @@ class TestGroupBy:
         assert isinstance(g._grouper, BinGrouper)
         groups = g.groups
         assert isinstance(groups, dict)
-        assert len(groups) == 3
+        # 2013H1 and 2013H2, GH#17898
+        assert len(groups) == 2
 
     def test_timegrouper_with_reg_groups(self):
         # GH 3794
@@ -937,7 +938,7 @@ class TestGroupBy:
         res = gb.apply(lambda x: x["Quantity"] * 2)
 
         dti = pd.Index(
-            [pd.Timestamp("2013-12-31")], dtype=df["Date"].dtype, name="Date"
+            [pd.Timestamp("2112-12-31")], dtype=df["Date"].dtype, name="Date"
         )
         expected = pd.DataFrame(
             [[36, 6, 6, 10, 2]],
