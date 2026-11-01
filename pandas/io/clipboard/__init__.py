@@ -465,7 +465,7 @@ def init_windows_clipboard():
 
     def copy_windows(text):
         # This function is heavily based on
-        # http://msdn.com/ms649016#_win32_Copying_Information_to_the_Clipboard
+        # https://learn.microsoft.com/en-us/windows/win32/dataxchg/using-the-clipboard#copy-information-to-the-clipboard
 
         text = _stringifyText(text)  # Converts non-str values to str.
 

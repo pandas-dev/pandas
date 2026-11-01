@@ -220,7 +220,7 @@ def find_titles(rst_file: str) -> Iterable[tuple[str, int]]:
     Algorithm to identify particular text that should be considered headings in an
     RST file.
 
-    See <https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html> for details
+    See <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html> for details
     on what constitutes a string as a heading in RST.
 
     Parameters
