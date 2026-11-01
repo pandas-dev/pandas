@@ -6,6 +6,7 @@ import pytest
 from pandas._libs import index as libindex
 
 import pandas as pd
+import pandas._testing as tm
 
 
 @pytest.fixture(
@@ -190,3 +191,23 @@ class TestObjectEngine:
         expected = np.array([False, True, False] * num, dtype=bool)
         result = engine.get_loc("b")
         assert (result == expected).all()
+
+
+@pytest.mark.single_cpu
+def test_get_indexer_concurrent_first_lookup():
+    # GH#2728 threads racing to build the hash table must not see it half-filled
+    # shuffled so is_unique cannot be settled by the monotonic check instead
+    values = np.random.default_rng(2).permutation(1_000_000)
+    target = values[:5]
+    expected = np.arange(5, dtype=np.intp)
+
+    def lookup(idx, barrier):
+        barrier.wait()
+        result = idx.get_indexer(target)
+        tm.assert_numpy_array_equal(result, expected)
+
+    for _ in range(5):
+        idx = pd.Index(values)
+        # create the engine up front so the threads share it
+        idx._engine
+        tm.run_multithreaded(lookup, max_workers=4, arguments=(idx,), pass_barrier=True)

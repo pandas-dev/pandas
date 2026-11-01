@@ -172,6 +172,16 @@ class ExtensionDtype:
     def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
+    def __getstate__(self) -> object:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170.
+        state = super().__getstate__()
+        if isinstance(state, dict) and "_cache" in state:
+            state = {key: val for key, val in state.items() if key != "_cache"}
+            # object.__getstate__ gives None for an empty __dict__
+            state = state or None
+        return state
+
     @property
     def na_value(self) -> object:
         """
@@ -460,6 +470,7 @@ class ExtensionDtype:
             - implement Array.reshape
             - subclass the Dim2CompatTests in tests.extension.base
             - _concat_same_type should support `axis` keyword
+            - take, delete and repeat should support `axis` keyword
             - _reduce and reductions should support `axis` keyword
         """
         return False

@@ -81,6 +81,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -5727,11 +5728,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
             DataFrame and is only supported with ``axis=0``.
+
+            .. versionadded:: 3.1.0
+
         na : {"raise", True, False}, default False
             How to treat missing values in a boolean mask. ``True`` or
             ``False`` treats missing values as that value, matching
             ``obj[mask]`` for a mask with nullable boolean dtype; ``"raise"``
             raises a ``ValueError``. Ignored when selecting labels.
+
+            .. versionadded:: 3.1.0
 
         Returns
         -------
@@ -6887,9 +6893,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         immutable, the underlying data can be safely shared and a copy
         is not needed.
 
-        Since pandas is not thread safe, see the
-        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
-        environment.
+        See the :ref:`gotchas <gotchas.thread-safety>` before sharing pandas
+        objects between threads.
 
         Copy-on-Write protects shallow copies against accidental modifications.
         This means that any changes to the copied data would make a new copy
@@ -8264,7 +8269,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'values': Interpolation based on the numerical values
               in the DataFrame, treating them as equally spaced along the index.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial': Passed to
+              'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
               values of the index.  Both 'polynomial' and 'spline' require that
@@ -8272,9 +8277,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
               instead of Pandas first order `spline`.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
-              'cubicspline': Wrappers around the SciPy interpolation methods of
-              similar names. See `Notes`.
+            * 'barycentric', 'krogh', 'piecewise_polynomial', 'spline',
+              'pchip', 'akima', 'cubicspline': Wrappers around the SciPy
+              interpolation methods of similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
@@ -8304,7 +8309,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Keyword arguments to pass on to the interpolating function. Not
             all methods use them: the ``'linear'``, ``'time'``, ``'index'``,
             and ``'values'`` methods use NumPy and ignore any extra keyword
-            arguments (for example, ``left`` and ``right``).
+            arguments (for example, ``left`` and ``right``) other than
+            ``fill_value="extrapolate"``.
+
+            NaNs before the first or after the last valid value are filled
+            with the nearest valid value by the NumPy-based methods and left
+            as NaN by the `scipy.interpolate.interp1d` methods. Pass
+            ``fill_value="extrapolate"`` to extrapolate them instead. Leading
+            NaNs are only filled when ``limit_direction`` is 'backward' or
+            'both'.
 
         Returns
         -------
@@ -9139,7 +9152,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            lower, upper = min(lower, upper), max(lower, upper)
+            dtypes = set(self._mgr.get_dtypes())
+            dtype = dtypes.pop() if len(dtypes) == 1 else None
+            if isinstance(dtype, CategoricalDtype) and dtype.ordered:
+                # GH#49217 order by category position, not by value
+                pos = dtype.categories.get_indexer([lower, upper])
+                if pos.min() >= 0 and pos[0] > pos[1]:
+                    lower, upper = upper, lower
+            else:
+                lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
@@ -10536,16 +10557,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True, extract_range=True)
+            if (
+                self.ndim == 1
+                and is_list_like(other)
+                # a dict is keyed and a set unordered, so neither lines up by position
+                and not isinstance(other, (np.ndarray, ExtensionArray, set, frozenset))
+                and not is_dict_like(other)
+                # outside numeric and bool dtypes a tuple is one element, as
+                #  for object dtype (GH#37681)
+                and (
+                    not isinstance(other, tuple)
+                    or is_numeric_dtype(self.dtype)
+                    or is_bool_dtype(self.dtype)
+                )
+            ):
+                # GH#63842 line up a list against the mask like an ndarray
+                other = common.asarray_tuplesafe(other)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
+            if self.ndim == 1 and other.ndim == 1 and len(other) == 1:
+                # broadcast like a scalar (GH#2745, GH#4192)
+                other = other.repeat(len(self))
+
             if other.shape != self.shape:
                 if self.ndim != 1:
-                    # In the ndim == 1 case we may have
-                    #  other length 1, which we treat as scalar (GH#2745, GH#4192)
-                    #  or len(other) == icond.sum(), which we treat like
-                    #  __setitem__ (GH#3235)
                     raise ValueError(
                         "other must be the same shape as self when an ndarray"
+                    )
+                if other.ndim == 1 and not (inplace and len(other) == cond.sum()):
+                    # inplace with one value per selected position is treated
+                    #  like __setitem__ (GH#3235)
+                    raise ValueError(
+                        f"Length of values ({len(other)}) does not match length "
+                        f"of index ({len(self)})"
                     )
 
             # we are the same shape, so create an actual object for alignment
@@ -12782,6 +12826,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
+        if (
+            isinstance(other, NDFrame)
+            and other.ndim == self.ndim
+            and not self.index.equals(other.index)
+        ):
+            # align rows to self rather than the union, so rows absent from self
+            #  cannot introduce NaNs that upcast the result, see GH#12755
+            other = self.align(other, join="left", axis=0)[1]
         result = op(self, other)
 
         # this makes sure that we are aligned like the input

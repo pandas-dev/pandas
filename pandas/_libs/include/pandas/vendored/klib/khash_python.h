@@ -256,7 +256,19 @@ static inline int inexact_value(PyObject *a, double *re, double *im) {
   return 0;
 }
 
+// Clear exceptions only if the exception is Exception and let other
+// BaseExceptions (KeyboardInterrupt, SystemExit, ...) propagate to the caller,
+// see GH 57052. Some existing APIs such as DataFrame.describe, Series.isin, and
+// Series.duplicated rely on TypeErrors and ValueErrors to be swallowed when
+// calling __hash__ on unhashable elements or __eq__ on arrays and pd.NAs.
+static inline void kh_python_clear_nonsystem_exception(void) {
+  if (PyErr_ExceptionMatches(PyExc_Exception)) {
+    PyErr_Clear();
+  }
+}
+
 static inline int pyobject_cmp(PyObject *a, PyObject *b);
+static inline khuint32_t kh_python_hash_func(PyObject *key);
 
 // replacing PyObject_RichCompareBool (NaN!=NaN) with pyobject_cmp (NaN==NaN),
 // which treats NaNs as equivalent
@@ -277,9 +289,13 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   if (a == b) {
     return 1;
   }
+
   if (Py_TYPE(a) == Py_TYPE(b)) {
     // special handling for some built-in types which could have NaNs
     // as we would like to have them equivalent, but the usual
@@ -306,8 +322,13 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
   if (result < 0) {
-    PyErr_Clear();
+    kh_python_clear_nonsystem_exception();
     return 0;
+  }
+  if (result && Py_TYPE(a) != Py_TYPE(b)) {
+    // equal objects with different hashes, e.g. np.dtype("int64") == "int64",
+    // would otherwise match only when probing happens to reach them, GH#43581
+    return kh_python_hash_func(a) == kh_python_hash_func(b);
   }
   return result;
 }
@@ -343,8 +364,6 @@ static inline Py_hash_t complex_values_hash(double re, double im) {
 static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
   return complex_values_hash(key->cval.real, key->cval.imag);
 }
-
-static inline khuint32_t kh_python_hash_func(PyObject *key);
 
 // we could use any hashing algorithm, this is the original CPython's for tuples
 
@@ -387,6 +406,9 @@ static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
 }
 
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   Py_hash_t hash;
   // For PyObject_Hash holds:
   //    hash(0.0) == 0 == hash(-0.0)
@@ -417,7 +439,9 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   }
 
   if (hash == -1) {
-    PyErr_Clear();
+    if (PyErr_Occurred() != NULL) {
+      kh_python_clear_nonsystem_exception();
+    }
     return 0;
   }
 #if SIZEOF_PY_HASH_T == 4

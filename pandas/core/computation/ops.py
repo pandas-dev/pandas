@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_scalar,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -271,9 +272,10 @@ class Op:
 
     @property
     def has_invalid_return_type(self) -> bool:
-        types = self.operand_types
-        obj_dtype_set = frozenset([np.dtype("object")])
-        return self.return_type == object and types - obj_dtype_set
+        # object/string operands may only be combined with each other, GH#47734
+        return self.return_type == object and not all(
+            is_string_dtype(typ) for typ in self.operand_types
+        )
 
     @property
     def operand_types(self):

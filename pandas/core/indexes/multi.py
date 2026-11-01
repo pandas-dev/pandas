@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
+from copy import deepcopy
 from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
@@ -18,6 +19,7 @@ from typing import (
     NoReturn,
     Self,
     cast,
+    overload,
 )
 import warnings
 
@@ -1377,6 +1379,31 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
+    def _validate_names(
+        self,
+        name: Hashable = None,
+        names: Sequence[Hashable] | None = None,
+    ) -> list[Hashable]:
+        """
+        Validate the ``name`` or ``names`` passed to ``copy``.
+        """
+        if names is not None and name is not None:
+            raise TypeError("Can only provide one of `names` and `name`")
+        if names is not None:
+            if not is_list_like(names):
+                raise TypeError("Must pass list-like as `names`.")
+            new_names = list(names)
+        elif not is_list_like(name):
+            new_names = [name]
+        else:
+            new_names = list(cast("Iterable[Hashable]", name))
+
+        if len(new_names) != self.nlevels:
+            raise ValueError(
+                f"Length of new names must be {self.nlevels}, got {len(new_names)}"
+            )
+        return new_names
+
     # error: Signature of "copy" incompatible with supertype "Index"
     def copy(  # type: ignore[override]
         self,
@@ -1433,13 +1460,14 @@ class MultiIndex(Index):
         MultiIndex([('a', 'b', 'c')],
                    )
         """
-        names = self._validate_names(name=name, names=names, deep=deep)
+        if names is None and name is None:
+            names = deepcopy(self.names) if deep else self.names
+        else:
+            names = self._validate_names(name=name, names=names)
         keep_id = not deep
         levels, codes = None, None
 
         if deep:
-            from copy import deepcopy
-
             levels = deepcopy(self.levels)
             codes = deepcopy(self.codes)
 
@@ -1566,7 +1594,7 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
         >>> mi.memory_usage()
-        81
+        78
         """
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
@@ -4071,6 +4099,11 @@ class MultiIndex(Index):
                 # it was a string sliced)
                 start = getattr(start, "start", start)
                 stop = getattr(stop, "stop", stop)
+                if level == 0 and self._lexsort_depth > 0 and step is None:
+                    # GH#52714 sorted, so can return slice object -> view
+                    i = algos.searchsorted(level_codes, start, side="left")
+                    j = algos.searchsorted(level_codes, stop, side="left")
+                    return slice(i, j, step)
                 return convert_indexer(start, stop, step)
 
             elif level > 0 or self._lexsort_depth == 0 or step is not None:
@@ -4168,6 +4201,16 @@ class MultiIndex(Index):
 
         >>> mi.get_locs([[True, False, True], slice("e", "f")])  # doctest: +SKIP
         array([2], dtype=int64)
+        """
+        locs = self._get_locs(seq)
+        if isinstance(locs, slice):
+            return np.arange(*locs.indices(len(self)), dtype=np.intp)
+        return locs
+
+    def _get_locs(self, seq) -> slice | npt.NDArray[np.intp]:
+        """
+        Like get_locs, but return a slice when the selected rows are contiguous
+        and that is known without building a mask, so .loc can return a view.
         """
 
         # GH#45762 Checked first: an Ellipsis is never supported at all, so
@@ -4426,6 +4469,13 @@ class MultiIndex(Index):
             else:
                 # a slice or a single label
                 lvl_indexer = self._get_level_indexer(k, level=i, indexer=indexer)
+                if (
+                    indexer is None
+                    and isinstance(lvl_indexer, slice)
+                    and all(com.is_null_slice(x) for x in seq[i + 1 :])
+                ):
+                    # GH#52714 no later level narrows this, so skip the mask
+                    return lvl_indexer
 
             # update indexer
             lvl_indexer = _to_bool_indexer(lvl_indexer)
@@ -5013,9 +5063,95 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    # error: Incompatible types in assignment (expression has type overloaded function,
-    # base class "Index" defined the type as "Callable[[Index, Any, bool], Any]")
-    rename = Index.set_names  # type: ignore[assignment]
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: Literal[False] = ...,
+    ) -> Self: ...
+
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: Literal[True],
+    ) -> None: ...
+
+    @overload
+    def rename(
+        self,
+        name: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        *,
+        names: Hashable | Sequence[Hashable] | dict[Hashable, Hashable] = ...,
+        level: Hashable | Sequence[Hashable] | None = ...,
+        inplace: bool = ...,
+    ) -> Self | None: ...
+
+    def rename(
+        self,
+        name: Hashable
+        | Sequence[Hashable]
+        | dict[Hashable, Hashable]
+        | lib.NoDefault = lib.no_default,
+        *,
+        names: Hashable
+        | Sequence[Hashable]
+        | dict[Hashable, Hashable]
+        | lib.NoDefault = lib.no_default,
+        level: Hashable | Sequence[Hashable] | None = None,
+        inplace: bool = False,
+    ) -> Self | None:
+        """
+        Alter MultiIndex level names.
+
+        Equivalent to :meth:`MultiIndex.set_names`.
+
+        Parameters
+        ----------
+        name : Hashable, sequence of Hashable, or dict-like
+            Name(s) to set. A dict-like maps old level names to new ones.
+        names : Hashable, sequence of Hashable, or dict-like
+            Alias for ``name``; pass only one of the two.
+        level : int, Hashable or a sequence of the previous, optional
+            If ``name`` is not dict-like, level(s) to set (None for all levels).
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new MultiIndex.
+
+        Returns
+        -------
+        MultiIndex or None
+            The same type as the caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        MultiIndex.set_names : Set level names partially and by level.
+        Index.rename : Alter Index name.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+        >>> mi.rename(["a", "b"])
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['a', 'b'])
+        >>> mi.rename("a", level=0)
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['a', 'y'])
+        """
+        if names is not lib.no_default:
+            if name is not lib.no_default:
+                raise TypeError("Pass only one of 'name' and 'names'.")
+            name = names
+        elif name is lib.no_default:
+            raise TypeError("rename() missing required argument: 'name'")
+        return self.set_names(name, level=level, inplace=inplace)
 
     # ---------------------------------------------------------------
     # Arithmetic/Numeric Methods - Disabled

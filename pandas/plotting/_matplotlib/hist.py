@@ -7,6 +7,7 @@ from typing import (
     final,
 )
 
+import matplotlib.dates as mdates
 import numpy as np
 
 from pandas.core.dtypes.common import (
@@ -24,6 +25,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib.converter import DatetimeConverter
 from pandas.plotting._matplotlib.core import (
     LinePlot,
     MPLPlot,
@@ -91,11 +93,31 @@ class HistPlot(LinePlot):
                 bins = [self._calculate_bins(group, bins) for key, group in grouped]
             else:
                 bins = self._calculate_bins(self.data, bins)
+        # error: Item "int" of "int | ndarray[...] | list[ndarray[...]]" has no
+        # attribute "__iter__" (not iterable)
+        elif self.by is not None and not any(is_list_like(edges) for edges in bins):  # type: ignore[union-attr]
+            # explicit bin edges are shared by every group
+            bins = [np.asarray(bins)] * len(self._grouped)
         return bins
 
     def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
-        nd_values = data.infer_objects()._get_numeric_data()
+        data = data.infer_objects()
+        if (
+            isinstance(data, ABCDataFrame)
+            and data.shape[1]
+            and all(dtype.kind == "M" for dtype in data.dtypes)
+        ):
+            # GH#17372 bin on the same floats matplotlib converts datetimes to
+            values = np.concatenate(
+                [mdates.date2num(ser.dropna()) for _, ser in data.items()]
+            )
+            bin_range = self._bin_range
+            if bin_range is not None:
+                bin_range = DatetimeConverter._convert_1d(bin_range, None, None)
+            return np.histogram_bin_edges(values, bins=bins, range=bin_range)
+
+        nd_values = data._get_numeric_data()
         values = nd_values.values
         if nd_values.ndim == 2:
             values = values.reshape(-1)
@@ -433,6 +455,9 @@ def hist_series(
 
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
+    if self.dtype.kind == "m":
+        # GH#43941 same error as Series.plot.hist
+        raise TypeError("no numeric data to plot")
 
     if by is None:
         if kwds.get("layout", None) is not None:
