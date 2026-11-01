@@ -184,6 +184,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
+- Bug in :class:`Series`, :class:`DataFrame`, :class:`DatetimeIndex`, and :func:`to_datetime` where tz-aware :class:`Timestamp` with years outside Python's datetime range (1-9999) had their year silently corrupted to 1970 or 1972 when converted to datetime64 storage (:issue:`71371`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
 -
 
