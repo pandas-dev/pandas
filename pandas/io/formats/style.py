@@ -127,11 +127,11 @@ class Styler(StylerRenderer):
         given uses ``pandas.options.styler.format.thousands``.
     escape : str, optional
         Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
-        in cell display string with HTML-safe sequences.
+        in the display strings of data cells with HTML-safe sequences.
 
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
-        ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences. Use 'latex-math' to replace the characters
+        ``{``, ``}``, ``~``, ``^``, and ``\`` in the display strings of data cells
+        with LaTeX-safe sequences. Use 'latex-math' to replace the characters
         the same way as in 'latex' mode, except for math substrings,
         which either are surrounded by two characters ``$`` or start with
         the character ``\(`` and end with ``\)``.
@@ -163,9 +163,17 @@ class Styler(StylerRenderer):
     .. warning::
 
        ``Styler`` is primarily intended for use on safe input that you control.
-       When using ``Styler`` on untrusted, user-provided input to serve HTML,
-       you should set ``escape="html"`` to prevent security vulnerabilities.
-       See the Jinja2 documentation on escaping HTML for more.
+       Each ``escape`` option replaces special characters only in the display
+       strings it applies to:
+
+       - ``escape`` in the constructor, ``Styler.format``, and the
+         ``styler.format.escape`` option apply to data cells.
+       - ``escape`` in ``Styler.format_index`` applies to index and column labels.
+       - ``escape`` in ``Styler.format_index_names`` applies to index and column
+         names.
+
+       Captions, tooltips, CSS classes, CSS styles, and table attributes are
+       never escaped.
 
     Most styling will be done by passing style functions into
     ``Styler.apply`` or ``Styler.map``. Style functions should
