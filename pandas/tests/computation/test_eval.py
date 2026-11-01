@@ -1983,6 +1983,22 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "expr",
+    [
+        "a > Timestamp('2020-01-01')",
+        "a > datetime(2020, 1, 1)",
+        "a > datetime.strptime('2020-01-01', '%Y-%m-%d')",
+        "a > list((Timestamp('2020-01-01'),))[0]",
+    ],
+)
+def test_query_default_global_call(engine, parser, expr):
+    # GH#50442
+    df = pd.DataFrame({"a": pd.date_range("2020-01-01", periods=3)})
+    result = df.query(expr, engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[1:])
+
+
 @pytest.mark.parametrize("column", ["inf", "Inf"])
 def test_query_column_shadows_inf(engine, parser, column):
     # GH#47859
