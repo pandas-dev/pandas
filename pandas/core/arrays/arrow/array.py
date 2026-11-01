@@ -87,6 +87,7 @@ from pandas.core import (
     algorithms as algos,
     arraylike,
     missing,
+    nanops,
     ops,
     roperator,
 )
@@ -2821,6 +2822,18 @@ class ArrowExtensionArray(
         if name == "count":
             return self.count()
 
+        elif name in ["skew", "kurt"] and (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            # pyarrow's kernels lose precision, giving garbage instead of NaN
+            #  for constant input, so use the same path as the masked arrays
+            values = data_to_reduce.cast(pa.float64(), safe=False).to_numpy()
+            op = getattr(nanops, f"nan{name}")
+            result = op(values, skipna=skipna, mask=self.isna())
+            return pa.scalar(result, type=pa.float64(), from_pandas=True)
+
         elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -2918,8 +2931,6 @@ class ArrowExtensionArray(
         elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
             # pyarrow defaults to ddof=0, pandas behavior is ddof=1
             kwargs["ddof"] = 1
-        elif name in ["skew", "kurt"] and "biased" not in kwargs:
-            kwargs["biased"] = False
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
