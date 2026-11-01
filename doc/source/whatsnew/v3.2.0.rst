@@ -132,6 +132,7 @@ Other deprecations
 - Deprecated the :class:`DataFrame` constructor, :meth:`DataFrame.from_dict` with ``orient="index"``, and :meth:`DataFrame.from_records` splitting a ``str`` or ``bytes`` row into its elements when the first row is list-like; in a future version this will raise ``TypeError``. Pass ``list(row)`` instead (:issue:`50461`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
+- Deprecated using a list of booleans as a mask with ``[]`` or ``.loc`` on an axis with boolean labels; in a future version the list will select labels. Pass a numpy array to keep the mask behavior (:issue:`43194`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
 
 .. ---------------------------------------------------------------------------
@@ -226,6 +227,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :class:`Index` where creating or converting to numpy string dtypes would raise ``NotImplementedError`` now raises ``TypeError`` (:issue:`50127`)
+- Bug in :meth:`DataFrame.__getitem__`, :meth:`Series.__getitem__`, :meth:`DataFrame.loc` and :meth:`Series.loc` raising for a list of ``True``/``False`` labels on a boolean-dtype axis or :class:`MultiIndex` level when the list has the wrong length for a boolean mask (:issue:`43194`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several columns and ``value`` was a timezone-aware ``datetime64`` or ``period`` scalar, or a one-dimensional :class:`Series` of either dtype; it now broadcasts across the matched columns as the other dtypes already did (:issue:`71078`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several unique columns, e.g. a partial date string on :class:`DatetimeIndex` columns; ``value`` now broadcasts across them (:issue:`71098`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when the key matched several columns (duplicate or :class:`MultiIndex` columns) and ``value`` was a two-dimensional array without one column per matched column; it now raises ``ValueError`` (:issue:`68445`)
@@ -235,6 +237,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.at` setitem with a single row label adding a new column from a list-like value raising or setting the wrong value (:issue:`30649`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising or flattening a 2D value (e.g. a list of lists) set into a single ``object`` cell of a mixed-dtype :class:`DataFrame` (:issue:`69152`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` on a :class:`MultiIndex` ignoring the order of a list key on one level when a boolean level was selected with ``True`` or ``False`` (:issue:`43194`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` for a ``True`` or ``False`` label present in an object-dtype :class:`Index` or the first level of a :class:`MultiIndex` (:issue:`50165`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` slicing with an integer or float bound that is not in the index: an object-dtype index of numbers (e.g. :class:`decimal.Decimal`) raised ``TypeError`` instead of slicing by sort order, and a non-monotonic index of non-string values raised ``TypeError`` instead of ``KeyError`` (:issue:`70295`)

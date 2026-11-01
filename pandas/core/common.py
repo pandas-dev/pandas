@@ -24,10 +24,13 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -162,6 +165,45 @@ def is_bool_indexer(key: Any) -> bool:
                 key = list(key)
             return lib.is_bool_list(key)
 
+    return False
+
+
+def bool_list_selects_labels(
+    labels: Index, key: Any, mask_length: int | None = None, warn: bool = True
+) -> bool:
+    """
+    Check whether a list of bools ``key`` should select ``labels`` rather than
+    act as a mask of length ``mask_length`` (default ``len(labels)``).
+
+    For a MultiIndex, the key is matched against the first level. With
+    ``warn=False``, skip the deprecation warning for a key of mask length.
+    This function assumes that is_bool_indexer(key) == True.
+    """
+    if not isinstance(key, list):
+        return False
+    if mask_length is None:
+        mask_length = len(labels)
+    if isinstance(labels, ABCMultiIndex):
+        labels = labels.levels[0]
+    if labels.dtype == object:
+        # check the first label to avoid scanning a large non-bool index
+        if not (
+            len(labels) and lib.is_bool(labels[0]) and labels.inferred_type == "boolean"
+        ):
+            return False
+    elif not is_bool_dtype(labels.dtype):
+        return False
+    if len(key) != mask_length:
+        # GH#43194 cannot be a mask, so treat as labels
+        return True
+    if warn:
+        warnings.warn(
+            "Using a list of bools as a mask on an axis with boolean labels is "
+            "deprecated. In a future version, the list will select labels "
+            "instead. Pass a numpy array to keep the current behavior.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
     return False
 
 

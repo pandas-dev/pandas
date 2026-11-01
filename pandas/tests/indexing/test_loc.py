@@ -3135,6 +3135,133 @@ class TestLocBooleanLabelsAndSlices:
         with pytest.raises(KeyError, match=msg):
             obj.loc[bool_value]
 
+    @pytest.fixture(
+        params=[
+            pd.Index([True, False]),
+            pd.Index([True, False], dtype="boolean"),
+            pytest.param(
+                pd.Index([True, False], dtype="bool[pyarrow]"),
+                marks=td.skip_if_no("pyarrow"),
+            ),
+            pd.CategoricalIndex([True, False]),
+            pd.Index([True, False], dtype=object),
+        ]
+    )
+    def bool_index(self, request):
+        return request.param
+
+    def test_bool_list_selects_bool_labels(self, bool_index, indexer_sl):
+        # GH#43194 a bool list that cannot be a mask selects labels
+        ser = pd.Series([1, 2], index=bool_index)
+        tm.assert_series_equal(indexer_sl(ser)[[False]], ser.iloc[[1]])
+
+        indexer_sl(ser)[[False]] = 9
+        tm.assert_series_equal(ser, pd.Series([1, 9], index=bool_index))
+
+    def test_bool_list_selects_bool_column_labels(self, bool_index):
+        # GH#43194
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=bool_index)
+        expected = df.iloc[:, [1]]
+        tm.assert_frame_equal(df[[False]], expected)
+        tm.assert_frame_equal(df.loc[:, [False]], expected)
+        tm.assert_frame_equal(df[[False, True]], df.iloc[:, [1, 0]])
+
+        df[[False]] = 9
+        df.loc[:, [True]] = 0
+        expected = pd.DataFrame([[0, 9], [0, 9], [0, 9]], columns=bool_index)
+        tm.assert_frame_equal(df, expected)
+
+    def test_bool_list_selects_bool_row_labels(self, bool_index):
+        # GH#43194
+        df = pd.DataFrame({"a": [1, 2]}, index=bool_index)
+        tm.assert_frame_equal(df.loc[[False]], df.iloc[[1]])
+        tm.assert_series_equal(df.loc[[False], "a"], df["a"].iloc[[1]])
+
+        df.loc[[False]] = 9
+        tm.assert_frame_equal(df, pd.DataFrame({"a": [1, 9]}, index=bool_index))
+
+    def test_bool_list_selects_bool_level_labels(self):
+        # GH#43194
+        index = pd.MultiIndex.from_tuples([(True, 1), (False, 2), (True, 3)])
+        ser = pd.Series([1, 2, 3], index=index)
+        tm.assert_series_equal(ser[[False]], ser.iloc[[1]])
+        tm.assert_series_equal(ser.loc[[False]], ser.iloc[[1]])
+        tm.assert_series_equal(ser.loc[[False, True]], ser.iloc[[1, 0, 2]])
+        tm.assert_series_equal(ser.loc[[False, True], :], ser.iloc[[1, 0, 2]])
+        expected = pd.Series([2], index=pd.Index([False]))
+        tm.assert_series_equal(ser.loc[[False], 2], expected)
+
+        swapped = ser.swaplevel()
+        tm.assert_series_equal(swapped.loc[:, [False]], swapped.iloc[[1]])
+
+        df = ser.to_frame("a")
+        tm.assert_frame_equal(df.loc[[False]], df.iloc[[1]])
+        df.loc[([False], [2]), "a"] = 9
+        expected = pd.DataFrame({"a": [1, 9, 3]}, index=index)
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_bool_level_scalar_keeps_list_order(self):
+        # GH#43194 a bool scalar on one level kept the list on another level from
+        #  reordering the result
+        index = pd.MultiIndex.from_tuples(
+            [(False, 1), (False, 2), (True, 1), (True, 3)]
+        )
+        ser = pd.Series([10, 20, 30, 40], index=index)
+        expected = pd.Series([20, 10], index=pd.Index([2, 1]))
+        tm.assert_series_equal(ser.loc[False, [2, 1]], expected)
+
+    def test_bool_list_mask_on_bool_labels_deprecated(self, bool_index, indexer_sl):
+        # GH#43194
+        ser = pd.Series([1, 2], index=bool_index)
+        key = [False, True]
+        msg = "Using a list of bools as a mask on an axis with boolean labels"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = indexer_sl(ser)[key]
+        tm.assert_series_equal(result, ser.iloc[[1]])
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            indexer_sl(ser)[key] = 9
+        tm.assert_series_equal(ser, pd.Series([1, 9], index=bool_index))
+
+        with tm.assert_produces_warning(None):
+            result = indexer_sl(ser)[np.array(key)]
+        tm.assert_series_equal(result, ser.iloc[[1]])
+
+    def test_bool_list_mask_on_bool_frame_labels_deprecated(self):
+        # GH#43194
+        df = pd.DataFrame([[1, 2], [3, 4]], index=[True, False], columns=[True, False])
+        key = [False, True]
+        msg = "Using a list of bools as a mask on an axis with boolean labels"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.loc[key]
+        tm.assert_frame_equal(result, df.iloc[[1]])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.loc[:, key]
+        tm.assert_frame_equal(result, df.iloc[:, [1]])
+
+        index = pd.MultiIndex.from_tuples([(True, 1), (False, 2), (True, 3)])
+        ser = pd.Series([1, 2, 3], index=index)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.loc[[False, True, False], :]
+        tm.assert_series_equal(result, ser.iloc[[1]])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser[[False, True, False]]
+        tm.assert_series_equal(result, ser.iloc[[1]])
+
+    def test_bool_list_row_mask_on_bool_columns_deprecated(self):
+        # GH#43194 the list has the length of the rows, so is still a row mask
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=[True, False])
+        key = [False, True, False]
+        msg = "Using a list of bools as a mask on an axis with boolean labels"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df[key]
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df[key] = 9
+        expected = pd.DataFrame([[1, 2], [9, 9], [5, 6]], columns=[True, False])
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_bool_slice_raises(self, index, frame_or_series):
         # GH20432
         message = (

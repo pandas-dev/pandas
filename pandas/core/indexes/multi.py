@@ -4293,7 +4293,7 @@ class MultiIndex(Index):
         for i, k in enumerate(seq):
             lvl_indexer: npt.NDArray[np.bool_] | slice | None = None
 
-            if com.is_bool_indexer(k):
+            if self._is_level_mask(i, k, warn=True):
                 if len(k) != n:
                     raise ValueError(
                         "cannot index with a boolean indexer that "
@@ -4495,6 +4495,16 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
+    def _is_level_mask(self, i: int, key, warn: bool = False) -> bool:
+        """
+        Check whether ``key`` at position ``i`` of a get_locs key is a boolean
+        mask of ``self`` rather than a list of labels of level ``i`` (GH#43194).
+        """
+        return com.is_bool_indexer(key) and not (
+            i < self.nlevels
+            and com.bool_list_selects_labels(self.levels[i], key, len(self), warn=warn)
+        )
+
     def _reorder_indexer(
         self,
         seq: tuple[Scalar | Iterable[Any] | AnyArrayLike, ...],
@@ -4517,7 +4527,7 @@ class MultiIndex(Index):
         # check if sorting is necessary
         need_sort = False
         for i, k in enumerate(seq):
-            if com.is_null_slice(k) or com.is_bool_indexer(k) or is_scalar(k):
+            if com.is_null_slice(k) or self._is_level_mask(i, k) or is_scalar(k):
                 pass
             elif is_list_like(k):
                 if len(k) <= 1:  # type: ignore[arg-type]
@@ -4552,7 +4562,7 @@ class MultiIndex(Index):
             if is_scalar(k):
                 # GH#34603 we want to treat a scalar the same as an all equal list
                 k = [k]
-            if com.is_bool_indexer(k):
+            if self._is_level_mask(i, k):
                 new_order = np.arange(n)[indexer]
             elif is_list_like(k):
                 # Generate a map with all level codes as sorted initially
