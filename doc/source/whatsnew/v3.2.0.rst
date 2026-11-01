@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`Index` now supports the reductions :meth:`~Index.sum`, :meth:`~Index.prod`, :meth:`~Index.mean`, :meth:`~Index.median`, :meth:`~Index.std`, :meth:`~Index.var`, :meth:`~Index.sem`, :meth:`~Index.skew`, and :meth:`~Index.kurt`, matching :class:`Series` (:issue:`50021`)
 - :func:`numpy.delete` on an :class:`ExtensionArray`, and :func:`numpy.concatenate` on :class:`ExtensionArray` objects of the same dtype, now return an :class:`ExtensionArray` of that dtype instead of a NumPy array (:issue:`26380`)
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
@@ -100,6 +101,7 @@ Other API changes
 - :meth:`.Styler.to_excel` now omits the rows, columns, index and header levels, and names hidden with :meth:`.Styler.hide`, matching the other :class:`.Styler` output methods; hiding the whole index with :class:`MultiIndex` columns now raises ``NotImplementedError``, as ``index=False`` does (:issue:`42276`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
+- ``np.sum``, ``np.prod``, ``np.mean``, ``np.std`` and ``np.var`` on an :class:`Index` no longer accept ``where`` (or ``mean`` for ``np.std`` and ``np.var``), as they now call the new :class:`Index` reduction methods (:issue:`50021`)
 - ``range`` values are now displayed as ``range(0, 3)`` rather than as the tuple ``(0, 1, 2)``, matching :class:`.Styler` (:issue:`44799`)
 
 .. ---------------------------------------------------------------------------
@@ -132,6 +134,7 @@ Other deprecations
 - Deprecated the :class:`DataFrame` constructor, :meth:`DataFrame.from_dict` with ``orient="index"``, and :meth:`DataFrame.from_records` splitting a ``str`` or ``bytes`` row into its elements when the first row is list-like; in a future version this will raise ``TypeError``. Pass ``list(row)`` instead (:issue:`50461`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
+- Deprecated the behavior of ``np.sum``, ``np.prod``, ``np.mean``, ``np.std`` and ``np.var`` on an :class:`Index`; in a future version these will call the new :class:`Index` methods, which skip missing values and do not accept numpy-only keywords such as ``dtype``, matching :class:`Series`. Use ``np.asarray(index)`` to keep the current behavior (:issue:`50021`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
 
 .. ---------------------------------------------------------------------------

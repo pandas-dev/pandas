@@ -67,6 +67,15 @@ Modifying and computations
    Index.is_
    Index.min
    Index.max
+   Index.sum
+   Index.prod
+   Index.mean
+   Index.median
+   Index.std
+   Index.var
+   Index.sem
+   Index.skew
+   Index.kurt
    Index.reindex
    Index.rename
    Index.repeat
