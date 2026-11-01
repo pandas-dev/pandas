@@ -198,6 +198,29 @@ def test_agg_dict_forwards_kwargs():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("window", [2, "2D"])
+def test_agg_list_like_with_on(window):
+    # GH#43769
+    df = pd.DataFrame(
+        {
+            "A": pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-04"]),
+            "B": [2.0, 4.0, 8.0],
+        }
+    )
+    r = df.rolling(window, on="A", min_periods=1)
+    expected = pd.concat([r["B"].min(), r["B"].max()], axis=1, keys=["min", "max"])
+
+    result = r["B"].agg(["min", "max"])
+    tm.assert_frame_equal(result, expected)
+
+    result = r.agg({"B": ["min", "max"]})
+    expected.columns = pd.MultiIndex.from_product([["B"], ["min", "max"]])
+    tm.assert_frame_equal(result, expected)
+
+    result = r[["B"]].agg(["min", "max"])
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("spelling", ["dict", "list"])
 def test_agg_many_columns_result_not_fragmented(spelling):
     # GH#61628 per-column agg results made reset_index warn about fragmentation
