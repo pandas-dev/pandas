@@ -258,3 +258,67 @@ def test_quantile_empty_datetimelike(typ, unit):
     ser = pd.Series([], dtype=f"{typ}[{unit}]")
     result = ser.quantile()
     assert result is pd.NaT
+
+
+@pytest.mark.parametrize("typ", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
+)
+def test_quantile_datetimelike_endpoints_exact(typ, interpolation):
+    # GH#49110
+    values = np.array([1567703790155681000, 1567703793155681000], dtype="i8")
+    ser = pd.Series(values.view(f"{typ}[ns]"))
+    result = ser.quantile([0, 1], interpolation=interpolation)
+    expected = pd.Series([ser.min(), ser.max()], index=[0.0, 1.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_quantile_dt64_linear_exact():
+    # GH#49110
+    ser = pd.Series(
+        np.array([1567703790155681000, 1567703793155681001], dtype="i8").view("M8[ns]")
+    )
+    result = ser.quantile(0.5)
+    assert result.value == 1567703791655681000
+
+
+def test_quantile_dt64_fraction_truncates_toward_zero():
+    # GH#49110 fractional nanoseconds truncate toward zero
+    ser = pd.Series(np.array([0, 1], dtype="i8").view("M8[ns]"))
+    assert ser.quantile(0.5).value == 0
+    ser = pd.Series(np.array([-1, 0], dtype="i8").view("M8[ns]"))
+    assert ser.quantile(0.5).value == 0
+    ser = pd.Series(np.array([-3, -2], dtype="i8").view("M8[ns]"))
+    assert ser.quantile(0.5).value == -2
+
+
+def test_quantile_dt64_with_nat_exact():
+    # GH#49110
+    values = np.array([1567703790155681000, 1567703793155681000], dtype="i8")
+    ser = pd.Series([*values.view("M8[ns]"), pd.NaT], dtype="M8[ns]")
+    result = ser.quantile([0, 1])
+    expected = pd.Series(values.view("M8[ns]"), index=[0.0, 1.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_quantile_dt64_full_int64_range():
+    # GH#49110 span wider than int64 must not overflow
+    lo = -(2**62) - 2**61
+    hi = 2**62 + 2**61
+    ser = pd.Series(np.array([lo, hi], dtype="i8").view("M8[ns]"))
+    result = ser.quantile([0, 0.5, 1])
+    expected = pd.Series(
+        np.array([lo, 0, hi], dtype="i8").view("M8[ns]"), index=[0.0, 0.5, 1.0]
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_quantile_dt64tz_endpoints_exact():
+    # GH#49110
+    dti = pd.DatetimeIndex(
+        ["2019-09-05 17:16:30.155681", "2019-09-05 17:16:33.155681"], tz="UTC"
+    ).as_unit("ns")
+    ser = pd.Series(dti)
+    result = ser.quantile([0, 1])
+    expected = pd.Series(dti, index=[0.0, 1.0])
+    tm.assert_series_equal(result, expected)
