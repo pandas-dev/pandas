@@ -7,11 +7,16 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
+from pandas._config import using_pivot_table_dropna
+
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -112,6 +117,15 @@ def pivot_table(
         * rows with an NA value in any column will be omitted before computing margins,
         * index/column keys containing NA values will be dropped (see ``dropna``
           parameter in :meth:``DataFrame.groupby``).
+
+        .. deprecated:: 3.2.0
+
+            The rows that are omitted before computing the margins will only be
+            the rows with an NA value in an index or column key, so that the
+            margins are computed from the same rows as the table, and the rows
+            of the result that are all NA will be kept. Use
+            ``pd.set_option("future.pivot_table_dropna", True)`` to opt in to
+            the future behavior.
 
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
@@ -358,7 +372,12 @@ def __internal_pivot_table(
     agged = grouped.agg(aggfunc, **kwargs)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
-        agged = agged.dropna(how="all")
+        if not using_pivot_table_dropna():
+            if agged.isna().all(axis=1).any():
+                # GH#53521 (3): the rows of the aggregated result that are all
+                #  NA are dropped; in a future version they will be kept
+                _warn_pivot_table_dropna_all_na_rows()
+            agged = agged.dropna(how="all")
 
     table = agged
 
@@ -397,21 +416,51 @@ def __internal_pivot_table(
             table = table.astype(np.int64)
 
     if margins:
+        new_data = None
         if dropna:
-            data = data[data.notna().all(axis=1)]
-        table = _add_margins(
-            table,
-            data,
-            values,
-            rows=index,
-            cols=columns,
-            aggfunc=aggfunc,
-            kwargs=kwargs,
-            observed=dropna,
-            margins_name=margins_name,
-            fill_value=fill_value,
-            dropna=dropna,
-        )
+            if using_pivot_table_dropna():
+                # GH#65765, GH#53521 (4): before computing the margins only the
+                #  rows that are not part of the table are omitted, i.e. the
+                #  rows with an NA value in one of the keys.  Those rows are
+                #  left out by groupby(dropna=True), so this makes the margins
+                #  be computed from exactly the rows the table is built from.
+                data = data[grouped._grouper.ids != -1]
+            else:
+                # GH#53521 (4): the rows with an NA value in any column are
+                #  omitted before computing the margins
+                old_data = data[data.notna().all(axis=1)]
+                if len(old_data) != len(data):
+                    new_data = data[grouped._grouper.ids != -1]
+                data = old_data
+        if new_data is None:
+            table = _add_margins(
+                table,
+                data,
+                values,
+                rows=index,
+                cols=columns,
+                aggfunc=aggfunc,
+                kwargs=kwargs,
+                observed=dropna,
+                margins_name=margins_name,
+                fill_value=fill_value,
+                dropna=dropna,
+            )
+        else:
+            table = _add_margins_deprecated(
+                table,
+                data,
+                new_data,
+                values,
+                rows=index,
+                cols=columns,
+                aggfunc=aggfunc,
+                kwargs=kwargs,
+                observed=dropna,
+                margins_name=margins_name,
+                fill_value=fill_value,
+                dropna=dropna,
+            )
 
     # discard the top level
     if values_passed and not values_multi and table.columns.nlevels > 1:
@@ -424,6 +473,93 @@ def __internal_pivot_table(
         table = table.dropna(how="all", axis=1)
 
     return cast("DataFrame", table)
+
+
+def _warn_pivot_table_dropna_margins() -> None:
+    warnings.warn(
+        "DataFrame.pivot_table with margins=True and dropna=True omits the "
+        "rows with an NA value in any column before computing the margins. "
+        "In a future version, only the rows with an NA value in an index or "
+        "column key will be omitted, so that the margins are computed from "
+        "the same rows as the table. To opt in to the future behavior, use "
+        "pd.set_option('future.pivot_table_dropna', True). To keep the "
+        "current behavior, drop the rows with NA values before calling "
+        "pivot_table, e.g. with df.dropna().",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
+def _warn_pivot_table_dropna_all_na_rows() -> None:
+    warnings.warn(
+        "DataFrame.pivot_table with dropna=True drops the rows of the result "
+        "that are all NA. In a future version these rows will be kept. To opt "
+        "in to the future behavior, use "
+        "pd.set_option('future.pivot_table_dropna', True). To keep the "
+        "current behavior, drop the all-NA rows of the result with "
+        "result.dropna(how='all').",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
+def _add_margins_deprecated(
+    table: DataFrame | Series,
+    data: DataFrame,
+    new_data: DataFrame,
+    values,
+    rows,
+    cols,
+    aggfunc,
+    kwargs,
+    observed: bool,
+    margins_name: Hashable = "All",
+    fill_value=None,
+    dropna: bool = True,
+):
+    """
+    Add the margins to ``table``, computed from ``data``.
+
+    ``new_data`` holds the rows that the future behavior would use to compute
+    the margins, i.e. all the rows that are part of the table.  If the margins
+    computed from ``data`` differ from the ones computed from ``new_data``, a
+    deprecation warning is emitted (GH#53521 (4)).
+    """
+    old_margins = _add_margins(
+        table.copy(),
+        data,
+        values,
+        rows=rows,
+        cols=cols,
+        aggfunc=aggfunc,
+        kwargs=kwargs,
+        observed=observed,
+        margins_name=margins_name,
+        fill_value=fill_value,
+        dropna=dropna,
+    )
+    try:
+        new_margins = _add_margins(
+            table.copy(),
+            new_data,
+            values,
+            rows=rows,
+            cols=cols,
+            aggfunc=aggfunc,
+            kwargs=kwargs,
+            observed=observed,
+            margins_name=margins_name,
+            fill_value=fill_value,
+            dropna=dropna,
+        )
+    except Exception:
+        # the margins cannot be computed from the rows of the table, e.g.
+        #  because the aggregation fails on them; assume that they change
+        _warn_pivot_table_dropna_margins()
+        return old_margins
+    if not old_margins.equals(new_margins):
+        _warn_pivot_table_dropna_margins()
+    return old_margins
 
 
 def _add_margins(
