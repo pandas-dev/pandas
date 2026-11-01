@@ -73,7 +73,7 @@ def _create_offset(klass, value=1, normalize=False):
     if klass is FY5253:
         klass = klass(
             n=value,
-            startingMonth=1,
+            month=1,
             weekday=1,
             variation="last",
             normalize=normalize,
@@ -81,7 +81,7 @@ def _create_offset(klass, value=1, normalize=False):
     elif klass is FY5253Quarter:
         klass = klass(
             n=value,
-            startingMonth=1,
+            month=1,
             weekday=1,
             qtr_with_extra_week=1,
             variation="last",
@@ -1074,6 +1074,43 @@ def test_offset_name_deprecated():
     assert result == "D"
 
 
+@pytest.mark.parametrize(
+    "cls",
+    [
+        offsets.QuarterBegin,
+        offsets.QuarterEnd,
+        offsets.BQuarterBegin,
+        offsets.BQuarterEnd,
+        offsets.HalfYearBegin,
+        offsets.HalfYearEnd,
+        offsets.BHalfYearBegin,
+        offsets.BHalfYearEnd,
+        FY5253,
+        FY5253Quarter,
+    ],
+)
+def test_starting_month_deprecated(cls):
+    # GH#5307
+    expected = cls(month=5)
+
+    msg = "The 'startingMonth' keyword is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = cls(startingMonth=5)
+    assert result == expected
+
+    msg = "The 'startingMonth' attribute is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        assert expected.startingMonth == 5
+
+    with pytest.raises(TypeError, match="Cannot pass both"):
+        cls(month=5, startingMonth=5)
+
+    with tm.assert_produces_warning(None):
+        assert expected.month == 5
+        assert expected.kwds["month"] == 5
+        assert "month=5" in repr(expected)
+
+
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd, request):
     if kwd == "millisecond":
@@ -1441,7 +1478,7 @@ def test_month_end_n_above_int32_exact():
     "start, off, expected",
     [
         ("-19999-02-01", offsets.BMonthBegin(), "-19999-03-01"),
-        ("-19999-02-27", offsets.BQuarterEnd(startingMonth=2), "-19999-02-28"),
+        ("-19999-02-27", offsets.BQuarterEnd(month=2), "-19999-02-28"),
         ("-19999-02-01", offsets.BYearBegin(month=2), "-19998-02-01"),
     ],
 )

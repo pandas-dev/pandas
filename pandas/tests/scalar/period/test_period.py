@@ -37,7 +37,7 @@ class TestPeriodDisallowedFreqs:
         [
             (pd.offsets.BYearBegin(), "BYearBegin"),
             (pd.offsets.YearBegin(2), "YearBegin"),
-            (pd.offsets.QuarterBegin(startingMonth=12), "QuarterBegin"),
+            (pd.offsets.QuarterBegin(month=12), "QuarterBegin"),
             (pd.offsets.BusinessMonthEnd(2), "BusinessMonthEnd"),
         ],
     )
@@ -322,10 +322,10 @@ class TestPeriodConstruction:
         )
 
         assert pd.Period(
-            year=2005, quarter=1, freq=pd.offsets.QuarterEnd(startingMonth=12)
+            year=2005, quarter=1, freq=pd.offsets.QuarterEnd(month=12)
         ) == pd.Period(year=2005, quarter=1, freq="Q")
         assert pd.Period(
-            year=2005, quarter=2, freq=pd.offsets.QuarterEnd(startingMonth=12)
+            year=2005, quarter=2, freq=pd.offsets.QuarterEnd(month=12)
         ) == pd.Period(year=2005, quarter=2, freq="Q")
 
         assert pd.Period(year=2005, month=3, day=1, freq=pd.offsets.Day()) == pd.Period(
