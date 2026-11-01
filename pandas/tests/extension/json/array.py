@@ -249,6 +249,7 @@ class JSONArray(ExtensionArray):
         # a 2-dim object.
         return type(self)([dict(x) for x in {tuple(d.items()) for d in self.data}])
 
+    # no axis keyword, to test third-party EAs that lack it (GH#47514)
     @classmethod
     def _concat_same_type(cls, to_concat):
         data = list(itertools.chain.from_iterable(x.data for x in to_concat))

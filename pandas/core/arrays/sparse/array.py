@@ -1698,7 +1698,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         fill_value = to_concat[0].fill_value
 
         values = []
