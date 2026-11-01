@@ -92,6 +92,11 @@ jobs:
             environment: pyarrow-nightly
             pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
+          - name: "SIMD: scalar"
+            environment: py313
+            extra_build_args: "-Csetup-args=-Dsimd-mode=scalar"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
+            platform: ubuntu-24.04
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
     env:
@@ -167,7 +172,8 @@ jobs:
           --environment ${{ matrix.environment }} \
           build-pandas \
           --editable \
-          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
+          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }} \
+          -- ${{ matrix.extra_build_args || '' }}
 
     - name: Import check
       run: |

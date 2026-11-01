@@ -1,15 +1,13 @@
 host_cpu = host_machine.cpu_family()
 
+host_baseline = {'aarch64': 'neon', 'x86_64': 'sse2'}
+
 simd_config = configuration_data()
-if host_cpu == 'aarch64'
-    simd_target = 'neon'
-    simd_config.set('PANDAS_HAVE_NEON', 1)
-elif host_cpu == 'x86_64'
-    simd_target = 'sse2'
-    simd_config.set('PANDAS_HAVE_SSE2', 1)
-else
+if get_option('simd-mode') == 'scalar' or host_cpu not in host_baseline
     simd_target = 'scalar'
-    simd_config.set('PANDAS_HAVE_SCALAR', 1)
+else
+    simd_target = host_baseline[host_cpu]
+    simd_config.set('PANDAS_HAVE_' + simd_target.to_upper(), 1)
 endif
 
 configure_file(
