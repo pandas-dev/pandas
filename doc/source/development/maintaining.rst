@@ -294,7 +294,7 @@ The required steps for adding a maintainer are:
 If adding to ``pandas-core``, there are two additional steps:
 
 3. Add the contributor to the pandas Google group.
-4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/web/pandas/config.yml``.
+4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/doc/website.yml``.
 
 The current list of core-team members is on the `team page <https://pandas.pydata.org/about/team.html>`__.
 
@@ -485,7 +485,7 @@ Post-Release
      - (the stable symlink should already be pointing to the correct X.Y version)
 
 2. If releasing a major or minor release, open a PR in our source code to update
-   ``web/pandas/versions.json``, to have the desired versions in the documentation
+   ``doc/root/versions.json``, to have the desired versions in the documentation
    dropdown menu.
 
 3. Close the milestone and the issue for the released version.

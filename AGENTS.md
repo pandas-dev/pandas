@@ -26,11 +26,10 @@ Linting checks require [pre-commit](https://pre-commit.com/), installed in a con
 - `pandas/` — library implementation
 - `pandas/_libs/` — Cython/C/C++
 - `pandas/tests/` — test suite
-- `doc/` — documentation source
+- `doc/` — website/documentation source
 - `doc/source/whatsnew/` — release notes
 - `asv_bench/benchmarks/` — benchmarks
 - `scripts/` — repository checks invoked by pre-commit
-- `web/` — pandas website
 - `.github/` — GitHub Actions for CI
 - `.github/workflows/unit-tests.yml` — CI definition for unit tests
 - `.github/workflows/code-checks.yml` — CI definition for doctests, typing validation, benchmark correctness
