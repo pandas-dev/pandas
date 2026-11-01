@@ -1255,6 +1255,42 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
         _check_ax_scales(axes, yaxis="log")
 
+    @pytest.mark.parametrize("sharex", [True, False, None])
+    def test_hist_df_subplots_bins(self, sharex):
+        # GH#13489 subplots without a shared x-axis bin each column separately;
+        # sharex defaults to False when ax is passed
+        df = pd.DataFrame(
+            {
+                "a": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "b": ["x", "y", "z", "w", "v"],
+                "c": [100.0, 300.0, 500.0, 700.0, 900.0],
+            }
+        )
+        if sharex is None:
+            _, ax = plt.subplots(2)
+            axes = df.plot.hist(bins=4, subplots=True, ax=ax)
+        else:
+            axes = df.plot.hist(bins=4, subplots=True, sharex=sharex)
+        edges = [
+            [patch.get_x() for patch in ax.patches]
+            + [ax.patches[-1].get_x() + ax.patches[-1].get_width()]
+            for ax in axes
+        ]
+        if sharex:
+            expected = [np.linspace(0.0, 900.0, 5)] * 2
+        else:
+            expected = [np.linspace(0.0, 4.0, 5), np.linspace(100.0, 900.0, 5)]
+        tm.assert_almost_equal(edges, expected)
+
+    def test_hist_df_subplots_groups_bins(self):
+        # GH#13489 columns sharing an axis share bins
+        df = pd.DataFrame(
+            {"a": [0.0, 4.0], "b": [2.0, 8.0], "c": [100.0, 900.0]},
+        )
+        axes = df.plot.hist(bins=2, subplots=[("a", "b")], sharex=False)
+        edges = [sorted({patch.get_x() for patch in ax.patches}) for ax in axes]
+        tm.assert_almost_equal(edges, [[0.0, 4.0], [100.0, 500.0]])
+
     def test_hist_df_series(self):
         series = pd.Series(np.random.default_rng(2).random(10))
         axes = series.plot.hist(rot=40)
