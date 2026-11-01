@@ -6,6 +6,8 @@ See also
 tests.frame.test_cumulative
 """
 
+from decimal import Decimal
+from fractions import Fraction
 import re
 
 import numpy as np
@@ -171,6 +173,31 @@ class TestSeriesCumulativeOps:
         ser = pd.Series([False, True, np.nan, False])
         result = getattr(ser, method)()
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "method, data, expected",
+        [
+            ["cumsum", ["a", None, "b"], ["a", np.nan, "ab"]],
+            # used to give the float 5/6
+            [
+                "cumsum",
+                [Fraction(1, 2), None, Fraction(1, 3)],
+                [Fraction(1, 2), np.nan, Fraction(5, 6)],
+            ],
+            [
+                "cumprod",
+                [Decimal(2), None, Decimal(3)],
+                [Decimal(2), np.nan, Decimal(6)],
+            ],
+            ["cummin", ["b", None, "a"], ["b", np.nan, "a"]],
+            ["cummax", ["a", None, "b"], ["a", np.nan, "b"]],
+        ],
+    )
+    def test_cummethods_object_with_na(self, method, data, expected):
+        # GH#59764: the NA was filled with a float (0.0, 1.0, -inf or inf)
+        ser = pd.Series(data, dtype=object)
+        result = getattr(ser, method)()
+        tm.assert_series_equal(result, pd.Series(expected, dtype=object))
 
     @pytest.mark.parametrize(
         "method, order",

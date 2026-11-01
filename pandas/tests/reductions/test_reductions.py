@@ -1416,6 +1416,37 @@ class TestSeriesReductions:
         # ... and an explicit larger min_count is still honoured
         assert pd.isna(getattr(ser, how)(skipna=False, min_count=5))
 
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
+            (["a", None, "b"], "ab"),
+            ([(1,), np.nan, (2,)], (1, 2)),
+            ([timedelta(1), pd.NaT, timedelta(2)], timedelta(3)),
+        ],
+    )
+    def test_sum_object_with_na_skips_na(self, data, expected):
+        # GH#59764: the NA was filled with 0, which these cannot be added to
+        ser = pd.Series(data, dtype=object)
+        assert ser.sum() == expected
+        assert pd.isna(ser.sum(min_count=3))
+
+    def test_sum_prod_object_with_na_only_combine_elements(self):
+        # GH#59764: elements that only combine with each other, not with the
+        # 0 or 1 that NAs were filled with
+        class Num:
+            def __init__(self, n) -> None:
+                self.n = n
+
+            def __add__(self, other):
+                return Num(self.n + other.n)
+
+            def __mul__(self, other):
+                return Num(self.n * other.n)
+
+        ser = pd.Series([Num(2), np.nan, Num(3)], dtype=object)
+        assert ser.sum().n == 5
+        assert ser.prod().n == 6
+
     def test_idxminmax_object_all_na(self):
         # GH#4147: matches the float64 message rather than raising TypeError
         ser = pd.Series([np.nan, None], dtype=object)
