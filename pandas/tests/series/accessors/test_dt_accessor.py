@@ -624,12 +624,26 @@ class TestSeriesDatetimeValues:
             expected = expected.astype(pd.StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
 
-    def test_strftime_literal_braces(self):
-        # Literal braces in the format string should be preserved
-        ser = pd.Series(pd.date_range("2024-01-01", periods=3))
-        result = ser.dt.strftime("{%Y}")
-        expected = pd.Series(["{2024}", "{2024}", "{2024}"])
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    @pytest.mark.parametrize(
+        "fmt, expected",
+        [
+            ("{%Y}", "{2024}"),
+            ("100%% %Y", "100% 2024"),
+            ("%Y%", "2024%"),
+            ("%d日%H時", "01日05時"),
+            ("%S.%f", "00.123456"),
+            ("100%%", "100%"),
+            ("abc", "abc"),
+        ],
+    )
+    def test_strftime_literals(self, tz, fmt, expected):
+        # Literal text around directives should be preserved
+        ser = pd.Series(
+            pd.date_range("2024-01-01 05:00:00.123456", periods=3, freq="min", tz=tz)
+        )
+        result = ser.dt.strftime(fmt)
+        tm.assert_series_equal(result, pd.Series([expected] * 3))
 
     def test_strftime_dt64_year_lt_1000(self):
         # GH#58179, GH#64609 the directive-map fast path must zero-pad %Y to
@@ -686,8 +700,7 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-        # template path: %N in a non-hardcoded format goes through the
-        # str.format-based fmt_template path
+        # %N in a non-hardcoded format goes through the directive-map path
         result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S.%N")
         expected = pd.Series(
             ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
@@ -709,7 +722,7 @@ class TestSeriesDatetimeValues:
 
     def test_strftime_nanosecond_directive_tz(self):
         # GH#29461 - %N directive must work for tz-aware data via the
-        # template path (Localizer is wired up only for the template path)
+        # directive-map path (Localizer is wired up only for that path)
         dti = pd.DatetimeIndex(
             [
                 pd.Timestamp("2019-05-18 15:17:08.132263123", tz="US/Eastern"),
