@@ -43,11 +43,33 @@ dependencies = { clang = "*", clangxx = "*", compiler-rt = "*" }
 activation = { env = { CC = "clang", CXX = "clang++" } }
 
 [feature.c-coverage]
-platforms = ["linux-64"]
+platforms = ["linux-64", "osx-arm64"]
 
 [feature.c-coverage.pypi-dependencies]
 # conda-forge lags; 8.5 is the first release tested against GCC 15
 gcovr = ">=8.5"
+
+[feature.c-coverage.target.osx-arm64.activation]
+# clang writes LLVM-format coverage data
+env = { GCOV = "llvm-cov gcov" }
+
+[feature.c-coverage.tasks.c-coverage-build]
+# gcov line counts are unreliable with optimizations enabled
+cmd = "python -m pip install --verbose --editable . --no-build-isolation --no-deps --config-settings builddir=build/$PIXI_ENVIRONMENT_NAME -Csetup-args=-Dbuildtype=debug -Csetup-args=-Db_coverage=true"
+depends-on = ["uninstall-pandas"]
+
+[feature.c-coverage.tasks.c-coverage-test]
+# Serial: pytest-xdist kills workers that take over 10s to exit, and a killed
+# worker never writes its coverage data. Old data is deleted first because
+# counts accumulate across runs.
+args = [{ arg = "pytest_target", default = "pandas" }]
+cmd = "find build/$PIXI_ENVIRONMENT_NAME -name '*.gcda' -delete && python -m pytest -m 'not db and not network and not single_cpu' {{ pytest_target }}"
+
+[feature.c-coverage.tasks.c-coverage-report]
+# Hand-written C/C++ only; Cython's generated C is excluded. Threaded code can
+# make gcov report negative counts (GCC bug 68080), so those are zeroed with a
+# warning.
+cmd = "mkdir -p build/c-coverage-html && gcovr --root . --gcov-ignore-parse-errors negative_hits.warn_once_per_file --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --html-details build/c-coverage-html/index.html --print-summary build/$PIXI_ENVIRONMENT_NAME"
 
 # test latest 4 releases + nightly of numpy across the 4 tested Python versions
 [feature.numpy.dependencies]
@@ -272,33 +294,6 @@ cmd = [
   "--cov-append",
   "{{ pytest_target }}",
 ]
-
-[tasks.ci-test-c-coverage]
-# Serial: pytest-xdist kills workers that take over 10s to exit, and a killed
-# worker never writes its gcov data. No --cov; the other jobs report Python
-# coverage.
-cmd = [
-  "python",
-  "-m",
-  "pytest",
-  "-r",
-  "fE",
-  "-m",
-  "not db and not network and not single_cpu",
-  "--capture=no",
-  "pandas",
-]
-default-environment = "c-coverage"
-
-[tasks.ci-c-coverage]
-# Reports coverage of the hand-written C/C++ after testing a -Db_coverage=true
-# build; Cython's generated C is excluded. gcov must match the compiler version,
-# so use the environment's rather than the system one. Threaded code can make
-# gcov report negative counts (GCC bug 68080), so those are zeroed with a
-# warning. The floor catches lost gcov data, which otherwise uploads silently as
-# a near-zero report.
-cmd = "gcovr --root . --gcov-executable $CONDA_PREFIX/bin/gcov --gcov-ignore-parse-errors negative_hits.warn_once_per_file --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --cobertura coverage-c.xml --print-summary --fail-under-line 50 build/$PIXI_ENVIRONMENT_NAME"
-default-environment = "c-coverage"
 
 [tasks.ci-doctests]
 # Avoids NumPy scalar reprs in docstrings.

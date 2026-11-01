@@ -73,7 +73,6 @@ pip-wheel-metadata
 # coverage
 .coverage
 coverage.xml
-coverage-c.xml
 coverage_html_report
 .mypy_cache
 *.pytest_cache
