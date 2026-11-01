@@ -128,7 +128,6 @@ environment = {LDFLAGS="-Wl,--strip-all"}
 audit-requires = ["wheel"]
 audit-command = "python -m wheel unpack --dest build/wheel-unpack {wheel}"
 test-extras = "test"
-test-requires = ["python-dateutil<3"]
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \

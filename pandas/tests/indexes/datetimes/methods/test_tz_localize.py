@@ -531,12 +531,19 @@ class TestTZLocalize:
             dti.tz_localize(tz, nonexistent=shift)
 
 
-def test_dti_tz_localize_nonexistent_shift_past_last_transition():
+@pytest.mark.parametrize(
+    "tz",
+    ["pytz/America/Phoenix", gettz("America/Phoenix"), ZoneInfo("America/Phoenix")],
+)
+def test_dti_tz_localize_nonexistent_shift_past_last_transition(tz):
     # GH#66550 a shift landing past the last cached DST transition indexed the
     #  deltas array out of bounds, so the same call gave a different answer
-    #  each time
-    tz = gettz("America/Boise")
-    dti = pd.DatetimeIndex([pd.Timestamp("2015-03-08 02:30")])
+    #  each time.  Phoenix stopped observing DST, so its transitions end for
+    #  every tz implementation; a negative UTC offset is needed to reach the bug.
+    if isinstance(tz, str):
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone(tz.removeprefix("pytz/"))
+    dti = pd.DatetimeIndex([pd.Timestamp("1967-04-30 02:30")])
     shift = pd.Timedelta(days=30_000)
 
     result = dti.tz_localize(tz, nonexistent=shift)
