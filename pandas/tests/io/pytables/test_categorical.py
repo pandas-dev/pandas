@@ -408,6 +408,8 @@ def test_categorical_select_non_sorted_categories(temp_h5_path):
         ('col in ["z", "y"]', lambda col: col.isin(["z", "y"])),
         ('col in ["a", "z"]', lambda col: col.isin(["a", "z"])),
         ('col != "z"', lambda col: col != "z"),
+        ("col == pd.NA", lambda col: col.isna()),
+        ("col != pd.NA", lambda col: col.notna()),
     ],
 )
 def test_categorical_where_non_category_with_nan(temp_h5_path, where, mask):
