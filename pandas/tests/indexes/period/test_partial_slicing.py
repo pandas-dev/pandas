@@ -34,6 +34,72 @@ class TestPeriodIndex:
         # Todo: fix these accessors!
         assert ser["05Q4"] == ser.iloc[2]
 
+    @pytest.mark.parametrize(
+        "freq, label",
+        [
+            ("Q-DEC", "2001Q1"),
+            ("Q-JAN", "2001Q1"),
+            ("Q-FEB", "2001Q1"),
+            ("Q-MAR", "2001Q1"),
+            ("Q-APR", "2001Q1"),
+            ("Q-NOV", "2001Q1"),
+            ("Y-DEC", "2002"),
+            ("Y-JUN", "2002"),
+            ("Y-MAR", "2002"),
+        ],
+    )
+    def test_string_slice_matches_freq_resolves_single_anchored_period(
+        self, freq, label
+    ):
+        # GH#66571
+        periods = 12 if freq.startswith("Q") else 8
+        start = "2000Q1" if freq.startswith("Q") else "2000"
+        pi = pd.period_range(start, periods=periods, freq=freq)
+        ser = pd.Series(range(periods), index=pi)
+        result = ser.loc[label:label]
+        expected = ser.iloc[[pi.get_loc(label)]]
+        tm.assert_series_equal(result, expected)
+        assert len(result) == 1
+
+    @pytest.mark.parametrize(
+        "freq, start, stop, expected",
+        [
+            (
+                "W",
+                "2001-01-06",
+                "2001-01-20",
+                [
+                    "2001-01-01/2001-01-07",
+                    "2001-01-08/2001-01-14",
+                    "2001-01-15/2001-01-21",
+                ],
+            ),
+            (
+                "D",
+                "2001-01-06",
+                "2001-01-08",
+                ["2001-01-06", "2001-01-07", "2001-01-08"],
+            ),
+        ],
+    )
+    def test_string_slice_lower_resolution_label_unchanged(
+        self, freq, start, stop, expected
+    ):
+        # GH#66571
+        pi = pd.period_range("2001-01-01", periods=20, freq=freq)
+        ser = pd.Series(range(len(pi)), index=pi)
+        result = ser.loc[start:stop]
+        assert list(result.index.astype(str)) == expected
+
+    def test_string_slice_freq_without_resolution(self):
+        # GH#66571
+        pi = pd.period_range("2001-01-01", periods=60, freq="W")
+        ser = pd.Series(range(len(pi)), index=pi)
+        result = ser.loc["2001":"2001"]
+        assert len(result) == 53
+        assert str(result.index[0]) == "2001-01-01/2001-01-07"
+        assert str(result.index[-1]) == "2001-12-31/2002-01-06"
+
     def test_pindex_slice_index(self):
         pi = pd.period_range(start="1/1/10", end="12/31/12", freq="M")
         s = pd.Series(np.random.default_rng(2).random(len(pi)), index=pi)
