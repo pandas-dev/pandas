@@ -2,7 +2,20 @@ from io import BytesIO
 import os
 import pathlib
 import tarfile
+import warnings
 import zipfile
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings(
+    "ignore",
+    message="You are using a Python version.*google",
+    category=FutureWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message=".*google.api_core.*",
+    category=FutureWarning,
+)
 
 import numpy as np
 import pytest
