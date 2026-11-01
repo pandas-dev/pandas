@@ -1441,13 +1441,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if mask.any():
                 counts[mask] += fcounts
             else:
-                # error: Argument 1 to "insert" has incompatible type "Union[
-                # ExtensionArray,ndarray[Any, Any]]"; expected "Union[
-                # _SupportsArray[dtype[Any]], Sequence[_SupportsArray[dtype
-                # [Any]]], Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]], Sequence
-                # [Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]]]"
-                keys = np.insert(keys, 0, self.fill_value)  # type: ignore[arg-type]
+                keys = np.insert(keys, 0, self.fill_value)
                 counts = np.insert(counts, 0, fcounts)
 
         if not isinstance(keys, ABCIndex):

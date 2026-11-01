@@ -699,9 +699,7 @@ class ParserBase:
         """
         if not self.index_col and len(columns) != len(data) and columns:
             empty_str = is_object_dtype(data[-1]) and data[-1] == ""
-            # error: No overload variant of "__ror__" of "ndarray" matches
-            # argument type "ExtensionArray"
-            empty_str_or_na = empty_str | isna(data[-1])  # type: ignore[operator]
+            empty_str_or_na = empty_str | isna(data[-1])
             if len(columns) == len(data) - 1 and np.all(empty_str_or_na):
                 return
             self._warn_parser(
