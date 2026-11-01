@@ -95,3 +95,43 @@ def test_get_dummies_with_str_dtype(any_string_dtype):
 
     with pytest.raises(ValueError, match=msg):
         s.str.get_dummies("|", dtype="datetime64[ns]")
+
+
+@pytest.mark.parametrize("sep", [" | ", "||", ".*", "[,;]", r"\s+", "[[", "::"])
+@pytest.mark.parametrize("categorical", [False, True])
+def test_get_dummies_literal_separator(any_string_dtype, sep, categorical):
+    # GH#70811
+    s = pd.Series([f"Remote{sep}On site", "Remote", "On site"], dtype=any_string_dtype)
+    if categorical:
+        s = s.astype("category")
+
+    result = s.str.get_dummies(sep=sep)
+    expected = pd.DataFrame([[1, 1], [0, 1], [1, 0]], columns=["On site", "Remote"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_get_dummies_literal_separator_index():
+    # GH#70811
+    idx = pd.Index(["Remote | On site", "Remote", "On site"], dtype=object)
+    result = idx.str.get_dummies(sep=" | ")
+    expected = pd.MultiIndex.from_tuples(
+        [(1, 1), (0, 1), (1, 0)], names=["On site", "Remote"]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_get_dummies_literal_separator_missing(any_string_dtype):
+    # GH#70811
+    s = pd.Series(["Remote | On site", None], dtype=any_string_dtype)
+    result = s.str.get_dummies(sep=" | ")
+    expected = pd.DataFrame([[1, 1], [0, 0]], columns=["On site", "Remote"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [object, "string[python]"])
+def test_get_dummies_literal_separator_empty(dtype):
+    # GH#70811
+    s = pd.Series(["Remote | On site", ""], dtype=dtype)
+    result = s.str.get_dummies(sep=" | ")
+    expected = pd.DataFrame([[1, 1], [0, 0]], columns=["On site", "Remote"])
+    tm.assert_frame_equal(result, expected)

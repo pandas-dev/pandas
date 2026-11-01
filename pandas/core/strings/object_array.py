@@ -419,7 +419,7 @@ class ObjectStringArrayMixin:
             arr = sep + arr.astype(str) + sep
 
         tags: set[str] = set()
-        for ts in Series(arr, copy=False).str.split(sep):
+        for ts in Series(arr, copy=False).str.split(sep, regex=False):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 
