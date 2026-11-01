@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from datetime import timedelta
 from decimal import Decimal
 from functools import partial
 from typing import (
@@ -737,11 +738,14 @@ class MPLPlot(ABC):
             include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = []
+        exclude_type: list[type] = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
             exclude_type = [np.timedelta64]
+        elif self._kind == "hist":
+            # GH#43941 match the frame path, which skips timedelta columns
+            exclude_type = [np.timedelta64, timedelta]
 
         # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":
