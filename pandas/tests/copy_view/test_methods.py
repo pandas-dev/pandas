@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -1269,8 +1270,9 @@ def test_iterrows():
     df = pd.DataFrame({"a": 0, "b": 1}, index=[1, 2, 3])
     df_orig = df.copy()
 
-    for _, sub in df.iterrows():
-        sub.iloc[0] = 100
+    with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+        for _, sub in df.iterrows():
+            sub.iloc[0] = 100
     tm.assert_frame_equal(df, df_orig)
 
 

@@ -525,6 +525,7 @@ Other deprecations
 - Deprecated :class:`PeriodIndex` and :class:`PeriodArray` inferring the frequency from a :class:`Series` of datetime64 data when ``freq`` is not provided. Pass ``freq`` explicitly instead (:issue:`64241`)
 - Deprecated :func:`set_eng_float_format`. Use ``pd.set_option("display.precision", N)`` to control decimal precision, or pass a custom callable to ``pd.set_option("display.float_format", func)`` (:issue:`64460`)
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
+- Deprecated :meth:`DataFrame.iterrows`. Use :meth:`DataFrame.itertuples` instead (:issue:`43874`)
 - Deprecated :meth:`DataFrame.select_dtypes` matching the default ``str`` dtype when ``object`` is passed to ``exclude``, mirroring the existing deprecation for ``include``. Pass ``"str"`` to ``exclude`` to drop those columns as well, or to ``include`` to keep them (:issue:`68454`)
 - Deprecated :meth:`ExcelFile.parse`, use :func:`read_excel` instead (:issue:`58247`)
 - Deprecated :meth:`~Series.fillna` with an incompatible value that requires dtype casting. In a future version, this will raise instead. Explicitly cast to a common dtype before filling (:issue:`45153`)

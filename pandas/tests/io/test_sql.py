@@ -4659,7 +4659,7 @@ def test_xsqlite_write_row_by_row(sqlite_buildin):
     cur.execute(create_sql)
 
     ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-    for _, row in frame.iterrows():
+    for row in frame.itertuples(index=False):
         fmt_sql = format_query(ins, *row)
         tquery(fmt_sql, con=sqlite_buildin)
 
