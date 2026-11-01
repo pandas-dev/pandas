@@ -131,6 +131,7 @@ from pandas._libs.tslibs.timezones cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_from_utc_single,
+    tz_localize_rounded,
     tz_localize_to_utc_single,
 )
 
@@ -3176,7 +3177,7 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 
-    def _round(self, freq, mode, ambiguous="raise", nonexistent="raise"):
+    def _round(self, freq, mode, ambiguous=None, nonexistent="raise"):
         cdef:
             int64_t nanos
 
@@ -3204,6 +3205,17 @@ class Timestamp(_Timestamp):
                 f"Cannot round {self} to freq={freq} without overflow"
             ) from err
 
+        if self.tz is not None and ambiguous is None:
+            r = tz_localize_rounded(
+                np.array([r], dtype=np.int64),
+                np.array([self._value], dtype=np.int64),
+                self.tz,
+                mode,
+                nonexistent,
+                self._creso,
+            )[0]
+            return Timestamp._from_value_and_reso(r, self._creso, self.tz)
+
         result = Timestamp._from_value_and_reso(r, self._creso, None)
         if self.tz is not None:
             result = result.tz_localize(
@@ -3211,7 +3223,7 @@ class Timestamp(_Timestamp):
             )
         return result
 
-    def round(self, freq, ambiguous="raise", nonexistent="raise"):
+    def round(self, freq, ambiguous=None, nonexistent="raise"):
         """
         Round the Timestamp to the specified resolution.
 
@@ -3225,9 +3237,11 @@ class Timestamp(_Timestamp):
         ----------
         freq : str or timedelta
             Frequency string or timedelta value indicating the rounding resolution.
-        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+        ambiguous : bool, {'raise', 'NaT'} or None, default None
             The behavior is as follows:
 
+            * None resolves an ambiguous time to whichever of its two
+              occurrences is nearer the original Timestamp.
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
@@ -3315,6 +3329,9 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
+        >>> ts_tz.round("h")
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
+
         >>> ts_tz.round("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
@@ -3325,7 +3342,7 @@ timedelta}, default 'raise'
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
         )
 
-    def floor(self, freq, ambiguous="raise", nonexistent="raise"):
+    def floor(self, freq, ambiguous=None, nonexistent="raise"):
         """
         Return a new Timestamp floored to this resolution.
 
@@ -3337,9 +3354,11 @@ timedelta}, default 'raise'
         ----------
         freq : str or timedelta
             Frequency string or timedelta value indicating the flooring resolution.
-        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+        ambiguous : bool, {'raise', 'NaT'} or None, default None
             The behavior is as follows:
 
+            * None resolves an ambiguous time to the later of its two
+              occurrences that is not after the original Timestamp.
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
@@ -3421,6 +3440,9 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
 
+        >>> ts_tz.floor("2h")
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
         >>> ts_tz.floor("2h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
@@ -3429,7 +3451,7 @@ timedelta}, default 'raise'
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
+    def ceil(self, freq, ambiguous=None, nonexistent="raise"):
         """
         Return a new Timestamp ceiled to this resolution.
 
@@ -3441,9 +3463,11 @@ timedelta}, default 'raise'
         ----------
         freq : str or timedelta
             Frequency string or timedelta value indicating the ceiling resolution.
-        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+        ambiguous : bool, {'raise', 'NaT'} or None, default None
             The behavior is as follows:
 
+            * None resolves an ambiguous time to the earlier of its two
+              occurrences that is not before the original Timestamp.
             * bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates).
             * 'NaT' will return NaT for an ambiguous time.
@@ -3524,6 +3548,9 @@ timedelta}, default 'raise'
         ``nonexistent`` to control how the timestamp should be re-localized.
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.ceil("h")
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
 
         >>> ts_tz.ceil("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
@@ -3648,7 +3675,7 @@ default 'raise'
         if not isinstance(ambiguous, bool) and ambiguous not in {"NaT", "raise"}:
             raise ValueError(
                         "'ambiguous' parameter must be one of: "
-                        "True, False, 'NaT', 'raise' (default)"
+                        "True, False, 'NaT', 'raise'"
                     )
 
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
