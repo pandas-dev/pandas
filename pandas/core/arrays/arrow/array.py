@@ -90,6 +90,7 @@ from pandas.core import (
     ops,
     roperator,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
@@ -3401,6 +3402,25 @@ class ArrowExtensionArray(
         pa_dtype = self._pa_array.type
 
         data = self._pa_array
+        mask = self.isna()
+        if (
+            pa.types.is_temporal(pa_dtype)
+            and pa_dtype.bit_width == 64
+            and interpolation in ["linear", "midpoint"]
+            and not mask.all()
+        ):
+            # GH#49110 pc.quantile goes through float64, which loses precision;
+            #  reuse the exact numpy datetime path on the int64 values
+            values = pc.fill_null(data.cast(pa.int64()), 0).to_numpy()
+            res = quantile_with_mask(
+                values.view("M8[ns]"),
+                mask,
+                np.datetime64("NaT", "ns"),
+                qs,
+                interpolation,
+            )
+            return self._from_pyarrow_array(pa.array(res.view("i8")).cast(pa_dtype))
+
         if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back

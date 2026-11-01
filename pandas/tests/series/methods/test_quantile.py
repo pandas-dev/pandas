@@ -328,6 +328,14 @@ def test_quantile_dt64_far_apart_neighbors():
         assert abs(int(res) - exact) <= (hi - lo) >> 52
 
 
+def test_quantile_dt64_inexact_q_no_lost_nanosecond():
+    # GH#49110 q=2/3 is not exact in float, the result must not be truncated
+    #  to 1ns below the expected value
+    ser = pd.Series(pd.date_range("2013-01-01", periods=3, unit="ns"))
+    result = ser.quantile(2 / 3)
+    assert result == Timestamp("2013-01-02 08:00:00")
+
+
 def test_quantile_dt64tz_endpoints_exact():
     # GH#49110
     dti = pd.DatetimeIndex(
