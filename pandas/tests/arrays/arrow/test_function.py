@@ -527,6 +527,114 @@ def test_factorize_chunked_dictionary_mixed_null_encoding():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+@pytest.mark.parametrize(
+    "indices, dictionary, expected_indices, expected_uniques",
+    [
+        # unreferenced entry, as left by filtering
+        ([2, 0, 2, 0], ["a", "b", "c"], [0, 1, 0, 1], ["c", "a"]),
+        # numbered by appearance, not by dictionary order
+        ([1, 0, 1], ["a", "b"], [0, 1, 0], ["b", "a"]),
+        # duplicate entries
+        ([0, 2, 1, 2], ["a", "b", "a"], [0, 0, 1, 0], ["a", "b"]),
+    ],
+)
+def test_factorize_dictionary_stored_dictionary_ignored(
+    indices, dictionary, expected_indices, expected_uniques
+):
+    # GH#71827
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array(indices, type=pa.int32()), pa.array(dictionary)
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    result_indices, result_uniques = arr.factorize()
+    tm.assert_numpy_array_equal(
+        result_indices, np.array(expected_indices, dtype=np.intp)
+    )
+    tm.assert_extension_array_equal(
+        result_uniques, pd.array(expected_uniques, dtype=ArrowDtype(pa.string()))
+    )
+
+
+@pytest.mark.parametrize(
+    "use_na_sentinel, expected_indices, expected_uniques",
+    [(True, [-1, 0, -1, 1, 0], ["a", "b"]), (False, [0, 1, 0, 2, 1], [None, "a", "b"])],
+)
+def test_factorize_chunked_dictionary_nulls(
+    use_na_sentinel, expected_indices, expected_uniques
+):
+    # GH#71827 nulls in the dictionary and in the indices, across chunks
+    pa_arr = pa.chunked_array(
+        [
+            pa.DictionaryArray.from_arrays(
+                pa.array([2, 0], type=pa.int8()), pa.array(["a", "b", None])
+            ),
+            pa.DictionaryArray.from_arrays(
+                pa.array([None, 1, 0], type=pa.int8()), pa.array(["a", "b"])
+            ),
+        ]
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    result_indices, result_uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+    tm.assert_numpy_array_equal(
+        result_indices, np.array(expected_indices, dtype=np.intp)
+    )
+    tm.assert_extension_array_equal(
+        result_uniques, pd.array(expected_uniques, dtype=ArrowDtype(pa.string()))
+    )
+
+
+@pytest.mark.parametrize(
+    "values", [pa.array([[1], [2]]), pa.array(["a", "b"], type=pa.string_view())]
+)
+def test_factorize_dictionary_value_type_without_kernel(values):
+    # GH#71827 types lacking a hash or take kernel keep the stored dictionary
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array([1, 0, 1], type=pa.int32()), values
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([1, 0, 1], dtype=np.intp))
+    assert uniques._pa_array.combine_chunks().equals(values)
+
+
+@pytest.mark.parametrize(
+    "values, indices, use_na_sentinel",
+    [
+        # null in the dictionary
+        (pa.array([[1], None]), [1, 0, 1], True),
+        (pa.array(["a", None], type=pa.string_view()), [1, 0, 1], True),
+        # null in the indices, which must get a code
+        (pa.array([[1], [2]]), [None, 0, 1], False),
+        (pa.array(["a", "b"], type=pa.string_view()), [None, 0, 1], False),
+    ],
+)
+def test_factorize_dictionary_value_type_without_kernel_null(
+    values, indices, use_na_sentinel
+):
+    # GH#71827 keeping the stored dictionary would mishandle the null
+    pa_arr = pa.DictionaryArray.from_arrays(pa.array(indices, type=pa.int32()), values)
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    with pytest.raises(pa.ArrowNotImplementedError, match="has no kernel"):
+        arr.factorize(use_na_sentinel=use_na_sentinel)
+
+
+def test_factorize_chunked_dictionary_repeated_dictionaries():
+    # GH#71827 each chunk stores the full dictionary, as from parquet row groups
+    dictionary = pa.array(["a", "b", "c"])
+    pa_arr = pa.chunked_array(
+        [
+            pa.DictionaryArray.from_arrays(pa.array([i], type=pa.int32()), dictionary)
+            for i in [2, 0, 2]
+        ]
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["c", "a"], dtype=ArrowDtype(pa.string()))
+    )
+
+
 def test_factorize_null():
     # GH#54908
     arr = ArrowExtensionArray(pa.array([None, None], type=pa.null()))

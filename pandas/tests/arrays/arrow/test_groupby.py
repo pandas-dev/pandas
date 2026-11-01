@@ -697,3 +697,17 @@ def test_groupby_count_return_arrow_dtype(data_missing):
         dtype="int64[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("sort", [True, False])
+def test_groupby_dictionary_after_filter(sort):
+    # GH#71827 the filtered-out "b" must not come back as an empty group
+    dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    df = pd.DataFrame(
+        {"k": pd.array(["a", "b", "c", "a"], dtype=dtype), "v": [1, 2, 3, 4]}
+    )
+    result = df[df["v"] > 2].groupby("k", sort=sort, observed=True)["v"].sum()
+    keys = ["a", "c"] if sort else ["c", "a"]
+    values = [4, 3] if sort else [3, 4]
+    expected = pd.Series(values, index=pd.Index(keys, dtype=dtype, name="k"), name="v")
+    tm.assert_series_equal(result, expected)
