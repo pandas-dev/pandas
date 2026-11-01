@@ -340,6 +340,7 @@ Plotting
 - Bug in :meth:`Series.plot.hist` and :meth:`DataFrame.plot.hist` with ``datetime64`` data drawing only empty bars (:issue:`17372`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` raising when a datetime index containing ``NaT`` is drawn on a time-series axes (:issue:`40470`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` with a timezone-aware index raising ``ValueError`` when the first timestamp falls in a daylight saving time transition, e.g. the repeated hour of a fall-back day (:issue:`62936`)
+- Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` drawing a regular time series at the wrong x positions, often off-screen, when an irregular time series was plotted first on an axes sharing the x axis, e.g. with ``secondary_y=True`` or ``twinx`` (:issue:`14322`, :issue:`15074`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
