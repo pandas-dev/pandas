@@ -586,6 +586,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.delete(self._mask, loc, axis=axis)
         return self._simple_new(data, mask)
 
+    def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
+        if axis is None:
+            axis = 0
+        data = self._data.repeat(repeats, axis=axis)
+        mask = self._mask.repeat(repeats, axis=axis)
+        return self._simple_new(data, mask)
+
     def reshape(self, *args, **kwargs) -> Self:
         data = self._data.reshape(*args, **kwargs)
         mask = self._mask.reshape(*args, **kwargs)

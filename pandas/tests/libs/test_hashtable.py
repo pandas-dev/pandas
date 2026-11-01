@@ -1,6 +1,7 @@
 from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
+from itertools import product
 import re
 import struct
 import tracemalloc
@@ -550,6 +551,25 @@ def test_hash_equal_namedtuple_and_tuple():
     assert ht.objects_are_equal(a, b)
 
 
+@pytest.mark.parametrize(
+    "a, b",
+    [(np.dtype("int64"), "int64"), (pd.CategoricalDtype(), "category")],
+)
+def test_objects_are_equal_requires_equal_hash(a, b):
+    # GH#43581 equal objects with different hashes must not match, otherwise
+    # lookups succeed or fail depending on where probing lands
+    assert a == b
+    assert ht.object_hash(a) != ht.object_hash(b)
+    assert not ht.objects_are_equal(a, b)
+
+
+@pytest.mark.parametrize("a, b", [(1, 1.0), (True, 1), (np.str_("a"), "a")])
+def test_objects_are_equal_different_types_equal_hash(a, b):
+    # GH#43581
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
@@ -897,3 +917,284 @@ def test_float_complex_int_are_equal_as_objects():
     result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
+
+
+class HashEqAbort(BaseException):
+    # GH 57052 - like KeyboardInterrupt or SystemExit, this is not an Exception,
+    # so the hashtables must let it propagate
+    pass
+
+
+class hash_eq_raiser:
+    # GH 57052
+    def __init__(self, value, raise_hash=False, raise_eq=False):
+        self.value = value
+        self.raise_hash = raise_hash
+        self.raise_eq = raise_eq
+
+    def __hash__(self):
+        if self.raise_hash:
+            raise HashEqAbort(f"exception in {self!r}.__hash__")
+        return hash(self.value)
+
+    def __eq__(self, other):
+        if self.raise_eq:
+            raise HashEqAbort(f"exception in {self!r}.__eq__")
+        return self.value == other.value
+
+    def __repr__(self):
+        return f"hash_eq_raiser({self.value}, {self.raise_hash}, {self.raise_eq})"
+
+
+@pytest.mark.parametrize("raise1, raise2", list(product([True, False], repeat=2)))
+def test_error_raised_from_hash_method_in_set_item(raise1, raise2):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello1", raise_hash=raise1)
+    key2 = hash_eq_raiser(value="hello2", raise_hash=raise2)
+
+    if raise1:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            table.set_item(key1, 123)
+    else:
+        table.set_item(key1, 123)
+        assert table.get_item(key1) == 123
+
+    if raise2:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key2!r}.__hash__")
+        ):
+            table.set_item(key2, 456)
+    else:
+        table.set_item(key2, 456)
+        assert table.get_item(key2) == 456
+
+
+@pytest.mark.parametrize("raise1, raise2", list(product([True, False], repeat=2)))
+def test_error_raised_from_hash_method_in_get_item(raise1, raise2):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello1")
+    key2 = hash_eq_raiser(value="hello2")
+
+    table.set_item(key1, 123)
+    table.set_item(key2, 456)
+
+    key1.raise_hash = raise1
+    key2.raise_hash = raise2
+
+    if raise1:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            table.get_item(key1)
+    else:
+        assert table.get_item(key1) == 123
+
+    if raise2:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key2!r}.__hash__")
+        ):
+            table.get_item(key2)
+    else:
+        assert table.get_item(key2) == 456
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_set_item(do_raise):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello", raise_eq=do_raise)
+    key2 = hash_eq_raiser(value=key1.value)
+
+    if do_raise:
+        table.set_item(key1, 123)
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            table.set_item(key2, 456)
+    else:
+        table.set_item(key2, 456)
+        assert table.get_item(key2) == 456
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_get_item(do_raise):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello")
+    key2 = hash_eq_raiser(value=key1.value)
+
+    table.set_item(key1, 123)
+    table.set_item(key2, 456)
+
+    if do_raise:
+        key1.raise_eq = True
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            table.get_item(key2)
+    else:
+        # this looks odd but it is because key1.value == key2.value
+        assert table.get_item(key1) == 456
+        assert table.get_item(key2) == 456
+
+
+# ismember goes through kh_pyset_t instead of PyObjectHashTable, so it needs
+# the same coverage as the set_item / get_item tests above.
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_hash_method_in_ismember_values(do_raise):
+    # GH 57052 - hashing a key while the set is built
+    key1 = hash_eq_raiser(value="hello1", raise_hash=do_raise)
+    key2 = hash_eq_raiser(value="hello2")
+
+    arr = np.array([key1, key2], dtype=object)
+    values = np.array([key1], dtype=object)
+
+    if do_raise:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        expected = np.array([True, False], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_hash_method_in_ismember_arr(do_raise):
+    # GH 57052 - hashing a key while the set is looked up
+    key1 = hash_eq_raiser(value="hello1")
+    key2 = hash_eq_raiser(value="hello2")
+
+    arr = np.array([key1, key2], dtype=object)
+    values = np.array([key2], dtype=object)
+
+    key1.raise_hash = do_raise
+
+    if do_raise:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        expected = np.array([False, True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_ismember_values(do_raise):
+    # GH 57052 - comparing two colliding keys while the set is built
+    key1 = hash_eq_raiser(value="hello", raise_eq=do_raise)
+    key2 = hash_eq_raiser(value=key1.value)
+
+    arr = np.array([key1], dtype=object)
+    values = np.array([key1, key2], dtype=object)
+
+    if do_raise:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        expected = np.array([True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_ismember_arr(do_raise):
+    # GH 57052 - comparing two colliding keys while the set is looked up
+    key1 = hash_eq_raiser(value="hello")
+    key2 = hash_eq_raiser(value=key1.value)
+
+    arr = np.array([key2], dtype=object)
+    values = np.array([key1], dtype=object)
+
+    key1.raise_eq = do_raise
+
+    if do_raise:
+        with pytest.raises(
+            HashEqAbort, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            ht.ismember(arr, values)
+    else:
+        # this looks odd but it is because key1.value == key2.value
+        expected = np.array([True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(ht.ismember(arr, values), expected)
+
+
+def test_ismember_does_not_leak_table_when_hash_raises():
+    # GH 57052 - the set is freed even though the exception propagates
+    key = hash_eq_raiser(value="hello", raise_hash=True)
+    arr = np.array([key], dtype=object)
+
+    with activated_tracemalloc():
+        with pytest.raises(HashEqAbort, match="__hash__"):
+            ht.ismember(arr, arr)
+        assert get_allocated_khash_memory() == 0
+
+
+# GH 57052, only BaseExceptions which are not Exceptions should propagate
+
+
+class CustomKeyEqRaises:
+    def __hash__(self):
+        return 1
+
+    def __eq__(self, other):
+        raise RuntimeError("exception in __eq__")
+
+
+class CustomKeyHashRaises:
+    def __hash__(self):
+        raise TypeError("exception in __hash__")
+
+
+@pytest.mark.parametrize(
+    "make_value",
+    [
+        # __eq__ raises when the shapes or lengths differ
+        lambda i: np.arange(i + 1),
+        lambda i: pd.Series(range(i + 1)),
+        # bool(pd.NA) raises when the lists are compared
+        lambda i: [pd.NA, i],
+        lambda i: CustomKeyEqRaises(),
+        lambda i: CustomKeyHashRaises(),
+    ],
+)
+def test_exception_from_hash_or_eq_is_suppressed(make_value):
+    # GH 57052
+    values = np.empty(2, dtype=object)
+    values[:] = [make_value(0), make_value(1)]
+    ser = pd.Series(values, dtype=object)
+
+    tm.assert_series_equal(ser.duplicated(), pd.Series([False, False]))
+    tm.assert_numpy_array_equal(
+        ser.value_counts().to_numpy(), np.array([1, 1], dtype=np.int64)
+    )
+    tm.assert_series_equal(ser[:1].isin(values[1:]), pd.Series([False]))
+
+
+def test_base_exception_from_eq_propagates_from_public_api():
+    # GH 57052
+    key1 = hash_eq_raiser(value="hello", raise_eq=True)
+    key2 = hash_eq_raiser(value=key1.value)
+    ser = pd.Series([key1, key2], dtype=object)
+
+    msg = re.escape(f"exception in {key1!r}.__eq__")
+    with pytest.raises(HashEqAbort, match=msg):
+        ser.duplicated()
+    with pytest.raises(HashEqAbort, match=msg):
+        ser.value_counts()
+    with pytest.raises(HashEqAbort, match=msg):
+        ser.isin([key1])
+    with pytest.raises(HashEqAbort, match=msg):
+        pd.Index([key1, key2]).get_loc(key2)
