@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -12,7 +14,7 @@ class TestDataFrameUpdate:
         df1 = pd.DataFrame({"A": [1.0, 2, 3], "B": pd.date_range("2000", periods=3)})
         df2 = pd.DataFrame({"A": [None, 2, 3]})
         expected = df1.copy()
-        df1.update(df2, overwrite=False)
+        df1.update(df2, overwrite=False, inplace=True)
 
         tm.assert_frame_equal(df1, expected)
 
@@ -22,7 +24,7 @@ class TestDataFrameUpdate:
         expected = pd.DataFrame(
             {"A": [1.0, 2, 3], "B": pd.date_range("2000", periods=3)}
         )
-        df1.update(df2, overwrite=False)
+        df1.update(df2, overwrite=False, inplace=True)
 
         tm.assert_frame_equal(df1, expected)
 
@@ -33,7 +35,7 @@ class TestDataFrameUpdate:
 
         other = pd.DataFrame([[3.6, 2.0, np.nan], [np.nan, np.nan, 7]], index=[1, 3])
 
-        df.update(other)
+        df.update(other, inplace=True)
 
         expected = pd.DataFrame(
             [[1.5, np.nan, 3], [3.6, 2, 3], [1.5, np.nan, 3], [1.5, np.nan, 7.0]]
@@ -48,7 +50,7 @@ class TestDataFrameUpdate:
         )
 
         other = pd.DataFrame([[45, 45]], index=[0], columns=["A", "B"])
-        df.update(other)
+        df.update(other, inplace=True)
 
         expected = pd.DataFrame(
             [[45.0, 45.0, False, True], [4.0, 5.0, True, False]],
@@ -63,7 +65,7 @@ class TestDataFrameUpdate:
 
         other = pd.DataFrame([[3.6, 2.0, np.nan], [np.nan, np.nan, 7]], index=[1, 3])
 
-        df.update(other, overwrite=False)
+        df.update(other, overwrite=False, inplace=True)
 
         expected = pd.DataFrame(
             [[1.5, np.nan, 3], [1.5, 2, 3], [1.5, np.nan, 3], [1.5, np.nan, 3.0]]
@@ -77,7 +79,7 @@ class TestDataFrameUpdate:
 
         other = pd.DataFrame([[3.6, 2.0, np.nan], [np.nan, np.nan, 7]], index=[1, 3])
 
-        df.update(other, filter_func=lambda x: x > 2)
+        df.update(other, filter_func=lambda x: x > 2, inplace=True)
 
         expected = pd.DataFrame(
             [[1.5, np.nan, 3], [1.5, np.nan, 3], [1.5, np.nan, 3], [1.5, np.nan, 7.0]]
@@ -95,7 +97,7 @@ class TestDataFrameUpdate:
     def test_update_raise_bad_parameter(self, bad_kwarg, exception, msg):
         df = pd.DataFrame([[1.5, 1, 3.0]])
         with pytest.raises(exception, match=msg):
-            df.update(df, **bad_kwarg)
+            df.update(df, **bad_kwarg, inplace=True)
 
     def test_update_raise_on_overlap(self):
         df = pd.DataFrame(
@@ -104,14 +106,14 @@ class TestDataFrameUpdate:
 
         other = pd.DataFrame([[2.0, np.nan], [np.nan, 7]], index=[1, 3], columns=[1, 2])
         with pytest.raises(ValueError, match="Data overlaps"):
-            df.update(other, errors="raise")
+            df.update(other, errors="raise", inplace=True)
 
     def test_update_from_non_df(self):
         d = {"a": pd.Series([1, 2, 3, 4]), "b": pd.Series([5, 6, 7, 8])}
         df = pd.DataFrame(d)
 
         d["a"] = pd.Series([5, 6, 7, 8])
-        df.update(d)
+        df.update(d, inplace=True)
 
         expected = pd.DataFrame(d)
 
@@ -121,7 +123,7 @@ class TestDataFrameUpdate:
         df = pd.DataFrame(d)
 
         d["a"] = [5, 6, 7, 8]
-        df.update(d)
+        df.update(d, inplace=True)
 
         expected = pd.DataFrame(d)
 
@@ -131,7 +133,7 @@ class TestDataFrameUpdate:
         # GH 25807
         result = pd.DataFrame([pd.Timestamp("2019", tz="UTC")])
         with tm.assert_produces_warning(None):
-            result.update(result)
+            result.update(result, inplace=True)
         expected = pd.DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
@@ -140,7 +142,7 @@ class TestDataFrameUpdate:
         result = pd.DataFrame([pd.Timestamp("2019", tz="UTC")])
         orig = result.copy()
         view = result[:]
-        result.update(result + pd.Timedelta(days=1))
+        result.update(result + pd.Timedelta(days=1), inplace=True)
         expected = pd.DataFrame([pd.Timestamp("2019-01-02", tz="UTC")])
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(view, orig)
@@ -150,7 +152,7 @@ class TestDataFrameUpdate:
         df = pd.DataFrame({"a": [1, 3], "b": [np.nan, 2]})
         df["c"] = np.nan
         with pytest.raises(TypeError, match="Invalid value"):
-            df.update({"c": pd.Series(["foo"], index=[0])})
+            df.update({"c": pd.Series(["foo"], index=[0])}, inplace=True)
 
     @pytest.mark.parametrize("dtype", ["str", object])
     def test_update_modify_view(self, dtype):
@@ -159,7 +161,7 @@ class TestDataFrameUpdate:
         df2 = pd.DataFrame({"A": ["a", "x"], "B": ["100", "200"]}, dtype=dtype)
         df2_orig = df2.copy()
         result_view = df2[:]
-        df2.update(df)
+        df2.update(df, inplace=True)
         expected = pd.DataFrame({"A": ["1", "x"], "B": ["100", "200"]}, dtype=dtype)
         tm.assert_frame_equal(df2, expected)
         tm.assert_frame_equal(result_view, df2_orig)
@@ -168,7 +170,7 @@ class TestDataFrameUpdate:
         # GH#16713
         df = pd.DataFrame({"A": [1, None], "B": [pd.NaT, pd.to_datetime("2016-01-01")]})
         df2 = pd.DataFrame({"A": [2, 3]})
-        df.update(df2, overwrite=False)
+        df.update(df2, overwrite=False, inplace=True)
         expected = pd.DataFrame(
             {"A": [1.0, 3.0], "B": [pd.NaT, pd.to_datetime("2016-01-01")]}
         )
@@ -204,7 +206,7 @@ class TestDataFrameUpdate:
         expected = pd.DataFrame(
             {"a": [value_other, value_df]}, index=[1, 2], dtype=dtype
         )
-        df.update(other)
+        df.update(other, inplace=True)
         tm.assert_frame_equal(df, expected)
 
     def test_update_raises_on_duplicate_argument_index(self):
@@ -212,14 +214,14 @@ class TestDataFrameUpdate:
         df = pd.DataFrame({"a": [1, 1]}, index=[1, 2])
         other = pd.DataFrame({"a": [2, 3]}, index=[1, 1])
         with pytest.raises(ValueError, match="duplicate index"):
-            df.update(other)
+            df.update(other, inplace=True)
 
     def test_update_without_intersection(self):
         # GH#63452
         orig = pd.DataFrame({"a": [1]}, index=[1])
         df = orig.copy()
         other = pd.DataFrame({"a": [2]}, index=[2])
-        df.update(other)
+        df.update(other, inplace=True)
         tm.assert_frame_equal(df, orig)
 
     def test_update_on_duplicate_frame_unique_argument_index(self):
@@ -229,7 +231,7 @@ class TestDataFrameUpdate:
         expected = pd.DataFrame(
             {"a": [2, 2, 3]}, index=[1, 1, 2], dtype=np.dtype("intc")
         )
-        df.update(other)
+        df.update(other, inplace=True)
         tm.assert_frame_equal(df, expected)
 
     def test_update_preserve_mixed_dtypes(self):
@@ -245,7 +247,7 @@ class TestDataFrameUpdate:
         expected = pd.DataFrame({"a": [4, 5, 3], "b": ["a", "b", "z"]})
         expected = expected.astype({"a": dtype1, "b": dtype2})
 
-        df.update(other)
+        df.update(other, inplace=True)
         tm.assert_frame_equal(df, expected)
 
     def test_update_datetime_column_after_setting_none(self):
@@ -256,7 +258,31 @@ class TestDataFrameUpdate:
         other = df.copy()
         other["date"] = None
 
-        other.update(df)
+        other.update(df, inplace=True)
         expected = pd.DataFrame({"date": [pd.Timestamp("2026-02-05")]}, dtype=object)
 
         tm.assert_frame_equal(other, expected)
+
+    def test_update_inplace_default_deprecated(self):
+        # GH#21858
+        df = pd.DataFrame({"a": [1.0, 2.0]})
+        msg = "DataFrame.update modifying the DataFrame in place by default"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.update(pd.DataFrame({"a": [3.0]}))
+        assert result is None
+        tm.assert_frame_equal(df, pd.DataFrame({"a": [3.0, 2.0]}))
+
+    def test_update_not_inplace(self):
+        # GH#21858
+        df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
+        df_orig = df.copy()
+
+        result = df.update(pd.DataFrame({"b": [100.0]}, index=[1]), inplace=False)
+        expected = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 100.0, 6.0]})
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, df_orig)
+
+        # no overlapping index labels
+        result = df.update(pd.DataFrame({"b": [100.0]}, index=[5]), inplace=False)
+        tm.assert_frame_equal(result, df_orig)
+        assert result is not df

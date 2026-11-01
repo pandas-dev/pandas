@@ -13447,6 +13447,42 @@ class DataFrame(NDFrame, OpsMixin):
 
         return combined.__finalize__(self, method="combine_first")
 
+    @overload
+    def update(
+        self,
+        other,
+        join: UpdateJoin = ...,
+        overwrite: bool = ...,
+        filter_func=...,
+        errors: IgnoreRaise = ...,
+        *,
+        inplace: Literal[False],
+    ) -> DataFrame: ...
+
+    @overload
+    def update(
+        self,
+        other,
+        join: UpdateJoin = ...,
+        overwrite: bool = ...,
+        filter_func=...,
+        errors: IgnoreRaise = ...,
+        *,
+        inplace: Literal[True] | lib.NoDefault = ...,
+    ) -> None: ...
+
+    @overload
+    def update(
+        self,
+        other,
+        join: UpdateJoin = ...,
+        overwrite: bool = ...,
+        filter_func=...,
+        errors: IgnoreRaise = ...,
+        *,
+        inplace: bool | lib.NoDefault = ...,
+    ) -> DataFrame | None: ...
+
     def update(
         self,
         other,
@@ -13454,11 +13490,13 @@ class DataFrame(NDFrame, OpsMixin):
         overwrite: bool = True,
         filter_func=None,
         errors: IgnoreRaise = "ignore",
-    ) -> None:
+        *,
+        inplace: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame | None:
         """
-        Modify in place using non-NA values from another DataFrame.
+        Update using non-NA values from another DataFrame.
 
-        Aligns on indices. There is no return value.
+        Aligns on indices.
 
         Parameters
         ----------
@@ -13484,11 +13522,18 @@ class DataFrame(NDFrame, OpsMixin):
         errors : {'raise', 'ignore'}, default 'ignore'
             If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
+        inplace : bool, default True
+            Whether to modify the DataFrame in place rather than returning a new
+            DataFrame.
+
+            .. deprecated:: 3.2.0
+                Not passing ``inplace`` is deprecated. In a future version the
+                default will change to ``False``.
 
         Returns
         -------
-        None
-            This method directly changes calling object.
+        DataFrame or None
+            DataFrame with the updates applied, or None if ``inplace=True``.
 
         Raises
         ------
@@ -13511,8 +13556,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400, 500, 600]})
         >>> new_df = pd.DataFrame({"B": [4, 5, 6], "C": [7, 8, 9]})
-        >>> df.update(new_df)
-        >>> df
+        >>> df.update(new_df, inplace=False)
            A  B
         0  1  4
         1  2  5
@@ -13523,8 +13567,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame({"A": ["a", "b", "c"], "B": ["x", "y", "z"]})
         >>> new_df = pd.DataFrame({"B": ["d", "e", "f", "g", "h", "i"]})
-        >>> df.update(new_df)
-        >>> df
+        >>> df.update(new_df, inplace=False)
            A  B
         0  a  d
         1  b  e
@@ -13532,8 +13575,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame({"A": ["a", "b", "c"], "B": ["x", "y", "z"]})
         >>> new_df = pd.DataFrame({"B": ["d", "f"]}, index=[0, 2])
-        >>> df.update(new_df)
-        >>> df
+        >>> df.update(new_df, inplace=False)
            A  B
         0  a  d
         1  b  y
@@ -13543,8 +13585,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame({"A": ["a", "b", "c"], "B": ["x", "y", "z"]})
         >>> new_column = pd.Series(["d", "e", "f"], name="B")
-        >>> df.update(new_column)
-        >>> df
+        >>> df.update(new_column, inplace=False)
            A  B
         0  a  d
         1  b  e
@@ -13555,14 +13596,26 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400.0, 500.0, 600.0]})
         >>> new_df = pd.DataFrame({"B": [4, np.nan, 6]})
-        >>> df.update(new_df)
-        >>> df
+        >>> df.update(new_df, inplace=False)
            A      B
         0  1    4.0
         1  2  500.0
         2  3    6.0
         """
-        if not CHAINED_WARNING_DISABLED:
+        if inplace is lib.no_default:
+            warnings.warn(
+                "DataFrame.update modifying the DataFrame in place by default is "
+                "deprecated. In a future version, it will return a new DataFrame "
+                "and leave the original unchanged. Pass inplace=True to keep the "
+                "current behavior, or inplace=False to adopt the future behavior "
+                "and silence this warning.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            inplace = True
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if inplace and not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(
                 self
             ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
@@ -13571,6 +13624,8 @@ class DataFrame(NDFrame, OpsMixin):
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
+
+        result = self if inplace else self.copy(deep=False)
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
@@ -13586,7 +13641,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         index_intersection = other.index.intersection(self.index)
         if index_intersection.empty:
-            return
+            return None if inplace else result
         other = other.reindex(index_intersection)
         this_data = self.loc[index_intersection]
 
@@ -13612,7 +13667,9 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[index_intersection, col] = this.where(mask, that)
+            result.loc[index_intersection, col] = this.where(mask, that)
+
+        return None if inplace else result
 
     # ----------------------------------------------------------------------
     # Data reshaping
