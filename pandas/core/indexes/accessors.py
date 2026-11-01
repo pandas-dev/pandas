@@ -398,6 +398,11 @@ class DatetimeProperties(Properties):
         Series.dt.to_period : Cast to PeriodArray/PeriodIndex at a particular
             frequency.
 
+        Notes
+        -----
+        A Series does not store a ``freq``, so this can differ from the ``freq`` of
+        the :class:`DatetimeIndex` it was created from.
+
         Examples
         --------
         >>> ser = pd.Series(["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04"])
@@ -651,6 +656,11 @@ class TimedeltaProperties(Properties):
         --------
         Series.dt.components : Return a DataFrame of the components of the
             Timedeltas.
+
+        Notes
+        -----
+        A Series does not store a ``freq``, so this can differ from the ``freq`` of
+        the :class:`TimedeltaIndex` it was created from.
 
         Examples
         --------

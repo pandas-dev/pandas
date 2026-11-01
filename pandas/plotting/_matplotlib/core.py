@@ -74,6 +74,7 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
+    adopt_period_converter,
     format_dateaxis,
     get_period_offset,
     maybe_convert_index,
@@ -246,8 +247,15 @@ class MPLPlot(ABC):
             self._rot_set = False
             self.rot = self._default_rot
 
+        # Axes.grid ignores the axes.grid.axis/which rcParams, see GH#17725
+        self._grid_kwargs: dict[str, Any] = {}
         if grid is None:
             grid = False if secondary_y else mpl.rcParams["axes.grid"]
+            if grid:
+                self._grid_kwargs = {
+                    "axis": mpl.rcParams["axes.grid.axis"],
+                    "which": mpl.rcParams["axes.grid.which"],
+                }
 
         self.grid = grid
         self.legend = legend
@@ -468,8 +476,14 @@ class MPLPlot(ABC):
             # support series.plot(color='green')
             color = [color]
 
-        if isinstance(color, tuple) and self.nseries == 1 and len(color) in (3, 4):
-            # support RGB and RGBA tuples in series plot
+        if (
+            isinstance(color, tuple)
+            and self.nseries == 1
+            and len(color) in (3, 4)
+            and not all(map(mpl.colors.is_color_like, color))
+        ):
+            # support RGB and RGBA tuples in series plot; a tuple of colors
+            # is a sequence of colors, GH#18449
             color = [color]
 
         if colormap is not None:
@@ -838,7 +852,7 @@ class MPLPlot(ABC):
             if self.ylabel is not None:
                 ax.set_ylabel(pprint_thing(self.ylabel))
 
-            ax.grid(self.grid)
+            ax.grid(self.grid, **self._grid_kwargs)
 
         if self.title:
             if self.subplots:
@@ -1034,9 +1048,12 @@ class MPLPlot(ABC):
                 kwds["xerr"] = np.array(kwds.get("xerr"))
             if "yerr" in kwds:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
+            # errorbar takes the format string as ``fmt``; an explicit
+            # ``fmt`` takes precedence, GH#7023
+            if style is not None:
+                kwds.setdefault("fmt", style)
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is unsupported
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
@@ -1397,6 +1414,9 @@ class ScatterPlot(PlanePlot):
             s, index_freq = maybe_convert_index(ax, s)
             freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
             x_data = s.index
+        elif isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex)):
+            # GH#40470
+            adopt_period_converter(ax)
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1637,8 +1657,17 @@ class LinePlot(MPLPlot):
         seen_ax_ids: set[int] = set()
         # Index actually drawn on each ts axes, keyed by id(ax); see _ts_plot.
         self._ts_index: dict[int, Index] = {}
+        # datetimes on a sharex/twinx sibling of a ts axes must be converted
+        # to its period ordinals (GH#40470)
+        adopt = (
+            not is_ts
+            and self.use_index
+            and isinstance(self.data.index, (ABCDatetimeIndex, ABCPeriodIndex))
+        )
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
+            if adopt:
+                adopt_period_converter(ax)
             kwds = self.kwds.copy()
             if self.color is not None:
                 kwds["color"] = self.color
