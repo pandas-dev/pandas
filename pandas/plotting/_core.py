@@ -902,10 +902,11 @@ class PlotAccessor(PandasObject):
         Color for the plot elements when using the default ``matplotlib``
         backend. Supported for ``kind`` values ``"line"``, ``"bar"``,
         ``"barh"``, ``"hist"``, ``"kde"``, ``"density"``, ``"area"``,
-        ``"box"``, and ``"scatter"``. A dict maps DataFrame column names to
-        colors except for box and scatter plots. For box plots, a dict maps
-        ``"boxes"``, ``"whiskers"``, ``"medians"``, and ``"caps"`` to colors.
-        For scatter plots, an array-like specifies the color of each point.
+        ``"box"``, ``"scatter"``, and ``"pie"``. A dict maps DataFrame column
+        names to colors except for box, scatter and pie plots. For box plots, a
+        dict maps ``"boxes"``, ``"whiskers"``, ``"medians"``, and ``"caps"`` to
+        colors. For scatter plots, an array-like specifies the color of each
+        point; for pie plots, of each wedge.
     colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
         plots).
