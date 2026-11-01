@@ -431,6 +431,7 @@ def array(
             return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind in "iu":
+            validate_native_byteorder(data)
             dtype = IntegerArray._dtype_cls._get_dtype_mapping()[data.dtype]
             return IntegerArray._from_sequence(data, dtype=dtype, copy=copy)
         elif data.dtype.kind == "f":
@@ -440,6 +441,7 @@ def array(
                 return NumpyExtensionArray._from_sequence(
                     data, dtype=data.dtype, copy=copy
                 )
+            validate_native_byteorder(data)
             dtype = FloatingArray._dtype_cls._get_dtype_mapping()[data.dtype]
             return FloatingArray._from_sequence(data, dtype=dtype, copy=copy)
 
@@ -447,6 +449,7 @@ def array(
             return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)
         else:
             # e.g. complex
+            warn_non_native_byteorder(data)
             return NumpyExtensionArray._from_sequence(data, dtype=data.dtype, copy=copy)
 
     # Pandas overrides NumPy for
@@ -592,6 +595,36 @@ def warn_compound_dtype() -> None:
         Pandas4Warning,
         stacklevel=find_stack_level(),
     )
+
+
+def _is_non_native(arr: np.ndarray) -> bool:
+    return arr.dtype.kind in "iufcmM" and not arr.dtype.isnative
+
+
+def validate_native_byteorder(arr: np.ndarray) -> None:
+    """
+    Raise for numeric or datetimelike data with non-native byte order, which
+    the cython routines do not accept (GH#53234).
+    """
+    if _is_non_native(arr):
+        raise ValueError(
+            f"Non-native byte order is not supported (got dtype '{arr.dtype.str}'). "
+            "Convert with `arr.astype(arr.dtype.newbyteorder('='))` first."
+        )
+
+
+def warn_non_native_byteorder(arr: np.ndarray) -> None:
+    """
+    Warn that storing data with non-native byte order is deprecated (GH#53234).
+    """
+    if _is_non_native(arr):
+        warnings.warn(
+            f"Storing data with non-native byte order (got dtype '{arr.dtype.str}') "
+            "is deprecated and will raise in a future version. Convert with "
+            "`arr.astype(arr.dtype.newbyteorder('='))` first.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
 
 def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
