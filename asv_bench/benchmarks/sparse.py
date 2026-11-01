@@ -176,6 +176,29 @@ class MinMax:
         getattr(self.sp_arr, func)()
 
 
+class FrameSumAxis1:
+    params = [0.0, np.nan]
+    param_names = ["fill_value"]
+
+    def setup(self, fill_value):
+        N, K = 100_000, 100
+        rng = np.random.default_rng(0)
+        data = {}
+        for i in range(K):
+            arr = np.full(N, fill_value)
+            arr[rng.choice(N, N // 1000, replace=False)] = rng.standard_normal(
+                N // 1000
+            )
+            data[i] = SparseArray(arr, fill_value=fill_value)
+        self.df = pd.DataFrame(data)
+
+    def time_sum_axis_1(self, fill_value):
+        self.df.sum(axis=1)
+
+    def peakmem_sum_axis_1(self, fill_value):
+        self.df.sum(axis=1)
+
+
 class Take:
     params = ([np.array([0]), np.arange(100_000), np.full(100_000, -1)], [True, False])
     param_names = ["indices", "allow_fill"]
