@@ -3861,6 +3861,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             method=method,
             _grouper=self._grouper,
             _as_index=self.as_index,
+            _selection_from_groupby=self._selection,
         )
 
     @final
@@ -3934,6 +3935,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             min_periods=min_periods,
             method=method,
             _grouper=self._grouper,
+            _as_index=self.as_index,
+            _selection_from_groupby=self._selection,
         )
 
     @final
@@ -4043,6 +4046,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             times=times,
             method=method,
             _grouper=self._grouper,
+            _as_index=self.as_index,
+            _selection_from_groupby=self._selection,
         )
 
     @final
