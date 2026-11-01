@@ -3087,12 +3087,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def __getitem__(self, key) -> DataFrameGroupBy | SeriesGroupBy:
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
-            # if len == 1, then it becomes a SeriesGroupBy and this is actually
-            # valid syntax, so don't raise
-            raise ValueError(
-                "Cannot subset columns with a tuple with more than one element. "
-                "Use a list instead."
-            )
+            # GH#58282 a tuple naming a (partial) MultiIndex column selects a
+            # single key, matching DataFrame.__getitem__ (GH#13914)
+            if not (self.obj.ndim == 2 and key in self.obj.columns):
+                # if len == 1, then it becomes a SeriesGroupBy and this is actually
+                # valid syntax, so don't raise
+                raise ValueError(
+                    "Cannot subset columns with a tuple with more than one element. "
+                    "Use a list instead."
+                )
         return super().__getitem__(key)
 
     def _gotitem(self, key, ndim: int, subset=None):
