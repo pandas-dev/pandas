@@ -791,6 +791,41 @@ class TestStata:
 
         tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
+    def test_tw_year_end_roundtrip(self, temp_file):
+        # GH#71280 - Dec 31 in a non-leap year and Dec 30/31 in a leap year
+        # were stored as week 52, overflowing into week 0 of the next year.
+        # Stata years always have exactly 52 weeks (0-51); days 364+ must be
+        # clamped to week 51.
+        dates = pd.to_datetime(
+            [
+                "2001-12-30",  # non-leap, day 363 → week 51 (no overflow)
+                "2001-12-31",  # non-leap, day 364 → must clamp to week 51
+                "2002-01-01",  # week 0 of next year
+                "2004-12-29",  # leap, day 363 → week 51 (no overflow)
+                "2004-12-30",  # leap, day 364 → must clamp to week 51
+                "2004-12-31",  # leap, day 365 → must clamp to week 51
+            ]
+        )
+        df = DataFrame({"d": dates})
+        path = temp_file
+        df.to_stata(path, convert_dates={"d": "tw"}, write_index=False)
+
+        # Raw %tw values: 2001w51=2183, 2002w0=2184, 2004w51=2339
+        raw = read_stata(path, convert_dates=False)["d"]
+        assert list(raw.astype(int)) == [2183, 2183, 2184, 2339, 2339, 2339]
+
+        # Round-trip: year-end dates must stay in their own year
+        back = read_stata(path)["d"]
+        assert back.iloc[1].year == 2001  # 2001-12-31 must not decode as 2002-01-01
+        assert back.iloc[4].year == 2004  # 2004-12-30 must not decode as 2005-01-01
+        assert back.iloc[5].year == 2004  # 2004-12-31 must not decode as 2005-01-01
+        # Both year-end dates in 2001 map to the same week-51 start
+        assert back.iloc[0] == back.iloc[1]
+        # All three year-end dates in 2004 map to the same week-51 start
+        assert back.iloc[3] == back.iloc[4] == back.iloc[5]
+        # 2001-12-31 must differ from 2002-01-01
+        assert back.iloc[1] != back.iloc[2]
+
     def test_write_missing_strings(self, temp_file):
         original = DataFrame([["1"], [None]], columns=["foo"])
 
