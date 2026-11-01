@@ -1828,8 +1828,14 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
     if dtype.kind == "f":
         if lib.is_integer(element) or lib.is_float(element):
-            casted = dtype.type(element)
-            if np.isnan(casted) or casted == element:
+            # GH#6697 an out-of-range element overflows in this cast, which
+            #  would surface as a warning where the caller only asked whether
+            #  the value fits.  Suppress it and let the comparison below decide.
+            with np.errstate(over="ignore"):
+                casted = dtype.type(element)
+                is_nan = np.isnan(casted)
+                same = casted == element
+            if is_nan or same:
                 return casted
             # otherwise e.g. overflow see TestCoercionFloat32
             raise LossySetitemError
