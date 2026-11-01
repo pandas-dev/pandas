@@ -329,6 +329,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ValueError`` when plotting a single series or column with ``color`` as a tuple of three or four colors, instead of treating it like the equivalent list (:issue:`18449`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` cutting off data already plotted on axes sharing the x-axis (``sharex=True``) (:issue:`14074`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` mislabeling ticks set with ``xticks=`` or ``ax.set_xticks`` (:issue:`18881`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` drawing datetimes outside the visible range when they share the x-axis (``sharex=True``, ``twinx``, or ``secondary_y=True``) with a time-series plot (:issue:`14322`, :issue:`40470`)
 - Bug in :meth:`Series.plot.hist` and :meth:`DataFrame.plot.hist` with ``datetime64`` data drawing only empty bars (:issue:`17372`)
