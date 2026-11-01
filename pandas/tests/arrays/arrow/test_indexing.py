@@ -528,6 +528,15 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+@pytest.mark.parametrize("kind", ["U", "S"])
+def test_setitem_numpy_str_array_into_int(kind):
+    # GH#71806 pyarrow could segfault converting the value with a mask
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[:2] = np.array(["7", "8"], dtype=kind)
+    expected = pd.array([7, 8, 3], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(arr, expected)
+
+
 def test_setitem_null_dtype_replace_with_mask_abort():
     # GH#66703 pc.replace_with_mask aborts for null dtype (apache/arrow#47447).
     # Operations routed through _replace_with_mask must not crash the process.

@@ -504,6 +504,18 @@ def _has_dictionary_or_view_child(pa_type: pa.DataType) -> bool:
     return False
 
 
+def _unwrap_storage_type(pa_type: pa.DataType) -> pa.DataType:
+    """
+    The storage type of an extension type, and the value type of a run-end-encoded
+    type; any other type unchanged.
+    """
+    if isinstance(pa_type, pa.BaseExtensionType):
+        pa_type = pa_type.storage_type
+    if pa.types.is_run_end_encoded(pa_type):
+        pa_type = pa_type.value_type
+    return pa_type
+
+
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -1045,11 +1057,22 @@ class ArrowExtensionArray(
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
                 mask = is_pdna_or_none(arr_value)
 
-            try:
-                pa_array = pa.array(value, type=pa_type, mask=mask)
-            except (pa.ArrowInvalid, pa.ArrowTypeError):
-                # GH50430: let pyarrow infer type, then cast
+            if (
+                isinstance(value, np.ndarray)
+                and value.dtype.kind in "US"
+                and pa_type is not None
+                and pa.types.is_primitive(_unwrap_storage_type(pa_type))
+            ):
+                # pyarrow can segfault converting a numpy str array with a mask
+                #  to a primitive type, also as extension storage or run-end
+                #  encoded values (GH#71806); infer string/binary, then cast below
                 pa_array = pa.array(value, mask=mask)
+            else:
+                try:
+                    pa_array = pa.array(value, type=pa_type, mask=mask)
+                except (pa.ArrowInvalid, pa.ArrowTypeError):
+                    # GH50430: let pyarrow infer type, then cast
+                    pa_array = pa.array(value, mask=mask)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
