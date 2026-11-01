@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import abc
+from copy import deepcopy
 from datetime import (
     datetime,
     tzinfo,
@@ -43,7 +44,10 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    NA,
+    is_matching_na,
+)
 from pandas._libs.tslibs import (
     Period,
     Timestamp,
@@ -159,6 +163,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
+    warn_compound_dtype,
 )
 from pandas.core.indexers import (
     disallow_ndim_indexing,
@@ -497,6 +502,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
+            if dtype.kind == "V" and not isinstance(dtype, ExtensionDtype):
+                # match the Series and DataFrame constructors
+                raise NotImplementedError(
+                    "compound dtypes are not implemented in the Index constructor"
+                )
 
         data_dtype = getattr(data, "dtype", None)
 
@@ -528,6 +538,8 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
+            if data.dtype.names is not None:
+                warn_compound_dtype()
             if data.dtype.kind not in "iufcbmM":
                 # GH#11836 we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
@@ -640,6 +652,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif issubclass(dtype.type, str) or is_numeric_dtype(dtype):
             return Index
+
+        if dtype.kind == "S":
+            raise TypeError("Index does not support numpy fixed-width string dtypes")
 
         raise NotImplementedError(dtype)
 
@@ -1417,13 +1432,35 @@ class Index(IndexOpsMixin, PandasObject):
         False
         """
 
-        name = self._validate_names(name=name, deep=deep)[0]
+        name = self._validate_copy_name(name, deep)
         if deep:
             new_data = self._data.copy()
             new_index = type(self)._simple_new(new_data, name=name)
         else:
             new_index = self._rename(name=name)
         return new_index
+
+    @final
+    def _validate_copy_name(self, name: Hashable, deep: bool) -> Hashable:
+        """
+        Validate the ``name`` passed to ``copy``, defaulting to ``self.name``.
+        """
+        if name is None:
+            return deepcopy(self.name) if deep else self.name
+        if is_list_like(name) and not is_hashable(name):
+            labels = list(cast("Iterable[Hashable]", name))
+            if len(labels) == 1:
+                # GH#19171
+                warnings.warn(
+                    f"Passing a list-like 'name' to {type(self).__name__}.copy is "
+                    "deprecated and will raise in a future version. Pass the label "
+                    "itself instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                name = labels[0]
+        validate_all_hashable(name, error_name=f"{type(self).__name__}.name")
+        return name
 
     @final
     def __copy__(self) -> Self:
@@ -1879,42 +1916,6 @@ class Index(IndexOpsMixin, PandasObject):
             )
         maybe_extract_name(value, None, type(self))
         self._name = value
-
-    @final
-    def _validate_names(
-        self,
-        name: Hashable = None,
-        names: Sequence[Hashable] | None = None,
-        deep: bool = False,
-    ) -> list[Hashable]:
-        """
-        Handles the quirks of having a singular 'name' parameter for general
-        Index and plural 'names' parameter for MultiIndex.
-        """
-        from copy import deepcopy
-
-        if names is not None and name is not None:
-            raise TypeError("Can only provide one of `names` and `name`")
-        if names is None and name is None:
-            new_names = deepcopy(self.names) if deep else self.names
-        elif names is not None:
-            if not is_list_like(names):
-                raise TypeError("Must pass list-like as `names`.")
-            new_names = names
-        elif not is_list_like(name):
-            new_names = [name]
-        else:
-            new_names = name
-
-        if len(new_names) != len(self.names):  # pyright: ignore[reportArgumentType]
-            raise ValueError(
-                f"Length of new names must be {len(self.names)}, got {len(new_names)}"  # pyright: ignore[reportArgumentType]
-            )
-
-        # All items in 'new_names' need to be hashable
-        validate_all_hashable(*new_names, error_name=f"{type(self).__name__}.name")  # pyright: ignore[reportOptionalIterable, reportGeneralTypeIssues]
-
-        return new_names  # pyright: ignore[reportReturnType]
 
     def _get_default_index_names(
         self,
@@ -4527,7 +4528,11 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(self, ABCMultiIndex):
             new_index = Index(new_labels, name=self.name, copy=False)
         else:
-            new_index = type(self).from_tuples(new_labels, names=self.names)
+            try:
+                new_index = type(self).from_tuples(new_labels, names=self.names)
+            except ValueError:
+                # missing labels are tuples of a different length, GH#50293
+                new_index = Index(new_labels, copy=False)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -6715,9 +6720,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi and not other._is_multi:
             try:
                 # "Type[Index]" has no attribute "from_tuples"
-                other = type(self).from_tuples(other)  # type: ignore[attr-defined]
+                other_mi = type(self).from_tuples(other)  # type: ignore[attr-defined]
             except (TypeError, ValueError):
-                # let's instead try with a straight Index
+                other_mi = None
+            if other_mi is not None and other_mi.nlevels == self.nlevels:
+                other = other_mi
+            else:
+                # let's instead try with a straight Index, so tuples of a
+                #  different length can't match on a prefix, GH#50293
                 self = Index(self._values, copy=False)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
@@ -6888,13 +6898,21 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
-            if isinstance(self, MultiIndex):
-                names = self.names
-            elif self.name:
-                names = [self.name] * len(new_values[0])
-            else:
-                names = None
-            return MultiIndex.from_tuples(new_values, names=names)
+            width = len(new_values[0])
+            # non-tuples or tuples of different lengths give a flat Index, GH#50293
+            if all(
+                isinstance(val, tuple) and len(val) == width
+                for val in new_values[~isna(new_values)]
+            ):
+                # unlike an ndarray, list input accepts NA entries
+                result = MultiIndex.from_tuples(new_values.tolist())
+                if isinstance(self, MultiIndex):
+                    # only keep names if the number of levels is unchanged, GH#24800
+                    if self.nlevels == result.nlevels:
+                        result.names = self.names
+                elif self.name:
+                    result.names = [self.name] * result.nlevels
+                return result
 
         dtype = None
         if not new_values.size:
@@ -7216,10 +7234,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_numeric_dtype(self.dtype):
             return self._maybe_cast_indexer(label)
 
-        # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self:
-            self._raise_invalid_indexer("slice", label)
-
         return label
 
     def _searchsorted_monotonic(
@@ -7300,11 +7314,29 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
+                if is_integer(original_label) or is_float(original_label):
+                    if isinstance(self.dtype, CategoricalDtype):
+                        values = self.dtype.categories
+                    else:
+                        values = self
+                    try:
+                        values < original_label
+                    except TypeError as err:
+                        # sorting would not make the bound comparable
+                        self._raise_invalid_indexer("slice", original_label, err)
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-monotonic index "
                     f"with a missing label {original_label!r}. "
                     "Either sort the index or specify an existing label."
                 ) from None
+            except TypeError as err:
+                if isinstance(self.dtype, CategoricalDtype):
+                    raise TypeError(
+                        f"Cannot slice {type(self).__name__} with bound "
+                        f"{original_label!r}: it is not one of the categories."
+                    ) from err
+                # label is not comparable with the index values
+                self._raise_invalid_indexer("slice", original_label, err)
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
@@ -7740,9 +7772,17 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if isinstance(other, Index) and self.is_(other):
-            # fastpath
+        if (
+            isinstance(other, Index)
+            and self.is_(other)
+            and (isinstance(self.dtype, np.dtype) or self.dtype.na_value is not NA)
+        ):
+            # fastpath; dtypes whose comparisons propagate pd.NA (masked, ArrowDtype,
+            # string with pd.NA) take the full comparison below instead (GH#71022)
             if op in {operator.eq, operator.le, operator.ge}:
+                if op is not operator.eq and self.dtype.kind == "c":
+                    # GH#43770 this fastpath skips the comparison_op warning
+                    nanops.warn_complex_unordered()
                 arr = np.ones(len(self), dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
@@ -7837,8 +7877,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether any element is Truthy.
 
-        This is equivalent to calling ``bool(self.any())``. An empty Index
-        will return False.
+        An empty Index will return False.
 
         Parameters
         ----------
@@ -7878,15 +7917,14 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(vals, np.ndarray):
             # i.e. EA, call _reduce instead of "any" to get TypeError instead
             #  of AttributeError
-            return vals._reduce("any")
+            return maybe_unbox_numpy_scalar(vals._reduce("any"))
         return maybe_unbox_numpy_scalar(np.any(vals))
 
     def all(self, *args: Any, **kwargs: Any) -> Any:
         """
         Return whether all elements are Truthy.
 
-        This is equivalent to calling ``bool(self.all())``. An empty Index
-        will return True.
+        An empty Index will return True.
 
         Parameters
         ----------
@@ -7929,7 +7967,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(vals, np.ndarray):
             # i.e. EA, call _reduce instead of "all" to get TypeError instead
             #  of AttributeError
-            return vals._reduce("all")
+            return maybe_unbox_numpy_scalar(vals._reduce("all"))
         return maybe_unbox_numpy_scalar(np.all(vals))
 
     @final

@@ -613,6 +613,18 @@ class TestIndex:
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
+    def test_map_with_tuples_of_different_lengths(self):
+        # GH#50293
+        index = Index([1, 2], name="n")
+        result = index.map(lambda x: (x,) * x)
+        expected = Index([(1,), (2, 2)], name="n", tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
+        mi = MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+        result = mi.map(lambda tup: (*tup, "z") if tup[0] == "a" else tup)
+        expected = Index([("a", "b", "z"), ("c", "d")], tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "index",
         [
@@ -1829,6 +1841,67 @@ def test_nan_comparison_same_object(op):
 
     result = op(idx, idx.copy())
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([1, 2, pd.NA], "Int64"),
+        ([1.5, 2.5, pd.NA], "Float64"),
+        ([True, False, pd.NA], "boolean"),
+        (["a", "b", pd.NA], "string[python]"),
+        pytest.param(
+            ["a", "b", pd.NA], "string[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+        pytest.param([1, 2, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_comparison_same_object_nullable_dtype(values, dtype, comparison_op):
+    # GH#71022 comparing an Index with itself took a fastpath that returned
+    # a numpy bool array, dropping the NA semantics of the extension dtype
+    idx = Index(values, dtype=dtype)
+
+    result = comparison_op(idx, idx)
+    expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
+    assert result[-1] is pd.NA
+
+
+@pytest.mark.parametrize(
+    "idx",
+    [
+        pd.DatetimeIndex(["2020-01-01", pd.NaT, "2020-01-03"], tz="US/Eastern"),
+        pd.PeriodIndex(["2020-01", pd.NaT, "2020-03"], freq="M"),
+        pd.IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)]),
+        pd.CategoricalIndex(["a", np.nan, "b"], ordered=True),
+        Index(["a", np.nan, "b"], dtype="str"),
+    ],
+)
+def test_comparison_same_object_non_nullable_extension_dtype(idx, comparison_op):
+    # GH#71022 extension dtypes whose comparisons return a numpy bool array
+    # keep the fastpath and must match comparing against a copy
+    result = comparison_op(idx, idx)
+    expected = comparison_op(idx, idx.copy())
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_comparison_same_object_distinguish_nan_and_na(comparison_op):
+    # GH#71022 with NaN kept distinct from NA, NaN is not missing and must
+    # compare like any other value, as it does against a copy
+    pa = pytest.importorskip("pyarrow")
+    arr = pd.array(
+        pa.array([1.0, float("nan"), None], from_pandas=False),
+        dtype=pd.ArrowDtype(pa.float64()),
+    )
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        idx = Index(arr)
+
+        result = comparison_op(idx, idx)
+        expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
 
 
 @td.skip_if_no("pyarrow")

@@ -302,16 +302,61 @@ def test_rolling_corr_diff_length():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["cov", "corr"])
-def test_time_based_rolling_other_longer_raises(func):
+@pytest.mark.parametrize("func, values", [("cov", 0.5), ("corr", 1.0)])
+def test_time_based_rolling_other_longer(func, values):
     # GH#62937
     idx_short = pd.date_range("2020-01-01", periods=3, freq="D")
     idx_long = pd.date_range("2020-01-01", periods=5, freq="D")
-    s = pd.Series([1, 2, 3], index=idx_short)
+    ser = pd.Series([1, 2, 3], index=idx_short)
     other = pd.Series([1, 2, 3, 4, 5], index=idx_long)
-    msg = "Variable rolling window requires .* Got 3 < 5"
+    result = getattr(ser.rolling("2D"), func)(other)
+    expected = pd.Series([np.nan, values, values, np.nan, np.nan], index=idx_long)
+    tm.assert_series_equal(result, expected)
+
+    result = getattr(other.rolling("2D"), func)(ser)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["cov", "corr"])
+def test_time_based_rolling_decreasing_index_other_subset(func):
+    # GH#62937 aligning sorts the index, so the bounds must not come from the
+    # original decreasing index
+    idx = pd.DatetimeIndex(
+        ["2020-01-01", "2020-01-02", "2020-01-05", "2020-01-06", "2020-01-07"]
+    )[::-1]
+    ser = pd.Series([1.0, 3.0, 2.0, 5.0, 4.0], index=idx)
+    other = pd.Series([2.0, 1.0, 4.0, 6.0], index=idx[[0, 1, 3, 4]])
+    result = getattr(ser.rolling("3D"), func)(other)
+    expected = getattr(ser.sort_index().rolling("3D"), func)(other.sort_index())
+    tm.assert_series_equal(result, expected)
+
+
+def test_time_based_rolling_on_column_other_index_mismatch_raises():
+    # GH#62937
+    df = pd.DataFrame(
+        {
+            "t": pd.date_range("2020-01-01", periods=3, freq="D"),
+            "x": [1.0, 5.0, 2.0],
+        },
+        index=[2, 0, 1],
+    )
+    other = pd.Series([2.0, 4.0, 6.0], index=[0, 1, 2])
+    msg = "'other' must have the same index as the rolling object"
     with pytest.raises(ValueError, match=msg):
-        getattr(s.rolling("2D"), func)(other)
+        df.rolling("2D", on="t")["x"].cov(other)
+
+
+@pytest.mark.parametrize(
+    "other_index",
+    [pd.Index([0, 1]), pd.DatetimeIndex(["2020-01-01", pd.NaT])],
+)
+def test_time_based_rolling_other_index_invalid_raises(other_index):
+    # GH#62937
+    ser = pd.Series([1.0, 2.0, 3.0], index=pd.date_range("2020-01-01", periods=3))
+    other = pd.Series([1.0, 2.0], index=other_index)
+    msg = "Aligning 'other' with the rolling object must give a monotonic"
+    with pytest.raises(ValueError, match=msg):
+        ser.rolling("2D").cov(other)
 
 
 @pytest.mark.parametrize(

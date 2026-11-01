@@ -881,7 +881,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             * 'index', 'values': use the actual numerical values of the index.
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial': Passed to
+              'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
               values of the index.  Both 'polynomial' and 'spline' require that
@@ -889,9 +889,9 @@ class Resampler(BaseGroupBy[Any], PandasObject):
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
               instead of Pandas first order `spline`.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
-              'cubicspline': Wrappers around the SciPy interpolation methods of
-              similar names. See `Notes`.
+            * 'barycentric', 'krogh', 'piecewise_polynomial', 'spline',
+              'pchip', 'akima', 'cubicspline': Wrappers around the SciPy
+              interpolation methods of similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
@@ -2043,6 +2043,8 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
 
         self._groupby = groupby
         self._timegrouper = copy.copy(parent._timegrouper)
+        # exclude the grouping and `on` columns, GH#32162
+        self.exclusions = parent.exclusions | groupby.exclusions
 
         self.ax = parent.ax
         self.obj = parent.obj
@@ -2749,6 +2751,9 @@ class TimeGrouper(Grouper):
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
+                # GH#62601: a label on a nonexistent midnight was shifted forward
+                # (e.g. to 01:00); the bin still ends at the end of that day
+                edges_dti = edges_dti.normalize()
                 edges_dti = (
                     edges_dti
                     + Timedelta(days=1).as_unit(edges_dti.unit)
@@ -2982,7 +2987,9 @@ def _get_timestamp_range_edges(
 
     Returns
     -------
-    A tuple of length 2, containing the adjusted pd.Timestamp objects.
+    A tuple of length 2, containing the adjusted pd.Timestamp objects. For a
+    non-Tick ``freq`` and timezone-aware inputs, the edges are returned as
+    timezone-naive wall-clock times (GH#62601).
     """
     if isinstance(freq, Tick) or (isinstance(freq, Day) and first.tz is None):
         index_tz = first.tz
@@ -3008,6 +3015,17 @@ def _get_timestamp_range_edges(
             unit=unit,
         )
     else:
+        if first.tz is not None:
+            # GH#62601: an anchored edge is a wall-clock time (e.g. midnight)
+            # that may not exist, or exist twice, in the index timezone around
+            # a DST transition.  Do the arithmetic on tz-naive wall times and
+            # leave the edges naive; the caller localizes them along with the
+            # bins (see the ``ambiguous``/``nonexistent`` handling in
+            # ``TimeGrouper._get_time_bins``).  Localizing here would shift a
+            # nonexistent midnight to 01:00 and move every later bin with it.
+            first = first.tz_localize(None)
+            last = last.tz_localize(None)
+
         first = first.normalize()
         last = last.normalize()
 

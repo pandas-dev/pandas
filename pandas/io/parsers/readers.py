@@ -9,7 +9,6 @@ from __future__ import annotations
 import codecs
 from collections import (
     abc,
-    defaultdict,
     deque,
 )
 from concurrent.futures import ThreadPoolExecutor
@@ -95,6 +94,7 @@ from pandas.io.parsers.base_parser import (
     evaluate_callable_usecols,
     is_index_col,
     parser_defaults,
+    wrap_object_columns,
 )
 from pandas.io.parsers.c_parser_wrapper import (
     CParserWrapper,
@@ -420,8 +420,9 @@ def _read(
         )
 
     # For large local uncompressed files with the C engine, attempt parallel reading.
-    # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
-    # and type-conversion code in parsers.pyx runs truly in parallel.
+    # Each worker gets its own view of the mmapped file and its own TextReader so
+    # the GIL-free tokenisation and type-conversion code in parsers.pyx runs truly
+    # in parallel.
     if not iterator and chunksize is None and nrows is None:
         _n_workers = _default_n_workers()
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
@@ -589,16 +590,17 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
     if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
         return False
 
-    # A separator or quotechar wider than one byte forces the python engine
-    # too, and warns on the way.  The eligibility check has to catch these
+    # A separator, quotechar or numeric marker wider than one byte forces
+    # the python engine too, and warns on the way. Catch these options
     # here: by the time the name-inference read reports the python engine, it
     # has already raised that warning, which the serial read then raises
     # again.  GH#66259
     if len(delimiter) == 1 and ord(delimiter) > 127:
         return False
-    quotechar = kwds.get("quotechar")
-    if isinstance(quotechar, str) and len(quotechar) == 1 and ord(quotechar) > 127:
-        return False
+    for option in ("quotechar", "thousands", "decimal"):
+        marker = kwds.get(option)
+        if isinstance(marker, str) and len(marker) == 1 and ord(marker) > 127:
+            return False
 
     # Full-line comments before/inside the preamble shift the header location
     # in ways _find_data_start_offset cannot see.
@@ -1070,7 +1072,7 @@ def _read_csv_chunks(
     chunk_failed = threading.Event()
     workers_readers: list[Any] = []
 
-    def _worker() -> None:
+    def _worker(mv: memoryview) -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
         # Buffers are reused across the queued chunks and freed at close;
@@ -1104,7 +1106,7 @@ def _read_csv_chunks(
             try:
                 # Raw column arrays, not DataFrames: per-chunk frame assembly
                 # holds the GIL and the concat would redo the block machinery.
-                _, chunk_columns, col_dict = reader._engine.read()
+                _, chunk_columns, col_dict = reader._engine._read_arrays()
             except Exception:
                 chunk_failed.set()
                 return
@@ -1132,8 +1134,8 @@ def _read_csv_chunks(
         return None
 
     dtype_arg = kwds.get("dtype")
-    # Mirror TextFileReader.read: a dict or str/object dtype needs a
-    # Series-per-column wrap, so it skips direct block assembly.
+    # A dict or str/object dtype may need object columns wrapped (see
+    # wrap_object_columns), so it skips direct block assembly.
     needs_series_wrap = isinstance(dtype_arg, dict) or (
         dtype_arg is not None and pandas_dtype(dtype_arg) in (np.str_, np.object_)
     )
@@ -1157,10 +1159,15 @@ def _read_csv_chunks(
         mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
     try:
         with (
-            memoryview(mm) as mv,
+            contextlib.ExitStack() as views,
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
-            for fut in [pool.submit(_worker) for _ in range(n_workers)]:
+            # One view per worker: slicing a shared memoryview from several
+            # threads races on free-threaded builds (GH#71418).
+            worker_views = [
+                views.enter_context(memoryview(mm)) for _ in range(n_workers)
+            ]
+            for fut in [pool.submit(_worker, mv) for mv in worker_views]:
                 fut.result()
             if chunk_failed.is_set():
                 # Let the serial read raise: a chunk's error can be an artifact
@@ -1308,25 +1315,12 @@ def _read_csv_chunks(
 
     if needs_series_wrap:
         data = _concatenate_chunks(chunk_dicts, columns, warn_mixed=False)
-        if isinstance(dtype_arg, dict):
-            dtype: defaultdict[Hashable, Any] = defaultdict(lambda: None)
-            dtype.update(dtype_arg)
-        else:
-            dtype = defaultdict(lambda: dtype_arg)
-        new_col_dict = {
-            k: Series(
-                v,
-                index=index,
-                dtype=(
-                    dtype[k]
-                    if pandas_dtype(dtype[k]) in (np.str_, np.object_)
-                    else None
-                ),
-                copy=False,
-            )
-            for k, v in data.items()
-        }
-        return DataFrame(new_col_dict, columns=columns, index=index, copy=False)
+        return DataFrame(
+            wrap_object_columns(data, dtype_arg, index),
+            columns=columns,
+            index=index,
+            copy=False,
+        )
 
     if leftover_pos:
         leftover_names = [col_list[pos] for pos in leftover_pos]
@@ -1491,12 +1485,15 @@ def read_csv(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
+          intervening rows that are not specified, will be skipped and do
+          not appear in the result (e.g. ``[1, 2, 4]`` skips rows 0 and 3).
+          The levels follow the order of the sequence, so ``[1, 0]`` puts
+          row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -1605,6 +1602,10 @@ def read_csv(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
 
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
@@ -2099,12 +2100,15 @@ def read_table(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
+          intervening rows that are not specified, will be skipped and do
+          not appear in the result (e.g. ``[1, 2, 4]`` skips rows 0 and 3).
+          The levels follow the order of the sequence, so ``[1, 0]`` puts
+          row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -2210,6 +2214,10 @@ def read_table(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
+        When reading from an open file handle, the handle may be advanced past
+        the last row returned, so its position afterwards is unspecified. To read
+        a file in pieces, use ``chunksize`` or ``iterator`` instead.
 
     na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
@@ -2961,6 +2969,22 @@ class TextFileReader(abc.Iterator[DataFrame]):
                 )
                 engine = "python"
 
+        if engine == "c":
+            for option in ("thousands", "decimal"):
+                marker = options[option]
+                if (
+                    isinstance(marker, (str, bytes))
+                    and len(marker) == 1
+                    and ord(marker) > 127
+                ):
+                    # The C parser consumes UTF-8 bytes, so even a code point
+                    # below 256 cannot be represented by its single char.
+                    fallback_reason = (
+                        f"the 'c' engine does not support non-ASCII {option} markers"
+                    )
+                    engine = "python"
+                    break
+
         if fallback_reason and self._engine_specified:
             raise ValueError(fallback_reason)
 
@@ -3071,6 +3095,17 @@ class TextFileReader(abc.Iterator[DataFrame]):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
+        if (
+            engine == "pyarrow"
+            and self.options.get("encoding_errors", "strict") != "strict"
+            and not isinstance(f, io.TextIOBase)
+        ):
+            # GH#71298 pyarrow ignores encoding_errors when it decodes bytes;
+            # text buffers are fine since pandas encodes those itself.
+            raise ValueError(
+                "The 'encoding_errors' option is not supported with the "
+                "'pyarrow' engine"
+            )
         if not isinstance(f, list):
             # open file here
             # The c and pyarrow engines can decode utf-8 bytes natively;
@@ -3180,74 +3215,15 @@ class TextFileReader(abc.Iterator[DataFrame]):
         >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
         ...     df = reader.read()
         """
-        if self.engine == "pyarrow":
-            try:
-                # error: "ParserBase" has no attribute "read"
-                df = self._engine.read()  # type: ignore[attr-defined]
-            except Exception:
-                self.close()
-                raise
-        else:
+        if self.engine != "pyarrow":
+            # the pyarrow engine ignores nrows
             nrows = validate_integer("nrows", nrows)
-            try:
-                # error: "ParserBase" has no attribute "read"
-                (
-                    index,
-                    columns,
-                    col_dict,
-                ) = self._engine.read(  # type: ignore[attr-defined]
-                    nrows
-                )
-            except Exception:
-                self.close()
-                raise
-
-            if index is None:
-                if col_dict:
-                    # Any column is actually fine:
-                    new_rows = len(next(iter(col_dict.values())))
-                    index = RangeIndex(self._currow, self._currow + new_rows)
-                else:
-                    new_rows = 0
-            else:
-                new_rows = len(index)
-
-            if hasattr(self, "orig_options"):
-                dtype_arg = self.orig_options.get("dtype", None)
-            else:
-                dtype_arg = None
-
-            if isinstance(dtype_arg, dict):
-                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
-                dtype.update(dtype_arg)
-            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
-                np.str_,
-                np.object_,
-            ):
-                dtype = defaultdict(lambda: dtype_arg)
-            else:
-                dtype = None
-
-            if dtype is not None:
-                new_col_dict = {}
-                for k, v in col_dict.items():
-                    d = (
-                        dtype[k]
-                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
-                        else None
-                    )
-                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
-            else:
-                new_col_dict = col_dict
-
-            df = DataFrame(
-                new_col_dict,
-                columns=columns,
-                index=index,
-                copy=False,
-            )
-
-            self._currow += new_rows
+        try:
+            df = self._engine.read(nrows, row_offset=self._currow)
+        except Exception:
+            self.close()
+            raise
+        self._currow += len(df)
         return df
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
