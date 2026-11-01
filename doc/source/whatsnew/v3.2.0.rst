@@ -233,6 +233,7 @@ Indexing
 - Bug in :meth:`DataFrame.isetitem` with several positions silently corrupting the :class:`DataFrame` when ``value`` was a scalar or a one-dimensional extension array such as ``Int64``; a scalar now fills every selected column and the array raises ``ValueError`` (:issue:`71098`)
 - Bug in :meth:`DataFrame.isetitem` with several positions silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when an arraylike ``value`` did not have one column per position; it now raises ``ValueError`` (:issue:`68445`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.at` setitem with a single row label adding a new column from a list-like value raising or setting the wrong value (:issue:`30649`)
+- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising an exception when assigning values using zero-dimensional NumPy array indexers (:issue:`70256`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising or flattening a 2D value (e.g. a list of lists) set into a single ``object`` cell of a mixed-dtype :class:`DataFrame` (:issue:`69152`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` for a ``True`` or ``False`` label present in an object-dtype :class:`Index` or the first level of a :class:`MultiIndex` (:issue:`50165`)
