@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.astype`, :meth:`Series.astype` and :meth:`DataFrame.convert_dtypes` with ``dtype_backend="pyarrow"`` overwriting missing values of the original datetime data with the Unix epoch when converting to a pyarrow timestamp type (:issue:`71743`)
+- Fixed regression in IO readers and writers such as :func:`read_csv` and :meth:`DataFrame.to_csv` treating path objects that have ``read`` or ``write`` methods, such as ``py.path.local`` (pytest's ``tmpdir``), as open file handles, raising or silently writing incomplete files (:issue:`71769`)
 
 
 .. ---------------------------------------------------------------------------

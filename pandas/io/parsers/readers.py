@@ -65,7 +65,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ArrowDtype
-from pandas.core.dtypes.inference import is_file_like
 
 from pandas import Series
 from pandas.core.arrays import (
@@ -523,8 +522,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
     silently.
     """
     # Must be a local file path, not a URL or file-like object.
-    if is_file_like(filepath_or_buffer):
-        return False
     filepath = stringify_path(filepath_or_buffer)
     if not isinstance(filepath, str):
         return False
