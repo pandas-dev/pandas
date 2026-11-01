@@ -67,7 +67,6 @@ endif
 m_dep = cc.find_library('m', required: false)
 fast_float = subproject('fast_float')
 fast_float_dep = fast_float.get_variable('fast_float_dep')
-xsimd_dep = dependency('xsimd', version: '>=14.2')
 
 subdir('simd')
 
