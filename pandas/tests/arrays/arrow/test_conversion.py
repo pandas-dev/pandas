@@ -294,7 +294,7 @@ def test_conversion_large_dtypes_from_numpy_array(data, arrow_dtype):
     ],
 )
 def test_from_numpy_str_array_to_numeric(data, dtype, kind):
-    # GH#71806 pyarrow could segfault converting these with a mask
+    # GH#71827 pyarrow could segfault converting these with a mask
     result = pd.array(np.array(data, dtype=kind), dtype=dtype)
     expected = pd.array(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
@@ -302,7 +302,7 @@ def test_from_numpy_str_array_to_numeric(data, dtype, kind):
 
 @pytest.mark.parametrize("kind", ["U", "S"])
 def test_from_numpy_str_array_empty(kind):
-    # GH#71806
+    # GH#71827
     result = pd.array(np.array([], dtype=kind), dtype="int64[pyarrow]")
     expected = pd.array([], dtype="int64[pyarrow]")
     tm.assert_extension_array_equal(result, expected)
@@ -311,7 +311,7 @@ def test_from_numpy_str_array_empty(kind):
 @pytest.mark.skipif(pa_version_under18p0, reason="bool8 added in pyarrow 18")
 @pytest.mark.parametrize("kind", ["U", "S"])
 def test_from_numpy_str_array_to_extension_storage(kind):
-    # GH#71806 bool8 converts through its primitive int8 storage
+    # GH#71827 bool8 converts through its primitive int8 storage
     dtype = ArrowDtype(pa.bool8())
     result = pd.array(np.array(["1", "0"], dtype=kind), dtype=dtype)
     expected = pd.array(["1", "0"], dtype=dtype)
@@ -326,14 +326,14 @@ def test_from_numpy_str_array_to_extension_storage(kind):
     ],
 )
 def test_from_numpy_str_array_to_temporal(data, dtype):
-    # GH#71806
+    # GH#71827
     result = pd.array(np.array(data), dtype=dtype)
     expected = pd.array(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_from_numpy_str_array_to_int_invalid():
-    # GH#71806 pyarrow could also return garbage, e.g. [8]
+    # GH#71827 pyarrow could also return garbage, e.g. [8]
     with pytest.raises(pa.ArrowInvalid, match="abc"):
         pd.array(np.array(["abc"]), dtype="int64[pyarrow]")
 

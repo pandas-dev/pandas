@@ -530,7 +530,7 @@ def test_setitem_boolean_replace_with_mask_segfault():
 
 @pytest.mark.parametrize("kind", ["U", "S"])
 def test_setitem_numpy_str_array_into_int(kind):
-    # GH#71806 pyarrow could segfault converting the value with a mask
+    # GH#71827 pyarrow could segfault converting the value with a mask
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
     arr[:2] = np.array(["7", "8"], dtype=kind)
     expected = pd.array([7, 8, 3], dtype="int64[pyarrow]")

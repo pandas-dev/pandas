@@ -1065,7 +1065,7 @@ class ArrowExtensionArray(
             ):
                 # pyarrow can segfault converting a numpy str array with a mask
                 #  to a primitive type, also as extension storage or run-end
-                #  encoded values (GH#71806); infer string/binary, then cast below
+                #  encoded values (GH#71827); infer string/binary, then cast below
                 pa_array = pa.array(value, mask=mask)
             else:
                 try:
