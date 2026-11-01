@@ -118,9 +118,11 @@ class ArrowStringArrayMixin:
         different behaviour:
         - Not supported: lookaround assertions and backreferences, unicode escape
           sequences like ``\\u``, ``\\U`` and ``\\N{}``
-        - ``\\w``, ``\\d``, ``\\s`` and ``\\b`` (or their negations) on non-ASCII data,
-          since RE2 only matches them against ASCII characters while Python's ``re``
-          is Unicode-aware
+        - ``\\s`` and ``\\S``, since RE2's ``\\s`` misses whitespace such as
+          ``"\\x0b"`` even in ASCII data
+        - ``\\w``, ``\\d`` and ``\\b`` (or their negations) on non-ASCII data, since
+          RE2 only matches them against ASCII characters while Python's ``re`` is
+          Unicode-aware
         - At-end-of-string ``$`` assertion, which Python matches at the end or just
           before a trailing newline, while pyarrow only matches at the end
           (only falling back if newlines are present)
@@ -131,14 +133,17 @@ class ArrowStringArrayMixin:
 
         _parser = self._re_parser()
         unsupported_ops = {_parser.ASSERT, _parser.ASSERT_NOT, _parser.GROUPREF}
+        whitespace = {
+            # RE2's \s misses whitespace such as "\x0b", even in ASCII data
+            (_parser.CATEGORY, _parser.CATEGORY_SPACE),
+            (_parser.CATEGORY, _parser.CATEGORY_NOT_SPACE),
+        }
         unicode_sensitive = {
             # unicode-sensitive categories and assertions
             (_parser.CATEGORY, _parser.CATEGORY_WORD),
             (_parser.CATEGORY, _parser.CATEGORY_NOT_WORD),
             (_parser.CATEGORY, _parser.CATEGORY_DIGIT),
             (_parser.CATEGORY, _parser.CATEGORY_NOT_DIGIT),
-            (_parser.CATEGORY, _parser.CATEGORY_SPACE),
-            (_parser.CATEGORY, _parser.CATEGORY_NOT_SPACE),
             (_parser.AT, _parser.AT_BOUNDARY),
             (_parser.AT, _parser.AT_NON_BOUNDARY),
         }
@@ -149,6 +154,12 @@ class ArrowStringArrayMixin:
 
         nodes = self._regex_nodes(str_pat)
         if any(op_code in unsupported_ops for op_code, _ in nodes):
+            return True
+        if any(
+            (op_code, argument) in whitespace
+            for op_code, argument in nodes
+            if op_code == _parser.CATEGORY
+        ):
             return True
         if any(
             (op_code, argument) in unicode_sensitive
