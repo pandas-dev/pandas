@@ -33,14 +33,14 @@ def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     "dtype", ["float64[pyarrow]", pd.ArrowDtype(pa.decimal128(7, 3))]
 )
 def test_skew_kurt_constant(method, dtype):
-    # GH#71827 pyarrow's kernels gave garbage instead of NA
+    # GH#71829 pyarrow's kernels gave garbage instead of NA
     ser = pd.Series([0.1] * 7).astype(dtype)
     assert getattr(ser, method)() is pd.NA
 
 
 @pytest.mark.parametrize("method", ["skew", "kurt"])
 def test_skew_kurt_non_finite(method):
-    # GH#71827 NA, matching the masked arrays
+    # GH#71829 NA, matching the masked arrays
     ser = pd.Series([1.0, np.inf, 3.0, 7.0, 2.0], dtype="float64[pyarrow]")
     assert getattr(ser, method)() is pd.NA
 
@@ -56,7 +56,7 @@ def test_skew_kurt_non_finite(method):
     ],
 )
 def test_skew_kurt_matches_numpy(method, values, dtype):
-    # GH#71827
+    # GH#71829
     result = getattr(pd.Series(values, dtype=f"{dtype}[pyarrow]"), method)()
     expected = getattr(pd.Series(values, dtype=dtype), method)()
     tm.assert_almost_equal(result, expected)
