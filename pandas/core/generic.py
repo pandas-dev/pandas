@@ -11853,13 +11853,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if self.ndim > 1 and axis is None:
             # Reduce along one dimension then the other, to simplify DataFrame._reduce
-            res = self._logical_func(
-                name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
+            res = cast(
+                "Series",
+                self._logical_func(
+                    name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
+                ),
             )
-            # error: Item "bool" of "Series | bool" has no attribute "_logical_func"
-            return res._logical_func(  # type: ignore[union-attr]
-                name, func, skipna=skipna, **kwargs
-            )
+            if res.dtype == object:
+                # ArrowDtype mixed with other extension columns gives object, maybe NA
+                res = res.astype("boolean")
+            return res._logical_func(name, func, skipna=skipna, **kwargs)
         elif axis is None:
             axis = 0
 
