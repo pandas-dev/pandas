@@ -2135,6 +2135,60 @@ class ArrowExtensionArray(
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
 
+    def _factorize_dictionary(
+        self, use_na_sentinel: bool
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        """
+        Factorize a dictionary-typed array.
+
+        A stored dictionary can hold unreferenced, duplicate or null entries
+        (GH#71828), so factorize the dictionaries' values, map the indices
+        through those codes, then renumber by first appearance.
+        """
+        data = self._pa_array
+        value_type = data.type.value_type
+        if sum(len(chunk.dictionary) for chunk in data.chunks) > len(data):
+            # e.g. one chunk per parquet row group, each storing every category:
+            # decoding hashes fewer values than factorizing the dictionaries
+            return type(self)(data.cast(value_type)).factorize(use_na_sentinel)
+        dictionaries = pa.chunked_array(
+            [chunk.dictionary for chunk in data.chunks], type=value_type
+        )
+        dict_codes, dict_uniques = type(self)(dictionaries).factorize()
+        # -1 (a null dictionary entry) passes through take unchanged
+        dict_codes_pa = pa.array(dict_codes)
+        mapped = []
+        offset = 0
+        for chunk in data.chunks:
+            size = len(chunk.dictionary)
+            mapped.append(dict_codes_pa.slice(offset, size).take(chunk.indices))
+            offset += size
+        codes = (
+            _safe_fill_null(pa.chunked_array(mapped, type=pa.int64()), -1)
+            .to_numpy()
+            .astype(np.intp, copy=False)
+        )
+
+        num_dict = len(dict_uniques)
+        if not use_na_sentinel:
+            # nulls take the code num_dict, so they are numbered like any value
+            codes = np.where(codes == -1, num_dict, codes)
+        # position of each code's first appearance; the extra last slot absorbs -1
+        first = np.full(num_dict + 2, len(codes), dtype=np.intp)
+        np.minimum.at(first, codes, np.arange(len(codes), dtype=np.intp))
+        is_first = np.zeros(len(codes) + 1, dtype=bool)
+        is_first[first[:-1]] = True
+        # the referenced codes, in order of first appearance
+        order = codes[is_first[:-1]]
+        lookup = np.full(num_dict + 2, -1, dtype=np.intp)
+        lookup[order] = np.arange(len(order), dtype=np.intp)
+
+        # code num_dict, if referenced, is the null
+        positions = pa.array(order, mask=order == num_dict)
+        dict_values = cast("ArrowExtensionArray", dict_uniques)._pa_array
+        uniques = dict_values.combine_chunks().take(positions)
+        return lookup[codes], self._from_pyarrow_array(uniques)
+
     def factorize(
         self,
         use_na_sentinel: bool = True,
@@ -2198,14 +2252,16 @@ class ArrowExtensionArray(
             return indices, uniques
 
         if pa.types.is_dictionary(data.type):
-            # dictionary_encode is a no-op on already-encoded input, so cast back
-            # to the value type and re-encode when nulls must be encoded, or when
-            # a chunk stores the null as a dictionary value (GH#66490)
-            dict_has_null = any(c.dictionary.null_count > 0 for c in data.chunks)
-            if null_encoding == "encode" or dict_has_null:
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            else:
+            try:
+                return self._factorize_dictionary(use_na_sentinel)
+            except pa.ArrowNotImplementedError:
+                # no hash or take kernel for the value type (e.g. list,
+                # string_view): keep the stored dictionary, unless that
+                # would code a null wrongly (GH#66490)
+                if not use_na_sentinel or any(
+                    chunk.dictionary.null_count for chunk in data.chunks
+                ):
+                    raise
                 encoded = data
         else:
             encoded = data.dictionary_encode(null_encoding=null_encoding)
