@@ -145,7 +145,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-- Bug in :meth:`DataFrame.idxmax` with a nullable ``boolean`` column containing missing values returning the first ``False`` row instead of the first ``True`` row (:issue:`71806`)
+- Bug in :meth:`DataFrame.idxmax` with a nullable ``boolean`` column containing missing values returning the first ``False`` row instead of the first ``True`` row (:issue:`71833`)
 -
 
 Conversion

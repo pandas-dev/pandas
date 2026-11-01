@@ -1713,7 +1713,7 @@ def test_idxminmax_float_inf_tie():
 
 
 def test_idxminmax_boolean_with_na():
-    # GH#71806 the NA fill must not be cast to True ahead of a real True
+    # GH#71833 the NA fill must not be cast to True ahead of a real True
     df = pd.DataFrame(
         {
             "a": pd.array([False, pd.NA, True], dtype="boolean"),
@@ -1725,7 +1725,7 @@ def test_idxminmax_boolean_with_na():
 
 
 def test_nanminmax_bool_with_mask():
-    # GH#71806 a masked first slot must not win under either fill
+    # GH#71833 a masked first slot must not win under either fill
     mask = np.array([True, False, False])
     assert nanops.nanargmax(np.array([True, False, True]), mask=mask) == 2
     assert not nanops.nanmax(np.array([True, False, False]), mask=mask)
