@@ -10,13 +10,9 @@ class TestTableSchemaRepr:
     def test_publishes(self, ip):
         ipython = ip.instance(config=ip.config)
         df = pd.DataFrame({"A": [1, 2]})
-        objects = [df["A"], df]  # dataframe / series
-        expected_keys = [
-            {"text/plain", "application/vnd.dataresource+json"},
-            {"text/plain", "text/html", "application/vnd.dataresource+json"},
-        ]
+        expected = {"text/plain", "text/html", "application/vnd.dataresource+json"}
 
-        for obj, expected in zip(objects, expected_keys, strict=True):
+        for obj in [df["A"], df]:
             with cf.option_context("display.html.table_schema", True):
                 # Can't reuse an option_context on all systems GH#58055
                 formatted = ipython.display_formatter.format(obj)
