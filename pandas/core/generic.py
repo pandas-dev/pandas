@@ -9469,11 +9469,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
-            'BA', 'BQE', and 'W' which all have a default of 'right'.
+            'BYE', 'BQE', and 'W' which all have a default of 'right'.
+            For those offsets, ``closed='right'`` puts the whole last day of
+            each period in its bin, while ``closed='left'`` puts it in the next
+            bin (e.g. with ``'ME'``, January 31 falls in the February bin).
         label : {'right', 'left'}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
-            'BA', 'BQE', and 'W' which all have a default of 'right'.
+            'BYE', 'BQE', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
