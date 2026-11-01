@@ -194,6 +194,9 @@ def _get_fill_value(
     """return the correct fill value for the dtype of the values"""
     if fill_value is not None:
         return fill_value
+    if dtype.kind == "b" and fill_value_typ is not None:
+        # putmask would cast either infinity to True
+        return np.bool_(fill_value_typ == "+inf")
     if _na_ok_dtype(dtype):
         if fill_value_typ is None:
             return np.nan

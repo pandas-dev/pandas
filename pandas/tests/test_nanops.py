@@ -1712,6 +1712,27 @@ def test_idxminmax_float_inf_tie():
     assert df["a"].idxmin() == 1
 
 
+def test_idxminmax_boolean_with_na():
+    # GH#71806 the NA fill must not be cast to True ahead of a real True
+    df = pd.DataFrame(
+        {
+            "a": pd.array([False, pd.NA, True], dtype="boolean"),
+            "b": pd.array([pd.NA, True, False], dtype="boolean"),
+        }
+    )
+    assert df.idxmax().tolist() == [2, 1]
+    assert df.idxmin().tolist() == [0, 2]
+
+
+def test_nanminmax_bool_with_mask():
+    # GH#71806 a masked first slot must not win under either fill
+    mask = np.array([True, False, False])
+    assert nanops.nanargmax(np.array([True, False, True]), mask=mask) == 2
+    assert not nanops.nanmax(np.array([True, False, False]), mask=mask)
+    assert nanops.nanargmin(np.array([False, True, False]), mask=mask) == 2
+    assert nanops.nanmin(np.array([False, True, True]), mask=mask)
+
+
 def _copy_array_with_layout(arr, layout):
     if layout == "strided":
         base = np.zeros((arr.shape[0], arr.shape[1] * 2), dtype=arr.dtype)
