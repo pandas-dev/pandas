@@ -206,6 +206,23 @@ class TestDataFrameLogicalOperators:
         with pytest.raises(TypeError, match="unsupported operand type"):
             df1 & df2
 
+    @pytest.mark.parametrize(
+        "op, expected_a, expected_b",
+        [
+            (operator.or_, [True, None], [None, True]),
+            (operator.and_, [None, None], [None, None]),
+            (operator.xor, [None, None], [None, None]),
+        ],
+    )
+    def test_logical_ops_boolean_columns_alignment(self, op, expected_a, expected_b):
+        # GH#71478 alignment adds all-NaN columns, which must be treated as NA
+        x = pd.DataFrame({"a": [True, pd.NA]}, dtype="boolean")
+        y = pd.DataFrame({"b": [pd.NA, True]}, dtype="boolean")
+
+        result = op(x, y)
+        expected = pd.DataFrame({"a": expected_a, "b": expected_b}, dtype="boolean")
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
