@@ -1,4 +1,6 @@
+from datetime import UTC
 import re
+import zoneinfo
 
 import numpy as np
 import pytest
@@ -309,13 +311,132 @@ class TestAstype:
         "cls", [pd.CategoricalDtype, pd.DatetimeTZDtype, pd.IntervalDtype]
     )
     def test_astype_categoricaldtype_class_raises(self, cls):
-        df = pd.DataFrame({"A": ["a", "a", "b", "c"]})
+        df = pd.DataFrame({"A": ["a", "a", "b", "c"], "B": ["d", "e", "f", "g"]})
         xpr = f"Expected an instance of {cls.__name__}"
         with pytest.raises(TypeError, match=xpr):
             df.astype({"A": cls})
 
         with pytest.raises(TypeError, match=xpr):
+            df.astype({"A": cls, "B": cls})
+
+        with pytest.raises(TypeError, match=xpr):
             df["A"].astype(cls)
+
+    def test_astype_dict_equal_dtypes_kept_apart(self):
+        # GH#63433 equal but not identical dtypes each apply to their own column
+        df = pd.DataFrame({"x": ["a", "b"], "y": ["a", "b"]})
+        result = df.astype(
+            {"x": pd.CategoricalDtype(["a", "b"]), "y": pd.CategoricalDtype(["b", "a"])}
+        )
+        expected = pd.DataFrame(
+            {
+                "x": pd.Categorical(["a", "b"], categories=["a", "b"]),
+                "y": pd.Categorical(["a", "b"], categories=["b", "a"]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_dict_extension_dtype_instance_per_column(self):
+        # GH#63433 a separate extension dtype object for each column, as a dict
+        #  comprehension makes, casts each column like Series.astype does
+        df = pd.DataFrame({"a": [1, 2], "b": [3.5, None], "c": [5, 6]})
+        dtypes = {c: pd.Float64Dtype() for c in ["a", "b"]}
+
+        result = df.astype(dtypes)
+
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1.0, 2.0], dtype="Float64"),
+                "b": pd.array([3.5, pd.NA], dtype="Float64"),
+                "c": [5, 6],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_dict_string_targets_cast_per_column(self):
+        # GH#63433 string and bytes targets give each column its own format and
+        #  width, as Series.astype does
+        df = pd.DataFrame(
+            {
+                "date": pd.to_datetime(["2020-01-01", "2020-01-02"]),
+                "stamp": pd.to_datetime(["2020-01-01 10:30", "2020-01-02 00:00"]),
+            }
+        )
+        result = df.astype({"date": "U", "stamp": "U"})
+        expected = pd.DataFrame(
+            {
+                "date": ["2020-01-01", "2020-01-02"],
+                "stamp": ["2020-01-01 10:30:00", "2020-01-02 00:00:00"],
+            },
+            dtype=object,
+        )
+        tm.assert_frame_equal(result, expected)
+
+        obj = pd.DataFrame(
+            {
+                "a": np.array([1, 2], dtype=object),
+                "b": np.array([12345, 6], dtype=object),
+            }
+        )
+        result = obj.astype({"a": bytes, "b": bytes})
+        assert result.dtypes.tolist() == [np.dtype("S1"), np.dtype("S5")]
+        assert result["a"].tolist() == [b"1", b"2"]
+        assert result["b"].tolist() == [b"12345", b"6"]
+
+    def test_astype_dict_errors_ignore_per_column(self):
+        # GH#63433 with errors="ignore", only a column that fails keeps its values,
+        #  also when it shares a block with columns that cast
+        df = pd.DataFrame(
+            {"a": ["1", "2"], "b": ["x", "y"], "c": ["3", "4"]}, dtype=object
+        )
+        result = df.astype({"a": "float64", "b": "float64"}, errors="ignore")
+        expected = pd.DataFrame(
+            {
+                "a": [1.0, 2.0],
+                "b": pd.Series(["x", "y"], dtype=object),
+                "c": pd.Series(["3", "4"], dtype=object),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_dict_overflow_names_first_failing_column(self):
+        # GH#63433 an earlier failing column is reported before a later overflow
+        df = pd.DataFrame(
+            {
+                "a": np.array([1, 2], dtype=object),
+                "b": ["1", "x"],
+                "c": np.array([2**70, 1], dtype=object),
+            }
+        )
+        with pytest.raises(ValueError, match="column 'b'"):
+            df.astype({"a": "int64", "b": "float64", "c": "int64"})
+
+    def test_astype_dict_error_names_first_failing_column(self):
+        # GH#63433 with several failing columns, the first one in column order is
+        #  reported, as when casting column by column
+        df = pd.DataFrame(
+            {
+                "x": ["1", "2"],
+                "y": pd.date_range("2020", periods=2, tz="UTC"),
+                "z": ["3", "q"],
+            }
+        )
+        with pytest.raises(TypeError, match="int8"):
+            df.astype({"x": "float64", "y": "int8", "z": "float64"})
+
+    def test_astype_dict_equal_tz_dtypes_kept_apart(self):
+        # GH#63433 equal timezone dtypes with different tz objects each keep theirs
+        dti = pd.date_range("2020", periods=2, tz="US/Pacific", unit="ns")
+        df = pd.DataFrame({"a": dti, "b": dti})
+        result = df.astype(
+            {
+                "a": pd.DatetimeTZDtype("ns", UTC),
+                "b": pd.DatetimeTZDtype("ns", zoneinfo.ZoneInfo("UTC")),
+            }
+        )
+        assert result["a"].dt.tz is UTC
+        assert result["b"].dt.tz == zoneinfo.ZoneInfo("UTC")
+        assert isinstance(result["b"].dt.tz, zoneinfo.ZoneInfo)
 
     def test_astype_extension_dtypes(self, any_int_ea_dtype):
         # GH#22578
@@ -573,6 +694,11 @@ class TestAstype:
         )
         with pytest.raises(ValueError, match=re.escape(msg)):
             df.astype(np.float64, errors=True)
+
+        # GH#63433 also when a dict casts several columns of one block together
+        two = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            two.astype({"a": "float32", "b": "float32"}, errors=True)
 
         df.astype(np.int8, errors="ignore")
 
@@ -865,6 +991,108 @@ class Int16DtypeNoCopy(pd.Int16Dtype):
 
     def construct_array_type(self):
         return IntegerArrayNoCopy
+
+
+def test_astype_dict_keeps_other_columns_blocks():
+    # GH#63433 casting some columns keeps the other columns' blocks
+    df = pd.DataFrame(
+        {
+            f"c{i}": np.arange(5, dtype="float64" if i % 2 else "int64")
+            for i in range(10)
+        }
+    )
+    assert df._mgr.nblocks == 2
+
+    result = df.astype({"c3": "Int64"})
+
+    assert result._mgr.nblocks <= 4
+    expected = pd.DataFrame(
+        {
+            f"c{i}": np.arange(5, dtype="float64" if i % 2 else "int64")
+            for i in range(10)
+        }
+    )
+    expected["c3"] = pd.array(range(5), dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+    assert df["c3"].dtype == np.float64
+
+
+def test_astype_dict_equal_dtypes_built_separately_cast_together():
+    # GH#63433 an equal dtype given as a separate object per column, such as an
+    #  f-string, is still cast together with the others
+    df = pd.DataFrame({f"c{i}": np.arange(5, dtype="int64") for i in range(10)})
+    bits = 32
+
+    # A comprehension on purpose: dict.fromkeys would share one string.
+    dtypes = {c: f"float{bits}" for c in df.columns}  # noqa: C420
+
+    result = df.astype(dtypes)
+
+    assert result._mgr.nblocks == 1
+    expected = pd.DataFrame({f"c{i}": np.arange(5, dtype="float32") for i in range(10)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_astype_dict_wide_interleaved():
+    # GH#63433 casting every other column of a wide frame
+    df = pd.DataFrame(np.arange(40.0).reshape(2, 20))
+    dtypes = dict.fromkeys(df.columns[::2], "float32")
+
+    result = df.astype(dtypes)
+
+    values = np.arange(40.0).reshape(2, 20)
+    expected = pd.DataFrame(
+        {
+            c: values[:, c].astype("float32" if c % 2 == 0 else "float64")
+            for c in range(20)
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+    assert result._mgr.nblocks <= 11
+
+
+def test_astype_dict_mixed_block_types():
+    # GH#63433 kept columns of every block type are reused as views, cast
+    #  columns are placed where they were
+    df = pd.DataFrame(
+        {
+            "i": [1, 2, 3],
+            "f": [1.5, 2.5, 3.5],
+            "e": pd.array([1, None, 3], dtype="Int64"),
+            "c": pd.Categorical(["a", "b", "a"]),
+            "t": pd.date_range("2020", periods=3, tz="US/Pacific"),
+            "s": ["x", "y", "z"],
+            "i2": [4, 5, 6],
+            "f2": [4.5, 5.5, 6.5],
+        }
+    )
+    dtypes = {"f": "float32", "e": "Float64", "i2": "float64", "s": "category"}
+
+    result = df.astype(dtypes)
+
+    expected = pd.DataFrame(
+        {
+            "i": [1, 2, 3],
+            "f": np.array([1.5, 2.5, 3.5], dtype="float32"),
+            "e": pd.array([1.0, None, 3.0], dtype="Float64"),
+            "c": pd.Categorical(["a", "b", "a"]),
+            "t": pd.date_range("2020", periods=3, tz="US/Pacific"),
+            "s": pd.Categorical(["x", "y", "z"]),
+            "i2": [4.0, 5.0, 6.0],
+            "f2": [4.5, 5.5, 6.5],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_astype_dict_error_names_column_when_cast_together():
+    # GH#63433 columns cast to the same dtype are cast together; a failure
+    #  still names the column that could not be cast
+    df = pd.DataFrame({"a": ["1", "2"], "b": ["3", "x"], "c": ["5", "6"]}, dtype=object)
+
+    msg = "Error while type casting for column 'b'"
+    with pytest.raises(ValueError, match=msg):
+        df.astype({"a": "int64", "b": "int64", "c": "int64"})
 
 
 def test_frame_astype_no_copy():
