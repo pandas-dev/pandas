@@ -371,6 +371,7 @@ Datetime methods
    Series.dt.month_name
    Series.dt.day_name
    Series.dt.as_unit
+   Series.dt.shift
 
 Period properties
 ^^^^^^^^^^^^^^^^^
@@ -407,6 +408,7 @@ Timedelta methods
    Series.dt.to_pytimedelta
    Series.dt.total_seconds
    Series.dt.as_unit
+   Series.dt.shift
 
 
 .. _api.series.str:
