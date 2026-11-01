@@ -416,13 +416,9 @@ class TestEval:
         lhs = pd.DataFrame(
             {"b": ["a", 1, 2.0], "c": np.random.default_rng(2).standard_normal(3) > 0.5}
         )
-        if engine == "numexpr":
-            with pytest.raises(ValueError, match="unknown type object"):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+        msg = "bad operand type for unary ~: 'str'"
+        with pytest.raises(TypeError, match=msg):
+            pd.eval(expr, engine=engine, parser=parser)
 
     def test_series_invert(self, engine, parser):
         # ~ ####
@@ -463,13 +459,9 @@ class TestEval:
 
         # object
         lhs = pd.Series(["a", 1, 2.0])
-        if engine == "numexpr":
-            with pytest.raises(ValueError, match="unknown type object"):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+        msg = "bad operand type for unary ~: 'str'"
+        with pytest.raises(TypeError, match=msg):
+            pd.eval(expr, engine=engine, parser=parser)
 
     def test_frame_negate(self, engine, parser):
         expr = "-lhs"

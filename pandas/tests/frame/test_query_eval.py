@@ -437,6 +437,21 @@ class TestDataFrameEval:
         expected = df.eval("t = i8 + i8", engine=engine, parser=parser)
         tm.assert_series_equal(result["t"], expected["t"])
 
+    def test_query_unary_op_object_dtype(self, engine):
+        # GH#45876 numexpr engine raised ValueError for a unary op on an object column
+        df = pd.DataFrame({"a": [True, False, None], "b": [1, -2, 3]}, dtype=object)
+        df = df.dropna()
+
+        result = df.query("not a", engine=engine)
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+        result = df.query("-b > 0", engine=engine)
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+        df = pd.DataFrame({"s": ["x", ""]})
+        result = df.eval("not s", engine=engine)
+        tm.assert_series_equal(result, pd.Series([False, True], name="s"))
+
     def test_using_numpy(self, engine, parser):
         # GH 58041
         skip_if_no_pandas_parser(parser)

@@ -21,6 +21,7 @@ import numpy as np
 
 from pandas.errors import UndefinedVariableError
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import is_string_dtype
 
 import pandas.core.common as com
@@ -547,7 +548,12 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
         operand = self.visit(node.operand)
-        return op(operand)
+        res = op(operand)
+        dtype = operand.return_type
+        if isinstance(dtype, (np.dtype, ExtensionDtype)) and is_string_dtype(dtype):
+            # numexpr can't handle object or string operands; see GH#45876
+            return res.evaluate(self.env, self.engine, self.parser, self.term_type, ())
+        return res
 
     def visit_Name(self, node, **kwargs) -> Term:
         return self.term_type(node.id, self.env, **kwargs)
