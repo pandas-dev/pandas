@@ -4326,7 +4326,9 @@ class DataFrame(NDFrame, OpsMixin):
             return self.where(key)
 
         # Do we have a (boolean) 1d indexer?
-        if com.is_bool_indexer(key):
+        if com.is_bool_indexer(key) and not com.bool_list_selects_labels(
+            self.columns, key, len(self.index)
+        ):
             return self._getitem_bool_array(key)
 
         # We are left with two options: a single key, and a collection of keys,
@@ -4689,7 +4691,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _setitem_array(self, key, value) -> None:
         # also raises Exception if object array with NA values
-        if com.is_bool_indexer(key):
+        if com.is_bool_indexer(key) and not com.bool_list_selects_labels(
+            self.columns, key, len(self.index)
+        ):
             # bool indexer is indexing along rows
             if len(key) != len(self.index):
                 raise ValueError(

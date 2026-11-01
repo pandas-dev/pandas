@@ -1932,7 +1932,7 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             self._validate_key(key, axis)
             return self._get_slice_axis(key, axis=axis)
-        elif com.is_bool_indexer(key):
+        elif com.is_bool_indexer(key) and not com.bool_list_selects_labels(labels, key):
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
             # an iterable multi-selection
@@ -1955,7 +1955,8 @@ class _LocIndexer(_LocationIndexer):
                 # be correct in principle, but many internal operations
                 # (e.g. stack/unstack) rely on the current behavior.
                 has_slice_or_mask = any(
-                    isinstance(k, slice) or com.is_bool_indexer(k) for k in key
+                    isinstance(k, slice) or labels._is_level_mask(i, k)
+                    for i, k in enumerate(key)
                 )
                 if not has_slice_or_mask:
                     levels_to_drop = []
@@ -2070,7 +2071,9 @@ class _LocIndexer(_LocationIndexer):
             if is_iterator(key):
                 key = list(key)
 
-            if com.is_bool_indexer(key):
+            if com.is_bool_indexer(key) and not com.bool_list_selects_labels(
+                labels, key
+            ):
                 key = check_bool_indexer(labels, key)
                 return key
             else:
