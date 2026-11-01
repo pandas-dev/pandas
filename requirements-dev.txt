@@ -63,6 +63,7 @@ numpydoc
 pydata-sphinx-theme==0.20.0
 pytest-cython>=0.4.0
 sphinx
+sphinx-autobuild
 sphinx-design
 sphinx-copybutton
 scipy-stubs

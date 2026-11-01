@@ -118,7 +118,7 @@ class DocBuilder:
         """
         subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
 
-    def _sphinx_build(self, kind: str):
+    def _sphinx_build(self, kind: str, live: bool = False):
         """
         Call sphinx to build documentation.
 
@@ -127,6 +127,8 @@ class DocBuilder:
         Parameters
         ----------
         kind : {'html', 'latex', 'linkcheck'}
+        live : bool, default False
+            Serve the output with sphinx-autobuild, rebuilding on changes.
 
         Examples
         --------
@@ -135,7 +137,7 @@ class DocBuilder:
         if kind not in ("html", "latex", "linkcheck"):
             raise ValueError(f"kind must be html, latex or linkcheck, not {kind}")
 
-        cmd = ["sphinx-build", "-b", kind]
+        cmd = ["sphinx-autobuild" if live else "sphinx-build", "-b", kind]
         if self.num_jobs:
             cmd += ["-j", self.num_jobs]
         if self.warnings_are_errors:
@@ -148,6 +150,17 @@ class DocBuilder:
             SOURCE_PATH,
             os.path.join(BUILD_PATH, kind),
         ]
+        if live:
+            # files the build itself writes into the source directory
+            for pattern in (
+                "index.rst",
+                "generated/*",
+                "reference/api/*",
+                "savefig/*",
+                "_static/*.html",
+                "user_guide/styled.xlsx",
+            ):
+                cmd += ["--ignore", os.path.join(SOURCE_PATH, pattern)]
         # sphinx-build calls locale.setlocale(locale.LC_ALL, '') on startup,
         # which adopts the system locale. We force the C locale here to ensure
         # doc examples relying on C locale formatting (e.g. date/number formatting)
@@ -254,6 +267,12 @@ class DocBuilder:
                     self._open_browser(os.path.join("whatsnew", "index.html"))
 
         return ret_code
+
+    def livehtml(self):
+        """
+        Build HTML documentation, serve it and rebuild it on changes.
+        """
+        return self._sphinx_build("html", live=True)
 
     def latex(self, force=False):
         """

@@ -90,6 +90,7 @@ dependencies:
   - pydata-sphinx-theme=0.20.0
   - pytest-cython>=0.4.0  # doctest
   - sphinx
+  - sphinx-autobuild  # live preview of the docs
   - sphinx-design
   - sphinx-copybutton
 
