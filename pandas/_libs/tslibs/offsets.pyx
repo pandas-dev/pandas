@@ -7925,6 +7925,8 @@ cpdef to_offset(freq, bint is_period=False):
     ------
     ValueError
         If freq is an invalid frequency
+    TypeError
+        If freq is not a str, datetime.timedelta, BaseOffset or None
 
     See Also
     --------
