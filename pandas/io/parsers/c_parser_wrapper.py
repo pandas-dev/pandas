@@ -139,6 +139,17 @@ class CParserWrapper(ParserBase):
         # once names has been filtered, we will
         # then set orig_names again to names
         self.orig_names = self.names[:]
+        if (
+            self.usecols_dtype == "integer"
+            and not callable(self.usecols)
+            and len(self.names) == len(self.usecols)
+        ):
+            # names label only the usecols columns, as in TextReader
+            positions = sorted(self.usecols)
+        else:
+            leading = self._reader.leading_cols
+            positions = list(range(leading, leading + len(self.names)))
+        position_names = dict(zip(positions, self.names, strict=True))
 
         if self.usecols:
             usecols = evaluate_callable_usecols(self.usecols, self.orig_names)
@@ -168,6 +179,11 @@ class CParserWrapper(ParserBase):
         self._set_noconvert_columns()
 
         self.orig_names = self.names
+        kept = set(self.names)
+        self._position_names = {
+            pos: name for pos, name in position_names.items() if name in kept
+        }
+        self._num_file_columns = self._reader.table_width
 
         if self._reader.leading_cols == 0 and is_index_col(self.index_col):
             (

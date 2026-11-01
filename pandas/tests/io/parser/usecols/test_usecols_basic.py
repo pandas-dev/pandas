@@ -8,7 +8,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.errors import ParserError
+from pandas.errors import (
+    Pandas4Warning,
+    ParserError,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -537,4 +540,120 @@ b,2,y
     expected = pd.DataFrame(
         {"col1": pd.array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs, expected_c, pyarrow_msg",
+    [
+        (
+            {"converters": {2: lambda x: int(x) * 10}},
+            [30, 60],
+            "The 'converters' option is not supported with the 'pyarrow' engine",
+        ),
+        (
+            {"dtype": {2: "float64"}},
+            [3.0, 6.0],
+            _msg_pyarrow_requires_names,
+        ),
+        (
+            {"na_values": {2: ["3"]}},
+            [np.nan, 6.0],
+            "The pyarrow engine doesn't support passing a dict for na_values",
+        ),
+    ],
+)
+def test_usecols_integer_keys_are_file_positions(
+    all_parsers, kwargs, expected_c, pyarrow_msg
+):
+    # GH#18566 key 2 is past the columns read, so it is the file position of "c"
+    parser = all_parsers
+    data = "a,b,c\n1,2,3\n4,5,6"
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match=pyarrow_msg):
+            parser.read_csv(StringIO(data), usecols=[0, 2], **kwargs)
+        return
+    result = parser.read_csv(StringIO(data), usecols=[0, 2], **kwargs)
+    expected = pd.DataFrame({"a": [1, 4], "c": expected_c})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", ["a,b,c\n1,2,3\n4,5,6", "a,b,c\n"])
+def test_usecols_integer_dtype_key_index_col(all_parsers, data):
+    # GH#18566
+    parser = all_parsers
+    kwargs = {"usecols": [0, 2], "index_col": 1, "dtype": {2: "float64"}}
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+    result = parser.read_csv(StringIO(data), **kwargs)
+    expected = parser.read_csv(StringIO(data), dtype={"c": "float64"}, index_col="c")
+    expected = expected.drop(columns="b")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", ["a,b,c,d\n1,2,3,4\n", "a,b,c,d\n"])
+def test_usecols_integer_keys_names_for_usecols_only(all_parsers, data):
+    # GH#18566 names label the usecols columns, so key 3 is "z"
+    parser = all_parsers
+    kwargs = {"header": 0, "names": ["x", "z"], "usecols": [1, 3]}
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            parser.read_csv(StringIO(data), dtype={3: "float64"}, **kwargs)
+        return
+    result = parser.read_csv(StringIO(data), dtype={3: "float64"}, **kwargs)
+    expected = parser.read_csv(StringIO(data), dtype={"z": "float64"}, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_integer_na_values_key_index_col(all_parsers):
+    # GH#18566
+    parser = all_parsers
+    data = "a,b,c,d\n1,2,3,4\n7,7,7,7"
+    kwargs = {"usecols": [0, 3], "index_col": 1, "na_values": {3: ["7"]}}
+    if parser.engine == "pyarrow":
+        msg = "The pyarrow engine doesn't support passing a dict for na_values"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+    result = parser.read_csv(StringIO(data), **kwargs)
+    expected = pd.DataFrame({"a": [1, 7]}, index=pd.Index([4.0, np.nan], name="d"))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs, expected_b",
+    [
+        ({"converters": {0: lambda x: int(x) * 10}}, [20, 50]),
+        ({"dtype": {0: "float64"}}, [2.0, 5.0]),
+        ({"na_values": {0: ["2"]}}, [np.nan, 5.0]),
+    ],
+)
+def test_usecols_integer_keys_among_columns_read_deprecated(
+    python_parser_only, kwargs, expected_b
+):
+    # GH#18566 key 0 is "b" among the columns read but "a" in the file
+    parser = python_parser_only
+    data = "a,b,c\n1,2,3\n4,5,6"
+    msg = r"Integer keys \[0\] in 'converters', 'dtype' or 'na_values'"
+    result = parser.read_csv_check_warnings(
+        Pandas4Warning, msg, StringIO(data), usecols=[1, 2], **kwargs
+    )
+    expected = pd.DataFrame({"b": expected_b, "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_unordered_integer_converter_keys(all_parsers):
+    # GH#18566 key 2 is past the columns read, so neither key warns
+    parser = all_parsers
+    data = "a,b,c\n1,2,3\n4,5,6"
+    converters = {1: lambda x: int(x) * 10, 2: lambda x: int(x) * 100}
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), usecols=[2, 1], converters=converters)
+        return
+    result = parser.read_csv(StringIO(data), usecols=[2, 1], converters=converters)
+    expected = pd.DataFrame({"b": [20, 50], "c": [300, 600]})
     tm.assert_frame_equal(result, expected)
