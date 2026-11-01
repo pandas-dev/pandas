@@ -864,7 +864,7 @@ def get_grouper(
         if not all_in_columns_index:
             keys = [com.asarray_tuplesafe(keys)]
 
-    if isinstance(level, (tuple, list)):
+    if isinstance(level, (tuple, list)) and not group_axis._is_tuple_level_name(level):
         if key is None:
             keys = [None] * len(level)
         levels = level
