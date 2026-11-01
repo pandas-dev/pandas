@@ -200,3 +200,69 @@ class TestXport:
         msg = "Header record indicates a CPORT file, which is not readable."
         with pytest.raises(ValueError, match=msg):
             read_sas(datapath("io", "sas", "data", "DEMO_PUF.cpt"), format="xport")
+
+    @pytest.mark.parametrize("nrows", [1, 3, 5, 10])
+    def test_trailing_blank_char_record_count(self, nrows):
+        # GH#71279 a record ending in an all-blank character value was counted
+        # as padding, so short files read back fewer rows than they held
+        import io
+        import struct
+
+        def ibm8(v):
+            if v == 0:
+                return b"\x00" * 8
+            e = 0
+            while 16**e <= v:
+                e += 1
+            mant = int(v * 2**56 // 16**e)
+            return struct.pack(">Q", ((64 + e) << 56) | mant)
+
+        def card(s):
+            return s.ljust(80).encode("ascii")
+
+        def namestr(ntype, length, varnum, name, pos):
+            return struct.pack(
+                ">hhhh8s40s8shhh2s8shhl52s",
+                ntype,
+                0,
+                length,
+                varnum,
+                name.ljust(8).encode(),
+                b" " * 40,
+                b" " * 8,
+                0,
+                0,
+                0,
+                b"  ",
+                b" " * 8,
+                0,
+                0,
+                pos,
+                b"\x00" * 52,
+            )
+
+        date = "01JAN20:00:00:00"
+        out = card("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!" + "0" * 30)
+        out += card("SAS     SAS     SASLIB  9.1     X64_7PRO" + " " * 24 + date)
+        out += card(date)
+        out += card(
+            "HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!"
+            + "0" * 17
+            + "1600000000140"
+        )
+        out += card("HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!" + "0" * 30)
+        out += card("SAS     DATA    SASDATA 9.1     X64_7PRO" + " " * 24 + date)
+        out += card(date + " " * 16 + " " * 40 + "DATA    ")
+        out += card(
+            "HEADER RECORD*******NAMESTR HEADER RECORD!!!!!!!"
+            "000000000200000000000000000000"
+        )
+        ns = namestr(1, 8, 1, "x", 0) + namestr(2, 8, 2, "c", 8)
+        out += ns + b" " * (-len(ns) % 80)
+        out += card("HEADER RECORD*******OBS     HEADER RECORD!!!!!!!" + "0" * 30)
+        data = b"".join(ibm8(i + 1) + b" " * 8 for i in range(nrows))
+        out += data + b" " * (-len(data) % 80)
+
+        result = read_sas(io.BytesIO(out), format="xport", encoding="latin-1")
+        assert len(result) == nrows
+        assert result["x"].tolist() == [float(i + 1) for i in range(nrows)]
