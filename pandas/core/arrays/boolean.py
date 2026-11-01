@@ -200,6 +200,12 @@ def coerce_to_array(
             mask = mask.copy()
         return values, mask
 
+    if isinstance(values, np.ma.MaskedArray):
+        if mask is not None:
+            raise ValueError("cannot pass mask for MaskedArray input")
+        mask = np.ma.getmaskarray(values)
+        values = values.data
+
     mask_values = None
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         if copy:
