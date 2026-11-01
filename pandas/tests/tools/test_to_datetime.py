@@ -2059,6 +2059,19 @@ class TestToDatetimeUnit:
         alt = pd.Timestamp(value, unit="s")
         assert alt == result
 
+    def test_unit_float_rounds_to_nearest_nanosecond(self, cache):
+        # GH#56629 0.5225 * 1e9 is 522499999.99999994 in float64, which used
+        #  to be truncated to 522499999 instead of rounded to 522500000
+        expected = pd.Timestamp("1970-01-01 00:00:02.5225")
+
+        result = pd.to_datetime(2.5225, unit="s", cache=cache)
+        assert result == expected
+
+        assert pd.Timestamp(2.5225, unit="s") == expected
+
+        result = pd.to_datetime([2.5225], unit="s", cache=cache)
+        tm.assert_index_equal(result, pd.DatetimeIndex([expected], dtype="M8[ns]"))
+
     @pytest.mark.parametrize("dtype", [int, float, "Int64", "Float64"])
     def test_to_datetime_unit(self, dtype):
         epoch = 1370745748

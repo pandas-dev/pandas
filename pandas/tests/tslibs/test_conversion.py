@@ -202,3 +202,17 @@ def test_cast_from_unit_vectorized_year_month_oob(unit, value):
     arr = np.array([value], dtype="float64")
     with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
         conversion.cast_from_unit_vectorized(arr, unit)
+
+
+def test_cast_from_unit_vectorized_rounds_to_nearest():
+    # GH#56629 round the scaled fraction, rather than rounding the fraction
+    #  to the unit's decimal digits and truncating after scaling
+    arr = np.array([2.5225, 2.5223, -2.5225, 1.5e-9, 0.5e-9], dtype="float64")
+    result = conversion.cast_from_unit_vectorized(arr, "s")
+    expected = np.array(
+        [2_522_500_000, 2_522_300_000, -2_522_500_000, 2, 0], dtype="int64"
+    )
+    tm.assert_numpy_array_equal(result, expected)
+
+    # the scalar path agrees
+    assert [pd.Timedelta(val, unit="s")._value for val in arr] == expected.tolist()

@@ -177,7 +177,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in :func:`to_timedelta`, :class:`Timedelta`, :func:`to_datetime` and :class:`Timestamp` with a float input and a ``unit`` coarser than the result resolution truncating the sub-nanosecond part after scaling instead of rounding to the nearest nanosecond, e.g. ``to_timedelta(2.5225, unit="s")`` giving ``2522499999`` nanoseconds (:issue:`56629`)
 -
 
 Timezones
