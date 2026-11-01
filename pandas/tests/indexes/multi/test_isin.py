@@ -104,6 +104,31 @@ def test_isin_generator():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_isin_iterator():
+    # GH#66514
+    midx = pd.MultiIndex.from_arrays([[1, 2, 3]])
+    result = midx.isin({iter([3])})
+    expected = np.array([False, False, True])
+    tm.assert_numpy_array_equal(result, expected)
+
+    result2 = midx.isin(iter([(1,), (3,)]))
+    expected2 = np.array([True, False, True])
+    tm.assert_numpy_array_equal(result2, expected2)
+
+    midx2 = pd.MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
+    result3 = midx2.isin([iter([1, "a"]), iter([3, "c"])])
+    expected3 = np.array([True, False, True])
+    tm.assert_numpy_array_equal(result3, expected3)
+
+    msg = (
+        "MultiIndex.isin expects an iterable of tuples of length 2 "
+        r"\(the number of levels\); got an element of length 1 at position 0\. "
+        r"To match on a single level, pass the level= argument\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        midx2.isin([iter([1])])
+
+
 def test_isin_scalar_values_raises_gh20252():
     # GH#20252
     midx = pd.MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])

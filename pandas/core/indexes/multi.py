@@ -6,6 +6,7 @@ from collections.abc import (
     Generator,
     Hashable,
     Iterable,
+    Iterator,
     Sequence,
 )
 from copy import deepcopy
@@ -5031,7 +5032,7 @@ class MultiIndex(Index):
         >>> mi.isin([(1, "red"), (3, "red")])
         array([ True, False, False])
         """
-        if isinstance(values, Generator):
+        if isinstance(values, Iterator):
             values = list(values)
 
         if level is None:
@@ -5040,10 +5041,14 @@ class MultiIndex(Index):
             if not isinstance(values, MultiIndex):
                 # GH#20252, GH#26622 from_tuples silently gives wrong results
                 #  for elements that aren't tuple-likes of length nlevels.
+                tuples = []
                 for position, value in enumerate(values):
-                    if is_list_like(value) and len(value) == self.nlevels:
-                        continue
                     if is_list_like(value):
+                        if not isinstance(value, tuple):
+                            value = tuple(value)
+                        if len(value) == self.nlevels:
+                            tuples.append(value)
+                            continue
                         got = f"an element of length {len(value)}"
                     else:
                         got = f"a scalar ({value!r})"
@@ -5053,7 +5058,7 @@ class MultiIndex(Index):
                         f"{got} at position {position}. To match on a single "
                         "level, pass the level= argument."
                     )
-                values = MultiIndex.from_tuples(values)
+                values = MultiIndex.from_tuples(tuples)
             return values.unique().get_indexer_for(self) != -1
         else:
             num = self._get_level_number(level)
