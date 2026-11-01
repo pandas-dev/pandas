@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
+from copy import deepcopy
 from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
@@ -1378,6 +1379,31 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
+    def _validate_names(
+        self,
+        name: Hashable = None,
+        names: Sequence[Hashable] | None = None,
+    ) -> list[Hashable]:
+        """
+        Validate the ``name`` or ``names`` passed to ``copy``.
+        """
+        if names is not None and name is not None:
+            raise TypeError("Can only provide one of `names` and `name`")
+        if names is not None:
+            if not is_list_like(names):
+                raise TypeError("Must pass list-like as `names`.")
+            new_names = list(names)
+        elif not is_list_like(name):
+            new_names = [name]
+        else:
+            new_names = list(cast("Iterable[Hashable]", name))
+
+        if len(new_names) != self.nlevels:
+            raise ValueError(
+                f"Length of new names must be {self.nlevels}, got {len(new_names)}"
+            )
+        return new_names
+
     # error: Signature of "copy" incompatible with supertype "Index"
     def copy(  # type: ignore[override]
         self,
@@ -1434,13 +1460,14 @@ class MultiIndex(Index):
         MultiIndex([('a', 'b', 'c')],
                    )
         """
-        names = self._validate_names(name=name, names=names, deep=deep)
+        if names is None and name is None:
+            names = deepcopy(self.names) if deep else self.names
+        else:
+            names = self._validate_names(name=name, names=names)
         keep_id = not deep
         levels, codes = None, None
 
         if deep:
-            from copy import deepcopy
-
             levels = deepcopy(self.levels)
             codes = deepcopy(self.codes)
 
@@ -4072,6 +4099,11 @@ class MultiIndex(Index):
                 # it was a string sliced)
                 start = getattr(start, "start", start)
                 stop = getattr(stop, "stop", stop)
+                if level == 0 and self._lexsort_depth > 0 and step is None:
+                    # GH#52714 sorted, so can return slice object -> view
+                    i = algos.searchsorted(level_codes, start, side="left")
+                    j = algos.searchsorted(level_codes, stop, side="left")
+                    return slice(i, j, step)
                 return convert_indexer(start, stop, step)
 
             elif level > 0 or self._lexsort_depth == 0 or step is not None:
@@ -4169,6 +4201,16 @@ class MultiIndex(Index):
 
         >>> mi.get_locs([[True, False, True], slice("e", "f")])  # doctest: +SKIP
         array([2], dtype=int64)
+        """
+        locs = self._get_locs(seq)
+        if isinstance(locs, slice):
+            return np.arange(*locs.indices(len(self)), dtype=np.intp)
+        return locs
+
+    def _get_locs(self, seq) -> slice | npt.NDArray[np.intp]:
+        """
+        Like get_locs, but return a slice when the selected rows are contiguous
+        and that is known without building a mask, so .loc can return a view.
         """
 
         # GH#45762 Checked first: an Ellipsis is never supported at all, so
@@ -4427,6 +4469,13 @@ class MultiIndex(Index):
             else:
                 # a slice or a single label
                 lvl_indexer = self._get_level_indexer(k, level=i, indexer=indexer)
+                if (
+                    indexer is None
+                    and isinstance(lvl_indexer, slice)
+                    and all(com.is_null_slice(x) for x in seq[i + 1 :])
+                ):
+                    # GH#52714 no later level narrows this, so skip the mask
+                    return lvl_indexer
 
             # update indexer
             lvl_indexer = _to_bool_indexer(lvl_indexer)

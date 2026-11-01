@@ -1028,6 +1028,31 @@ class TestInplaceOperations:
         expected = pd.Series([2], dtype=dtype_mul)
         tm.assert_series_equal(ser1, expected)
 
+    @pytest.mark.parametrize(
+        "index, other_index",
+        [
+            ([0, 1, 2], [0, 1, 2, 3]),
+            ([0, 1, 2], [3, 2, 1, 0]),
+            ([0, 0, 1], [0, 1, 2]),
+        ],
+    )
+    def test_series_inplace_ops_align_left(self, index, other_index):
+        # GH#12755 labels only in other must not upcast the result
+        ser = pd.Series([1, 2, 3], index=index)
+        orig = ser
+        other = pd.Series(10, index=other_index)
+        ser += other
+        assert ser is orig
+        expected = pd.Series([11, 12, 13], index=index)
+        tm.assert_series_equal(ser, expected)
+
+    def test_series_inplace_ops_align_left_missing(self):
+        # GH#12755 labels missing from other are still NaN
+        ser = pd.Series([1, 2, 3])
+        ser += pd.Series(10, index=[0, 1])
+        expected = pd.Series([11.0, 12.0, np.nan])
+        tm.assert_series_equal(ser, expected)
+
 
 def test_none_comparison(request, series_with_simple_index):
     series = series_with_simple_index

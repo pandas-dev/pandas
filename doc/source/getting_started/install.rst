@@ -202,7 +202,7 @@ Dependency                                                 Minimum Version    pi
 ========================================================== ================== ================== =======================================================
 `matplotlib <https://github.com/matplotlib/matplotlib>`__  3.10.5             plot               Plotting library
 `Jinja2 <https://github.com/pallets/jinja>`__              3.1.6              output-formatting  Conditional formatting with DataFrame.style
-`tabulate <https://github.com/astanin/python-tabulate>`__  0.9.0              output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
+`tabulate <https://github.com/astanin/python-tabulate>`__  0.10.0             output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
 ========================================================== ================== ================== =======================================================
 
 Computation

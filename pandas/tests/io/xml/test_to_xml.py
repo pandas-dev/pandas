@@ -1375,6 +1375,16 @@ def test_unsupported_compression(parser, geom_df, temp_file):
         geom_df.to_xml(path, parser=parser, compression="7z")
 
 
+def test_compression_without_path(parser, geom_df):
+    # GH#32326
+    msg = "compression has no effect when no path or buffer is given"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = geom_df.to_xml(parser=parser, compression="gzip")
+    assert result == geom_df.to_xml(parser=parser)
+    with pytest.raises(ValueError, match="Unrecognized compression type"):
+        geom_df.to_xml(parser=parser, compression="7z")
+
+
 # STORAGE OPTIONS
 
 
