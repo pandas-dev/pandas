@@ -6,6 +6,8 @@ from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
+import sys
+import time
 import uuid
 
 import numpy as np
@@ -1714,3 +1716,276 @@ def test_to_parquet_uuid_supported(temp_file):
     result = read_parquet(temp_file, engine="pyarrow")
 
     tm.assert_frame_equal(result, expected)
+
+
+class TestParquetChunksize(Base):
+    def test_read_parquet_chunksize_preserves_all_rows(self, pa, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(100)})
+        df.to_parquet(path, engine=pa)
+
+        chunks = list(read_parquet(path, engine=pa, chunksize=30))
+        result = pd.concat(chunks, ignore_index=True)
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_spans_row_groups(self, pa, tmp_path, directory):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(500)}).to_parquet(path, engine=pa, row_group_size=200)
+        source = tmp_path if directory else path
+
+        chunks = list(read_parquet(source, engine=pa, chunksize=300))
+        assert [len(c) for c in chunks] == [300, 200]
+
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_no_columns(self, pa, tmp_path, directory):
+        # chunks without columns still count their rows
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(5)}).to_parquet(path, engine=pa)
+        source = tmp_path if directory else path
+
+        chunks = list(read_parquet(source, engine=pa, columns=[], chunksize=2))
+        assert [chunk.shape for chunk in chunks] == [(2, 0), (2, 0), (1, 0)]
+
+    def test_read_parquet_chunksize_fastparquet_not_implemented(self, fp, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=fp)
+
+        with pytest.raises(NotImplementedError, match="chunksize"):
+            read_parquet(path, engine=fp, chunksize=5)
+
+    def test_read_parquet_chunksize_context_manager(self, pa, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
+
+        with read_parquet(path, engine=pa, chunksize=5) as reader:
+            assert isinstance(reader, pd.api.typing.ParquetFileReader)
+            chunks = list(reader)
+        assert len(chunks) == 2
+
+    def test_read_parquet_chunksize_close_closes_file(self, pa, tmp_path):
+        # pyarrow opens a local path itself, so there is no pandas handle and
+        # closing the reader has to close pyarrow's ParquetFile
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
+
+        with read_parquet(path, engine=pa, chunksize=5) as reader:
+            next(reader)
+        assert reader._source.closed
+
+    @pytest.mark.parametrize(
+        "index", [pd.RangeIndex(10), pd.RangeIndex(10, 30, 2, name="r")]
+    )
+    @pytest.mark.parametrize("chunksize", [3, 10])
+    def test_read_parquet_chunksize_continues_index(
+        self, pa, tmp_path, index, chunksize
+    ):
+        # Chunked readers (read_csv, read_json, ...) yield a running row
+        # position across chunks rather than restarting at 0 each time.
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)}, index=index)
+        df.to_parquet(path, engine=pa)
+
+        chunks = list(read_parquet(path, engine=pa, chunksize=chunksize))
+        result = pd.concat(chunks)
+        tm.assert_index_equal(result.index, df.index, exact=True)
+
+    def test_read_parquet_chunksize_preserves_attrs(self, pa, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.attrs["foo"] = "bar"
+        df.to_parquet(path, engine=pa)
+
+        chunk = next(read_parquet(path, engine=pa, chunksize=5))
+        assert chunk.attrs == {"foo": "bar"}
+
+    @pytest.mark.parametrize("columns", [None, ["a", "part"]])
+    def test_read_parquet_chunksize_partitioned_directory(self, pa, tmp_path, columns):
+        df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
+        df.to_parquet(tmp_path, engine=pa, partition_cols=["part"])
+
+        chunks = list(read_parquet(tmp_path, engine=pa, columns=columns, chunksize=3))
+        # chunks run across the files of the partitions
+        assert [len(chunk) for chunk in chunks] == [3] * 6 + [2]
+        expected = read_parquet(tmp_path, engine=pa, columns=columns)
+        tm.assert_frame_equal(pd.concat(chunks), expected)
+
+    @pytest.mark.parametrize("partition_cols", [None, ["part"]])
+    def test_read_parquet_chunksize_columns_keeps_index(
+        self, pa, tmp_path, partition_cols
+    ):
+        path = tmp_path if partition_cols else tmp_path / "test.parquet"
+        df = pd.DataFrame(
+            {"a": range(4), "part": ["x", "x", "y", "y"]},
+            index=pd.Index(list("wxyz"), name="key"),
+        )
+        df.to_parquet(path, engine=pa, partition_cols=partition_cols)
+
+        chunks = list(read_parquet(path, engine=pa, columns=["a"], chunksize=2))
+        expected = read_parquet(path, engine=pa, columns=["a"])
+        tm.assert_index_equal(expected.index, df.index)
+        tm.assert_frame_equal(pd.concat(chunks), expected)
+
+    def test_read_parquet_chunksize_filters_not_implemented(self, pa, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10), "b": ["x"] * 5 + ["y"] * 5})
+        df.to_parquet(path, engine=pa)
+
+        with pytest.raises(NotImplementedError, match="filters"):
+            list(read_parquet(path, engine=pa, chunksize=5, filters=[("b", "==", "x")]))
+
+    @pytest.mark.parametrize("chunksize", [0, -1, 2.5, True, "5"])
+    def test_read_parquet_chunksize_invalid_raises(self, pa, tmp_path, chunksize):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
+
+        with pytest.raises(ValueError, match="'chunksize' must be an integer >=1"):
+            read_parquet(path, engine=pa, chunksize=chunksize)
+
+    def test_read_parquet_chunksize_unsupported_kwarg_raises(self, pa, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
+
+        with pytest.raises(TypeError, match="this_is_bogus"):
+            list(read_parquet(path, engine=pa, chunksize=5, this_is_bogus=True))
+
+    def test_read_parquet_chunksize_forwards_kwargs(self, pa, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.to_parquet(path, engine=pa)
+
+        chunks = list(read_parquet(path, engine=pa, chunksize=5, use_threads=False))
+        result = pd.concat(chunks)
+        tm.assert_frame_equal(result, df)
+
+    def test_read_parquet_chunksize_forwards_kwargs_partitioned_directory(
+        self, pa, tmp_path
+    ):
+        df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
+        df.to_parquet(tmp_path, engine=pa, partition_cols=["part"])
+
+        chunks = list(read_parquet(tmp_path, engine=pa, chunksize=5, use_threads=False))
+        assert sum(len(chunk) for chunk in chunks) == 20
+
+    @pytest.mark.parametrize("partition_cols", [None, ["part"]])
+    def test_read_parquet_chunksize_read_table_kwargs(
+        self, pa, tmp_path, partition_cols
+    ):
+        # read_table()'s options for how to read the data, such as
+        # read_dictionary, apply with chunksize too
+        path = tmp_path if partition_cols else tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": list("xyzx"), "part": ["p", "p", "q", "q"]})
+        df.to_parquet(path, engine=pa, partition_cols=partition_cols)
+
+        # whether the dictionary becomes a categorical depends on the pyarrow
+        # version, so compare with a read without chunksize (categories differ
+        # between chunks, so only the type of dtype)
+        full = read_parquet(path, engine=pa, read_dictionary=["a"])
+        expected = type(full["a"].dtype)
+        reader = read_parquet(path, engine=pa, chunksize=2, read_dictionary=["a"])
+        for chunk in reader:
+            assert type(chunk["a"].dtype) is expected
+
+    @pytest.mark.skipif(pa_version_under19p0, reason="pyarrow.json_ is new in 19.0")
+    def test_read_parquet_chunksize_directory_extension_types(self, pa, tmp_path):
+        # Without a stored Arrow schema, as non-Arrow writers produce, a Parquet
+        # JSON column is read as arrow.json only with read_table()'s default
+        # arrow_extensions_enabled=True (pyarrow >= 21)
+        pq = pytest.importorskip("pyarrow.parquet")
+        table = pyarrow.table(
+            {"j": pyarrow.array(['{"k": 1}', '{"k": 2}'], type=pyarrow.json_())}
+        )
+        for part in ["x", "y"]:
+            (tmp_path / f"part={part}").mkdir()
+            pq.write_table(
+                table, tmp_path / f"part={part}" / "0.parquet", store_schema=False
+            )
+
+        reader = read_parquet(tmp_path, engine=pa, dtype_backend="pyarrow", chunksize=2)
+        expected = read_parquet(tmp_path, engine=pa, dtype_backend="pyarrow")
+        tm.assert_frame_equal(pd.concat(reader), expected)
+
+    def test_read_parquet_without_pyarrow_dataset(self, pa, tmp_path, monkeypatch):
+        # pyarrow.dataset is an optional part of pyarrow, which reading a file
+        # doesn't need, with or without chunksize
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.to_parquet(path, engine=pa)
+        monkeypatch.setitem(sys.modules, "pyarrow.dataset", None)
+
+        tm.assert_frame_equal(read_parquet(path, engine=pa), df)
+        tm.assert_frame_equal(pd.concat(read_parquet(path, engine=pa, chunksize=5)), df)
+
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_bounded_memory(self, pa, tmp_path, directory):
+        # pyarrow's default pre-buffering keeps the row groups it buffers until
+        # the file is closed, and a dataset scan reads ahead of a slow
+        # consumer, so a chunked read could end up holding the whole file
+        path = tmp_path / "test.parquet"
+        n = 200_000
+        pd.DataFrame({"a": np.arange(n)}).to_parquet(
+            path, engine=pa, row_group_size=2_000, compression=None
+        )
+        source = tmp_path if directory else path
+
+        before = pyarrow.total_allocated_bytes()
+        peak = 0
+        for _ in read_parquet(source, engine=pa, chunksize=2_000):
+            # give a scan that reads ahead time to do so
+            time.sleep(0.001)
+            peak = max(peak, pyarrow.total_allocated_bytes() - before)
+        assert peak < n * 8 / 4
+
+    @pytest.mark.parametrize("partition_cols", [None, ["part"]])
+    def test_read_parquet_chunksize_missing_column_raises(
+        self, pa, tmp_path, partition_cols
+    ):
+        # like read_table(), raise for a column that isn't in the data rather
+        # than leaving it out of the chunks
+        path = tmp_path if partition_cols else tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(4), "part": ["x", "x", "y", "y"]})
+        df.to_parquet(path, engine=pa, partition_cols=partition_cols)
+
+        with pytest.raises(ValueError, match="typo"):
+            list(read_parquet(path, engine=pa, columns=["a", "typo"], chunksize=2))
+
+    def test_read_parquet_chunksize_nested_field_not_implemented(self, pa, tmp_path):
+        # iter_batches() gives the dotted path to a field inside a nested column
+        # as that column cut down to the field, where read_table() gives the
+        # field itself
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"s": [{"x": 1, "y": 2}, {"x": 3, "y": 4}]}).to_parquet(
+            path, engine=pa
+        )
+
+        with pytest.raises(NotImplementedError, match="nested"):
+            read_parquet(path, engine=pa, columns=["s.x"], chunksize=1)
+
+    @pytest.mark.parametrize("keyword", ["schema", "partitioning", "ignore_prefixes"])
+    def test_read_parquet_chunksize_dataset_kwargs_not_implemented(
+        self, pa, tmp_path, keyword
+    ):
+        # read_table() reads a file through a ParquetDataset, which takes these,
+        # but ParquetFile doesn't
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(4)}).to_parquet(path, engine=pa)
+        value = {
+            "schema": pyarrow.schema([("a", pyarrow.int32())]),
+            "partitioning": "hive",
+            "ignore_prefixes": ["_"],
+        }[keyword]
+
+        with pytest.raises(NotImplementedError, match=keyword):
+            read_parquet(path, engine=pa, chunksize=2, **{keyword: value})
+
+    @pytest.mark.parametrize("directory", [False, True])
+    def test_read_parquet_chunksize_empty(self, pa, tmp_path, directory):
+        # like read_csv(chunksize=...), yield one empty chunk with the columns
+        # rather than none
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": pd.Series([], dtype="int64")}).to_parquet(path, engine=pa)
+        source = tmp_path if directory else path
+
+        chunks = list(read_parquet(source, engine=pa, chunksize=5))
+        assert len(chunks) == 1
+        tm.assert_frame_equal(chunks[0], read_parquet(source, engine=pa))
