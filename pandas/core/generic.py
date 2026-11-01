@@ -6893,9 +6893,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         immutable, the underlying data can be safely shared and a copy
         is not needed.
 
-        Since pandas is not thread safe, see the
-        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
-        environment.
+        See the :ref:`gotchas <gotchas.thread-safety>` before sharing pandas
+        objects between threads.
 
         Copy-on-Write protects shallow copies against accidental modifications.
         This means that any changes to the copied data would make a new copy
@@ -12819,6 +12818,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
+        if (
+            isinstance(other, NDFrame)
+            and other.ndim == self.ndim
+            and not self.index.equals(other.index)
+        ):
+            # align rows to self rather than the union, so rows absent from self
+            #  cannot introduce NaNs that upcast the result, see GH#12755
+            other = self.align(other, join="left", axis=0)[1]
         result = op(self, other)
 
         # this makes sure that we are aligned like the input
