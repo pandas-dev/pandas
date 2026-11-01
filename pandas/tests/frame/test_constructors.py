@@ -16,6 +16,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from enum import IntEnum
 import functools
 import re
 import zoneinfo
@@ -3268,6 +3269,28 @@ class TestDataFrameConstructorWithDtypeCoercion:
             pd.DataFrame(arr).astype("i8")
         with pytest.raises(IntCastingNaNError, match=msg):
             pd.Series(arr[0]).astype("i8")
+
+    def test_intenum_dtype_object_preserved(self):
+        # GH#59380 - IntEnum members should not be cast to int when
+        # dtype=object is specified, matching Series behavior.
+        class Color(IntEnum):
+            BLUE = 1
+            RED = 2
+
+        colors = [Color.BLUE, Color.RED]
+
+        result = pd.DataFrame(colors, columns=["color"], dtype=object)
+        assert result["color"].dtype == object
+        assert all(isinstance(v, Color) for v in result["color"])
+
+        # Series with dtype=object correctly preserves IntEnum
+        ser = pd.Series(colors, dtype=object)
+        assert all(isinstance(v, Color) for v in ser)
+
+        # GH#59380 - mixed-type data with dtype=object preserves the
+        # original Python scalar types instead of converting them
+        mixed = pd.DataFrame([1, 2.5, 3], dtype=object)
+        assert [type(v) for v in mixed[0]] == [int, float, int]
 
 
 class TestDataFrameConstructorWithDatetimeTZ:
