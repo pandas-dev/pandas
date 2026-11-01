@@ -250,6 +250,8 @@ def _nanquantile_i8_exact(
 
     np.quantile casts to float64, which loses precision for large int64 values
     (GH#49110). Instead, interpolate only the gap between the exact neighbors.
+    Results on a data point are exact; between two points the error is at most
+    ``gap * 2**-52``.
 
     Parameters
     ----------
@@ -283,7 +285,9 @@ def _nanquantile_i8_exact(
     gap = higher.view(np.uint64) - lower.view(np.uint64)
     offset = gap * frac
     whole = np.floor(offset)
-    result = (lower.view(np.uint64) + whole.astype(np.uint64)).view(np.int64)
+    # never step past the higher neighbor
+    step = np.minimum(whole.astype(np.uint64), gap)
+    result = (lower.view(np.uint64) + step).view(np.int64)
     # truncate toward zero, like casting float to int64
     result[(offset > whole) & (result < 0)] += 1
     return result

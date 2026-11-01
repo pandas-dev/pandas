@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 import numpy as np
 import pytest
 
@@ -301,7 +303,7 @@ def test_quantile_dt64_with_nat_exact():
     tm.assert_series_equal(result, expected)
 
 
-def test_quantile_dt64_full_int64_range():
+def test_quantile_dt64_full_int64_range_no_overflow():
     # GH#49110 span wider than int64 must not overflow
     lo = -(2**62) - 2**61
     hi = 2**62 + 2**61
@@ -311,6 +313,19 @@ def test_quantile_dt64_full_int64_range():
         np.array([lo, 0, hi], dtype="i8").view("M8[ns]"), index=[0.0, 0.5, 1.0]
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_quantile_dt64_far_apart_neighbors():
+    # GH#49110 neighbors more than 2**53 apart: result stays between them,
+    #  within the documented error of gap * 2**-52
+    lo, hi = -(2**62), 2**62 + 12345
+    ser = pd.Series(np.array([lo, hi], dtype="i8").view("M8[ns]"))
+    qs = [0.1, 0.5, 0.9, np.nextafter(1.0, 0.0)]
+    result = ser.quantile(qs).values.view("i8")
+    for q, res in zip(qs, result, strict=True):
+        exact = lo + int((hi - lo) * Fraction(q))
+        assert lo <= res <= hi
+        assert abs(int(res) - exact) <= (hi - lo) >> 52
 
 
 def test_quantile_dt64tz_endpoints_exact():
