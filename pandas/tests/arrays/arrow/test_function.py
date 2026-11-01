@@ -541,7 +541,7 @@ def test_factorize_chunked_dictionary_mixed_null_encoding():
 def test_factorize_dictionary_stored_dictionary_ignored(
     indices, dictionary, expected_indices, expected_uniques
 ):
-    # GH#71827
+    # GH#71828
     pa_arr = pa.DictionaryArray.from_arrays(
         pa.array(indices, type=pa.int32()), pa.array(dictionary)
     )
@@ -562,7 +562,7 @@ def test_factorize_dictionary_stored_dictionary_ignored(
 def test_factorize_chunked_dictionary_nulls(
     use_na_sentinel, expected_indices, expected_uniques
 ):
-    # GH#71827 nulls in the dictionary and in the indices, across chunks
+    # GH#71828 nulls in the dictionary and in the indices, across chunks
     pa_arr = pa.chunked_array(
         [
             pa.DictionaryArray.from_arrays(
@@ -587,7 +587,7 @@ def test_factorize_chunked_dictionary_nulls(
     "values", [pa.array([[1], [2]]), pa.array(["a", "b"], type=pa.string_view())]
 )
 def test_factorize_dictionary_value_type_without_kernel(values):
-    # GH#71827 types lacking a hash or take kernel keep the stored dictionary
+    # GH#71828 types lacking a hash or take kernel keep the stored dictionary
     pa_arr = pa.DictionaryArray.from_arrays(
         pa.array([1, 0, 1], type=pa.int32()), values
     )
@@ -611,7 +611,7 @@ def test_factorize_dictionary_value_type_without_kernel(values):
 def test_factorize_dictionary_value_type_without_kernel_null(
     values, indices, use_na_sentinel
 ):
-    # GH#71827 keeping the stored dictionary would mishandle the null
+    # GH#71828 keeping the stored dictionary would mishandle the null
     pa_arr = pa.DictionaryArray.from_arrays(pa.array(indices, type=pa.int32()), values)
     arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
     with pytest.raises(pa.ArrowNotImplementedError, match="has no kernel"):
@@ -619,7 +619,7 @@ def test_factorize_dictionary_value_type_without_kernel_null(
 
 
 def test_factorize_chunked_dictionary_repeated_dictionaries():
-    # GH#71827 each chunk stores the full dictionary, as from parquet row groups
+    # GH#71828 each chunk stores the full dictionary, as from parquet row groups
     dictionary = pa.array(["a", "b", "c"])
     pa_arr = pa.chunked_array(
         [

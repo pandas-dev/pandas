@@ -701,7 +701,7 @@ def test_groupby_count_return_arrow_dtype(data_missing):
 
 @pytest.mark.parametrize("sort", [True, False])
 def test_groupby_dictionary_after_filter(sort):
-    # GH#71827 the filtered-out "b" must not come back as an empty group
+    # GH#71828 the filtered-out "b" must not come back as an empty group
     dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
     df = pd.DataFrame(
         {"k": pd.array(["a", "b", "c", "a"], dtype=dtype), "v": [1, 2, 3, 4]}

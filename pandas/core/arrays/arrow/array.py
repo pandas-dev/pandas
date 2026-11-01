@@ -2142,7 +2142,7 @@ class ArrowExtensionArray(
         Factorize a dictionary-typed array.
 
         A stored dictionary can hold unreferenced, duplicate or null entries
-        (GH#71827), so factorize the dictionaries' values, map the indices
+        (GH#71828), so factorize the dictionaries' values, map the indices
         through those codes, then renumber by first appearance.
         """
         data = self._pa_array
