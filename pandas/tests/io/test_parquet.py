@@ -495,8 +495,6 @@ class TestBasic(Base):
         # non-default index
         for index in indexes:
             df.index = index
-            if isinstance(index, pd.DatetimeIndex):
-                df.index = df.index._with_freq(None)  # freq doesn't round-trip
             check_round_trip(df, temp_file, "pyarrow")
 
         # index with meta-data
@@ -1179,6 +1177,65 @@ class TestParquetPyArrow(Base):
         df.to_parquet(temp_file, engine=pa)
         new_df = read_parquet(temp_file, engine=pa)
         assert new_df.attrs == df.attrs
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.date_range("2021-01-01", periods=3, freq="min"),
+            pd.date_range("2021-01-06", periods=3, freq="W-WED", tz="US/Eastern"),
+            pd.timedelta_range("1D", periods=3, freq="h"),
+        ],
+    )
+    def test_index_freq_roundtrip(self, temp_file, pa, index):
+        # GH#41543
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+        df.to_parquet(temp_file, engine=pa)
+        result = read_parquet(temp_file, engine=pa)
+        assert result.index.freq == index.freq
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            pd.DateOffset(months=1),
+            # freqstr "C" parses to an offset without the holidays
+            pd.offsets.CustomBusinessDay(holidays=["2030-01-01"]),
+        ],
+    )
+    def test_index_freq_not_roundtrippable(self, temp_file, pa, freq):
+        # GH#41543 a freq whose freqstr does not round-trip is not stored
+        index = pd.date_range("2021-01-01", periods=3, freq=freq)
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+        df.to_parquet(temp_file, engine=pa)
+        result = read_parquet(temp_file, engine=pa)
+        assert result.index.freq is None
+        tm.assert_frame_equal(result, df, check_freq=False)
+
+    def test_index_freq_with_attrs(self, temp_file, pa):
+        # GH#41543
+        df = pd.DataFrame({"a": [1, 2]}, index=pd.date_range("2021", periods=2))
+        df.attrs = {"test_attribute": 1}
+        df.to_parquet(temp_file, engine=pa)
+        result = read_parquet(temp_file, engine=pa)
+        assert result.attrs == df.attrs
+        assert result.index.freq == df.index.freq
+
+    def test_index_freq_pyarrow_backend(self, temp_file, pa):
+        # GH#41543 the stored freq is ignored when the index is not a DatetimeIndex
+        df = pd.DataFrame({"a": [1, 2]}, index=pd.date_range("2021", periods=2))
+        df.to_parquet(temp_file, engine=pa)
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+        expected = df.index.astype("timestamp[us][pyarrow]")
+        tm.assert_index_equal(result.index, expected)
+
+    def test_index_freq_filtered(self, temp_file, pa):
+        # GH#41543 freq is dropped when filtering leaves non-conforming values
+        index = pd.date_range("2021-01-01", periods=5, freq="D")
+        df = pd.DataFrame({"a": range(5)}, index=index)
+        df.to_parquet(temp_file, engine=pa)
+        result = read_parquet(temp_file, engine=pa, filters=[("a", "in", [0, 1, 4])])
+        assert result.index.freq is None
+        tm.assert_frame_equal(result, df.iloc[[0, 1, 4]], check_freq=False)
 
     def test_string_inference(self, temp_file, pa, using_infer_string):
         # GH#54431
