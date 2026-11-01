@@ -179,7 +179,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in :class:`Series`, :class:`DataFrame`, :class:`TimedeltaIndex`, and :class:`TimedeltaArray` where ``//``, ``%``, and ``divmod`` of ``timedelta64`` values by a numeric divisor truncated a negative, non-integral quotient toward zero; these now floor toward negative infinity, matching :class:`Timedelta` (:issue:`71264`)
 -
 
 Timezones
