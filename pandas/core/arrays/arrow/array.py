@@ -2156,7 +2156,7 @@ class ArrowExtensionArray(
         )
         dict_codes, dict_uniques = type(self)(dictionaries).factorize()
         # -1 (a null dictionary entry) passes through take unchanged
-        dict_codes_pa = pa.array(dict_codes)
+        dict_codes_pa = pa.array(dict_codes, type=pa.int64())
         mapped = []
         offset = 0
         for chunk in data.chunks:
@@ -2256,8 +2256,8 @@ class ArrowExtensionArray(
                 return self._factorize_dictionary(use_na_sentinel)
             except pa.ArrowNotImplementedError:
                 # no hash or take kernel for the value type (e.g. list,
-                # string_view): keep the stored dictionary, unless that
-                # would code a null wrongly (GH#66490)
+                # string_view): keep the stored dictionary, unless it holds
+                # a null or use_na_sentinel is False (GH#66490)
                 if not use_na_sentinel or any(
                     chunk.dictionary.null_count for chunk in data.chunks
                 ):

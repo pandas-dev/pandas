@@ -635,6 +635,26 @@ def test_factorize_chunked_dictionary_repeated_dictionaries():
     )
 
 
+def test_factorize_dictionary_int32_codes(monkeypatch):
+    # GH#71828 np.intp is int32 on 32-bit platforms
+    factorize = ArrowExtensionArray.factorize
+
+    def factorize_int32(self, use_na_sentinel=True):
+        codes, uniques = factorize(self, use_na_sentinel)
+        return codes.astype(np.int32), uniques
+
+    monkeypatch.setattr(ArrowExtensionArray, "factorize", factorize_int32)
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array([1, 0, 1], type=pa.int32()), pa.array(["a", "b"])
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.int32))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["b", "a"], dtype=ArrowDtype(pa.string()))
+    )
+
+
 def test_factorize_null():
     # GH#54908
     arr = ArrowExtensionArray(pa.array([None, None], type=pa.null()))
