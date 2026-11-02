@@ -3,10 +3,7 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
-from libc.math cimport (
-    isinf,
-    log10,
-)
+from libc.math cimport isinf
 from libc.stdint cimport (
     INT32_MAX,
     INT32_MIN,
@@ -133,7 +130,6 @@ def cast_from_unit_vectorized(
     """
     cdef:
         int64_t m
-        int p
         NPY_DATETIMEUNIT in_reso, out_reso
 
     assert values.dtype.kind == "f"
@@ -165,7 +161,7 @@ def cast_from_unit_vectorized(
 
     in_reso = abbrev_to_npy_unit(unit)
     out_reso = abbrev_to_npy_unit(out_unit)
-    m, p = precision_from_unit(in_reso, out_reso)
+    m = precision_from_unit(in_reso, out_reso)
 
     _raise_if_outside_int64(values, nan_mask, unit)
 
@@ -183,10 +179,12 @@ def cast_from_unit_vectorized(
     nat_mask = nan_mask | (safe == nat_as_float)
     base[nat_mask] = 0
 
-    if p:
-        frac = np.round(frac, p)
+    scaled = frac * m
+    if m != 1:
+        # Round to the nearest out_unit tick; see cast_from_unit (GH#56629)
+        scaled = np.round(scaled)
 
-    out = base * np.int64(m) + (frac * m).astype("i8")
+    out = base * np.int64(m) + scaled.astype("i8")
 
     # Overflow check. On overflow base * m + int64(frac * m) wraps modulo 2**64.
     # A float bound check on the analytic result (result_f >= 2**63) is unreliable
@@ -195,7 +193,7 @@ def cast_from_unit_vectorized(
     # result tracks its float64 estimate to within a few ULP when it fits, but a
     # wrap shifts it by ~2**64. (GH#57366)
     if m != 1:
-        result_f = base.astype("f8") * m + frac * m
+        result_f = base.astype("f8") * m + scaled
         # Detecting the wrap costs an extra pass over the data, so gate it behind
         # a cheap bound. result_f tracks the true result to ~2**-50 relative, well
         # inside this margin, so a wrap can never land outside it.
@@ -220,8 +218,9 @@ cdef int64_t cast_from_unit(
     NPY_DATETIMEUNIT out_reso=NPY_FR_ns
 ) except? -1:
     """
-    Return a casting of the unit represented to nanoseconds
-    round the fractional part of a float to our precision, p.
+    Return a casting of the unit represented to out_reso. The fractional
+    part of a float is rounded to the nearest out_reso tick when `unit` is
+    coarser than out_reso, and truncated when they are the same resolution.
 
     Parameters
     ----------
@@ -234,7 +233,6 @@ cdef int64_t cast_from_unit(
     """
     cdef:
         int64_t m
-        int p
         NPY_DATETIMEUNIT in_reso
 
     # GH#56996 the base/frac arithmetic below stays in `ts`'s own dtype, so a
@@ -286,18 +284,21 @@ cdef int64_t cast_from_unit(
     if out_reso < in_reso and in_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # We will end up rounding (always *down*), so don't need the fractional
         #  part of `ts`.
-        m, _ = precision_from_unit(out_reso, in_reso)
+        m = precision_from_unit(out_reso, in_reso)
         return base // m
 
-    m, p = precision_from_unit(in_reso, out_reso)
+    m = precision_from_unit(in_reso, out_reso)
 
     # cast the unit, multiply base/frac separately
     # to avoid precision issues from float -> int
     frac = ts - base
-    if p:
-        frac = round(frac, p)
 
     try:
+        if m != 1:
+            # Round after scaling. Rounding `frac` to the unit's decimal digits
+            #  first left e.g. 0.5225 * 1e9 = 522499999.99999994, which the
+            #  int64 cast then truncated to 522499999 (GH#56629).
+            return base * m + <int64_t>round(frac * m)
         return base * m + <int64_t>(frac * m)
     except OverflowError as err:
         raise OutOfBoundsDatetime(
@@ -305,13 +306,12 @@ cdef int64_t cast_from_unit(
         ) from err
 
 
-cdef (int64_t, int) precision_from_unit(
+cdef int64_t precision_from_unit(
     NPY_DATETIMEUNIT in_reso,
     NPY_DATETIMEUNIT out_reso=NPY_DATETIMEUNIT.NPY_FR_ns,
 ):
     """
-    Return a casting of the unit represented to nanoseconds + the precision
-    to round the fractional part.
+    Return the factor that casts a value in in_reso to out_reso.
 
     Notes
     -----
@@ -321,7 +321,6 @@ cdef (int64_t, int) precision_from_unit(
     cdef:
         int64_t m
         int64_t multiplier
-        int p
 
     if in_reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         in_reso = NPY_DATETIMEUNIT.NPY_FR_ns
@@ -341,8 +340,7 @@ cdef (int64_t, int) precision_from_unit(
         #  https://github.com/pandas-dev/pandas/pull/51483#discussion_r1115198951
         m = get_conversion_factor(in_reso, out_reso)
 
-    p = <int>log10(m)  # number of digits in 'm' minus 1
-    return m, p
+    return m
 
 
 cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:

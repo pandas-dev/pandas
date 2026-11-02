@@ -322,8 +322,10 @@ class TestTimedeltas:
         tm.assert_series_equal(result, expected)
 
     def test_to_timedelta_fraction(self):
+        # GH#9048; 1/3 hour is 1_200_000_000_000 ns to within 1e-4 ns, which
+        #  GH#56629 rounds to rather than giving 19:59.999999998
         result = pd.to_timedelta(1.0 / 3, unit="h")
-        expected = pd.Timedelta("0 days 00:19:59.999999998")
+        expected = pd.Timedelta("0 days 00:20:00")
         assert result == expected
 
     def test_to_timedelta_unit_round_floats(self):
@@ -375,6 +377,35 @@ class TestTimedeltas:
         # Also test integers mixed with non-round floats
         result2 = pd.to_timedelta([1, 1.01], unit="s")
         tm.assert_index_equal(result2, expected)
+
+    @pytest.mark.parametrize(
+        "val, unit, expected",
+        [
+            # GH#46819 0.5225 * 1e9 is 522499999.99999994 in float64
+            (2.5225, "s", 2_522_500_000),
+            (-2.5225, "s", -2_522_500_000),
+            (1.5225, "ms", 1_522_500),
+            # the same duration given in different units
+            (1.75e-3, "us", 2),
+            (2 / 1024, "us", 2),
+            # ties round half to even, like datetime.timedelta
+            (0.5e-9, "s", 0),
+            (1.5e-9, "s", 2),
+        ],
+    )
+    def test_to_timedelta_float_rounds_to_nearest_nanosecond(self, val, unit, expected):
+        # GH#56629 the fraction was rounded to the unit's decimal digits and
+        #  then truncated after scaling, dropping a nanosecond whenever the
+        #  scaled float landed just below an integer
+        result = pd.to_timedelta(val, unit=unit)
+        assert result.unit == "ns"
+        assert result._value == expected
+
+        assert pd.Timedelta(val, unit=unit)._value == expected
+
+        result = pd.to_timedelta([val], unit=unit)
+        expected_index = pd.TimedeltaIndex([expected], dtype="m8[ns]")
+        tm.assert_index_equal(result, expected_index)
 
     def test_float_to_timedelta_raise_near_bounds(self):
         # GH#57366
