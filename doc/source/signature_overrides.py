@@ -73,6 +73,11 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=3,
     ),
+    "day_of_month": inspect.Parameter(
+        "day_of_month",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=15,
+    ),
     # FY5253 and FY5253Quarter use different defaults for weekday and
     # startingMonth than Week and the quarter offsets, so they get their own keys
     "fy_weekday": inspect.Parameter(
@@ -242,6 +247,16 @@ _OFFSET_SIGNATURES = {
         "holidays",
         "calendar",
         "offset",
+    ),
+    pd.tseries.offsets.SemiMonthEnd: (
+        "n",
+        "normalize",
+        "day_of_month",
+    ),
+    pd.tseries.offsets.SemiMonthBegin: (
+        "n",
+        "normalize",
+        "day_of_month",
     ),
     pd.tseries.offsets.YearEnd: (
         "n",

@@ -292,6 +292,9 @@ class BaseWindow(SelectionMixin["NDFrame"]):
         # we need to make a shallow copy of ourselves
         # with the same groupby
         kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        if subset.ndim == 1 and self.on is not None:
+            # a Series subset no longer has the ``on`` column, GH#43769
+            kwargs["on"] = self._on
 
         selection = self._infer_selection(key, subset)
         new_win = type(self)(subset, selection=selection, **kwargs)
