@@ -1924,6 +1924,22 @@ def test_compare_string_literals(expr, expected, engine, parser):
     assert result == expected
 
 
+@pytest.mark.parametrize("dtype", [object, "str", "string"])
+@pytest.mark.parametrize(
+    "expr, op",
+    [
+        ('a + "x"', lambda df: df["a"] + "x"),
+        ('"x" + a', lambda df: "x" + df["a"]),
+        ('(a + b) + "x"', lambda df: (df["a"] + df["b"]) + "x"),
+    ],
+)
+def test_string_concat_literal(dtype, expr, op, engine, parser):
+    # GH#47734
+    df = pd.DataFrame({"a": ["a", "b", None], "b": ["1", "2", "3"]}, dtype=dtype)
+    result = df.eval(expr, engine=engine, parser=parser)
+    tm.assert_series_equal(result, op(df))
+
+
 def test_inf(engine, parser):
     s = "inf + 1"
     expected = np.inf

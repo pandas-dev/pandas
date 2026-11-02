@@ -94,14 +94,15 @@ class HTMLFormatter:
 
     def render(self) -> list[str]:
         self._write_table()
+        self._write_footer()
+        return self.elements
 
+    def _write_footer(self) -> None:
         if self.should_show_dimensions:
             by = chr(215)  # ×  # noqa: RUF003
             self.write(
                 f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
             )
-
-        return self.elements
 
     @property
     def should_show_dimensions(self) -> bool:
@@ -656,3 +657,25 @@ class NotebookFormatter(HTMLFormatter):
         super().render()
         self.write("</div>")
         return self.elements
+
+
+class SeriesNotebookFormatter(NotebookFormatter):
+    """
+    Internal class for Series._repr_html_().
+
+    Renders ``series.to_frame()`` without a column header, followed by the
+    footer of the Series text repr, so the result is visually distinct from
+    a one-column DataFrame.
+    """
+
+    def __init__(self, formatter: DataFrameFormatter, footer: str) -> None:
+        super().__init__(formatter)
+        self.footer = footer
+
+    def _write_footer(self) -> None:
+        if self.footer:
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
+            lines = [
+                pprint_thing(line, escape_chars=esc) for line in self.footer.split("\n")
+            ]
+            self.write(f"<p>{'<br>'.join(lines)}</p>")
