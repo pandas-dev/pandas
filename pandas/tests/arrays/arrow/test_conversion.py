@@ -318,6 +318,14 @@ def test_from_numpy_str_array_to_extension_storage(kind):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("kind", ["U", "S"])
+def test_from_numpy_str_array_to_run_end_encoded(kind):
+    # GH#71827 pyarrow could segfault converting these with a mask
+    dtype = ArrowDtype(pa.run_end_encoded(pa.int32(), pa.int64()))
+    with pytest.raises(NotImplementedError, match="run_end_encoded"):
+        pd.array(np.array(["7", "8"], dtype=kind), dtype=dtype)
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [
