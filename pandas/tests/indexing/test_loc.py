@@ -3137,18 +3137,18 @@ class TestLocBooleanLabelsAndSlices:
 
     @pytest.fixture(
         params=[
-            pd.Index([True, False]),
-            pd.Index([True, False], dtype="boolean"),
-            pytest.param(
-                pd.Index([True, False], dtype="bool[pyarrow]"),
-                marks=td.skip_if_no("pyarrow"),
-            ),
-            pd.CategoricalIndex([True, False]),
-            pd.Index([True, False], dtype=object),
+            "bool",
+            "boolean",
+            "bool[pyarrow]",
+            "category",
+            "object",
         ]
     )
     def bool_index(self, request):
-        return request.param
+        dtype = request.param
+        if dtype == "bool[pyarrow]":
+            pytest.importorskip("pyarrow")
+        return pd.Index([True, False], dtype=dtype)
 
     def test_bool_list_selects_bool_labels(self, bool_index, indexer_sl):
         # GH#43194 a bool list that cannot be a mask selects labels
