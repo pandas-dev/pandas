@@ -249,6 +249,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.ffill` and :meth:`DataFrame.bfill` with ``axis=1`` and ``inplace=True`` not modifying the :class:`DataFrame` and returning a new object instead of ``self`` (:issue:`71159`)
+- Bug in :meth:`DataFrame.fillna` with a ``dict`` or :class:`Series` and ``axis=1`` raising ``ValueError`` or ``AttributeError`` for column dtypes that can hold the fill value (:issue:`71197`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with ``method="index"``, ``"values"``, ``"time"`` or a SciPy method giving incorrect results for a nanosecond-resolution :class:`DatetimeIndex` or :class:`TimedeltaIndex` spanning less than about 104 days, or an integer index with values beyond ``2**53`` spanning less than ``2**53`` (:issue:`34601`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with ``method`` in ``"linear"``, ``"index"``, ``"values"`` or ``"time"`` ignoring ``fill_value="extrapolate"`` and repeating the first or last valid value instead of extrapolating linearly (:issue:`31949`)
 - Bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` with a large ``limit`` raising on 32-bit platforms and being very slow on long runs of missing values (:issue:`34936`)
