@@ -486,14 +486,19 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
         return NotImplemented
 
     if isinstance(result, tuple):
-        # i.e. np.divmod, np.modf, np.frexp
+        # i.e. np.divmod, np.modf, np.frexp, np.minmax
         if not isinstance(out, tuple) or len(out) != len(result):
             raise NotImplementedError
 
         for arr, res in zip(out, result, strict=True):
-            _assign_where(arr, res, where)
+            if arr is not None:
+                _assign_where(arr, res, where)
 
-        return out
+        # numpy allocates the outputs whose out entry is None,
+        #  e.g. np.minmax(df, axis=0, out=(None, arr))
+        return tuple(
+            res if arr is None else arr for arr, res in zip(out, result, strict=True)
+        )
 
     if isinstance(out, tuple):
         if len(out) == 1:
@@ -541,14 +546,19 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
     if len(inputs) != 1 or inputs[0] is not self:
         return NotImplemented
 
-    if ufunc.__name__ not in REDUCTION_ALIASES:
-        return NotImplemented
-
-    method_name = REDUCTION_ALIASES[ufunc.__name__]
-
-    # NB: we are assuming that min/max represent minimum/maximum methods,
-    #  which would not be accurate for e.g. Timestamp.min
-    if not hasattr(self, method_name):
+    if ufunc.__name__ == "minimummaximum":
+        # NumPy's fused minimum/maximum reduction behind np.minmax
+        if not hasattr(self, "min") or not hasattr(self, "max"):
+            return NotImplemented
+        method_names = ["min", "max"]
+    elif ufunc.__name__ in REDUCTION_ALIASES:
+        method_name = REDUCTION_ALIASES[ufunc.__name__]
+        # NB: we are assuming that min/max represent minimum/maximum methods,
+        #  which would not be accurate for e.g. Timestamp.min
+        if not hasattr(self, method_name):
+            return NotImplemented
+        method_names = [method_name]
+    else:
         return NotImplemented
 
     if self.ndim > 1:
@@ -567,4 +577,7 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
-    return getattr(self, method_name)(skipna=False, **kwargs)
+    results = tuple(
+        getattr(self, name)(skipna=False, **kwargs) for name in method_names
+    )
+    return results[0] if len(results) == 1 else results

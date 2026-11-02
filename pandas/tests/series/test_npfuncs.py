@@ -19,6 +19,18 @@ class TestPtp:
         ser = pd.Series(arr)
         assert np.ptp(ser) == np.ptp(arr)
 
+    def test_ptp_datetime(self):
+        ser = pd.Series(pd.date_range("2020", periods=3))
+        result = np.ptp(ser)
+        assert result == pd.Timedelta(days=2)
+        assert type(result) is pd.Timedelta
+
+    def test_ptp_frame(self):
+        df = pd.DataFrame({"a": [1.0, 5.0], "b": [2.0, 0.0]})
+        result = np.ptp(df, axis=0)
+        expected = pd.Series([4.0, 2.0], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
 
 def test_numpy_unique(datetime_series):
     # it works!
