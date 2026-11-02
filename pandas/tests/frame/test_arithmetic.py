@@ -1804,6 +1804,23 @@ class TestFrameArithmeticUnsorted:
         tm.assert_frame_equal(result1, result3)
         tm.assert_frame_equal(result1, result4)
 
+    def test_inplace_ops_align_rows_left(self):
+        # GH#12755 rows only in other must not upcast the result
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [True, False, True]})
+        orig = df
+        other = pd.DataFrame(
+            {"a": [10, 20, 30, 40], "b": [True] * 4, "c": 1}, index=[3, 2, 1, 0]
+        )
+        df &= other
+        assert df is orig
+        expected = pd.DataFrame({"a": [0, 2, 0], "b": [True, False, True]})
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df["a"] += pd.Series(10, index=range(4))
+        expected = pd.DataFrame({"a": [11, 12, 13]})
+        tm.assert_frame_equal(df, expected)
+
     def test_inplace_ops_identity(self):
         # GH 5104
         # make sure that we are actually changing the object
@@ -2057,6 +2074,16 @@ def test_dataframe_series_extension_dtypes():
     tm.assert_frame_equal(result, expected)
     result = df_ea + ser.astype("Int64")
     tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_ea_array_op_retains_dtype():
+    # GH#28527
+    df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+    arr = pd.array([1, None, 2, 3], dtype="Int64")
+    expected = pd.DataFrame([[2, None, 5, 7], [6, None, 9, 11]], dtype="Int64")
+
+    tm.assert_frame_equal(arr + df, expected)
+    tm.assert_frame_equal(df + arr, expected)
 
 
 def test_dataframe_blockwise_slicelike():

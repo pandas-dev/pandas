@@ -92,10 +92,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
-    .. warning::
-
-       ArrowStringArray is considered experimental. The implementation and
-       parts of the API may change without warning.
+    This is the ``storage="pyarrow"`` implementation of :class:`StringDtype`.
 
     Parameters
     ----------
@@ -333,7 +330,21 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
-        if is_scalar(value):
+        if isinstance(value, pa.Scalar):
+            # GH#71075 super() casts rather than checks, and pyarrow casts a
+            #  number or a bool to its string form
+            if not (
+                pa.types.is_string(value.type)
+                or pa.types.is_large_string(value.type)
+                or pa.types.is_string_view(value.type)
+                or pa.types.is_null(value.type)
+                or not value.is_valid
+            ):
+                raise TypeError(
+                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
+                    f"string or missing value, got '{type(value).__name__}' instead."
+                )
+        elif is_scalar(value):
             if isna(value):
                 value = None
             elif not isinstance(value, str):
@@ -450,7 +461,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or (regex and self._has_unsupported_regex(pat))
+            or (regex and self._needs_python_regex(pat))
             # a compiled pattern is not a valid literal; defer to the object path
             or (not regex and isinstance(pat, re.Pattern))
         ):
@@ -471,7 +482,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
+            or self._needs_python_regex(pat)
         ):
             return super()._str_match(pat, case, flags, na)
 
@@ -488,7 +499,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
+            or self._needs_python_regex(pat)
         ):
             return super()._str_fullmatch(pat, case, flags, na)
 
@@ -513,7 +524,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # https://docs.python.org/3/library/re.html
                 isinstance(repl, str) and r"\g<" in repl
             )
-            or (regex and self._has_unsupported_regex(pat))
+            or (regex and self._needs_python_regex(pat))
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
@@ -534,7 +545,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
-            or self._has_unsupported_regex(pat)
+            or self._needs_python_regex(pat)
         ):
             return super()._str_count(pat, flags)
 

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 import io
 from os import PathLike
 from typing import (
@@ -310,6 +311,7 @@ class _XMLFrameParser:
 
         dicts: list[dict[str, str | None]] = []
         row: dict[str, str | None] | None = None
+        open_slots: list[str | None] = []
 
         if not isinstance(self.iterparse, dict):
             raise TypeError(
@@ -338,9 +340,8 @@ class _XMLFrameParser:
                 "local disk and not as compressed files or online sources."
             )
 
-        iterparse_repeats = len(self.iterparse[row_node]) != len(
-            set(self.iterparse[row_node])
-        )
+        cols = list(self.iterparse[row_node])
+        iterparse_repeats = len(cols) != len(set(cols))
 
         parser = iterparse(self.path_or_buffer, events=("start", "end"))
         try:
@@ -350,25 +351,32 @@ class _XMLFrameParser:
                 if event == "start":
                     if curr_elem == row_node:
                         row = {}
+                        open_slots = []
 
                 if row is not None:
                     if self.names and iterparse_repeats:
-                        for col, nm in zip(
-                            self.iterparse[row_node], self.names, strict=True
-                        ):
-                            if curr_elem == col:
-                                elem_val = elem.text if elem.text else None
-                                if elem_val not in row.values() and nm not in row:
-                                    row[nm] = elem_val
-
-                            if col in elem.attrib:
-                                if (
-                                    elem.attrib[col] not in row.values()
-                                    and nm not in row
-                                ):
+                        # Claim the element's column on "start" to keep document
+                        # order, but read its text on "end", as it may not be
+                        # parsed yet at "start".
+                        if event == "start":
+                            slot: str | None = None
+                            used_attrs: set[str] = set()
+                            for col, nm in zip(cols, self.names, strict=True):
+                                if nm in row:
+                                    continue
+                                if curr_elem == col and slot is None:
+                                    row[nm] = None
+                                    slot = nm
+                                elif col in elem.attrib and col not in used_attrs:
                                     row[nm] = elem.attrib[col]
+                                    used_attrs.add(col)
+                            open_slots.append(slot)
+                        else:
+                            slot = open_slots.pop()
+                            if slot is not None:
+                                row[slot] = elem.text if elem.text else None
                     else:
-                        for col in self.iterparse[row_node]:
+                        for col in cols:
                             if curr_elem == col:
                                 row[col] = elem.text if elem.text else None
                             if col in elem.attrib:
@@ -591,7 +599,9 @@ class _LxmlFrameParser(_XMLFrameParser):
         xml_dicts: list[dict[str, str | None]] = (
             self._parse_nodes(elems)
             if self.iterparse is None
-            else self._iterparse_nodes(iterparse)
+            # lxml < 6.1 iterparse defaults to resolve_entities=True,
+            # which allows XXE (CVE-2026-41066)
+            else self._iterparse_nodes(partial(iterparse, resolve_entities="internal"))
         )
 
         return xml_dicts
@@ -663,7 +673,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         )
 
         with handle_data as xml_data:
-            curr_parser = XMLParser(encoding=self.encoding)
+            curr_parser = XMLParser(encoding=self.encoding, resolve_entities="internal")
 
             if isinstance(xml_data, io.StringIO):
                 if self.encoding is None:
@@ -884,6 +894,12 @@ def read_xml(
     This function parses an XML document from a file path, URL, or string buffer,
     and returns the content as a DataFrame. Nodes are selected using an XPath
     expression, and their child elements and attributes are mapped to columns.
+
+    .. warning::
+
+       XSLT is a programming language, and a ``stylesheet`` is run without
+       restrictions: it can read and write local files. Only use stylesheets
+       from trusted sources.
 
     Parameters
     ----------

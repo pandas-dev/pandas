@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     date,
     datetime,
     timedelta,
@@ -516,6 +517,42 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             # not 6 days apart
             pd.Period("2016-01-23/2017-01-29")
+
+    @pytest.mark.parametrize("freq", ["W-SUN", "W-WED"])
+    def test_parse_week_str_second_year_like_time(self, freq):
+        # GH#48000 "2012" in the second date was read as the time 20:12
+        per = pd.Period("2012-01-01", freq=freq)
+        assert pd.Period(str(per)) == per
+        assert pd.Period(str(per), freq="D") == per.asfreq("D", how="end")
+
+    @pytest.mark.parametrize("freq", [None, "W", "D"])
+    def test_parse_week_str_day_not_read_as_offset(self, freq):
+        # the "-09" end day was read as a UTC offset
+        result = pd.Period("2000-01-03/2000-01-09", freq=freq)
+        expected = pd.Period("2000-01-09", freq=freq or "W-SUN")
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "value", ["2000-01-03/2000-01-10", "2011-12-26/2012-01-01 12:00"]
+    )
+    def test_parse_week_str_invalid(self, value):
+        # GH#48000 not 6 days apart, or trailing text after the second date
+        with pytest.raises(ValueError, match="Could not parse as weekly-freq Period"):
+            pd.Period(value)
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "2022-01-01 06:00+02:00",
+            pd.Timestamp("2022-01-01 06:00", tz="US/Pacific"),
+            datetime(2022, 1, 1, 6, tzinfo=UTC),
+        ],
+    )
+    def test_construct_from_tzaware_warns(self, value):
+        # GH#47005
+        with tm.assert_produces_warning(UserWarning, match="drop timezone"):
+            result = pd.Period(value, freq="h")
+        assert result == pd.Period("2022-01-01 06:00", freq="h")
 
     def test_period_from_ordinal(self):
         p = pd.Period("2011-01", freq="M")

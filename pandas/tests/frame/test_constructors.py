@@ -530,6 +530,20 @@ class TestDataFrameConstructors:
         frame = pd.DataFrame({"A": {"1": 1, "2": 2}})
         tm.assert_index_equal(frame.index, pd.Index(["1", "2"]))
 
+    def test_constructor_dict_of_series_datetimeindex_freq(self):
+        # GH#64253 - the union of the series indexes should keep a freq that
+        # cannot be inferred from the values, whatever the column order
+        freq = pd.offsets.CustomBusinessDay(holidays=["2020-01-10"])
+        d1 = pd.Series(1, index=pd.date_range("2020-01-01", periods=5, freq=freq))
+        d2 = pd.Series(1, index=pd.date_range(d1.index[3], periods=5, freq=freq))
+        d3 = pd.Series(1, index=pd.date_range(d2.index[3], periods=5, freq=freq))
+
+        result = pd.DataFrame({"a": d1, "c": d3, "b": d2}).index
+        expected = pd.date_range(d1.index[0], d3.index[-1], freq=freq)
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == expected.freq
+
     def test_constructor_dict_with_index(self):
         # empty dict plus index
         idx = pd.Index([0, 1, 2])
@@ -873,6 +887,47 @@ class TestDataFrameConstructors:
         result = pd.DataFrame(data)
         expected = pd.DataFrame({"a": [0, 1, 2], "b": [2, 1, 0]})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            np.rec.fromarrays([np.arange(2.0)], names=["c"]),
+            np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [None, object])
+    def test_constructor_dict_of_structured_ndarray_deprecated(self, arr, dtype):
+        # GH#49388
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame({"c": arr}, dtype=dtype)
+
+    def test_constructor_list_of_structured_ndarray_deprecated(self):
+        # GH#49388
+        arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([arr, arr])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([arr[0:1].reshape(()), arr[1:2].reshape(())])
+
+    def test_constructor_list_of_void_ndarray_no_warning(self):
+        # GH#49388 unstructured void is not deprecated
+        arr = np.zeros(3, dtype="V8")
+        with tm.assert_produces_warning(None):
+            pd.DataFrame([arr, arr])
+
+    @pytest.mark.parametrize("wrap_in_dict", [True, False])
+    def test_constructor_masked_structured_ndarray_raises(self, wrap_in_dict):
+        # GH#49388
+        arr = ma.masked_array(
+            np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")]),
+            mask=[(False, False), (True, False)],
+        )
+        data = {"c": arr} if wrap_in_dict else arr
+        msg = "Cannot construct a pandas object from a masked array with compound"
+        with pytest.raises(ValueError, match=msg):
+            pd.DataFrame(data)
 
     def test_constructor_dict_multiindex(self):
         d = {
@@ -1544,6 +1599,88 @@ class TestDataFrameConstructors:
             index=["0", "1", "2"],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_empty_ea_series(self):
+        # GH#56231
+        result = pd.DataFrame([pd.Series([], dtype="Int64")], columns=[1, 2, 3])
+        expected = pd.DataFrame(
+            {col: pd.array([pd.NA], dtype="Int64") for col in [1, 2, 3]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values, dtype",
+        [
+            ([1, 2], "Int64"),
+            ([True, False], "boolean"),
+            (["a", "b"], "string[python]"),
+            (["a", "b"], "category"),
+            (["2020-01-01", "2020-01-02"], "datetime64[ns, UTC]"),
+            (["2020-01-01", "2020-01-02"], "period[D]"),
+            ([1.0, 0.0], "Sparse[float64]"),
+            pytest.param([1, 2], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_constructor_list_of_ea_series_preserves_dtype(self, values, dtype):
+        # GH#56231 column "c" is missing from every row, so is all-NA
+        arr = pd.array(values, dtype=dtype)
+        rows = [
+            pd.Series(arr, index=["a", "b"], name="x"),
+            pd.Series(arr[::-1], index=["b", "a"], name="y"),
+        ]
+        result = pd.DataFrame(rows, columns=["a", "b", "c"])
+        expected = pd.DataFrame(
+            {
+                "a": arr.take([0, 0]),
+                "b": arr.take([1, 1]),
+                "c": arr.take([-1, -1], allow_fill=True),
+            },
+            index=["x", "y"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype1, dtype2, expected_dtype",
+        [
+            ("Int64", "Float64", "Float64"),
+            ("Int8", "Int64", "Int64"),
+            ("Int64", "int64", "Int64"),
+            (
+                "Sparse[int64]",
+                pd.SparseDtype("float64", 0),
+                pd.SparseDtype("float64", 0),
+            ),
+        ],
+    )
+    def test_constructor_list_of_mixed_ea_series(self, dtype1, dtype2, expected_dtype):
+        # GH#56231 columns get the rows' common dtype, as in concat
+        rows = [
+            pd.Series([1, 0], index=["a", "b"], dtype=dtype1),
+            pd.Series([2, 0], index=["a", "b"], dtype=dtype2),
+        ]
+        result = pd.DataFrame(rows)
+        expected = pd.DataFrame({"a": [1, 2], "b": [0, 0]}, dtype=expected_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_mixed_ea_series_missing_key(self):
+        # GH#56231 the int64 row lacks "b"; casting it via float64 would lose
+        #  precision and make the common dtype Float64
+        big = 2**60 + 1
+        rows = [
+            pd.Series([1, 2], index=["a", "b"], dtype="Int64"),
+            pd.Series([big], index=["a"]),
+        ]
+        result = pd.DataFrame(rows)
+        expected = pd.DataFrame(
+            {"a": [1, big], "b": pd.array([2, pd.NA], dtype="Int64")}, dtype="Int64"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_ea_series_lossy_dtype_raises(self):
+        # GH#56231 dtype casts EA rows like numpy rows, not via a lossy astype
+        ser = pd.Series([300, -1], dtype="Int64")
+        with pytest.raises(ValueError, match="losslessly"):
+            pd.DataFrame([ser], dtype="uint8")
 
     def test_constructor_list_of_derived_dicts(self):
         class CustomDict(dict):
@@ -2464,6 +2601,23 @@ class TestDataFrameConstructors:
         # equal-length sequences are unaffected
         with tm.assert_produces_warning(None):
             pd.DataFrame([[1, 2], [3, 4]])
+
+    @pytest.mark.parametrize(
+        "first_row",
+        [
+            ["A1", "A2"],
+            ("A1", "A2"),
+            np.array(["A1", "A2"], dtype=object),
+            np.array(["A1", "A2"]),
+            np.array([b"A1", b"A2"]),
+        ],
+    )
+    @pytest.mark.parametrize("str_row", ["BC", np.str_("BC"), b"BC", np.bytes_(b"BC")])
+    def test_construct_listlike_then_str_row_deprecated(self, first_row, str_row):
+        # GH#50461 a str or bytes row is split into its elements
+        msg = "a str or bytes row after a list-like row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.DataFrame([first_row, str_row])
 
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]

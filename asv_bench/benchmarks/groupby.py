@@ -973,6 +973,16 @@ class Transform:
         self.df4 = self.df3.copy()
         self.df4["jim"] = self.df4["joe"]
 
+        n = 100_000
+        self.df_mixed = DataFrame(
+            {
+                "int": np.random.randint(0, 100, n),
+                "float1": np.random.randn(n),
+                "float2": np.random.randn(n),
+            },
+            index=np.random.randint(0, 1000, n),
+        )
+
     def time_transform_lambda_max(self):
         self.df.groupby(level="lev1").transform(lambda x: max(x))
 
@@ -984,6 +994,9 @@ class Transform:
 
     def time_transform_lambda_max_wide(self):
         self.df_wide.groupby(level=0).transform(lambda x: np.max(x, axis=0))
+
+    def time_transform_lambda_reduction_mixed_dtypes(self):
+        self.df_mixed.groupby(level=0).transform(lambda x: x.max() - x.min())
 
     def time_transform_multi_key1(self):
         self.df1.groupby(["jim", "joe"])["jolie"].transform("max")

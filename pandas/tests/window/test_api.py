@@ -35,6 +35,37 @@ def test_getitem(step):
     tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns[[1, 3]])
 
 
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [("rolling", {"window": 2}), ("expanding", {}), ("ewm", {"com": 1})],
+)
+def test_getitem_multiindex_tuple_key(method, kwargs):
+    # GH#13914
+    df = pd.DataFrame(
+        [[1, 4], [2, 5], [3, 6]],
+        columns=pd.MultiIndex.from_tuples([("A", 1), ("A", 2)]),
+    )
+    with tm.assert_produces_warning(None):
+        result = getattr(df, method)(**kwargs)[("A", 1)].mean()
+    expected = getattr(df[("A", 1)], method)(**kwargs).mean()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [("rolling", {"window": 2}), ("expanding", {}), ("ewm", {"com": 1})],
+)
+def test_groupby_getitem_multiindex_tuple_key(method, kwargs):
+    # GH#13914
+    mi = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("k", "")])
+    df = pd.DataFrame([[1, 4, 1], [2, 5, 1], [3, 6, 2]], columns=mi)
+    gb = df.groupby(("k", ""))
+    with tm.assert_produces_warning(None):
+        result = getattr(gb, method)(**kwargs)[("A", 1)].mean()
+    expected = getattr(gb[[("A", 1)]], method)(**kwargs).mean()[("A", 1)]
+    tm.assert_series_equal(result, expected)
+
+
 def test_select_bad_cols():
     df = pd.DataFrame([[1, 2]], columns=["A", "B"])
     g = df.rolling(window=5)
@@ -152,6 +183,30 @@ def test_agg_consistency(step):
     result = r.agg({"A": [np.sum, np.mean]}).columns
     expected = pd.MultiIndex.from_tuples([("A", "sum"), ("A", "mean")])
     tm.assert_index_equal(result, expected)
+
+
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"A": [1.0, 2.0, 4.0]})
+    result = df.rolling(2).agg({"A": "std"}, ddof=0)
+    expected = df.rolling(2).std(ddof=0)
+    tm.assert_frame_equal(result, expected)
+
+    pytest.importorskip("scipy")
+    result = df.rolling(2, win_type="gaussian").agg({"A": "mean"}, std=1)
+    expected = df.rolling(2, win_type="gaussian").mean(std=1)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("spelling", ["dict", "list"])
+def test_agg_many_columns_result_not_fragmented(spelling):
+    # GH#61628 per-column agg results made reset_index warn about fragmentation
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    func = dict.fromkeys(cols, "sum") if spelling == "dict" else ["sum"]
+    result = df.rolling(2).agg(func)
+    with tm.assert_produces_warning(None):
+        result.reset_index()
 
 
 def test_agg_nested_dicts():

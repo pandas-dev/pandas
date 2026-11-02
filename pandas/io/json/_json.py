@@ -67,6 +67,7 @@ from pandas.io.common import (
     get_handle,
     is_potential_multi_index,
     stringify_path,
+    warn_unused_compression,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import (
@@ -202,7 +203,8 @@ def to_json(
         raise ValueError(msg)
 
     if orient == "table" and isinstance(obj, Series):
-        obj = obj.to_frame(name=obj.name or "values")
+        # GH#19129 only a None name is a missing name; 0 and False are labels
+        obj = obj.to_frame(name="values" if obj.name is None else obj.name)
 
     if date_format == "epoch":
         # for epoch (numeric) format, convert datetime-likes to the desired
@@ -268,6 +270,7 @@ def to_json(
         ) as handles:
             handles.handle.write(s)
     else:
+        warn_unused_compression(compression)
         return s
     return None
 
@@ -1586,7 +1589,7 @@ class Parser:
             try:
                 data = data.astype("float64")
                 converted = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         if data.dtype.kind == "f" and data.dtype != "float64":
@@ -1796,7 +1799,10 @@ class SeriesParser(Parser):
             return Series(data)
 
     def _try_convert_types(self, obj: Series) -> Series:
-        obj, _ = self._try_convert_data("data", obj, convert_dates=self.convert_dates)
+        # unlike frame columns, there is no name to suggest dates, and
+        #  all-missing values are no evidence of them (GH#35464)
+        convert_dates = False if obj.isna().all() else self.convert_dates
+        obj, _ = self._try_convert_data("data", obj, convert_dates=convert_dates)
         return obj
 
 

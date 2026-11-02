@@ -46,10 +46,13 @@ objects.
       api.extensions.ExtensionArray._reduce
       api.extensions.ExtensionArray._values_for_argsort
       api.extensions.ExtensionArray._values_for_factorize
+      api.extensions.ExtensionArray.argmax
+      api.extensions.ExtensionArray.argmin
       api.extensions.ExtensionArray.argsort
       api.extensions.ExtensionArray.astype
       api.extensions.ExtensionArray.copy
       api.extensions.ExtensionArray.count
+      api.extensions.ExtensionArray.delete
       api.extensions.ExtensionArray.view
       api.extensions.ExtensionArray.dropna
       api.extensions.ExtensionArray.duplicated
@@ -61,17 +64,24 @@ objects.
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
       api.extensions.ExtensionArray.item
+      api.extensions.ExtensionArray.map
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat
+      api.extensions.ExtensionArray.round
       api.extensions.ExtensionArray.searchsorted
       api.extensions.ExtensionArray.shift
       api.extensions.ExtensionArray.sort
       api.extensions.ExtensionArray.take
+      api.extensions.ExtensionArray.to_numpy
+      api.extensions.ExtensionArray.transpose
       api.extensions.ExtensionArray.unique
+      api.extensions.ExtensionArray.value_counts
       api.extensions.ExtensionArray.dtype
       api.extensions.ExtensionArray.nbytes
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
+      api.extensions.ExtensionArray.size
+      api.extensions.ExtensionArray.T
       api.extensions.ExtensionArray.tolist
       api.extensions.ExtensionDtype.construct_array_type
       api.extensions.ExtensionDtype.construct_from_string

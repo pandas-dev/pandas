@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from datetime import timedelta
 from decimal import Decimal
 from functools import partial
 from typing import (
@@ -56,6 +57,7 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -65,6 +67,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import (
     PeriodConverter,
+    TimeSeries_TimedeltaFormatter,
     plottable_types,
     register_pandas_matplotlib_converters,
 )
@@ -72,6 +75,7 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
+    adopt_period_converter,
     format_dateaxis,
     get_period_offset,
     maybe_convert_index,
@@ -244,8 +248,15 @@ class MPLPlot(ABC):
             self._rot_set = False
             self.rot = self._default_rot
 
+        # Axes.grid ignores the axes.grid.axis/which rcParams, see GH#17725
+        self._grid_kwargs: dict[str, Any] = {}
         if grid is None:
             grid = False if secondary_y else mpl.rcParams["axes.grid"]
+            if grid:
+                self._grid_kwargs = {
+                    "axis": mpl.rcParams["axes.grid.axis"],
+                    "which": mpl.rcParams["axes.grid.which"],
+                }
 
         self.grid = grid
         self.legend = legend
@@ -466,8 +477,14 @@ class MPLPlot(ABC):
             # support series.plot(color='green')
             color = [color]
 
-        if isinstance(color, tuple) and self.nseries == 1 and len(color) in (3, 4):
-            # support RGB and RGBA tuples in series plot
+        if (
+            isinstance(color, tuple)
+            and self.nseries == 1
+            and len(color) in (3, 4)
+            and not all(map(mpl.colors.is_color_like, color))
+        ):
+            # support RGB and RGBA tuples in series plot; a tuple of colors
+            # is a sequence of colors, GH#18449
             color = [color]
 
         if colormap is not None:
@@ -721,11 +738,14 @@ class MPLPlot(ABC):
             include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = []
+        exclude_type: list[type] = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
             exclude_type = [np.timedelta64]
+        elif self._kind == "hist":
+            # GH#43941 match the frame path, which skips timedelta columns
+            exclude_type = [np.timedelta64, timedelta]
 
         # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":
@@ -836,7 +856,7 @@ class MPLPlot(ABC):
             if self.ylabel is not None:
                 ax.set_ylabel(pprint_thing(self.ylabel))
 
-            ax.grid(self.grid)
+            ax.grid(self.grid, **self._grid_kwargs)
 
         if self.title:
             if self.subplots:
@@ -932,7 +952,6 @@ class MPLPlot(ABC):
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                # Replace leg.legend_handles because it misses marker info
                 handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
@@ -1003,6 +1022,10 @@ class MPLPlot(ABC):
                 x = index._mpl_repr()
             elif isinstance(index, ABCDatetimeIndex) or is_datetype:
                 x = index._mpl_repr()
+            elif isinstance(index, ABCTimedeltaIndex) and not self._is_ts_plot():
+                # GH#19965 plot at the actual offsets rather than positionally,
+                # in the index's unit as the dynamic path does
+                x = np.where(index.isna(), np.nan, index.asi8.astype(np.float64))
             else:
                 self._need_to_set_index = True
                 x = list(range(len(index)))
@@ -1029,9 +1052,12 @@ class MPLPlot(ABC):
                 kwds["xerr"] = np.array(kwds.get("xerr"))
             if "yerr" in kwds:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
+            # errorbar takes the format string as ``fmt``; an explicit
+            # ``fmt`` takes precedence, GH#7023
+            if style is not None:
+                kwds.setdefault("fmt", style)
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is unsupported
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
@@ -1392,6 +1418,9 @@ class ScatterPlot(PlanePlot):
             s, index_freq = maybe_convert_index(ax, s)
             freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
             x_data = s.index
+        elif isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex)):
+            # GH#40470
+            adopt_period_converter(ax)
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1632,8 +1661,17 @@ class LinePlot(MPLPlot):
         seen_ax_ids: set[int] = set()
         # Index actually drawn on each ts axes, keyed by id(ax); see _ts_plot.
         self._ts_index: dict[int, Index] = {}
+        # datetimes on a sharex/twinx sibling of a ts axes must be converted
+        # to its period ordinals (GH#40470)
+        adopt = (
+            not is_ts
+            and self.use_index
+            and isinstance(self.data.index, (ABCDatetimeIndex, ABCPeriodIndex))
+        )
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
+            if adopt:
+                adopt_period_converter(ax)
             kwds = self.kwds.copy()
             if self.color is not None:
                 kwds["color"] = self.color
@@ -1810,6 +1848,13 @@ class LinePlot(MPLPlot):
             # Any]"; expected "Sequence[float]"
             ax.xaxis.set_major_locator(mpl.ticker.FixedLocator(xticks))  # type: ignore[arg-type]
             ax.set_xticklabels(xticklabels)
+        elif (
+            self.use_index
+            and isinstance(data.index, ABCTimedeltaIndex)
+            and not self._is_ts_plot()
+        ):
+            # GH#19965 the dynamic path sets this in format_dateaxis
+            ax.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(data.index.unit))
 
         # If the index is an irregular time series, then by default
         # we rotate the tick labels. The exception is if there are

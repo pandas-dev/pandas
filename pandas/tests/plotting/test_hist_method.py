@@ -253,6 +253,49 @@ class TestSeriesPlots:
         assert len(lines) == 1
         _check_colors(lines, ["r"])
 
+    @pytest.mark.parametrize(
+        "tz, dtype",
+        [
+            (None, None),
+            ("US/Eastern", None),
+            (None, "timestamp[us][pyarrow]"),
+            ("UTC", "timestamp[us, tz=UTC][pyarrow]"),
+        ],
+    )
+    def test_plot_hist_datetime(self, tz, dtype):
+        # GH#17372
+        ser = pd.Series(pd.date_range("2011-01-01", periods=72, freq="h", tz=tz))
+        if dtype is not None:
+            pytest.importorskip("pyarrow")
+            ser = ser.astype(dtype)
+        ser[5] = pd.NaT
+        _, ax = mpl.pyplot.subplots()
+        ax = ser.plot.hist(ax=ax)
+
+        expected, edges = np.histogram(mpl.dates.date2num(ser.dropna()))
+        assert [patch.get_height() for patch in ax.patches] == expected.tolist()
+        assert ax.patches[0].get_x() == edges[0]
+
+    def test_plot_hist_datetime_range(self):
+        # GH#17372
+        ser = pd.Series(pd.date_range("2011-01-01", periods=72, freq="h"))
+        bin_range = (pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02"))
+        _, ax = mpl.pyplot.subplots()
+        ax = ser.plot.hist(bins=4, range=bin_range, ax=ax)
+
+        assert [patch.get_height() for patch in ax.patches] == [6, 6, 6, 7]
+
+    @pytest.mark.parametrize("method", ["hist", "plot.hist"])
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "duration[ns][pyarrow]"])
+    def test_hist_timedelta_raises(self, method, dtype):
+        # GH#43941 used to segfault inside numpy
+        if "pyarrow" in dtype:
+            pytest.importorskip("pyarrow")
+        ser = pd.Series(pd.to_timedelta([None, "2 days", "1 day"])).astype(dtype)
+        func = ser.hist if method == "hist" else ser.plot.hist
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            func()
+
 
 class TestDataFramePlots:
     def test_hist_df_tz_aware(self):
@@ -268,6 +311,21 @@ class TestDataFramePlots:
 
         ax = np.ravel(axes)[0]
         assert ax.patches[0].get_x() == mpl.dates.date2num(df["a"].min())
+
+    @pytest.mark.parametrize("by", [None, "g"])
+    def test_plot_hist_datetime_columns(self, by):
+        # GH#17372
+        dti = pd.date_range("2011-01-01", periods=72, freq="h")
+        df = pd.DataFrame({"a": dti, "b": dti + pd.Timedelta(days=1), "g": 1})
+        _, ax = mpl.pyplot.subplots()
+        axes = df.plot.hist(column=["a", "b"], by=by, ax=ax)
+        ax = np.ravel(axes)[0]
+
+        values = mpl.dates.date2num(pd.concat([df["a"], df["b"]]))
+        expected = np.histogram(
+            mpl.dates.date2num(df["a"]), np.histogram_bin_edges(values)
+        )
+        assert [patch.get_height() for patch in ax.patches[:10]] == expected[0].tolist()
 
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
@@ -921,6 +979,44 @@ class TestDataFrameGroupByPlots:
         _check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
+
+    @pytest.mark.parametrize(
+        "get_by",
+        [
+            lambda df: "a",
+            lambda df: ["a"],
+            lambda df: df["a"],
+            lambda df: pd.Grouper(key="a"),
+        ],
+    )
+    def test_grouped_hist_excludes_by_column(self, get_by):
+        # GH#41188 numeric grouping column should not be plotted
+        df = pd.DataFrame(
+            {
+                "x": np.random.default_rng(2).standard_normal(10),
+                "y": np.random.default_rng(3).standard_normal(10),
+                "a": [0, 1] * 5,
+            }
+        )
+        axes = df.hist(by=get_by(df), bins=5, legend=True)
+        _check_axes_shape(axes, axes_num=2, layout=(1, 2))
+        for ax in axes.ravel():
+            assert len(ax.patches) == 2 * 5
+        _check_legend_labels(axes, ["x", "y"])
+
+    def test_grouped_hist_excludes_by_column_multiindex_columns(self):
+        # GH#41188 "a" refers to the ("a", "") column
+        df = pd.DataFrame(
+            {
+                ("a", ""): [0, 1] * 5,
+                ("g", "x"): np.random.default_rng(2).standard_normal(10),
+                ("g", "y"): np.random.default_rng(3).standard_normal(10),
+            }
+        )
+        axes = df.hist(by="a", bins=5)
+        _check_axes_shape(axes, axes_num=2, layout=(1, 2))
+        for ax in axes.ravel():
+            assert len(ax.patches) == 2 * 5
 
     def test_grouped_hist_multiple_axes_error(self, hist_df):
         # GH 6970, GH 7069

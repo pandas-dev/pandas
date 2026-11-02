@@ -186,11 +186,7 @@ class TestDataFrameFormatting:
 
         with pd.option_context("display.chop_threshold", 1e-8):
             assert repr(df) == (
-                "      0             1\n"
-                "0  10.0  0.000000e+00\n"
-                "1  20.0  0.000000e+00\n"
-                "2  30.0  0.000000e+00\n"
-                "3  40.0  0.000000e+00"
+                "      0    1\n0  10.0  0.0\n1  20.0  0.0\n2  30.0  0.0\n3  40.0  0.0"
             )
 
         with pd.option_context("display.chop_threshold", 5e-11):
@@ -201,6 +197,21 @@ class TestDataFrameFormatting:
                 "2  30.0  2.000000e-09\n"
                 "3  40.0  0.000000e+00"
             )
+
+    def test_repr_chop_threshold_no_scientific(self):
+        # GH#12374 values chopped to 0 should not force scientific notation
+        ser = pd.Series([0.38, -0.057, 0.005, 0.001, np.nan])
+        with pd.option_context("display.precision", 2, "display.chop_threshold", 0.005):
+            assert repr(ser) == (
+                "0    0.38\n1   -0.06\n2    0.00\n3    0.00\n4     NaN\ndtype: float64"
+            )
+            assert repr(ser.to_frame()) == (
+                "      0\n0  0.38\n1 -0.06\n2  0.00\n3  0.00\n4   NaN"
+            )
+
+        # a negative threshold chops nothing, so exact zeros stay unaffected
+        with pd.option_context("display.chop_threshold", -1):
+            assert repr(pd.Series([0.0, 0.5])) == "0    0.0\n1    0.5\ndtype: float64"
 
     def test_repr_no_backslash(self):
         with pd.option_context("mode.sim_interactive", True):

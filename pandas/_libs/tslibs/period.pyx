@@ -1837,6 +1837,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
         bint saw_integer = False
+        list saw_tz = [False]
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # if we don't raise here, we'll segfault later!
@@ -1846,7 +1847,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, dtype, &saw_integer)
+        ordinal = _extract_ordinal(p, dtype, &saw_integer, saw_tz)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
@@ -1866,11 +1867,15 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
             stacklevel=find_stack_level(),
         )
 
+    if saw_tz[0]:
+        # GH#47005; warn once for the array rather than once per element
+        _warn_dropped_tz()
+
     return ordinals
 
 
 cdef int64_t _extract_ordinal(
-    object item, PeriodDtypeBase dtype, bint* saw_integer
+    object item, PeriodDtypeBase dtype, bint* saw_integer, list saw_tz
 ) except? -1:
     """
     See extract_ordinals.
@@ -1901,7 +1906,7 @@ cdef int64_t _extract_ordinal(
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
-            item = Period(item, freq=dtype)
+            item = Period._new(saw_tz, item, dtype)
             if item is NaT:
                 # input may contain NaT-like string
                 ordinal = NPY_NAT
@@ -1955,6 +1960,16 @@ INT_TO_PERIOD_SCALAR_DEPR_MSG = (
     "string, e.g. Period(str(value), freq=...). To get the future behavior "
     "now, use Period(ordinal=value, freq=...)."
 )
+
+DROPPED_TZ_MSG = "Converting to Period representation will drop timezone information."
+
+
+cdef _warn_dropped_tz():
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(DROPPED_TZ_MSG, UserWarning, stacklevel=find_stack_level())
 
 
 @set_module("pandas.errors")
@@ -3480,6 +3495,20 @@ class Period(_Period):
     def __new__(cls, value=None, freq=None, ordinal=None,
                 year=None, month=None, quarter=None, day=None,
                 hour=None, minute=None, second=None):
+        saw_tz = [False]
+        result = cls._new(saw_tz, value, freq, ordinal,
+                          year, month, quarter, day, hour, minute, second)
+        if saw_tz[0]:
+            # GH#47005
+            _warn_dropped_tz()
+        return result
+
+    @classmethod
+    def _new(cls, list saw_tz, value=None, freq=None, ordinal=None,
+             year=None, month=None, quarter=None, day=None,
+             hour=None, minute=None, second=None):
+        # Sets saw_tz[0] instead of warning so extract_ordinals can warn
+        #  once for an array.
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as Y, Q, etc. Every five minutes would be, e.g.,
         # ('min', 5) but may be passed in as a string like '5min'
@@ -3565,20 +3594,14 @@ class Period(_Period):
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None
-            try:
+            if "/" in value and re.match(r"\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value):
+                # Checked before general parsing, which can misread the second
+                #  date as a time, e.g. "2012" as 20:12, see GH#48000
+                dt, freq = _parse_weekly_str(value, freq)
+            else:
                 dt, reso = parse_datetime_string_with_reso(
                     value, freqstr, warn_quarter=False,
                 )
-            except ValueError as err:
-                match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
-                if match:
-                    # Case that cannot be parsed (correctly) by our datetime
-                    #  parsing logic
-                    dt, freq = _parse_weekly_str(value, freq)
-                else:
-                    raise err
-
-            else:
                 if reso == "nanosecond":
                     nanosecond = dt.nanosecond
                 if dt is NaT:
@@ -3610,6 +3633,8 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
+            if dt.tzinfo is not None:
+                saw_tz[0] = True
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
@@ -3675,6 +3700,10 @@ cdef _parse_weekly_str(value, BaseOffset freq):
     Period.__str__ with weekly freq.
     """
     # GH#50803
+    if len(value) != 21:
+        # The caller matched the format as a prefix, so this rejects trailing
+        #  text, e.g. a time, which Timestamp would accept, GH#48000
+        raise ValueError("Could not parse as weekly-freq Period")
     start, end = value.split("/")
     start = Timestamp(start)
     end = Timestamp(end)

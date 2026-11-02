@@ -342,6 +342,21 @@ class TestSeriesPlots:
         ]
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "color",
+        [
+            ("red", "blue", "green"),
+            ("r", "b", "g", "k"),
+            ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+        ],
+    )
+    def test_bar_user_colors_tuple_of_colors(self, color):
+        # GH#18449 a 3- or 4-tuple of colors is not a single RGB(A) color
+        ser = pd.Series(range(len(color)))
+        ax = ser.plot.bar(color=color)
+        result = [patch.get_facecolor() for patch in ax.patches]
+        assert result == [mpl.colors.to_rgba(col) for col in color]
+
     def test_rotation_default(self):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # Default rot 0
@@ -635,12 +650,36 @@ class TestSeriesPlots:
         mpl.pyplot.close()
 
     @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
-    def test_invalid_plot_data(self, kind):
-        s = pd.Series(list("abcd"))
+    @pytest.mark.parametrize(
+        "data",
+        [
+            list("abcd"),
+            # GH#10254 categoricals are non-numeric, even with numeric categories
+            pd.Categorical([1, 2, 4, 2, 4]),
+            pd.Categorical(list("abcbc")),
+        ],
+    )
+    def test_invalid_plot_data(self, kind, data):
+        s = pd.Series(data)
         _, ax = mpl.pyplot.subplots()
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             s.plot(kind=kind, ax=ax)
+
+    @pytest.mark.parametrize("dtype", ["category", object])
+    @pytest.mark.parametrize("values", [[1, 2, 4, 2, 4], list("abcbc")])
+    def test_plot_categorical_index(self, dtype, values):
+        # GH#10254 plotted positionally and labeled like an object Index
+        s = pd.Series(range(5), index=pd.Index(values, dtype=dtype))
+        _, ax = mpl.pyplot.subplots()
+        ax = s.plot(ax=ax)
+        tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), np.arange(5))
+        labeled = [
+            (loc, label.get_text())
+            for loc, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=True)
+            if label.get_text()
+        ]
+        assert labeled == [(i, str(val)) for i, val in enumerate(values)]
 
     @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
     def test_valid_object_plot(self, kind):

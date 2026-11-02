@@ -24,7 +24,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.errors import MergeError
+from pandas.errors import (
+    MergeError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -670,14 +673,14 @@ def merge_asof(
 
     For each row in the left DataFrame:
 
-      - A "backward" search selects the last row in the right DataFrame whose
-        'on' key is less than or equal to the left's key.
+    - A "backward" search selects the last row in the right DataFrame whose
+      'on' key is less than or equal to the left's key.
 
-      - A "forward" search selects the first row in the right DataFrame whose
-        'on' key is greater than or equal to the left's key.
+    - A "forward" search selects the first row in the right DataFrame whose
+      'on' key is greater than or equal to the left's key.
 
-      - A "nearest" search selects the row in the right DataFrame whose 'on'
-        key is closest in absolute distance to the left's key.
+    - A "nearest" search selects the row in the right DataFrame whose 'on'
+      key is closest in absolute distance to the left's key.
 
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
@@ -1447,7 +1450,8 @@ class _MergeOperation:
             (left_indexer, right_indexer) = self._get_join_indexers()
 
             if self.right_index:
-                if len(self.left) > 0:
+                # GH#41171 asof takes the left index even when left is empty
+                if len(self.left) > 0 or self.how == "asof":
                     join_index = self._create_join_index(
                         left_ax,
                         right_ax,
@@ -1826,21 +1830,17 @@ class _MergeOperation:
             elif (lk_is_object_or_string and is_numeric_dtype(rk.dtype)) or (
                 is_numeric_dtype(lk.dtype) and rk_is_object_or_string
             ):
-                inferred_left = lib.infer_dtype(lk, skipna=False)
-                inferred_right = lib.infer_dtype(rk, skipna=False)
-                bool_types = ["integer", "mixed-integer", "boolean", "empty"]
-                string_types = ["string", "unicode", "mixed", "bytes", "empty"]
-
-                # inferred bool
-                if inferred_left in bool_types and inferred_right in bool_types:
-                    pass
-
-                # unless we are merging non-string-like with string-like
+                # raise if the non-numeric key holds only str or bytes values,
+                # ignoring missing values
+                obj_key = lk if lk_is_object_or_string else rk
+                if not isinstance(obj_key.dtype, np.dtype):
+                    # raise for string extension dtypes, not e.g. Sparse[object]
+                    if is_string_dtype(obj_key.dtype):
+                        raise ValueError(msg)
                 elif (
-                    inferred_left in string_types and inferred_right not in string_types
-                ) or (
-                    inferred_right in string_types and inferred_left not in string_types
-                ):
+                    lib.is_string_array(obj_key, skipna=True)
+                    or lib.is_bytes_array(obj_key, skipna=True)
+                ) and not isna(obj_key).all():
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
@@ -3386,6 +3386,15 @@ def _items_overlap_with_suffix(
         raise MergeError(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
             "not allowed.",
+        )
+    # GH#13659 left and right labels collide after suffixing, e.g. equal suffixes
+    cross_dups = llabels.intersection(rlabels)
+    if len(cross_dups):
+        warnings.warn(
+            f"Passing 'suffixes' which cause duplicate columns {set(cross_dups)} "
+            "is deprecated and will raise a MergeError in a future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

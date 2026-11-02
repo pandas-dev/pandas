@@ -371,6 +371,7 @@ Datetime methods
    Series.dt.month_name
    Series.dt.day_name
    Series.dt.as_unit
+   Series.dt.shift
 
 Period properties
 ^^^^^^^^^^^^^^^^^
@@ -407,6 +408,7 @@ Timedelta methods
    Series.dt.to_pytimedelta
    Series.dt.total_seconds
    Series.dt.as_unit
+   Series.dt.shift
 
 
 .. _api.series.str:
@@ -508,6 +510,7 @@ the ``Series.cat`` accessor.
    Series.cat.set_categories
    Series.cat.as_ordered
    Series.cat.as_unordered
+   Series.cat.to_dense
 
 
 .. _api.series.sparse:

@@ -780,6 +780,21 @@ def test_astype_object_to_datetimelike_no_unit(dtype):
         ser.astype(dtype)
 
 
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
+def test_astype_strings_mixed_iso_formats_to_dt64(any_string_dtype, box):
+    # GH#53127 each string is parsed on its own, not with a format guessed
+    #  from the first one
+    obj = box(["2007-07-07 01:01:01.10", "2007-07-07 01:01:01"], dtype=any_string_dtype)
+
+    result = obj.astype("M8[ns]")
+
+    expected = box(
+        [pd.Timestamp("2007-07-07 01:01:01.1"), pd.Timestamp("2007-07-07 01:01:01")],
+        dtype="M8[ns]",
+    )
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize("value", [np.inf, -np.inf, 1e30, -1e30, float(2**63)])
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_astype_float_to_datetimelike_out_of_bounds(value, unit):

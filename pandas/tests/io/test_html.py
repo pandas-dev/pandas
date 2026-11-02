@@ -8,6 +8,7 @@ from io import (
 import os
 from pathlib import Path
 import re
+import sys
 import threading
 from urllib.error import URLError
 
@@ -68,6 +69,25 @@ def test_bs4_version_fails(monkeypatch, datapath):
         pd.read_html(datapath("io", "data", "html", "spam.html"), flavor="bs4")
 
 
+def test_default_flavor_falls_back_to_bs4_without_lxml(monkeypatch):
+    # GH#30281
+    pytest.importorskip("bs4")
+    pytest.importorskip("html5lib")
+    monkeypatch.setitem(sys.modules, "lxml.etree", None)
+    html = "<table><tr><td>1</td></tr></table>"
+
+    result = pd.read_html(StringIO(html))
+    expected = [pd.DataFrame([[1]])]
+    assert_framelist_equal(result, expected)
+
+    with pytest.raises(ImportError, match="lxml"):
+        pd.read_html(StringIO(html), flavor="lxml")
+
+    monkeypatch.setitem(sys.modules, "html5lib", None)
+    with pytest.raises(ImportError, match="lxml"):
+        pd.read_html(StringIO(html))
+
+
 def test_invalid_flavor():
     url = "google.com"
     flavor = "invalid flavor"
@@ -96,6 +116,19 @@ def test_same_ordering(datapath):
 )
 def flavor_read_html(request):
     return partial(pd.read_html, flavor=request.param)
+
+
+def test_duplicate_tables_are_returned(flavor_read_html):
+    # GH#49934 identical tables are distinct tables and should all be returned
+    html = (
+        "<html><body>"
+        "<table><tr><td>a</td></tr></table>"
+        "<table><tr><td>a</td></tr></table>"
+        "</body></html>"
+    )
+    result = flavor_read_html(StringIO(html))
+    assert len(result) == 2
+    tm.assert_frame_equal(result[0], result[1])
 
 
 class TestReadHtml:
@@ -384,12 +417,11 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @pytest.mark.network
-    @pytest.mark.single_cpu
-    def test_bad_url_protocol(self, httpserver, flavor_read_html):
-        httpserver.serve_content("urlopen error unknown url type: git", code=404)
-        with pytest.raises(URLError, match="urlopen error unknown url type: git"):
-            flavor_read_html("git://github.com", match=".*Water.*")
+    def test_bad_url_protocol(self, flavor_read_html):
+        # GH#46765 schemes urllib cannot open go to fsspec
+        pytest.importorskip("fsspec")
+        with pytest.raises(ValueError, match="Protocol not known: telnet"):
+            flavor_read_html("telnet://github.com", match=".*Water.*")
 
     @pytest.mark.slow
     @pytest.mark.network
@@ -485,6 +517,25 @@ class TestReadHtml:
         )[0]
         assert isinstance(df.index, pd.MultiIndex)
         assert isinstance(df.columns, pd.MultiIndex)
+
+    def test_multiindex_header_not_increasing(self, flavor_read_html):
+        # GH#47011
+        data = """<table>
+            <thead>
+                <tr><th>a</th><th>b</th></tr>
+                <tr><th>c</th><th>d</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>2</td></tr>
+                <tr><td>3</td><td>4</td></tr>
+            </tbody>
+        </table>"""
+        result = flavor_read_html(StringIO(data), header=[1, 0])[0]
+        expected = pd.DataFrame(
+            [[1, 2], [3, 4]],
+            columns=pd.MultiIndex.from_arrays([["c", "d"], ["a", "b"]]),
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
     def test_regex_idempotency(self, banklist_data, flavor_read_html):

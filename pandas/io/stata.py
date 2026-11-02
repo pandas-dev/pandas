@@ -1735,6 +1735,11 @@ the string values returned are correct."""
                         data[col] = data[col].astype(dt)
             if columns is not None:
                 data = self._do_select_columns(data, columns)
+            if convert_categoricals:
+                self._read_value_labels()
+                data = self._do_convert_categoricals(
+                    data, self._value_label_dict, self._lbllist, order_categoricals
+                )
             return data
 
         if (self._format_version >= 117) and (not self._value_labels_read):
@@ -1960,7 +1965,9 @@ the string values returned are correct."""
                 keys = np.array(list(vl.keys()))
                 column = data[col]
                 key_matches = column.isin(keys)
-                if self._using_iterator and key_matches.all():
+                # An empty column has no codes to take the categories from, so use
+                # all the value labels, as when iterating.
+                if (self._using_iterator or column.empty) and key_matches.all():
                     initial_categories: np.ndarray | None = keys
                     # If all categories are in the keys and we are iterating,
                     # use the same keys for all chunks. If some are missing
@@ -2653,7 +2660,7 @@ class StataWriter(StataParser):
                 values = data[col].cat.codes._values.copy()
 
                 # Upcast if needed so that correct missing values can be set
-                if values.max() >= get_base_missing_value(dtype):
+                if len(values) and values.max() >= get_base_missing_value(dtype):
                     if dtype == np.int8:
                         dtype = np.dtype(np.int16)
                     elif dtype == np.int16:

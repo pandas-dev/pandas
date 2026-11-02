@@ -54,11 +54,6 @@ class BooleanDtype(BaseMaskedDtype):
     which implements Kleene logic (sometimes called three-value logic) for
     logical operations. See :ref:`boolean.kleene` for more.
 
-    .. warning::
-
-        BooleanDtype is considered experimental. The implementation and
-        parts of the API may change without warning.
-
     Attributes
     ----------
     None
@@ -279,11 +274,6 @@ class BooleanArray(BaseMaskedArray):
     To construct a BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
-
-    .. warning::
-
-       BooleanArray is considered experimental. The implementation and
-       parts of the API may change without warning.
 
     Parameters
     ----------

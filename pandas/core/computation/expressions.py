@@ -96,6 +96,14 @@ def _evaluate_blocked(op, op_str, left_op, right_op):
 
 def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
     """return left_op boolean if we WILL be using numexpr"""
+    if op_str == "**" and not any(
+        operand.dtype.kind == "f"
+        if hasattr(operand, "dtype")
+        else isinstance(operand, float)
+        for operand in [left_op, right_op]
+    ):
+        # numexpr computes integer pow in float64, losing precision GH#54546
+        return False
     if op_str is not None:
         # required min elements (otherwise we are adding overhead)
         if left_op.size > _MIN_ELEMENTS:
@@ -148,8 +156,7 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
             )
             result = normalize_numexpr_result(result)
         except TypeError:
-            # numexpr raises eg for array ** array with integers
-            # (https://github.com/pydata/numexpr/issues/379)
+            # fall back to numpy for anything numexpr rejects
             pass
         except NotImplementedError:
             if _bool_arith_fallback(op_str, left_op, right_op):

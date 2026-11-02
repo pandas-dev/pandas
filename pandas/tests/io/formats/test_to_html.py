@@ -208,6 +208,15 @@ def test_to_html_multiindex_sparsify(multi_sparse, expected, datapath):
     assert result == expected
 
 
+def test_to_html_multiindex_sparsify_by_value():
+    # GH#10796 distinct values that format identically are not merged
+    mi = pd.MultiIndex.from_arrays([[201500000100.0, 201500000101.0], ["a", "a"]])
+    df = pd.DataFrame({"C": [3, 4]}, index=mi)
+    result = df.to_html()
+    assert "rowspan" not in result
+    assert result.count("<th>2.015000e+11</th>") == 2
+
+
 @pytest.mark.parametrize(
     "max_rows,expected",
     [

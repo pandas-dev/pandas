@@ -94,6 +94,21 @@ def test_hash_array_mixed(dtype):
     tm.assert_numpy_array_equal(result1, result2)
 
 
+@pytest.mark.parametrize("categorize", [True, False])
+@pytest.mark.parametrize("encoding", ["utf8", "latin1"])
+@pytest.mark.parametrize("val", [b"\xff1", b"a\x00"])
+def test_hash_array_mixed_bytes(categorize, encoding, val):
+    # GH#27215 bytes in a mixed-type array hash as they do in a non-mixed one
+    vals = np.array([1, val, None], dtype=object)
+    result = hash_array(vals, encoding=encoding, categorize=categorize)
+    expected = hash_array(
+        np.array(["1", val, None], dtype=object),
+        encoding=encoding,
+        categorize=categorize,
+    )
+    tm.assert_numpy_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("val", [5, "foo", pd.Timestamp("20130101")])
 def test_hash_array_errors(val):
     msg = "must pass an ndarray-like"
