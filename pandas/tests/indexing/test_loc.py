@@ -3158,6 +3158,16 @@ class TestLocBooleanLabelsAndSlices:
         indexer_sl(ser)[[False]] = 9
         tm.assert_series_equal(ser, pd.Series([1, 9], index=bool_index))
 
+    def test_bool_list_selects_bool_labels_with_na(self):
+        # GH#43194
+        ser = pd.Series([True, True, False, None]).value_counts(dropna=False)
+        tm.assert_series_equal(ser[[False]], ser.iloc[[1]])
+
+        msg = "Using a list of bools as a mask on an axis with boolean labels"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser[[False, True, False]]
+        tm.assert_series_equal(result, ser.iloc[[1]])
+
     def test_bool_list_selects_bool_column_labels(self, bool_index):
         # GH#43194
         df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=bool_index)

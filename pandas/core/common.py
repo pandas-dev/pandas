@@ -45,6 +45,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
+from pandas.core.dtypes.missing import notna
 
 from pandas.core.col import Expression
 
@@ -186,10 +187,9 @@ def bool_list_selects_labels(
     if isinstance(labels, ABCMultiIndex):
         labels = labels.levels[0]
     if labels.dtype == object:
-        # check the first label to avoid scanning a large non-bool index
-        if not (
-            len(labels) and lib.is_bool(labels[0]) and labels.inferred_type == "boolean"
-        ):
+        # missing labels are allowed, but not all-missing
+        values = labels._values
+        if not (lib.is_bool_array(values, skipna=True) and notna(values).any()):
             return False
     elif not is_bool_dtype(labels.dtype):
         return False
