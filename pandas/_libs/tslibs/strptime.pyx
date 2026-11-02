@@ -29,8 +29,8 @@ from cpython.datetime cimport (
     tzinfo,
 )
 
-from _strptime import LocaleTime  # no-cython-lint
-from _strptime import (
+from _strptime import (  # no-cython-lint
+    LocaleTime,
     TimeRE as _TimeRE,
     _getlang,
 )

@@ -86,8 +86,8 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sized,
@@ -96,10 +96,10 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         NDFrameT,
-        QuantileInterpolation,
         P,
-        TimeUnit,
+        QuantileInterpolation,
         T,
+        TimeUnit,
         WindowingRankType,
         npt,
     )
