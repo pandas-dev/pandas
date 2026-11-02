@@ -460,7 +460,7 @@ jobs:
           # system zoneinfo, including legacy names, for tests that set TZ
           apt-get update -q && apt-get install -y -q --no-install-recommends tzdata tzdata-legacy
           python -m pip install --no-cache-dir -U pip wheel "meson[ninja]" meson-python "versioneer[toml]" cython
-          python -m pip install --no-cache-dir numpy python-dateutil tzdata "pytest>=8.3.4" "pytest-xdist>=3.6.1" hypothesis
+          python -m pip install --no-cache-dir numpy "python-dateutil<3" tzdata "pytest>=8.3.4" "pytest-xdist>=3.6.1" hypothesis
           python -m pip list
 
       - name: Build pandas
@@ -558,7 +558,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15-dev'
 
@@ -606,7 +606,7 @@ jobs:
           node-version: 24
 
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
 
