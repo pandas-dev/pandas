@@ -19,6 +19,7 @@ class DatetimeStrftime:
                 "r": [np.random.uniform()] * nobs,
             }
         )
+        self.data["dt_tz"] = self.data["dt"].dt.tz_localize("US/Eastern")
 
     def time_frame_date_to_str(self, nobs):
         self.data["d"].astype(str)
@@ -49,6 +50,12 @@ class DatetimeStrftime:
 
     def time_frame_datetime_formatting_custom(self, nobs):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
+
+    def time_frame_datetime_tz_formatting_default_explicit(self, nobs):
+        self.data["dt_tz"].dt.strftime(date_format="%Y-%m-%d %H:%M:%S")
+
+    def time_frame_datetime_tz_formatting_custom(self, nobs):
+        self.data["dt_tz"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
 
 
 class PeriodStrftime:
