@@ -593,7 +593,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
-* Regularization functions like ``snap`` and very fast ``asof`` logic.
+* Very fast ``asof`` logic.
 
 ``DatetimeIndex`` objects have all the basic functionality of regular ``Index``
 objects, and a smorgasbord of advanced time series specific methods for easy
