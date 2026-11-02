@@ -63,7 +63,7 @@ depends-on = ["uninstall-pandas"]
 # worker never writes its coverage data. Old data is deleted first because
 # counts accumulate across runs.
 args = [{ arg = "pytest_target", default = "pandas" }]
-cmd = "find build/$PIXI_ENVIRONMENT_NAME -name '*.gcda' -delete && python -m pytest -m 'not db and not network and not single_cpu' {{ pytest_target }}"
+cmd = "find build/$PIXI_ENVIRONMENT_NAME -name '*.gcda' -delete && python -m pytest -m 'not db and not network and not clipboard' {{ pytest_target }}"
 
 [feature.c-coverage.tasks.c-coverage-report]
 # Hand-written C/C++ only; Cython's generated C is excluded. Threaded code can
