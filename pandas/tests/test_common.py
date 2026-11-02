@@ -204,6 +204,41 @@ def test_serializable(obj, temp_file):
     assert type(obj) == type(unpickled)
 
 
+@pytest.mark.parametrize(
+    "values",
+    [
+        [(("a1", "a2"), ("b1", "b2"))],
+        [((1, 2), (3, 4)), ((5, 6), (7, 8))],
+        [(((1, 2), (3, 4)), ((5, 6), (7, 8)))],
+        (((1, 2), (3, 4)),),
+    ],
+)
+@pytest.mark.parametrize("dtype", [None, "object"])
+def test_asarray_tuplesafe_nested_tuples(values, dtype):
+    # GH#43780
+    result = com.asarray_tuplesafe(values, dtype=dtype)
+    expected = np.empty(len(values), dtype=object)
+    for i, val in enumerate(values):
+        expected[i] = val
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        (np.zeros((1, 2, 2)), None),
+        (np.zeros((0, 2, 2)), None),
+        ([np.zeros((2, 2))], None),
+        ([[[1, 2], [3, 4]]], None),
+        ([((1, 2), (3, 4))], "float64"),
+    ],
+)
+def test_asarray_tuplesafe_nd_not_nested_tuples(values, dtype):
+    # GH#43780 other >2D inputs, and a non-object dtype, keep the N-D result
+    result = com.asarray_tuplesafe(values, dtype=dtype)
+    tm.assert_numpy_array_equal(result, np.asarray(values, dtype=dtype))
+
+
 class TestIsBoolIndexer:
     def test_non_bool_array_with_na(self):
         # in particular, this should not raise

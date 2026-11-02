@@ -27,6 +27,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     lib,
     properties,
@@ -1617,6 +1619,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
+
+    def _repr_html_(self) -> str | None:
+        """
+        Return a html representation for a particular Series.
+
+        Mainly for IPython notebook.
+        """
+        # circular import
+        from pandas.io.formats.html import SeriesNotebookFormatter
+
+        if not get_option("display.notebook_repr_html"):
+            return None
+
+        formatter = fmt.DataFrameFormatter(
+            self.to_frame(),
+            header=False,
+            index_names=True,
+            bold_rows=True,
+            escape=True,
+            float_format=get_option("display.float_format"),
+            max_rows=get_option("display.max_rows"),
+            min_rows=get_option("display.min_rows"),
+            show_dimensions=False,
+        )
+        # truncate as the table does, so the footer agrees with it
+        footer = fmt.SeriesFormatter(
+            self,
+            name=True,
+            dtype=True,
+            length=get_option("display.show_dimensions"),
+            max_rows=formatter.max_rows_fitted,
+        )._get_footer()
+        return SeriesNotebookFormatter(formatter, footer=footer).to_string()
 
     @overload
     def to_string(
