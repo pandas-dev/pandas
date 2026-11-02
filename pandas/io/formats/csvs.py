@@ -39,6 +39,7 @@ from pandas.core.indexes.api import Index
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from pandas._libs.tslibs import Timestamp
     from pandas._typing import (
         CompressionOptions,
         FilePath,
@@ -206,7 +207,7 @@ class CSVFormatter:
             # Preserve PeriodIndex warnings and platform-specific early-year output.
             use_scalar = isinstance(data_index, ABCPeriodIndex)
             if isinstance(data_index, ABCDatetimeIndex) and data_index.unit != "ns":
-                use_scalar = data_index.min().year < 1000
+                use_scalar = cast("Timestamp", data_index.min()).year < 1000
             if use_scalar:
                 data_index = Index(
                     [
