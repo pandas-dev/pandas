@@ -342,6 +342,21 @@ class TestSeriesPlots:
         ]
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "color",
+        [
+            ("red", "blue", "green"),
+            ("r", "b", "g", "k"),
+            ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+        ],
+    )
+    def test_bar_user_colors_tuple_of_colors(self, color):
+        # GH#18449 a 3- or 4-tuple of colors is not a single RGB(A) color
+        ser = pd.Series(range(len(color)))
+        ax = ser.plot.bar(color=color)
+        result = [patch.get_facecolor() for patch in ax.patches]
+        assert result == [mpl.colors.to_rgba(col) for col in color]
+
     def test_rotation_default(self):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # Default rot 0

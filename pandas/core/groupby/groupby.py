@@ -5297,7 +5297,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     fill_value,
                 )
                 shifted = self._python_apply_general(
-                    f, self._selected_obj, is_transform=True
+                    f, self._obj_with_exclusions, is_transform=True
                 )
             else:
                 if fill_value is lib.no_default:
@@ -5504,15 +5504,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if fill_method is not None:
             raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
-        # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
-        #  GH#23918 is fixed
+        # with freq, dividing by self.shift(freq=freq) would align labels
+        #  across groups, so compute per group
         if freq is not None:
             f = lambda x: x.pct_change(
                 periods=periods,
                 freq=freq,
                 axis=0,
             )
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            return self._python_apply_general(
+                f, self._obj_with_exclusions, is_transform=True
+            )
 
         shifted = self.shift(periods=periods)
         return (self._obj_with_exclusions / shifted) - 1

@@ -62,6 +62,7 @@ from pandas.core.construction import (
     extract_array,
     range_to_ndarray,
     sanitize_array,
+    warn_compound_dtype,
 )
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -87,6 +88,7 @@ from pandas.core.internals.managers import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Mapping,
         Sequence,
@@ -299,6 +301,9 @@ def ndarray_to_mgr(
             copy=copy,
             allow_2d=True,
         )
+    elif isinstance(values, np.ndarray) and values.dtype.names is not None:
+        # GH#49388 e.g. a list of 0-dim structured arrays
+        warn_compound_dtype()
 
     # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
@@ -850,8 +855,15 @@ def to_arrays(
         ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
+            constructor: Callable[..., ArrayLike]
+            if isinstance(common_dtype, np.dtype) and common_dtype.kind == "V":
+                # GH#49388 avoid pd.array's void-dtype warning; for structured
+                #  rows sanitize_array warns instead
+                constructor = np.array
+            else:
+                constructor = pd_array
             arrays = [
-                pd_array([row[col_idx] for row in data], dtype=common_dtype)
+                constructor([row[col_idx] for row in data], dtype=common_dtype)
                 for col_idx in range(ncols)
             ]
             columns = _validate_or_indexify_columns(arrays, columns)
