@@ -254,6 +254,18 @@ def test_agg_series_result_no_warning(func, axis):
     assert isinstance(result, pd.Series)
 
 
+@pytest.mark.parametrize("func", [lambda x: x.iloc[0], lambda x: x + 1])
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("shape", [(0, 2), (2, 0), (0, 0)])
+def test_agg_empty_frame_no_warning(func, axis, shape):
+    # GH#49673 empty frames are excluded from the deprecation
+    df = pd.DataFrame(np.empty(shape), columns=list("ab")[: shape[1]])
+    with tm.assert_produces_warning(None):
+        result = df.agg(func, axis=axis)
+    expected = df.apply(func, axis=axis)
+    tm.assert_equal(result, expected)
+
+
 def test_apply_mixed_datetimelike():
     # mixed datetimelike
     # GH 7778
