@@ -455,6 +455,9 @@ def hist_series(
 
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
+    if self.dtype.kind == "m":
+        # GH#43941 same error as Series.plot.hist
+        raise TypeError("no numeric data to plot")
 
     if by is None:
         if kwds.get("layout", None) is not None:
