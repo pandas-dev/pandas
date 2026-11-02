@@ -30,7 +30,6 @@ from cpython.datetime cimport (
 )
 
 from _strptime import (  # no-cython-lint
-    LocaleTime,
     TimeRE as _TimeRE,
     _getlang,
 )
