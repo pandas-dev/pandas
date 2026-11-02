@@ -203,9 +203,23 @@ class CSVFormatter:
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
             and self.date_format is not None
         ):
-            data_index = Index(
-                [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
-            )
+            # Preserve PeriodIndex warnings and platform-specific early-year output.
+            use_scalar = isinstance(data_index, ABCPeriodIndex)
+            if isinstance(data_index, ABCDatetimeIndex) and data_index.unit != "ns":
+                use_scalar = data_index.min().year < 1000
+            if use_scalar:
+                data_index = Index(
+                    [
+                        x.strftime(self.date_format) if notna(x) else ""
+                        for x in data_index
+                    ]
+                )
+            else:
+                data_index = Index(
+                    data_index._get_values_for_csv(
+                        date_format=self.date_format, na_rep=""
+                    )
+                )
         elif isinstance(data_index, ABCMultiIndex):
             data_index = data_index.remove_unused_levels()
         return data_index
