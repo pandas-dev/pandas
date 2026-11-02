@@ -66,7 +66,7 @@ cdef bint is_utc_zoneinfo(tzinfo tz):
     return tz is utc_zoneinfo
 
 
-cpdef inline bint is_utc(tzinfo tz):
+cpdef inline bint is_utc(tzinfo tz):  # no-cython-lint
     return (
         tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
@@ -94,7 +94,7 @@ cdef bint treat_tz_as_dateutil(tzinfo tz):
 
 
 # Returns str or tzinfo object
-cpdef inline object get_timezone(tzinfo tz):
+cpdef inline object get_timezone(tzinfo tz):  # no-cython-lint
     """
     We need to do several things here:
     1) Distinguish between pytz and dateutil timezones
@@ -133,7 +133,7 @@ cpdef inline object get_timezone(tzinfo tz):
         return tz
 
 
-cpdef inline tzinfo maybe_get_tz(object tz):
+cpdef inline tzinfo maybe_get_tz(object tz):  # no-cython-lint
     """
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
@@ -234,7 +234,7 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
         return tz.utcoffset(obj)
 
 
-cpdef inline bint is_fixed_offset(tzinfo tz):
+cpdef inline bint is_fixed_offset(tzinfo tz):  # no-cython-lint
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
