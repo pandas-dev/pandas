@@ -2415,6 +2415,96 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match="Cannot divide"):
             two // tdser
 
+    def _assert_floordiv_mod_divmod(self, left, divisor, scalars, box):
+        # A scalar divisor applies to every value. An array applies per value.
+        if np.ndim(divisor) == 0:
+            per_value = [divisor] * len(scalars)
+        else:
+            per_value = list(divisor)
+
+        quots = []
+        rems = []
+        for scalar, div in zip(scalars, per_value, strict=True):
+            if scalar is pd.NaT:
+                quots.append(pd.NaT)
+                rems.append(pd.NaT)
+            else:
+                quots.append(scalar // div)
+                rems.append(scalar % div)
+
+        exp_quot = tm.box_expected(pd.TimedeltaIndex(quots), box)
+        exp_rem = tm.box_expected(pd.TimedeltaIndex(rems), box)
+
+        tm.assert_equal(left // divisor, exp_quot)
+        tm.assert_equal(left % divisor, exp_rem)
+        quot, rem = divmod(left, divisor)
+        tm.assert_equal(quot, exp_quot)
+        tm.assert_equal(rem, exp_rem)
+
+    @pytest.mark.parametrize("unit", ["s", "ns"])
+    @pytest.mark.parametrize(
+        "divisor",
+        [2, -2, 2.5, -2.5, np.int32(2), np.float64(2.5)],
+        ids=["int", "neg_int", "float", "neg_float", "np.int32", "np.float64"],
+    )
+    def test_td64arr_floordiv_negative_matches_scalar(
+        self, box_with_array, unit, divisor
+    ):
+        # GH#71264 floor toward -inf, matching Timedelta. At nanosecond
+        # resolution -7s // 2 is exact, so the seconds case and an odd
+        # nanosecond count are what expose truncation toward zero.
+        if unit == "s":
+            values = [-7, 7, -4, 0]
+        else:
+            values = [-3, 3, -4, 0]
+        scalars = [pd.Timedelta(v, unit=unit).as_unit(unit) for v in values]
+        scalars.append(pd.NaT)
+
+        left = tm.box_expected(pd.TimedeltaIndex(scalars), box_with_array)
+        self._assert_floordiv_mod_divmod(left, divisor, scalars, box_with_array)
+
+    @pytest.mark.parametrize(
+        "divs",
+        [
+            np.array([2, -2, 3, 4, 2], dtype=np.int64),
+            np.array([2.5, -2.5, 2.0, -3.5, 1.5]),
+        ],
+        ids=["int64", "float64"],
+    )
+    def test_td64arr_floordiv_negative_array_divisor(self, box_with_array, divs):
+        # GH#71264
+        scalars = [
+            pd.Timedelta(-7, unit="s").as_unit("s"),
+            pd.Timedelta(7, unit="s").as_unit("s"),
+            pd.Timedelta(-4, unit="s").as_unit("s"),
+            pd.Timedelta(0, unit="s").as_unit("s"),
+            pd.NaT,
+        ]
+        left = tm.box_expected(pd.TimedeltaIndex(scalars), box_with_array)
+        xbox = get_upcast_box(left, divs)
+        self._assert_floordiv_mod_divmod(left, divs, scalars, xbox)
+
+    @pytest.mark.parametrize("divisor", [0, 0.0, np.nan, np.inf, -np.inf])
+    def test_td64arr_floordiv_nonfinite_divisor(self, box_with_array, divisor):
+        # GH#71264 zero and NaN stay NaT. ±inf stays 0 for a finite dividend,
+        # matching NumPy timedelta64 (the scalar floors ±inf differently).
+        scalars = [
+            pd.Timedelta(-7, unit="s").as_unit("s"),
+            pd.Timedelta(7, unit="s").as_unit("s"),
+            pd.NaT,
+        ]
+        left = tm.box_expected(pd.TimedeltaIndex(scalars), box_with_array)
+        if np.isinf(divisor):
+            expected_scalars = [
+                pd.Timedelta(0, unit="s").as_unit("s"),
+                pd.Timedelta(0, unit="s").as_unit("s"),
+                pd.NaT,
+            ]
+        else:
+            expected_scalars = [pd.NaT, pd.NaT, pd.NaT]
+        expected = tm.box_expected(pd.TimedeltaIndex(expected_scalars), box_with_array)
+        tm.assert_equal(left // divisor, expected)
+
     @pytest.mark.parametrize(
         "klass",
         [np.array, pd.Index, pd.Series],

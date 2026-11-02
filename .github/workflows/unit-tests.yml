@@ -634,9 +634,32 @@ jobs:
 
       - name: Test pandas for Pyodide
         run: |
+          # Keep the host interpreter. After activate, python/pytest enter Pyodide.
+          HOST_PYTHON=$(command -v python)
           source .venv-pyodide/bin/activate
           python -m pip install "python-dateutil<3" "pytest>=8.3.4" pytest-cov
-          # do not import pandas from the checked out repo
+          # Pyodide 0.27.1 aborts in init_loaded_packages when a dist-info
+          # directory has no METADATA. pytest's install of packaging==23.2
+          # leaves packaging-23.2.dist-info without that file.
+          "$HOST_PYTHON" -c 'from pathlib import Path
+          root = Path(".venv-pyodide/lib/python3.12/site-packages")
+          for dist in root.glob("*.dist-info"):
+              meta = dist / "METADATA"
+              if meta.is_file():
+                  continue
+              stem = dist.name.removesuffix(".dist-info")
+              name, sep, version = stem.rpartition("-")
+              if not sep:
+                  continue
+              meta.write_text(
+                  f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
+              )
+              print("added", meta)
+          '
+          # do not import pandas from the checked out repo. pytest then
+          # does not read pyproject.toml, where addopts sets --capture=no.
+          # Pyodide 0.27.1 drops pytest's fd-capture temp file, and pytest 9
+          # crashes in capture.py while stating it.
           cd ../..
           # pytest>=9.2 fd capture fstats an unlinked tmpfile, which fails on Emscripten
           pytest -m 'not slow and not network and not clipboard and not single_cpu' --capture=sys --pyargs pandas

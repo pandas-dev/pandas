@@ -640,6 +640,61 @@ class TimedeltaArray(dtl.TimelikeOps):
         if np.max(np.abs(f_quot), initial=0.0, where=~exclude_mask) >= 2.0**63:
             raise OutOfBoundsTimedelta("Overflow in timedelta division")
 
+    def _floordiv_numeric(self, other) -> Self:
+        # GH#71264: NumPy's timedelta64 // number truncates toward zero.
+        # Floor the underlying int64 count so the result matches Timedelta.
+        # NaT, a 0 or NaN divisor, and a non-finite quotient stay NaT.
+        # A finite timedelta // ±inf stays 0, matching NumPy's timedelta64.
+        i8 = self._ndarray.view("i8")
+        other_arr = np.asarray(other)
+        dtype = self._ndarray.dtype
+
+        nat_in = i8 == iNaT
+        if other_arr.dtype.kind == "f":
+            inf_div = np.isinf(other_arr)
+            bad_div = np.isnan(other_arr) | (other_arr == 0)
+        else:
+            inf_div = None
+            bad_div = other_arr == 0
+
+        # int64.min is the NaT sentinel; dividing it (especially by -1)
+        # overflows. 0/NaN/inf divisors warn. Substitute inert values, floor,
+        # then restore NaT (and 0 for ±inf) below.
+        work = i8
+        if nat_in.any():
+            work = np.where(nat_in, np.int64(0), i8)
+
+        other_work = other_arr
+        replace_div = bad_div if inf_div is None else bad_div | inf_div
+        if replace_div.any():
+            one = np.array(1, dtype=other_arr.dtype)
+            other_work = np.where(replace_div, one, other_arr)
+
+        with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+            divided = np.floor_divide(work, other_work)
+
+        if divided.dtype.kind == "f":
+            # uint and non-integral float divisors promote to float
+            bad_q = ~np.isfinite(divided)
+            divided = np.where(bad_q, np.int64(0), divided).astype(np.int64, copy=False)
+        else:
+            bad_q = False
+
+        if inf_div is not None and inf_div.any():
+            # int64 // +inf floors to -1 for a negative dividend. NumPy's
+            # timedelta64 path returns 0 for every finite dividend.
+            divided = np.where(inf_div, np.int64(0), divided)
+
+        nat_out = nat_in | bad_div | bad_q
+        if nat_out.any():
+            divided = np.array(divided, dtype=np.int64, copy=True, order="C")
+            np.putmask(divided, np.broadcast_to(nat_out, divided.shape), iNaT)
+        elif divided.dtype != np.dtype(np.int64) or not divided.flags.c_contiguous:
+            divided = np.ascontiguousarray(divided, dtype=np.int64)
+
+        result = divided.view(dtype)
+        return type(self)._simple_new(result, dtype=result.dtype)
+
     def _scalar_divlike_op(self, other, op):
         """
         Shared logic for __truediv__, __rtruediv__, __floordiv__, __rfloordiv__
@@ -671,6 +726,11 @@ class TimedeltaArray(dtl.TimelikeOps):
             if lib.is_float(other):
                 # GH#43178: raise instead of silently saturating on overflow
                 self._check_float_div_overflow(other)
+            if op is operator.floordiv and (
+                lib.is_integer(other) or lib.is_float(other)
+            ):
+                # GH#71264
+                return self._floordiv_numeric(other)
             result = op(self._ndarray, other)
             return type(self)._simple_new(result, dtype=result.dtype)
 
@@ -692,6 +752,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         if other_arr.dtype.kind == "f" and op in [operator.truediv, operator.floordiv]:
             # GH#43178: raise instead of silently saturating on overflow
             self._check_float_div_overflow(other_arr)
+
+        if (
+            op is operator.floordiv
+            and other_arr.dtype.kind in "iuf"
+            and (is_integer_dtype(other.dtype) or is_float_dtype(other.dtype))
+        ):
+            # GH#71264. timedelta // timedelta still falls through: that
+            # quotient is numeric and already matches the scalar.
+            return self._floordiv_numeric(other_arr)
 
         # Let numpy handle it
         result = op(self._ndarray, other_arr)
