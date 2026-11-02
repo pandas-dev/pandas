@@ -939,3 +939,16 @@ class TestNestedToRecord:
 
         with pytest.raises(TypeError, match="must be strings"):
             pd.json_normalize(data, record_path=["nested"], meta=[12])
+
+    def test_json_normalize_max_level_integer_keys(self):
+        # GH 71755
+        data = [{"top": {1: "x"}}]
+        result = pd.json_normalize(data, max_level=1)
+        expected = pd.DataFrame([{"top.1": "x"}])
+        tm.assert_frame_equal(result, expected)
+
+        nested = [{1: {"a": "y"}}]
+        result_nested = pd.json_normalize(nested, max_level=1)
+        expected_nested = pd.DataFrame([{"1.a": "y"}])
+        tm.assert_frame_equal(result_nested, expected_nested)
+
