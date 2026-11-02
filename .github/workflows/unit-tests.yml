@@ -460,7 +460,8 @@ jobs:
           # system zoneinfo, including legacy names, for tests that set TZ
           apt-get update -q && apt-get install -y -q --no-install-recommends tzdata tzdata-legacy
           python -m pip install --no-cache-dir -U pip wheel "meson[ninja]" meson-python "versioneer[toml]" cython
-          python -m pip install --no-cache-dir numpy python-dateutil tzdata "pytest>=8.3.4" "pytest-xdist>=3.6.1" hypothesis
+          # dateutil 4 removes timezone internals still used by pandas.
+          python -m pip install --no-cache-dir numpy "python-dateutil<3" tzdata "pytest>=8.3.4" "pytest-xdist>=3.6.1" hypothesis
           python -m pip list
 
       - name: Build pandas
