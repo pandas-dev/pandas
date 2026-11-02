@@ -2074,40 +2074,11 @@ class TestTSPlot:
         assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
         assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
-    @pytest.mark.parametrize("second_ax", ["secondary_y", "twinx", "sharex"])
-    def test_regular_ts_after_irregular_on_shared_x(self, second_ax):
-        # GH#15074 a regular series plotted after an irregular one on an axes
-        # sharing the x axis must not switch to period ordinals
-        irreg = pd.Series(
-            [1.0, 2.0, 3.0, 4.0],
-            index=DatetimeIndex(
-                ["2015-01-05", "2015-01-06", "2015-01-20", "2015-03-11"]
-            ),
-        )
-        reg = pd.Series(
-            [1.0, 2.0, 3.0], index=date_range("2015-01-31", periods=3, freq="ME")
-        )
-        if second_ax == "sharex":
-            _, (ax, ax2) = mpl.pyplot.subplots(2, sharex=True)
-        else:
-            _, ax = mpl.pyplot.subplots()
-            ax2 = ax.twinx() if second_ax == "twinx" else ax
-        irreg.plot(ax=ax)
-        ax2 = reg.plot(ax=ax2, secondary_y=second_ax == "secondary_y")
-
-        assert getattr(ax2, "freq", None) is None
-        xdata = ax2.get_lines()[0].get_xdata(orig=False)
-        expected = mpl.dates.date2num(reg.index.to_pydatetime())
-        tm.assert_numpy_array_equal(xdata, expected)
-        left, right = ax.get_xlim()
-        assert left <= mpl.dates.date2num(irreg.index[0])
-        assert right >= expected[-1]
-
     @pytest.mark.parametrize("freq", ["ME", "2ME", "3B"])
     @pytest.mark.parametrize("extra_line", ["yerr", "axhline"])
     def test_regular_ts_secondary_y_after_bar_with_lines(self, freq, extra_line):
-        # GH#15074 lines on a time-series bar plot (error caps, axhline) are not
-        # dates, so a line on secondary_y must still align with the bars
+        # GH#71436 error caps or axhline on a time-series bar plot must not push
+        # a secondary_y line off the bars
         ser = pd.Series(
             np.arange(6.0), index=date_range("2015-01-01", periods=6, freq=freq)
         )

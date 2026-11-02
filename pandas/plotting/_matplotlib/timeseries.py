@@ -285,8 +285,8 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    # do not use tsplot if irregular was plotted first, including dates on an
-    # axes sharing this x axis (secondary_y, twinx, sharex); GH#15074, GH#40470
+    # do not use tsplot if irregular was plotted first, also on a shared-x
+    # sibling (GH#40470); on a sibling only date lines count (GH#71436)
     elif ax_freq is None and (
         len(ax.get_lines()) > 0
         or any(
