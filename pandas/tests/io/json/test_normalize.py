@@ -1071,4 +1071,3 @@ class TestNestedToRecord:
         result_nested = pd.json_normalize(nested, max_level=1)
         expected_nested = pd.DataFrame([{"1.a": "y"}])
         tm.assert_frame_equal(result_nested, expected_nested)
-
