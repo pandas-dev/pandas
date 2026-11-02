@@ -891,13 +891,14 @@ class TestNamedAggregationDataFrame:
     def test_agg_relabel_other_raises(self):
         df = pd.DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
         grouped = df.groupby("A")
-        match = "Must provide"
+        match = r"Named aggregation 'foo' must be a tuple of \(column, aggfunc\)"
         with pytest.raises(TypeError, match=match):
             grouped.agg(foo=1)
 
-        with pytest.raises(TypeError, match=match):
+        with pytest.raises(TypeError, match="Must provide"):
             grouped.agg()
 
+        match = r"Named aggregation 'b' must be a tuple of \(column, aggfunc\)"
         with pytest.raises(TypeError, match=match):
             grouped.agg(a=("B", "max"), b=(1, 2, 3))
 
@@ -914,6 +915,15 @@ class TestNamedAggregationDataFrame:
         )
         expected = df.groupby("A").agg(b=("B", "sum"), c=("B", "count"))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("other", [pd.NamedAgg("B", "max"), ("B", "max")])
+    @pytest.mark.parametrize("value", [np.mean, "mean", ("A", "mean", 1)])
+    def test_named_agg_mixed_with_invalid_raises(self, value, other):
+        # GH#43838
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [10, 5, 1], "C": ["x", "x", "y"]})
+        msg = r"Named aggregation 'A' must be a tuple of \(column, aggfunc\)"
+        with pytest.raises(TypeError, match=msg):
+            df.groupby("C").agg(A=value, NewName=other)
 
     def n_between(self, ser, low, high, **kwargs):
         return ser.between(low, high, **kwargs).sum()
