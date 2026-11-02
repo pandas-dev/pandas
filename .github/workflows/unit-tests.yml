@@ -635,7 +635,7 @@ jobs:
       - name: Test pandas for Pyodide
         run: |
           source .venv-pyodide/bin/activate
-          python -m pip install "python-dateutil<3" "pytest>=8.3.4" pytest-cov
+          python -m pip install "python-dateutil<3" "pytest>=8.3.4,<9.2" pytest-cov
           # do not import pandas from the checked out repo
           cd ../..
           # pytest>=9.2 fd capture fstats an unlinked tmpfile, which fails on Emscripten
