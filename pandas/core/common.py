@@ -188,7 +188,7 @@ def bool_list_selects_labels(
         labels = labels.levels[0]
     if labels.dtype == object:
         # missing labels are allowed, but not all-missing
-        values = labels._values
+        values = cast("np.ndarray", labels._values)
         if not (lib.is_bool_array(values, skipna=True) and notna(values).any()):
             return False
     elif not is_bool_dtype(labels.dtype):
