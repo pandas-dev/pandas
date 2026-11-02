@@ -763,7 +763,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isinstance(result, ABCMultiIndex):
             return result.to_numpy()
         else:
-            return result.array
+            # GH#38547 an Index is immutable, so Index.array is read-only. The
+            # Index here is only used to infer the dtype of the mapped values;
+            # return a writable copy so the result can be modified in place
+            # (GH#71567).
+            return result.array.copy()
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """

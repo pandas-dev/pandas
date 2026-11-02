@@ -492,6 +492,42 @@ def test_map_box_period():
     tm.assert_series_equal(res, exp)
 
 
+@pytest.mark.parametrize(
+    "ser, mapper",
+    [
+        (
+            pd.Series(pd.date_range("2026-10-24", periods=3, freq="h")),
+            lambda ts: ts.replace(year=2067),
+        ),
+        (
+            pd.Series(pd.date_range("2026-10-24", periods=3, freq="h", tz="UTC")),
+            lambda ts: ts.replace(year=2067),
+        ),
+        (
+            pd.Series(pd.timedelta_range("1 day", periods=3)),
+            lambda td: td * 2,
+        ),
+        (
+            pd.Series(pd.period_range("2026-10", periods=3, freq="M")),
+            lambda period: period + 1,
+        ),
+    ],
+    ids=["datetime64", "datetime64_tz", "timedelta64", "period"],
+)
+def test_map_datetimelike_result_writable(ser, mapper):
+    # GH#71567 the Index used to infer the dtype of the mapped result exposes
+    # a read-only array, which used to leak into the Series returned by map
+    result = ser.map(mapper)
+    assert result._values._readonly is False
+
+    expected = ser.transform(mapper)
+    assert expected._values._readonly is False
+    tm.assert_series_equal(result, expected)
+
+    result.iloc[-1] = result.iloc[0]
+    assert result.iloc[-1] == result.iloc[0]
+
+
 def test_map_categorical(na_action, using_infer_string):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     s = pd.Series(values, name="XX", index=list("abcdefg"))
