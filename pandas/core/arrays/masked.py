@@ -100,24 +100,24 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
-    from pandas import Series
-    from pandas.core.arrays import BooleanArray
+
+    from pandas._libs.missing import NAType
     from pandas._typing import (
-        Dtype,
-        NumpySorter,
-        NumpyValueArrayLike,
         ArrayLike,
         AstypeArg,
         AxisInt,
+        Dtype,
         DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NpDtype,
+        NumpySorter,
+        NumpyValueArrayLike,
         PositionalIndexer,
         RankMethod,
         RankNaOption,
@@ -127,8 +127,12 @@ if TYPE_CHECKING:
         Shape,
         npt,
     )
-    from pandas._libs.missing import NAType
-    from pandas.core.arrays import FloatingArray
+
+    from pandas import Series
+    from pandas.core.arrays import (
+        BooleanArray,
+        FloatingArray,
+    )
 
 from pandas.compat.numpy import function as nv
 
