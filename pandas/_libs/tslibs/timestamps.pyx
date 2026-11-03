@@ -3195,8 +3195,9 @@ class Timestamp(_Timestamp):
             #  with DatetimeArray._round
             validate_floor_ceil_offset(freq)
             naive = self.tz_localize(None)
-            # the last such midnight before the next midnight
-            result = naive.normalize() + Timedelta(days=1).as_unit(self.unit) - freq
+            norm = naive.normalize()
+            # the last such midnight at or before norm
+            result = norm if freq.is_on_offset(norm) else norm - freq
             if mode == RoundTo.PLUS_INFTY and result != naive:
                 result = result + freq
             if self.tz is not None:
