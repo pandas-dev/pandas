@@ -984,20 +984,8 @@ def test_pad_stable_sorting(fill_method):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "freq",
-    [
-        None,
-        pytest.param(
-            "D",
-            marks=pytest.mark.xfail(
-                reason="GH#23918 before method uses freq in vectorized approach"
-            ),
-        ),
-    ],
-)
 @pytest.mark.parametrize("periods", [1, -1])
-def test_pct_change(frame_or_series, freq, periods):
+def test_pct_change(frame_or_series, periods):
     # GH 21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
@@ -1016,7 +1004,7 @@ def test_pct_change(frame_or_series, freq, periods):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(periods=periods, freq=freq)
+    result = gb.pct_change(periods=periods)
     tm.assert_equal(result, expected)
 
 

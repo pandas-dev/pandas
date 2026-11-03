@@ -476,6 +476,10 @@ def read_sql_query(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -631,6 +635,10 @@ def read_sql(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -1740,13 +1748,18 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.exc import SQLAlchemyError
 
         args = [] if params is None else [params]
+        kwargs: dict[str, Any] = {}
         if isinstance(sql, str):
             execute_function = self.con.exec_driver_sql
+            if params is None and "%" in sql.replace("%%", ""):
+                # GH#49561 a driver that %-formats empty params rejects or mangles
+                # an unescaped "%", so pass the query to it unchanged
+                kwargs["execution_options"] = {"no_parameters": True}
         else:
             execute_function = self.con.execute
 
         try:
-            return execute_function(sql, *args)
+            return execute_function(sql, *args, **kwargs)
         except SQLAlchemyError as exc:
             raise DatabaseError(f"Execution failed on sql '{sql}': {exc}") from exc
 

@@ -517,6 +517,22 @@ def test_is_fsspec_url_chained():
     assert not icom.is_fsspec_url("filecache::://pandas/test.csv")
 
 
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        (
+            "https://bücher.de/ü?q=%C3%A9é#ß",
+            "https://bücher.de/%C3%BC?q=%C3%A9%C3%A9#%C3%9F",
+        ),
+        ("file:sub/ü.csv", "file:sub/ü.csv"),
+        ("ftp://h/ü.csv", "ftp://h/ü.csv"),
+    ],
+)
+def test_quote_non_ascii_url(url, expected):
+    # GH#21499 only HTTP(S) URLs are rewritten, and never their host
+    assert icom._quote_non_ascii_url(url) == expected
+
+
 @pytest.mark.parametrize("host", ["", "localhost", "LOCALHOST"])
 @pytest.mark.parametrize("exists", [False, True])
 def test_to_csv_file_url(tmp_path, host, exists):

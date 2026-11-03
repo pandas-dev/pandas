@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from datetime import timedelta
 
     from matplotlib.axes import Axes
+    from matplotlib.axis import Axis
 
     from pandas._typing import NDFrameT
 
@@ -281,8 +282,11 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    # do not use tsplot if irregular was plotted first
-    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+    # do not use tsplot if irregular was plotted first, also on a shared-x
+    # sibling (GH#40470)
+    elif ax_freq is None and any(
+        sibling.get_lines() for sibling in ax.get_shared_x_axes().get_siblings(ax)
+    ):
         return False
 
     if freq is None:
@@ -416,6 +420,32 @@ def set_period_converter(ax: Axes) -> None:
             xaxis.set_converter(PeriodConverter())
     else:
         xaxis.converter = PeriodConverter()
+
+
+def adopt_period_converter(ax: Axes) -> None:
+    """
+    Give ``ax`` a PeriodConverter at a shared-x sibling's freq if it has none.
+
+    matplotlib does not share converters, so datetimes plotted on a sibling of a
+    time-series axes would otherwise land at date-numbers far outside the shared
+    limits (GH#40470).  Skipped once ``clear()`` has reset the shared tick
+    formatter, as the sibling's time-series setup no longer applies.
+    """
+    xaxis: Axis = ax.get_xaxis()
+    if xaxis.get_converter() is not None or not isinstance(
+        xaxis.get_major_formatter(), TimeSeries_DateFormatter
+    ):
+        return
+    for other in ax.get_shared_x_axes().get_siblings(ax):
+        other_xaxis = other.get_xaxis()
+        freq = getattr(other_xaxis, "freq", None)
+        if freq is not None and isinstance(
+            other_xaxis.get_converter(), PeriodConverter
+        ):
+            # TODO #54485
+            xaxis.freq = freq  # type: ignore[attr-defined]
+            set_period_converter(ax)
+            return
 
 
 def format_dateaxis(

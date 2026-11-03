@@ -418,6 +418,13 @@ class TestDataFrameEval:
         result = pd.eval("'abc'", engine=engine, parser=parser)
         assert result == "abc"
 
+    def test_eval_assign_string_literal(self, engine, parser):
+        # GH#15320
+        df = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
+        result = df.eval("c = 'foo'\nd = a + b", engine=engine, parser=parser)
+        expected = df.assign(c="foo", d=df["a"] + df["b"])
+        tm.assert_frame_equal(result, expected)
+
     def test_eval_object_dtype_numeric_parts_unchanged(self, engine, parser):
         # GH#27639 evaluating object operands in python must not change how
         #  numeric subexpressions or later lines are evaluated
@@ -436,6 +443,21 @@ class TestDataFrameEval:
         result = df.eval("r = s + s\nt = i8 + i8", engine=engine, parser=parser)
         expected = df.eval("t = i8 + i8", engine=engine, parser=parser)
         tm.assert_series_equal(result["t"], expected["t"])
+
+    def test_query_unary_op_object_dtype(self, engine):
+        # GH#45876 numexpr engine raised ValueError for a unary op on an object column
+        df = pd.DataFrame({"a": [True, False, None], "b": [1, -2, 3]}, dtype=object)
+        df = df.dropna()
+
+        result = df.query("not a", engine=engine)
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+        result = df.query("-b > 0", engine=engine)
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+        df = pd.DataFrame({"s": ["x", ""]})
+        result = df.eval("not s", engine=engine)
+        tm.assert_series_equal(result, pd.Series([False, True], name="s"))
 
     def test_using_numpy(self, engine, parser):
         # GH 58041
