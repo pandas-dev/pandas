@@ -2210,7 +2210,7 @@ def test_agg_list_like_signed_int_and_float_is_float(funcs, values):
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "uint64[pyarrow]"])
 @pytest.mark.parametrize("funcs", [["max", "mean"], ["sum", "median"]])
 def test_agg_list_like_arrow_int_and_float(dtype, funcs):
-    # GH#71806 rounds like numpy instead of raising ArrowInvalid
+    # GH#71875 rounds like numpy instead of raising ArrowInvalid
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": pd.Series([10**17, 10**17 + 1], dtype=dtype)})
 
@@ -2221,7 +2221,7 @@ def test_agg_list_like_arrow_int_and_float(dtype, funcs):
 
 
 def test_agg_list_like_arrow_float_and_large_int_labels():
-    # GH#71806 idxmax gives numpy int64 labels above 2**53
+    # GH#71875 idxmax gives numpy int64 labels above 2**53
     pytest.importorskip("pyarrow")
     df = pd.DataFrame(
         {"a": pd.array([1.0, 2.0], dtype="double[pyarrow]")},
@@ -2235,7 +2235,7 @@ def test_agg_list_like_arrow_float_and_large_int_labels():
 
 
 def test_agg_list_like_arrow_int_and_float_keeps_na():
-    # GH#71806 a missing int result stays NA rather than becoming NaN
+    # GH#71875 a missing int result stays NA rather than becoming NaN
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": pd.Series([1, None], dtype="int64[pyarrow]")})
 
