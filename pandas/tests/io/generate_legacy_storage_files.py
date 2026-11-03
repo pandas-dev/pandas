@@ -258,7 +258,7 @@ def create_pickle_data(test: bool = True):
         "SemiMonthEnd": SemiMonthEnd(day_of_month=24),
         "MonthBegin": MonthBegin(1),
         "MonthEnd": MonthEnd(1),
-        "QuarterBegin": QuarterBegin(1),
+        "QuarterBegin": QuarterBegin(1, startingMonth=3),
         "QuarterEnd": QuarterEnd(1),
         "Day": Day(1),
         "YearBegin": YearBegin(1),

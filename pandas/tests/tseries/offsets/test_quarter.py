@@ -10,6 +10,9 @@ from datetime import datetime
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
@@ -24,11 +27,11 @@ from pandas.tseries.offsets import (
 @pytest.mark.parametrize("klass", (QuarterBegin, QuarterEnd))
 def test_quarterly_dont_normalize(klass):
     date = datetime(2012, 3, 31, 5, 30)
-    result = date + klass()
+    result = date + klass(startingMonth=3)
     assert result.time() == date.time()
 
 
-@pytest.mark.parametrize("offset", [QuarterBegin(), QuarterEnd()])
+@pytest.mark.parametrize("offset", [QuarterBegin(startingMonth=3), QuarterEnd()])
 @pytest.mark.parametrize(
     "date",
     [
@@ -44,10 +47,20 @@ def test_on_offset(offset, date):
     assert res == slow_version
 
 
+def test_quarter_begin_default_starting_month_deprecated():
+    # GH#8435
+    msg = "The default startingMonth for QuarterBegin will change from 3 to 1"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        offset = QuarterBegin()
+    assert offset == QuarterBegin(startingMonth=3)
+
+    with tm.assert_produces_warning(None):
+        QuarterBegin(startingMonth=3)
+        QuarterEnd()
+
+
 class TestQuarterBegin:
     def test_repr(self):
-        expected = "<QuarterBegin: startingMonth=3>"
-        assert repr(QuarterBegin()) == expected
         expected = "<QuarterBegin: startingMonth=3>"
         assert repr(QuarterBegin(startingMonth=3)) == expected
         expected = "<QuarterBegin: startingMonth=1>"

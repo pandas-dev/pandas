@@ -41,7 +41,10 @@ from pandas.tseries.offsets import (
     ],
 )
 def test_apply_index(cls, n):
-    offset = cls(n=n)
+    kwargs = {}
+    if cls in (QuarterBegin, BQuarterBegin):
+        kwargs["startingMonth"] = 3
+    offset = cls(n=n, **kwargs)
     rng = pd.date_range(start="1/1/2000", periods=100000, freq="min")
     ser = pd.Series(rng)
 
