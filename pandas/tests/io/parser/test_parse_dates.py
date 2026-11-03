@@ -909,7 +909,7 @@ def test_parse_dates_multiindex_col_with_dtype(all_parsers, dtype):
 @pytest.mark.parametrize("values", [[1, 2], [1.5, 2.5], [True, False]])
 @pytest.mark.parametrize("index_col", [0, "idx"])
 def test_parse_dates_true_non_date_index(all_parsers, values, index_col):
-    # GH#71806 an index column that fails to parse as dates keeps its dtype
+    # GH#71873 an index column that fails to parse as dates keeps its dtype
     parser = all_parsers
     data = f"idx,a\n{values[0]},0\n{values[1]},1"
     result = parser.read_csv_check_warnings(
@@ -924,7 +924,7 @@ def test_parse_dates_true_non_date_index(all_parsers, values, index_col):
 
 
 def test_parse_dates_true_multiindex_non_date_level(all_parsers):
-    # GH#71806
+    # GH#71873
     parser = all_parsers
     data = "d,id,v\n2020-01-01,1,10\n2020-01-02,2,20"
     result = parser.read_csv_check_warnings(
@@ -950,7 +950,7 @@ def test_parse_dates_true_multiindex_non_date_level(all_parsers):
 def test_parse_dates_index_format_mismatch(
     all_parsers, values, date_format, parse_dates, dtype
 ):
-    # GH#71806 date/time values that fail to parse stay as text
+    # GH#71873 date/time values that fail to parse stay as text
     parser = all_parsers
     data = f"idx,a\n{values[0]},0\n{values[1]},1"
     result = parser.read_csv(
@@ -968,7 +968,7 @@ def test_parse_dates_index_format_mismatch(
 
 @pytest.mark.parametrize("parse_dates", [True, ["idx"]])
 def test_parse_dates_bool_index_with_na(pyarrow_parser_only, parse_dates):
-    # GH#71806
+    # GH#71873
     parser = pyarrow_parser_only
     data = "idx,a\ntrue,0\n,1"
     result = parser.read_csv(StringIO(data), index_col="idx", parse_dates=parse_dates)
