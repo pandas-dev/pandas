@@ -342,6 +342,17 @@ def test_callable_usecols(all_parsers, usecols, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # The pyarrow engine does not allow 'usecols' to be a callable
+@pytest.mark.parametrize("usecols", [lambda x: x in {0, 2}, lambda x: x != 1])
+def test_callable_usecols_no_header(all_parsers, usecols):
+    # GH#71872 the callable sees integer labels when header=None
+    parser = all_parsers
+    data = "0,10,a\n1,11,b\n2,12,c"
+    result = parser.read_csv(StringIO(data), header=None, usecols=usecols)
+    expected = pd.DataFrame({0: [0, 1, 2], 2: ["a", "b", "c"]})
+    tm.assert_frame_equal(result, expected)
+
+
 # ArrowKeyError: Column 'fa' in include_columns does not exist in CSV file
 @skip_pyarrow
 @pytest.mark.parametrize("usecols", [["a", "c"], lambda x: x in ["a", "c"]])
