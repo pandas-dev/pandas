@@ -418,13 +418,19 @@ class ArrowParserWrapper(ParserBase):
                 # after reading, so do the conversion here.
                 parse_as_dates = self._index_col_should_parse_dates(col_name, position)
                 if parse_as_dates:
-                    frame[col_name] = date_converter(
+                    parsed = date_converter(
                         frame[col_name],
                         col=col_name,
                         dayfirst=self.dayfirst,
                         cache_dates=self.cache_dates,
                         date_format=self.date_format,
                     )
+                    # on failure keep pyarrow's dtype like the other engines,
+                    #  except date/time objects, which they leave as text
+                    if parsed.dtype.kind == "M" or lib.infer_dtype(
+                        frame[col_name].to_numpy(), skipna=True
+                    ) in ("date", "time"):
+                        frame[col_name] = parsed
 
                 # Process dtype for index_col and drop from dtypes
                 if isinstance(self.dtype, dict):
@@ -553,6 +559,10 @@ class ArrowParserWrapper(ParserBase):
         if not (using_string_dtype() and isinstance(self.parse_dates, list)):
             return frame
         for col in self.parse_dates:
+            if isinstance(self.index_col, list) and col in self.index_col:
+                # not converted by _do_date_conversions; _finalize_index
+                #  handles these
+                continue
             if col in frame.columns and frame[col].dtype == object:
                 frame[col] = frame[col].astype("str")
         return frame
