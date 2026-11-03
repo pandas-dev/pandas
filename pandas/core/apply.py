@@ -1207,11 +1207,34 @@ class FrameApply(NDFrameApply):
                     return None
                 rows.append(row)
 
+            dtypes = [row.dtype for row in rows]
+            as_object = _stack_as_object(dtypes)
+            if not as_object:
+                common = find_common_type(dtypes)
+                if isinstance(common, ArrowDtype) and common.kind == "f":
+                    # concat's safe int -> float cast raises above 2**53; cast
+                    # unsafely instead, rounding like numpy. See GH#71806
+                    pa = import_optional_dependency("pyarrow")
+                    arr_cls = common.construct_array_type()
+                    rows = [
+                        row._constructor(
+                            arr_cls(
+                                pa.array(row.array).cast(
+                                    common.pyarrow_dtype, safe=False
+                                )
+                            ),
+                            index=row.index,
+                        )
+                        if dtype.kind in "iu"
+                        else row
+                        for row, dtype in zip(rows, dtypes, strict=True)
+                    ]
+
             # to_frame().T avoids the slow DataFrame(list-of-Series) path
             frames = [
                 row.to_frame(name).T for name, row in zip(func_names, rows, strict=True)
             ]
-            if _stack_as_object([row.dtype for row in rows]):
+            if as_object:
                 # GH#65031 see test_agg_list_like_unsigned_and_signed_is_object
                 # and test_agg_list_like_bool_with_numeric_is_object
                 frames = [frame.astype(object) for frame in frames]
