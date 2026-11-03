@@ -80,6 +80,19 @@ class TestDataFramePlotsSubplots:
         for ax in axes:
             assert ax.get_legend() is None
 
+    def test_subplots_str_title_above_axes(self):
+        # GH#29459
+        df = pd.DataFrame(
+            {"x": range(6), "y1": [1, 1, 1, 4, 2, 3], "y2": [1, 2, 3, 2, 4, 3]}
+        )
+        axes = df.plot(x="x", y=["y1", "y2"], subplots=True, sharex=True, title="T")
+        fig = axes[0].figure
+        assert fig.get_suptitle() == "T"
+        assert all(ax.get_title() == "" for ax in axes)
+
+        title_bbox = fig._suptitle.get_window_extent()
+        assert title_bbox.y0 > axes[0].get_tightbbox().y1
+
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_subplots_timeseries(self, kind):
         idx = pd.date_range(start="2014-07-01", freq="ME", periods=10)
