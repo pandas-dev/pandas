@@ -918,8 +918,7 @@ def test_construction_trailing_characters_raises(value, leftover):
     ],
 )
 def test_construction_comma_decimal_seconds(value):
-    # a comma between digits in the seconds field is a decimal point, as in
-    #  Timestamp; it used to be dropped, so "00:00:01,500" was 1500 seconds
+    # GH#71877 a comma between digits in the seconds field is a decimal point
     expected = pd.Timedelta(value.replace(",", "."))
     result = pd.Timedelta(value)
     assert result == expected
@@ -931,7 +930,7 @@ def test_construction_comma_decimal_seconds(value):
 
 @pytest.mark.parametrize("value", ["1,5 days", "1,234 days", "1,5s", "1,5", "1:02,5"])
 def test_construction_comma_between_digits_raises(value):
-    # decimal point vs thousands separator is ambiguous outside the seconds field
+    # GH#71877 outside the seconds field, decimal vs thousands comma is ambiguous
     msg = re.escape(
         "a comma between digits is only allowed as the decimal point of "
         f"hh:mm:ss, received: {value}"
@@ -953,7 +952,7 @@ def test_construction_comma_between_digits_raises(value):
     ],
 )
 def test_construction_comma_separator(value, expected):
-    # a comma not between digits is still skipped, so str(timedelta) round-trips
+    # GH#71877 other commas are still skipped, so str(timedelta) round-trips
     assert pd.Timedelta(value) == expected
 
 
