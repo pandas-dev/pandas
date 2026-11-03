@@ -1479,6 +1479,15 @@ class TestDataFramePlots:
         for idx, line in enumerate(ax.get_lines()[: len(markers)]):
             assert line.get_marker() == markers[idx]
 
+    @pytest.mark.parametrize(
+        "box", [tuple, np.array, lambda x: pd.Series(x, index=["x", "y"])]
+    )
+    def test_style_list_like(self, box):
+        # GH#46289 non-list list-likes were plotted as data
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)))
+        ax = df.plot(style=box(["--", "-."]))
+        assert [line.get_linestyle() for line in ax.get_lines()] == ["--", "-."]
+
     def test_line_label_none(self):
         s = pd.Series([1, 2])
         ax = s.plot()
