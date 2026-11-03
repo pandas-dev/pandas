@@ -80,6 +80,7 @@ from pandas.tseries.frequencies import (
     is_superperiod,
 )
 from pandas.tseries.offsets import (
+    BusinessHour,
     Day,
     Hour,
     Tick,
@@ -3026,15 +3027,41 @@ def _get_timestamp_range_edges(
             first = first.tz_localize(None)
             last = last.tz_localize(None)
 
-        first = first.normalize()
-        last = last.normalize()
-
-        if closed == "left":
-            first = Timestamp(freq.rollback(first))
+        if isinstance(freq, BusinessHour):
+            # GH#12351 sub-daily bins, so normalizing would drop the time of day;
+            # anchor the grid at the first business time from the first midnight.
+            anchor = Timestamp(freq.rollforward(first.normalize()))
+            if anchor > first:
+                anchor = Timestamp(anchor - freq)
+            # last grid point at or before first (strictly before for closed="right")
+            edge = date_range(anchor, first, freq=freq, unit=unit)[-1]
+            if closed == "right" and edge == first:
+                edge = edge - freq
+            # BusinessHour works at microsecond resolution regardless of unit
+            eps = Timedelta(microseconds=1)
+            if not freq.is_on_offset(edge + eps):
+                # subtraction gives a closing time, label it by the next opening
+                edge = freq.rollforward(edge + eps)
+            first = Timestamp(edge)
+            if closed == "right":
+                # a right-closed bin may end at last itself
+                last = last - Timedelta(1, unit=unit)
+            if not freq.is_on_offset(last) or not freq.is_on_offset(last + eps):
+                # outside business hours or at closing time, which BusinessHour treats
+                # as the next opening; step back inside so the next opening is the edge
+                last = Timestamp(freq.rollback(last)) - eps
+            # flooring cannot cross a grid point, which always lands on a whole minute
+            last = Timestamp(last + freq).as_unit(unit, round_ok=True)
         else:
-            first = Timestamp(first - freq)
+            first = first.normalize()
+            last = last.normalize()
 
-        last = Timestamp(last + freq)
+            if closed == "left":
+                first = Timestamp(freq.rollback(first))
+            else:
+                first = Timestamp(first - freq)
+
+            last = Timestamp(last + freq)
 
     return first, last
 
