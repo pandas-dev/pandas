@@ -73,6 +73,33 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=3,
     ),
+    "day_of_month": inspect.Parameter(
+        "day_of_month",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=15,
+    ),
+    # FY5253 and FY5253Quarter use different defaults for weekday and
+    # startingMonth than Week and the quarter offsets, so they get their own keys
+    "fy_weekday": inspect.Parameter(
+        "weekday",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=0,
+    ),
+    "fy_startingMonth": inspect.Parameter(
+        "startingMonth",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=1,
+    ),
+    "variation": inspect.Parameter(
+        "variation",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default="nearest",
+    ),
+    "qtr_with_extra_week": inspect.Parameter(
+        "qtr_with_extra_week",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default=1,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -221,6 +248,16 @@ _OFFSET_SIGNATURES = {
         "calendar",
         "offset",
     ),
+    pd.tseries.offsets.SemiMonthEnd: (
+        "n",
+        "normalize",
+        "day_of_month",
+    ),
+    pd.tseries.offsets.SemiMonthBegin: (
+        "n",
+        "normalize",
+        "day_of_month",
+    ),
     pd.tseries.offsets.YearEnd: (
         "n",
         "normalize",
@@ -235,6 +272,21 @@ _OFFSET_SIGNATURES = {
         "n",
         "normalize",
         "method",
+    ),
+    pd.tseries.offsets.FY5253: (
+        "n",
+        "normalize",
+        "fy_weekday",
+        "fy_startingMonth",
+        "variation",
+    ),
+    pd.tseries.offsets.FY5253Quarter: (
+        "n",
+        "normalize",
+        "fy_weekday",
+        "fy_startingMonth",
+        "qtr_with_extra_week",
+        "variation",
     ),
 }
 
