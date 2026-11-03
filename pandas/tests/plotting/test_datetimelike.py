@@ -2093,6 +2093,23 @@ class TestTSPlot:
         xdata = ax2.get_lines()[0].get_xdata(orig=False)
         bar_centers = [p.get_x() + p.get_width() / 2 for p in ax.patches]
         tm.assert_numpy_array_equal(xdata, np.array(bar_centers))
+        # axhline's x is in axes coordinates and must not stretch the view
+        left, right = ax.get_xlim()
+        assert bar_centers[0] - 1 < left <= bar_centers[0]
+        assert bar_centers[-1] <= right < bar_centers[-1] + 1
+
+    @pytest.mark.parametrize("secondary_y", [False, True])
+    def test_ts_plot_xlim_ignores_axhline(self, secondary_y):
+        # GH#71436
+        ser = pd.Series(
+            np.arange(6.0), index=date_range("2015-01-31", periods=6, freq="ME")
+        )
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        expected = ax.get_xlim()
+        ax.axhline(0)
+        ser.plot(ax=ax, secondary_y=secondary_y)
+        assert ax.get_xlim() == expected
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
