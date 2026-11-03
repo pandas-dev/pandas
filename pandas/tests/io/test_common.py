@@ -793,7 +793,7 @@ class AutoClosingBuffer(IOBase):
     ],
 )
 def test_read_auto_closing_buffer(reader, kwargs, data):
-    # GH#71806 wrapping a buffer that closes itself at EOF in a TextIOWrapper
+    # GH#71883 wrapping a buffer that closes itself at EOF in a TextIOWrapper
     # raised "I/O operation on closed file"
     encoding = kwargs.get("encoding", "utf-8")
     expected = reader(BytesIO(data.encode(encoding)), **kwargs)
