@@ -2923,7 +2923,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif is_scalar(other):
             if isinstance(other, (np.datetime64, np.timedelta64)):
                 # GH#64808 cast first; numpy's m8[D] arithmetic truncates 1.5 days
-                if is_unitless(other.dtype):
+                if is_unitless(other.dtype) and isna(other):
                     # match the dense ops, see maybe_prepare_scalar_for_op
                     other = other.astype(f"{other.dtype.kind}8[s]")
                 elif not is_supported_dtype(other.dtype):

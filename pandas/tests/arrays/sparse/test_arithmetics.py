@@ -785,15 +785,15 @@ def test_mul_timedelta64_operand():
 @pytest.mark.parametrize(
     "other",
     [np.timedelta64(3, unit) for unit in ["W", "D", "h", "m"]]
-    + [np.timedelta64("NaT")],
+    + [np.timedelta64("NaT"), np.timedelta64(5)],
     ids=str,
 )
 def test_timedelta64_scalar_unsupported_unit(op, other):
-    # GH#64808 match the dense op; numpy's m8[D] arithmetic truncates 1.5 days
+    # GH#64808
     values = np.array([1.5, 2.0, 1.0])
     result = op(SparseArray(values, fill_value=1.0), other)
     expected = np.asarray(op(pd.Series(values), other))
-    assert result.dtype.subtype == np.dtype("m8[s]")
+    assert result.dtype.subtype == expected.dtype
     tm.assert_numpy_array_equal(result.to_dense(), expected)
 
 
