@@ -518,7 +518,7 @@ def test_pd_array_float_with_nan_to_integer_raises(dtype):
     ],
 )
 def test_array_inference_nan_distinguish_nan_and_na(data, expected):
-    # GH#71869 NaN was inferred as NA
+    # GH#71870 NaN was inferred as NA
     with pd.option_context("future.distinguish_nan_and_na", True):
         result = pd.array(data)
         expected = pd.array(expected, dtype="Float64")
