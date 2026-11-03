@@ -39,7 +39,10 @@ from cython cimport (
 )
 from libc.string cimport memcmp
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    is_nan_na,
+    using_string_dtype,
+)
 
 from pandas._libs.missing import check_na_tuples_nonequal
 from pandas.compat import PYARROW_INSTALLED
@@ -2912,6 +2915,8 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         float64_t fnan = NaN
+        # under future.distinguish_nan_and_na a float NaN is a value, not NA
+        bint nan_is_value = convert_to_nullable_dtype and not is_nan_na()
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -2947,7 +2952,7 @@ def maybe_convert_objects(ndarray[object] objects,
             if not convert_non_numeric:
                 seen.object_ = True
                 break
-        elif util.is_nan(val):
+        elif util.is_nan(val) and not (nan_is_value and util.is_float_object(val)):
             seen.nan_ = True
             mask[i] = True
             if util.is_complex_object(val):

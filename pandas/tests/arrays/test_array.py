@@ -509,6 +509,22 @@ def test_pd_array_float_with_nan_to_integer_raises(dtype):
         pd.array(arr, dtype=dtype)
 
 
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        ([1.5, np.nan], [1.5, np.nan]),
+        ([1, np.nan], [1.0, np.nan]),
+        ([None, np.nan], [pd.NA, np.nan]),
+    ],
+)
+def test_array_inference_nan_distinguish_nan_and_na(data, expected):
+    # GH#71869 NaN was inferred as NA
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.array(data)
+        expected = pd.array(expected, dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_dataframe_raises():
     # GH#51167 don't accidentally cast to StringArray by doing inference on columns
     df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
