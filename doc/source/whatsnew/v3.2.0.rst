@@ -274,6 +274,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``IndexError`` when a ``dtype`` dictionary omits a named ``index_col`` (:issue:`68041`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``encoding_errors`` with bytes or file input instead of silently ignoring it (:issue:`71298`)
 - Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
 - Bug in :func:`read_csv` silently misparsing non-ASCII ``thousands`` and ``decimal`` markers with the C engine; these now fall back to the Python engine with a :class:`errors.ParserWarning`, or raise ``ValueError`` if ``engine="c"`` is explicitly specified (:issue:`71158`)

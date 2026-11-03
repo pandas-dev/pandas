@@ -431,7 +431,7 @@ class ArrowParserWrapper(ParserBase):
                     key, new_dtype = (
                         (item, self.dtype.get(item))
                         if self.dtype.get(item) is not None
-                        else (frame.columns[item], self.dtype.get(frame.columns[item]))
+                        else (col_name, self.dtype.get(col_name))
                     )
                     if new_dtype is not None:
                         # GH#57512 don't undo a parse_dates conversion
