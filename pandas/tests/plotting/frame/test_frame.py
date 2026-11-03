@@ -1764,6 +1764,25 @@ class TestDataFramePlots:
             _check_text_labels(ax.texts, labels)
             _check_colors(ax.patches, facecolors=color_args)
 
+    @pytest.mark.parametrize("kwargs", [{"y": "X"}, {"subplots": True}])
+    def test_pie_df_color(self, kwargs):
+        # GH#11228
+        df = pd.DataFrame(
+            {"X": [1, 2, 3, 4, 5], "Y": [5, 4, 3, 2, 1]},
+            index=["a", "b", "c", "d", "e"],
+        )
+        result = df.plot.pie(color=["r", "g", "b"], **kwargs)
+        for ax in np.atleast_1d(result):
+            _check_colors(ax.patches, facecolors=["r", "g", "b", "r", "g"])
+
+    def test_pie_df_color_overrides_colormap(self):
+        # GH#11228
+        df = pd.DataFrame({"X": [1, 2, 3]})
+        msg = "'color' and 'colormap' cannot be used simultaneously"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            ax = df.plot.pie(y="X", color=["r"], colormap="viridis")
+        _check_colors(ax.patches, facecolors=["r"] * 3)
+
     def test_pie_df_nan(self):
         df = pd.DataFrame(np.random.default_rng(2).random((4, 4)))
         for i in range(4):
