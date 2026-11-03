@@ -643,7 +643,7 @@ def test_dtypes_defaultdict_names_with_integer_header(all_parsers):
 
 
 def test_dtypes_defaultdict_no_header(all_parsers):
-    # GH#71872 integer keys after a defaulted column still apply when header=None
+    # GH#71880 integer keys after a defaulted column still apply when header=None
     dtype = defaultdict(lambda: "int64", {1: "float64", 2: "float64"})
     parser = all_parsers
     result = parser.read_csv(StringIO("1,2,3\n"), header=None, dtype=dtype)
