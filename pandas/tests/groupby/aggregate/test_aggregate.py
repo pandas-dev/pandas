@@ -5,6 +5,7 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 import datetime
 import functools
 from functools import partial
+import re
 
 import numpy as np
 import pytest
@@ -1865,6 +1866,128 @@ def test_series_groupy_agg_list_like_func_with_args():
         [[8, 8], [9, 9], [10, 10]], index=pd.Index([1, 2, 3]), columns=["foo1", "foo2"]
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+def test_dataframe_groupby_agg_list_numeric_only(as_index):
+    # GH#53839
+    df = pd.DataFrame(
+        {"g": [1, 1, 2], "a": [1, 2, 3], "b": [1.5, 2.5, 3.5], "s": ["x", "y", "z"]}
+    )
+    gb = df.groupby("g", as_index=as_index)
+    result = gb.agg(["min", "max"], numeric_only=True)
+    expected = pd.DataFrame(
+        [[1, 2, 1.5, 2.5], [3, 3, 3.5, 3.5]],
+        index=pd.Index([1, 2], name="g"),
+        columns=pd.MultiIndex.from_product([["a", "b"], ["min", "max"]]),
+    )
+    if not as_index:
+        expected = expected.reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_groupby_agg_list_numeric_only_idxmin_idxmax():
+    # GH#53839 SeriesGroupBy.idxmin/idxmax do not accept numeric_only
+    df = pd.DataFrame({"g": [1, 1, 2], "a": [2, 1, 3], "s": ["x", "y", "z"]})
+    gb = df.groupby("g")
+    result = gb.agg(["idxmin", "idxmax"], numeric_only=True)
+    expected = pd.DataFrame(
+        [[1, 0], [2, 2]],
+        index=pd.Index([1, 2], name="g"),
+        columns=pd.MultiIndex.from_product([["a"], ["idxmin", "idxmax"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_groupby_agg_list_numeric_only_no_numeric_columns():
+    # GH#53839
+    df = pd.DataFrame({"g": [1, 1, 2], "s": ["x", "y", "z"]})
+    gb = df.groupby("g")
+    result = gb.agg(["min", "max"], numeric_only=True)
+    expected = pd.DataFrame(
+        index=pd.Index([1, 2], name="g"),
+        columns=pd.MultiIndex.from_arrays(
+            [df.columns[:0], pd.Index(["min", "max"])[:0]]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_groupby_agg_list_numeric_only_multiindex_columns():
+    # GH#53839
+    df = pd.DataFrame(
+        [[1, 1, 1.5, "x"], [1, 2, 2.5, "y"], [2, 3, 3.5, "z"]],
+        columns=pd.MultiIndex.from_tuples(
+            [("g", ""), ("x", "a"), ("x", "b"), ("y", "s")]
+        ),
+    )
+    gb = df.groupby(("g", ""))
+    result = gb.agg(["min", "max"], numeric_only=True)
+    expected = pd.DataFrame(
+        [[1, 2, 1.5, 2.5], [3, 3, 3.5, 3.5]],
+        index=pd.Index([1, 2], name=("g", "")),
+        columns=pd.MultiIndex.from_tuples(
+            [
+                ("x", "a", "min"),
+                ("x", "a", "max"),
+                ("x", "b", "min"),
+                ("x", "b", "max"),
+            ]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, kwargs, values",
+    [
+        (["std", "var"], {"ddof": 0}, [[1.0, 1.0], [0.0, 0.0]]),
+        (["sum", "prod"], {"min_count": 2}, [[4.0, 3.0], [np.nan, np.nan]]),
+    ],
+)
+def test_dataframe_groupby_agg_list_numeric_only_with_kwargs(func, kwargs, values):
+    # GH#53839
+    df = pd.DataFrame({"g": [1, 1, 2], "a": [1, 3, 5], "s": ["x", "y", "z"]})
+    gb = df.groupby("g")
+    result = gb.agg(func, numeric_only=True, **kwargs)
+    expected = pd.DataFrame(
+        values,
+        index=pd.Index([1, 2], name="g"),
+        columns=pd.MultiIndex.from_product([["a"], func]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_groupby_agg_empty_list_numeric_only():
+    # GH#53839
+    df = pd.DataFrame({"g": [1, 1, 2], "a": [1, 2, 3], "s": ["x", "y", "z"]})
+    result = df.groupby("g").agg([], numeric_only=True)
+    expected = df.groupby("g").agg([])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_groupby_agg_list_numeric_only_metadata():
+    # GH#53839 attrs and flags propagate as they do for a single reduction
+    df = pd.DataFrame({"g": [1, 1, 2], "a": [1, 2, 3], "s": ["x", "y", "z"]})
+    df = df.set_flags(allows_duplicate_labels=False)
+    df.attrs["key"] = "value"
+    result = df.groupby("g").agg(["min", "max"], numeric_only=True)
+    assert result.attrs == {"key": "value"}
+    assert not result.flags.allows_duplicate_labels
+
+
+def test_dataframe_groupby_agg_list_non_numeric_raises():
+    # GH#53839 without numeric_only, a non-numeric column still raises
+    df = pd.DataFrame({"g": [1, 1, 2], "a": [1, 2, 3], "s": ["x", "y", "z"]})
+    gb = df.groupby("g")
+    msg = "|".join(
+        [
+            "does not support operation 'mean'",
+            re.escape("agg function failed [how->mean,dtype->object]"),
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        gb.agg(["sum", "mean"])
 
 
 def test_agg_groupings_selection():
