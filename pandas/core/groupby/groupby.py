@@ -948,16 +948,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mask = labels != -1
                 ax = ax[mask]
 
-            # this is a very unfortunate situation
             # we can't use reindex to restore the original order
-            # when the ax has duplicates
-            # so we resort to this
-            # GH 14776, 30667
-            # TODO: can we reuse e.g. _reindex_non_unique?
-            if ax.has_duplicates and not result.axes[0].equals(ax):
-                # e.g. test_category_order_transformer
-                target = algorithms.unique1d(ax._values)
-                indexer, _ = result.index.get_indexer_non_unique(target)
+            # when the ax has duplicates, so use the positions
+            # of the rows in the input instead
+            # GH 14776, 30667, 57906
+            if ax.has_duplicates:
+                # e.g. test_apply_with_duplicated_non_sorted_axis
+                indexer = np.argsort(self._grouper.result_ilocs)
                 result = result.take(indexer, axis=0)
             else:
                 result = result.reindex(ax, axis=0)
