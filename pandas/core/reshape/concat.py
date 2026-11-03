@@ -931,6 +931,9 @@ def validate_unique_levels(levels: list[Index]) -> None:
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
+    # GH#57993 levels inferred from tuple keys omit missing values, which get
+    #  code -1; explicitly passed levels must still contain every key
+    levels_inferred = levels is None
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
     ):
@@ -968,10 +971,14 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             else:
                 for key, index in zip(hlevel, indexes, strict=True):
                     # Find matching codes, include matching nan values as equal.
-                    mask = (isna(level) & isna(key)) | (level == key)
-                    if not mask.any():
+                    key_is_na = lib.is_scalar(key) and isna(key)
+                    mask = isna(level) if key_is_na else level == key
+                    if mask.any():
+                        i = np.nonzero(mask)[0][0]
+                    elif key_is_na and levels_inferred:
+                        i = -1
+                    else:
                         raise ValueError(f"Key {key} not in level {level}")
-                    i = np.nonzero(mask)[0][0]
 
                     to_concat.append(np.repeat(i, len(index)))
                 codes_list.append(np.concatenate(to_concat))
@@ -1027,6 +1034,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         mapped = level.get_indexer_for(hlevel_index)
 
         mask = mapped == -1
+        if levels_inferred:
+            mask &= ~np.array([lib.is_scalar(key) and isna(key) for key in hlevel])
         if mask.any():
             raise ValueError(
                 f"Values not found in passed level: {hlevel_index[mask]!s}"
