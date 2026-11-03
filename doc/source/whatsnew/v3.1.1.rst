@@ -25,6 +25,14 @@ Bug fixes
 - Fixed ``AttributeError`` when using dateutil timezones such as ``"dateutil/US/Pacific"`` with python-dateutil 3.0 (:issue:`71459`)
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_311.packaging.build:
+
+Build
+^^^^^
+- Fixed build error on unsupported ``xsimd`` architectures (:issue:`71548`)
+
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_311.contributors:
 
 Contributors
