@@ -68,6 +68,10 @@ raising an ``AttributeError`` when the validation fails.
 For a ``Series`` accessor, you should validate the ``dtype`` if the accessor
 applies only to certain dtypes.
 
+A new accessor instance is created each time the attribute is accessed, so
+state stored on an accessor is not retained. Use :attr:`DataFrame.attrs` or
+:attr:`Series.attrs` for per-object metadata.
+
 
 .. _extending.extension-types:
 

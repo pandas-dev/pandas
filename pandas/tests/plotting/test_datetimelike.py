@@ -1346,7 +1346,6 @@ class TestTSPlot:
 
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
-    @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
         # GH13341, using sharex=True
         idx1 = date_range("2015-01-01", periods=3, freq="ME")
@@ -1358,6 +1357,100 @@ class TestTSPlot:
         s2.plot(ax=ax1)
         s1.plot(ax=ax2)
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
+    def test_shared_ax_misaligned_freq_second(self, layout, tz):
+        # GH#40470 timestamps off the daily grid are plotted as datetimes, which
+        # must land at the hourly ordinals already on the shared x-axis
+        s1 = pd.Series(
+            range(48), date_range("2020-11-08 09:00", periods=48, freq="h", tz=tz)
+        )
+        s2 = pd.Series(
+            range(2), date_range("2020-11-08 09:32", periods=2, freq="D", tz=tz)
+        )
+        if layout == "sharex":
+            _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        else:
+            _, ax1 = mpl.pyplot.subplots()
+            ax2 = ax1.twinx() if layout == "twinx" else ax1
+        s1.plot(ax=ax1)
+        if layout == "secondary_y":
+            s2.plot(ax=ax2, secondary_y=True)
+            ax2 = ax1.right_ax
+        else:
+            s2.plot(ax=ax2)
+
+        expected = s2.index.tz_localize(None).to_period("h").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
+
+    @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
+    def test_shared_ax_misaligned_freq_first(self, layout):
+        # GH#40470 with the off-grid series plotted first, both are plotted as
+        # datetimes
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        s2 = pd.Series(range(2), date_range("2020-11-08 09:32", periods=2, freq="D"))
+        if layout == "sharex":
+            _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        else:
+            _, ax1 = mpl.pyplot.subplots()
+            ax2 = ax1.twinx() if layout == "twinx" else ax1
+        s2.plot(ax=ax1)
+        if layout == "secondary_y":
+            s1.plot(ax=ax2, secondary_y=True)
+            ax2 = ax1.right_ax
+        else:
+            s1.plot(ax=ax2)
+
+        expected = mpl.dates.date2num(s2.index.to_pydatetime())
+        tm.assert_numpy_array_equal(ax1.lines[0].get_xdata(orig=False), expected)
+        expected = mpl.dates.date2num(s1.index.to_pydatetime())
+        tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
+
+    def test_shared_ax_misaligned_freq_second_scatter(self):
+        # GH#40470
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        dti = date_range("2020-11-08 09:32", periods=2, freq="D")
+        df = pd.DataFrame({"x": dti, "y": [1, 2]})
+        _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        s1.plot(ax=ax1)
+        df.plot.scatter(x="x", y="y", ax=ax2)
+
+        expected = dti.to_period("h").asi8.astype(np.float64)
+        offsets = np.asarray(ax2.collections[0].get_offsets())
+        tm.assert_numpy_array_equal(offsets[:, 0], expected)
+
+    @pytest.mark.parametrize("layout", ["single", "sharex"])
+    def test_shared_ax_misaligned_with_nat(self, layout):
+        # GH#40470 NaT in a series drawn through the period converter is a gap
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        dti = DatetimeIndex(["2020-11-08 09:32", pd.NaT, "2020-11-09 09:32"])
+        s2 = pd.Series([1.0, 2.0, 3.0], dti)
+        if layout == "single":
+            _, ax1 = mpl.pyplot.subplots()
+            ax2 = ax1
+        else:
+            _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        s1.plot(ax=ax1)
+        s2.plot(ax=ax2)
+
+        expected = dti.to_period("h").asi8.astype(np.float64)
+        expected[1] = np.nan
+        tm.assert_numpy_array_equal(ax2.lines[-1].get_xdata(orig=False), expected)
+
+    @pytest.mark.parametrize("cleared", ["source", "target"])
+    def test_shared_ax_cleared_sibling(self, cleared):
+        # GH#40470 once either axes is cleared the time-series setup is gone
+        # and the sibling plots at matplotlib date-numbers, as without it
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        s2 = pd.Series(range(2), date_range("2020-11-08 09:32", periods=2, freq="D"))
+        _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        s1.plot(ax=ax1)
+        (ax1 if cleared == "source" else ax2).clear()
+        s2.plot(ax=ax2)
+
+        expected = mpl.dates.date2num(s2.index.to_pydatetime())
+        tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
 
     def test_nat_handling(self):
         _, ax = mpl.pyplot.subplots()
@@ -1915,6 +2008,50 @@ class TestTSPlot:
         left, right = ax.get_xlim()
         assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
         assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
+
+    @pytest.mark.parametrize("index_func", [date_range, period_range])
+    def test_regular_ts_sharex_xlim(self, index_func):
+        # GH#14074 plotting a shorter series on a sharex sibling should not
+        # truncate the longer one
+        idx = index_func("2020-01-01", periods=5, freq="D")
+        ser_long = pd.Series(range(5), index=idx)
+        ser_short = pd.Series(range(2), index=idx[:2])
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        ser_long.plot(ax=ax1)
+        # x-data in axes coordinates, must not count toward the limits
+        ax1.axhline(0)
+        ser_short.plot(ax=ax2)
+
+        expected = (ax1.lines[0].get_xdata()[0], ax1.lines[0].get_xdata()[-1])
+        assert ax1.get_xlim() == expected
+        assert ax2.get_xlim() == expected
+
+    def test_regular_ts_sharex_xlim_other_freq(self):
+        # GH#14074 a sibling plotted at another freq holds x-values in other
+        # units, so it does not widen the limits
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series(range(3), index=period_range("2020-01", periods=3, freq="M")).plot(
+            ax=ax1
+        )
+        ser = pd.Series(range(5), index=period_range("2020-01-01", periods=5, freq="D"))
+        ser.plot(ax=ax2)
+
+        assert ax2.freq == "D"
+        assert ax2.get_xlim() == (ser.index[0].ordinal, ser.index[-1].ordinal)
+
+    def test_regular_ts_sharex_xlim_cleared_sibling(self):
+        # GH#14074 a cleared sibling has no data to keep in view
+        idx = date_range("2020-01-01", periods=5, freq="D")
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series(range(5), index=idx).plot(ax=ax1)
+        ax1.clear()
+        pd.Series(range(2), index=idx[:2]).plot(ax=ax2)
+
+        assert ax2.get_xlim() == (
+            ax2.lines[0].get_xdata()[0],
+            ax2.lines[0].get_xdata()[-1],
+        )
 
     def test_secondary_y_non_ts_xlim(self):
         # GH 3490 - non-timeseries with secondary y
@@ -2594,3 +2731,25 @@ def test_ts_plot_tz_aware_period_start_nonexistent():
     result = ax.get_lines()[0].get_xdata()
     expected = index.astype(object).to_numpy()
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["h", "B"])
+def test_ts_plot_tz_aware_off_grid_onto_regular(freq):
+    # GH#12047 the off-grid series goes through PeriodConverter, which warned
+    #  about dropping the tz and put "B" points on their UTC day, not wall day
+    index = date_range("2015-02-23", periods=10, freq=freq)
+    off_grid = index + pd.Timedelta(hours=22, minutes=30)
+    _, ax = mpl.pyplot.subplots()
+    pd.DataFrame(np.arange(10), index=index.tz_localize("US/Eastern")).plot(ax=ax)
+
+    with tm.assert_produces_warning(None):
+        pd.DataFrame(np.arange(10), index=off_grid.tz_localize("US/Eastern")).plot(
+            ax=ax
+        )
+
+    result = ax.get_lines()[1].get_xdata(orig=False)
+    if freq == "B":
+        expected = conv.bday_count_array(off_grid.values)
+    else:
+        expected = off_grid.to_period(freq).asi8
+    tm.assert_numpy_array_equal(result, expected.astype(np.float64))

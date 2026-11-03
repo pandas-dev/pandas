@@ -470,6 +470,7 @@ class ExtensionDtype:
             - implement Array.reshape
             - subclass the Dim2CompatTests in tests.extension.base
             - _concat_same_type should support `axis` keyword
+            - take, delete and repeat should support `axis` keyword
             - _reduce and reductions should support `axis` keyword
         """
         return False

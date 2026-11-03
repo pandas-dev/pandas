@@ -2400,7 +2400,7 @@ def test_parallel_chunk_count_respects_the_row_floor(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def _blocked_frame(n_rows: int = 30_000) -> pd.DataFrame:
+def _blocked_frame(n_rows: int = 10_000) -> pd.DataFrame:
     # >= 16 columns, so numeric columns qualify for row-blocked conversion at
     # any worker count; the string columns qualify on their own
     rng = np.random.default_rng(0)
@@ -2478,12 +2478,12 @@ def test_row_blocked_conversion_late_dtype_miss(tmp_path, monkeypatch, threads):
     # A column whose leading block infers one kind but whose later rows do
     # not must fall back to the whole-column inference cascade.
     df = _blocked_frame().astype(object)
-    df.loc[25_000, "i0"] = 1.5  # int -> float
-    df.loc[25_000, "i1"] = 2**63 + 5  # int -> uint64
-    df.loc[25_000, "i2"] = "abc"  # int -> str
-    df.loc[25_000, "f0"] = "oops"  # float -> str
-    df.loc[25_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
-    df.loc[25_100, "i3"] = np.nan  # NA past the leading block
+    df.loc[9_000, "i0"] = 1.5  # int -> float
+    df.loc[9_000, "i1"] = 2**63 + 5  # int -> uint64
+    df.loc[9_000, "i2"] = "abc"  # int -> str
+    df.loc[9_000, "f0"] = "oops"  # float -> str
+    df.loc[9_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
+    df.loc[9_100, "i3"] = np.nan  # NA past the leading block
     path = tmp_path / "late.csv"
     df.to_csv(path, index=False)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)

@@ -758,12 +758,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         from pandas import Index
 
         result = map_array(self, mapper, na_action=na_action)
-        result = Index(result)
+        result = Index(result, copy=False)
 
         if isinstance(result, ABCMultiIndex):
             return result.to_numpy()
         else:
-            return result.array
+            return result._data
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
@@ -2102,8 +2102,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2209,8 +2207,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2316,8 +2312,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
