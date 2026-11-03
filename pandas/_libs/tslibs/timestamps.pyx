@@ -113,7 +113,12 @@ from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsTimedelta,
 )
 
-from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets cimport (
+    is_day_object,
+    is_tick_object,
+    to_offset,
+    validate_floor_ceil_offset,
+)
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
     get_unit_for_round,
@@ -3186,6 +3191,25 @@ class Timestamp(_Timestamp):
             int64_t nanos
 
         freq = to_offset(freq, is_period=False)
+        if (
+            mode != RoundTo.NEAREST_HALF_EVEN
+            and not is_tick_object(freq)
+            and not is_day_object(freq)
+        ):
+            # GH#15303 snap to the midnights that freq is on; keep in sync
+            #  with DatetimeArray._round
+            validate_floor_ceil_offset(freq)
+            naive = self.tz_localize(None)
+            # the last such midnight before the next midnight
+            result = naive.normalize() + Timedelta(days=1).as_unit(self.unit) - freq
+            if mode == RoundTo.PLUS_INFTY and result != naive:
+                result = result + freq
+            if self.tz is not None:
+                result = result.tz_localize(
+                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+                )
+            return result
+
         nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             if freq.nanos == 0:
@@ -3340,8 +3364,10 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or timedelta
+        freq : str, timedelta or DateOffset
             Frequency string or timedelta value indicating the flooring resolution.
+            Also accepts a single step of a date-anchored frequency like
+            'MS' (month start).
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -3444,8 +3470,10 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or timedelta
+        freq : str, timedelta or DateOffset
             Frequency string or timedelta value indicating the ceiling resolution.
+            Also accepts a single step of a date-anchored frequency like
+            'MS' (month start).
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
