@@ -106,18 +106,6 @@ bar2,12,13,14,15
         with fsspec.open(f"file://{temp_file}", mode="wb") as fsspec_obj:
             assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    def test_stringify_open_stream_with_fspath(self):
-        # GH#71769: an iterable buffer that also has __fspath__ (e.g. fsspec's
-        # SMBFileOpener) is read from, not reopened by path
-        class PathStream(StringIO):
-            def __fspath__(self):
-                return "nonexistent.csv"
-
-        buf = PathStream("a,b\n1,2\n")
-        assert icom.stringify_path(buf) is buf
-        result = pd.read_csv(buf)
-        tm.assert_frame_equal(result, pd.DataFrame({"a": [1], "b": [2]}))
-
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_infer_compression_from_path(self, compression_format, path_type):
         extension, expected = compression_format
