@@ -229,7 +229,7 @@ class TestReductions:
         left, right = left_right_dtypes
         arr = IntervalArray.from_arrays(left, right)
 
-        msg = "`axis` must be fewer than the number of dimensions"
+        msg = "`axis` must be less than the number of dimensions"
         for axis in [-2, 1]:
             with pytest.raises(ValueError, match=msg):
                 arr.min(axis=axis)

@@ -33,6 +33,7 @@ import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from pandas._typing import F
 
 from pandas.compat import (

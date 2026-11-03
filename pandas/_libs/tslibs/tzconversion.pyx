@@ -54,7 +54,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
-    is_zoneinfo,
+    treat_tz_as_zoneinfo,
 )
 
 
@@ -97,7 +97,7 @@ cdef class Localizer:
         elif is_tzlocal(tz):
             self.use_tzinfo_api = True
 
-        elif is_zoneinfo(tz) and get_zoneinfo_twin(tz) is None:
+        elif treat_tz_as_zoneinfo(tz) and get_zoneinfo_twin(tz) is None:
             # GH#64379 no pure-python twin (e.g. ZoneInfo.from_file): put
             #  last_trans below every value so all take the tzinfo-API arm.
             #  Not use_tzinfo_api, which ignores ambiguous/nonexistent.
