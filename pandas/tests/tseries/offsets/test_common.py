@@ -77,6 +77,8 @@ def _get_offset(klass, value=1, normalize=False):
         klass = klass(n=value, weekday=5, normalize=normalize)
     elif klass is DateOffset:
         klass = klass(days=value, normalize=normalize)
+    elif klass is BQuarterBegin:
+        klass = klass(value, normalize=normalize, startingMonth=3)
     else:
         klass = klass(value, normalize=normalize)
     return klass
@@ -330,8 +332,9 @@ def test_apply_array_composed_keeps_nat():
 
 def test_offsets_compare_equal(_offset):
     # root cause of GH#456: __ne__ was not implemented
-    offset1 = _offset()
-    offset2 = _offset()
+    kwargs = {"startingMonth": 3} if _offset is BQuarterBegin else {}
+    offset1 = _offset(**kwargs)
+    offset2 = _offset(**kwargs)
     assert not offset1 != offset2
     assert offset1 == offset2
 
