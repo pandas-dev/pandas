@@ -1320,7 +1320,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
-        .. deprecated:: 3.1.0
+        .. deprecated:: 3.2.0
             Use :meth:`itertuples` instead.
 
         Each row is yielded as a (index, Series) tuple; the Series has
