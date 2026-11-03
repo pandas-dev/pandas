@@ -2616,10 +2616,9 @@ def maybe_convert_numeric(
     if len(values) == 0:
         return (np.array([], dtype="i8"), None)
 
+    # fastpath for ints - try to convert all based on first value
     cdef:
-        # fastpath for ints - try to convert all based on first value
         object val = values[0]
-        # Resolved once; consulted inside the else: branch for string NaN values.
         bint distinguish_nan_and_na = not is_nan_na()
 
     if util.is_integer_object(val):
