@@ -1213,7 +1213,7 @@ class FrameApply(NDFrameApply):
                 common = find_common_type(dtypes)
                 if isinstance(common, ArrowDtype) and common.kind == "f":
                     # concat's safe int -> float cast raises above 2**53; cast
-                    # unsafely instead, rounding like numpy. See GH#71806
+                    # unsafely instead, rounding like numpy. See GH#71875
                     pa = import_optional_dependency("pyarrow")
                     arr_cls = common.construct_array_type()
                     rows = [
