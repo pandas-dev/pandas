@@ -2239,10 +2239,16 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         mask = isna(values)
         if not mask.any():
             return accum_func(values, axis=0)
-        result = np.full(values.shape, mask_b, dtype=object)
         if values.ndim == 1:
+            result = np.full(values.shape, mask_b, dtype=object)
             result[~mask] = accum_func(values[~mask])
+        elif accum_func in (np.maximum.accumulate, np.minimum.accumulate):
+            # filling with the column's first valid value cannot change a
+            # running max or min
+            result = accum_func(_fill_object_na(values, mask, 0, mask_a), axis=0)
+            result[mask] = mask_b
         else:
+            result = np.full(values.shape, mask_b, dtype=object)
             has_na = mask.any(axis=0)
             result[:, ~has_na] = accum_func(values[:, ~has_na], axis=0)
             # entirely-NA columns are already filled with mask_b
