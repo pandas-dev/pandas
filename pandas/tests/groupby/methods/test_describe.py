@@ -186,6 +186,20 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
     tm.assert_frame_equal(result, expected)
 
 
+def test_describe_as_index_false_multiindex_column_matches_reset_index():
+    # GH39103
+    df = pd.DataFrame(
+        {
+            ("col0", "l0"): [0, 0, 1],
+            ("col1", "l1"): [10, 20, 30],
+            ("col2", "l0"): [1, 2, 3],
+        }
+    )
+    result = df.groupby(("col0", "l0"), as_index=False).describe()
+    expected = df.groupby(("col0", "l0")).describe().reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_describe_duplicate_columns():
     # GH#50806
     df = pd.DataFrame([[0, 1, 2, 3]])
