@@ -1229,11 +1229,19 @@ default 'raise'
         # GH#15303 snap to the midnights that offset is on; keep in sync
         #  with Timestamp._round
         validate_floor_ceil_offset(offset)
+        norm = self.normalize()
+        day = Timedelta(days=1).as_unit(self.unit)
+        if (norm.asi8 > lib.i8max - day._value).any():
+            # norm + day would overflow; the scalar path avoids it
+            return type(self)._from_sequence(
+                [ts if ts is NaT else ts._round(offset, mode) for ts in self],
+                dtype=self.dtype,
+            )
         with warnings.catch_warnings():
             # the offset arithmetic is internal; don't report it as the user's
             warnings.simplefilter("ignore", PerformanceWarning)
             # the last such midnight before the next midnight
-            result = self.normalize() + Timedelta(days=1).as_unit(self.unit) - offset
+            result = norm + day - offset
             if mode == RoundTo.PLUS_INFTY:
                 mask = result != self
                 result[mask] = result[mask] + offset

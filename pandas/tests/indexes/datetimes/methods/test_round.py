@@ -349,6 +349,16 @@ def test_floor_ceil_non_fixed_freq_nonexistent(method, value):
     assert getattr(dti[0], method)("W-SUN", nonexistent="shift_forward") == expected[0]
 
 
+def test_floor_non_fixed_freq_last_ns_day():
+    # GH#15303 the next midnight after 2262-04-11 is out of nanosecond bounds
+    dti = pd.DatetimeIndex(["2262-04-11 12:00", "2262-04-10 12:00", pd.NaT]).as_unit(
+        "ns"
+    )
+    expected = pd.DatetimeIndex(["2262-04-01", "2262-04-01", pd.NaT]).as_unit("ns")
+    tm.assert_index_equal(dti.floor("MS"), expected)
+    assert dti[0].floor("MS") == expected[0]
+
+
 @pytest.mark.parametrize(
     "freq",
     [
