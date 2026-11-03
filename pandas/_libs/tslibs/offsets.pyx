@@ -161,6 +161,10 @@ cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
 
 
+cdef bint is_day_object(object obj):
+    return isinstance(obj, Day)
+
+
 cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -8074,6 +8078,42 @@ cpdef to_offset(freq, bint is_period=False):
             raise ValueError(f"{freq} is not supported as period frequency")
 
     return result
+
+
+cpdef validate_floor_ceil_offset(BaseOffset offset):
+    """
+    Raise if floor/ceil cannot snap to the midnights that ``offset`` is on.
+
+    That is well-defined only for a single step of a date-anchored offset.
+    """
+    if isinstance(offset, (BusinessDay, _CustomBusinessMonth)):
+        if offset.offset:
+            raise ValueError(
+                f"floor and ceil do not support {offset} with a nonzero 'offset'"
+            )
+        supported = True
+    elif isinstance(offset, Week):
+        # without a weekday every day is on-offset
+        supported = offset.weekday is not None
+    else:
+        supported = isinstance(
+            offset,
+            (
+                YearOffset,
+                HalfYearOffset,
+                QuarterOffset,
+                MonthOffset,
+                SemiMonthOffset,
+                WeekOfMonthMixin,
+                FY5253Mixin,
+                Easter,
+            ),
+        )
+    if offset.n != 1 or not supported:
+        raise ValueError(
+            f"{offset} is a non-fixed frequency; floor and ceil support only "
+            "a single step of a date-anchored frequency, e.g. 'MS' or 'W-SUN'"
+        )
 
 
 def period_dtype_to_offset(PeriodDtypeBase dtype):
