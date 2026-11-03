@@ -189,7 +189,8 @@ class QuarterOffset(SingleConstructorOffset):
         n: int = ...,
         normalize: bool = ...,
         month: int | None = ...,
-        startingMonth: int = ...,
+        *,
+        startingMonth: int | None = ...,
     ) -> None: ...
 
 class BQuarterEnd(QuarterOffset): ...
@@ -207,7 +208,8 @@ class HalfYearOffset(SingleConstructorOffset):
         n: int = ...,
         normalize: bool = ...,
         month: int | None = ...,
-        startingMonth: int = ...,
+        *,
+        startingMonth: int | None = ...,
     ) -> None: ...
 
 class BHalfYearEnd(HalfYearOffset): ...
@@ -257,6 +259,7 @@ class FY5253Mixin(SingleConstructorOffset):
         weekday: int = ...,
         month: int | None = ...,
         variation: Literal["nearest", "last"] = ...,
+        *,
         startingMonth: int = ...,
     ) -> None: ...
 
@@ -271,6 +274,7 @@ class FY5253Quarter(FY5253Mixin):
         month: int | None = ...,
         qtr_with_extra_week: int = ...,
         variation: Literal["nearest", "last"] = ...,
+        *,
         startingMonth: int = ...,
     ) -> None: ...
 

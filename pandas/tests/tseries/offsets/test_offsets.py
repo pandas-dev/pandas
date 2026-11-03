@@ -1105,7 +1105,10 @@ def test_starting_month_deprecated(cls):
     with pytest.raises(TypeError, match="Cannot pass both"):
         cls(month=5, startingMonth=5)
 
+    # month keeps the positional slot startingMonth had
+    positional = (1, False, 0, 5) if cls in (FY5253, FY5253Quarter) else (1, False, 5)
     with tm.assert_produces_warning(None):
+        assert cls(*positional) == expected
         assert expected.month == 5
         assert expected.kwds["month"] == 5
         assert "month=5" in repr(expected)

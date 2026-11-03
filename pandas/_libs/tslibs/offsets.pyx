@@ -126,7 +126,7 @@ def _warn_starting_month(what: str) -> None:
     )
 
 
-def _resolve_month(month, startingMonth):
+cdef inline object _resolve_month(object month, object startingMonth):
     if startingMonth is not _no_default:
         if month is not None:
             raise TypeError("Cannot pass both 'month' and 'startingMonth'")
@@ -4164,7 +4164,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         int _month
 
     def __init__(
-        self, n=1, normalize=False, month=None, startingMonth=_no_default
+        self, n=1, normalize=False, month=None, *, startingMonth=_no_default
     ):
         BaseOffset.__init__(self, n, normalize)
 
@@ -4513,11 +4513,13 @@ cdef class QuarterEnd(QuarterOffset):
         int _period_dtype_code
 
     def __init__(
-        self, n=1, normalize=False, month=None, startingMonth=_no_default
+        self, n=1, normalize=False, month=None, *, startingMonth=_no_default
     ):
         # Because QuarterEnd can be the freq for a Period, define its
         #  _period_dtype_code at construction for performance
-        QuarterOffset.__init__(self, n, normalize, month, startingMonth)
+        QuarterOffset.__init__(
+            self, n, normalize, _resolve_month(month, startingMonth)
+        )
         self._period_dtype_code = PeriodDtypeCode.Q_DEC + self._month % 12
 
 
@@ -4576,7 +4578,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         int _month
 
     def __init__(
-        self, n=1, normalize=False, month=None, startingMonth=_no_default
+        self, n=1, normalize=False, month=None, *, startingMonth=_no_default
     ):
         BaseOffset.__init__(self, n, normalize)
 
@@ -6137,6 +6139,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         weekday=0,
         month=None,
         variation="nearest",
+        *,
         startingMonth=_no_default,
     ):
         BaseOffset.__init__(self, n, normalize)
@@ -6639,10 +6642,16 @@ cdef class FY5253Quarter(FY5253Mixin):
         month=None,
         qtr_with_extra_week=1,
         variation="nearest",
+        *,
         startingMonth=_no_default,
     ):
         FY5253Mixin.__init__(
-            self, n, normalize, weekday, month, variation, startingMonth
+            self,
+            n,
+            normalize,
+            weekday,
+            _resolve_month(month, startingMonth),
+            variation,
         )
         self._qtr_with_extra_week = qtr_with_extra_week
 
