@@ -699,7 +699,7 @@ class TestIndexReductions:
         idx = pd.Index([1.0, np.nan, 3.0])
         assert np.isnan(idx.sum(min_count=3))
         assert idx.var(ddof=0) == 1.0
-        with pytest.raises(ValueError, match="`axis` must be fewer than"):
+        with pytest.raises(ValueError, match="`axis` must be less than"):
             idx.sum(axis=1)
         with pytest.raises(TypeError, match="unexpected keyword argument"):
             idx.mean(foo=1)
