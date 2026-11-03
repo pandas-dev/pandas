@@ -1,6 +1,9 @@
 /* Override some aspects of the pydata-sphinx-theme */
 
 :root {
+  /* Use the pydata-sphinx-theme default from before v0.17.0. The newer versions use
+     system-ui as first font, which gives undesirable results on some platforms */
+  --pst-font-family-base-system: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Helvetica Neue", "Arial", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   /* Use softer blue from bootstrap's default info color */
   --pst-color-info: 23, 162, 184;
 }
