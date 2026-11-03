@@ -905,6 +905,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sanitize_array(data, index=None),  # type: ignore[arg-type]
             dtype=dtype,  # type: ignore[arg-type]
         )
+        if (
+            dtype is None
+            and lib.is_np_dtype(sparse_values.dtype, "mM")
+            and not is_supported_dtype(sparse_values.dtype)
+        ):
+            # GH#68522 cast as the constructor does; an unsupported dtype= still raises
+            sparse_values = np.asarray(ensure_wrapped_if_datetimelike(sparse_values))
         indices = np.asarray(indices, dtype=np.int32)
 
         if len(sparse_values) != len(indices):
@@ -914,7 +921,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
         if kind == "block":
-            # validate the indices; get_blocks accepts unsorted or duplicate ones
+            # validate the indices, which get_blocks does not
             IntIndex(length, indices)
         sparse_index = make_sparse_index(length, indices, kind)
 
