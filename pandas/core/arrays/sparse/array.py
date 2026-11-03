@@ -35,7 +35,9 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    get_supported_dtype,
     is_supported_dtype,
+    is_unitless,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -458,9 +460,6 @@ def _wrap_result(
         data = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
     else:
         data = np.asarray(data)
-    if lib.is_np_dtype(data.dtype, "mM") and not is_supported_dtype(data.dtype):
-        # GH#68522 e.g. int * np.timedelta64(1, "D"), cast as the constructor does
-        data = np.asarray(ensure_wrapped_if_datetimelike(data))
     sparse_dtype = SparseDtype(data.dtype, fill_value)
     return SparseArray._simple_new(data, sparse_index, sparse_dtype)
 
@@ -2922,6 +2921,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _sparse_array_op(self, other, op, op_name)
 
         elif is_scalar(other):
+            if isinstance(other, (np.datetime64, np.timedelta64)):
+                # GH#64808 cast first; numpy's m8[D] arithmetic truncates 1.5 days
+                if is_unitless(other.dtype):
+                    # match the dense ops, see maybe_prepare_scalar_for_op
+                    other = other.astype(f"{other.dtype.kind}8[s]")
+                elif not is_supported_dtype(other.dtype):
+                    other = other.astype(get_supported_dtype(other.dtype))
             with np.errstate(all="ignore"):
                 fill = op(_get_fill(self), np.asarray(other))
                 result = op(self.sp_values, other)
