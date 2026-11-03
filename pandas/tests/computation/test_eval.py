@@ -416,13 +416,9 @@ class TestEval:
         lhs = pd.DataFrame(
             {"b": ["a", 1, 2.0], "c": np.random.default_rng(2).standard_normal(3) > 0.5}
         )
-        if engine == "numexpr":
-            with pytest.raises(ValueError, match="unknown type object"):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+        msg = "bad operand type for unary ~: 'str'"
+        with pytest.raises(TypeError, match=msg):
+            pd.eval(expr, engine=engine, parser=parser)
 
     def test_series_invert(self, engine, parser):
         # ~ ####
@@ -463,13 +459,9 @@ class TestEval:
 
         # object
         lhs = pd.Series(["a", 1, 2.0])
-        if engine == "numexpr":
-            with pytest.raises(ValueError, match="unknown type object"):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+        msg = "bad operand type for unary ~: 'str'"
+        with pytest.raises(TypeError, match=msg):
+            pd.eval(expr, engine=engine, parser=parser)
 
     def test_frame_negate(self, engine, parser):
         expr = "-lhs"
@@ -1997,6 +1989,22 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     result = df.query(f"{column}>6", engine=engine, parser=parser)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "expr",
+    [
+        "a > Timestamp('2020-01-01')",
+        "a > datetime(2020, 1, 1)",
+        "a > datetime.strptime('2020-01-01', '%Y-%m-%d')",
+        "a > list((Timestamp('2020-01-01'),))[0]",
+    ],
+)
+def test_query_default_global_call(engine, parser, expr):
+    # GH#50442
+    df = pd.DataFrame({"a": pd.date_range("2020-01-01", periods=3)})
+    result = df.query(expr, engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[1:])
 
 
 @pytest.mark.parametrize("column", ["inf", "Inf"])
