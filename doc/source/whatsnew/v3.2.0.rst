@@ -188,6 +188,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
+- Bug in :meth:`Timestamp`, :func:`date_range` and :meth:`DatetimeIndex.tz_localize` raising an opaque ``AttributeError: 'NoneType' object has no attribute 'total_seconds'`` when localizing to an unsupported ``tzinfo`` object whose ``utcoffset(None)`` returns ``None`` (e.g. ``win32timezone.TimeZoneInfo`` for a DST-observing zone); these now raise a clear ``TypeError`` recommending a :class:`zoneinfo.ZoneInfo` object instead (:issue:`71485`)
 -
 
 Numeric

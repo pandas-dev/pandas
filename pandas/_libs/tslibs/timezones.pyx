@@ -509,6 +509,32 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     return trans, deltas, False, has_future_dst
 
 
+cdef int64_t _get_fixed_offset_nanos_or_raise(tzinfo tz) except? -1:
+    """
+    Return the fixed UTC offset of ``tz`` (as reported for a ``None``
+    datetime) in nanoseconds.
+
+    This is used for tzinfo objects that pandas does not recognise (no cache
+    key) and for the static fallback. Such objects are assumed to have an
+    offset that does not depend on the datetime, so ``utcoffset(None)`` must
+    return a ``timedelta``. Some third-party tzinfo objects (e.g.
+    ``win32timezone.TimeZoneInfo`` for a DST-observing zone) return ``None``
+    from ``utcoffset(None)`` because their offset varies; for those we cannot
+    infer a fixed offset, so raise a helpful error instead of the opaque
+    ``AttributeError`` from calling ``total_seconds`` on ``None``. GH#71485.
+    """
+    offset = get_utcoffset(tz, None)
+    if offset is None:
+        raise TypeError(
+            f"Unsupported tzinfo object: {tz!r}. pandas could not determine a "
+            "fixed UTC offset for this timezone because its utcoffset(None) "
+            "returned None (the offset varies with the date). Convert it to a "
+            "zoneinfo.ZoneInfo object, e.g. "
+            "zoneinfo.ZoneInfo('Europe/London'), and try again."
+        )
+    return int(offset.total_seconds()) * 1_000_000_000
+
+
 cdef object get_dst_info(tzinfo tz):
     """
     Returns
@@ -527,9 +553,9 @@ cdef object get_dst_info(tzinfo tz):
     if cache_key is None:
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
         # psycopg2.tz.FixedOffsetTimezone
-        num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
-        # If we have e.g. ZoneInfo here, the get_utcoffset call will return None,
-        #  so the total_seconds() call will raise AttributeError.
+        # If we have e.g. an unrecognised DST-observing tz here, the offset
+        #  cannot be determined and _get_fixed_offset_nanos_or_raise raises.
+        num = _get_fixed_offset_nanos_or_raise(tz)
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
                 "unknown",
@@ -585,7 +611,7 @@ cdef object get_dst_info(tzinfo tz):
             # static tzinfo, we can get here with pytz.StaticTZInfo
             #  which are not caught by treat_tz_as_pytz
             trans = np.array([NPY_NAT + 1], dtype=np.int64)
-            num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
+            num = _get_fixed_offset_nanos_or_raise(tz)
             deltas = np.array([num], dtype=np.int64)
             typ = "static"
 

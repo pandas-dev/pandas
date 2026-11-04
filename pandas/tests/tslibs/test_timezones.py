@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
     timezone,
+    tzinfo,
 )
 import importlib.resources
 import io
@@ -197,6 +198,74 @@ def test_zoneinfo_not_fixed_offset_with_historical_transition():
     zoneinfo = pytest.importorskip("zoneinfo")
     tz = zoneinfo.ZoneInfo("Africa/Lusaka")
     assert not timezones.is_fixed_offset(tz)
+
+
+class _OffsetVariesWithDateTZ(tzinfo):
+    """
+    Mimics ``win32timezone.TimeZoneInfo`` for a DST-observing zone.
+
+    Its ``utcoffset(None)`` returns ``None`` because the offset depends on the
+    date, so pandas cannot infer a fixed offset from it. GH#71485.
+    """
+
+    def utcoffset(self, dt):
+        return None if dt is None else timedelta(0)
+
+    def dst(self, dt):
+        return None if dt is None else timedelta(hours=1)
+
+    def tzname(self, dt):
+        return "GMT Standard Time"
+
+
+class _FixedCustomOffsetTZ(tzinfo):
+    """A custom tzinfo with a datetime-independent offset (still supported)."""
+
+    def utcoffset(self, dt):
+        return timedelta(hours=5)
+
+    def tzname(self, dt):
+        return "FIXED+5"
+
+
+@pytest.mark.parametrize(
+    "constructor",
+    [
+        pytest.param(lambda tz: pd.Timestamp("2024-01-01", tz=tz), id="Timestamp"),
+        pytest.param(
+            lambda tz: pd.date_range("2024-01-01", periods=3, tz=tz), id="date_range"
+        ),
+        pytest.param(
+            lambda tz: pd.DatetimeIndex(["2024-01-01"]).tz_localize(tz),
+            id="tz_localize",
+        ),
+    ],
+)
+def test_tz_with_none_offset_raises_clear_error(constructor):
+    # GH#71485 tzinfo objects pandas does not recognise (e.g.
+    # win32timezone.TimeZoneInfo) whose utcoffset(None) is None used to crash
+    # with an opaque "AttributeError: 'NoneType' object has no attribute
+    # 'total_seconds'"; they now raise a clear TypeError pointing to zoneinfo.
+    tz = _OffsetVariesWithDateTZ()
+    msg = (
+        "Unsupported tzinfo object.*"
+        r"utcoffset\(None\) returned None.*"
+        "zoneinfo.ZoneInfo"
+    )
+    with pytest.raises(TypeError, match=msg):
+        constructor(tz)
+
+
+def test_custom_fixed_offset_tz_still_supported():
+    # GH#71485 regression guard: the unknown/static fallback in get_dst_info
+    # must keep working for custom tzinfo objects whose utcoffset(None) is a
+    # real timedelta.
+    tz = _FixedCustomOffsetTZ()
+    ts = pd.Timestamp("2024-01-01 12:00", tz=tz)
+    assert ts.utcoffset() == timedelta(hours=5)
+
+    idx = pd.DatetimeIndex(["2024-01-01"]).tz_localize(tz)
+    assert idx[0].utcoffset() == timedelta(hours=5)
 
 
 def test_maybe_get_tz_offset_only():
