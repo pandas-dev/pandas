@@ -7,10 +7,12 @@ from __future__ import annotations
 from datetime import timedelta
 import operator
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
+from pandas.compat import is_platform_windows
 from pandas.compat.numpy import (
     is_numpy_dev,
     np_version_gt2_5,
@@ -62,6 +64,11 @@ class TestNonNano:
         return dta
 
     def test_non_nano(self, unit, dtype):
+        if isinstance(getattr(dtype, "tz", None), tzlocal) and is_platform_windows():
+            pytest.skip(
+                "GH#37659 OSError raised within tzlocal bc Windows "
+                "chokes in times before 1970-01-01"
+            )
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
 

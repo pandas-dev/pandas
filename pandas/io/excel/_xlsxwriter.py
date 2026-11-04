@@ -13,6 +13,8 @@ from pandas.io.excel._util import (
 )
 
 if TYPE_CHECKING:
+    from xlsxwriter import Workbook
+
     from pandas._typing import (
         ExcelWriterIfSheetExists,
         FilePath,
@@ -177,13 +179,13 @@ class _XlsxStyler:
         return props
 
 
-class XlsxWriter(ExcelWriter):
+class XlsxWriter(ExcelWriter["Workbook"]):
     _engine = "xlsxwriter"
     _supported_extensions = (".xlsx",)
 
     def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
@@ -219,7 +221,7 @@ class XlsxWriter(ExcelWriter):
             raise
 
     @property
-    def book(self):
+    def book(self) -> Workbook:
         """
         Book instance of class xlsxwriter.Workbook.
 

@@ -628,7 +628,7 @@ The ``temp_file`` pytest fixture creates a temporary file :py:class:`Pathlib` ob
     def test_something(temp_file):
         pd.DataFrame([1]).to_csv(str(temp_file))
 
-Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#the-default-base-temporary-directory>`_
+Please reference `pytest's documentation <https://docs.pytest.org/en/latest/how-to/tmp_path.html#temporary-directory-location-and-retention>`_
 for the file retention policy.
 
 Testing involving network connectivity
@@ -789,6 +789,13 @@ speed by skipping some tests using the ``-m`` mark flag:
   of checking for one
 - single_cpu: tests that should run on a single cpu only
 
+Tests marked ``high_memory`` need >5GB of memory, so they are skipped unless you
+ask for them:
+
+.. code-block:: bash
+
+    pytest pandas/tests/io/test_parquet.py --run-high-memory
+
 You might want to enable the following option if it's relevant for you:
 
 - arm_slow: any test taking long on arm64 architecture
@@ -844,7 +851,7 @@ performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/airspeed-velocity/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
-test results can be found `here <https://asv-runner.github.io/asv-collection/pandas>`__.
+test results can be found `here <https://pandas.pydata.org/asv-runner/>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -860,6 +867,11 @@ If you need to run a benchmark, change your directory to ``asv_bench/`` and run:
 
 You can replace ``HEAD`` with the name of the branch you are working on,
 and report benchmarks that changed by more than 10%.
+
+Benchmarks are not deterministic: running on different hardware, or on
+the same hardware under different levels of load, can have a big impact on the
+results, so a reported change is not necessarily caused by your code.
+
 The command uses ``conda`` by default for creating the benchmark
 environments. If you want to use virtualenv instead, write::
 

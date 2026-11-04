@@ -38,7 +38,7 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Reader using calamine engine (xlsx/xls/xlsb/ods).

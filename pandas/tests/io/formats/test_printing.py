@@ -40,7 +40,7 @@ def test_adjoin():
     assert adjoined == expected
 
 
-class MyMapping(Mapping):
+class MyMapping(Mapping[str, int]):
     def __getitem__(self, key):
         return 4
 
@@ -93,6 +93,11 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
 
+    def test_repr_seq_complex_precision(self):
+        # GH#25920
+        with cf.option_context("display.precision", 3):
+            assert printing.pprint_thing([3.14159265 + 1j]) == "[(3.142+1.0j)]"
+
     def test_repr_0d_array(self):
         # GH#64638 0-d arrays are not iterable and must fall through to str()
         assert printing.pprint_thing(np.array(5)) == "5"
@@ -107,6 +112,36 @@ def test_repr_object_dtype_0d_array(box):
     result = repr(obj)
     assert "5" in result
     assert "array(5)" not in result
+
+
+def test_repr_range():
+    # GH#44799 range objects are shown with their own repr, not as a tuple
+    assert printing.pprint_thing(range(3)) == "range(0, 3)"
+    assert printing.pprint_thing([range(3)]) == "[range(0, 3)]"
+
+    ser = pd.Series([range(3), range(100)])
+    expected = "0      range(0, 3)\n1    range(0, 100)\ndtype: object"
+    assert repr(ser) == expected
+
+
+def test_repr_two_values_wraps_at_display_width():
+    # GH#16334
+    arr = pd.array(["x" * 50, "y" * 50], dtype=object)
+    result = repr(arr)
+    expected = (
+        "<NumpyExtensionArray>\n"
+        f"['{'x' * 50}',\n"
+        f" '{'y' * 50}']\n"
+        "Length: 2, dtype: object"
+    )
+    assert result == expected
+
+
+def test_repr_two_values_max_seq_items_1():
+    # GH#16334 two values are truncated the same way as longer data
+    with cf.option_context("display.max_seq_items", 1):
+        result = repr(pd.array([1, 2]))
+    assert result == "<IntegerArray>\n[...\n 2]\nLength: 2, dtype: Int64"
 
 
 class TestFormatBase:
@@ -126,26 +161,26 @@ class TestFormatBase:
 
         adj = printing._EastAsianTextAdjustment()
 
-        expected = """あ  dd    ggg
-b   ええ  hhh
-c   ff    いいい"""
+        expected = "あ  dd    ggg   \nb   ええ  hhh   \nc   ff    いいい"
 
         adjoined = adj.adjoin(2, *data)
         assert adjoined == expected
         cols = adjoined.split("\n")
-        assert adj.len(cols[0]) == 13
-        assert adj.len(cols[1]) == 13
+        assert adj.len(cols[0]) == 16
+        assert adj.len(cols[1]) == 16
         assert adj.len(cols[2]) == 16
 
-        expected = """あ       dd         ggg
-b        ええ       hhh
-c        ff         いいい"""
+        expected = (
+            "あ       dd         ggg   \n"
+            "b        ええ       hhh   \n"
+            "c        ff         いいい"
+        )
 
         adjoined = adj.adjoin(7, *data)
         assert adjoined == expected
         cols = adjoined.split("\n")
-        assert adj.len(cols[0]) == 23
-        assert adj.len(cols[1]) == 23
+        assert adj.len(cols[0]) == 26
+        assert adj.len(cols[1]) == 26
         assert adj.len(cols[2]) == 26
 
     def test_justify(self):
@@ -190,6 +225,18 @@ c        ff         いいい"""
             assert adj.len("¡¡ab") == 6
 
         data = [["あ", "b", "c"], ["dd", "ええ", "ff"], ["ggg", "¡¡ab", "いいい"]]
-        expected = "あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい"
+        expected = "あ  dd    ggg   \nb   ええ  ¡¡ab\nc   ff    いいい"
         adjoined = adj.adjoin(2, *data)
         assert adjoined == expected
+
+
+@pytest.mark.parametrize(
+    "adj", [printing._TextAdjustment(), printing._EastAsianTextAdjustment()]
+)
+def test_ansi_escapes_have_no_width(adj):
+    # GH#55122
+    colored = "\x1b[96mabc\x1b[0m"
+    assert adj.len(colored) == 3
+    assert adj.len("\x1b[1;31;42mab\x1b[0m") == 2
+    assert adj.justify([colored, "de"], 5, mode="right") == ["  " + colored, "   de"]
+    assert adj.adjoin(2, [colored, "de"], ["x", "y"]) == f"{colored}  x\nde   y"

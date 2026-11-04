@@ -10,13 +10,9 @@ class TestTableSchemaRepr:
     def test_publishes(self, ip):
         ipython = ip.instance(config=ip.config)
         df = pd.DataFrame({"A": [1, 2]})
-        objects = [df["A"], df]  # dataframe / series
-        expected_keys = [
-            {"text/plain", "application/vnd.dataresource+json"},
-            {"text/plain", "text/html", "application/vnd.dataresource+json"},
-        ]
+        expected = {"text/plain", "text/html", "application/vnd.dataresource+json"}
 
-        for obj, expected in zip(objects, expected_keys, strict=True):
+        for obj in [df["A"], df]:
             with cf.option_context("display.html.table_schema", True):
                 # Can't reuse an option_context on all systems GH#58055
                 formatted = ipython.display_formatter.format(obj)
@@ -56,6 +52,29 @@ class TestTableSchemaRepr:
 
         expected = {"text/plain", "text/html"}
         assert set(formatted[0].keys()) == expected
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [b"\x00\x00\x00\x00\x00\x01\x82S"],  # UnicodeDecodeError
+            ["é".encode("latin-1")],  # OverflowError
+            pd.array([np.float16(1.5)], dtype=object),  # TypeError
+        ],
+    )
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_publishes_unserializable(self, ip, capsys, values, box):
+        # GH#16848 fall back without printing a traceback
+        obj = box(values)
+        with cf.option_context("display.html.table_schema", True):
+            formatted = ip.instance(config=ip.config).display_formatter.format(obj)
+            with pytest.raises(NotImplementedError, match="table schema"):
+                obj._repr_data_resource_()
+
+        assert "application/vnd.dataresource+json" not in formatted[0]
+        assert "text/plain" in formatted[0]
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err == ""
 
     def test_config_on(self):
         df = pd.DataFrame({"A": [1, 2]})

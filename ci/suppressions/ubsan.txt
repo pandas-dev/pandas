@@ -1,20 +1,18 @@
 # Entries are matched as a substring of the source path UBSan reports, which is
 # the Cython-generated C file inside meson's private build directory. Meson does
 # not guarantee the layout of that directory (1.12.0 stopped mirroring the source
-# tree inside it), so match on the file name only.
+# tree inside it), so these match on the file name only (GH#66805).
+#
+# Suppressed is `function` (call through a pointer of the wrong type) in
+# Cython-generated C. Cython implements cdef-class inheritance by storing a
+# subclass override in a vtable slot typed for the base class, so every virtual
+# dispatch is a genuine type mismatch; CyFunction wrapper dispatch (__pyx_pw_*)
+# trips the same check. Neither is fixable in pandas source -- it would take a
+# Cython codegen change -- and a full-suite run with these suppressions removed
+# reports nothing else: 181 reports, 31 sites, all of them this.
+#
+# The glob means no entry has to be added when a .pyx is added or renamed, and
+# matching only the generated file names keeps the check fully active for the
+# hand-written C/C++ (tokenizer, ujson, np_datetime, khash).
+function:*.pyx.c
 function:_cyutility.c
-function:/algos.pyx.c
-function:/hashtable.pyx.c
-function:/index.pyx.c
-function:/internals.pyx.c
-function:/interval.pyx.c
-function:/lib.pyx.c
-function:/missing.pyx.c
-function:/ops.pyx.c
-function:/sparse.pyx.c
-function:/np_datetime.pyx.c
-function:/offsets.pyx.c
-function:/period.pyx.c
-function:/timedeltas.pyx.c
-function:/timezones.pyx.c
-function:/vectorized.pyx.c

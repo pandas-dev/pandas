@@ -140,3 +140,51 @@ def test_read_covered_table_cell_value(tmp_excel):
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_cell_line_breaks(tmp_excel):
+    # GH#55728, GH#53924 a line break inside a cell is stored either as a
+    # <text:line-break/> element or as a further <text:p> paragraph
+    from odf.opendocument import OpenDocumentSpreadsheet
+    from odf.table import (
+        Table,
+        TableCell,
+        TableRow,
+    )
+    from odf.text import (
+        LineBreak,
+        P,
+    )
+
+    def _row(cell: TableCell) -> TableRow:
+        row = TableRow()
+        row.addElement(cell)
+        return row
+
+    doc = OpenDocumentSpreadsheet()
+    table = Table(name="Sheet1")
+
+    header = TableCell(valuetype="string")
+    header.addElement(P(text="Column 1"))
+    table.addElement(_row(header))
+
+    line_break = TableCell(valuetype="string")
+    paragraph = P()
+    paragraph.addText("break1")
+    paragraph.addElement(LineBreak())
+    paragraph.addText("break2")
+    line_break.addElement(paragraph)
+    table.addElement(_row(line_break))
+
+    paragraphs = TableCell(valuetype="string")
+    paragraphs.addElement(P(text="para1"))
+    paragraphs.addElement(P(text="para2"))
+    table.addElement(_row(paragraphs))
+
+    doc.spreadsheet.addElement(table)
+    doc.save(tmp_excel)
+
+    result = pd.read_excel(tmp_excel)
+
+    expected = pd.DataFrame({"Column 1": ["break1\nbreak2", "para1\npara2"]})
+    tm.assert_frame_equal(result, expected)

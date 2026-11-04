@@ -1,0 +1,6 @@
+option(
+    'strict_c_sanitize',
+    type: 'boolean',
+    value: false,
+    description: 'Enable UBSan checks beyond the default `undefined` set on the hand-written C/C++ sources. Cython-generated code is excluded because its codegen would drown the results in noise. Only meaningful together with -Db_sanitize=undefined.',
+)

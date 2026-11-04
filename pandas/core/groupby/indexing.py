@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from typing import Any
 
     from pandas._typing import PositionalIndexer
 
@@ -115,7 +116,7 @@ class GroupByIndexingMixin:
         4  b  5
         """
         if TYPE_CHECKING:
-            groupby_self = cast("groupby.GroupBy", self)
+            groupby_self = cast("groupby.GroupBy[Any]", self)
         else:
             groupby_self = self
 
@@ -123,13 +124,13 @@ class GroupByIndexingMixin:
 
     def _make_mask_from_positional_indexer(
         self,
-        arg: PositionalIndexer | tuple,
+        arg: PositionalIndexer | tuple[int | slice, ...],
     ) -> np.ndarray:
         if is_list_like(arg):
-            if all(is_integer(i) for i in cast("Iterable", arg)):
+            if all(is_integer(i) for i in cast("Iterable[Any]", arg)):
                 mask = self._make_mask_from_list(cast("Iterable[int]", arg))
             else:
-                mask = self._make_mask_from_tuple(cast("tuple", arg))
+                mask = self._make_mask_from_tuple(cast("tuple[int | slice, ...]", arg))
 
         elif isinstance(arg, slice):
             mask = self._make_mask_from_slice(arg)
@@ -170,7 +171,7 @@ class GroupByIndexingMixin:
 
         return mask
 
-    def _make_mask_from_tuple(self, args: tuple) -> bool | np.ndarray:
+    def _make_mask_from_tuple(self, args: tuple[int | slice, ...]) -> bool | np.ndarray:
         mask: bool | np.ndarray = False
 
         for arg in args:
@@ -230,7 +231,7 @@ class GroupByIndexingMixin:
     @cache_readonly
     def _ascending_count(self) -> np.ndarray:
         if TYPE_CHECKING:
-            groupby_self = cast("groupby.GroupBy", self)
+            groupby_self = cast("groupby.GroupBy[Any]", self)
         else:
             groupby_self = self
 
@@ -239,7 +240,7 @@ class GroupByIndexingMixin:
     @cache_readonly
     def _descending_count(self) -> np.ndarray:
         if TYPE_CHECKING:
-            groupby_self = cast("groupby.GroupBy", self)
+            groupby_self = cast("groupby.GroupBy[Any]", self)
         else:
             groupby_self = self
 
@@ -325,10 +326,12 @@ class GroupByPositionalSelector:
     4  b  5
     """
 
-    def __init__(self, groupby_object: groupby.GroupBy) -> None:
+    def __init__(self, groupby_object: groupby.GroupBy[Any]) -> None:
         self.groupby_object = groupby_object
 
-    def __getitem__(self, arg: PositionalIndexer | tuple) -> DataFrame | Series:
+    def __getitem__(
+        self, arg: PositionalIndexer | tuple[int | slice, ...]
+    ) -> DataFrame | Series:
         """
         Select by positional index per group.
 
@@ -368,17 +371,19 @@ class GroupByNthSelector:
     Dynamically substituted for GroupBy.nth to enable both call and index
     """
 
-    def __init__(self, groupby_object: groupby.GroupBy) -> None:
+    def __init__(self, groupby_object: groupby.GroupBy[Any]) -> None:
         self.groupby_object = groupby_object
 
     def __call__(
         self,
-        n: PositionalIndexer | tuple,
+        n: PositionalIndexer | tuple[int | slice, ...],
         dropna: Literal["any", "all"] | None = None,
     ) -> DataFrame | Series:
         return self.groupby_object._nth(n, dropna)
 
-    def __getitem__(self, n: PositionalIndexer | tuple) -> DataFrame | Series:
+    def __getitem__(
+        self, n: PositionalIndexer | tuple[int | slice, ...]
+    ) -> DataFrame | Series:
         warnings.warn(
             "GroupBy.nth[...] is deprecated and will be removed in a future "
             "version of pandas. Use GroupBy.nth(...) instead.",

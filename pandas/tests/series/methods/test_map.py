@@ -296,6 +296,15 @@ def test_map_dict_with_tuple_keys():
     tm.assert_series_equal(df["labels"], df["expected_labels"], check_names=False)
 
 
+@pytest.mark.parametrize("box", [dict, pd.Series])
+def test_map_tuples_of_different_lengths(box):
+    # GH#50293
+    ser = pd.Series([("a", "b"), ("b",), ("a", "b", "c")])
+    result = ser.map(box({("a", "b"): "x"}))
+    expected = pd.Series(["x", np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_counter():
     s = pd.Series(["a", "b", "c"], index=[1, 2, 3])
     counter = Counter()
@@ -481,6 +490,42 @@ def test_map_box_period():
     res = ser.map(lambda x: f"{type(x).__name__}_{x.freqstr}")
     exp = pd.Series(["Period_M", "Period_M"])
     tm.assert_series_equal(res, exp)
+
+
+@pytest.mark.parametrize(
+    "data,mapper",
+    [
+        (
+            pd.date_range("2026-10-24", periods=3, freq="h"),
+            lambda ts: ts.replace(year=2067),
+        ),
+        (
+            pd.date_range("2026-10-24", periods=3, freq="h", tz="UTC"),
+            lambda ts: ts.replace(year=2067),
+        ),
+        (
+            pd.timedelta_range("1 day", periods=3),
+            lambda td: td * 2,
+        ),
+        (
+            pd.period_range("2026-10", periods=3, freq="M"),
+            lambda period: period + 1,
+        ),
+    ],
+    ids=["datetime64", "datetime64_tz", "timedelta64", "period"],
+)
+def test_map_datetimelike_result_writable(data, mapper):
+    # https://github.com/pandas-dev/pandas/issues/71567
+    ser = pd.Series(data)
+    result = ser.map(mapper)
+    assert result._values._readonly is False
+
+    expected = pd.Series([mapper(x) for x in data])
+    tm.assert_series_equal(result, expected)
+
+    # ensure the result is still writable through assignment
+    result.iloc[0] = result.iloc[1]
+    assert result.iloc[0] == result.iloc[1]
 
 
 def test_map_categorical(na_action, using_infer_string):
@@ -759,3 +804,28 @@ def test_map_datetime_series_passes_scalar_timestamps():
         seen = []
         getattr(ser, method)(lambda ts: seen.append(type(ts).__name__))
         assert set(seen) == {"Timestamp"}
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.StringDtype(na_value=np.nan),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_result_overflows_int64(dtype):
+    # GH#70233 used to raise OverflowError instead of inferring object
+    ser = pd.Series([1, 0], dtype=dtype)
+    result = ser.map(lambda x: 2**70)
+    expected = pd.Series([2**70, 2**70], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_map_masked_result_all_nat(dtype):
+    # GH#70233 used to raise TypeError trying to cast NaT to the masked dtype
+    ser = pd.Series([1, 0], dtype=dtype)
+    result = ser.map(lambda x: pd.NaT)
+    expected = pd.Series([pd.NaT, pd.NaT], dtype="M8[s]")
+    tm.assert_series_equal(result, expected)

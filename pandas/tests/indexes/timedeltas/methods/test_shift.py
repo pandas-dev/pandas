@@ -48,7 +48,7 @@ class TestTimedeltaIndexShift:
                 "5 days 01:00:00",
             ],
             freq="D",
-            dtype="m8[s]",
+            dtype="m8[us]",
         )
         tm.assert_index_equal(result, expected)
 
@@ -66,7 +66,7 @@ class TestTimedeltaIndexShift:
                 "10 days 01:00:03",
             ],
             freq="D",
-            dtype="m8[s]",
+            dtype="m8[us]",
         )
         tm.assert_index_equal(result, expected)
 

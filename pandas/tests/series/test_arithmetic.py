@@ -120,6 +120,11 @@ class TestSeriesFlexArithmetic:
             amask = pd.isna(a)
             bmask = pd.isna(b)
 
+            # Use to_numpy to work with NumPy scalars so that op has NumPy semantics
+            # like the flex methods.
+            avals = a.to_numpy()
+            bvals = b.to_numpy()
+
             exp_values = []
             for i in range(len(exp_index)):
                 with np.errstate(all="ignore"):
@@ -127,14 +132,14 @@ class TestSeriesFlexArithmetic:
                         if bmask[i]:
                             exp_values.append(np.nan)
                             continue
-                        exp_values.append(op(fill_value, b[i]))
+                        exp_values.append(op(fill_value, bvals[i]))
                     elif bmask[i]:
                         if amask[i]:
                             exp_values.append(np.nan)
                             continue
-                        exp_values.append(op(a[i], fill_value))
+                        exp_values.append(op(avals[i], fill_value))
                     else:
-                        exp_values.append(op(a[i], b[i]))
+                        exp_values.append(op(avals[i], bvals[i]))
 
             result = meth(a, b, fill_value=fill_value)
             expected = pd.Series(exp_values, exp_index)
@@ -1022,6 +1027,31 @@ class TestInplaceOperations:
         ser1 *= ser2
         expected = pd.Series([2], dtype=dtype_mul)
         tm.assert_series_equal(ser1, expected)
+
+    @pytest.mark.parametrize(
+        "index, other_index",
+        [
+            ([0, 1, 2], [0, 1, 2, 3]),
+            ([0, 1, 2], [3, 2, 1, 0]),
+            ([0, 0, 1], [0, 1, 2]),
+        ],
+    )
+    def test_series_inplace_ops_align_left(self, index, other_index):
+        # GH#12755 labels only in other must not upcast the result
+        ser = pd.Series([1, 2, 3], index=index)
+        orig = ser
+        other = pd.Series(10, index=other_index)
+        ser += other
+        assert ser is orig
+        expected = pd.Series([11, 12, 13], index=index)
+        tm.assert_series_equal(ser, expected)
+
+    def test_series_inplace_ops_align_left_missing(self):
+        # GH#12755 labels missing from other are still NaN
+        ser = pd.Series([1, 2, 3])
+        ser += pd.Series(10, index=[0, 1])
+        expected = pd.Series([11.0, 12.0, np.nan])
+        tm.assert_series_equal(ser, expected)
 
 
 def test_none_comparison(request, series_with_simple_index):

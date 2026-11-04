@@ -185,6 +185,10 @@ class BinOp(ops.BinOp):
     def conform(self, rhs):
         """inplace conform rhs"""
         rhs = rhs.value
+        if rhs is None:
+            # Guarded here rather than in convert_value so both query paths are
+            #  covered; bool(None) is False, Timestamp(None) is NaT. GH#64348
+            raise TypeError(f"Cannot compare [{self.lhs.value}] to None")
         if not is_list_like(rhs):
             rhs = [rhs]
         if isinstance(rhs, np.ndarray):

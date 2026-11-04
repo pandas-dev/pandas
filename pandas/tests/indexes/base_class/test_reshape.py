@@ -7,6 +7,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.arrays import SparseArray
 
 
 class TestReshape:
@@ -47,6 +48,37 @@ class TestReshape:
         int_idx = pd.Index([1, 2, 3], dtype="Int64")
         result = int_idx.insert(1, val)
         expected = pd.Index([1, val, 2, 3], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "item, expected",
+        [
+            (1.5, SparseArray([1.5, 1.0, 2.0, 3.0], fill_value=0)),
+            (True, SparseArray([True, 1, 2, 3], dtype=pd.SparseDtype(object, 0))),
+            (
+                pd.Timestamp("2016-01-01"),
+                SparseArray(
+                    [pd.Timestamp("2016-01-01"), 1, 2, 3],
+                    dtype=pd.SparseDtype(object, 0),
+                ),
+            ),
+        ],
+    )
+    def test_insert_into_sparse_int_widens(self, item, expected):
+        # GH#69028 - a value the subtype cannot hold widens, it is not cast
+        idx = pd.Index(SparseArray([1, 2, 3]))
+        tm.assert_index_equal(idx.insert(0, item), pd.Index(expected))
+
+    def test_insert_into_all_fill_value_sparse(self):
+        # GH#69028 - with no stored values the widened result is all-datetimelike,
+        #  which the concat behind insert used to re-infer back to M8
+        idx = pd.Index(SparseArray([0, 0, 0]))
+        result = idx.insert(0, pd.Timestamp("2016-01-01"))
+        expected = pd.Index(
+            SparseArray(
+                [pd.Timestamp("2016-01-01"), 0, 0, 0], dtype=pd.SparseDtype(object, 0)
+            )
+        )
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("val", [0, 1])

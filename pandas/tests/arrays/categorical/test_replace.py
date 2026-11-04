@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 import pandas as pd
@@ -68,3 +70,100 @@ def test_replace_categorical_ea_dtype_different_cats_raises():
         TypeError, match="Cannot setitem on a Categorical with a new category"
     ):
         pd.Series(cat).replace(["a", "b"], ["c", pd.NA])
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"regex": {"^a": "b"}},
+        {"to_replace": "^a", "value": "b", "regex": True},
+        {"to_replace": ["^a"], "value": ["b"], "regex": True},
+        {"to_replace": re.compile("^a"), "value": "b"},
+    ],
+)
+def test_replace_regex_existing_category(kwargs):
+    # GH#38447 the dict, list and compiled spellings used to discard the replacement
+    ser = pd.Series(pd.Categorical(["a", "b", "c"]))
+    result = ser.replace(**kwargs)
+    expected = pd.Series(pd.Categorical(["b", "b", "c"], categories=["a", "b", "c"]))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"regex": {"^a": "b"}},
+        {"to_replace": "^a", "value": "b", "regex": True},
+        {"to_replace": [re.compile("^a")], "value": ["b"], "regex": True},
+        {"to_replace": re.compile("^a"), "value": "b"},
+    ],
+)
+def test_replace_regex_existing_category_arrow_strings(kwargs):
+    # GH#69026 the compiled spellings reach the gate through _regex_target_dtype, so
+    #  a Categorical of arrow strings stops being a silent no-op
+    pa = pytest.importorskip("pyarrow")
+    cats = pd.array(["a", "b", "c"], dtype=pd.ArrowDtype(pa.string()))
+    ser = pd.Series(pd.Categorical(cats))
+
+    result = ser.replace(**kwargs)
+
+    expected = pd.Series(pd.Categorical(cats.take([1, 1, 2]), categories=cats))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"regex": {"^a": "z"}},
+        {"to_replace": "^a", "value": "z", "regex": True},
+        {"to_replace": ["^a"], "value": ["z"], "regex": True},
+        {"to_replace": re.compile("^a"), "value": "z"},
+    ],
+)
+def test_replace_regex_new_category_raises(kwargs):
+    # GH#38447 matches the non-regex spelling, which refuses to widen
+    ser = pd.Series(pd.Categorical(["a", "b", "c"]))
+    with pytest.raises(
+        TypeError, match="Cannot setitem on a Categorical with a new category"
+    ):
+        ser.replace(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"regex": {"^a": "z"}},
+        {"to_replace": "^a", "value": "z", "regex": True},
+        {"to_replace": [re.compile("^a")], "value": ["z"], "regex": True},
+        {"to_replace": re.compile("^a"), "value": "z"},
+    ],
+)
+def test_replace_regex_new_category_raises_arrow_strings(kwargs):
+    # GH#69026 the compiled spellings used to be a silent no-op rather than raising
+    pa = pytest.importorskip("pyarrow")
+    cats = pd.array(["a", "b", "c"], dtype=pd.ArrowDtype(pa.string()))
+    ser = pd.Series(pd.Categorical(cats))
+
+    with pytest.raises(
+        TypeError, match="Cannot setitem on a Categorical with a new category"
+    ):
+        ser.replace(**kwargs)
+
+
+def test_replace_regex_non_string_categories():
+    # GH#38447 the pattern must not be matched against a non-string category's repr
+    ser = pd.Series(pd.Categorical([1, 2, 3]))
+    expected = ser.copy()
+    tm.assert_series_equal(ser.replace(regex={"^1": "9"}), expected)
+    tm.assert_series_equal(ser.replace(re.compile("^1"), "9"), expected)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_replace_regex_frame():
+    # GH#38447
+    df = pd.DataFrame({"A": pd.Categorical(["a", "b", "c"])})
+    result = df.replace(regex={"^a": "b"})
+    expected = pd.DataFrame(
+        {"A": pd.Categorical(["b", "b", "c"], categories=["a", "b", "c"])}
+    )
+    tm.assert_frame_equal(result, expected)

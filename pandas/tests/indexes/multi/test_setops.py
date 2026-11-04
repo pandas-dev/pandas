@@ -259,14 +259,14 @@ def test_union(idx, sort):
         assert result.equals(idx)
 
 
-def test_union_mixed_date_timestamp():
-    # GH 61807
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_union_mixed_date_timestamp(tz):
+    # GH#61807, GH#68577 the combined level keeps object dtype instead of raising
+    ts = pd.Timestamp("2001-01-01", tz=tz)
     left = pd.MultiIndex.from_arrays(
         [pd.Index([date(2001, 1, 1)], dtype=object), pd.Index(["foo"], dtype=object)]
     )
-    right = pd.MultiIndex.from_arrays(
-        [pd.Index([pd.Timestamp("2001-01-01")]), pd.Index(["bar"], dtype=object)]
-    )
+    right = pd.MultiIndex.from_arrays([pd.Index([ts]), pd.Index(["bar"], dtype=object)])
 
     with tm.assert_produces_warning(
         Pandas4Warning,
@@ -276,7 +276,7 @@ def test_union_mixed_date_timestamp():
 
     expected = pd.MultiIndex.from_arrays(
         [
-            pd.Index([date(2001, 1, 1), pd.Timestamp("2001-01-01")], dtype=object),
+            pd.Index([date(2001, 1, 1), ts], dtype=object),
             pd.Index(["foo", "bar"], dtype=object),
         ]
     )
@@ -577,6 +577,15 @@ def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     mi2 = pd.MultiIndex.from_arrays([[3, nulls_fixture, 3], [1, 2, 4]])
     result = mi1.intersection(mi2)
     expected = pd.MultiIndex.from_arrays([[3, nulls_fixture], [1, 2]])
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_all_missing_level(nulls_fixture):
+    # GH#26846
+    mi = pd.MultiIndex.from_arrays([[nulls_fixture] * 3, ["a1", "a2", "a3"]])
+    other = [(nulls_fixture, "a1"), (nulls_fixture, "a3")]
+    result = mi.intersection(other)
+    expected = pd.MultiIndex.from_arrays([[nulls_fixture] * 2, ["a1", "a3"]])
     tm.assert_index_equal(result, expected)
 
 

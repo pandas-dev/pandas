@@ -51,7 +51,7 @@ def _check_cumsum_overflow(
 
 
 def _cum_func(
-    func: Callable,
+    func: Callable[..., np.ndarray],
     values: np.ndarray,
     *,
     skipna: bool = True,

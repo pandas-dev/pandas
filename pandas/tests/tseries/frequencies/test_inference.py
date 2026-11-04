@@ -109,6 +109,70 @@ def test_infer_freq_quarter_start(offset_prefix, month):
         assert inferred in (f"BQS-{expected_month}", f"QS-{expected_month}")
 
 
+def test_infer_freq_multi_quarter_start():
+    # GH#63791 the anchor is the first-calendar-quarter month whether the
+    #  series starts in January or July
+    bdates = pd.date_range("2015-12-31", periods=6, freq="6BME") + offsets.BDay(1)
+    assert frequencies.infer_freq(bdates) == "2BQS-JAN"
+
+    for start in ["2016-01-01", "2016-07-01"]:
+        dates = pd.DatetimeIndex(pd.date_range(start, periods=6, freq="6MS").values)
+        assert frequencies.infer_freq(dates) == "2QS-JAN"
+
+
+@pytest.mark.parametrize("freq", ["SME", "SMS"])
+@pytest.mark.parametrize("start", ["2020-01-01", "2020-01-15", "2020-01-31"])
+def test_infer_freq_semi_monthly(freq, start):
+    # GH#45819 a semi-monthly index has two distinct deltas, so it never
+    #  reached the monthly or daily rules and inference returned None
+    index = pd.DatetimeIndex(pd.date_range(start, periods=10, freq=freq).values)
+
+    assert frequencies.infer_freq(index) == freq
+
+
+def test_infer_freq_semi_monthly_leap_february():
+    # GH#45819 the SME anchor is the last day of the month, which varies
+    index = pd.DatetimeIndex(pd.date_range("2024-01-15", periods=8, freq="SME").values)
+
+    assert index[3] == pd.Timestamp("2024-02-29")
+    assert frequencies.infer_freq(index) == "SME"
+
+
+def test_infer_freq_semi_monthly_evenly_spaced_keeps_weekly():
+    # GH#45819 across a 28-day February the SMS anchors are all 14 days
+    #  apart, so the index is also 2W-MON; the fixed-delta rule takes
+    #  precedence, as before semi-monthly inference existed
+    index = pd.DatetimeIndex(["2021-02-01", "2021-02-15", "2021-03-01", "2021-03-15"])
+
+    assert frequencies.infer_freq(index) == "2W-MON"
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        # both anchors present but the months do not advance
+        ["2020-01-01", "2020-01-15", "2020-02-01", "2020-02-15", "2020-02-01"],
+        # anchors do not alternate
+        ["2020-01-01", "2020-01-01", "2020-01-15", "2020-02-01"],
+        # day 15 present, but the other anchor is not the month end
+        ["2020-01-15", "2020-01-20", "2020-02-15", "2020-02-20"],
+    ],
+)
+def test_infer_freq_semi_monthly_negative(dates):
+    # GH#45819 these must not be mistaken for a semi-monthly frequency
+    index = pd.DatetimeIndex(dates)
+
+    assert frequencies.infer_freq(index) is None
+
+
+def test_infer_freq_semi_monthly_multiple_not_inferred():
+    # GH#45819 a multiple such as 2SME advances two months at a time, which
+    #  is not claimed as SME
+    index = pd.DatetimeIndex(pd.date_range("2020-01-15", periods=8, freq="2SME").values)
+
+    assert frequencies.infer_freq(index) is None
+
+
 def test_raise_if_period_index():
     index = pd.period_range(start="1/1/1990", periods=20, freq="M")
     msg = "Check the `freq` attribute instead of using infer_freq"
@@ -358,6 +422,72 @@ def test_infer_freq_business_hour(data, expected):
     assert idx.inferred_freq == expected
 
 
+@pytest.mark.parametrize(
+    "klass, data",
+    [
+        # fractional overnight gap: 17.5h, not the 17h of a "bh" day boundary
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-01 10:00",
+                "2026-01-01 11:00",
+                "2026-01-02 04:30",
+                "2026-01-02 05:30",
+                "2026-01-02 06:30",
+            ],
+        ),
+        # fractional base step: 1.5h floors to the same 1 as an hourly step
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-01 10:30",
+                "2026-01-01 12:00",
+                "2026-01-02 05:30",
+                "2026-01-02 07:00",
+                "2026-01-02 08:30",
+            ],
+        ),
+        # fractional weekend gap: 65.5h, not the 65h of a "bh" weekend
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-02 09:00",
+                "2026-01-02 10:00",
+                "2026-01-02 11:00",
+                "2026-01-05 04:30",
+                "2026-01-05 05:30",
+                "2026-01-05 06:30",
+            ],
+        ),
+        # fractional weekend gap: 3.5d, not the 3d of a "B" weekend
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-02 09:00",
+                "2026-01-05 21:00",
+                "2026-01-06 21:00",
+                "2026-01-07 21:00",
+                "2026-01-08 21:00",
+                "2026-01-09 21:00",
+            ],
+        ),
+        # _TimedeltaFrequencyInferer inherits the same "bh" check
+        (
+            pd.TimedeltaIndex,
+            ["1h", "2h", "3h", "20h30min", "21h30min", "22h30min"],
+        ),
+    ],
+)
+def test_infer_freq_fractional_gap(klass, data):
+    # GH#68153 a gap that is not a whole number of hours/days must not be
+    #  floored into matching the "bh"/"B" delta patterns
+    idx = klass(data)
+    assert idx.inferred_freq is None
+
+
 def test_not_monotonic():
     rng = pd.DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     rng = rng[::-1]
@@ -555,6 +685,18 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
 
     res = frequencies.infer_freq(dta)
     assert res == "B"
+
+
+def test_infer_freq_large_dates():
+    # https://github.com/pandas-dev/pandas/pull/65845
+    # large dates which would be out of bounds for micro (year > 294_241)
+    # (this needs to use a freq that checks the month such as QE to cover the code path)
+    dti = pd.date_range(
+        pd.Timestamp(np.datetime64(10**13, "s")).normalize(), periods=10, freq="QE"
+    )._with_freq(None)
+
+    res = frequencies.infer_freq(dti)
+    assert res == "QE-DEC"
 
 
 @td.skip_if_no("pyarrow")

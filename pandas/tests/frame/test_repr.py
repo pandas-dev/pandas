@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -384,7 +386,8 @@ NaT   4"""
         df = pd.DataFrame(
             [["a", "b"], ["c", "d"], ["e", "f"]], columns=["left", "right"]
         )
-        df["record"] = df[["left", "right"]].to_records()
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            df["record"] = df[["left", "right"]].to_records()
         expected = """  left right     record
 0    a     b  [0, a, b]
 1    c     d  [1, c, d]
@@ -397,7 +400,8 @@ NaT   4"""
         df = pd.DataFrame(
             [["a", np.nan], ["c", "d"], ["e", "f"]], columns=["left", "right"]
         )
-        df["record"] = df[["left", "right"]].to_records()
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            df["record"] = df[["left", "right"]].to_records()
         expected = """  left right       record
 0    a   NaN  [0, a, nan]
 1    c     d    [1, c, d]
@@ -410,7 +414,8 @@ NaT   4"""
         df = pd.DataFrame(
             [["a", "b"], [np.nan, np.nan], ["e", "f"]], columns=[np.nan, "right"]
         )
-        df["record"] = df[[np.nan, "right"]].to_records()
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            df["record"] = df[[np.nan, "right"]].to_records()
         expected = """   NaN right         record
 0    a     b      [0, a, b]
 1  NaN   NaN  [1, nan, nan]
@@ -428,7 +433,8 @@ NaT   4"""
             [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]],
             columns=[np.nan, np.inf],
         )
-        df["record"] = df[[np.nan, np.inf]].to_records()
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            df["record"] = df[[np.nan, np.inf]].to_records()
         result = repr(df)
         assert result == expected
 
@@ -439,7 +445,8 @@ NaT   4"""
             [((255, 0),), ((255, 1),), ((255, 2),)],
             dtype=[("x", [("null", "u1"), ("val", "<i8")])],
         )
-        df = pd.DataFrame.from_records(ar)
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            df = pd.DataFrame.from_records(ar)
         expected = "          x\n0  (255, 0)\n1  (255, 1)\n2  (255, 2)"
         assert repr(df) == expected
 
@@ -452,9 +459,9 @@ NaT   4"""
             }
         )
         result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
-        expected = """      a     b
-0  0.12  1.00
-1  1.12  2.00"""
+        expected = """     a    b
+0 0.12 1.00
+1 1.12 2.00"""
         assert result == expected
 
     def test_repr_ea_columns(self, any_string_dtype):

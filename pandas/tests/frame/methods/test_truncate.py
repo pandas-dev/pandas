@@ -101,6 +101,17 @@ class TestDataFrameTruncate:
         with pytest.raises(ValueError, match=msg):
             df.truncate(before=2, after=20, axis=1)
 
+    @pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
+    def test_truncate_axis_by_name(self, axis):
+        # GH#58517
+        df = pd.DataFrame(np.arange(16).reshape(4, 4))
+        result = df.truncate(before=1, after=2, axis=axis)
+        if axis in [0, "index"]:
+            expected = df.iloc[1:3]
+        else:
+            expected = df.iloc[:, 1:3]
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "before, after, indices",
         [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],

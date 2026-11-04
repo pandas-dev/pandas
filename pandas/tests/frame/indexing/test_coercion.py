@@ -168,3 +168,11 @@ def test_20476():
         index=mi,
     )
     tm.assert_series_equal(df.dtypes, exp_dtypes)
+
+
+def test_setitem_midx_subframe_keeps_mixed_dtypes():
+    # GH#13433
+    df = pd.DataFrame({("test", "it"): [23.0, 24.0], ("test", "not"): ["a", "a"]})
+    expected = df.copy()
+    df["test"] = df["test"]
+    tm.assert_frame_equal(df, expected)
