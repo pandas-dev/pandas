@@ -165,7 +165,10 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload prod docs
-      run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/version/${PANDAS_DOCS_VERSION}
+      run: |
+        rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/version/${PANDAS_DOCS_VERSION}
+        # /docs/dev resolves through the stable symlink into this directory, see GH#71510
+        ln -sfn ../../dev pandas-dev.github.io/pandas-docs/version/${PANDAS_DOCS_VERSION}/dev
       if: env.PUBLISH_PROD == 'true'
 
     - name: Commit and push to pandas-dev.github.io
