@@ -11,7 +11,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    NullFrequencyError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -26,13 +29,14 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 
-ok_for_period = PeriodArray._datetimelike_ops
-ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-# ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
-# directly rather than on the underlying array, so add it explicitly.
-ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq"]
 # GH#46768 - deprecated aliases that should be skipped in property access tests
 _deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
+
+ok_for_period = PeriodArray._datetimelike_ops + list(_deprecated_dt_attrs)
+ok_for_period_methods = ["strftime", "to_timestamp", "asfreq", "shift"]
+# ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
+# directly rather than on the underlying array, so add it explicitly.
+ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq", *list(_deprecated_dt_attrs)]
 ok_for_dt_methods = [
     "to_period",
     "to_pydatetime",
@@ -47,6 +51,7 @@ ok_for_dt_methods = [
     "month_name",
     "isocalendar",
     "as_unit",
+    "shift",
 ]
 ok_for_td = [*TimedeltaArray._datetimelike_ops, "freq"]
 ok_for_td_methods = [
@@ -57,6 +62,7 @@ ok_for_td_methods = [
     "floor",
     "ceil",
     "as_unit",
+    "shift",
 ]
 
 
@@ -186,9 +192,7 @@ class TestSeriesDatetimeValues:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             freq_result = ser.dt.freq
 
-        msg = "Series.values returning an ndarray that drops timezone information"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert freq_result == pd.DatetimeIndex(ser.values, freq="infer").freq
+        assert freq_result == pd.DatetimeIndex(ser.array._ndarray, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
         # GH#7207, GH#11128
@@ -253,9 +257,7 @@ class TestSeriesDatetimeValues:
             getattr(ser.dt, prop)
 
         freq_result = ser.dt.freq
-        msg = "Series.values returning an object-dtype ndarray for PeriodDtype"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert freq_result == pd.PeriodIndex(ser.values).freq
+        assert freq_result == pd.PeriodIndex(ser.to_numpy()).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
         # both
@@ -627,12 +629,26 @@ class TestSeriesDatetimeValues:
             expected = expected.astype(pd.StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
 
-    def test_strftime_literal_braces(self):
-        # Literal braces in the format string should be preserved
-        ser = pd.Series(pd.date_range("2024-01-01", periods=3))
-        result = ser.dt.strftime("{%Y}")
-        expected = pd.Series(["{2024}", "{2024}", "{2024}"])
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    @pytest.mark.parametrize(
+        "fmt, expected",
+        [
+            ("{%Y}", "{2024}"),
+            ("100%% %Y", "100% 2024"),
+            ("%Y%", "2024%"),
+            ("%d日%H時", "01日05時"),
+            ("%S.%f", "00.123456"),
+            ("100%%", "100%"),
+            ("abc", "abc"),
+        ],
+    )
+    def test_strftime_literals(self, tz, fmt, expected):
+        # Literal text around directives should be preserved
+        ser = pd.Series(
+            pd.date_range("2024-01-01 05:00:00.123456", periods=3, freq="min", tz=tz)
+        )
+        result = ser.dt.strftime(fmt)
+        tm.assert_series_equal(result, pd.Series([expected] * 3))
 
     def test_strftime_dt64_year_lt_1000(self):
         # GH#58179, GH#64609 the directive-map fast path must zero-pad %Y to
@@ -650,6 +666,19 @@ class TestSeriesDatetimeValues:
         # composite format still routes through the directive-map fast path
         result = ser.dt.strftime("%Y/%m/%d")
         expected = pd.Series(["0005/06/15", "0099/01/01", "0999/12/31", "2024/03/02"])
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_dt64_default_formats_year_lt_1000(self):
+        # GH#58179 the default-format fast paths zero-pad the year
+        ser = pd.Series(np.array(["-0020-01-01", "0020-01-01", "2024-03-02"], "M8[s]"))
+        result = ser.dt.strftime(None)
+        expected = pd.Series(["-020-01-01", "0020-01-01", "2024-03-02"])
+        tm.assert_series_equal(result, expected)
+
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
+        expected = pd.Series(
+            ["-020-01-01 00:00:00", "0020-01-01 00:00:00", "2024-03-02 00:00:00"]
+        )
         tm.assert_series_equal(result, expected)
 
     def test_strftime_dt64_microsecond_resolution(self):
@@ -676,8 +705,7 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-        # template path: %N in a non-hardcoded format goes through the
-        # str.format-based fmt_template path
+        # %N in a non-hardcoded format goes through the directive-map path
         result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S.%N")
         expected = pd.Series(
             ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
@@ -699,7 +727,7 @@ class TestSeriesDatetimeValues:
 
     def test_strftime_nanosecond_directive_tz(self):
         # GH#29461 - %N directive must work for tz-aware data via the
-        # template path (Localizer is wired up only for the template path)
+        # directive-map path (Localizer is wired up only for that path)
         dti = pd.DatetimeIndex(
             [
                 pd.Timestamp("2019-05-18 15:17:08.132263123", tz="US/Eastern"),
@@ -1027,3 +1055,79 @@ def test_dt_freq_no_warning_when_unable_to_infer():
     ser = pd.Series(pd.to_datetime(["2020-01-01", "2020-03-07", "2020-08-15"]))
     with tm.assert_produces_warning(None):
         assert ser.dt.freq is None
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        pd.Series(pd.date_range("2020-01-01", periods=3)),
+        pd.Series(pd.period_range("2020-01-01", periods=3, freq="D")),
+    ],
+    ids=["datetime64", "period"],
+)
+def test_deprecated_aliases(ser):
+    msg = "Series.dt.{} is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("weekday")):
+        result = ser.dt.weekday
+    tm.assert_series_equal(result, ser.dt.day_of_week)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("dayofweek")):
+        result = ser.dt.dayofweek
+    tm.assert_series_equal(result, ser.dt.day_of_week)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("dayofyear")):
+        result = ser.dt.dayofyear
+    tm.assert_series_equal(result, ser.dt.day_of_year)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("daysinmonth")):
+        result = ser.dt.daysinmonth
+    tm.assert_series_equal(result, ser.dt.days_in_month)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2020-01-01", periods=3, freq="D"),
+        pd.date_range("2020-03-07", periods=3, freq="D", tz="US/Eastern"),
+        pd.date_range("2020-01-31", periods=3, freq="ME"),
+        pd.timedelta_range("1 day", periods=3, freq="h"),
+        pd.period_range("2020-01", periods=3, freq="M"),
+    ],
+    ids=["datetime64", "datetime64tz", "month_end", "timedelta64", "period"],
+)
+@pytest.mark.parametrize("periods", [2, -1, 0])
+def test_dt_shift(values, periods):
+    # GH#31705 without freq, shift by the inferred frequency like Index.shift
+    ser = pd.Series(values, index=list("abc"), name="xxx")
+    expected = pd.Series(values.shift(periods), index=ser.index, name="xxx")
+
+    result = ser.dt.shift(periods)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.astype("category").dt.shift(periods)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        pd.Series(pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT])),
+        pd.Series(pd.to_timedelta(["1 day", "3 days", pd.NaT])),
+    ],
+    ids=["datetime64", "timedelta64"],
+)
+def test_dt_shift_freq(ser):
+    # GH#31705 an explicit freq does not require regular values
+    result = ser.dt.shift(-2, freq="h")
+    expected = ser - pd.Timedelta(hours=2)
+    tm.assert_series_equal(result, expected)
+
+    with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
+        ser.dt.shift(1)
+    tm.assert_series_equal(ser.dt.shift(0), ser)
+
+
+def test_dt_shift_period_freq_raises():
+    ser = pd.Series(pd.period_range("2020-01", periods=3, freq="M"))
+    with pytest.raises(TypeError, match="not supported for Series.dt.shift"):
+        ser.dt.shift(1, freq="M")

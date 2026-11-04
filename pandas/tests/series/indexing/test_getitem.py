@@ -690,6 +690,48 @@ def test_duplicated_index_getitem_positional_indexer(index_vals):
         s[3]
 
 
+@pytest.mark.parametrize("indexer", [tm.getitem, tm.loc, tm.iloc, tm.at, tm.iat])
+def test_getitem_scalar_key(indexer, using_python_scalars):
+    # GH#20791
+    ser = pd.Series([1, 2, 3])
+    expected_type = int if using_python_scalars else np.int64
+    result = indexer(ser)[1]
+    assert result == 2
+    assert type(result) is expected_type
+
+
+@pytest.mark.parametrize("indexer", [tm.getitem, tm.loc, tm.at])
+def test_getitem_multiindex_scalar_key(indexer, using_python_scalars):
+    # GH#20791
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+    ser = pd.Series([1.5, 2.5], index=mi)
+    expected_type = float if using_python_scalars else np.float64
+    result = indexer(ser)[("a", 1)]
+    assert result == 1.5
+    assert type(result) is expected_type
+
+
+def test_getitem_multiindex_single_level(using_python_scalars):
+    # GH#20791
+    # _get_value path where get_loc returns a slice of length one
+    mi = pd.MultiIndex.from_arrays([["a", "b"]])
+    ser = pd.Series([1.5, 2.5], index=mi)
+    expected_type = float if using_python_scalars else np.float64
+    result = ser["a"]
+    assert result == 1.5
+    assert type(result) is expected_type
+
+
+@pytest.mark.parametrize("indexer", [tm.getitem, tm.loc, tm.iloc, tm.at, tm.iat])
+def test_getitem_object_dtype_preserves_numpy_scalars(indexer):
+    # GH#64266
+    value = np.int8(1)
+    ser = pd.Series([value, np.int8(2)], dtype=object)
+    with pd.option_context("future.python_scalars", True):
+        result = indexer(ser)[0]
+    assert result is value
+
+
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):

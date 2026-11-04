@@ -207,6 +207,16 @@ def test_pad_fillchar_bad_arg_raises(any_string_dtype):
         s.str.pad(5, fillchar=5)
 
 
+@pytest.mark.parametrize("method_name", ["center", "ljust", "rjust", "pad"])
+def test_pad_negative_width(method_name, any_string_dtype):
+    s = pd.Series(["ab", "+ab", "", "café"], dtype=any_string_dtype)
+
+    result = getattr(s.str, method_name)(width=-5)
+
+    expected = pd.Series(["ab", "+ab", "", "café"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("method_name", ["center", "ljust", "rjust", "zfill", "pad"])
 def test_pad_width_bad_arg_raises(method_name, any_string_dtype):
     # see gh-13598
@@ -385,6 +395,18 @@ def test_zfill_signed(any_string_dtype):
     s = pd.Series(["-3", "+7", "-", "0"], dtype=any_string_dtype)
     result = s.str.zfill(5)
     expected = pd.Series(["-0003", "+0007", "-0000", "00000"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("width", [-5, -2, 0])
+def test_zfill_nonpositive_width(any_string_dtype, width):
+    # GH#69486
+    # str.zfill returns the string unchanged for any width not larger than
+    # the string itself, so nonpositive widths are a no-op
+    values = ["1", "22", "aaa", "-3", "+7", "-", "", "ää", np.nan]
+    s = pd.Series(values, dtype=any_string_dtype)
+    result = s.str.zfill(width)
+    expected = pd.Series(values, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 

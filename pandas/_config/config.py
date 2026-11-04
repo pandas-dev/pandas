@@ -904,7 +904,7 @@ def is_instance_factory(_type: type | tuple[type, ...]) -> Callable[[Any], None]
     return inner
 
 
-def is_one_of_factory(legal_values: Sequence) -> Callable[[Any], None]:
+def is_one_of_factory(legal_values: Sequence[Any]) -> Callable[[Any], None]:
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 

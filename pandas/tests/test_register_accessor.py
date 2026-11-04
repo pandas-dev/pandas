@@ -68,6 +68,8 @@ def test_register(obj, registrar):
         registrar("mine")(MyAccessor)
         o = obj([]) if obj is not pd.Series else obj([], dtype=object)
         assert o.mine.prop == "item"
+        # not cached, as documented in the registrar docstrings, GH#32678
+        assert o.mine is not o.mine
         after = set(dir(obj))
         assert (before ^ after) == {"mine"}
         assert "mine" in obj._accessors

@@ -43,8 +43,11 @@ from typing import (
     overload,
 )
 from urllib.parse import (
+    quote,
     urljoin,
     urlparse as parse_url,
+    urlsplit,
+    urlunsplit,
     uses_netloc,
     uses_params,
     uses_relative,
@@ -69,6 +72,8 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+# the _VALID_URLS schemes urllib can open; the rest (e.g. sftp) go to fsspec, GH#46765
+_URLLIB_SCHEMES = {"http", "https", "ftp", "file"}
 _FSSPEC_URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*(::[A-Za-z0-9+\-+.]+)*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
@@ -212,7 +217,7 @@ def validate_header_arg(header: object) -> None:
             )
         return
     if is_list_like(header, allow_sets=False):
-        header = cast("Sequence", header)
+        header = cast("Sequence[int]", header)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
@@ -284,6 +289,27 @@ def urlopen(*args: Any, **kwargs: Any) -> Any:
     return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
 
 
+_NON_ASCII = re.compile(r"[^\x00-\x7f]+")
+
+
+def _quote_non_ascii_url(url: str) -> str:
+    """
+    Percent-encode non-ASCII characters in an HTTP(S) URL's path, query and fragment.
+
+    Other schemes already handle non-ASCII URLs and are returned unchanged.
+    """
+    if url.isascii():
+        return url
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https"):
+        # e.g. Python 3.11 urlunsplit turns "file:sub/x" into "file:///sub/x"
+        return url
+    quoted = [
+        _NON_ASCII.sub(lambda match: quote(match.group()), part) for part in parts[2:]
+    ]
+    return urlunsplit((*parts[:2], *quoted))
+
+
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     """
     Returns true if the given URL looks like
@@ -352,11 +378,9 @@ def _get_filepath_or_buffer(
     compression_method = infer_compression(filepath_or_buffer, compression_method)
 
     # GH21227 internal compression is not used for non-binary handles.
-    if compression_method and hasattr(filepath_or_buffer, "write") and "b" not in mode:
-        warnings.warn(
-            "compression has no effect when passing a non-binary object as input.",
-            RuntimeWarning,
-            stacklevel=find_stack_level(),
+    if hasattr(filepath_or_buffer, "write") and "b" not in mode:
+        warn_unused_compression(
+            compression_method, "passing a non-binary object as input"
         )
         compression_method = None
 
@@ -392,7 +416,22 @@ def _get_filepath_or_buffer(
     if "t" not in fsspec_mode and "b" not in fsspec_mode:
         fsspec_mode += "b"
 
-    if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and any(char in mode for char in "wax+"):
+        parsed = parse_url(filepath_or_buffer)
+        if parsed.scheme == "file" and parsed.netloc.lower() in ("", "localhost"):
+            # GH#55828 urlopen can only read; write to the path urllib reads from
+            import urllib.request
+
+            path = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+            filepath_or_buffer = urllib.request.url2pathname(path)
+        elif parsed.scheme in _URLLIB_SCHEMES:
+            # GH#55828 the urlopen branch below would silently discard the write
+            raise ValueError(f"Cannot write to URL: {filepath_or_buffer}")
+
+    if (
+        isinstance(filepath_or_buffer, str)
+        and parse_url(filepath_or_buffer).scheme in _URLLIB_SCHEMES
+    ):
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
@@ -402,8 +441,10 @@ def _get_filepath_or_buffer(
         # urlopen function defined elsewhere in this module
         import urllib.request
 
+        # GH#21499 http.client requires an ASCII request line
+        url = _quote_non_ascii_url(filepath_or_buffer)
         # assuming storage_options is to be interpreted as headers
-        req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
+        req_info = urllib.request.Request(url, headers=storage_options)
         with urlopen(req_info) as req:
             content_encoding = req.headers.get("Content-Encoding", None)
             if content_encoding == "gzip":
@@ -537,7 +578,7 @@ _supported_compressions = set(extension_to_compression.values())
 
 
 def get_compression_method(
-    compression: CompressionOptions,
+    compression: str | CompressionDict | None,
 ) -> tuple[str | None, CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
@@ -640,6 +681,27 @@ def infer_compression(
         f"Valid compression types are {valid}"
     )
     raise ValueError(msg)
+
+
+def warn_unused_compression(
+    compression: str | CompressionDict | None,
+    reason: str = "no path or buffer is given; the returned string is not compressed",
+) -> None:
+    """
+    Warn that ``compression`` has no effect because of ``reason``.
+
+    An unrecognized compression method still raises, as it would if it were used.
+    """
+    compression_method, _ = get_compression_method(compression)
+    if compression_method is None or compression_method == "infer":
+        return
+    # the path is only consulted for "infer"; here this only validates the method
+    infer_compression("", compression_method)
+    warnings.warn(
+        f"compression has no effect when {reason}.",
+        RuntimeWarning,
+        stacklevel=find_stack_level(),
+    )
 
 
 def check_parent_directory(path: Path | str) -> None:
@@ -810,9 +872,7 @@ def get_handle(
             # GZ Compression
             if compression == "gzip":
                 if isinstance(handle, str):
-                    # error: Incompatible types in assignment (expression has type
-                    # "GzipFile", variable has type "Union[str, BaseBuffer]")
-                    handle = gzip.GzipFile(  # type: ignore[assignment]
+                    handle = gzip.GzipFile(
                         filename=handle,
                         mode=ioargs.mode,
                         **compression_args,
@@ -957,6 +1017,7 @@ def get_handle(
             handle = _BytesIOWrapper(
                 handle,
                 encoding=ioargs.encoding,
+                errors=errors,
             )
         elif is_text and (
             compression or memory_map or _is_binary_mode(handle, ioargs.mode)
@@ -1050,7 +1111,7 @@ class _BytesTarFile(_BufferedWriter):
         name: str | None = None,
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1094,8 +1155,8 @@ class _BytesTarFile(_BufferedWriter):
         return filename.name
 
     def write_to_buffer(self) -> None:
-        # TarFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "tar"
+        # TarFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "tar")
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
@@ -1106,7 +1167,7 @@ class _BytesZipFile(_BufferedWriter):
         self,
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1136,8 +1197,8 @@ class _BytesZipFile(_BufferedWriter):
         return None
 
     def write_to_buffer(self) -> None:
-        # ZipFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "zip"
+        # ZipFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "zip")
         self.buffer.writestr(archive_name, self.getvalue())
 
 
@@ -1173,9 +1234,15 @@ class _IOWrapper:
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
-    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8") -> None:
+    def __init__(
+        self,
+        buffer: StringIO | TextIOBase,
+        encoding: str = "utf-8",
+        errors: str = "strict",
+    ) -> None:
         self.buffer = buffer
         self.encoding = encoding
+        self.errors = errors
         # Because a character can be represented by more than 1 byte,
         # it is possible that reading will produce more bytes than n
         # We store the extra bytes in this overflow variable, and append the
@@ -1187,7 +1254,7 @@ class _BytesIOWrapper:
 
     def read(self, n: int | None = -1) -> bytes:
         assert self.buffer is not None
-        bytestring = self.buffer.read(n).encode(self.encoding)
+        bytestring = self.buffer.read(n).encode(self.encoding, self.errors)
         # When n=-1/n greater than remaining bytes: Read entire file/rest of file
         combined_bytestring = self.overflow + bytestring
         if n is None or n < 0 or n >= len(combined_bytestring):
@@ -1209,7 +1276,7 @@ def _maybe_memory_map(
         return handle, memory_map, handles
 
     # mmap used by only read_csv
-    handle = cast("ReadCsvBuffer", handle)
+    handle = cast("ReadCsvBuffer[bytes]", handle)
 
     # need to open the file first
     if isinstance(handle, str):

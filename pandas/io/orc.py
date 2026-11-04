@@ -16,10 +16,14 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.indexes.api import default_index
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
+    stringify_path,
 )
 
 if TYPE_CHECKING:
@@ -126,9 +130,19 @@ def read_orc(
 
     check_dtype_backend(dtype_backend)
 
+    if filesystem is not None:
+        # open the path only through the given filesystem (GH#58746)
+        pa_table = orc.read_table(
+            source=stringify_path(path),
+            columns=columns,
+            filesystem=filesystem,
+            **kwargs,
+        )
+        return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
+
     with get_handle(path, "rb", is_text=False) as handles:
         source = handles.handle
-        if is_fsspec_url(path) and filesystem is None:
+        if is_fsspec_url(path):
             pa = import_optional_dependency("pyarrow")
             pa_fs = import_optional_dependency("pyarrow.fs")
             try:
@@ -242,11 +256,9 @@ def to_orc(
     assert path is not None  # For mypy
     with get_handle(path, "wb", is_text=False) as handles:
         try:
-            orc.write_table(
-                pa.Table.from_pandas(df, preserve_index=index),
-                handles.handle,
-                **engine_kwargs,
-            )
+            with suppress_pyarrow_values_warning():
+                table = pa.Table.from_pandas(df, preserve_index=index)
+            orc.write_table(table, handles.handle, **engine_kwargs)
         except (TypeError, pa.ArrowNotImplementedError) as e:
             raise NotImplementedError(
                 "The dtype of one or more columns is not supported yet."

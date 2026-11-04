@@ -50,7 +50,6 @@ from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     Index,
 )
-from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -74,20 +73,6 @@ def _new_PeriodIndex(cls, **d):
         return cls(values, **d)
 
 
-@inherit_names(
-    [
-        "strftime",
-        "start_time",
-        "end_time",
-        *PeriodArray._field_ops,
-        "dayofweek",
-        "dayofyear",
-        "daysinmonth",
-    ],
-    PeriodArray,
-    wrap=True,
-)
-@inherit_names(["is_leap_year"], PeriodArray)
 @set_module("pandas")
 class PeriodIndex(DatetimeIndexOpsMixin):
     """
@@ -185,7 +170,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
-    # These are defined here instead of via inherit_names for mypy
 
     def asfreq(self, freq=None, how: str = "E") -> Self:
         """
@@ -198,14 +182,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         ----------
         freq : str
             A frequency.
-        how : str {'E', 'S'}, default 'E'
-            Whether the elements should be aligned to the end
-            or start within pa period.
-
-            * 'E', 'END', or 'FINISH' for end,
-            * 'S', 'START', or 'BEGIN' for start.
-
-            January 31st ('END') vs. January 1st ('START') for example.
+        how : {'end', 'start', 'e', 's'}, default 'end'
+            Whether the elements should be aligned to the end or start of
+            each period, e.g. January 31st vs. January 1st. Case-insensitive.
 
         Returns
         -------
@@ -248,8 +227,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             's' otherwise.
-        how : {'s', 'e', 'start', 'end'}
+        how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the time period being converted.
+            Case-insensitive.
 
         Returns
         -------
@@ -295,6 +275,161 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         result._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
         return result
 
+    def strftime(self, date_format: str) -> Index:
+        """
+        Convert to Index using specified date_format.
+
+        Return an Index of formatted strings specified by date_format, which
+        supports the same string format as the python standard library. Details
+        of the string format can be found in `python string format
+        doc <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior>`__.
+        :class:`Period` objects additionally support several directives not
+        covered there, detailed in :meth:`Period.strftime`.
+
+        Parameters
+        ----------
+        date_format : str
+            Date format string (e.g. "%Y-%m-%d").
+
+        Returns
+        -------
+        Index
+            Index of formatted strings.
+
+        See Also
+        --------
+        to_datetime : Convert the given argument to datetime.
+        Period.strftime : Format a single Period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.strftime("%B %d, %Y")
+        Index(['January 31, 2023', 'February 28, 2023', 'March 31, 2023'], dtype='str')
+        """
+        arr = self._data.strftime(date_format)
+        return Index(arr, name=self.name, dtype=arr.dtype, copy=False)
+
+    def _wrap_field(self, name: str) -> Index:
+        result = getattr(self._data, name)
+        return Index(result, name=self.name, dtype=result.dtype, copy=False)
+
+    @property
+    def start_time(self) -> DatetimeIndex:
+        """
+        Get the Timestamp for the start of the period.
+
+        Returns a DatetimeIndex with the exact start Timestamp of each
+        period in the index.
+
+        Returns
+        -------
+        DatetimeIndex
+
+        See Also
+        --------
+        PeriodIndex.end_time : Return the end Timestamp.
+        PeriodIndex.to_timestamp : Cast to DatetimeIndex.
+        Period.start_time : Return the start Timestamp for a single Period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
+        >>> idx.start_time
+        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[us]', freq=None)
+        """
+        return DatetimeIndex(self._data.start_time, name=self.name, copy=False)
+
+    @property
+    def end_time(self) -> DatetimeIndex:
+        """
+        Get the Timestamp for the end of the period.
+
+        Returns a DatetimeIndex with the last possible moment within each
+        period in the index (e.g. 23:59:59.999999 for a daily period).
+
+        Returns
+        -------
+        DatetimeIndex
+
+        See Also
+        --------
+        PeriodIndex.start_time : Return the start Timestamp.
+        PeriodIndex.to_timestamp : Cast to DatetimeIndex.
+        Period.end_time : Return the end Timestamp for a single Period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
+        >>> idx.end_time
+        DatetimeIndex(['2023-01-31 23:59:59.999999', '2023-02-28 23:59:59.999999'],
+                      dtype='datetime64[us]', freq=None)
+        """
+        return DatetimeIndex(self._data.end_time, name=self.name, copy=False)
+
+    @property
+    def year(self) -> Index:
+        """
+        The year of the period.
+
+        Returns the year component for each period in the index.
+
+        See Also
+        --------
+        PeriodIndex.day_of_year : The ordinal day of the year.
+        PeriodIndex.is_leap_year : Logical indicating if the date belongs to a
+            leap year.
+        PeriodIndex.weekofyear : The week ordinal of the year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx.year
+        Index([2023, 2024, 2025], dtype='int64')
+        """
+        return self._wrap_field("year")
+
+    @property
+    def month(self) -> Index:
+        """
+        The month as January=1, December=12.
+
+        Returns the month component for each period in the index as an
+        integer, where January is 1 and December is 12.
+
+        See Also
+        --------
+        PeriodIndex.days_in_month : The number of days in the month.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.month
+        Index([1, 2, 3], dtype='int64')
+        """
+        return self._wrap_field("month")
+
+    @property
+    def day(self) -> Index:
+        """
+        The days of the period.
+
+        Returns the day-of-month component for each period in the index.
+
+        See Also
+        --------
+        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.day_of_year : The ordinal day of the year.
+        PeriodIndex.days_in_month : The number of days in the month.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2020-01-31", "2020-02-28"], freq="D")
+        >>> idx.day
+        Index([31, 28], dtype='int64')
+        """
+        return self._wrap_field("day")
+
     @property
     def hour(self) -> Index:
         """
@@ -314,7 +449,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         >>> idx.hour
         Index([10, 11], dtype='int64')
         """
-        return Index(self._data.hour, name=self.name, copy=False)
+        return self._wrap_field("hour")
 
     @property
     def minute(self) -> Index:
@@ -337,7 +472,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         >>> idx.minute
         Index([30, 50], dtype='int64')
         """
-        return Index(self._data.minute, name=self.name, copy=False)
+        return self._wrap_field("minute")
 
     @property
     def second(self) -> Index:
@@ -360,7 +495,253 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         >>> idx.second
         Index([30, 31], dtype='int64')
         """
-        return Index(self._data.second, name=self.name, copy=False)
+        return self._wrap_field("second")
+
+    @property
+    def weekofyear(self) -> Index:
+        """
+        The week ordinal of the year.
+
+        Returns the week number (1 through 53) for each period in the index.
+
+        See Also
+        --------
+        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.week : The week ordinal of the year.
+        PeriodIndex.year : The year of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.week  # It can be written `weekofyear`
+        Index([5, 9, 13], dtype='int64')
+        """
+        return self._wrap_field("weekofyear")
+
+    week = weekofyear
+
+    @property
+    def day_of_week(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        Returns the day-of-week component for each period, following the
+        Python convention where Monday is 0 and Sunday is 6.
+
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.day_of_year : The ordinal day of the year.
+        PeriodIndex.week : The week ordinal of the year.
+        PeriodIndex.weekofyear : The week ordinal of the year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01", "2023-01-02", "2023-01-03"], freq="D")
+        >>> idx.day_of_week
+        Index([6, 0, 1], dtype='int64')
+        """
+        return self._wrap_field("day_of_week")
+
+    @property
+    def weekday(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
+        warnings.warn(
+            "PeriodIndex.weekday is deprecated and will be removed "
+            "in a future version. Use PeriodIndex.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_week")
+
+    @property
+    def dayofweek(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
+        warnings.warn(
+            "PeriodIndex.dayofweek is deprecated and will be removed "
+            "in a future version. Use PeriodIndex.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_week")
+
+    @property
+    def day_of_year(self) -> Index:
+        """
+        The ordinal day of the year.
+
+        Returns the day-of-year component for each period, ranging from
+        1 (January 1st) to 365 or 366 for leap years.
+
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.weekofyear : The week ordinal of the year.
+        PeriodIndex.year : The year of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-10", "2023-02-01", "2023-03-01"], freq="D")
+        >>> idx.day_of_year
+        Index([10, 32, 60], dtype='int64')
+
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
+        >>> idx.day_of_year
+        Index([365, 366, 365], dtype='int64')
+        """
+        return self._wrap_field("day_of_year")
+
+    @property
+    def dayofyear(self) -> Index:
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_year` instead.
+        """
+        warnings.warn(
+            "PeriodIndex.dayofyear is deprecated and will be removed in a "
+            "future version. Use PeriodIndex.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_year")
+
+    @property
+    def quarter(self) -> Index:
+        """
+        The quarter of the date.
+
+        Returns the quarter (1 through 4) for each period in the index.
+
+        See Also
+        --------
+        PeriodIndex.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.quarter
+        Index([1, 1, 1], dtype='int64')
+        """
+        return self._wrap_field("quarter")
+
+    @property
+    def qyear(self) -> Index:
+        """
+        Fiscal year the Period lies in according to its starting-quarter.
+
+        The `year` and the `qyear` of the period will be the same if the fiscal
+        and calendar years are the same. When they are not, the fiscal year
+        can be different from the calendar year of the period.
+
+        Returns
+        -------
+        Index
+            The fiscal year of each period.
+
+        See Also
+        --------
+        PeriodIndex.quarter : The quarter of the date.
+        PeriodIndex.year : The year of the period.
+
+        Examples
+        --------
+        If the natural and fiscal year are the same, `qyear` and `year` will
+        be the same.
+
+        >>> idx = pd.PeriodIndex(["2018Q1"], freq="Q")
+        >>> idx.qyear
+        Index([2018], dtype='int64')
+        >>> idx.year
+        Index([2018], dtype='int64')
+
+        If the fiscal year starts in April (`Q-MAR`), the first quarter of
+        2018 will start in April 2017. `year` will then be 2017, but `qyear`
+        will be the fiscal year, 2018.
+
+        >>> idx = pd.PeriodIndex(["2018Q1"], freq="Q-MAR")
+        >>> idx.start_time
+        DatetimeIndex(['2017-04-01'], dtype='datetime64[us]', freq=None)
+        >>> idx.qyear
+        Index([2018], dtype='int64')
+        >>> idx.year
+        Index([2017], dtype='int64')
+        """
+        return self._wrap_field("qyear")
+
+    @property
+    def days_in_month(self) -> Index:
+        """
+        The number of days in the month.
+
+        Returns the total number of days in the month of each period,
+        accounting for leap years.
+
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.month : The month as January=1, December=12.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.days_in_month
+        Index([31, 28, 31], dtype='int64')
+        """
+        return self._wrap_field("days_in_month")
+
+    @property
+    def daysinmonth(self) -> Index:
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.days_in_month` instead.
+        """
+        warnings.warn(
+            "PeriodIndex.daysinmonth is deprecated and will be removed in a "
+            "future version. Use PeriodIndex.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("days_in_month")
+
+    @property
+    def is_leap_year(self) -> npt.NDArray[np.bool_]:
+        """
+        Logical indicating if the date belongs to a leap year.
+
+        Returns a boolean array where ``True`` indicates the period's year
+        is a leap year.
+
+        See Also
+        --------
+        PeriodIndex.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
+        PeriodIndex.year : The year of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx.is_leap_year
+        array([False,  True, False])
+        """
+        return self._data.is_leap_year
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -415,25 +796,25 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
         Each field (year, quarter, month, day, hour, minute, second) can be
-        specified as a scalar or array-like. At least one field must be
-        array-like; scalar fields are broadcast to its length. The frequency
+        specified as a scalar or list-like. At least one field must be
+        list-like; scalar fields are broadcast to its length. The frequency
         is inferred from the fields provided or can be given explicitly.
 
         Parameters
         ----------
-        year : int, array, or Series, default None
+        year : int or list-like, default None
             Year for the PeriodIndex.
-        quarter : int, array, or Series, default None
+        quarter : int or list-like, default None
             Quarter for the PeriodIndex.
-        month : int, array, or Series, default None
+        month : int or list-like, default None
             Month for the PeriodIndex.
-        day : int, array, or Series, default None
+        day : int or list-like, default None
             Day for the PeriodIndex.
-        hour : int, array, or Series, default None
+        hour : int or list-like, default None
             Hour for the PeriodIndex.
-        minute : int, array, or Series, default None
+        minute : int or list-like, default None
             Minute for the PeriodIndex.
-        second : int, array, or Series, default None
+        second : int or list-like, default None
             Second for the PeriodIndex.
         freq : str or period object, optional
             One of pandas period strings or corresponding objects.
@@ -446,6 +827,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         --------
         PeriodIndex.from_ordinals : Construct a PeriodIndex from ordinals.
         PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
+
+        Notes
+        -----
+        A list-like field must be a ``list``, ``tuple``, ``np.ndarray``, or
+        ``Series``. Other array-like inputs, such as a ``range`` or an
+        ``Index``, are not accepted.
 
         Examples
         --------
@@ -516,7 +903,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "to get a NumPy array, or 'PeriodIndex.array' to get the "
             "ExtensionArray.",
             Pandas4Warning,
-            stacklevel=find_stack_level(),
+            stacklevel=2,
         )
         return np.asarray(self, dtype=object)
 

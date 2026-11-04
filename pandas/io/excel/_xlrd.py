@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from datetime import time
 import math
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -30,7 +33,7 @@ class XlrdReader(BaseExcelReader["Book"]):
         self,
         filepath_or_buffer,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Reader using xlrd engine.

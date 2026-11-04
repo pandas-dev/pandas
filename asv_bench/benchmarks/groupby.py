@@ -973,6 +973,16 @@ class Transform:
         self.df4 = self.df3.copy()
         self.df4["jim"] = self.df4["joe"]
 
+        n = 100_000
+        self.df_mixed = DataFrame(
+            {
+                "int": np.random.randint(0, 100, n),
+                "float1": np.random.randn(n),
+                "float2": np.random.randn(n),
+            },
+            index=np.random.randint(0, 1000, n),
+        )
+
     def time_transform_lambda_max(self):
         self.df.groupby(level="lev1").transform(lambda x: max(x))
 
@@ -984,6 +994,9 @@ class Transform:
 
     def time_transform_lambda_max_wide(self):
         self.df_wide.groupby(level=0).transform(lambda x: np.max(x, axis=0))
+
+    def time_transform_lambda_reduction_mixed_dtypes(self):
+        self.df_mixed.groupby(level=0).transform(lambda x: x.max() - x.min())
 
     def time_transform_multi_key1(self):
         self.df1.groupby(["jim", "joe"])["jolie"].transform("max")
@@ -1182,19 +1195,28 @@ class GroupByAggregateArrowDtypes:
             "float64[pyarrow]",
             "decimal128",
             "string[pyarrow]",
+            "date32[pyarrow]",
+            "time64[us][pyarrow]",
+            "binary[pyarrow]",
         ],
         ["sum", "prod", "min", "max", "mean", "std", "var", "count"],
     ]
 
-    # String types only support min, max, count
-    _string_unsupported = {"sum", "prod", "mean", "std", "var"}
+    # String, date, time and binary types only support min, max, count
+    _min_max_count_only = {
+        "string[pyarrow]",
+        "date32[pyarrow]",
+        "time64[us][pyarrow]",
+        "binary[pyarrow]",
+    }
+    _unsupported = {"sum", "prod", "mean", "std", "var"}
 
     def setup(self, dtype, method):
         import pyarrow as pa
 
         from pandas.api.types import is_string_dtype
 
-        if dtype == "string[pyarrow]" and method in self._string_unsupported:
+        if dtype in self._min_max_count_only and method in self._unsupported:
             raise NotImplementedError("skipped")
 
         size = 100_000
@@ -1211,6 +1233,14 @@ class GroupByAggregateArrowDtypes:
             dtype = ArrowDtype(pa.decimal128(10, 3))
         elif dtype == "string[pyarrow]":
             data = np.random.choice(list(ascii_letters), size)
+        elif dtype == "date32[pyarrow]":
+            data = pa.array(np.random.randint(0, 20_000, size), pa.int32())
+            data = data.cast(pa.date32())
+        elif dtype == "time64[us][pyarrow]":
+            data = pa.array(np.random.randint(0, 86_400_000_000, size))
+            data = data.cast(pa.time64("us"))
+        elif dtype == "binary[pyarrow]":
+            data = [x.encode() for x in np.random.choice(list(ascii_letters), size)]
 
         ser = Series(data, dtype=dtype)
         if not is_string_dtype(ser.dtype):

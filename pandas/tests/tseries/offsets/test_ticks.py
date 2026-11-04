@@ -394,3 +394,27 @@ def test_compare_ticks_to_timedeltalike(cls):
         assert not off > other
         assert off <= other
         assert off >= other
+
+
+@pytest.mark.parametrize("cls", tick_classes)
+def test_tick_ne_non_bool_eq(cls):
+    # GH#71162 __eq__ can return an array or NA, which __ne__ must not negate with `not`
+    off = cls(1)
+    td64 = off._as_pd_timedelta.to_timedelta64()
+    arr = np.array([td64, 2 * td64])
+
+    expected = np.array([False, True])
+    tm.assert_numpy_array_equal(off != arr, expected)
+    tm.assert_numpy_array_equal(arr != off, expected)
+
+    ser = pd.Series(arr)
+    tm.assert_series_equal(off != ser, pd.Series(expected))
+    tm.assert_series_equal(ser != off, pd.Series(expected))
+    tm.assert_numpy_array_equal(off != pd.Index(arr), expected)
+
+    assert (off != pd.NA) is pd.NA
+    assert (pd.NA != off) is pd.NA
+
+    assert off != "infer"
+    assert "infer" != off
+    assert not off != off.freqstr

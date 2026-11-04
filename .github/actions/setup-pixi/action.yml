@@ -4,13 +4,16 @@ inputs:
   environment:
     description: Pixi environment name in pixi.toml to use.
     required: true
+  pixi-version:
+    description: Pixi version to install.
+    default: v0.82.1
 runs:
   using: composite
   steps:
     - name: Install ${{ inputs.environment }}
-      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+      uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
       with:
-        pixi-version: v0.76.2
+        pixi-version: ${{ inputs.pixi-version }}
         log-level: vv
         manifest-path: pixi.toml
         environments: ${{ inputs.environment }}
@@ -19,9 +22,9 @@ runs:
       if: ${{ inputs.environment != 'pyarrow-nightly' }}
 
     - name: Install ${{ inputs.environment }}
-      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+      uses: prefix-dev/setup-pixi@ad1da6449d9e506fd127fd67ab2d054a769f6a94 # v0.11.2
       with:
-        pixi-version: v0.76.2
+        pixi-version: ${{ inputs.pixi-version }}
         log-level: vv
         manifest-path: pixi.toml
         run-install: false

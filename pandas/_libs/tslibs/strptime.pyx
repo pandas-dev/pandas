@@ -16,6 +16,7 @@ FUNCTIONS:
     strptime -- Calculates the time struct represented by the passed-in string
 """
 cimport cython
+
 from datetime import timezone
 import zoneinfo
 
@@ -28,11 +29,10 @@ from cpython.datetime cimport (
     tzinfo,
 )
 
-from _strptime import (
+from _strptime import (  # no-cython-lint
     TimeRE as _TimeRE,
     _getlang,
 )
-from _strptime import LocaleTime  # no-cython-lint
 
 import_datetime()
 

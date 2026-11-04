@@ -497,6 +497,17 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result_df, expected_df)
         tm.assert_frame_equal(df, pd.DataFrame(original_dict, index=mi))
 
+    def test_sort_index_categorical_level_from_set_levels(self):
+        # GH#47607
+        mi = pd.MultiIndex.from_product([["a", "b", "c"], [1, 2]])
+        level = pd.CategoricalIndex(
+            ["a", "b", "c"], categories=["c", "b", "a"], ordered=True
+        )
+        df = pd.DataFrame({"col": range(6)}, index=mi.set_levels(level, level=0))
+        expected = df.iloc[[4, 5, 2, 3, 0, 1]]
+        tm.assert_frame_equal(df.sort_index(), expected)
+        tm.assert_frame_equal(df.sort_index(level=0), expected)
+
     def test_sort_index_categorical_multiindex(self):
         # GH#15058
         df = pd.DataFrame(
@@ -913,6 +924,19 @@ class TestDataFrameSortIndexKey:
         expected = pd.DataFrame(
             {"a": ["a", "B", "C"], "b": [1, 0, 0], "c": list("bac"), "d": [1, 0, 2]}
         ).set_index(list("abc"))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_sort_multi_index_key_level_name(self, axis):
+        # GH#62361
+        mi = pd.MultiIndex.from_product([["a"], ["top10", "top2"]], names=["A", "B"])
+        df = pd.DataFrame([[1, 2], [3, 4]], index=mi, columns=mi)
+
+        result = df.sort_index(
+            axis=axis, level="B", key=lambda x: x.str.len().to_numpy()
+        )
+
+        expected = df.iloc[[1, 0]] if axis == 0 else df.iloc[:, [1, 0]]
         tm.assert_frame_equal(result, expected)
 
     def test_changes_length_raises(self):

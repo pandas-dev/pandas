@@ -42,7 +42,11 @@ class TestJoin:
         )
         s = df.iloc[:5, 0]
 
-        expected = df.columns.astype("O").join(s.index, how=join_type)
+        if join_type == "left":
+            # GH#63371 a left join keeps the left dtype
+            expected = df.columns
+        else:
+            expected = df.columns.astype("O").join(s.index, how=join_type)
         result = df.columns.join(s.index, how=join_type)
         tm.assert_index_equal(expected, result)
 

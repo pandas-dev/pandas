@@ -68,7 +68,7 @@ class TestPeriodIndex:
         assert pi7.asfreq("h", "s") == pi5
         assert pi7.asfreq("Min", "s") == pi6
 
-        msg = "How must be one of S or E"
+        msg = "how must be one of 'start', 'end', 's', 'e', got 'foo'"
         with pytest.raises(ValueError, match=msg):
             pi7.asfreq("T", "foo")
         result1 = pi1.asfreq("3M")

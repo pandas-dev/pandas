@@ -547,6 +547,16 @@ class TestSetitemWithExpansion:
         )
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_with_expansion_void_dtype(self):
+        # GH#49388 no warning about pd.array's void dtype deprecation
+        ser = pd.Series(np.zeros(2, dtype="V8"))
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="incompatible dtype"
+        ) as record:
+            ser.loc[5] = 1
+        assert len(record) == 1
+        assert ser.dtype == object
+
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
@@ -847,7 +857,7 @@ class SetitemCastingEquivalents:
 
         if is_list_like(val) and len(val) < len(obj):
             # Series.where is not valid here
-            msg = "operands could not be broadcast together with shapes"
+            msg = r"Length of values \(\d+\) does not match length of index"
             with pytest.raises(ValueError, match=msg):
                 obj.where(~mask, val)
             return
@@ -1765,8 +1775,6 @@ def test_setitem_int_not_positional():
     # GH#42215 deprecated falling back to positional on __setitem__ with an
     #  int not contained in the index; enforced in 2.0
     ser = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.0, 4.1])
-    assert not ser.index._should_fallback_to_positional
-    # assert not ser.index.astype(object)._should_fallback_to_positional
 
     # 3.0 is in our index, so post-enforcement behavior is unchanged
     ser[3] = 10

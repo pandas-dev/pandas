@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._libs.sparse import IntIndex
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -624,12 +624,8 @@ def test_frame_std_datetime64_widens_to_timedelta64():
     tm.assert_series_equal(result, expected)
 
 
-# skew/kurt cast to float64 inside nanops, on the dense path too
-@pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
-)
 @pytest.mark.parametrize("fill_value", [np.nan, 1 + 1j])
-@pytest.mark.parametrize("name", ["var", "std", "sem", "skew", "kurt"])
+@pytest.mark.parametrize("name", ["var", "std", "sem"])
 def test_frame_complex_reduction_narrows_to_real(name, fill_value):
     # GH#68194 these map complex to real, which np.result_type widens straight back
     values = np.array([1 + 2j, 3 - 1j, 5 + 0j])
@@ -651,11 +647,18 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
     values = np.array([1 + 2j, 3 - 1j, np.nan])
     arr = SparseArray(values, dtype=pd.SparseDtype("complex128", np.nan))
 
-    result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
-    expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
+    warn = Pandas4Warning if name in ("min", "max") else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
     tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize(
     "name, kwargs",
     [("median", {"skipna": False}), ("sem", {"ddof": 5}), ("std", {"ddof": 5})],
@@ -687,7 +690,7 @@ def test_describe():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "subtype,fill_value,dense_dtype",
@@ -713,6 +716,12 @@ def test_reductions_with_na_fill_value_match_dense(
     arr = SparseArray([1.0, np.nan, 5.0, np.nan]).astype(
         pd.SparseDtype(subtype, fill_value)
     )
+    if subtype == "complex128" and name in ["skew", "kurt"]:
+        # GH#43770
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            getattr(pd.Series(arr), name)(skipna=skipna)
+        return
+
     dense = pd.Series(
         [np.nan if pd.isna(value) else value for value in arr], dtype=dense_dtype
     )
@@ -835,7 +844,7 @@ def test_any_all_skipna_false_na_fill_value(name, subtype):
     # GH#68559 an NA fill value on a numeric subtype; the gaps densify to that
     #  subtype's own NA, NaN or NaT, both truthy
     sp_values = np.array([1], dtype=subtype)
-    arr = SparseArray(sp_values, sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
+    arr = SparseArray.from_indices(sp_values, indices=[0], length=3, fill_value=pd.NA)
     assert arr.sp_index.ngaps
 
     assert getattr(arr, name)(skipna=False)
@@ -845,7 +854,9 @@ def test_any_all_skipna_false_na_fill_value(name, subtype):
 def test_any_all_skipna_false_bool_subtype_na_fill_value(name):
     # GH#68559 a bool subtype densifies to object holding pd.NA rather than to a
     #  numpy NA, so unlike the numeric subtypes it goes on raising like dense
-    arr = SparseArray(np.array([True]), sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
+    arr = SparseArray.from_indices(
+        np.array([True]), indices=[0], length=3, fill_value=pd.NA
+    )
     assert arr.sp_index.ngaps
 
     with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
@@ -908,11 +919,15 @@ def test_frame_idxmin_idxmax(subtype, order, sparsify_min):
     #  sparsify_min routes _argmin_argmax through its _first_fill_value_loc branch.
     values = np.array(order).astype(subtype)
     arr = SparseArray(values, fill_value=values.min() if sparsify_min else None)
-    assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
+    # GH#43770 complex ordering is deprecated
+    warn = Pandas4Warning if subtype == "complex128" else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
 
     index = pd.Index(list("xyz"))
     df = pd.DataFrame({"a": arr}, index=index)
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(warn, match=msg):
         assert df.idxmin()["a"] == index[values.argmin()]
         assert df.idxmax()["a"] == index[values.argmax()]
 
@@ -1016,3 +1031,12 @@ def test_frame_reduction_axis_1_different_fill_values(op, performance_warning):
 
     expected = getattr(df.sparse.to_dense(), op)(axis=1)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max", "argmin", "argmax"])
+def test_complex_ordering_deprecated(func):
+    # GH#43770 complex has no natural ordering
+    arr = SparseArray([1 + 2j, 3 - 1j, 0j], fill_value=0j)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(arr, func)()

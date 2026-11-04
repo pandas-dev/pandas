@@ -360,7 +360,7 @@ def validate_minmax_axis(axis: AxisInt | None, ndim: int = 1) -> None:
     if axis is None:
         return
     if axis >= ndim or (axis < 0 and ndim + axis < 0):
-        raise ValueError(f"`axis` must be fewer than the number of dimensions ({ndim})")
+        raise ValueError(f"`axis` must be less than the number of dimensions ({ndim})")
 
 
 _validation_funcs = {
