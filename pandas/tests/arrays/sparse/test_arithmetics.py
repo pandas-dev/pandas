@@ -781,15 +781,17 @@ def test_mul_timedelta64_operand():
     tm.assert_numpy_array_equal(result.to_dense(), np.arange(1, 4) * tda)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 @pytest.mark.parametrize("op", [operator.mul, roperator.rtruediv])
 @pytest.mark.parametrize(
-    "other",
-    [np.timedelta64(3, unit) for unit in ["W", "D", "h", "m"]]
-    + [np.timedelta64("NaT"), np.timedelta64(5)],
-    ids=str,
+    "args", [(3, "W"), (3, "D"), (3, "h"), (3, "m"), ("NaT",), (5,)], ids=str
 )
-def test_timedelta64_scalar_unsupported_unit(op, other):
+def test_timedelta64_scalar_unsupported_unit(op, args):
     # GH#64808
+    # built here, not at collection, so the generic-unit warning is filtered
+    other = np.timedelta64(*args)
     values = np.array([1.5, 2.0, 1.0])
     result = op(SparseArray(values, fill_value=1.0), other)
     expected = np.asarray(op(pd.Series(values), other))
