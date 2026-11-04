@@ -8,6 +8,7 @@ from collections.abc import (
     Hashable,
     Iterable,
     Iterator,
+    Mapping,
     Sequence,
 )
 from datetime import timedelta
@@ -267,6 +268,9 @@ class MPLPlot(ABC):
         self.logy = type(self)._validate_log_kwd("logy", logy)
         self.loglog = type(self)._validate_log_kwd("loglog", loglog)
         self.label = label
+        if is_list_like(style, allow_sets=False) and not isinstance(style, Mapping):
+            # e.g. tuple or ndarray, used positionally like a list GH#46289
+            style = list(style)
         self.style = style
         self.mark_right = mark_right
         self.stacked = stacked

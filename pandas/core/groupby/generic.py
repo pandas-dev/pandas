@@ -42,10 +42,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    IntervalDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
@@ -95,10 +92,7 @@ if TYPE_CHECKING:
         TakeIndexer,
     )
 
-    from pandas import (
-        Categorical,
-        IntervalIndex,
-    )
+    from pandas import Categorical
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -1167,25 +1161,13 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
-        # lab is a Categorical with categories an IntervalIndex
+        # lab holds the positions of each value's bin in lev, -1 for NA
         cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
         cat_obj = cast("Categorical", cat_ser._values)
         lev = cat_obj.categories
-        lab = lev.take(
-            cat_obj.codes,
-            allow_fill=True,
-            fill_value=lev._na_value,
-        )
-        llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
+        lab = cat_obj.codes
 
-        if isinstance(lab.dtype, IntervalDtype):
-            # TODO: should we do this inside II?
-            lab_interval = cast("IntervalIndex", lab)
-
-            sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
-        else:
-            sorter = np.lexsort((lab, ids))
-
+        sorter = np.lexsort((lab, ids))
         ids, lab = ids[sorter], lab[sorter]
 
         # group boundaries are where group ids change
@@ -1195,7 +1177,7 @@ class SeriesGroupBy(GroupBy[Series]):
             idx = idchanges
 
         # new values are where sorted labels change
-        lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
+        lchanges = lab[1:] != lab[:-1]
         inc = np.r_[True, lchanges]
         if not len(val):
             inc = lchanges
@@ -1216,7 +1198,7 @@ class SeriesGroupBy(GroupBy[Series]):
                     use_na_sentinel=self._grouper.dropna,
                 )[0]
             ]
-        codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
+        codes = [rep(level_codes) for level_codes in codes] + [lab[inc]]
         levels = [*self._grouper.levels, lev]
 
         if dropna:
@@ -1228,13 +1210,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if normalize:
             out = out.astype("float")
+            # NA values stay in the denominator to match Series.value_counts
             d = np.diff(np.r_[idx, len(ids)])
+            acc = rep(d)
             if dropna:
-                m = ids[lab == -1]
-                np.add.at(d, m, -1)
-                acc = rep(d)[mask]
-            else:
-                acc = rep(d)
+                acc = acc[mask]
             out /= acc
 
         # for compat. with libgroupby.value_counts need to ensure every
