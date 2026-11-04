@@ -1,0 +1,31 @@
+.. _whatsnew_312:
+
+What's new in 3.1.2 (November XX, 2026)
+---------------------------------------
+
+These are the changes in pandas 3.1.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_312.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_312.bugs:
+
+Bug fixes
+~~~~~~~~~
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_312.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.1.1..v3.1.2|HEAD
