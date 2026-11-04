@@ -561,14 +561,6 @@ class TestArrowArray(base.ExtensionTests):
     def test_view(self, data):
         super().test_view(data)
 
-    def test_fillna_no_op_returns_copy(self, data):
-        data = data[~data.isna()]
-
-        valid = data[0]
-        result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
