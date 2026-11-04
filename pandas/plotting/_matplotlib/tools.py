@@ -487,7 +487,9 @@ def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
     for line in lines:
         line_ax = line.axes
         assert line_ax is not None  # lines come from Axes.get_lines()
-        x_is_data, _ = line.get_transform().contains_branch_separately(
+        # matplotlib < 3.11 only has the misspelled name; 3.11 keeps it as an alias
+        transform = line.get_transform()
+        x_is_data, _ = transform.contains_branch_seperately(  # codespell:ignore
             line_ax.transData
         )
         if not x_is_data:
