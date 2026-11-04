@@ -23,6 +23,7 @@ from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    NaT,
     Timestamp,
     to_offset,
 )
@@ -339,6 +340,8 @@ class PeriodConverter(mdates.DateConverter):
 
 
 def _get_datevalue(date, freq):
+    if date is NaT:
+        return np.nan
     if isinstance(date, Period):
         freq_obj = to_offset(freq, is_period=True)
         dtype_code = freq_obj._period_dtype_code
@@ -351,11 +354,18 @@ def _get_datevalue(date, freq):
             return bday_count(date.to_timestamp())
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, np.datetime64)):
+        if isinstance(date, datetime) and date.tzinfo is not None:
+            # match maybe_convert_index, which plots tz-aware data at wall time
+            date = date.replace(tzinfo=None)
         freq_obj = to_offset(freq, is_period=True)
         dtype_code = freq_obj._period_dtype_code
         if FreqGroup.from_period_dtype_code(dtype_code) == FreqGroup.FR_BUS:
             # Avoid creating deprecated Period[B]; use numpy business-day count.
             return bday_count(date)
+        if isinstance(date, datetime):
+            # wall-clock time, matching how tz-aware indexes become periods;
+            # avoids Period's tz-dropping warning
+            date = date.replace(tzinfo=None)
         return Period(date, freq).ordinal  # pyright: ignore[reportAttributeAccessIssue]
     elif is_integer(date) or is_float(date):
         return date

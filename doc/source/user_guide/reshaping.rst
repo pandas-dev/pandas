@@ -205,7 +205,7 @@ produce either:
 * A :class:`DataFrame`, in the case of a :class:`MultiIndex` in the columns.
 
 If the columns have a :class:`MultiIndex`, you can choose which level to stack. The
-stacked level becomes the new lowest level in a :class:`MultiIndex` on the columns:
+stacked level becomes the new inner-most level of the row index:
 
 .. ipython:: python
 
@@ -248,7 +248,7 @@ while :meth:`~DataFrame.stack` preserves the order of the stacked column level. 
    index = pd.MultiIndex.from_product([[2, 1], ["a", "b"]])
    df = pd.DataFrame(np.random.randn(4), index=index, columns=["A"])
    df
-   all(df.unstack().stack() == df.sort_index())
+   df.unstack().stack().equals(df.sort_index())
 
 .. _reshaping.stack_multiple:
 
@@ -492,7 +492,7 @@ The values can be cast to a different type using the ``dtype`` argument.
     pd.get_dummies(df, dtype=np.float32).dtypes
 
 :func:`~pandas.from_dummies` converts the output of :func:`~pandas.get_dummies` back into
-a :class:`Series` of categorical values from indicator values.
+a :class:`DataFrame` of categorical values from indicator values.
 
 .. ipython:: python
 
