@@ -1209,7 +1209,9 @@ def rank_1d(
         neq_arr[N - 1] = 0
         neq = neq_arr
     else:
-        neq_arr = np.zeros(1, dtype=np.uint8)
+        # the kernel indexes neq[i] for every i in [0, N), so the fallback
+        # table must span the full length even though it is all False
+        neq_arr = np.zeros(N, dtype=np.uint8)
         neq = neq_arr
 
     with nogil:
@@ -1514,7 +1516,9 @@ def rank_2d(
             neq_arr[n - 1, col] = 0
         neq = neq_arr
     else:
-        neq_arr = np.zeros((1, 1), dtype=np.uint8)
+        # the kernel indexes neq[i, col] for every i in [0, n), so the
+        # fallback table must span the full length even though it is all False
+        neq_arr = np.zeros((n, k), dtype=np.uint8)
         neq = neq_arr
 
     with nogil:
