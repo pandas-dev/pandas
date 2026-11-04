@@ -195,6 +195,17 @@ def test_value_counts_bins(index_or_series, using_infer_string):
     assert s.nunique() == 0
 
 
+@pytest.mark.parametrize("bins", [2, pd.interval_range(0, 4)])
+def test_value_counts_bins_normalize_dropna(index_or_series, bins):
+    # GH 44946
+    obj = index_or_series([1, 2, 3, pd.NA], dtype="Int64")
+
+    result = obj.value_counts(normalize=True, bins=bins)
+    expected = obj.dropna().value_counts(normalize=True, bins=bins)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_value_counts_datetime64(index_or_series, unit):
     klass = index_or_series
 

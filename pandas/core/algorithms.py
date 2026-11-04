@@ -1085,8 +1085,7 @@ def value_counts_internal(
         if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
 
-        # normalizing is by len of all (regardless of dropna)
-        normalize_denominator = len(ii)
+        normalize_denominator = result.sum() if dropna else len(ii)
 
     else:
         normalize_denominator = None
