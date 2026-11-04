@@ -13,13 +13,26 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-
+- Fixed regression in :meth:`DataFrame.astype`, :meth:`Series.astype` and :meth:`DataFrame.convert_dtypes` with ``dtype_backend="pyarrow"`` overwriting missing values of the original datetime data with the Unix epoch when converting to a pyarrow timestamp type (:issue:`71743`)
+- Fixed regression in :meth:`Series.map` with datetime-like values returning a read-only Series, causing subsequent assignment to fail (:issue:`71567`)
+- Fixed regression in IO readers and writers such as :func:`read_csv` and :meth:`DataFrame.to_csv` treating path objects that have ``read`` or ``write`` methods, such as ``py.path.local`` (pytest's ``tmpdir``), as open file handles, raising or silently writing incomplete files (:issue:`71769`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.bugs:
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed ``AttributeError`` when using dateutil timezones such as ``"dateutil/US/Pacific"`` with python-dateutil 3.0 (:issue:`71459`)
+- Fixed a bug in :meth:`Series.ffill` and :meth:`Series.bfill` (and DataFrame equivalent) on a PyArrow-backed column without missing values (including the default ``str`` dtype) where the result shared data with the original, so modifying one also changed the other, violating Copy-on-Write semantics (:issue:`71515`)
+- Fixed bug in string methods using regex patterns on PyArrow-backed string dtypes where ``\s`` incorrectly did not match (and ``\S`` matched) whitespace such as ``"\x0b"`` and ``"\x1c"`` in all-ASCII data (:issue:`70991`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_311.packaging.build:
+
+Build
+^^^^^
+- Fixed build error on unsupported ``xsimd`` architectures (:issue:`71548`)
 
 
 .. ---------------------------------------------------------------------------

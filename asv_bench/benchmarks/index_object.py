@@ -108,6 +108,23 @@ class Range:
         self.idx_inc.sort_values(ascending=False)
 
 
+class RangeIsin:
+    params = ["int_list", "int_array", "float_list_with_nan"]
+    param_names = ["values"]
+
+    def setup(self, values):
+        self.values = {
+            "int_list": [5, 999_999, 2_000_000],
+            "int_array": np.array([5, 999_999, 2_000_000]),
+            "float_list_with_nan": [5.0, 999_999.0, np.nan],
+        }[values]
+
+    def time_isin(self, values):
+        # GH#66263: build a fresh index each call, because the generic path
+        # caches the full int64 array after its first call, hiding that cost
+        RangeIndex(10**6).isin(self.values)
+
+
 class IndexEquals:
     def setup(self):
         idx_large_fast = RangeIndex(100_000)
