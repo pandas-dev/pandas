@@ -1111,9 +1111,12 @@ def rank_1d(
         intp_t[:] lexsort_indexer
         float64_t[::1] out
         ndarray[numeric_object_t, ndim=1] masked_vals
+        ndarray[numeric_object_t, ndim=1] sorted_vals
         numeric_object_t[:] masked_vals_memview
         bint keep_na, nans_rank_highest, check_labels, check_mask
         numeric_object_t nan_fill_val
+        ndarray[uint8_t, ndim=1] neq_arr
+        const uint8_t[:] neq
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1190,6 +1193,25 @@ def rank_1d(
     if not ascending:
         lexsort_indexer = lexsort_indexer[::-1]
 
+    if numeric_object_t is object:
+        # GH#71768: for object dtypes the inequality check performed inside
+        # rank_sorted_1d compares user-defined objects, whose __ne__ may
+        # raise. rank_sorted_1d is declared `noexcept`, so such an exception
+        # is swallowed (reported only as "Exception ignored") and wrong ranks
+        # are silently produced. Precompute the pairwise inequalities here,
+        # under the GIL and outside the noexcept function, so that exceptions
+        # propagate to the caller; rank_sorted_1d then only consults this
+        # precomputed table.
+        neq_arr = np.empty(N, dtype=np.uint8)
+        sorted_vals = masked_vals[lexsort_indexer]
+        for i in range(N - 1):
+            neq_arr[i] = bool(sorted_vals[i] != sorted_vals[i + 1])
+        neq_arr[N - 1] = 0
+        neq = neq_arr
+    else:
+        neq_arr = np.zeros(1, dtype=np.uint8)
+        neq = neq_arr
+
     with nogil:
         rank_sorted_1d(
             out,
@@ -1199,6 +1221,7 @@ def rank_1d(
             mask,
             check_mask=check_mask,
             N=N,
+            neq=neq,
             tiebreak=tiebreak,
             keep_na=keep_na,
             pct=pct,
@@ -1219,6 +1242,7 @@ cdef void rank_sorted_1d(
     const uint8_t[:] mask,
     bint check_mask,
     Py_ssize_t N,
+    const uint8_t[:] neq,
     TiebreakEnumType tiebreak=TIEBREAK_AVERAGE,
     bint keep_na=True,
     bint pct=False,
@@ -1254,6 +1278,11 @@ cdef void rank_sorted_1d(
         Whether or not to keep nulls
     pct : bool, default False
         Compute percentage rank of data within each group
+    neq : uint8_t[:]
+        Precomputed ``masked_vals[sort_indexer[i]] != masked_vals[sort_indexer[i+1]]``
+        for i in [0, N-1), with the last entry unused. Required for object dtypes
+        (GH#71768), where the comparison may raise; for other dtypes pass an
+        array whose entries are all False (e.g. ``np.zeros(1, dtype=np.uint8)``).
     labels : See rank_1d.__doc__, default None. None implies all labels are the same.
     """
 
@@ -1280,8 +1309,16 @@ cdef void rank_sorted_1d(
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            next_val_diff = at_end or (masked_vals[sort_indexer[i]]
-                                       != masked_vals[sort_indexer[i+1]])
+            # GH#71768: for object dtypes `neq` carries precomputed pairwise
+            # inequalities, so that exceptions from user-defined __ne__
+            # propagate (they were silently swallowed in this noexcept
+            # function before). For other dtypes the table is all False and
+            # the comparison against the (numeric) neighbouring values below
+            # yields the same result either way.
+            next_val_diff = at_end or (
+                neq[i]
+                or (masked_vals[sort_indexer[i]] != masked_vals[sort_indexer[i + 1]])
+            )
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help
@@ -1391,16 +1428,19 @@ def rank_2d(
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
     """
     cdef:
-        Py_ssize_t k, n, col
+        Py_ssize_t k, n, col, i
         float64_t[::1, :] out  # Column-major so columns are contiguous
         int64_t[::1] grp_sizes
         ndarray[numeric_object_t, ndim=2] values
+        ndarray[numeric_object_t, ndim=1] sorted_vals
         numeric_object_t[:, :] masked_vals
         intp_t[:, :] sort_indexer
         uint8_t[:, :] mask
         TiebreakEnumType tiebreak
         bint check_mask, keep_na, nans_rank_highest
         numeric_object_t nan_fill_val
+        ndarray[uint8_t, ndim=2] neq_arr
+        const uint8_t[:, :] neq
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1462,6 +1502,21 @@ def rank_2d(
 
     # putmask doesn't accept a memoryview, so we assign in a separate step
     masked_vals = values
+
+    if numeric_object_t is object:
+        # GH#71768: precompute the pairwise inequalities under the GIL, so
+        # exceptions from user-defined __ne__ propagate (see rank_1d).
+        neq_arr = np.empty((n, k), dtype=np.uint8)
+        for col in range(k):
+            sorted_vals = values[sort_indexer[:, col], col]
+            for i in range(n - 1):
+                neq_arr[i, col] = bool(sorted_vals[i] != sorted_vals[i + 1])
+            neq_arr[n - 1, col] = 0
+        neq = neq_arr
+    else:
+        neq_arr = np.zeros((1, 1), dtype=np.uint8)
+        neq = neq_arr
+
     with nogil:
         for col in range(k):
             rank_sorted_1d(
@@ -1472,6 +1527,7 @@ def rank_2d(
                 mask[:, col],
                 check_mask=check_mask,
                 N=n,
+                neq=neq[:, col],
                 tiebreak=tiebreak,
                 keep_na=keep_na,
                 pct=pct,
