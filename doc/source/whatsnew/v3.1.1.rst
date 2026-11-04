@@ -23,6 +23,7 @@ Bug fixes
 ~~~~~~~~~
 
 - Fixed ``AttributeError`` when using dateutil timezones such as ``"dateutil/US/Pacific"`` with python-dateutil 3.0 (:issue:`71459`)
+- Fixed bug in string methods using regex patterns on PyArrow-backed string dtypes where ``\s`` incorrectly did not match (and ``\S`` matched) whitespace such as ``"\x0b"`` and ``"\x1c"`` in all-ASCII data (:issue:`70991`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.packaging.build:
