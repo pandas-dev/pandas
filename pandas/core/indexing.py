@@ -993,12 +993,16 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 )
 
         check_dict_or_set_indexers(key)
+        # GH#70256 - Treat zero-dimensional ndarray keys as scalars.
         if isinstance(key, tuple):
             key = (list(x) if is_iterator(x) else x for x in key)
-            key = tuple(com.apply_if_callable(x, self.obj) for x in key)
+            key = tuple(
+                item_from_zerodim(com.apply_if_callable(x, self.obj)) for x in key
+            )
         else:
             maybe_callable = com.apply_if_callable(key, self.obj)
             key = self._raise_callable_usage(key, maybe_callable)
+            key = item_from_zerodim(key)
         # Capture the row count before _get_setitem_indexer which may add
         # columns (but not rows).
         orig_nrows = self.obj.shape[0]
@@ -2485,8 +2489,18 @@ class _iLocIndexer(_LocationIndexer):
         take_split_path = not self.obj._mgr.is_single_block
 
         if not take_split_path and isinstance(value, ABCDataFrame):
-            # Avoid cast of values
-            take_split_path = not value._mgr.is_single_block
+            info_axis = self.obj._info_axis_number
+            if (
+                isinstance(indexer, tuple)
+                and len(indexer) == self.ndim == 2
+                and is_integer(indexer[info_axis])
+            ):
+                # GH#58482 setting a scalar column with a DataFrame value must
+                # go through the split path to align columns and series properly
+                take_split_path = True
+            else:
+                # Avoid cast of values
+                take_split_path = not value._mgr.is_single_block
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
