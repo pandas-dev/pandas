@@ -3518,7 +3518,8 @@ class MultiIndex(Index):
         end : label or tuple
             If None, defaults to the end
         step : int or None
-            Slice step
+            If None, defaults to 1. Only the sign is used: a negative ``step``
+            gives bounds for a reversed slice.
 
         Returns
         -------
