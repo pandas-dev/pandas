@@ -1012,12 +1012,30 @@ def test_to_numeric_nan_mask_sync(dtype_backend):
 
 
 @pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_nan_mask_sync_distinguish_nan_and_na(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1.0, np.nan], dtype=np.float64)
+        result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+        expected_dtype = (
+            "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
+        )
+        expected = pd.Series([1.0, np.nan], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
 def test_to_numeric_masked_float_nan_sync(dtype_backend):
     # GH 63732
     if dtype_backend == "pyarrow":
         pytest.importorskip("pyarrow")
-    ser = pd.Series(["1", 2.0, np.nan, 4.0, np.nan], dtype="Float64")
-    ser.iloc[0] = pd.NA
+    from pandas.core.arrays import FloatingArray
+
+    data = np.array([np.nan, 2.0, np.nan, 4.0, np.nan], dtype=np.float64)
+    mask = np.array([True, False, False, False, False], dtype=np.bool_)
+    ser = pd.Series(FloatingArray(data, mask))
     result = pd.to_numeric(ser, dtype_backend=dtype_backend)
 
     expected_dtype = (
@@ -1033,6 +1051,5 @@ def test_to_numeric_arrow_with_dtype_backend(dtype_backend):
     pa = pytest.importorskip("pyarrow")
     ser = pd.Series(["1", "x", None], dtype=pd.ArrowDtype(pa.string()))
     result = pd.to_numeric(ser, errors="coerce", dtype_backend=dtype_backend)
-    expected_dtype = "Int64" if dtype_backend == "numpy_nullable" else "int64[pyarrow]"
-    expected = pd.Series([1, pd.NA, pd.NA], dtype=expected_dtype)
+    expected = pd.Series([1, pd.NA, pd.NA], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)

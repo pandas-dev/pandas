@@ -7,6 +7,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -35,7 +37,6 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
@@ -246,10 +247,13 @@ def to_numeric(
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
-        if dtype_backend is not lib.no_default and not isinstance(
-            values_dtype, ArrowDtype
+        if (
+            dtype_backend is not lib.no_default
+            and not isinstance(values_dtype, ArrowDtype)
+            and values.dtype.kind == "f"
+            and is_nan_na()
         ):
-            new_mask = np.asarray(isna(values), dtype=np.bool_)
+            new_mask = np.isnan(values)
     elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
@@ -335,14 +339,7 @@ def to_numeric(
             klass = FloatingArray
         values = klass(data, mask)
 
-        if dtype_backend == "pyarrow" or (
-            isinstance(values_dtype, ArrowDtype)
-            and (
-                dtype_backend is lib.no_default
-                or is_numeric_dtype(values_dtype)
-                or is_bool_dtype(values_dtype)
-            )
-        ):
+        if dtype_backend == "pyarrow" or isinstance(values_dtype, ArrowDtype):
             values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:
