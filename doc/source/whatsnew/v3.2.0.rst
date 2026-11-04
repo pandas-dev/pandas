@@ -338,6 +338,7 @@ Plotting
 - Bug in :meth:`DataFrame.hist` and :meth:`Series.hist` raising ``ValueError`` when passing ``weights`` together with ``by`` (:issue:`9540`)
 - Bug in :meth:`DataFrame.hist` with ``by`` and no ``column`` plotting the numeric grouping column alongside the other columns (:issue:`41188`)
 - Bug in :meth:`DataFrame.plot.hist` with ``by`` raising ``TypeError`` when ``bins`` was a sequence of bin edges (:issue:`11483`)
+- Bug in :meth:`DataFrame.plot.hist` with ``subplots=True`` and ``sharex=False`` using the same bins for every subplot, so columns on a smaller scale collapsed into a single bar (:issue:`13489`)
 - Bug in :meth:`DataFrame.plot.pie` and :meth:`Series.plot.pie` silently ignoring ``color`` (:issue:`11228`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` drawing data indexed by period-end timestamps (e.g. ``freq="ME"`` or ``"W"``) at the start of each period when combined with a higher-frequency series on the same or shared axes (:issue:`11574`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring ``style`` when ``xerr`` or ``yerr`` is passed (:issue:`7023`)
