@@ -2308,8 +2308,8 @@ def test_minmax_empty_homogeneous_axis1_preserves_dtype(method, dtype):
 
 
 def test_agg_abs_axis1_empty_matches_nonempty():
-    # GH#32802: empty axis=1 agg("abs") must follow the same transpose
-    # path as a non-empty frame, not the reduction short-circuit.
+    # GH#32802: abs is not a named frame reduction, so axis=1 agg still
+    # uses the transpose path; empty must match the non-empty slice.
     df = pd.DataFrame({"a": [1.5, -2.5], "b": [3.5, 4.5]})
     result = df.agg("abs", axis=1)
     empty = df.iloc[:0].agg("abs", axis=1)
@@ -2318,9 +2318,8 @@ def test_agg_abs_axis1_empty_matches_nonempty():
 
 @pytest.mark.parametrize("how", ["sum", "mean", "skew"])
 def test_agg_reduction_axis1_empty_matches_nonempty(how):
-    # sum/mean still use the empty-frame reduction short-circuit.
-    # skew stays on the transpose path: apply_str rejects axis=1.
-    # Either way the empty result must match the non-empty slice.
+    # sum/mean use the axis=1 reduction path; skew stays on transpose
+    # (apply_str rejects axis=1). Empty must match the non-empty slice.
     df = pd.DataFrame({"a": [1.5, -2.5], "b": [3.5, 4.5]})
     result = df.agg(how, axis=1)
     empty = df.iloc[:0].agg(how, axis=1)

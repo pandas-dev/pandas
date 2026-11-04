@@ -125,26 +125,20 @@ _frame_reduction_names = frozenset(
 )
 
 
-def _short_circuit_empty_axis1_agg(func: str, obj) -> bool:
-    """
-    True when a 0-row axis=1 agg should call the reduction directly.
-
-    Transposing a 0-row frame drops dtypes (GH#32802). ``skew`` rejects
-    axis=1, so it stays on the transpose path. ``all``/``any`` raise on
-    homogeneous datetime64/Period, but mixed frames succeed after
-    transpose-to-object; short-circuit those two only when the common
-    dtype is one that raises. A frame with no columns has no dtype to
-    preserve, and ``find_common_type([])`` raises.
-    """
+def _axis1_agg_via_reduction(func: str, obj) -> bool:
+    """True when axis=1 string agg should call the named reduction directly."""
+    # skew: apply_str rejects axis=1; keep the transpose path.
     if func not in _frame_reduction_names or func == "skew":
         return False
-    if func not in ("all", "any"):
-        return True
-    if not obj._blk_dtypes:
-        return True
-
-    common = find_common_type(obj._blk_dtypes)
-    return is_datetime64_any_dtype(common) or isinstance(common, PeriodDtype)
+    # all/any: homogeneous datetime64/Period raise on the reduction path;
+    # mixed frames succeed after transpose-to-object — keep that for them.
+    if func in ("all", "any"):
+        # no columns: find_common_type([]) raises; reduction path is fine.
+        if not obj._blk_dtypes:
+            return True
+        common = find_common_type(obj._blk_dtypes)
+        return is_datetime64_any_dtype(common) or isinstance(common, PeriodDtype)
+    return True
 
 
 def _stack_as_object(dtypes: list[DtypeObj]) -> bool:
@@ -1150,12 +1144,12 @@ class FrameApply(NDFrameApply):
         obj = self.obj
         axis = self.axis
 
-        # GH#32802: avoid transpose of a 0-row frame dropping dtypes
+        # GH#32802: call the named reduction with axis=1 instead of
+        # transposing (transpose of a 0-row frame drops dtypes).
         if (
             axis == 1
-            and len(obj.index) == 0
             and isinstance(self.func, str)
-            and _short_circuit_empty_axis1_agg(self.func, obj)
+            and _axis1_agg_via_reduction(self.func, obj)
         ):
             return self.apply_str()
 
