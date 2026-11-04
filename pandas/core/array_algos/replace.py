@@ -130,22 +130,14 @@ def replace_regex(
     Alters values in-place.
     """
 
-    # deal with replacing values with objects (strings) that match but
-    # whose replacement is not a string (numeric, nan, object)
-    if not isinstance(value, str) and not callable(value):
+    substitute = isinstance(value, str) or callable(value)
 
-        def re_replacer(s):
-            if is_re(rx) and isinstance(s, str):
-                return value if rx.search(s) is not None else s
-            else:
-                return s
-
-    else:
-        def re_replacer(s):
-            if is_re(rx) and isinstance(s, str):
-                return rx.sub(value, s)
-            else:
-                return s
+    def re_replacer(s: object) -> object:
+        if not isinstance(s, str):
+            return s
+        if substitute:
+            return rx.sub(value, s)
+        return value if rx.search(s) is not None else s
 
     f = np.vectorize(re_replacer, otypes=[np.object_])
 
