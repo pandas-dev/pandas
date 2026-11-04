@@ -952,12 +952,12 @@ def timedelta_range(
 
     Parameters
     ----------
-    start : str or timedelta-like, default None
+    start : str, int, or timedelta-like, default None
         Left bound for generating timedeltas. Integers are interpreted as
-        nanoseconds, matching :class:`Timedelta`.
-    end : str or timedelta-like, default None
+        nanoseconds, regardless of ``unit``.
+    end : str, int, or timedelta-like, default None
         Right bound for generating timedeltas. Integers are interpreted as
-        nanoseconds, matching :class:`Timedelta`.
+        nanoseconds, regardless of ``unit``.
     periods : int, default None
         Number of periods to generate.
     freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
