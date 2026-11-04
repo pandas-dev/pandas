@@ -4975,4 +4975,4 @@ def _preprocess_regex_pattern(
             #  rejects still reach the pyarrow kernels. GH#63108
             pat = re.compile(pat, flags=flags)
 
-    return pat, case
+    return pat, cast("bool", case)
