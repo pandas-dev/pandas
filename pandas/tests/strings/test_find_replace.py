@@ -502,8 +502,9 @@ def test_fullmatch_every_python_whitespace_char(any_string_dtype, pat):
     data = [*whitespace, "a", "\u200b"]
     ser = pd.Series(data, dtype=any_string_dtype)
     result = ser.str.fullmatch(pat)
+    is_space = pat == r"\s"
     expected = pd.Series(
-        [re.fullmatch(pat, x) is not None for x in data], dtype=expected_dtype
+        [is_space] * len(whitespace) + [not is_space] * 2, dtype=expected_dtype
     )
     tm.assert_series_equal(result, expected)
 

@@ -21,6 +21,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Bug in string methods using regex patterns on PyArrow-backed string dtypes where ``\s`` did not match, and ``\S`` matched, whitespace such as ``"\x0b"`` and ``"\x1c"`` in all-ASCII data (:issue:`70991`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_311.contributors:
