@@ -132,7 +132,7 @@ def replace_regex(
 
     # deal with replacing values with objects (strings) that match but
     # whose replacement is not a string (numeric, nan, object)
-    if isna(value) or not isinstance(value, str):
+    if not isinstance(value, str) and not callable(value):
 
         def re_replacer(s):
             if is_re(rx) and isinstance(s, str):
@@ -141,8 +141,6 @@ def replace_regex(
                 return s
 
     else:
-        # value is guaranteed to be a string here, s can be either a string
-        # or null if it's null it gets returned
         def re_replacer(s):
             if is_re(rx) and isinstance(s, str):
                 return rx.sub(value, s)

@@ -13,6 +13,34 @@ from pandas.core.arrays import IntervalArray
 
 
 class TestSeriesReplace:
+    @pytest.mark.parametrize("dtype", [object, "string[python]", "string[pyarrow]"])
+    @pytest.mark.parametrize("form", ["string", "compiled", "mapping"])
+    def test_replace_regex_callable(self, dtype, form):
+        if dtype == "string[pyarrow]":
+            pytest.importorskip("pyarrow")
+
+        ser = pd.Series(["a12", None, "unchanged"], dtype=dtype)
+
+        def replacement(match):
+            return f"[{match.group()}]"
+
+        if form == "mapping":
+            result = ser.replace({r"\d": replacement}, regex=True)
+        elif form == "compiled":
+            result = ser.replace(re.compile(r"\d"), replacement)
+        else:
+            result = ser.replace(r"\d", replacement, regex=True)
+
+        expected = pd.Series(["a[1][2]", None, "unchanged"], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(ser, pd.Series(["a12", None, "unchanged"], dtype=dtype))
+
+    def test_replace_regex_callable_categorical(self):
+        ser = pd.Series(["a1", "b2"], dtype="category")
+        result = ser.replace(r"\d", lambda match: "X", regex=True)
+        expected = pd.Series(["aX", "bX"], dtype=object)
+        tm.assert_series_equal(result, expected)
+
     def test_replace_explicit_none(self):
         # GH#36984 if the user explicitly passes value=None, give it to them
         ser = pd.Series([0, 0, ""], dtype=object)
