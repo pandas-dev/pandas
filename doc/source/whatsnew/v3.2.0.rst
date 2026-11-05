@@ -202,6 +202,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
+- Bug in :func:`to_numeric` (and readers built on it such as :func:`read_csv`) where a string ``"nan"`` raised ``ValueError`` instead of being parsed as ``NA`` with ``dtype_backend="numpy_nullable"`` when :option:`future.distinguish_nan_and_na` was ``False``, or ``NaN`` when the option was ``True`` (:issue:`65237`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
 - Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
 - Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting integer and boolean columns when the equal values were only in rows dropped from the result (:issue:`39899`)
@@ -316,7 +317,6 @@ I/O
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
 - Bug in :func:`read_sql_query` and :func:`read_sql_table` with a SQLAlchemy connection returning column labels that require ``sqlalchemy`` to unpickle (:issue:`52816`)
 - Bug in :func:`read_sql` and :func:`read_sql_query` raising or altering a query containing an unescaped ``%`` and no ``params`` when using a SQLAlchemy connection to a database driver such as ``pymysql`` or ``psycopg2`` (:issue:`49561`)
-- Bug in :func:`to_numeric` (and readers built on it such as :func:`read_csv`) where a string ``"nan"`` raised ``ValueError`` instead of being parsed as ``NA`` or ``NaN``, depending on the ``future.distinguish_nan_and_na`` option (:issue:`65237`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` writing floats near the largest ``float64`` value in a form that reads back as ``inf`` (:issue:`21454`)
 - Bug in :meth:`HDFStore.append` raising ``ValueError: Buffer dtype mismatch`` instead of the "different categories" error when appending a categorical whose categories have a different dtype than the existing ones (:issue:`71128`)
 - Bug in :meth:`HDFStore.remove` deleting unselected rows when passing unsorted row coordinates (:issue:`71276`)
