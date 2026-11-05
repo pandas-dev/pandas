@@ -1489,7 +1489,7 @@ class TestStyler:
     def test_non_reducing_slice(self, slc):
         df = pd.DataFrame([[0, 1], [2, 3]])
 
-        tslice_ = non_reducing_slice(slc)
+        tslice_ = non_reducing_slice(slc, df)
         assert isinstance(df.loc[tslice_], pd.DataFrame)
 
     @pytest.mark.parametrize("box", [list, pd.Series, np.array])
@@ -1500,7 +1500,7 @@ class TestStyler:
         df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
 
-        result = non_reducing_slice(subset)
+        result = non_reducing_slice(subset, df)
         tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_non_reducing_slice_on_multiindex(self):
@@ -1514,7 +1514,7 @@ class TestStyler:
         df = pd.DataFrame(dic, index=[0, 1])
         idx = pd.IndexSlice
         slice_ = idx[:, idx["b", "d"]]
-        tslice_ = non_reducing_slice(slice_)
+        tslice_ = non_reducing_slice(slice_, df)
 
         result = df.loc[tslice_]
         expected = pd.DataFrame({("b", "d"): [4, 1]})
@@ -1567,8 +1567,46 @@ class TestStyler:
                         return
 
         expected = df.loc[slice_]
-        result = df.loc[non_reducing_slice(slice_)]
+        result = df.loc[non_reducing_slice(slice_, df)]
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "subset, expected",
+    [
+        (lambda df: ["A"], ["A"]),
+        (lambda df: (df["A"] > 1, ["B"]), ([False, True, True], ["B"])),
+        ((lambda df: df["A"] > 1, ["B"]), ([False, True, True], ["B"])),
+        ((lambda df: df["A"] > 1, lambda df: ["B"]), ([False, True, True], ["B"])),
+    ],
+)
+def test_callable_subset(subset, expected):
+    # GH#46685
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    for styler_func in [
+        lambda st, sub: st.map(lambda x: "color: red;", subset=sub),
+        lambda st, sub: st.format("{:.3f}", subset=sub),
+        lambda st, sub: st.apply(lambda x: ["color: red;"] * len(x), subset=sub),
+        lambda st, sub: st.highlight_quantile(subset=sub, q_left=0.5),
+    ]:
+        result = styler_func(df.style.set_uuid("x"), subset).to_html()
+        assert result == styler_func(df.style.set_uuid("x"), expected).to_html()
+
+
+def test_callable_subset_1d_is_column_indexer():
+    # GH#46685 a 1d result is a column indexer, as for non-callable subsets
+    df = pd.DataFrame({"A": [1, 2, 3]}, index=["I1", "I2", "I3"])
+    with pytest.raises(IndexError, match="Boolean index has wrong length"):
+        df.style.format("{:.3f}", subset=lambda df: df.index == "I2")
+
+
+def test_hide_callable_subset():
+    # GH#46685
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    styler = df.style.hide(axis=0, subset=lambda df: df["A"] > 1)
+    assert list(styler.hidden_rows) == [1, 2]
+    styler = df.style.hide(axis=1, subset=lambda df: ["B"])
+    assert list(styler.hidden_columns) == [1]
 
 
 def test_hidden_index_names(mi_df):

@@ -286,7 +286,6 @@ def pprint_thing(
                 tuple,
                 set,
                 frozenset,
-                range,
                 ABCExtensionArray,
                 ABCIndex,
                 ABCNDFrame,
