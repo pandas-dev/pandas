@@ -387,6 +387,13 @@ def test_guess_datetime_format_zone_with_zero_offset():
     assert parsing.guess_datetime_format(string) == "%Y-%m-%d %H:%M:%S UTC%z"
 
 
+def test_guess_datetime_format_hyphenated_month_name():
+    # GH 71273 the month name in "10-Oct-2013" must not be mistaken for a
+    #  zone name followed by a numeric offset
+    string = "10-Oct-2013"
+    assert parsing.guess_datetime_format(string) == "%d-%b-%Y"
+
+
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
 def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ambiguous_string = "01/01/2011"

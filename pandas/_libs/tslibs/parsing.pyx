@@ -914,9 +914,11 @@ _DATEUTIL_LEXER_SPLIT = _timelex.split
 
 # Matches a zone name (any word, e.g. "UTC", "GMT", "EST") that is directly
 # followed by a numeric offset, e.g. "08:07:13 UTC+0300" or "08:30 EST-03:30".
+# The lookbehind keeps month names in dates such as "10-Oct-2013" from being
+# read as a zone name plus offset (GH#71273).
 _timelex_zone_offset = re.compile(
-    r"[A-Za-z]+[ \t]*(?P<sign>[+-])(?P<hour>\d{1,2})(?::?(?P<minute>\d{2}))?"
-    r"(?::?(?P<second>\d{2}))?$"
+    r"(?<![A-Za-z0-9-])[A-Za-z]+[ \t]*(?P<sign>[+-])"
+    r"(?P<hour>\d{1,2})(?::?(?P<minute>\d{2}))?(?::?(?P<second>\d{2}))?$"
 )
 
 
