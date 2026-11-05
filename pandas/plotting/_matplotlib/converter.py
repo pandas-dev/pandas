@@ -413,6 +413,10 @@ class DatetimeConverter(mdates.DateConverter):
             except Exception:
                 pass
 
+            if isinstance(values, DatetimeIndex) and values.tz is not None:
+                # date2num converts tz-aware values elementwise, which fails on NaT
+                values = values.tz_convert(None)
+
             values = mdates.date2num(values)
 
         return values

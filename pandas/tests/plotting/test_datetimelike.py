@@ -2306,3 +2306,27 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     kwargs["ax"] = ax
     ret = f(*args, **kwargs)
     assert ret is not None  # TODO: do something more intelligent
+
+
+@pytest.mark.parametrize("kind", ["line", "scatter"])
+def test_plot_tz_aware_values_with_nat(kind):
+    # GH#64613 regression: NaT in tz-aware values made the converter raise
+    values = pd.Series(date_range("2020-01-01 05:00", periods=3, tz="US/Eastern"))
+    values[1] = pd.NaT
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "tz": values})
+    df["naive"] = values.dt.tz_convert(None)
+
+    _, (ax1, ax2) = mpl.pyplot.subplots(2)
+    if kind == "line":
+        df.plot(x="a", y="tz", ax=ax1)
+        df.plot(x="a", y="naive", ax=ax2)
+        result = ax1.get_lines()[0].get_ydata(orig=False)
+        expected = ax2.get_lines()[0].get_ydata(orig=False)
+    else:
+        df.plot.scatter(x="tz", y="a", ax=ax1)
+        df.plot.scatter(x="naive", y="a", ax=ax2)
+        result = ax1.collections[0].get_offsets()
+        expected = ax2.collections[0].get_offsets()
+    tm.assert_numpy_array_equal(
+        np.ma.filled(result, np.nan), np.ma.filled(expected, np.nan)
+    )
