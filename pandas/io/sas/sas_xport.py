@@ -395,7 +395,9 @@ class XportReader(SASReader):
         if self._usecols is None:
             self._used_columns = list(range(len(self.columns)))
         else:
-            self._used_columns = self._usecols_positions(self._usecols, self.columns)
+            self._used_columns = self._usecols_positions(
+                self._usecols, self.columns, self._index
+            )
         if not self._encoding_specified and any(
             fields[j]["ntype"] == "char" for j in self._used_columns
         ):
