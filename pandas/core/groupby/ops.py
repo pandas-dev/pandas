@@ -9,6 +9,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 from __future__ import annotations
 
 import collections
+import contextlib
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -690,6 +691,23 @@ class BaseGrouper:
         keys = self.result_index
         yield from zip(keys, splitter, strict=True)
 
+    _splitter_cache: list[DataSplitter[Any]] | None = None
+
+    @final
+    @contextlib.contextmanager
+    def _share_splitter(self) -> Generator[None]:
+        """
+        Reuse one splitter for repeated _get_splitter calls on the same object.
+
+        Its sorted copy is dropped on exit. This resets to None rather than restoring
+        the previous value so that overlapping calls in threads cannot leave it on.
+        """
+        self._splitter_cache = []
+        try:
+            yield
+        finally:
+            self._splitter_cache = None
+
     @final
     def _get_splitter(self, data: NDFrame) -> DataSplitter[Any]:
         """
@@ -697,18 +715,25 @@ class BaseGrouper:
         -------
         Generator yielding subsetted objects
         """
+        cache = self._splitter_cache
+        if cache and (cached := cache[0]).data is data:
+            return cached
+
         if isinstance(data, Series):
             klass: type[DataSplitter[Any]] = SeriesSplitter
         else:
             # i.e. DataFrame
             klass = FrameSplitter
 
-        return klass(
+        splitter = klass(
             data,
             self.ngroups,
             sorted_ids=self._sorted_ids,
             sort_idx=self.result_ilocs,
         )
+        if cache is not None:
+            cache[:] = [splitter]
+        return splitter
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:

@@ -332,6 +332,16 @@ class CountMultiInt:
         df.groupby(["key1", "key2"]).nunique()
 
 
+class AggMultipleUDFs:
+    def setup(self):
+        N = 10**6
+        df = DataFrame(np.random.randn(N, 4), columns=list("abcd"))
+        self.gb = df.groupby(np.random.randint(0, 100, size=N))
+
+    def time_agg_multiple_udfs(self):
+        self.gb.agg([lambda x: x.to_numpy().sum(), lambda x: x.to_numpy().max()])
+
+
 class AggFunctions:
     def setup_cache(self):
         N = 10**5
