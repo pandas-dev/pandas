@@ -315,6 +315,15 @@ class TestTimestampStrftime:
     def test_strftime(self, ts, fmt, expected):
         assert ts.strftime(fmt) == expected
 
+    @pytest.mark.parametrize(
+        "fmt, type_name", [(5, "int"), (None, "NoneType"), (b"%Y", "bytes")]
+    )
+    def test_strftime_non_str_format(self, fmt, type_name):
+        # GH#71914
+        msg = f"strftime\\(\\) argument 1 must be str, not {type_name}"
+        with pytest.raises(TypeError, match=msg):
+            ts_ns.strftime(fmt)
+
 
 def test_repr_year_lt_1000():
     # GH#58179
