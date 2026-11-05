@@ -350,6 +350,75 @@ def test_series_index_name(df):
     assert result.index.name == "A"
 
 
+def test_agg_multiple_functions_share_sorted_data():
+    # GH#51077 one sorted copy per column, not kept after the call
+    ser = pd.Series([3.0, 2.0, 1.0, 0.0])
+    gb = ser.groupby([1, 0, 1, 0])
+    seen = []
+
+    def record(group):
+        seen.append(group.to_numpy())
+        return 0
+
+    gb.agg([("a", record), ("b", record)])
+    assert len(seen) == 4
+    assert np.shares_memory(seen[0], seen[2])
+    assert gb._grouper._splitter_cache is None
+
+
+def test_agg_multiple_functions_group_setitem_not_shared():
+    # GH#51077 Copy-on-Write keeps setitem on a group out of the shared sorted copy
+    def mutate(group):
+        group.iloc[0] = 100.0
+        return group.iloc[0]
+
+    ser = pd.Series([3.0, 2.0, 1.0, 0.0])
+    result = ser.groupby([1, 0, 1, 0]).agg([mutate, lambda x: x.iloc[0]])
+    expected = pd.DataFrame(
+        {"mutate": [100.0, 100.0], "<lambda_0>": [2.0, 3.0]}, index=[0, 1]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_functions_other_column_in_udf():
+    # GH#51077 sharing a sorted copy must not hand a UDF another column's data
+    df = pd.DataFrame(
+        {"k": [1, 0, 1, 0], "a": [1.0, 2.0, 3.0, 4.0], "b": [10.0, 20.0, 30.0, 40.0]}
+    )
+    gb = df.groupby("k")
+
+    def other(group):
+        return gb["b"].agg(lambda x: x.iloc[0]).sum()
+
+    result = gb["a"].agg([other, lambda x: x.iloc[0]])
+    expected = pd.DataFrame(
+        {"other": [30.0, 30.0], "<lambda_0>": [2.0, 1.0]},
+        index=pd.Index([0, 1], name="k"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_share_splitter_always_resets():
+    # GH#51077 the sorted copy must not outlive the call
+    gb = pd.Series([3.0, 2.0, 1.0, 0.0]).groupby([1, 0, 1, 0])
+
+    def raises(group):
+        raise ValueError("oops")
+
+    with pytest.raises(ValueError, match="oops"):
+        gb.agg([("a", lambda x: 0), ("b", raises)])
+    assert gb._grouper._splitter_cache is None
+
+    # overlapping without nesting, as with threads sharing a groupby
+    first = gb._grouper._share_splitter()
+    second = gb._grouper._share_splitter()
+    first.__enter__()
+    second.__enter__()
+    first.__exit__(None, None, None)
+    second.__exit__(None, None, None)
+    assert gb._grouper._splitter_cache is None
+
+
 def test_agg_multiple_functions_same_name():
     # GH 30880
     df = pd.DataFrame(
