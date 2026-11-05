@@ -1253,18 +1253,20 @@ class GroupByAggregateArrowDtypes:
 
 
 class GroupByArrowStringSum:
-    param_names = ["ngroups"]
-    params = [1, 1000, 50_000]
+    param_names = ["dtype", "ngroups"]
+    params = [["string[pyarrow]", "ArrowDtype"], [1, 1000, 50_000]]
 
-    def setup(self, ngroups):
+    def setup(self, dtype, ngroups):
         import pyarrow as pa
 
+        if dtype == "ArrowDtype":
+            dtype = ArrowDtype(pa.string())
         size = 100_000
         data = np.random.choice(list(ascii_letters), size)
-        self.ser = Series(data, dtype=ArrowDtype(pa.string()))
+        self.ser = Series(data, dtype=dtype)
         self.key = np.random.randint(0, ngroups, size)
 
-    def time_sum(self, ngroups):
+    def time_sum(self, dtype, ngroups):
         self.ser.groupby(self.key).sum()
 
 
