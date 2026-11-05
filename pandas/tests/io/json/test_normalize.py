@@ -676,6 +676,11 @@ class TestJSONNormalize:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_meta_path_leaves_record_path_missing_no_records(self):
+        # GH#60254 raises even when no records are reached
+        with pytest.raises(KeyError, match="not found"):
+            pd.json_normalize({"a": []}, ["a", "rows"], [["z", "m"]])
+
     def test_meta_empty_path_raises(self):
         # GH#60254
         data = {"a": {"rows": [{"v": 1}]}}
