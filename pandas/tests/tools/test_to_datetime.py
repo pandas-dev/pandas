@@ -3530,6 +3530,24 @@ class TestToDatetimeInferFormat:
         # ... and so must the Timestamp constructor
         assert pd.Timestamp(string) == expected
 
+    def test_to_datetime_js_date_gmt_offset_matches_timestamp(self):
+        # GH 71273 JavaScript Date.toString() spells IST as "GMT+0530".
+        #  dateutil (and therefore Timestamp/format="mixed") applies the POSIX
+        #  sign to a zone name + offset, so the inferred-format path must not
+        #  silently return the opposite offset.
+        string = "Mon Nov 02 2026 15:00:00 GMT+0530"
+        expected = pd.Timestamp(string)
+        assert expected.utcoffset() == timedelta(hours=-5, minutes=-30)
+
+        result = pd.to_datetime(string)
+        assert result == expected
+
+        result = pd.to_datetime([string])
+        assert result[0] == expected
+
+        result = pd.to_datetime([string], format="mixed")
+        assert result[0] == expected
+
     @pytest.mark.parametrize(
         "ts,zero_tz",
         [
