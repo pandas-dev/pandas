@@ -8,16 +8,21 @@ The full license is in the LICENSE file, distributed with this software.
 */
 
 #include "pandas/moments.h"
-#include "pandas/simd/moments_simd.hpp"
+#include "pandas/simd/moments_common.hpp"
 #include <optional>
 #include <span>
 
 namespace pandas::moments::detail {
 
+// If an anonymous namespace is used, another warning is emitted about the
+// specializations not being necessary.
+struct Scalar {}; // NOLINT(misc-use-internal-linkage)
+
 template <>
-std::optional<MeanAcc<double, std::size_t>> accumulate_mean<xsimd::common>(
-    const std::span<const double> values,
-    const std::optional<std::span<const uint8_t>> mask, const bool skipna) {
+std::optional<MeanAcc<double, std::size_t>>
+accumulate_mean<Scalar>(const std::span<const double> values,
+                        const std::optional<std::span<const uint8_t>> mask,
+                        const bool skipna) {
   constexpr std::size_t leaf_size = 128;
 
   if (values.size() <= leaf_size) {
@@ -32,13 +37,13 @@ std::optional<MeanAcc<double, std::size_t>> accumulate_mean<xsimd::common>(
                        : std::nullopt;
 
   const auto left =
-      accumulate_mean<xsimd::common>(values.first(mid), left_mask, skipna);
+      accumulate_mean<Scalar>(values.first(mid), left_mask, skipna);
   if (!left) {
     return std::nullopt;
   }
 
-  const auto right = accumulate_mean<xsimd::common>(
-      values.last(values.size() - mid), right_mask, skipna);
+  const auto right = accumulate_mean<Scalar>(values.last(values.size() - mid),
+                                             right_mask, skipna);
   if (!right) {
     return std::nullopt;
   }
@@ -48,7 +53,7 @@ std::optional<MeanAcc<double, std::size_t>> accumulate_mean<xsimd::common>(
 }
 
 template <>
-CentralDiffs<double> accumulate_central_diffs<xsimd::common>(
+CentralDiffs<double> accumulate_central_diffs<Scalar>(
     const std::span<const double> values,
     const std::optional<std::span<const uint8_t>> mask, double mean,
     int max_moment) {
@@ -66,9 +71,9 @@ CentralDiffs<double> accumulate_central_diffs<xsimd::common>(
       mask.has_value() ? std::make_optional(mask->last(values.size() - mid))
                        : std::nullopt;
 
-  const auto left = accumulate_central_diffs<xsimd::common>(
+  const auto left = accumulate_central_diffs<Scalar>(
       values.first(mid), left_mask, mean, max_moment);
-  const auto right = accumulate_central_diffs<xsimd::common>(
+  const auto right = accumulate_central_diffs<Scalar>(
       values.last(values.size() - mid), right_mask, mean, max_moment);
 
   return {.m1 = left.m1 + right.m1,
@@ -86,6 +91,7 @@ Moments moments_reduce(const double *values, size_t n, bool skipna,
       mask == nullptr
           ? std::nullopt
           : std::optional<std::span<const uint8_t>>(std::span(mask, n));
-  return pandas::moments::accumulate_moments_simd{}(
-      xsimd::common{}, values_span, skipna, mask_span, max_moment);
+  return pandas::moments::detail::accumulate_moments_impl<
+      pandas::moments::detail::Scalar>(values_span, mask_span, skipna,
+                                       max_moment);
 }

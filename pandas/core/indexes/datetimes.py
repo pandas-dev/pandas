@@ -70,6 +70,7 @@ if TYPE_CHECKING:
         TimeUnit,
         npt,
     )
+
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,

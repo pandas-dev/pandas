@@ -3518,7 +3518,8 @@ class MultiIndex(Index):
         end : label or tuple
             If None, defaults to the end
         step : int or None
-            Slice step
+            If None, defaults to 1. Only the sign is used: a negative ``step``
+            gives bounds for a reversed slice.
 
         Returns
         -------
@@ -3594,9 +3595,13 @@ class MultiIndex(Index):
                     raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
                     loc -= 1
-                return start + algos.searchsorted(section, loc, side=side)
-
-            idx = self._get_loc_single_level_index(lev, lab)
+                if not (0 <= loc < len(lev) and lev[loc] == lab):
+                    return start + algos.searchsorted(section, loc, side=side)
+                # GH#55969 lab equals a level value the lookup missed, e.g.
+                #  np.datetime64 vs datetime.date
+                idx = loc
+            else:
+                idx = self._get_loc_single_level_index(lev, lab)
             if isinstance(idx, slice) and k < n - 1:
                 # Get start and end value from slice, necessary when a non-integer
                 # interval is given as input GH#37707
