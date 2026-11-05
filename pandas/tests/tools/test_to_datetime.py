@@ -3531,7 +3531,7 @@ class TestToDatetimeInferFormat:
         assert pd.Timestamp(string) == expected
 
     def test_to_datetime_js_date_gmt_offset_matches_timestamp(self):
-        # GH 71273 JavaScript Date.toString() spells IST as "GMT+0530".
+        # GH 71273 JavaScript Date.toString() spells a +05:30 zone as "GMT+0530".
         #  dateutil (and therefore Timestamp/format="mixed") applies the POSIX
         #  sign to a zone name + offset, so the inferred-format path must not
         #  silently return the opposite offset.
