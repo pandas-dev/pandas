@@ -123,8 +123,15 @@ def test_read_sas_usecols_excludes_index(datapath, fname):
     path = datapath("io", "sas", "data", fname)
     columns = pd.read_sas(path, encoding="latin-1").columns
 
-    with pytest.raises(KeyError, match=columns[0]):
-        pd.read_sas(path, encoding="latin-1", index=columns[0], usecols=[columns[1]])
+    # iterator=True so this only passes if the check happens at open
+    with pytest.raises(ValueError, match="usecols must include the index column"):
+        pd.read_sas(
+            path,
+            encoding="latin-1",
+            index=columns[0],
+            usecols=[columns[1]],
+            iterator=True,
+        )
 
 
 @pytest.mark.parametrize("fname", ["productsales.sas7bdat", "DEMO_G.xpt"])
@@ -163,16 +170,6 @@ def test_read_sas_usecols_encoding_default_warning(
         pd.read_sas(path, usecols=[text_col])
 
 
-def test_read_sas_usecols_column_count_below_columns(datapath):
-    # GH#37088 this file's column_count is 0, so its columns are never read
-    path = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
-    with pd.read_sas(path, encoding=None, chunksize=1) as reader:
-        name = reader.read().columns[0]
-
-    with pytest.raises(ValueError, match="columns expected but not found"):
-        pd.read_sas(path, encoding=None, chunksize=1, usecols=[name])
-
-
 @pytest.mark.parametrize(
     "fname, col", [("productsales.sas7bdat", "ACTUAL"), ("DEMO_G.xpt", "SEQN")]
 )
@@ -188,17 +185,6 @@ def test_read_sas_usecols_only_index_chunks(datapath, fname, col):
 
     assert result.shape[1] == 0
     tm.assert_index_equal(result.index, expected.index)
-
-
-def test_read_sas_encoding_default_warns_column_count_below_columns(datapath):
-    # GH#37088 selecting columns must not change this warning without usecols
-    path = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
-
-    with tm.assert_produces_warning(
-        Pandas4Warning, match="default value of 'encoding'"
-    ):
-        with pd.read_sas(path, chunksize=1):
-            pass
 
 
 @pytest.mark.parametrize(

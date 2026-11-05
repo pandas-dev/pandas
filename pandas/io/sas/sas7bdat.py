@@ -640,15 +640,18 @@ class SAS7BDATReader(SASReader):
             else:
                 self._column_convert_types.append(None)
 
-        self._select_columns()
+        if self._usecols is None:
+            self._used_columns = list(range(self.column_count))
+        else:
+            self._used_columns = self._usecols_positions(
+                self._usecols, self.column_names, self.index
+            )
 
         # The default also governs header text, which is decoded either way, so
         #  a numeric-only file with non-ascii column names changes too
-        read_types = (
-            self._column_types if self._usecols is None else self._used_column_types()
-        )
         if not self._encoding_specified and (
-            (self.convert_text and b"s" in read_types) or self._non_ascii_header_text
+            (self.convert_text and b"s" in self._used_column_types())
+            or self._non_ascii_header_text
         ):
             warnings.warn(
                 "The default value of 'encoding' in read_sas is deprecated. In a "
@@ -658,16 +661,6 @@ class SAS7BDATReader(SASReader):
                 "the future behavior, or encoding=None to keep the current one.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
-            )
-
-    def _select_columns(self) -> None:
-        if self._usecols is None:
-            self._used_columns = list(range(self.column_count))
-        else:
-            # Sliced because a corrupt column_count can be below the columns the
-            # file describes, and only those it counts are ever read.
-            self._used_columns = self._usecols_positions(
-                self._usecols, self.column_names[: self.column_count]
             )
 
     def _used_column_types(self) -> list[bytes]:
