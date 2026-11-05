@@ -56,7 +56,7 @@ def test_map_identity_mapping(index, request, using_infer_string):
 
 @pytest.fixture
 def two_value_index(index_flat):
-    # categorical results are tested in categorical/test_map.py
+    # CategoricalIndex differs, see categorical/test_map.py
     if not len(index_flat) or isinstance(index_flat, pd.CategoricalIndex):
         pytest.skip("Test doesn't apply to empty or categorical index")
     return index_flat.unique()[:2].rename("n")
@@ -64,11 +64,7 @@ def two_value_index(index_flat):
 
 def _xfail_if_tuples_become_arrow_lists(index, request):
     # ExtensionArray.map casts tuples to pyarrow lists since GH#64801
-    if (
-        isinstance(index.dtype, pd.StringDtype)
-        and index.dtype.storage == "pyarrow"
-        and index.dtype.na_value is pd.NA
-    ):
+    if index.dtype == "string[pyarrow]":
         request.applymarker(pytest.mark.xfail(reason="tuples cast to pyarrow lists"))
 
 
