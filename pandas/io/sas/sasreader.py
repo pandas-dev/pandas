@@ -53,7 +53,7 @@ class SASReader(Iterator["DataFrame"], ABC):
 
     @staticmethod
     def _usecols_positions(
-        usecols: ListLike, names: Sequence[str | bytes]
+        usecols: ListLike, names: Sequence[str | bytes], index: Hashable | None
     ) -> list[int]:
         """
         Return the positions in ``names`` that ``usecols`` selects, in file order.
@@ -69,6 +69,8 @@ class SASReader(Iterator["DataFrame"], ABC):
                 f"{missing}"
             )
         wanted = set(usecols)
+        if index is not None and index not in wanted:
+            raise ValueError(f"usecols must include the index column {index!r}")
         return [pos for pos, name in enumerate(names) if name in wanted]
 
     def __enter__(self) -> Self:
