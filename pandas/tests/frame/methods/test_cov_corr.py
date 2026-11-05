@@ -209,14 +209,109 @@ class TestDataFrameCorr:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_calc_corr_small_numbers(self):
+    @pytest.mark.parametrize("with_missing_column", [False, True])
+    def test_calc_corr_small_numbers(self, with_missing_column):
         # GH: 37452
         df = pd.DataFrame(
             {"A": [1.0e-20, 2.0e-20, 3.0e-20], "B": [1.0e-20, 2.0e-20, 3.0e-20]}
         )
-        result = df.corr()
+        if with_missing_column:
+            # a NaN anywhere selects the pairwise kernel
+            result = df.assign(C=np.nan).corr().loc[["A", "B"], ["A", "B"]]
+        else:
+            result = df.corr()
         expected = pd.DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "transform",
+        [
+            lambda values: values * 1e100,
+            lambda values: values * 1e-100,
+            lambda values: values * 1e160,
+            lambda values: values * 1e-160,
+            lambda values: values + 2.0**50,
+            lambda values: 1 + values * np.spacing(1.0),
+        ],
+    )
+    def test_corr_no_missing_values_shifted_or_scaled(self, transform):
+        # GH#40956 correlation is invariant under these, up to rounding of the inputs
+        left = np.array([1.0, 2.0, 3.0, 4.0, 6.0])
+        right = np.array([2.0, 1.0, 4.0, 3.0, 7.0])
+        df = pd.DataFrame({"left": transform(left), "right": transform(right)})
+        with tm.assert_produces_warning(None):
+            result = df.corr()
+
+        val = 0.8806955667454326
+        expected = pd.DataFrame(
+            [[1.0, val], [val, 1.0]], index=["left", "right"], columns=["left", "right"]
+        )
+        tm.assert_frame_equal(result, expected, check_exact=False, rtol=1e-13)
+
+    @pytest.mark.parametrize("scale", [1e200, 1e-200])
+    def test_corr_no_missing_values_one_column_scaled(self, scale):
+        # GH#40956
+        left = np.array([1.0, 2.0, 3.0, 4.0, 6.0]) * scale
+        right = np.array([2.0, 1.0, 4.0, 3.0, 7.0])
+        result = pd.DataFrame({"left": left, "right": right}).corr()
+        assert result.loc["left", "right"] == pytest.approx(0.8806955667454326)
+        assert result.loc["left", "left"] == 1.0
+
+    def test_corr_no_missing_values_sum_overflow(self):
+        # GH#40956
+        df = pd.DataFrame({"a": [1e308, 1e308, 1e308, 1.0], "b": [1.0, 2.0, 3.0, 5.0]})
+        with tm.assert_produces_warning(None):
+            result = df.corr()
+        assert result.loc["a"].isna().all()
+        assert result.loc["b", "b"] == 1.0
+
+    def test_corr_no_missing_values_constant_column(self):
+        # GH#40956 copy=False keeps C-order, where the mean of a long column would round
+        # badly enough for the residual after centering to count as variation
+        rng = np.random.default_rng(2)
+        size = 100_003
+        arr = np.column_stack([np.full(size, 1 / 3), rng.random(size)])
+        result = pd.DataFrame(arr, copy=False).corr().to_numpy()
+        nan = np.nan
+        tm.assert_numpy_array_equal(result, np.array([[nan, nan], [nan, 1.0]]))
+
+    def test_corr_no_missing_values_within_bounds(self):
+        # GH#40956 perfectly (anti-)correlated columns can round to just past +/-1
+        rng = np.random.default_rng(2)
+        factors = rng.uniform(-1, 1, 200)
+        df = pd.DataFrame(np.outer(rng.random(10), factors))
+        result = df.corr().to_numpy()
+        expected = np.sign(np.outer(factors, factors))
+        tm.assert_almost_equal(result, expected)
+        assert np.abs(result).max() == 1.0
+
+    @pytest.mark.parametrize("method", ["pearson", "spearman"])
+    def test_corr_no_missing_values_matches_missing_values_path(self, method):
+        # GH#40956 a column with NaNs routes the same data through the pairwise kernel
+        rng = np.random.default_rng(2)
+        df = pd.DataFrame(rng.integers(0, 5, (20, 4)), columns=list("abcd"))
+        cols = df.columns
+        for min_periods in [1, len(df)]:
+            result = df.corr(method=method, min_periods=min_periods)
+            with_nans = df.assign(e=np.nan).corr(method=method, min_periods=min_periods)
+            expected = with_nans.loc[cols, cols]
+            tm.assert_frame_equal(result, expected, check_exact=False, rtol=1e-13)
+
+    @pytest.mark.parametrize("method", ["pearson", "spearman"])
+    def test_corr_inf_treated_as_missing(self, method):
+        # GH#40956 DataFrame.cov does this only when a NaN is also present
+        df = pd.DataFrame({"a": [1.0, 2, np.inf, 4, 6], "b": [2.0, 1, 7, 3, 4]})
+        result = df.corr(method=method)
+        expected = df.where(np.isfinite(df)).corr(method=method)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("nrows", [0, 1])
+    @pytest.mark.parametrize("method", ["pearson", "spearman"])
+    def test_corr_too_few_rows(self, method, nrows):
+        # GH#40956
+        df = pd.DataFrame(np.ones((nrows, 2)))
+        result = df.corr(method=method, min_periods=0).to_numpy()
+        tm.assert_numpy_array_equal(result, np.full((2, 2), np.nan))
 
     @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
     def test_corr_min_periods_greater_than_length(self, method):
