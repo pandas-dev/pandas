@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed a regression in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ConversionError`` when plotting timezone-aware datetime data containing missing values (:issue:`71879`)
+- Fixed a regression in :meth:`DataFrame.to_sql` writing ``timedelta64`` columns with a unit other than nanoseconds (such as the default ``"us"``) as integers in that unit instead of nanoseconds (:issue:`71941`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_312.bugs:

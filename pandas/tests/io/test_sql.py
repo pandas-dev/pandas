@@ -2031,15 +2031,20 @@ def test_api_date_and_index(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
-def test_api_timedelta(conn, request):
-    # see #6921
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_api_timedelta(conn, request, unit):
+    # see #6921, GH#71941: timedeltas are stored as nanoseconds whatever their unit
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_timedelta", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
             pandasSQL.drop_table("test_timedelta")
 
-    df = pd.to_timedelta(pd.Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
+    df = (
+        pd.to_timedelta(pd.Series(["00:00:01", "00:00:03"], name="foo"))
+        .astype(f"m8[{unit}]")
+        .to_frame()
+    )
 
     if conn_name == "sqlite_adbc_conn":
         request.node.add_marker(
@@ -2071,7 +2076,7 @@ def test_api_timedelta(conn, request):
             name="foo",
         )
     else:
-        expected = df["foo"].astype("int64")
+        expected = pd.Series([1_000_000_000, 3_000_000_000], name="foo")
     tm.assert_series_equal(result["foo"], expected)
 
 
