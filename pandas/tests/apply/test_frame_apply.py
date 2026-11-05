@@ -1806,7 +1806,7 @@ def test_apply_raw_zero_dim_object_array_holding_list():
 
 @pytest.mark.parametrize("axis", [0, 1])
 def test_apply_raw_func_reuses_output_array(axis):
-    df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
+    df = pd.DataFrame(np.arange(1, 13, dtype="int64").reshape(4, 3))
     buffer = np.zeros(df.shape[axis], dtype="int64")
 
     def func(arr):
@@ -1851,7 +1851,7 @@ def test_apply_raw_zero_dim_array_results(axis):
 
 
 def test_apply_raw_scalar_results_args_kwargs():
-    df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
+    df = pd.DataFrame(np.arange(1, 13, dtype="int64").reshape(4, 3))
     func = lambda arr, add, extra=0: arr[0] + add + extra
     result = df.apply(func, args=(1,), extra=2, raw=True)
     expected = pd.Series([4, 5, 6])
