@@ -594,13 +594,14 @@ cdef class Parser:
         cdef:
             int j
             char[:] column_types
+            used_columns = np.asarray(parser._used_columns, dtype=np.intp)
 
         self.parser = parser
         self.blank_missing = parser.blank_missing
         self.header_length = self.parser.header_length
-        self.column_count = parser.column_count
-        self.lengths = parser.column_data_lengths()
-        self.offsets = parser.column_data_offsets()
+        self.column_count = len(used_columns)
+        self.lengths = parser.column_data_lengths()[used_columns]
+        self.offsets = parser.column_data_offsets()[used_columns]
         self.byte_chunk = parser._byte_chunk
         self.string_chunk = parser._string_chunk
         # sas7bdat.py always supplies these, using empty arrays for whichever
@@ -634,7 +635,7 @@ cdef class Parser:
         # page indicators
         self.update_next_page()
 
-        column_types = parser.column_types()
+        column_types = parser.column_types()[used_columns]
 
         # map column types
         for j in range(self.column_count):
