@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         CompressionOptions,
         DatetimeNaTType,
         FilePath,
+        ListLike,
         ReadBuffer,
     )
 _correct_line1 = (
@@ -78,7 +79,9 @@ encoding : str
     Encoding for text data.  XPORT files do not record an encoding, so
     'infer' is equivalent to the default ISO-8859-1.
 chunksize : int
-    Read file `chunksize` lines at a time, returns iterator."""
+    Read file `chunksize` lines at a time, returns iterator.
+usecols : list-like, optional
+    Names of the columns to read; the others are skipped during parsing."""
 
 _format_params_doc = """\
 format : str
@@ -254,7 +257,9 @@ class XportReader(SASReader):
         encoding: str | lib.NoDefault | None = _default_encoding,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
+        usecols: ListLike | None = None,
     ) -> None:
+        self._usecols = usecols
         # lib.no_default is only passed by read_sas, whose default is still
         # None (raw bytes) but is deprecated in favor of _default_encoding.
         # XPORT files record no encoding of their own, so "infer" just means
@@ -386,8 +391,13 @@ class XportReader(SASReader):
             raise ValueError("Observation header not found.")
 
         self.fields = fields
+        self.columns = [x["name"].decode() for x in self.fields]
+        if self._usecols is None:
+            self._used_columns = list(range(len(self.columns)))
+        else:
+            self._used_columns = self._usecols_positions(self._usecols, self.columns)
         if not self._encoding_specified and any(
-            field["ntype"] == "char" for field in fields
+            fields[j]["ntype"] == "char" for j in self._used_columns
         ):
             warnings.warn(
                 "The default value of 'encoding' in read_sas is deprecated. In a "
@@ -403,7 +413,6 @@ class XportReader(SASReader):
         self.record_start = self.filepath_or_buffer.tell()
 
         self.nobs = self._record_count()
-        self.columns = [x["name"].decode() for x in self.fields]
 
         # Setup the dtype.
         dtypel = [
@@ -507,7 +516,8 @@ class XportReader(SASReader):
         data = np.frombuffer(raw, dtype=self._dtype, count=read_lines)
 
         df_data = {}
-        for j, x in enumerate(self.columns):
+        for j in self._used_columns:
+            x = self.columns[j]
             vec = data["s" + str(j)]
             ntype = self.fields[j]["ntype"]
             if ntype == "numeric":
@@ -523,6 +533,8 @@ class XportReader(SASReader):
 
             df_data.update({x: v})
         df = pd.DataFrame(df_data)
+        if not self._used_columns:
+            df.columns = pd.Index([], dtype=object)
 
         if self._index is None:
             df.index = pd.Index(range(self._lines_read, self._lines_read + read_lines))
