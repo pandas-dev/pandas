@@ -6468,6 +6468,12 @@ Read a SAS7BDAT file:
 
     df = pd.read_sas("sas_data.sas7bdat")
 
+Read only some of the columns, skipping the others during parsing:
+
+.. code-block:: python
+
+    df = pd.read_sas("sas_data.sas7bdat", usecols=["id", "date"])
+
 Obtain an iterator and read an XPORT file 100,000 lines at a time:
 
 .. code-block:: python
