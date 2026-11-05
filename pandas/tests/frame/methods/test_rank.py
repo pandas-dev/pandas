@@ -533,9 +533,37 @@ def test_rank_object_raises_in_comparison(frame_or_series, method):
 
 def test_rank_object_unsorted_neq_table(frame_or_series):
     # GH#71768: the precomputed pairwise-inequality table must follow the
-    # lexsort order, not the original order; check a case with duplicates and
-    # NaN mixed, where the sort order differs from the input order.
+    # lexsort order, not the original order; check a case with duplicates,
+    # where the sort order differs from the input order.
     obj = frame_or_series([3.0, 1.0, 2.0, 2.0, 5.0], dtype=object)
     result = obj.rank()
     expected = frame_or_series([4.0, 1.0, 2.5, 2.5, 5.0])
     tm.assert_equal(result, expected)
+
+
+def test_rank_object_compares_each_pair_once(frame_or_series):
+    # GH#71768: each adjacent pair is compared exactly once, during the
+    # pre-pass. The noexcept kernel has to reuse that result: calling __ne__
+    # again for equal neighbours would double its side effects, and a second
+    # call that raises would be swallowed again.
+    calls = 0
+
+    class Item:
+        def __init__(self, v):
+            self.v = v
+
+        def __lt__(self, other):
+            return self.v < other.v
+
+        def __ne__(self, other):
+            nonlocal calls
+            calls += 1
+            if calls > 3:
+                raise RuntimeError("adjacent values compared twice")
+            return self.v != other.v
+
+    obj = frame_or_series([Item(3), Item(1), Item(1), Item(2)], index=range(4))
+    result = obj.rank()
+    expected = frame_or_series([4.0, 1.5, 1.5, 3.0])
+    tm.assert_equal(result, expected)
+    assert calls == 3

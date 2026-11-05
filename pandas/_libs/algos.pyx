@@ -1206,13 +1206,13 @@ def rank_1d(
         sorted_vals = masked_vals[lexsort_indexer]
         for i in range(N - 1):
             neq_arr[i] = bool(sorted_vals[i] != sorted_vals[i + 1])
-        neq_arr[N - 1] = 0
+        if N > 0:
+            neq_arr[N - 1] = 0
         neq = neq_arr
     else:
-        # the kernel indexes neq[i] for every i in [0, N), so the fallback
-        # table must span the full length even though it is all False
-        neq_arr = np.zeros(N, dtype=np.uint8)
-        neq = neq_arr
+        # the kernel never reads this table for non-object dtypes; one entry
+        # is enough to hand a valid memoryview to the fused kernel
+        neq = np.zeros(1, dtype=np.uint8)
 
     with nogil:
         rank_sorted_1d(
@@ -1282,9 +1282,9 @@ cdef void rank_sorted_1d(
         Compute percentage rank of data within each group
     neq : uint8_t[:]
         Precomputed ``masked_vals[sort_indexer[i]] != masked_vals[sort_indexer[i+1]]``
-        for i in [0, N-1), with the last entry unused. Required for object dtypes
-        (GH#71768), where the comparison may raise; for other dtypes pass an
-        array whose entries are all False (e.g. ``np.zeros(1, dtype=np.uint8)``).
+        for i in [0, N-1), with the last entry unused. Only read by the object
+        specialization, where the comparison may raise (GH#71768); other dtypes
+        pass a dummy array.
     labels : See rank_1d.__doc__, default None. None implies all labels are the same.
     """
 
@@ -1314,13 +1314,17 @@ cdef void rank_sorted_1d(
             # GH#71768: for object dtypes `neq` carries precomputed pairwise
             # inequalities, so that exceptions from user-defined __ne__
             # propagate (they were silently swallowed in this noexcept
-            # function before). For other dtypes the table is all False and
-            # the comparison against the (numeric) neighbouring values below
-            # yields the same result either way.
-            next_val_diff = at_end or (
-                neq[i]
-                or (masked_vals[sort_indexer[i]] != masked_vals[sort_indexer[i + 1]])
-            )
+            # function before). The object specialization consults only the
+            # table: running the comparison here would call __ne__ a second
+            # time for every equal pair (doubling its side effects), and a
+            # second call that raises would be swallowed by `noexcept` again.
+            if at_end:
+                next_val_diff = True
+            elif numeric_object_t is object:
+                next_val_diff = neq[i] != 0
+            else:
+                next_val_diff = (masked_vals[sort_indexer[i]]
+                                 != masked_vals[sort_indexer[i + 1]])
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help
@@ -1513,13 +1517,13 @@ def rank_2d(
             sorted_vals = values[sort_indexer[:, col], col]
             for i in range(n - 1):
                 neq_arr[i, col] = bool(sorted_vals[i] != sorted_vals[i + 1])
-            neq_arr[n - 1, col] = 0
+            if n > 0:
+                neq_arr[n - 1, col] = 0
         neq = neq_arr
     else:
-        # the kernel indexes neq[i, col] for every i in [0, n), so the
-        # fallback table must span the full length even though it is all False
-        neq_arr = np.zeros((n, k), dtype=np.uint8)
-        neq = neq_arr
+        # the kernel never reads this table for non-object dtypes; one row is
+        # enough to hand a valid memoryview to the fused kernel per column
+        neq = np.zeros((1, k), dtype=np.uint8)
 
     with nogil:
         for col in range(k):
