@@ -9,7 +9,10 @@ from datetime import (
 import locale
 import unicodedata
 
-from dateutil.tz import tzstr
+from dateutil.tz import (
+    tzlocal,
+    tzstr,
+)
 import numpy as np
 import pytest
 
@@ -697,9 +700,11 @@ class TestSeriesDatetimeValues:
         self, unit, fraction, timespec, tz_aware_fixture
     ):
         # GH#44764 matches Timestamp.isoformat, across DST and LMT offset changes
+        # tzlocal raises on 1850 on Windows and with a 32-bit time_t
+        early = "1970-01-02" if isinstance(tz_aware_fixture, tzlocal) else "1850-01-01"
         values = np.array(
             [
-                f"1850-01-01 00:00:00{fraction}",
+                f"{early} 00:00:00{fraction}",
                 "2021-11-07 05:30:00",
                 "2021-11-07 06:30:00",
                 "2021-11-07 09:30:00",
