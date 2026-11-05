@@ -181,6 +181,7 @@ Performance improvements
 - Performance improvement in :func:`infer_freq` and :meth:`DatetimeIndex.union` for values with no regular frequency (:issue:`70884`)
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with PyArrow-backed string data (:issue:`60861`)
+- Performance improvement in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` with a list of multiple user-defined functions (:issue:`51077`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
