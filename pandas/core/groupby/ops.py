@@ -55,7 +55,11 @@ from pandas.core.dtypes.missing import (
     maybe_fill,
 )
 
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import (
+    BaseMaskedArray,
+    Categorical,
+    StringArray,
+)
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -691,7 +695,9 @@ class BaseGrouper:
         yield from zip(keys, splitter, strict=True)
 
     @cache_readonly
-    def _splitter_cache(self) -> dict[Hashable, tuple[Hashable, DataSplitter[Any]]]:
+    def _splitter_cache(
+        self,
+    ) -> dict[Hashable, tuple[Hashable, DataSplitter[Any], list[ArrayLike]]]:
         return {}
 
     @final
@@ -715,13 +721,20 @@ class BaseGrouper:
             klass = FrameSplitter
 
         sort_idx = self.result_ilocs
+        labels = _hashable_labels(data)
         if (
-            type(data) is not klass._sorted_cls
+            labels is None
+            or type(data) is not klass._sorted_cls
             or data.attrs
             or not data._flags._allows_duplicate_labels
             or lib.is_range_indexer(sort_idx, len(data))
+            or any(
+                isinstance(blk.values, (BaseMaskedArray, StringArray))
+                for blk in data._mgr.blocks
+            )
         ):
-            # Metadata is not part of the key; already-sorted data needs no copy.
+            # Metadata is not part of the key; already-sorted data needs no copy;
+            # to_numpy on masked and python-backed strings is writable, see GH#63099.
             return klass(
                 data,
                 self.ngroups,
@@ -731,7 +744,7 @@ class BaseGrouper:
 
         # One slot per selection, so entries made stale by a write get replaced.
         cache = self._splitter_cache
-        slot = (klass, data.name if isinstance(data, Series) else tuple(data.columns))
+        slot = (klass, labels)
         key = _values_key(data)
         cached = cache.get(slot)
         if (
@@ -750,7 +763,8 @@ class BaseGrouper:
             sorted_ids=self._sorted_ids,
             sort_idx=sort_idx,
         )
-        cache[slot] = (key, splitter)
+        # Keep these alive: the splitter holds only views, and key has their ids.
+        cache[slot] = (key, splitter, [blk.values for blk in data._mgr.blocks])
         return splitter
 
     @cache_readonly
@@ -1500,14 +1514,40 @@ def _values_key(data: NDFrame) -> Hashable:
     blocks = []
     for blk in data._mgr.blocks:
         values = getattr(blk.values, "_ndarray", blk.values)
-        layout = None
+        layout: Hashable
         if isinstance(values, np.ndarray):
             # columns from one 2D block share refs
             address = values.__array_interface__["data"][0]
             layout = (address, values.shape, values.strides)
+        else:
+            # slices of an ExtensionArray share refs but are distinct objects
+            layout = id(values)
         locs = blk.mgr_locs.as_array.tobytes() if data.ndim == 2 else None
-        blocks.append((id(blk.refs), layout, locs))
+        blocks.append((id(blk.refs), layout, locs, blk.dtype))
     return tuple(blocks)
+
+
+def _is_nan_label(label: Hashable) -> bool:
+    if isinstance(label, tuple):
+        return any(_is_nan_label(item) for item in label)
+    return (lib.is_float(label) or lib.is_complex(label)) and label != label
+
+
+def _hashable_labels(data: NDFrame) -> tuple[Hashable, ...] | None:
+    """
+    Labels that identify data in the splitter cache, or None if they cannot.
+
+    A NaN label from a float Index is a new object on each lookup and compares
+    unequal to the last one, so it would add a cache entry on every call.
+    """
+    labels = (data.name,) if isinstance(data, Series) else tuple(data.columns)
+    try:
+        hash(labels)
+    except TypeError:
+        return None
+    if any(_is_nan_label(label) for label in labels):
+        return None
+    return labels
 
 
 class DataSplitter(Generic[NDFrameT]):
