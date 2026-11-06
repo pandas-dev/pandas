@@ -393,8 +393,17 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
+    # values of a tz-naive field may still carry an offset, e.g. the "Z" that
+    # pandas<1.5 appended, so parse as UTC and then drop the tz; GH#52595
+    naive = {name for name, dtype in dtypes.items() if dtype == "datetime64[ns]"}
+    dtypes.update(dict.fromkeys(naive, "datetime64[ns, UTC]"))
+
     with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
+
+    for i, name in enumerate(df.columns):
+        if name in naive:
+            df.isetitem(i, df.iloc[:, i].dt.tz_convert(None))
 
     if "primaryKey" in table["schema"]:
         df = df.set_index(table["schema"]["primaryKey"])
