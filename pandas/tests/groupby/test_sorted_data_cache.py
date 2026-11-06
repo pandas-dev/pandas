@@ -71,6 +71,141 @@ def test_duplicate_names_in_one_block_not_confused(values):
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.fixture(
+    params=["float64", "Int64", "int64[pyarrow]", pd.StringDtype(na_value=np.nan)],
+    ids=str,
+)
+def ser(request):
+    dtype = request.param
+    if dtype == "int64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    values = list("1234") if isinstance(dtype, pd.StringDtype) else [1, 2, 3, 4]
+    return pd.Series(values, dtype=dtype, name="a")
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["float64", "int64[pyarrow]", pd.StringDtype("pyarrow", na_value=np.nan)],
+    ids=str,
+)
+def test_repeated_calls_hit_cache_by_dtype(dtype):
+    # GH#51077
+    pytest.importorskip("pyarrow")
+    values = list("1234") if isinstance(dtype, pd.StringDtype) else [1, 2, 3, 4]
+    df = pd.DataFrame({"a": pd.Series(values, dtype=dtype)})
+    gb = df.groupby(np.array([1, 0, 1, 0]))
+    gb["a"].agg(lambda x: x.iloc[0])
+    entries = list(gb._grouper._splitter_cache.values())
+    gb["a"].agg(lambda x: x.iloc[0])
+    new_entries = list(gb._grouper._splitter_cache.values())
+    assert len(new_entries) == 1
+    assert new_entries[0][1] is entries[0][1]
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([5, 4, 3, 2, 1, 9], "Int64"),
+        ([5.0, 4.0, 3.0, 2.0, 1.0, 9.0], "Float64"),
+        ([True, True, False, False, False, False], "boolean"),
+        (list("543219"), pd.StringDtype("python", na_value=np.nan)),
+        (list("543219"), pd.StringDtype("python", na_value=pd.NA)),
+    ],
+    ids=str,
+)
+def test_writable_to_numpy_not_cached(values, dtype):
+    # GH#51077 sorting to_numpy in a UDF must not reach later calls, see GH#63099
+    ser = pd.Series(values, dtype=dtype)
+    keys = [1, 0, 1, 0, 1, 0]
+    gb = ser.groupby(keys)
+    first = lambda x: x.iloc[0]
+
+    def sort_in_place(group):
+        arr = group.to_numpy()
+        arr.sort()
+        return arr[0]
+
+    gb.agg(sort_in_place)
+
+    assert len(gb._grouper._splitter_cache) == 0
+    tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
+
+
+def test_masked_source_to_numpy_write_seen():
+    # GH#51077
+    ser = pd.Series([1, 2, 3, 4], dtype="Int64")
+    keys = np.array([1, 0, 1, 0])
+    gb = ser.groupby(keys)
+    first = lambda x: x.iloc[0]
+    gb.agg(first)
+
+    ser.to_numpy()[0] = 100
+
+    tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
+
+
+def test_frame_with_masked_block_not_cached():
+    # GH#51077
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
+    df["b"] = pd.array([1, 2, 3, 4], dtype="Int64")
+    gb = df.groupby(np.array([1, 0, 1, 0]))
+
+    gb.apply(lambda group: 0.0)
+
+    assert len(gb._grouper._splitter_cache) == 0
+
+
+def test_duplicate_names_sharing_refs_not_confused(ser):
+    # GH#51077 the second column is a slice of the first
+    df = pd.concat([ser, ser.iloc[::-1].reset_index(drop=True)], axis=1)
+    gb = df.groupby(np.array([1, 0, 1, 0]))
+    result = gb.agg(lambda x: x.iloc[0])
+    tm.assert_frame_equal(result, gb.first())
+
+
+def test_reassigned_reversed_column_seen(ser):
+    # GH#51077 the reversed column is a slice, so it shares refs with the old one
+    df = ser.to_frame()
+    keys = np.array([1, 0, 1, 0])
+    gb = df.groupby(keys)
+    func = lambda x: x.iloc[0]
+    gb["a"].agg(func)
+
+    df["a"] = df["a"].iloc[::-1].reset_index(drop=True)
+
+    tm.assert_series_equal(gb["a"].agg(func), df.groupby(keys)["a"].agg(func))
+
+
+@pytest.mark.parametrize(
+    "values, new_dtype",
+    [
+        (
+            pd.date_range("2016-01-01", periods=4, tz="UTC"),
+            "datetime64[us, Asia/Tokyo]",
+        ),
+        (
+            pd.array(list("wxyz"), dtype=pd.StringDtype(na_value=np.nan)),
+            pd.StringDtype(na_value=pd.NA),
+        ),
+        (pd.Categorical(list("wxyz")), pd.CategoricalDtype(ordered=True)),
+    ],
+)
+def test_dtype_change_sharing_data_seen(values, new_dtype):
+    # GH#51077
+    df = pd.DataFrame({"a": values})
+    gb = df.groupby(np.array([1, 0, 1, 0]))
+    seen = []
+
+    def record(group):
+        seen.append(group.dtype)
+        return 0.0
+
+    gb["a"].agg(record)
+    df["a"] = df["a"].astype(new_dtype)
+    gb["a"].agg(record)
+    assert seen[-1] == df["a"].dtype
+
+
 @pytest.mark.parametrize(
     "write",
     [
@@ -116,6 +251,35 @@ def test_frame_source_write_seen(write):
     write(df)
 
     tm.assert_series_equal(gb.apply(func), df.groupby(keys).apply(func))
+
+
+def test_nan_label_not_cached():
+    # GH#51077 otherwise each call adds an entry
+    df = pd.DataFrame(np.arange(8.0).reshape(4, 2), columns=[1.0, np.nan])
+    gb = df.groupby(np.array([1, 0, 1, 0]))
+    for _ in range(3):
+        result = gb.agg(lambda x: x.iloc[0])
+    tm.assert_frame_equal(result, gb.first())
+    assert len(gb._grouper._splitter_cache) == 1
+
+
+def test_nan_in_multiindex_label_not_cached():
+    # GH#51077
+    columns = pd.MultiIndex.from_tuples([("a", 1.0), ("a", np.nan)])
+    df = pd.DataFrame(np.arange(8.0).reshape(4, 2), columns=columns)
+    gb = df.groupby(np.array([1, 0, 1, 0]))
+    for _ in range(3):
+        gb.apply(lambda x: 0.0)
+    assert len(gb._grouper._splitter_cache) == 0
+
+
+def test_unhashable_label_not_cached():
+    # GH#51077
+    df = pd.DataFrame(np.arange(8.0).reshape(4, 2))
+    df.columns = pd.Index([[1], [2]], tupleize_cols=False)
+    result = df.groupby(np.array([1, 0, 1, 0])).apply(lambda x: x.iloc[0, 0])
+    expected = pd.Series([2.0, 0.0], index=np.array([0, 1]))
+    tm.assert_series_equal(result, expected)
 
 
 def test_source_relabel_seen():
