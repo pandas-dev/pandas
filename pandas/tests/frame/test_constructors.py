@@ -801,6 +801,59 @@ class TestDataFrameConstructors:
         df = pd.DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
+    def test_constructor_mapping(self, non_dict_mapping_subclass):
+        # GH#71853
+        data = non_dict_mapping_subclass({"a": [1, 2], "b": [3, 4]})
+        result = pd.DataFrame(data)
+        expected = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        tm.assert_frame_equal(result, expected)
+
+        # with index and columns
+        result = pd.DataFrame(data, index=[10, 20], columns=["b", "c"])
+        expected = pd.DataFrame({"b": [3, 4], "c": [np.nan, np.nan]}, index=[10, 20])
+        tm.assert_frame_equal(result, expected)
+
+        # nested mapping
+        nested = {
+            "col1": non_dict_mapping_subclass({0: 1.0, 1: 2.0}),
+            "col2": non_dict_mapping_subclass({0: 3.0, 1: 4.0}),
+        }
+        result = pd.DataFrame(nested)
+        expected = pd.DataFrame({"col1": [1.0, 2.0], "col2": [3.0, 4.0]})
+        tm.assert_frame_equal(result, expected)
+
+        # outer and inner mapping
+        nested_outer = non_dict_mapping_subclass(
+            {
+                "col1": non_dict_mapping_subclass({0: 1.0, 1: 2.0}),
+                "col2": non_dict_mapping_subclass({0: 3.0, 1: 4.0}),
+            }
+        )
+        result = pd.DataFrame(nested_outer)
+        expected = pd.DataFrame({"col1": [1.0, 2.0], "col2": [3.0, 4.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_mappingproxy(self):
+        # GH#71853
+        import types
+
+        data = types.MappingProxyType({"a": [1, 2], "b": [3, 4]})
+        result = pd.DataFrame(data)
+        expected = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_frozendict(self):
+        # GH#71853
+        import builtins
+
+        frozendict = getattr(builtins, "frozendict", None)
+        if frozendict is None:
+            pytest.skip("frozendict not available in builtins")
+        data = frozendict(a=[1, 2], b=[3, 4])
+        result = pd.DataFrame(data)
+        expected = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_defaultdict(self, float_frame):
         # try with defaultdict
         data = {}

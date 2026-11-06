@@ -203,6 +203,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :class:`DataFrame` constructor silently treating keys as row values instead of columns when passed a non-dict :class:`collections.abc.Mapping` such as :class:`types.MappingProxyType` or Python 3.15 ``frozendict`` (:issue:`71853`)
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
 - Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
