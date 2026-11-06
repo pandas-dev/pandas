@@ -196,7 +196,7 @@ def test_group_setitem_not_shared():
     ser = pd.Series([3.0, 2.0, 1.0, 0.0])
     result = ser.groupby([1, 0, 1, 0]).agg([mutate, lambda x: x.iloc[0]])
     expected = pd.DataFrame(
-        {"mutate": [100.0, 100.0], "<lambda_0>": [2.0, 3.0]}, index=[0, 1]
+        {"mutate": [100.0, 100.0], "<lambda_0>": [2.0, 3.0]}, index=np.array([0, 1])
     )
     tm.assert_frame_equal(result, expected)
 
