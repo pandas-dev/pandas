@@ -448,13 +448,12 @@ a,b
     tm.assert_frame_equal(result, expected)
 
 
-# GH#71034 the explanation pandas adds to pyarrow's column count error
-NAMES_MISMATCH_MSG = re.escape(
-    "The 'pyarrow' engine read 2 columns from the first row of the file "
-    "but 4 names were passed. The number of columns is taken from the "
-    "first row, not from 'names', and rows with a different number of "
-    "fields are handled by 'on_bad_lines'. Use engine='c' or "
-    "engine='python' to read files with ragged rows."
+# GH#71034 the explanation pandas adds when "names" disagrees with the
+#  number of columns pyarrow read
+NOTE = re.escape(
+    "The 'pyarrow' engine takes the number of columns from the first "
+    "row it reads, not from 'names'; the 'c' and 'python' engines can "
+    "pad rows that are shorter than 'names'."
 )
 
 
@@ -467,7 +466,7 @@ def test_names_wider_than_first_row(all_parsers):
     names = ["w", "x", "y", "z"]
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ParserError, match=NAMES_MISMATCH_MSG):
+        with pytest.raises(ParserError, match=NOTE):
             parser.read_csv(StringIO(data), header=None, names=names)
         return
 
@@ -491,11 +490,11 @@ def test_names_wider_than_first_row_pyarrow(pyarrow_parser_only, on_bad_lines):
         # pyarrow's own message is kept and followed by the explanation
         msg = (
             r"^CSV parse error: Expected 2 columns, got 4: 1,2,3,4\. "
-            f"{NAMES_MISMATCH_MSG}$"
+            f"{NOTE}$"
         )
     else:
         # the wider rows were skipped, so pandas reports the mismatch itself
-        msg = rf"^{NAMES_MISMATCH_MSG}$"
+        msg = rf"^Expected 4 columns, but the file only contained 2\. {NOTE}$"
 
     if on_bad_lines == "warn":
         with tm.assert_produces_warning(
@@ -524,17 +523,19 @@ def test_names_shorter_than_file_pyarrow_still_forms_an_index(pyarrow_parser_onl
     tm.assert_frame_equal(result, expected)
 
 
-def test_names_length_matches_first_row_error_unchanged(pyarrow_parser_only):
-    # GH#71034 the explanation is only appended when the number of columns
-    #  pyarrow read disagrees with "names"
+def test_names_column_count_error_appends_note(pyarrow_parser_only):
+    # GH#71034 the note is appended whenever "names" was passed and pyarrow
+    #  reported a column count, even when the counts agree; with no names
+    #  there is nothing to explain and the message is pyarrow's own
     parser = pyarrow_parser_only
     data = "a,b\n1,2,3,4\n"
 
-    msg = "^CSV parse error: Expected 2 columns, got 4: 1,2,3,4$"
+    msg = rf"^CSV parse error: Expected 2 columns, got 4: 1,2,3,4\. {NOTE}$"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=None, names=["w", "x"])
 
     # and with no names at all, as there is nothing to explain
+    msg = "^CSV parse error: Expected 2 columns, got 4: 1,2,3,4$"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data))
 
@@ -545,23 +546,25 @@ def test_uniformly_short_rows_with_longer_names_pyarrow(pyarrow_parser_only):
     parser = pyarrow_parser_only
     data = "1,2\n3,4"
 
-    msg = re.escape(
-        "The 'pyarrow' engine read 2 columns from the first row of the file "
-        "but 3 names were passed."
-    )
+    msg = rf"^Expected 3 columns, but the file only contained 2\. {NOTE}$"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=None, names=["a", "b", "c"])
 
 
-def test_single_name_mismatch_message_is_singular(pyarrow_parser_only):
-    # GH#71034 a single name must read "1 name was passed", not "1 names
-    #  were passed"
-    parser = pyarrow_parser_only
+def test_ragged_row_error_does_not_suggest_other_engines(all_parsers):
+    # GH#71034 a row wider than "names" fails with every engine, so the
+    #  message must not point the user at engine='c' or engine='python'
+    parser = all_parsers
     data = "1,2\n3,4,5,6\n"
 
-    msg = re.escape(
-        "The 'pyarrow' engine read 2 columns from the first row of the file "
-        "but 1 name was passed."
-    )
-    with pytest.raises(ParserError, match=msg):
+    with pytest.raises(ParserError) as excinfo:
         parser.read_csv(StringIO(data), header=None, names=["w"])
+
+    msg = str(excinfo.value)
+    assert "engine='c'" not in msg
+    assert "engine='python'" not in msg
+    if parser.engine == "pyarrow":
+        assert re.search(NOTE, msg)
+    else:
+        # the c and python engines reject the wider row themselves
+        assert "Expected 2 fields in line 2, saw 4" in msg

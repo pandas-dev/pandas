@@ -1515,8 +1515,8 @@ def read_csv(
 
         Note: with ``engine="pyarrow"`` the number of columns is taken from the
         first row that is read rather than from ``names``, so a row with a
-        different number of fields is a bad line handled by ``on_bad_lines``
-        instead of being padded as with the other engines.
+        different number of fields is a bad line handled by ``on_bad_lines``,
+        even a shorter row that the other engines would pad.
     index_col : Hashable, Sequence of Hashable or False, optional
         Column(s) to use as row label(s), denoted either by column labels or column
         indices.  If a sequence of labels or indices is given,
@@ -2135,8 +2135,8 @@ def read_table(
 
         Note: with ``engine="pyarrow"`` the number of columns is taken from the
         first row that is read rather than from ``names``, so a row with a
-        different number of fields is a bad line handled by ``on_bad_lines``
-        instead of being padded as with the other engines.
+        different number of fields is a bad line handled by ``on_bad_lines``,
+        even a shorter row that the other engines would pad.
     index_col : Hashable, Sequence of Hashable or False, optional
         Column(s) to use as row label(s), denoted either by column labels or column
         indices.  If a sequence of labels or indices is given,

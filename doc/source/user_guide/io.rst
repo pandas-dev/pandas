@@ -1543,8 +1543,9 @@ row as a bad line, so rows cannot be padded. Reading a file with ragged rows
 -- for example a file whose first row is a short preamble while the data rows
 are wider -- therefore raises a ``ParserError`` when ``on_bad_lines='error'``,
 and a ``ParserError`` about the number of columns after skipping every
-mismatching row when ``on_bad_lines='skip'`` or ``on_bad_lines='warn'``. Use
-``engine='c'`` or ``engine='python'`` for such files (`GH#71034
+mismatching row when ``on_bad_lines='skip'`` or ``on_bad_lines='warn'``. Such
+rows cannot be read with any engine, because the ``c`` and ``python`` engines
+also reject a row that is wider than the expected width (`GH#71034
 <https://github.com/pandas-dev/pandas/issues/71034>`__).
 
 .. _io.csv.parallel:

@@ -972,7 +972,7 @@ def test_short_single_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ParserError: pyarrow takes the width from the first row, GH#71034
+@xfail_pyarrow  # ParserError: fewer columns read than names, GH#71034
 def test_short_multi_line(all_parsers):
     # GH 47566
     parser = all_parsers
