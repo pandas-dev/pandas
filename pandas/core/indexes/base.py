@@ -3843,7 +3843,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._engine.get_loc(casted_key)
         except KeyError as err:
             if isinstance(casted_key, slice) or (
-                isinstance(casted_key, abc.Iterable)
+                is_list_like(casted_key)
                 and any(isinstance(x, slice) for x in casted_key)
             ):
                 raise InvalidIndexError(key) from err

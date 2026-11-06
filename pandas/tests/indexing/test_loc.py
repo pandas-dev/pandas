@@ -282,6 +282,39 @@ class TestLoc:
         tm.assert_frame_equal(df, expected)
 
 
+class _IterableScalar:
+    """Zero-dimensional hashable object whose ``__iter__`` always raises."""
+
+    ndim = 0
+
+    def __init__(self, value) -> None:
+        self.value = value
+
+    def __iter__(self):
+        raise TypeError("scalar is not iterable")
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, _IterableScalar) and self.value == other.value
+
+
+class TestLocIterableScalarKey:
+    # GH#71835
+    def test_loc_getitem_missing_iterable_scalar_key_raises_keyerror(self):
+        df = pd.DataFrame({"A": [0, 1]}, index=pd.Index(["a", "b"]))
+        key = _IterableScalar(1.0)
+        with pytest.raises(KeyError, match="_IterableScalar"):
+            df.loc[key]
+
+    def test_loc_setitem_missing_iterable_scalar_key_expands(self):
+        df = pd.DataFrame({"A": [0, 1]}, index=pd.Index(["a", "b"]))
+        key = _IterableScalar(1.0)
+        df.loc[key] = 2
+        expected = pd.DataFrame({"A": [0, 1, 2]}, index=pd.Index(["a", "b", key]))
+        tm.assert_frame_equal(df, expected)
+
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
     def test_loc_npstr(self):
