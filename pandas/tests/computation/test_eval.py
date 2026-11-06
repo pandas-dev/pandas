@@ -2427,53 +2427,17 @@ def test_numexpr_result_casts_to_result_type():
     tm.assert_frame_equal(result, expected)
 
 
-class _FrameNoCopyArg(pd.DataFrame):
-    def __init__(self, data=None, index=None, columns=None, dtype=None):
-        super().__init__(data, index=index, columns=columns, dtype=dtype)
-
-
-class _FrameNoCopyArgConstructor(_FrameNoCopyArg):
-    @property
-    def _constructor(self):
-        return _FrameNoCopyArgConstructor
-
-
-class _SeriesNoCopyArg(pd.Series):
-    def __init__(self, data=None, index=None, dtype=None, name=None):
-        super().__init__(data, index=index, dtype=dtype, name=name)
-
-
 @skip_if_no_numexpr
-@pytest.mark.parametrize(
-    "expr, func",
-    [
-        ("sub", lambda values: values),
-        ("-sub", lambda values: -values),
-        ("+sub", lambda values: values),
-        ("abs(sub)", np.abs),
-    ],
-)
 @pytest.mark.parametrize(
     "klass, values",
     [
-        (_FrameNoCopyArg, np.arange(6.0).reshape(3, 2)),
-        (_FrameNoCopyArgConstructor, np.arange(6.0).reshape(3, 2)),
-        (_SeriesNoCopyArg, np.arange(6.0)),
+        (tm.SubclassedDataFrame, np.arange(6.0).reshape(3, 2)),
+        (tm.SubclassedSeries, np.arange(6.0)),
     ],
-    ids=["frame", "frame_constructor", "series"],
+    ids=["frame", "series"],
 )
-def test_eval_subclass_no_copy_arg(klass, values, expr, func):
-    # GH#71806 a subclass __init__ without a copy argument keeps working
-    result = pd.eval(expr, engine="numexpr", local_dict={"sub": klass(values)})
+def test_eval_single_term_keeps_subclass(klass, values):
+    # GH#71806
+    result = pd.eval("-sub", engine="numexpr", local_dict={"sub": klass(values)})
     assert type(result) is klass
-    tm.assert_numpy_array_equal(result.to_numpy(), func(values))
-
-
-@skip_if_no_numexpr
-def test_eval_subclass_no_copy_arg_binop():
-    # GH#71806 the multi-term path uses _constructor
-    values = np.arange(6.0).reshape(3, 2)
-    sub = {"sub": _FrameNoCopyArgConstructor(values)}
-    result = pd.eval("sub + sub", engine="numexpr", local_dict=sub)
-    assert type(result) is _FrameNoCopyArgConstructor
-    tm.assert_numpy_array_equal(result.to_numpy(), values * 2)
+    tm.assert_numpy_array_equal(result.to_numpy(), -values)

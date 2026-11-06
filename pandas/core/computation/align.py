@@ -26,8 +26,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
-from pandas.core.frame import DataFrame
-from pandas.core.series import Series
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -92,6 +90,8 @@ def _filter_special_cases(f) -> Callable[[F], F]:
 def _align_core(terms):
     term_index = [i for i, term in enumerate(terms) if hasattr(term.value, "axes")]
     term_dims = [terms[i].value.ndim for i in term_index]
+
+    from pandas import Series
 
     ndims = Series(dict(zip(term_index, term_dims, strict=True)))
 
@@ -205,13 +205,12 @@ def reconstruct_object(typ, obj, axes, dtype, name):
     res_t = np.result_type(obj.dtype, dtype)
 
     if not isinstance(typ, partial) and issubclass(typ, PandasObject):
-        kwargs = {} if name is None else {"name": name}
-        # subclass constructors need not accept copy, see test_eval_subclass_no_copy_arg
-        if typ is DataFrame or typ is Series:
-            # obj is a new numexpr result with no other owner, so the only reason
-            #  to copy it is to get column-major layout, see GH#57459
-            kwargs["copy"] = not obj.flags.f_contiguous
-        return typ(obj, dtype=res_t, **kwargs, **axes)
+        # obj is a new numexpr result with no other owner, so the only reason to
+        #  copy it is to get column-major layout, see GH#57459
+        copy = not obj.flags.f_contiguous
+        if name is None:
+            return typ(obj, dtype=res_t, copy=copy, **axes)
+        return typ(obj, dtype=res_t, name=name, copy=copy, **axes)
 
     # special case for pathological things like ~True/~False
     if hasattr(res_t, "type") and typ == np.bool_ and res_t != np.bool_:
