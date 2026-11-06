@@ -1571,6 +1571,46 @@ def test_select_iterator_negative_start(temp_hdfstore, iter_kwargs):
     tm.assert_frame_equal(result, df.iloc[-5:])
 
 
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 2}, {"iterator": True}])
+@pytest.mark.parametrize(
+    "where, start, stop, expected",
+    [
+        ("A>3", 10, 15, [10, 11, 12, 13, 14]),
+        ("A>12", 10, 15, [13, 14]),
+        ("A>3", 2, 6, [4, 5]),
+        ("A>3", -5, None, [15, 16, 17, 18, 19]),
+        ("A>3", None, 6, [4, 5]),
+    ],
+)
+def test_select_iterator_where_with_start_stop(
+    temp_hdfstore, iter_kwargs, where, start, stop, expected
+):
+    # GH#71278 start/stop are row numbers in the table, but the iterator applied
+    # them as positions in the list of rows matching where
+    df = pd.DataFrame({"A": np.arange(20)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    kwargs = {"where": where, "start": start, "stop": stop}
+    result = pd.concat(list(temp_hdfstore.select("df", **kwargs, **iter_kwargs)))
+    tm.assert_frame_equal(result, temp_hdfstore.select("df", **kwargs))
+    assert result["A"].tolist() == expected
+
+
+def test_select_as_multiple_iterator_where_with_start_stop(temp_hdfstore):
+    # GH#71278
+    df1 = pd.DataFrame({"A": np.arange(20)})
+    df2 = pd.DataFrame({"B": np.arange(20)})
+    temp_hdfstore.append("df1", df1, data_columns=True)
+    temp_hdfstore.append("df2", df2)
+
+    kwargs = {"where": "A>3", "selector": "df1", "start": 10, "stop": 15}
+    chunks = temp_hdfstore.select_as_multiple(["df1", "df2"], chunksize=2, **kwargs)
+    result = pd.concat(list(chunks))
+    expected = temp_hdfstore.select_as_multiple(["df1", "df2"], **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert result["A"].tolist() == [10, 11, 12, 13, 14]
+
+
 @pytest.mark.parametrize(
     "read",
     [
