@@ -2850,25 +2850,40 @@ def test_ts_plot_tz_aware_off_grid_onto_regular(freq):
     tm.assert_numpy_array_equal(result, expected.astype(np.float64))
 
 
-@pytest.mark.parametrize("kind", ["line", "scatter"])
-def test_plot_tz_aware_values_with_nat(kind):
+@pytest.mark.parametrize("arrow", [False, True])
+@pytest.mark.parametrize("kind", ["line_y", "line_x", "scatter"])
+def test_plot_tz_aware_values_with_nat(kind, arrow):
     # GH#64613 regression: NaT in tz-aware values made the converter raise
     values = pd.Series(date_range("2020-01-01 05:00", periods=3, tz="US/Eastern"))
     values[1] = pd.NaT
+    tz = values.dt.tz
+    if arrow:
+        pa = pytest.importorskip("pyarrow")
+        values = values.astype(pd.ArrowDtype(pa.timestamp("us", tz="US/Eastern")))
     df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "tz": values})
     df["naive"] = values.dt.tz_convert(None)
 
     _, (ax1, ax2) = mpl.pyplot.subplots(2)
-    if kind == "line":
+    if kind == "line_y":
         df.plot(x="a", y="tz", ax=ax1)
         df.plot(x="a", y="naive", ax=ax2)
         result = ax1.get_lines()[0].get_ydata(orig=False)
         expected = ax2.get_lines()[0].get_ydata(orig=False)
+        axis = ax1.yaxis
+    elif kind == "line_x":
+        df.plot(x="tz", y="a", ax=ax1)
+        df.plot(x="naive", y="a", ax=ax2)
+        result = ax1.get_lines()[0].get_xdata(orig=False)
+        expected = ax2.get_lines()[0].get_xdata(orig=False)
+        axis = ax1.xaxis
     else:
         df.plot.scatter(x="tz", y="a", ax=ax1)
         df.plot.scatter(x="naive", y="a", ax=ax2)
         result = ax1.collections[0].get_offsets()
         expected = ax2.collections[0].get_offsets()
+        axis = ax1.xaxis
     tm.assert_numpy_array_equal(
         np.ma.filled(result, np.nan), np.ma.filled(expected, np.nan)
     )
+    # the tick labels still use the column's timezone
+    assert axis.units == tz
