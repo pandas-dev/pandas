@@ -26,11 +26,6 @@ objects.
    api.extensions.ExtensionArray
    arrays.NumpyExtensionArray
 
-.. autosummary::
-   :toctree: api/
-
-   api.extensions.ExtensionDtype.empty
-
 .. We need this autosummary so that methods and attributes are generated.
 .. Separate block, since they aren't classes.
 
