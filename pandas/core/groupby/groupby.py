@@ -1794,7 +1794,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             DataFrame or Series of boolean values, where a value is True if any element
-            is True within its respective group, False otherwise.
+            is True within its respective group, False otherwise. Individual scalar
+            values may be a Python ``bool`` or a ``numpy.bool_`` depending on the
+            underlying dtype.
 
         See Also
         --------
@@ -1857,7 +1859,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             DataFrame or Series of boolean values, where a value is True if all elements
-            are True within its respective group, False otherwise.
+            are True within its respective group, False otherwise. Individual scalar
+            values may be a Python ``bool`` or a ``numpy.bool_`` depending on the
+            underlying dtype.
 
         See Also
         --------
