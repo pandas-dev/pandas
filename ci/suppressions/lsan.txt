@@ -1,0 +1,6 @@
+# Matched against function names in the leak's allocation stack.
+# https://github.com/google/sanitizers/wiki/AddressSanitizerLeakSanitizer#suppressions
+
+# CPython: a float from os.stat() is not freed at interpreter exit. numpy
+# suppresses the same allocation as initialize_static_globals.
+leak:fill_time

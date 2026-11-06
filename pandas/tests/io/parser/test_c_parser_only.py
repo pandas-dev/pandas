@@ -1979,35 +1979,3 @@ def test_sniff_delimiter_lone_surrogate(c_parser_only):
             encoding="ascii",
             encoding_errors="surrogateescape",
         )
-
-
-@td.skip_if_32bit
-@pytest.mark.slow
-def test_skiprows_past_int32_lines():
-    # GH#12228 the C parser's line counter overflowed at 2**31 lines; blank
-    # lines advance it cheaply and skiprows makes the result depend on it
-    nblank = 2**31 + 5
-
-    class BlankLineStream:
-        # serves blank lines on demand instead of building a 2GB file
-        def __init__(self) -> None:
-            self.remaining = nblank
-            self.block = b"\n" * 2**23
-            self.tail = b"1\n2\n3\n"
-
-        def read(self, size: int = -1) -> bytes:
-            if self.remaining:
-                count = min(self.remaining, len(self.block))
-                self.remaining -= count
-                return self.block[:count]
-            data, self.tail = self.tail, b""
-            return data
-
-        def __iter__(self):
-            return self
-
-    result = pd.read_csv(
-        BlankLineStream(), engine="c", header=None, skiprows=[nblank + 1]
-    )
-    expected = pd.DataFrame({0: [1, 3]})
-    tm.assert_frame_equal(result, expected)

@@ -7796,7 +7796,12 @@ deprec_to_valid_alias = {
 }
 
 
-def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
+def raise_invalid_freq(freq: object, extra_message: str | None = None) -> None:
+    if not isinstance(freq, str):
+        raise TypeError(
+            "freq must be a str, datetime.timedelta or BaseOffset, "
+            f"got {type(freq).__name__}"
+        )
     msg = f"Invalid frequency: {freq}."
     if extra_message is not None:
         msg += f" {extra_message}"
@@ -7920,6 +7925,8 @@ cpdef to_offset(freq, bint is_period=False):
     ------
     ValueError
         If freq is an invalid frequency
+    TypeError
+        If freq is not a str, datetime.timedelta, BaseOffset or None
 
     See Also
     --------
