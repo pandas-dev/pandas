@@ -9,7 +9,6 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 from __future__ import annotations
 
 import collections
-import contextlib
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -691,22 +690,9 @@ class BaseGrouper:
         keys = self.result_index
         yield from zip(keys, splitter, strict=True)
 
-    _splitter_cache: list[DataSplitter[Any]] | None = None
-
-    @final
-    @contextlib.contextmanager
-    def _share_splitter(self) -> Generator[None]:
-        """
-        Reuse one splitter for repeated _get_splitter calls on the same object.
-
-        Its sorted copy is dropped on exit. This resets to None rather than restoring
-        the previous value so that overlapping calls in threads cannot leave it on.
-        """
-        self._splitter_cache = []
-        try:
-            yield
-        finally:
-            self._splitter_cache = None
+    @cache_readonly
+    def _splitter_cache(self) -> dict[Hashable, tuple[Hashable, DataSplitter[Any]]]:
+        return {}
 
     @final
     def _get_splitter(self, data: NDFrame) -> DataSplitter[Any]:
@@ -714,25 +700,57 @@ class BaseGrouper:
         Returns
         -------
         Generator yielding subsetted objects
-        """
-        cache = self._splitter_cache
-        if cache and (cached := cache[0]).data is data:
-            return cached
 
+        Notes
+        -----
+        Splitters are cached so that repeated calls share one sorted copy of the
+        data, which then lives as long as this grouper, see GH#51077. Each holds a
+        view of its data, so Copy-on-Write gives a written-to source new arrays, which
+        _values_key sees as a miss. Writes that bypass Copy-on-Write are not noticed.
+        """
         if isinstance(data, Series):
             klass: type[DataSplitter[Any]] = SeriesSplitter
         else:
             # i.e. DataFrame
             klass = FrameSplitter
 
+        sort_idx = self.result_ilocs
+        if (
+            type(data) is not klass._sorted_cls
+            or data.attrs
+            or not data._flags._allows_duplicate_labels
+            or lib.is_range_indexer(sort_idx, len(data))
+        ):
+            # Metadata is not part of the key; already-sorted data needs no copy.
+            return klass(
+                data,
+                self.ngroups,
+                sorted_ids=self._sorted_ids,
+                sort_idx=sort_idx,
+            )
+
+        # One slot per selection, so entries made stale by a write get replaced.
+        cache = self._splitter_cache
+        slot = (klass, data.name if isinstance(data, Series) else tuple(data.columns))
+        key = _values_key(data)
+        cached = cache.get(slot)
+        if (
+            cached is not None
+            and cached[0] == key
+            and all(
+                left.identical(right)
+                for left, right in zip(cached[1].data.axes, data.axes, strict=True)
+            )
+        ):
+            return cached[1]
+
         splitter = klass(
-            data,
+            data.copy(deep=False),
             self.ngroups,
             sorted_ids=self._sorted_ids,
-            sort_idx=self.result_ilocs,
+            sort_idx=sort_idx,
         )
-        if cache is not None:
-            cache[:] = [splitter]
+        cache[slot] = (key, splitter)
         return splitter
 
     @cache_readonly
@@ -1471,6 +1489,25 @@ def _is_indexed_like(obj, axes) -> bool:
 
 # ----------------------------------------------------------------------
 # Splitting / application
+
+
+def _values_key(data: NDFrame) -> Hashable:
+    """
+    Hashable identifier for the arrays backing data, shared by views of them.
+
+    Only meaningful while something holds a reference to those arrays.
+    """
+    blocks = []
+    for blk in data._mgr.blocks:
+        values = getattr(blk.values, "_ndarray", blk.values)
+        layout = None
+        if isinstance(values, np.ndarray):
+            # columns from one 2D block share refs
+            address = values.__array_interface__["data"][0]
+            layout = (address, values.shape, values.strides)
+        locs = blk.mgr_locs.as_array.tobytes() if data.ndim == 2 else None
+        blocks.append((id(blk.refs), layout, locs))
+    return tuple(blocks)
 
 
 class DataSplitter(Generic[NDFrameT]):

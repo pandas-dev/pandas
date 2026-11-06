@@ -341,6 +341,14 @@ class AggMultipleUDFs:
     def time_agg_multiple_udfs(self):
         self.gb.agg([lambda x: x.to_numpy().sum(), lambda x: x.to_numpy().max()])
 
+    def time_repeated_agg(self):
+        self.gb.agg(lambda x: x.to_numpy().sum())
+        self.gb.agg(lambda x: x.to_numpy().max())
+
+    def time_repeated_apply(self):
+        self.gb.apply(lambda x: x.to_numpy().sum())
+        self.gb.apply(lambda x: x.to_numpy().max())
+
 
 class AggFunctions:
     def setup_cache(self):

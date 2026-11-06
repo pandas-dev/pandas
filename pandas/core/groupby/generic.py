@@ -551,9 +551,7 @@ class SeriesGroupBy(GroupBy[Series]):
             arg = zip(columns, arg, strict=True)
 
         results: dict[base.OutputKey, DataFrame | Series] = {}
-        # Share one sorted copy of the data between UDFs, GH#51077. UDFs mutating
-        #  their group or the source can see different data than separate agg calls.
-        with com.temp_setattr(self, "as_index", True), self._grouper._share_splitter():
+        with com.temp_setattr(self, "as_index", True):
             # Combine results using the index, need to adjust index after
             # if as_index=False (GH#50724)
             for idx, (name, func) in enumerate(arg):
