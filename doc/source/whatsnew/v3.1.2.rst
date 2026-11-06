@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed a regression in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ConversionError`` when plotting timezone-aware datetime data containing missing values (:issue:`71879`)
+- Fixed a regression in :meth:`Timestamp.strftime` raising ``AttributeError`` instead of ``TypeError`` when ``format`` is not a string (:issue:`71914`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_312.bugs:
