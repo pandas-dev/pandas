@@ -216,18 +216,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return cls(values, mask)
 
-    def _is_na_scalar(self, value) -> bool:
-        # under future.distinguish_nan_and_na a float NaN is a value, not NA
-        return is_valid_na_for_dtype(value, self.dtype) and not (
-            lib.is_float(value) and not is_nan_na()
-        )
-
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if isna(values).all():
             # NA-ness depends only on type, so check one value per type;
             #  others (e.g. NaT) go through inference below, GH#70233
             by_type = {type(x): x for x in values}
-            if all(self._is_na_scalar(x) for x in by_type.values()):
+            if all(is_valid_na_for_dtype(x, self.dtype) for x in by_type.values()):
                 return type(self)._from_sequence(values, dtype=self.dtype)
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)
@@ -381,7 +375,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Fast path: single-pass Cython for scalar fill values. GH#42147
         # Skip when fill value is itself NA — filling NAs with NA is a no-op,
         # and the Cython path would incorrectly clear mask bits.
-        if lib.is_scalar(value) and not self._is_na_scalar(value):
+        if lib.is_scalar(value) and not is_valid_na_for_dtype(value, self.dtype):
             if not mask.any():
                 return self.copy() if copy else self[:]
             try:
@@ -528,7 +522,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_scalar(value):
-            if self._is_na_scalar(value):
+            if is_valid_na_for_dtype(value, self.dtype):
                 self._mask[key] = True
             else:
                 value = self._validate_setitem_value(value)
