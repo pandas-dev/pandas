@@ -181,7 +181,6 @@ Performance improvements
 - Performance improvement in :func:`infer_freq` and :meth:`DatetimeIndex.union` for values with no regular frequency (:issue:`70884`)
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with PyArrow-backed string data (:issue:`60861`)
-- Performance improvement in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` with a list of multiple user-defined functions (:issue:`51077`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
@@ -192,6 +191,7 @@ Performance improvements
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
 - Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
 - Reduced ``import pandas`` time on Python 3.15+ by deferring rarely used subsystems with :pep:`810` lazy imports (:issue:`65885`)
+- Performance improvement in repeated :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` operations with user-defined functions on the same object, e.g. :meth:`.DataFrameGroupBy.agg` with a list of functions (:issue:`51077`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
 - Reduced memory usage of :meth:`Series.duplicated`, non-unique :meth:`Index.duplicated`, and the corresponding ``drop_duplicates`` methods with ``keep="first"`` or ``keep="last"`` on data with many distinct values (:issue:`39799`)
 
