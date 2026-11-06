@@ -86,6 +86,7 @@ from pandas.core.arrays.datetimes import (
     objects_to_datetime64,
     tz_to_dtype,
 )
+from pandas.core.col import Expression
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -843,9 +844,24 @@ def to_datetime(
 ) -> DatetimeIndex: ...
 
 
+@overload
+def to_datetime(
+    arg: Expression,
+    errors: DateTimeErrorChoices = ...,
+    dayfirst: bool = ...,
+    yearfirst: bool = ...,
+    utc: bool = ...,
+    format: str | None = ...,
+    exact: bool = ...,
+    unit: str | None = ...,
+    origin=...,
+    cache: bool = ...,
+) -> Expression: ...
+
+
 @set_module("pandas")
 def to_datetime(
-    arg: DatetimeScalarOrArrayConvertible | DictConvertible,
+    arg: DatetimeScalarOrArrayConvertible | DictConvertible | Expression,
     errors: DateTimeErrorChoices = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
@@ -855,7 +871,7 @@ def to_datetime(
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
-) -> DatetimeIndex | Series | DatetimeScalar | NaTType:
+) -> DatetimeIndex | Series | DatetimeScalar | NaTType | Expression:
     """
     Convert argument to datetime.
 
@@ -1196,6 +1212,20 @@ def to_datetime(
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[us, UTC]', freq=None)
     """
+    if isinstance(arg, Expression):
+        return arg._call_with_func(
+            to_datetime,
+            arg=arg,
+            errors=errors,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            utc=utc,
+            format=format,
+            exact=exact,
+            unit=unit,
+            origin=origin,
+            cache=cache,
+        )
     if errors not in ("raise", "coerce"):
         raise ValueError("errors must be one of 'raise', or 'coerce'.")
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
