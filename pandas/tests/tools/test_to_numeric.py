@@ -1121,10 +1121,32 @@ def test_to_numeric_masked_float_nan_sync(dtype_backend):
 
 
 @pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
-def test_to_numeric_arrow_with_dtype_backend(dtype_backend):
+def test_to_numeric_downcast_with_nan(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    ser = pd.Series([1.0, np.nan])
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend, downcast="integer")
+    expected_dtype = "Int8" if dtype_backend == "numpy_nullable" else "int8[pyarrow]"
+    expected = pd.Series([1, pd.NA], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+@pytest.mark.parametrize(
+    "data, expected_vals, expected_type",
+    [
+        (["1", "x", None], [1, pd.NA, pd.NA], "int64[pyarrow]"),
+        (["1", "2", "x", None], [1, 2, pd.NA, pd.NA], "int64[pyarrow]"),
+        (["x", "y", None], [pd.NA, pd.NA, pd.NA], "double[pyarrow]"),
+    ],
+)
+def test_to_numeric_arrow_with_dtype_backend(
+    dtype_backend, data, expected_vals, expected_type
+):
     # GH 63732
     pa = pytest.importorskip("pyarrow")
-    ser = pd.Series(["1", "x", None], dtype=pd.ArrowDtype(pa.string()))
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
     result = pd.to_numeric(ser, errors="coerce", dtype_backend=dtype_backend)
-    expected = pd.Series([1, pd.NA, pd.NA], dtype="int64[pyarrow]")
+    expected = pd.Series(expected_vals, dtype=expected_type)
     tm.assert_series_equal(result, expected)
