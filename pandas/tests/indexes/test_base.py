@@ -1942,6 +1942,10 @@ def test_insert_nan_arrow_non_float_distinguish_nan_and_na(pa_type, value):
     assert result.dtype == object
     assert len(result) == 2
     assert np.isnan(result[0])
+    if isinstance(value, list):
+        assert list(result[1]) == value
+    else:
+        assert result[1] == value
 
 
 @td.skip_if_no("pyarrow")

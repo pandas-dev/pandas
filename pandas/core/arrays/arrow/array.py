@@ -2048,7 +2048,7 @@ class ArrowExtensionArray(
             and not _is_temporal_pa_type(self._pa_array.type)
         ):
             # _from_sequence would store e.g. "nan" or True; raise like setitem
-            #  so Index.insert upcasts. Temporal types store NA, like NaT.
+            #  so Index.insert upcasts. timestamp/duration store NA, like NaT.
             self._validate_setitem_value(item)
         return super().insert(loc, item)
 
