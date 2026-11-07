@@ -416,28 +416,35 @@ Specify the version and branch to release as arguments.
 
 .. note::
 
-   After releasing the first release candidate of a new version:
+   After releasing the first release candidate of a new version
+   (or whenever branching, if that happens before the RC):
 
    - Create a maintenance branch. For example:
 
-   .. code-block:: bash
+     .. code-block:: bash
 
-      git checkout main
-      git checkout -b 3.1.x
-      git push upstream 3.1.x
+        git checkout main
+        git checkout -b 3.1.x
+        git push upstream 3.1.x
 
    - Start the development of the next version on ``main``
      by pushing an empty commit and a ``dev0`` tag, e.g. for 3.2.0
 
-   .. code-block:: bash
+     .. code-block:: bash
 
-      git checkout main
-      git commit --allow-empty -m "Start 3.2.0"
-      git tag -a v3.2.0.dev0 -m "DEV: Start 3.2.0"
-      git push upstream main --follow-tags
+        git checkout main
+        git commit --allow-empty -m "DEV: Start 3.2.0 development"
+        git tag -a v3.2.0.dev0 -m "DEV: Start 3.2.0 development"
+        git push upstream main --follow-tags
 
    - Update the GitHub milestone for the final release of the RC to backport
      to the maintenance branch (e.g., 3.1.x).
+
+   - Create a new whatsnew file for the next feature release (e.g. for 3.2.0, when branching 3.1.x).
+
+   - Enable CI on the maintenance branch (see https://github.com/pandas-dev/pandas/pull/70030 as an example).
+
+   - Update ``web/pandas/versions.json`` to include the RC version in the dropdown (see https://github.com/pandas-dev/pandas/pull/69983 as an example).
 
 The release automation will then:
 
@@ -446,43 +453,29 @@ The release automation will then:
 
 - Create a draft `GitHub release <https://github.com/pandas-dev/pandas/releases>`_ with the source distribution.
 
-   .. note::
+  .. note::
 
       By default, the new Github release will be marked as the latest release.
       For patch releases for an older version, unmark it as the latest release on the Github release page.
 
-- Create an `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_ from the new Github release.
+- Create an `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_ from the new PyPI release.
   This PR will need to be merged manually once its CI is green in order to generate conda-forge packages.
 
-   .. tip::
+  .. tip::
 
       The automated conda-forge PR usually takes a while to generate. You can manually open
       an `issue <https://github.com/conda-forge/pandas-feedstock/issues>`_ titled ``@conda-forge-admin, please update version``
       to manually trigger the conda-forge PR.
 
-Then finally, verify that the upload to PyPI was successful, review the release
-notes of the GitHub release, and then publish the GitHub release.
+Then **finally**, verify that the upload to PyPI was successful, review the release
+notes of the GitHub release, and then **publish the GitHub release**.
 
 Post-Release
 ````````````
 
-1. Update symlinks to stable documentation by logging in to our web server, and
-   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<X.Y>``
-   for major and minor releases, or ``version/<X.Y>`` to ``version/<patch>`` for
-   patch releases. The exact instructions are (replace the example version numbers by
-   the appropriate ones for the version you are releasing):
-
-   - Log in to the server and use the correct user.
-   - ``cd /var/www/html/pandas-docs/``
-   - For a major or minor release (assuming the ``/version/2.1.0/`` docs have been uploaded to the server):
-
-     -  Create a new X.Y symlink to X.Y.Z: ``cd version; ln -sfn 2.1.0 2.1``
-     -  Update stable symlink to point to X.Y: ``ln -sfn version/2.1 stable``
-
-   - For a patch release (assuming the ``/version/2.1.3/`` docs have been uploaded to the server):
-
-     - Update the X.Y symlink to the new X.Y.Z patch version: ``cd version; ln -sfn 2.1.3 2.1``
-     - (the stable symlink should already be pointing to the correct X.Y version)
+1. Verify that the docs have been correctly built and deployed (https://github.com/pandas-dev/pandas-dev.github.io/,
+   there should be a commit "Update site for pandas X.X"), and that the stable documentation
+   points to the correct version.
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
