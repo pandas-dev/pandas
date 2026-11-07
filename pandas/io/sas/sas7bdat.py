@@ -225,13 +225,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
             sas_datetimes._values, unit="d"
         )
         # A date-formatted column is a float64 day count that SAS does not force
-        # whole, so scale the fraction in rather than truncating it with an M8[D]
-        # cast. Round to seconds here instead of scaling from "D" inside
-        # cast_from_unit_vectorized, whose rounding precision is a power of ten:
-        # 1e-4 of a day, coarser than the seconds this returns.
-        secs = cast_from_unit_vectorized(
-            np.round(corrected * 86400.0), unit="s", out_unit="s"
-        )
+        # whole, so scale the fraction in (rounded to the nearest second) rather
+        # than truncating it with an M8[D] cast.
+        secs = cast_from_unit_vectorized(corrected, unit="D", out_unit="s")
         dt64s = secs.view("M8[s]") + td
         return pd.Series(dt64s, index=sas_datetimes.index, copy=False)
 
