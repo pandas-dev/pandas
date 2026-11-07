@@ -174,3 +174,58 @@ def test_tooltip_render_as_title_with_hidden_index_level():
     assert 'class="data row2 col0" >6</td>' in result
     assert 'class="data row2 col1" >7</td>' in result
     assert 'class="data row2 col2" >8</td>' in result
+
+
+def _titles(html):
+    return [line.strip() for line in html.splitlines() if "title=" in line]
+
+
+@pytest.fixture
+def hide_df():
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
+    tt = pd.DataFrame({"A": ["ta", "tb", ""], "B": ["", "", ""]}, index=df.index)
+    return df, tt
+
+
+@pytest.mark.parametrize(
+    "hidden, expected",
+    [
+        # the title of the hidden row used to land on the next visible row
+        (
+            ["a"],
+            ['<td id="T__row1_col0" class="data row1 col0"  title="tb">2</td>'],
+        ),
+        # used to raise IndexError
+        (
+            ["c"],
+            [
+                '<td id="T__row0_col0" class="data row0 col0"  title="ta">1</td>',
+                '<td id="T__row1_col0" class="data row1 col0"  title="tb">2</td>',
+            ],
+        ),
+    ],
+)
+def test_tooltip_title_hidden_row(hide_df, hidden, expected):
+    # GH#71281
+    df, tt = hide_df
+    styler = Styler(df, uuid_len=0).hide(hidden)
+    result = styler.set_tooltips(tt, as_title_attribute=True).to_html()
+    assert _titles(result) == expected
+
+
+@pytest.mark.parametrize("kwargs", [{"max_rows": 2}, {"max_columns": 1}])
+def test_tooltip_title_trimmed(kwargs):
+    # GH#71281 used to raise IndexError
+    df = pd.DataFrame(np.arange(15).reshape(5, 3), columns=["A", "B", "C"])
+    tt = df.astype(str)
+    styler = Styler(df, uuid_len=0).set_tooltips(tt, as_title_attribute=True)
+    result = styler.to_html(**kwargs)
+    n_rows = kwargs.get("max_rows", 5)
+    n_cols = kwargs.get("max_columns", 3)
+    expected = [
+        f'<td id="T__row{i}_col{j}" class="data row{i} col{j}"  '
+        f'title="{tt.iloc[i, j]}">{df.iloc[i, j]}</td>'
+        for i in range(n_rows)
+        for j in range(n_cols)
+    ]
+    assert _titles(result) == expected
