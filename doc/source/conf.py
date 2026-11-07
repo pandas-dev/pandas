@@ -449,7 +449,8 @@ try_examples_global_warning_text = (
     "may be unavailable. Run the cells from top to bottom, starting with "
     "the imports."
 )
-try_examples_preamble = "import pandas as pd\nimport numpy as np"
+# tzdata is imported so the kernel loads it; pandas needs it for time zones
+try_examples_preamble = "import tzdata\nimport pandas as pd\nimport numpy as np"
 # Keep .ipynb rendering with nbsphinx: jupyterlite-sphinx would otherwise bind
 # the ipynb suffix and break nbsphinx pages (e.g. style.ipynb labels)
 jupyterlite_bind_ipynb_suffix = False
@@ -973,18 +974,21 @@ def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
         del lines[:]
 
 
-# Examples that need local files or I/O backends unavailable in the browser.
-# pandas.io also covers Styler, whose jinja2 import is not loaded by Pyodide.
+# Examples that need local files or dependencies the browser kernel doesn't load:
+# I/O backends, matplotlib and jinja2 (imported lazily by pandas), tabulate and
+# xarray, and pyarrow (pandas records its availability at import).
 _TRY_EXAMPLES_SKIP = re.compile(
-    r"^pandas\.(read_|HDFStore|Excel(Writer|File)|io\.)"
+    r"^pandas\.(read_|HDFStore|Excel(Writer|File)|io\.|plotting\.)"
     r"|\.to_(csv|excel|parquet|sql|hdf|pickle|feather|orc|stata|clipboard|xml"
-    r"|iceberg)$"
+    r"|iceberg|latex|markdown|xarray)$"
+    r"|\.plot(\.|$)|\.(hist|boxplot|style|_explode)$"
+    r"|Arrow|\.(list|struct)\."
 )
 
 
 def disable_try_examples(app, what, name, obj, options, lines) -> None:
     """
-    Opt I/O API pages out of the "Try it in your browser!" button.
+    Opt pages out of the "Try it in your browser!" button.
 
     jupyterlite-sphinx skips an Examples section whose first line is
     ``.. disable_try_examples``. Doing this at build time rather than with
