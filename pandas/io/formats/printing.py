@@ -249,6 +249,11 @@ def pprint_thing(
         # GH#58285 put this check before Mapping check for performance
         result = _as_escaped_string(thing, escape_chars, default_escapes)
         if quote_strings and isinstance(thing, str):
+            if not result.isprintable():
+                # escape e.g. non-breaking spaces as the builtin repr does, GH#14579
+                result = "".join(
+                    ch if ch.isprintable() else repr(ch)[1:-1] for ch in result
+                )
             result = f"'{result}'"
     elif hasattr(thing, "__next__"):
         return str(thing)
