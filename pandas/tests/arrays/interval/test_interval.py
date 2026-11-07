@@ -208,7 +208,15 @@ class TestSetitem:
             arr[0] = np.nan
             assert arr.isna().tolist() == [True, False]
 
-    @pytest.mark.parametrize("dtype", ["Float64", "Int64"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            "Int64",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+            pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
     @pytest.mark.parametrize(
         "value, expected",
         [([np.nan], [True, False]), ([pd.Interval(0, 1), None], [False, True])],
