@@ -175,7 +175,7 @@ the output more difficult to navigate. For example (limiting the range to 5):
 
    In [1]: pd.MultiIndex.from_product([['a', 'abc'], range(5)])
    Out[1]: MultiIndex(levels=[['a', 'abc'], [0, 1, 2, 3]],
-      ...:            codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 1, 2, 3, 0, 1, 2, 3]])
+              codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 1, 2, 3, 0, 1, 2, 3]])
 
 In the new repr, all values will be shown, if the number of rows is smaller
 than :attr:`options.display.max_seq_items` (default: 100 items). Horizontally,
