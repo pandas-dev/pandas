@@ -3278,6 +3278,18 @@ class TestDataFrameConstructorWithDtypeCoercion:
             pd.Series(arr[0]).astype("i8")
 
 
+@pytest.mark.parametrize("data", [[[1], [np.nan]], {0: [1, np.nan]}])
+def test_constructor_nan_masked_dtype_distinguish_nan_and_na(data):
+    # GH#71870 list-of-lists NaN was inferred as NA, unlike dict-of-lists
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.DataFrame(data, dtype="Float64")
+        expected = pd.DataFrame({0: pd.array([1.0, np.nan], dtype="Float64")})
+        tm.assert_frame_equal(result, expected)
+
+        with pytest.raises(ValueError, match="Cannot cast NaN value to Integer"):
+            pd.DataFrame(data, dtype="Int64")
+
+
 class TestDataFrameConstructorWithDatetimeTZ:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_construction_preserves_tzaware_dtypes(self, tz):

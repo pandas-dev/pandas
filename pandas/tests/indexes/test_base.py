@@ -1904,6 +1904,25 @@ def test_comparison_same_object_distinguish_nan_and_na(comparison_op):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Float64", "Float64"),
+        ("Int64", "Float64"),
+        pytest.param(
+            "float64[pyarrow]", "float64[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+def test_insert_nan_distinguish_nan_and_na(dtype, expected_dtype):
+    # GH#71870 NaN was converted to NA
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = Index([1, 2], dtype=dtype).insert(0, np.nan)
+        assert result.dtype == expected_dtype
+        assert np.isnan(result[0])
+        assert result[1:].tolist() == [1.0, 2.0]
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333
