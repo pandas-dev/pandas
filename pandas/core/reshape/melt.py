@@ -685,6 +685,8 @@ def wide_to_long(
     new = df[id_vars]
 
     if len(i) == 1:
-        return new.set_index(i).join(melted)
+        # with no stub columns melted is empty and a left join would keep every row
+        how = "left" if len(melted) else "inner"
+        return new.set_index(i).join(melted, how=how)
     else:
         return new.merge(melted.reset_index(), on=i).set_index([*i, j])
