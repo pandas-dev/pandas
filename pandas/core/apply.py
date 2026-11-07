@@ -15,7 +15,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
@@ -1293,15 +1292,8 @@ class FrameApply(NDFrameApply):
             func = cast("Callable[..., Any]", self.func)
             values = self.values.T if self.axis == 0 else self.values
             res = func(values[0], *self.args, **self.kwargs)
-            first = lib.item_from_zerodim(res)
-            if lib.is_scalar(first):
-                # infer the dtype from all results, as with raw=False
-                results = [first]
-                for arr in values[1:]:
-                    res = func(arr, *self.args, **self.kwargs)
-                    results.append(lib.item_from_zerodim(res))
-                return self.obj._constructor_sliced(results, index=self.agg_axis)
-            first = np.asanyarray(res)
+            # a fixed-width str dtype would truncate later, longer str results
+            first = np.asanyarray(res, dtype=object if isinstance(res, str) else None)
             result = np.zeros_like(first, shape=(len(values), *first.shape))
             result[0, ...] = first
             for i, arr in enumerate(values[1:], start=1):
