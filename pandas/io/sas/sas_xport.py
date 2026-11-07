@@ -440,19 +440,12 @@ class XportReader(SASReader):
 
         self.filepath_or_buffer.seek(-80, 2)
         last_card_bytes = self.filepath_or_buffer.read(80)
-        last_card = np.frombuffer(last_card_bytes, dtype=np.uint64)
-
-        # 8 byte blank
-        ix = np.flatnonzero(last_card == 2314885530818453536)
-
-        if len(ix) == 0:
-            tail_pad = 0
-        else:
-            tail_pad = 8 * len(ix)
+        tail_pad = len(last_card_bytes) - len(last_card_bytes.rstrip(b" "))
 
         self.filepath_or_buffer.seek(self.record_start)
 
-        return (total_records_length - tail_pad) // self.record_length
+        records_length = total_records_length - tail_pad
+        return -(records_length // -self.record_length)
 
     def get_chunk(self, size: int | None = None) -> pd.DataFrame:
         """
