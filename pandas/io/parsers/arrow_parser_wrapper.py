@@ -601,7 +601,15 @@ class ArrowParserWrapper(ParserBase):
             # any columns from the source; re-raise as EmptyDataError so the
             # pyarrow engine matches the "c" and "python" engines.
             if "Empty CSV file" in str(err):
-                raise EmptyDataError("No columns to parse from file") from err
+                msg = "No columns to parse from file"
+                if "cannot infer number of columns" in str(err):
+                    # GH#62635 pyarrow can't tell blank input from a single line
+                    # without a trailing newline
+                    msg += (
+                        ". The 'pyarrow' engine also raises this for a single "
+                        "line without a trailing newline; use engine='c' instead."
+                    )
+                raise EmptyDataError(msg) from err
             raise ParserError(err) from err
         except TypeError as err:
             # pyarrow can only read from a binary buffer; a text-mode file

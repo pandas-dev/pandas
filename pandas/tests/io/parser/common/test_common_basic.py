@@ -972,6 +972,20 @@ def test_short_single_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_single_line_without_line_terminator(all_parsers):
+    # GH#62635
+    parser = all_parsers
+    data = "1,2,3"
+    if parser.engine == "pyarrow":
+        msg = "The 'pyarrow' engine also raises this for a single line"
+        with pytest.raises(EmptyDataError, match=msg):
+            parser.read_csv(StringIO(data), names=["a", "b", "c"])
+        return
+    result = parser.read_csv(StringIO(data), names=["a", "b", "c"])
+    expected = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
+
+
 @xfail_pyarrow  # ValueError: Length mismatch: Expected axis has 2 elements
 def test_short_multi_line(all_parsers):
     # GH 47566
