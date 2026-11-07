@@ -1356,7 +1356,7 @@ class TestDataFrameReplace:
 
     def test_replace_arbitrary_object(self):
         # GH#36522 non-scalar, non-list-like objects are valid to_replace values
-        o1, o2, o3 = object(), object(), object()
+        o1, o2, o3 = tm.TestObject(1), tm.TestObject(2), tm.TestObject(3)
         df = pd.DataFrame({"a": [o1, o2], "b": [o2, o1]})
 
         result = df.replace(to_replace={"a": o1}, value={"a": o3})
