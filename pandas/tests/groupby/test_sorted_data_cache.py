@@ -2,14 +2,18 @@
 Tests for sharing one sorted copy of the data between group-by-group operations.
 """
 
+from decimal import Decimal
 import gc
 import weakref
 
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.extension.decimal import DecimalArray
 
 
 def _frame():
@@ -131,21 +135,58 @@ def test_writable_to_numpy_not_cached(values, dtype):
     tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
 
 
-def test_writable_categorical_values_not_cached():
-    # GH#51077 sorting Series.values in a UDF must not reach later calls
-    ser = pd.Series(pd.Categorical([5, 4, 3, 2, 1, 9]))
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.Categorical([5, 4, 3, 2, 1, 9]),
+        DecimalArray([Decimal(n) for n in [5, 4, 3, 2, 1, 9]]),
+    ],
+    ids=lambda values: type(values).__name__,
+)
+def test_writable_values_not_cached(values):
+    # GH#51077 writing to Series.values in a UDF must not reach later calls
+    ser = pd.Series(values)
     keys = [1, 0, 1, 0, 1, 0]
     gb = ser.groupby(keys)
     first = lambda x: x.iloc[0]
 
-    def sort_in_place(group):
+    def write_first(group):
         arr = group.values
-        arr.sort()
-        return arr[0]
+        arr[0] = arr[-1]
+        return 0
 
-    gb.agg(sort_in_place)
+    gb.agg(write_first)
 
     assert len(gb._grouper._splitter_cache) == 0
+    tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.period_range("2000", periods=6, freq="D"),
+        pd.interval_range(0, 6),
+    ],
+    ids=lambda values: str(values.dtype),
+)
+def test_values_write_not_shared(values):
+    # GH#51077 these are cached because Series.values returns a copy; once it
+    # returns the array (Pandas4Warning), they must stop being cached
+    ser = pd.Series(values)
+    keys = [1, 0, 1, 0, 1, 0]
+    gb = ser.groupby(keys)
+    first = lambda x: x.iloc[0]
+
+    def write_first(group):
+        arr = group.values
+        arr[0] = arr[-1]
+        return 0
+
+    msg = "Series.values returning an object-dtype ndarray"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        gb.agg(write_first)
+
+    assert len(gb._grouper._splitter_cache) == 1
     tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
 
 
