@@ -160,6 +160,46 @@ def test_groupby_resample_on_non_monotonic_across_groups():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("index", [[1, 0, 3, 2], [10, 20, 30, 40], [0, 0, 1, 1]])
+def test_groupby_resample_on_non_default_index(index):
+    # GH#59350 the selected column must stay aligned with the `on` column
+    dates = date_range("2024-01-01", periods=4, freq="min")
+    df = pd.DataFrame(
+        {
+            "group": ["a", "a", "b", "b"],
+            "date": dates.take([1, 0, 3, 2]),
+            "value": [200, 100, 2000, 1000],
+        },
+        index=index,
+    )
+    exp_mi = pd.MultiIndex.from_arrays(
+        [["a", "a", "b", "b"], dates], names=["group", "date"]
+    )
+    expected = pd.Series([100, 200, 1000, 2000], index=exp_mi, name="value")
+
+    rs = df.groupby("group").resample("1min", on="date")
+    tm.assert_series_equal(rs["value"].sum(), expected)
+    tm.assert_frame_equal(rs.agg({"value": "sum"}), expected.to_frame())
+
+
+def test_groupby_resample_on_multiple_keys_with_nan():
+    # GH#59350 group keys containing NaN, with dropna=False
+    df = pd.DataFrame(
+        {
+            "g": ["a", np.nan, "a", np.nan],
+            "g2": [0, 0, 1, 0],
+            "date": date_range("2024-01-01", periods=4, freq="min").take([1, 0, 3, 2]),
+            "value": [1.0, 2.0, 3.0, 4.0],
+        },
+        index=[5, 3, 9, 1],
+    )
+    rs = df.groupby(["g", "g2"], dropna=False).resample("1min", on="date")
+    result = rs["value"].sum()
+    expected = rs.sum()["value"]
+    tm.assert_series_equal(result, expected)
+    assert result.tolist() == [1.0, 3.0, 2.0, 0.0, 4.0]
+
+
 def test_groupby_with_origin():
     # GH 31809
 
