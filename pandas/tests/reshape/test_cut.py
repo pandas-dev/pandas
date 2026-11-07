@@ -920,3 +920,49 @@ def test_cut_datetime_series_with_intervalindex_bins():
     # ("'<' not supported between int and Timestamp"), a different failure mode
     result_list = pd.cut(list(ser), pd.date_range(ser[0], ser[3]))
     tm.assert_numpy_array_equal(result_list.codes, expected_codes)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [1.7, np.nan, np.nan, 17],
+        [np.nan, 1.7, np.nan, 17],
+        [1.7, None, None, 17],
+    ],
+)
+@pytest.mark.parametrize("right", [True, False])
+@pytest.mark.parametrize("labels", [None, False])
+def test_cut_object_with_missing_values(values, right, labels):
+    # GH#31586, GH#71282
+    bins = np.array([0, 0.2, 0.4, 0.6, 0.8, np.inf])
+
+    result = pd.cut(
+        pd.Series(values, dtype=object),
+        bins,
+        right=right,
+        labels=labels,
+    )
+    expected = pd.cut(
+        pd.Series(values, dtype=float),
+        bins,
+        right=right,
+        labels=labels,
+    )
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_cut_object_large_integer_with_missing_value():
+    # GH#71282: Avoid lossy conversion of object values to float.
+    large = 2**53
+    values = pd.Series([large + 1, np.nan, large + 2], dtype=object)
+
+    result = pd.cut(
+        values,
+        [large, large + 1, large + 2],
+        labels=False,
+    )
+
+    expected = pd.Series([0.0, np.nan, 1.0])
+
+    tm.assert_series_equal(result, expected)
