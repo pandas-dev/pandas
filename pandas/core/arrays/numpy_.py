@@ -315,8 +315,14 @@ class NumpyExtensionArray(
                     # specify dtype to preserve storage/na_value
                     return type(self)(result, dtype=self.dtype)
                 except ValueError:
-                    # if validation of input fails (no strings)
-                    # -> fallback to returning raw numpy array
+                    # if validation of input fails (no strings), infer
+                    # the result dtype instead of assuming the input
+                    # dtype (GH#40800). Only 1-D results can be
+                    # inferred: _cast_pointwise_result requires a
+                    # 1-D input, so multi-dimensional results (e.g.
+                    # ufunc.outer) are returned as-is.
+                    if isinstance(result, np.ndarray) and result.ndim == 1:
+                        return self._cast_pointwise_result(result)
                     return result
             # one return value; re-box array-like results
             return type(self)(result)
