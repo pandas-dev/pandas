@@ -489,6 +489,21 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", [">i8", ">f4"])
+def test_array_inference_non_native_byteorder_raises(dtype):
+    # GH#53234 previously a KeyError
+    with pytest.raises(ValueError, match="Non-native byte order is not supported"):
+        pd.array(np.array([1, 2], dtype=dtype))
+
+
+def test_array_inference_non_native_byteorder_complex_deprecated():
+    # GH#53234
+    arr = np.array([1, 2], dtype=">c16")
+    with tm.assert_produces_warning(Pandas4Warning, match="non-native byte order"):
+        result = pd.array(arr)
+    tm.assert_numpy_array_equal(result.to_numpy(), arr)
+
+
 @pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
