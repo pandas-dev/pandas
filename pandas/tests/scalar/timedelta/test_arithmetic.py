@@ -997,6 +997,36 @@ class TestTimedeltaMultiplicationDivision:
         assert td // np.int32(2.0) == expected
         assert td // np.uint8(2.0) == expected
 
+    @pytest.mark.parametrize("dtype", ["int64", "uint64", "float64"])
+    def test_td_floordiv_numeric_array_negative(self, dtype):
+        # GH#71264: numpy's timedelta64 // numeric truncates toward zero;
+        #  floor like td // 2 does
+        td = pd.Timedelta(-7, unit="s").as_unit("s")
+        other = np.array([2, 3], dtype=dtype)
+
+        result = td // other
+        expected = np.array([-4, -3], dtype="m8[s]")
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("other", [np.array([0, 2]), np.array([np.nan, 2.0])])
+    def test_td_floordiv_numeric_array_zero_nan(self, other):
+        # GH#71264: zero and nan divisors give NaT, as numpy does
+        td = pd.Timedelta(-7, unit="s").as_unit("s")
+
+        with tm.assert_produces_warning(None):
+            result = td // other
+        expected = np.array(["NaT", -4], dtype="m8[s]")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_td_floordiv_uint_array_exact(self):
+        # GH#71264: int64 // uint64 promotes to float64, which cannot hold
+        #  2**62 + 3
+        td = pd.Timedelta(2**62 + 3)
+
+        result = td // np.array([2], dtype="uint64")
+        expected = np.array([2**61 + 1], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_td_floordiv_timedeltalike_array(self):
         # GH#18846
         td = pd.Timedelta(hours=3, minutes=4)

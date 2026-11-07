@@ -39,6 +39,7 @@ from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     contains_str,
     floordiv_object_array,
+    floordiv_td64_numeric,
     ints_to_pytimedelta,
     parse_timedelta_unit,
     truediv_object_array,
@@ -640,6 +641,14 @@ class TimedeltaArray(dtl.TimelikeOps):
         if np.max(np.abs(f_quot), initial=0.0, where=~exclude_mask) >= 2.0**63:
             raise OutOfBoundsTimedelta("Overflow in timedelta division")
 
+    def _floordiv_numeric(self, other) -> np.ndarray:
+        """
+        Floor-divide by a numeric scalar or array the way Timedelta does;
+        numpy's ``timedelta64 // numeric`` truncates toward zero (GH#71264).
+        """
+        result = floordiv_td64_numeric(self._ndarray.view("i8"), other)
+        return result.view(self._ndarray.dtype)
+
     def _scalar_divlike_op(self, other, op):
         """
         Shared logic for __truediv__, __rtruediv__, __floordiv__, __rfloordiv__
@@ -671,7 +680,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             if lib.is_float(other):
                 # GH#43178: raise instead of silently saturating on overflow
                 self._check_float_div_overflow(other)
-            result = op(self._ndarray, other)
+            if op is operator.floordiv:
+                result = self._floordiv_numeric(other)
+            else:
+                result = op(self._ndarray, other)
             return type(self)._simple_new(result, dtype=result.dtype)
 
     def _cast_divlike_op(self, other):
@@ -693,14 +705,18 @@ class TimedeltaArray(dtl.TimelikeOps):
             # GH#43178: raise instead of silently saturating on overflow
             self._check_float_div_overflow(other_arr)
 
-        # Let numpy handle it
-        result = op(self._ndarray, other_arr)
-
         if (is_integer_dtype(other.dtype) or is_float_dtype(other.dtype)) and op in [
             operator.truediv,
             operator.floordiv,
         ]:
+            if op is operator.floordiv:
+                result = self._floordiv_numeric(other_arr)
+            else:
+                result = op(self._ndarray, other_arr)
             return type(self)._simple_new(result, dtype=result.dtype)
+
+        # Let numpy handle it
+        result = op(self._ndarray, other_arr)
 
         if op in [operator.floordiv, roperator.rfloordiv]:
             mask = self.isna() | isna(other)

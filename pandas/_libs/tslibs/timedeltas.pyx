@@ -3204,7 +3204,12 @@ class Timedelta(_Timedelta):
                 else:
                     if other.dtype.kind == "f":
                         _check_div_float_array(self, other)
-                    return self.to_timedelta64() // other
+                    # floor like the scalar case above; numpy's
+                    #  timedelta64 // numeric truncates toward zero (GH#71264)
+                    res = floordiv_td64_numeric(
+                        np.array(self._value, dtype=np.int64), other
+                    )
+                    return res.view(f"m8[{self.unit}]")
 
             raise TypeError(f"Invalid dtype {other.dtype} for __floordiv__")
 
@@ -3330,6 +3335,37 @@ def floordiv_object_array(ndarray left, ndarray right):
         result[i] = res_value
 
     return result
+
+
+def floordiv_td64_numeric(ndarray i8values, object other):
+    """
+    Floor-divide int64 timedelta values by a numeric scalar or ndarray.
+
+    numpy's ``timedelta64 // numeric`` truncates toward zero, while
+    ``Timedelta // numeric`` floors like ``datetime.timedelta`` does, so the
+    two disagreed by one unit for negative, non-exact quotients (GH#71264).
+    Dividing in int64 floors on both paths. NaT, a zero divisor and a nan
+    divisor give NaT, as numpy does. Returns int64 for the caller to view as
+    its timedelta64 dtype.
+    """
+    other = np.asarray(other)
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        # over: NaT // -1 overflows int64; that slot is masked below
+        if other.dtype.kind == "u":
+            # int64 // uint64 would promote to float64 and round the quotient.
+            #  A divisor beyond int64 exceeds every |value|, so it floors to
+            #  0 or -1 and the rest are cast and divided exactly.
+            big = other > np.iinfo(np.int64).max
+            fits = np.where(big, 1, other).astype(np.int64)
+            result = np.floor_divide(i8values, fits)
+            result = np.where(big, np.where(i8values < 0, -1, 0), result)
+        else:
+            result = np.floor_divide(i8values, other)
+        mask = (i8values == NPY_NAT) | (other == 0) | np.isnan(other)
+    if result.dtype.kind == "f":
+        mask |= ~np.isfinite(result)
+        result = np.where(mask, 0, result).astype(np.int64)
+    return np.where(mask, NPY_NAT, result)
 
 
 cdef bint is_any_td_scalar(object obj):
