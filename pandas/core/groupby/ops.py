@@ -690,12 +690,23 @@ class BaseGrouper:
         keys = self.result_index
         yield from zip(keys, splitter, strict=True)
 
+    @cache_readonly
+    def _splitter_cache(self) -> dict[Hashable, tuple[Hashable, DataSplitter[Any]]]:
+        return {}
+
     @final
     def _get_splitter(self, data: NDFrame) -> DataSplitter[Any]:
         """
         Returns
         -------
         Generator yielding subsetted objects
+
+        Notes
+        -----
+        Splitters are cached so that repeated calls share one sorted copy of the
+        data, which then lives as long as this grouper, see GH#51077. Each holds a
+        view of its data, so Copy-on-Write gives a written-to source new arrays, which
+        _values_key sees as a miss. Writes that bypass Copy-on-Write are not noticed.
         """
         if isinstance(data, Series):
             klass: type[DataSplitter[Any]] = SeriesSplitter
@@ -703,12 +714,44 @@ class BaseGrouper:
             # i.e. DataFrame
             klass = FrameSplitter
 
-        return klass(
-            data,
+        sort_idx = self.result_ilocs
+        if (
+            type(data) is not klass._sorted_cls
+            or data.attrs
+            or not data._flags._allows_duplicate_labels
+            or lib.is_range_indexer(sort_idx, len(data))
+        ):
+            # Metadata is not part of the key; already-sorted data needs no copy.
+            return klass(
+                data,
+                self.ngroups,
+                sorted_ids=self._sorted_ids,
+                sort_idx=sort_idx,
+            )
+
+        # One slot per selection, so entries made stale by a write get replaced.
+        cache = self._splitter_cache
+        slot = (klass, data.name if isinstance(data, Series) else tuple(data.columns))
+        key = _values_key(data)
+        cached = cache.get(slot)
+        if (
+            cached is not None
+            and cached[0] == key
+            and all(
+                left.identical(right)
+                for left, right in zip(cached[1].data.axes, data.axes, strict=True)
+            )
+        ):
+            return cached[1]
+
+        splitter = klass(
+            data.copy(deep=False),
             self.ngroups,
             sorted_ids=self._sorted_ids,
-            sort_idx=self.result_ilocs,
+            sort_idx=sort_idx,
         )
+        cache[slot] = (key, splitter)
+        return splitter
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
@@ -1446,6 +1489,25 @@ def _is_indexed_like(obj, axes) -> bool:
 
 # ----------------------------------------------------------------------
 # Splitting / application
+
+
+def _values_key(data: NDFrame) -> Hashable:
+    """
+    Hashable identifier for the arrays backing data, shared by views of them.
+
+    Only meaningful while something holds a reference to those arrays.
+    """
+    blocks = []
+    for blk in data._mgr.blocks:
+        values = getattr(blk.values, "_ndarray", blk.values)
+        layout = None
+        if isinstance(values, np.ndarray):
+            # columns from one 2D block share refs
+            address = values.__array_interface__["data"][0]
+            layout = (address, values.shape, values.strides)
+        locs = blk.mgr_locs.as_array.tobytes() if data.ndim == 2 else None
+        blocks.append((id(blk.refs), layout, locs))
+    return tuple(blocks)
 
 
 class DataSplitter(Generic[NDFrameT]):
