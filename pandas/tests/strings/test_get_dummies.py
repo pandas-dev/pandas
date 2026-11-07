@@ -95,3 +95,66 @@ def test_get_dummies_with_str_dtype(any_string_dtype):
 
     with pytest.raises(ValueError, match=msg):
         s.str.get_dummies("|", dtype="datetime64[ns]")
+
+
+def test_get_dummies_empty_and_missing_entries(any_string_dtype, index_or_series):
+    # GH#67553 an entry that yields no tag must not become a column
+    obj = index_or_series(["a|b", "", "b", None, "|a|", "a||b"], dtype=any_string_dtype)
+    result = obj.str.get_dummies("|")
+    rows = [(1, 1), (0, 0), (0, 1), (0, 0), (1, 0), (1, 1)]
+    if index_or_series is pd.Index:
+        expected = pd.MultiIndex.from_tuples(rows, names=("a", "b"))
+        tm.assert_index_equal(result, expected)
+    else:
+        expected = pd.DataFrame(rows, columns=list("ab"))
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", [["", None], [None, None], ["", "|"]])
+def test_get_dummies_all_entries_empty(any_string_dtype, index_or_series, data):
+    # GH#67553
+    obj = index_or_series(data, dtype=any_string_dtype)
+    if index_or_series is pd.Index:
+        # A MultiIndex needs at least one level, so no tags means no result.
+        with pytest.raises(ValueError, match="Must pass non-zero number of levels"):
+            obj.str.get_dummies("|")
+        return
+    result = obj.str.get_dummies("|")
+    expected = pd.DataFrame(np.empty((2, 0), dtype=np.int64), columns=pd.Index([]))
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_get_dummies_arrow_dtype(pa_type):
+    # GH#67553
+    import pyarrow as pa
+
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    ser = pd.Series(["a|b", "", "b", None, "|a|", "a||b"], dtype=dtype)
+    result = ser.str.get_dummies("|")
+    expected = pd.DataFrame(
+        [[1, 1], [0, 0], [0, 1], [0, 0], [1, 0], [1, 1]],
+        columns=list("ab"),
+        dtype="bool[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_get_dummies_categorical():
+    # GH#67553 missing values must not be encoded as a literal "NaN" tag
+    ser = pd.Series(["a|NaN", "b", None], dtype="category")
+    result = ser.str.get_dummies("|")
+    expected = pd.DataFrame(
+        [[1, 1, 0], [0, 0, 1], [0, 0, 0]], columns=["NaN", "a", "b"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_get_dummies_no_tags_nullable_dtype(any_string_dtype):
+    # GH#67553 an all-tagless input must not crash for an extension dtype. The
+    # empty branch used to hand the raw dtype to np.empty, which cannot take one.
+    ser = pd.Series(["", None], dtype=any_string_dtype)
+    result = ser.str.get_dummies("|", dtype="Int64")
+    expected = pd.DataFrame(np.empty((2, 0), dtype=np.int64), columns=pd.Index([]))
+    tm.assert_frame_equal(result, expected)
