@@ -108,7 +108,9 @@ def set_default_names(data):
                 "Index name of 'index' is not round-trippable.",
                 stacklevel=find_stack_level(),
             )
-        elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
+        elif len(nms) > 1 and any(
+            isinstance(x, str) and x.startswith("level_") for x in nms
+        ):
             warnings.warn(
                 "Index names beginning with 'level_' are not round-trippable.",
                 stacklevel=find_stack_level(),

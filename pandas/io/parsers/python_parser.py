@@ -94,14 +94,14 @@ class PythonParser(ParserBase):
     _first_row_len: int
     _header_row_len: int
 
-    def __init__(self, f: ReadCsvBuffer[str] | list, **kwds) -> None:
+    def __init__(self, f: ReadCsvBuffer[str] | list[list[Scalar]], **kwds) -> None:
         """
         Workhorse function for processing nested list into DataFrame
         """
         super().__init__(kwds)
 
         self.data: Iterator[list[str]] | list[list[Scalar]] = []
-        self.buf: list = []
+        self.buf: list[list[Any]] = []
         # Line number of each line pushed onto self.buf. Every site that shrinks
         # self.buf drops entries from the front, so it stays a suffix of this list.
         self.buf_pos: list[int] = []
@@ -187,7 +187,7 @@ class PythonParser(ParserBase):
             raise ValueError("Only length-1 decimal markers supported")
 
     @cache_readonly
-    def num(self) -> re.Pattern:
+    def num(self) -> re.Pattern[str]:
         decimal = re.escape(self.decimal)
         if self.thousands is None:
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
@@ -276,15 +276,15 @@ class PythonParser(ParserBase):
 
         return reader
 
-    def read(
-        self, rows: int | None = None
+    def _read_arrays(
+        self, nrows: int | None = None
     ) -> tuple[
         Index | None,
         Sequence[Hashable] | MultiIndex,
         Mapping[Hashable, ArrayLike | Series],
     ]:
         try:
-            content = self._get_lines(rows)
+            content = self._get_lines(nrows)
         except StopIteration:
             if self._first_chunk:
                 content = []
@@ -356,19 +356,6 @@ class PythonParser(ParserBase):
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
 
-    # legacy
-    def get_chunk(
-        self, size: int | None = None
-    ) -> tuple[
-        Index | None,
-        Sequence[Hashable] | MultiIndex,
-        Mapping[Hashable, ArrayLike | Series],
-    ]:
-        if size is None:
-            # error: "PythonParser" has no attribute "chunksize"
-            size = self.chunksize  # type: ignore[attr-defined]
-        return self.read(rows=size)
-
     def _convert_data(
         self,
         data: Mapping[Hashable, np.ndarray],
@@ -407,7 +394,7 @@ class PythonParser(ParserBase):
     @final
     def _convert_to_ndarrays(
         self,
-        dct: Mapping,
+        dct: Mapping[Hashable, Any],
         na_values,
         na_fvalues,
         converters=None,
@@ -612,17 +599,18 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = [*list(header), header[-1] + 1]
+                    header = [*list(header), max(header) + 1]
             else:
                 header = [header]
 
             columns: list[list[Scalar | None]] = []
             for level, hr in enumerate(header):
                 try:
-                    line = self._buffered_line()
-
                     while self.line_pos <= hr:
-                        line = self._next_line()
+                        self._next_line()
+                    # header rows may be out of order (GH#47011); self.buf
+                    # holds every line read so far
+                    line = self.buf[hr]
 
                 except StopIteration as err:
                     if 0 < self.line_pos <= hr and (
@@ -1427,7 +1415,7 @@ class PythonParser(ParserBase):
         return no_thousands_columns
 
 
-class FixedWidthReader(abc.Iterator):
+class FixedWidthReader(abc.Iterator[list[str]]):
     """
     A reader of fixed-width lines.
     """
@@ -1442,7 +1430,7 @@ class FixedWidthReader(abc.Iterator):
         infer_nrows: int = 100,
     ) -> None:
         self.f = f
-        self.buffer: Iterator | None = None
+        self.buffer: Iterator[str] | None = None
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
         if colspecs == "infer":

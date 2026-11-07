@@ -22,6 +22,7 @@ from numbers import Number
 import re
 import sys
 from typing import (
+    Any,
     Generic,
     TypeVar,
 )
@@ -90,7 +91,7 @@ class MockNumpyLikeArray:
     def __init__(self, values) -> None:
         self._values = values
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         iter_values = iter(self._values)
 
         def it_outer():

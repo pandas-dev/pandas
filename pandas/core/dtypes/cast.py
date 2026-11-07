@@ -73,6 +73,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PandasExtensionDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -181,6 +182,8 @@ def maybe_box_native(value: Scalar | NAType | None) -> Scalar | NAType | None:
         value = int(value)
     elif is_bool(value):
         value = bool(value)
+    elif is_complex(value):
+        value = complex(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
     elif value is NA:
@@ -1258,7 +1261,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if lib.is_np_dtype(dtype, "iu"):
+    if lib.is_np_dtype(dtype, "iub"):
         for obj in objs:
             # We don't want to accidentally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1272,7 +1275,10 @@ def common_dtype_categorical_compat(
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
-                    dtype = np.dtype(np.float64)
+                    if dtype.kind == "b":
+                        dtype = np.dtype(object)
+                    else:
+                        dtype = np.dtype(np.float64)
                     break
     return dtype
 
@@ -1783,11 +1789,18 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            if dtype.itemsize < tipo.itemsize:  # type: ignore[union-attr]
+            # A SparseDtype has the same missing itemsize as GH#68421, so
+            #  compare against its subtype rather than the SparseDtype itself.
+            if isinstance(tipo, SparseDtype):
+                tipo_itemsize = tipo.subtype.itemsize
+            else:
+                tipo_itemsize = tipo.itemsize  # type: ignore[union-attr]
+            if dtype.itemsize < tipo_itemsize:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
-                # i.e. nullable IntegerDtype; we can put this into an ndarray
-                #  losslessly iff it has no NAs and the values themselves fit
+                # i.e. an ExtensionDtype such as a nullable IntegerDtype or a
+                #  SparseDtype; we can put this into an ndarray losslessly iff it
+                #  has no NAs and the NA-free values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1797,7 +1810,16 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     raise LossySetitemError
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
-                np_can_hold_element(dtype, np.asarray(arr))
+                if isinstance(arr.dtype, SparseDtype):
+                    # np.asarray widens a SparseArray to the fill_value's dtype
+                    #  (e.g. Sparse[int8] to int64), so the check below would
+                    #  reject a set that fits; _densify keeps the subtype's dtype
+                    #  instead, and the values are already NA-free per the guard
+                    #  above.
+                    values = arr._densify()  # type: ignore[union-attr]
+                else:
+                    values = np.asarray(arr)
+                np_can_hold_element(dtype, values)
                 return element
 
             return element

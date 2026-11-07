@@ -80,6 +80,19 @@ class TestDataFramePlotsSubplots:
         for ax in axes:
             assert ax.get_legend() is None
 
+    def test_subplots_str_title_above_axes(self):
+        # GH#29459
+        df = pd.DataFrame(
+            {"x": range(6), "y1": [1, 1, 1, 4, 2, 3], "y2": [1, 2, 3, 2, 4, 3]}
+        )
+        axes = df.plot(x="x", y=["y1", "y2"], subplots=True, sharex=True, title="T")
+        fig = axes[0].figure
+        assert fig.get_suptitle() == "T"
+        assert all(ax.get_title() == "" for ax in axes)
+
+        title_bbox = fig._suptitle.get_window_extent()
+        assert title_bbox.y0 > axes[0].get_tightbbox().y1
+
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_subplots_timeseries(self, kind):
         idx = pd.date_range(start="2014-07-01", freq="ME", periods=10)
@@ -463,7 +476,7 @@ class TestDataFramePlotsSubplots:
         # GH#64317 on some linux builds these are flaky with a tiny difference.
         #  Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
-        tm.assert_almost_equal(result, expected, atol=1e-15)
+        tm.assert_almost_equal(result, expected, rtol=1e-12, atol=0)
 
     def test_bar_log_subplots(self):
         # matplotlib 3.11 no longer pads log-axis ticks a decade past the
@@ -482,9 +495,9 @@ class TestDataFramePlotsSubplots:
         #  Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
         result1 = ax[0].yaxis.get_ticklocs()
-        tm.assert_almost_equal(result1, expected, atol=1e-15)
+        tm.assert_almost_equal(result1, expected, rtol=1e-12, atol=0)
         result2 = ax[1].yaxis.get_ticklocs()
-        tm.assert_almost_equal(result2, expected, atol=1e-15)
+        tm.assert_almost_equal(result2, expected, rtol=1e-12, atol=0)
 
     def test_boxplot_subplots_return_type_default(self, hist_df):
         df = hist_df

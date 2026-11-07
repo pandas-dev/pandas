@@ -337,6 +337,18 @@ If you have a :class:`Series` that you want to append as a single row to a :clas
    p.plot([df1, s2], result, labels=["df1", "s2"], vertical=True);
    plt.close("all");
 
+Adding a row copies the existing data, so adding many rows one at a time in a
+loop is slow. Collect the new rows first, for example as a list of dicts, and
+add them in a single step:
+
+.. ipython:: python
+
+   rows = [
+       {"A": "X0", "B": "X1", "C": "X2", "D": "X3"},
+       {"A": "Y0", "B": "Y1", "C": "Y2", "D": "Y3"},
+   ]
+   pd.concat([df1, pd.DataFrame(rows)], ignore_index=True)
+
 .. _merging.join:
 
 :func:`~pandas.merge`

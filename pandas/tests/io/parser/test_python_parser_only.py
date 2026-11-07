@@ -679,7 +679,7 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
 def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     python_parser_only, index_col
 ):
-    # GH#61837
+    # GH#61837, GH#61838
     parser = python_parser_only
     data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
 
@@ -688,7 +688,7 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
 
     result = parser.read_csv_check_warnings(
         ParserWarning,
-        "from bad_lines callable",
+        "Expected 3 fields in line 3, saw 6 from bad_lines callable",
         StringIO(data),
         on_bad_lines=fixer,
         index_col=index_col,

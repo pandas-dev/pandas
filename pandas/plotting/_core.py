@@ -902,10 +902,11 @@ class PlotAccessor(PandasObject):
         Color for the plot elements when using the default ``matplotlib``
         backend. Supported for ``kind`` values ``"line"``, ``"bar"``,
         ``"barh"``, ``"hist"``, ``"kde"``, ``"density"``, ``"area"``,
-        ``"box"``, and ``"scatter"``. A dict maps DataFrame column names to
-        colors except for box and scatter plots. For box plots, a dict maps
-        ``"boxes"``, ``"whiskers"``, ``"medians"``, and ``"caps"`` to colors.
-        For scatter plots, an array-like specifies the color of each point.
+        ``"box"``, ``"scatter"``, and ``"pie"``. A dict maps DataFrame column
+        names to colors except for box, scatter and pie plots. For box plots, a
+        dict maps ``"boxes"``, ``"whiskers"``, ``"medians"``, and ``"caps"`` to
+        colors. For scatter plots, an array-like specifies the color of each
+        point; for pie plots, of each wedge.
     colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
         plots).
@@ -1474,7 +1475,8 @@ class PlotAccessor(PandasObject):
               column `a` in green and lines for column `b` in red.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`. In addition, passing ``x_compat=True``
             suppresses pandas' automatic tick resolution adjustment for
             regular frequency time-series data in favor of the default
@@ -1591,7 +1593,8 @@ class PlotAccessor(PandasObject):
               column `a` in green and bars for column `b` in red.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1736,7 +1739,8 @@ class PlotAccessor(PandasObject):
               column `a` in green and bars for column `b` in red.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1860,7 +1864,8 @@ class PlotAccessor(PandasObject):
             Column in the DataFrame to group by.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``grid``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1918,7 +1923,8 @@ class PlotAccessor(PandasObject):
         bins : int, default 10
             Number of histogram bins to be used.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1997,7 +2003,8 @@ class PlotAccessor(PandasObject):
             Weights of datapoints. This must be the same shape as datapoints.
             If None (default), the samples are assumed to be equally weighted.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2110,8 +2117,11 @@ class PlotAccessor(PandasObject):
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
         **kwargs
-            Additional keyword arguments are documented in
-            :meth:`DataFrame.plot`.
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
+            :meth:`DataFrame.plot`. Properties of the filled areas, such as
+            ``hatch`` or ``edgecolor``, can also be passed; ``hatch`` also
+            accepts a list with one hatch per column.
 
         Returns
         -------
@@ -2189,7 +2199,8 @@ class PlotAccessor(PandasObject):
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2285,7 +2296,8 @@ class PlotAccessor(PandasObject):
               marker points according to a colormap.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``grid``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2376,7 +2388,8 @@ class PlotAccessor(PandasObject):
             and the axis limits. To control the area covered by the
             hexagons, pass matplotlib's ``extent`` keyword via ``**kwargs``.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``grid``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns

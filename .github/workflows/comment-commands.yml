@@ -22,7 +22,7 @@ env:
     set to work on it.
   TAKE_LIMIT_REACHED: >-
     Thanks for your interest, @{user}! You're already assigned to {count} open
-    issues ({issues}), and contributors can hold at most {limit} at a time — so
+    issues, and contributors can hold at most {limit} at a time — so
     this one isn't available to claim right now. Once you've finished one of
     those, or released it with `/untake`, you're welcome to `/take` this
     issue. See the [contributing guide]({docs}) for more.
@@ -142,8 +142,7 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, assignee: user, state: 'open', per_page: 100,
               })).filter(item => !item.pull_request);
               if (held.length >= limit) {
-                const issues = held.map(item => `#${item.number}`).join(', ');
-                await comment(msg('TAKE_LIMIT_REACHED', { user, count: held.length, issues, limit }));
+                await comment(msg('TAKE_LIMIT_REACHED', { user, count: held.length, limit }));
                 return;
               }
             }

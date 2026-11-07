@@ -274,11 +274,11 @@ class TestTimedeltaRound:
     def test_rounding_nat_frequency(self):
         td = pd.Timedelta("1001ms")
 
-        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+        with pytest.raises(TypeError, match="got NaTType"):
             td.ceil(NaT)
-        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+        with pytest.raises(TypeError, match="got NaTType"):
             td.floor(NaT)
-        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+        with pytest.raises(TypeError, match="got NaTType"):
             td.round(NaT)
 
     def test_rounding_nat_timedelta(self):

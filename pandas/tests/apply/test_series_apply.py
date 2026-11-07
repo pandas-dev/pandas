@@ -101,7 +101,18 @@ def test_agg_mapping_func_deprecated():
 
     s.agg(foo1, 0, 3, c=4)
     s.agg([foo1, foo2], 0, 3, c=4)
-    s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
+    # GH#23889
+    result = s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
+    expected = pd.concat({"a": s + 7, "b": s + 7})
+    tm.assert_series_equal(result, expected)
+
+
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    ser = pd.Series([np.nan, np.nan])
+    result = ser.agg({"a": "sum"}, min_count=1)
+    expected = pd.Series([np.nan], index=["a"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_apply_map_box_timestamps(by_row):

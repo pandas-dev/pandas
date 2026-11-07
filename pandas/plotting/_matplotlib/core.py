@@ -8,8 +8,11 @@ from collections.abc import (
     Hashable,
     Iterable,
     Iterator,
+    Mapping,
     Sequence,
 )
+from datetime import timedelta
+from decimal import Decimal
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -55,6 +58,7 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -64,6 +68,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import (
     PeriodConverter,
+    TimeSeries_TimedeltaFormatter,
     plottable_types,
     register_pandas_matplotlib_converters,
 )
@@ -71,11 +76,11 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
+    adopt_period_converter,
     format_dateaxis,
     get_period_offset,
     maybe_convert_index,
     prepare_ts_data,
-    set_period_converter,
     use_dynamic_x,
 )
 from pandas.plotting._matplotlib.tools import (
@@ -244,8 +249,15 @@ class MPLPlot(ABC):
             self._rot_set = False
             self.rot = self._default_rot
 
+        # Axes.grid ignores the axes.grid.axis/which rcParams, see GH#17725
+        self._grid_kwargs: dict[str, Any] = {}
         if grid is None:
             grid = False if secondary_y else mpl.rcParams["axes.grid"]
+            if grid:
+                self._grid_kwargs = {
+                    "axis": mpl.rcParams["axes.grid.axis"],
+                    "which": mpl.rcParams["axes.grid.which"],
+                }
 
         self.grid = grid
         self.legend = legend
@@ -256,6 +268,9 @@ class MPLPlot(ABC):
         self.logy = type(self)._validate_log_kwd("logy", logy)
         self.loglog = type(self)._validate_log_kwd("loglog", loglog)
         self.label = label
+        if is_list_like(style, allow_sets=False) and not isinstance(style, Mapping):
+            # e.g. tuple or ndarray, used positionally like a list GH#46289
+            style = list(style)
         self.style = style
         self.mark_right = mark_right
         self.stacked = stacked
@@ -466,8 +481,14 @@ class MPLPlot(ABC):
             # support series.plot(color='green')
             color = [color]
 
-        if isinstance(color, tuple) and self.nseries == 1 and len(color) in (3, 4):
-            # support RGB and RGBA tuples in series plot
+        if (
+            isinstance(color, tuple)
+            and self.nseries == 1
+            and len(color) in (3, 4)
+            and not all(map(mpl.colors.is_color_like, color))
+        ):
+            # support RGB and RGBA tuples in series plot; a tuple of colors
+            # is a sequence of colors, GH#18449
             color = [color]
 
         if colormap is not None:
@@ -668,11 +689,15 @@ class MPLPlot(ABC):
             return data
 
         # GH32073: cast to float if values contain nulled integers
-        if (
-            is_integer_dtype(data.dtype)
-            or is_float_dtype(data.dtype)
-            or is_bool_dtype(data.dtype)
-        ) and isinstance(data.dtype, ExtensionDtype):
+        # Same for Decimal EAs (e.g. pyarrow decimal), as box/kde/area can't
+        # mix Decimal with float
+        dtype = data.dtype
+        if isinstance(dtype, ExtensionDtype) and (
+            is_integer_dtype(dtype)
+            or is_float_dtype(dtype)
+            or is_bool_dtype(dtype)
+            or issubclass(dtype.type, Decimal)
+        ):
             return data.to_numpy(dtype="float", na_value=np.nan)
 
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
@@ -717,15 +742,18 @@ class MPLPlot(ABC):
             include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = []
+        exclude_type: list[type] = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
             exclude_type = [np.timedelta64]
+        elif self._kind == "hist":
+            # GH#43941 match the frame path, which skips timedelta columns
+            exclude_type = [np.timedelta64, timedelta]
 
         # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.extend([np.object_, CategoricalDtypeType, str])
+            include_type.extend([np.object_, CategoricalDtypeType, str, bytes])
 
         # GH 64535 Utilize mgr subset instead of DataFrame select_dtypes
         def dtype_predicate(dtype, types) -> bool:
@@ -832,7 +860,7 @@ class MPLPlot(ABC):
             if self.ylabel is not None:
                 ax.set_ylabel(pprint_thing(self.ylabel))
 
-            ax.grid(self.grid)
+            ax.grid(self.grid, **self._grid_kwargs)
 
         if self.title:
             if self.subplots:
@@ -928,7 +956,6 @@ class MPLPlot(ABC):
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                # Replace leg.legend_handles because it misses marker info
                 handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
@@ -999,6 +1026,10 @@ class MPLPlot(ABC):
                 x = index._mpl_repr()
             elif isinstance(index, ABCDatetimeIndex) or is_datetype:
                 x = index._mpl_repr()
+            elif isinstance(index, ABCTimedeltaIndex) and not self._is_ts_plot():
+                # GH#19965 plot at the actual offsets rather than positionally,
+                # in the index's unit as the dynamic path does
+                x = np.where(index.isna(), np.nan, index.asi8.astype(np.float64))
             else:
                 self._need_to_set_index = True
                 x = list(range(len(index)))
@@ -1025,9 +1056,12 @@ class MPLPlot(ABC):
                 kwds["xerr"] = np.array(kwds.get("xerr"))
             if "yerr" in kwds:
                 kwds["yerr"] = np.array(kwds.get("yerr"))
+            # errorbar takes the format string as ``fmt``; an explicit
+            # ``fmt`` takes precedence, GH#7023
+            if style is not None:
+                kwds.setdefault("fmt", style)
             return ax.errorbar(x, y, **kwds)
         else:
-            # prevent style kwarg from going to errorbar, where it is unsupported
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
@@ -1385,9 +1419,13 @@ class ScatterPlot(PlanePlot):
         x_data = data[x]
         s = Series(index=x_data)
         if use_dynamic_x(ax, s.index):
+            timestamps = s.index if isinstance(s.index, ABCDatetimeIndex) else None
             s, index_freq = maybe_convert_index(ax, s)
-            freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
+            freq, s, _ = prepare_ts_data(s, ax, self.kwds, index_freq, timestamps)
             x_data = s.index
+        elif isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex)):
+            # GH#40470
+            adopt_period_converter(ax)
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1604,7 +1642,7 @@ class LinePlot(MPLPlot):
             ax0 = self._get_ax(0)
             data, index_freq = maybe_convert_index(ax0, self.data)
 
-            x = data.index  # dummy, not used
+            x = self.data.index
             plotf = partial(self._ts_plot, index_freq=index_freq)
             it = data.items()
         else:
@@ -1628,8 +1666,17 @@ class LinePlot(MPLPlot):
         seen_ax_ids: set[int] = set()
         # Index actually drawn on each ts axes, keyed by id(ax); see _ts_plot.
         self._ts_index: dict[int, Index] = {}
+        # datetimes on a sharex/twinx sibling of a ts axes must be converted
+        # to its period ordinals (GH#40470)
+        adopt = (
+            not is_ts
+            and self.use_index
+            and isinstance(self.data.index, (ABCDatetimeIndex, ABCPeriodIndex))
+        )
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
+            if adopt:
+                adopt_period_converter(ax)
             kwds = self.kwds.copy()
             if self.color is not None:
                 kwds["color"] = self.color
@@ -1673,6 +1720,18 @@ class LinePlot(MPLPlot):
                 format_dateaxis(ax, ax.freq, index)  # type: ignore[attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
+                # don't cut off data on sharex siblings; siblings at another
+                # freq hold x-values in other units, GH#14074
+                for sibling in ax.get_shared_x_axes().get_siblings(ax):
+                    sibling_freq = getattr(sibling, "freq", None)
+                    if (
+                        sibling is not ax
+                        and sibling_freq == ax.freq  # type: ignore[attr-defined]
+                        # set by ax.clear(), which leaves a stale dataLim
+                        and not sibling.ignore_existing_data_limits
+                    ):
+                        sib_left, sib_right = sibling.dataLim.intervalx
+                        left, right = min(left, sib_left), max(right, sib_right)
                 ax.set_xlim(left, right)
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
@@ -1706,18 +1765,23 @@ class LinePlot(MPLPlot):
         index_freq: str | None = None,
         **kwds,
     ):
-        # accept x to be consistent with normal plot func,
-        # x is not passed to tsplot as it uses data.index as x coordinate
+        # x is the unconverted index of data; data.index is used as x coordinate
         # column_num must be in kwds for stacking purpose
-        _freq, data = prepare_ts_data(data, ax, kwds, index_freq)
+        timestamps: Index | None = x if isinstance(x, ABCDatetimeIndex) else None
+        _freq, data, timestamps = prepare_ts_data(
+            data, ax, kwds, index_freq, timestamps
+        )
 
         # prepare_ts_data set ax.freq and returned data re-expressed at that
         # freq, so these two agree even when the series was re-expressed at
         # the axes frequency.  The frame-level index would not (GH#64311).
         self._ts_index[id(ax)] = data.index
 
+        # cache the original timestamps so a replot at a finer freq places
+        # them correctly (GH#11574)
+        cached = data if timestamps is None else data.set_axis(timestamps)
         # TODO #54485
-        ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
+        ax._plot_data.append((cached, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(
             ax, data.index, np.asarray(data._values), style=style, **kwds
@@ -1806,6 +1870,13 @@ class LinePlot(MPLPlot):
             # Any]"; expected "Sequence[float]"
             ax.xaxis.set_major_locator(mpl.ticker.FixedLocator(xticks))  # type: ignore[arg-type]
             ax.set_xticklabels(xticklabels)
+        elif (
+            self.use_index
+            and isinstance(data.index, ABCTimedeltaIndex)
+            and not self._is_ts_plot()
+        ):
+            # GH#19965 the dynamic path sets this in format_dateaxis
+            ax.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(data.index.unit))
 
         # If the index is an irregular time series, then by default
         # we rotate the tick labels. The exception is if there are
@@ -1847,6 +1918,8 @@ class AreaPlot(LinePlot):
 
         if self.logy or self.loglog:
             raise ValueError("Log-y scales are not supported in area plot")
+        if isinstance(self.kwds.get("hatch"), dict):
+            raise TypeError("hatch must be a string or a list of strings, not a dict")
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
@@ -1865,8 +1938,8 @@ class AreaPlot(LinePlot):
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds["label"])
 
+        line_kwds, fill_kwds = cls._split_line_fill_kwds(kwds)
         # need to remove label, because subplots uses mpl legend as it is
-        line_kwds = kwds.copy()
         line_kwds.pop("label")
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
@@ -1885,15 +1958,54 @@ class AreaPlot(LinePlot):
         else:
             start = np.zeros(len(y))
 
-        if "color" not in kwds:
-            kwds["color"] = lines[0].get_color()
+        fill_kwds = mpl.cbook.normalize_kwargs(
+            fill_kwds, mpl.collections.PolyCollection
+        )
+        # one hatch per column, as in matplotlib's stackplot
+        if is_list_like(fill_kwds.get("hatch")):
+            hatches = list(fill_kwds["hatch"])
+            fill_kwds["hatch"] = hatches[(column_num or 0) % len(hatches)]
+        # Set face and edge separately so that a passed facecolor/edgecolor wins,
+        # and leave the edge unset under a hatch, which is drawn in the edge color.
+        color = fill_kwds.pop("color", lines[0].get_color())
+        fill_kwds.setdefault("facecolor", color)
+        if not fill_kwds.get("hatch"):
+            fill_kwds.setdefault("edgecolor", color)
 
-        rect = ax.fill_between(xdata, start, y_values, **kwds)
+        rect = ax.fill_between(xdata, start, y_values, **fill_kwds)
         cls._update_stacker(ax, stacking_id, y)
 
         # LinePlot expects list of artists
         res = [rect]
         return res
+
+    @staticmethod
+    def _split_line_fill_kwds(
+        kwds: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """
+        Split kwds between the line and the fill, so that e.g. ``hatch`` or
+        ``marker`` do not raise on the artist that lacks them (GH#12354).
+        """
+        line_kwds: dict[str, Any] = {}
+        fill_kwds: dict[str, Any] = {}
+        for key, value in kwds.items():
+            on_line = hasattr(mpl.lines.Line2D, f"set_{key}")
+            on_fill = hasattr(mpl.collections.PolyCollection, f"set_{key}") or key in {
+                "where",
+                "interpolate",
+            }
+            # A kwarg both artists know, or neither (so matplotlib raises), goes to
+            # both. drawstyle goes to both too so that, like step, it keeps raising:
+            # the fill would not step with it, see GH#29451.
+            if on_line == on_fill or key in {"drawstyle", "ds"}:
+                line_kwds[key] = value
+                fill_kwds[key] = value
+            elif on_line:
+                line_kwds[key] = value
+            else:
+                fill_kwds[key] = value
+        return line_kwds, fill_kwds
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
@@ -2071,7 +2183,15 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        data = self.data.fillna(0)
+        # GH#39320 plot timedeltas as integers, as matplotlib draws them;
+        # it would otherwise add int bottoms to them, deprecated in numpy 2.5
+        data = self.data.apply(
+            lambda col: (
+                col.fillna(np.timedelta64(0, "ns")).astype(np.int64)
+                if lib.is_np_dtype(col.dtype, "m")
+                else col.fillna(0)
+            )
+        )
 
         _stacked_subplots_ind: dict[int, int] = {}
         _stacked_subplots_offsets: dict[int, tuple[np.ndarray, np.ndarray]] = {}
@@ -2193,13 +2313,12 @@ class BarPlot(MPLPlot):
 
     def _setup_date_axis(self, ax: Axes) -> None:
         """
-        Put the freq and the period converter on the x-axis.
+        Put the freq, the period converter and the date locators on the x-axis.
 
         Done here rather than in _post_plot_logic because _adorn_subplots()
-        runs in between and maps any user-supplied xticks through whatever
-        converter the axis carries: registering ours afterwards would both
-        misplace those ticks and replace matplotlib's date converter, which
-        warns.
+        runs in between: it maps any user-supplied xticks through whatever
+        converter the axis carries, and with sharex it hides the tick labels
+        of non-bottom axes, which locators installed afterwards would redraw.
         """
         # The freq is deliberately not set on the *axes* (nor is decorate_axes()
         # called): that registers it as a resamplable time-series axes -- ax.freq
@@ -2214,7 +2333,14 @@ class BarPlot(MPLPlot):
             # data already drawn there
             # TODO #54485
             xaxis.freq = self._ts_freq  # type: ignore[attr-defined]
-        set_period_converter(ax)
+
+        # Convert DatetimeIndex to PeriodIndex (int64 business-day ordinals
+        # for BDay freq, avoiding deprecated Period[B]) to match the
+        # x-coordinates of the bars.
+        data, _ = maybe_convert_index(ax, self.data)
+        # the limits set in _post_plot_logic sit outside the bars, so tell
+        # the locator which ordinal its grid has to land on
+        format_dateaxis(ax, self._ts_freq, data.index, anchor=int(self.tick_pos[0]))
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
@@ -2222,16 +2348,6 @@ class BarPlot(MPLPlot):
 
         # GH#1918: use the same dynamic date tick labeling as line plots
         if self._use_dynamic_dateaxis:
-            freq = self._ts_freq
-
-            # Convert DatetimeIndex to PeriodIndex (int64 business-day ordinals
-            # for BDay freq, avoiding deprecated Period[B]) to match the
-            # x-coordinates used in _make_plot.
-            data, _ = maybe_convert_index(ax, data)
-            # the limits below sit half a period outside the bars, so tell
-            # the locator which ordinal its grid has to land on
-            format_dateaxis(ax, freq, data.index, anchor=int(self.tick_pos[0]))
-
             ax.set_xlim((s_edge, e_edge))
             if self.xticks is not None:
                 ax.set_xticks(np.array(self.xticks))
@@ -2239,9 +2355,8 @@ class BarPlot(MPLPlot):
             # by format_dateaxis, exactly as line plots do; pinning a tick at
             # every bar would suppress the intermediate minor-tick labels
 
-            # _post_plot_logic_common() applied rot and fontsize before the
-            # dynamic locators existed, so the minor ticks -- which carry most
-            # of the date labels -- had not been created yet to receive them
+            # set_xlim can create minor ticks that _post_plot_logic_common
+            # never saw, e.g. when a narrow user xlim left the view with none
             type(self)._apply_axis_properties(
                 ax.xaxis, rot=self.rot, fontsize=self.fontsize
             )
@@ -2358,12 +2473,20 @@ class PiePlot(MPLPlot):
             )
         return False
 
-    def _validate_color_args(self, color, colormap) -> None:
-        # TODO: warn if color is passed and ignored?
-        return None
+    def _validate_color_args(self, color, colormap):
+        # GH#11228 honor "color" like other plot kinds
+        if color is lib.no_default or color is None:
+            return None
+        if "colors" in self.kwds:
+            raise TypeError("Only specify one of `color` and `colors`.")
+        if isinstance(color, dict):
+            # matplotlib would read the keys as colors
+            raise TypeError("pie plots do not support a dict for `color`.")
+        return color
 
     def _make_plot(self, fig: Figure) -> None:
-        colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
+        color_kwds = "colors" if self.color is None else "color"
+        colors = self._get_colors(num_colors=len(self.data), color_kwds=color_kwds)
         self.kwds.setdefault("colors", colors)
 
         for i, (label, y) in enumerate(self._iter_data(data=self.data)):

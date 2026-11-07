@@ -11,18 +11,17 @@ from typing import (
     Any,
     final,
 )
-import warnings
 
-from pandas.errors import (
-    AbstractMethodError,
-    Pandas4Warning,
-)
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.missing import isna
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+    warn_unused_compression,
+)
 from pandas.io.xml import get_data_from_filepath
 
 if TYPE_CHECKING:
@@ -224,9 +223,8 @@ class _BaseXMLFormatter:
             df = df.reset_index()
 
         if self.na_rep is not None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
-                df = df.fillna(self.na_rep)
+            # cast so a string fill value works for any dtype, GH#54872
+            df = df.astype(object).fillna(self.na_rep)
 
         return df.to_dict(orient="index")
 
@@ -359,6 +357,7 @@ class _BaseXMLFormatter:
             return None
 
         else:
+            warn_unused_compression(self.compression)
             return xml_doc.decode(self.encoding).rstrip()
 
 
@@ -559,7 +558,7 @@ class LxmlXMLFormatter(_BaseXMLFormatter):
         )
 
         with handle_data as xml_data:
-            curr_parser = XMLParser(encoding=self.encoding)
+            curr_parser = XMLParser(encoding=self.encoding, resolve_entities="internal")
 
             if isinstance(xml_data, io.StringIO):
                 xsl_doc = fromstring(

@@ -534,6 +534,23 @@ class TestGetIndexer:
         result = idx1.get_indexer(idx2)
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            ([("a", "b"), ("b",)], [0, -1]),
+            ([("b",), ("a", "b")], [-1, 0]),
+            ([("a", "b"), ("a", "b", "c")], [0, -1]),
+            ([("a", "b", "c"), ("c", "d", "e")], [-1, -1]),
+            ([("a",), ("c",)], [-1, -1]),
+        ],
+    )
+    def test_get_indexer_tuples_of_other_lengths(self, keys, expected):
+        # GH#50293 tuples whose length differs from nlevels never match
+        mi = pd.MultiIndex.from_tuples([("a", "b"), ("c", "d"), ("b", np.nan)])
+        target = pd.Index(keys, tupleize_cols=False)
+        result = mi.get_indexer(target)
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
 
 def test_getitem(idx):
     # scalar

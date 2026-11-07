@@ -3,6 +3,7 @@ Tests for the pandas.io.common functionalities
 """
 
 import codecs
+import contextlib
 import errno
 from functools import partial
 from io import (
@@ -15,6 +16,7 @@ import os
 from pathlib import Path
 import pickle
 import re
+import sqlite3
 import tempfile
 
 import numpy as np
@@ -30,6 +32,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io import sql
 import pandas.io.common as icom
 
 
@@ -41,6 +44,18 @@ class CustomFSPath:
 
     def __fspath__(self):
         return self.path
+
+
+class CustomFSPathReadWrite(CustomFSPath):
+    """PathLike with read/write convenience methods, like py.path.local"""
+
+    def read(self, mode="r"):
+        with open(self.path, mode) as fh:
+            return fh.read()
+
+    def write(self, data, mode="w"):
+        with open(self.path, mode) as fh:
+            fh.write(data)
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -78,8 +93,10 @@ bar2,12,13,14,15
         redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
 
-    def test_stringify_path_fspath(self):
-        p = CustomFSPath("foo/bar.csv")
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_stringify_path_fspath(self, path_cls):
+        # GH#71769 for CustomFSPathReadWrite
+        p = path_cls("foo/bar.csv")
         result = icom.stringify_path(p)
         assert result == "foo/bar.csv"
 
@@ -315,11 +332,13 @@ Look,a snake,🐍"""
     @pytest.mark.filterwarnings(
         "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
     )
-    def test_read_fspath_all(self, reader, module, path, datapath):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_read_fspath_all(self, reader, module, path, path_cls, datapath):
+        # GH#71769 for CustomFSPathReadWrite
         pytest.importorskip(module)
         path = datapath(*path)
 
-        mypath = CustomFSPath(path)
+        mypath = path_cls(path)
         result = reader(mypath)
         expected = reader(path)
 
@@ -342,7 +361,11 @@ Look,a snake,🐍"""
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
     )
-    def test_write_fspath_all(self, writer_name, writer_kwargs, module, tmp_path):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_write_fspath_all(
+        self, writer_name, writer_kwargs, module, path_cls, tmp_path
+    ):
+        # GH#71769 for CustomFSPathReadWrite
         if writer_name in ["to_latex"]:  # uses Styler implementation
             pytest.importorskip("jinja2")
         string = str(tmp_path / "string")
@@ -350,7 +373,7 @@ Look,a snake,🐍"""
         df = pd.DataFrame({"A": [1, 2]})
 
         pytest.importorskip(module)
-        mypath = CustomFSPath(fspath)
+        mypath = path_cls(fspath)
         writer = getattr(df, writer_name)
 
         writer(string, **writer_kwargs)
@@ -367,7 +390,8 @@ Look,a snake,🐍"""
                 expected = f_path.read()
                 assert result == expected
 
-    def test_write_fspath_hdf5(self, tmp_path):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_write_fspath_hdf5(self, path_cls, tmp_path):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
         # have to read and compare equality
@@ -377,7 +401,7 @@ Look,a snake,🐍"""
         string = str(tmp_path / "string")
         fspath = str(tmp_path / "fspath")
 
-        mypath = CustomFSPath(fspath)
+        mypath = path_cls(fspath)
         df.to_hdf(mypath, key="bar")
         df.to_hdf(string, key="bar")
 
@@ -512,6 +536,80 @@ def test_is_fsspec_url_chained():
     assert not icom.is_fsspec_url("filecache:s3://pandas/test.csv")
     assert not icom.is_fsspec_url("filecache:::s3://pandas/test.csv")
     assert not icom.is_fsspec_url("filecache::://pandas/test.csv")
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        (
+            "https://bücher.de/ü?q=%C3%A9é#ß",
+            "https://bücher.de/%C3%BC?q=%C3%A9%C3%A9#%C3%9F",
+        ),
+        ("file:sub/ü.csv", "file:sub/ü.csv"),
+        ("ftp://h/ü.csv", "ftp://h/ü.csv"),
+    ],
+)
+def test_quote_non_ascii_url(url, expected):
+    # GH#21499 only HTTP(S) URLs are rewritten, and never their host
+    assert icom._quote_non_ascii_url(url) == expected
+
+
+@pytest.mark.parametrize("host", ["", "localhost", "LOCALHOST"])
+@pytest.mark.parametrize("exists", [False, True])
+def test_to_csv_file_url(tmp_path, host, exists):
+    # GH#55828 writing to a file:// URL raised for a new file and was silently
+    # discarded for an existing one
+    path = tmp_path / "a b.csv"
+    if exists:
+        path.write_text("old", encoding="utf-8")
+    url = path.as_uri().replace("file://", f"file://{host}", 1)
+    df = pd.DataFrame({"a": [1, 2]})
+
+    df.to_csv(url)
+
+    tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
+
+
+@pytest.mark.skipif(is_platform_windows(), reason="'?' is not valid in a file name")
+def test_to_csv_file_url_query(tmp_path):
+    # GH#55828 write to the file that reading the URL opens; whether the query is
+    # part of the file name depends on the Python version
+    url = (tmp_path / "a.csv").as_uri() + "?v=1"
+    df = pd.DataFrame({"a": [1, 2]})
+
+    df.to_csv(url)
+
+    tm.assert_frame_equal(pd.read_csv(url, index_col=0), df)
+
+
+@pytest.mark.parametrize("url_prefix", ["file://127.0.0.1", "http://127.0.0.1:1"])
+def test_to_csv_unwritable_url_raises(tmp_path, monkeypatch, url_prefix):
+    # GH#55828 raise instead of reading the URL and discarding the write
+    def fail_urlopen(*args, **kwargs):
+        raise AssertionError("urlopen should not be called")
+
+    monkeypatch.setattr(icom, "urlopen", fail_urlopen)
+    path = tmp_path / "a.csv"
+    path.write_text("old", encoding="utf-8")
+    url = url_prefix + path.as_uri().removeprefix("file://")
+    df = pd.DataFrame({"a": [1, 2]})
+
+    with pytest.raises(ValueError, match="Cannot write to URL"):
+        df.to_csv(url)
+    assert path.read_text(encoding="utf-8") == "old"
+
+
+def test_excel_writer_append_file_url(tmp_path):
+    # GH#55828 ExcelWriter's mode="a" opens the file with "r+b"
+    pytest.importorskip("openpyxl")
+    path = tmp_path / "a.xlsx"
+    df = pd.DataFrame({"a": [1, 2]})
+    df.to_excel(path, sheet_name="s1")
+
+    with pd.ExcelWriter(path.as_uri(), mode="a", engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name="s2")
+
+    assert pd.ExcelFile(path, engine="openpyxl").sheet_names == ["s1", "s2"]
 
 
 @pytest.mark.parametrize("format", ["csv", "json"])
@@ -752,3 +850,22 @@ def test_read_directory_not_reported_as_missing(reader, module, fn_ext, tmp_path
     # the strerror text is locale-dependent, so only the path is matched
     with pytest.raises(IsADirectoryError, match=re.escape(str(path))):
         reader(path)
+
+
+# not in test_sql.py, whose single_cpu mark keeps it out of the CI jobs
+# that lack sqlalchemy
+@td.skip_if_installed("sqlalchemy")
+def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
+    class MockSqliteConnection:
+        def __init__(self, *args, **kwargs) -> None:
+            self.conn = sqlite3.Connection(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self.conn, name)
+
+        def close(self):
+            self.conn.close()
+
+    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
+            sql.read_sql("SELECT 1", conn)

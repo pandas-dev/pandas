@@ -29,6 +29,10 @@ from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
+from pandas.core.computation.ops import (
+    Term,
+    is_datetimelike,
+)
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 from pandas.core.generic import NDFrame
@@ -250,9 +254,9 @@ def eval(
         such as floor division ``//``, in addition to built-in and user-defined
         Python functions.
 
-        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
-        :keyword:`or`, and :keyword:`not` with the same semantics as the
-        corresponding bitwise operators.
+        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`
+        and :keyword:`or` with the same semantics as the corresponding bitwise
+        operators, and :keyword:`not` as a logical negation.
     parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
@@ -300,8 +304,8 @@ def eval(
         .. deprecated:: 3.1.0
 
             This keyword is deprecated and will be removed in pandas 4.0.
-            See `PDEP-8 In-place methods in pandas
-            <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+            See the `whatsnew note on PDEP-8
+            <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
             for more details.
 
     Returns
@@ -363,8 +367,9 @@ def eval(
         # GH#63207
         warnings.warn(
             "The inplace keyword in eval is deprecated and will be removed "
-            "in a future version. See PDEP-8 for more details:"
-            "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+            "in a future version (PDEP-8).\nSee "
+            "https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace"
+            " for more details.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -398,6 +403,7 @@ def eval(
     ret = None
     first_expr = True
     target_modified = False
+    assigned: dict[str, object] = {}
 
     for expr in exprs:
         expr = _convert_expression(expr)
@@ -411,6 +417,8 @@ def eval(
             resolvers=resolvers,
             target=target,
         )
+        if assigned:
+            env.scope = env.scope.new_child(dict(assigned))
 
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
@@ -435,8 +443,19 @@ def eval(
             )
             engine = "python"
 
+        if engine == "numexpr" and is_datetimelike(parsed_expr.terms):
+            # numexpr has no datetime64/timedelta64 support
+            engine = "python"
+
         # construct the engine and evaluate the parsed expression
         eng = ENGINES[engine]
+        if (
+            engine == "numexpr"
+            and isinstance(parsed_expr.terms, Term)
+            and is_string_dtype(parsed_expr.terms.return_type)
+        ):
+            # numexpr can't handle a bare object or string term; see GH#27639
+            eng = ENGINES["python"]
         eng_inst = eng(parsed_expr)
         ret = eng_inst.evaluate()
 
@@ -479,7 +498,13 @@ def eval(
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
-            if not resolvers:
+            if (level == 0 or parser != "pandas") and not env.has_resolvers:
+                # GH#31952 without resolvers, bare names resolve from the scope,
+                #  so later lines must find this result there; "@" is banned at
+                #  level 0 and with the python parser, so this cannot shadow an
+                #  "@" lookup of a local
+                assigned[assigner] = ret
+            elif not resolvers:
                 resolvers = ({assigner: ret},)
             else:
                 # existing resolver needs updated to handle

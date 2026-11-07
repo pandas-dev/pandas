@@ -172,7 +172,7 @@ class TestRendering:
 class TestReductions:
     def test_argmax_axis_invalid(self, index):
         # GH#23081
-        msg = r"`axis` must be fewer than the number of dimensions \(1\)"
+        msg = r"`axis` must be less than the number of dimensions \(1\)"
         with pytest.raises(ValueError, match=msg):
             index.argmax(axis=1)
         with pytest.raises(ValueError, match=msg):
