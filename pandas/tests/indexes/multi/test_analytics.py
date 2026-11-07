@@ -67,6 +67,17 @@ def test_truncate_multiindex():
         index.truncate(3, 1)
 
 
+def test_truncate_multiindex_nan_sorted_last():
+    # GH#17931
+    index = pd.MultiIndex.from_arrays(
+        [["a", "a", "b", "b", None], ["x", np.nan, "x", "y", "x"]]
+    ).sort_values()
+    result = index.truncate(before="b")
+    expected = pd.MultiIndex.from_arrays([["b", "b", None], ["x", "y", "x"]])
+    tm.assert_index_equal(result, expected, exact=False)
+    assert result.codes[0].tolist() == [0, 0, -1]
+
+
 # TODO: reshape
 
 

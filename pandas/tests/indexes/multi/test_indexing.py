@@ -1522,11 +1522,31 @@ def test_get_locs_list_like_na_in_object_container():
     #  dtype; the NA still has to be recognized and matched to the -1 codes
     idx = pd.MultiIndex(
         levels=[pd.Index(["a", "b"]), pd.Index([1.1, 2.2])],
-        codes=[[0, 0, 1], [0, -1, 0]],
+        codes=[[1, 1, 0], [0, -1, 0]],
     )
     # the key order puts the 1.1 rows ahead of the NA row
     result = idx.get_locs((slice(None), [1.1, pd.NA]))
     tm.assert_numpy_array_equal(result, np.array([0, 2, 1], dtype=np.intp))
+
+
+@pytest.mark.parametrize(
+    "level_codes, key, expected",
+    [
+        ([-1, 0, 0], [1.1, pd.NA], [1, 2, 0]),
+        ([-1, 0, 0], [pd.NA, 1.1], [0, 1, 2]),
+        ([0, -1, 0], [1.1, pd.NA], [0, 1, 2]),
+    ],
+)
+def test_get_locs_list_like_na_key_order_lexsorted(level_codes, key, expected):
+    # GH#17931 a lexsorted index skips reordering only if the key follows the
+    #  index order, including where the NA rows sit (first or last)
+    idx = pd.MultiIndex(
+        levels=[pd.Index(["a", "b"]), pd.Index([1.1, 2.2])],
+        codes=[[0, 0, 1], level_codes],
+    )
+    assert idx._is_lexsorted()
+    result = idx.get_locs((slice(None), key))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
 
 
 def test_get_locs_list_like_signed_unsigned_level():
