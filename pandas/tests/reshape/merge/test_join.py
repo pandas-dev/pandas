@@ -1104,6 +1104,22 @@ def test_join_empty(left_empty, how, exp):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "left_empty, how",
+    [(False, "left"), (False, "outer"), (True, "right"), (True, "outer")],
+)
+def test_join_empty_sort_keeps_duplicate_order(left_empty, how):
+    # GH#37927 sorting the non-empty side must be stable; needs enough rows
+    #  for an unstable sort to reorder them
+    nonempty = pd.DataFrame({"A": range(40)}, index=[i % 2 for i in range(40)])
+    empty = pd.DataFrame({"B": []}, index=pd.Index([], dtype="int64"))
+    left, right = (empty, nonempty) if left_empty else (nonempty, empty)
+
+    result = left.join(right, how=how, sort=True)
+    expected = nonempty["A"].sort_index(kind="stable")
+    tm.assert_series_equal(result["A"], expected)
+
+
 def test_join_empty_uncomparable_columns():
     # GH 57048
     df1 = pd.DataFrame()
