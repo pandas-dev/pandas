@@ -1980,9 +1980,8 @@ def map_array(
         If 'ignore', propagate NA values, without passing them to the
         mapping correspondence.
     convert : bool, default True
-        If False, return an object ndarray in which missing values from the
-        mapper and keys absent from it are None, rather than inferring a
-        dtype (which turns None into NaN).
+        If False, skip dtype inference on the result so that None is not
+        turned into NaN; keys absent from a dict or Series mapper become None.
 
     Returns
     -------
@@ -2028,7 +2027,7 @@ def map_array(
                     index=Index(mapper.keys(), tupleize_cols=False),
                     dtype=None if convert else object,
                 )
-            else:
+            elif not isinstance(mapper, ABCSeries):
                 mapper = Series(mapper, dtype=None if convert else object)
 
     if isinstance(mapper, ABCSeries):
@@ -2040,7 +2039,7 @@ def map_array(
         indexer = mapper.index.get_indexer(arr)
         mapper_values = mapper._values
         if not convert and isinstance(mapper_values, np.ndarray):
-            new_values = mapper_values.astype(object).take(indexer)
+            new_values = take_nd(mapper_values.astype(object), indexer)
             new_values[indexer == -1] = None
             return new_values
         return take_nd(mapper_values, indexer)
