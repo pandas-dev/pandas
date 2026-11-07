@@ -35,12 +35,14 @@ def roll_skew(
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
+    bias: bool,  # bint
 ) -> np.ndarray: ...  # np.ndarray[float]
 def roll_kurt(
     values: np.ndarray,  # np.ndarray[np.float64]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
+    bias: bool,  # bint
 ) -> np.ndarray: ...  # np.ndarray[float]
 def roll_cov(
     x: np.ndarray,  # const float64_t[:]
