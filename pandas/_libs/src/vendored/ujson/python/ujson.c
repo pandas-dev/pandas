@@ -75,6 +75,7 @@ typedef struct {
   PyObject *type_nat;
   PyObject *type_na;
   PyObject *type_dt64tz_dtype;
+  PyObject *type_extension_dtype;
 } modulestate;
 
 #define modulestate(o) ((modulestate *)PyModule_GetState(o))
@@ -226,6 +227,25 @@ int object_is_datetimetz_dtype(PyObject *dtype) {
     return 0;
   }
   int result = PyObject_IsInstance(dtype, type_dt64tz_dtype);
+  if (result == -1) {
+    PyErr_Clear();
+    return 0;
+  }
+  return result;
+}
+int object_is_extension_dtype(PyObject *dtype) {
+  PyObject *module = PyState_FindModule(&moduledef);
+  if (module == NULL)
+    return 0;
+  modulestate *state = modulestate(module);
+  if (state == NULL)
+    return 0;
+  PyObject *type_extension_dtype = state->type_extension_dtype;
+  if (type_extension_dtype == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  int result = PyObject_IsInstance(dtype, type_extension_dtype);
   if (result == -1) {
     PyErr_Clear();
     return 0;
@@ -389,6 +409,31 @@ int object_is_datetimetz_dtype(PyObject *dtype) {
   return result;
 }
 
+int object_is_extension_dtype(PyObject *dtype) {
+  PyObject *module = PyImport_ImportModule("pandas.api.extensions");
+  if (module == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  PyObject *type_extension_dtype =
+      PyObject_GetAttrString(module, "ExtensionDtype");
+  if (type_extension_dtype == NULL) {
+    Py_DECREF(module);
+    PyErr_Clear();
+    return 0;
+  }
+  int result = PyObject_IsInstance(dtype, type_extension_dtype);
+  if (result == -1) {
+    Py_DECREF(module);
+    Py_DECREF(type_extension_dtype);
+    PyErr_Clear();
+    return 0;
+  }
+  Py_DECREF(module);
+  Py_DECREF(type_extension_dtype);
+  return result;
+}
+
 #endif
 
 static int module_traverse(PyObject *m, visitproc visit, void *arg) {
@@ -399,6 +444,7 @@ static int module_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(modulestate(m)->type_nat);
   Py_VISIT(modulestate(m)->type_na);
   Py_VISIT(modulestate(m)->type_dt64tz_dtype);
+  Py_VISIT(modulestate(m)->type_extension_dtype);
   return 0;
 }
 
@@ -410,6 +456,7 @@ static int module_clear(PyObject *m) {
   Py_CLEAR(modulestate(m)->type_nat);
   Py_CLEAR(modulestate(m)->type_na);
   Py_CLEAR(modulestate(m)->type_dt64tz_dtype);
+  Py_CLEAR(modulestate(m)->type_extension_dtype);
   return 0;
 }
 
@@ -464,6 +511,16 @@ PyMODINIT_FUNC PyInit__ujson(void) {
     modulestate(module)->type_dt64tz_dtype = type_dt64tz_dtype;
 
     Py_DECREF(mod_pandas);
+  }
+
+  PyObject *mod_extensions = PyImport_ImportModule("pandas.api.extensions");
+  if (mod_extensions) {
+    PyObject *type_extension_dtype =
+        PyObject_GetAttrString(mod_extensions, "ExtensionDtype");
+    assert(type_extension_dtype != NULL);
+    modulestate(module)->type_extension_dtype = type_extension_dtype;
+
+    Py_DECREF(mod_extensions);
   }
 
   PyObject *mod_nattype = PyImport_ImportModule("pandas._libs.tslibs.nattype");
