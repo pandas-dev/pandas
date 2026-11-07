@@ -1406,7 +1406,7 @@ def test_update_frame():
     df2 = pd.DataFrame({"b": [100.0]}, index=[1])
     df1_orig = df1.copy()
     view = df1[:]
-    df1.update(df2)
+    df1.update(df2, inplace=True)
 
     expected = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 100.0, 6.0]})
     tm.assert_frame_equal(df1, expected)
@@ -1422,7 +1422,7 @@ def test_update_series():
     ser1_orig = ser1.copy()
     view = ser1[:]
 
-    ser1.update(ser2)
+    ser1.update(ser2, inplace=True)
 
     expected = pd.Series([1.0, 100.0, 3.0])
     tm.assert_series_equal(ser1, expected)
@@ -1435,12 +1435,41 @@ def test_update_chained_assignment():
     ser2 = pd.Series([100.0], index=[1])
     df_orig = df.copy()
     with tm.raises_chained_assignment_error():
-        df["a"].update(ser2)
+        df["a"].update(ser2, inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
     with tm.raises_chained_assignment_error():
-        df[["a"]].update(ser2.to_frame())
+        df[["a"]].update(ser2.to_frame(), inplace=True)
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_update_frame_not_inplace():
+    # GH#21858
+    df1 = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    df2 = pd.DataFrame({"b": [100.0]}, index=[1])
+    df1_orig = df1.copy()
+
+    result = df1.update(df2, inplace=False)
+    tm.assert_frame_equal(df1, df1_orig)
+    assert np.shares_memory(get_array(df1, "a"), get_array(result, "a"))
+    assert not np.shares_memory(get_array(df1, "b"), get_array(result, "b"))
+
+
+def test_update_series_not_inplace():
+    # GH#21858
+    ser1 = pd.Series([1.0, 2.0, 3.0])
+    ser1_orig = ser1.copy()
+    result = ser1.update(pd.Series([100.0], index=[1]), inplace=False)
+    tm.assert_series_equal(ser1, ser1_orig)
+    assert not np.shares_memory(get_array(ser1), get_array(result))
+
+
+def test_update_chained_not_inplace():
+    # GH#21858 no ChainedAssignmentError since nothing is modified in place
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0]})
+    with tm.assert_produces_warning(None):
+        result = df["a"].update(pd.Series([100.0], index=[1]), inplace=False)
+    tm.assert_series_equal(result, pd.Series([1.0, 100.0, 3.0], name="a"))
 
 
 def test_inplace_arithmetic_series():

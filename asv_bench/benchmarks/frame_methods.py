@@ -890,13 +890,13 @@ class Update:
         )
 
     def time_to_update_big_frame_small_arg(self):
-        self.df.update(self.df_sample)
+        self.df.update(self.df_sample, inplace=True)
 
     def time_to_update_random_indices(self):
-        self.df_random.update(self.df_sample)
+        self.df_random.update(self.df_sample, inplace=True)
 
     def time_to_update_small_frame_big_arg(self):
-        self.df_sample.update(self.df)
+        self.df_sample.update(self.df, inplace=True)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -126,13 +126,10 @@ _all_methods = [
         frame_data,
         operator.methodcaller("combine_first", pd.DataFrame(*frame_data)),
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("update", pd.DataFrame(*frame_data)),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("update", pd.DataFrame(*frame_data), inplace=False),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
     (
