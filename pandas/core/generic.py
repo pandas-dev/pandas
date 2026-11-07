@@ -2971,6 +2971,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Not all datastores support ``method="multi"``. Oracle, for example,
         does not support multi-value insert.
 
+        Databases that commit DDL implicitly, such as MySQL and MariaDB, commit
+        the ``DROP TABLE`` from ``if_exists="replace"`` immediately, so it is not
+        rolled back if writing the new table fails.
+
         When using SQL Server with pyodbc and ``fast_executemany=True``, datetime
         precision may be lost when writing to local temporary tables (names starting
         with ``#``). To avoid this, add ``UseFMTONLY=Yes`` to the connection string.
