@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -107,3 +108,25 @@ class TestEquals:
         df3 = pd.DataFrame({"c": cat3})
 
         assert not df1.equals(df3)
+
+    @pytest.mark.parametrize(
+        "inner",
+        [
+            pd.Series(dtype=float),
+            pd.Series([1.0, 2.0]),
+            pd.Series([1.0, np.nan]),
+            pd.DataFrame(),
+            pd.DataFrame({"x": [1, 2]}),
+        ],
+    )
+    def test_equals_nested_objects(self, inner):
+        # GH#43008
+        df1 = pd.DataFrame({"a": pd.Series([inner], dtype=object), "b": [1]})
+        df2 = pd.DataFrame({"a": pd.Series([inner.copy()], dtype=object), "b": [1]})
+        assert df1.equals(df2)
+
+    def test_equals_nested_objects_not_equal(self):
+        # GH#43008
+        df1 = pd.DataFrame({"a": pd.Series([pd.Series([1.0, 2.0])], dtype=object)})
+        df2 = pd.DataFrame({"a": pd.Series([pd.Series([1.0, 3.0])], dtype=object)})
+        assert not df1.equals(df2)
