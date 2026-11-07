@@ -138,6 +138,7 @@ extensions = [
     "numpydoc",
     "sphinx_copybutton",
     "sphinx_design",
+    "jupyterlite_sphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -433,6 +434,26 @@ random.seed(42)"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
+
+# Interactive "Try it in your browser!" buttons on API reference Examples
+# sections (GH#65734, as on NumPy's API pages). jupyterlite-sphinx inserts
+# try_examples directives into numpydoc Examples sections at build time; the
+# preamble provides the pd/np names docstring examples assume but never
+# import. See https://jupyterlite-sphinx.readthedocs.io/
+global_enable_try_examples = True
+try_examples_global_button_text = "Try it in your browser!"
+try_examples_global_warning_text = (
+    "Interactive examples are experimental and may take a moment to load. "
+    "The pandas version running in your browser may differ from the version "
+    "documented here, and some optional dependencies and local data files "
+    "may be unavailable. Run the cells from top to bottom, starting with "
+    "the imports."
+)
+# tzdata is imported so the kernel loads it; pandas needs it for time zones
+try_examples_preamble = "import tzdata\nimport pandas as pd\nimport numpy as np"
+# Keep .ipynb rendering with nbsphinx: jupyterlite-sphinx would otherwise bind
+# the ipynb suffix and break nbsphinx pages (e.g. style.ipynb labels)
+jupyterlite_bind_ipynb_suffix = False
 
 # https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
 toggleprompt_offset_right = 35
@@ -953,6 +974,35 @@ def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
         del lines[:]
 
 
+# Examples that need local files or dependencies the browser kernel doesn't load:
+# I/O backends, matplotlib and jinja2 (imported lazily by pandas), tabulate and
+# xarray, and pyarrow (pandas records its availability at import).
+_TRY_EXAMPLES_SKIP = re.compile(
+    r"^pandas\.(read_|HDFStore|Excel(Writer|File)|io\.|plotting\.)"
+    r"|\.to_(csv|excel|parquet|sql|hdf|pickle|feather|orc|stata|clipboard|xml"
+    r"|iceberg|latex|markdown|xarray)$"
+    r"|\.plot(\.|$)|\.(hist|boxplot|style|_explode)$"
+    r"|Arrow|\.(list|struct)\."
+)
+
+
+def disable_try_examples(app, what, name, obj, options, lines) -> None:
+    """
+    Opt pages out of the "Try it in your browser!" button.
+
+    jupyterlite-sphinx skips an Examples section whose first line is
+    ``.. disable_try_examples``. Doing this at build time rather than with
+    try_examples.json ignore_patterns keeps the button hidden, since the
+    extension's resize handler unhides buttons hidden at runtime.
+    """
+    if not _TRY_EXAMPLES_SKIP.search(name):
+        return
+    for i, line in enumerate(lines):
+        if line.strip() == ".. rubric:: Examples":
+            lines[i + 1 : i + 1] = ["", ".. disable_try_examples", ""]
+            break
+
+
 def process_class_docstrings(app, what, name, obj, options, lines) -> None:
     """
     For those classes for which we use ::
@@ -1079,6 +1129,7 @@ def resolve_pandas_toplevel_xref(app, env, node, contnode):
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
+    app.connect("autodoc-process-docstring", disable_try_examples)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
     app.connect("missing-reference", resolve_pandas_toplevel_xref)
