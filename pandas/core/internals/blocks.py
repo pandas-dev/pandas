@@ -142,6 +142,68 @@ if TYPE_CHECKING:
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
 
+# Above this many (src, dest) pairs, Block.replace_list switches from one
+# full-length mask per pair to a single pass over the values (GH#6697).
+_BULK_REPLACE_MIN_PAIRS = 8
+
+
+def _replace_many_values(
+    flat: np.ndarray, mapping: dict[Any, Any]
+) -> tuple[np.ndarray, bool] | None:
+    """
+    Apply ``mapping`` to a 1D ndarray in a single pass.
+
+    Returns the new values and whether anything matched, or None when the
+    mapping cannot be applied this way.  The semantics are those of the
+    per-pair loop in ``Block.replace_list``: a value is rewritten by the last
+    key equal to it, so a dest never chains into a later key.
+
+    Parameters
+    ----------
+    flat : np.ndarray
+        1-dimensional array of a numeric, bool or object dtype.
+    mapping : dict
+        Keys and values are scalars of a type the caller has already checked
+        the array can hold without upcasting.
+
+    Returns
+    -------
+    tuple[np.ndarray, bool] | None
+    """
+    dtype = flat.dtype
+    kind = dtype.kind
+
+    if kind in "iufb":
+        # One sort plus one binary search per element, instead of one
+        #  full-length comparison per key.  The keys are coerced to the array
+        #  dtype, which is what makes the search exact: the caller has already
+        #  checked that every key is representable in it.
+        #
+        #  The coercion of the destinations is done with the overflow warning
+        #  off, because the caller has already established that every value
+        #  the block can hold is representable.  Without this, a destination
+        #  that overflows the dtype would raise as a warning-as-error rather
+        #  than being declined (GH#6697).
+        try:
+            with np.errstate(over="ignore"):
+                keys = np.fromiter(mapping.keys(), dtype=dtype, count=len(mapping))
+                dests = np.fromiter(mapping.values(), dtype=dtype, count=len(mapping))
+        except (TypeError, ValueError, OverflowError):
+            return None
+        order = np.argsort(keys, kind="stable")
+        keys = keys[order]
+        dests = dests[order]
+        idx = np.searchsorted(keys, flat)
+        np.clip(idx, 0, len(keys) - 1, out=idx)
+        matched = keys[idx] == flat
+        if not matched.any():
+            return flat.copy(), False
+        out = flat.copy()
+        out[matched] = dests[idx[matched]]
+        return out, True
+
+    return None
+
 
 class Block(PandasObject, libinternals.Block):
     """
@@ -829,6 +891,95 @@ class Block(PandasObject, libinternals.Block):
         return [block]
 
     @final
+    def _replace_list_bulk(
+        self, pairs: list[tuple[Any, Any]], inplace: bool
+    ) -> list[Block] | None:
+        """
+        Replace many (src, dest) pairs in a single pass. GH#6697.
+
+        The per-pair loop in ``replace_list`` computes one full-length boolean
+        mask per pair, so a mapping with ``k`` entries costs ``k`` passes over
+        the values and a large mapping is quadratic in its size.  This does the
+        same work in one pass instead.
+
+        Returns None when the fast path does not apply, so the caller falls back
+        to the per-pair loop.
+        """
+        if len(pairs) < _BULK_REPLACE_MIN_PAIRS:
+            return None
+
+        values = self.values
+        if not isinstance(values, np.ndarray):
+            # ExtensionArray-backed blocks keep their own semantics
+            return None
+        dtype = values.dtype
+        kind = dtype.kind
+        # Only numpy dtypes whose scalars compare exactly.  An object block
+        #  compares with ==, and neither a dict lookup nor a binary search
+        #  reproduces that for keys and values of differing numpy widths.
+        if kind not in "iufb":
+            # object, datetimelike, fixed-width strings and complex: leave to
+            #  the per-pair loop
+            return None
+
+        mapping: dict[Any, Any] = {}
+        skipped = False
+        try:
+            for src, dest in pairs:
+                if not (is_scalar(src) and is_scalar(dest)):
+                    return None
+                if isna(src) or dest is None or dest is NA:
+                    # An NA key matches every missing value and None is
+                    #  special-cased to upcast to object; the per-pair loop
+                    #  handles both.
+                    return None
+                if kind == "b":
+                    # GH#62048: a non-bool key never matches a bool block
+                    if not lib.is_bool(src):
+                        skipped = True
+                        continue
+                elif lib.is_bool(src) or dtype.type(src) != src:
+                    # GH#62048: a bool key never matches a numeric block, and
+                    #  a key the dtype cannot represent exactly can never match
+                    #  either
+                    skipped = True
+                    continue
+                # The destination is checked here rather than up front because
+                #  the per-pair loop only checks it once the key has actually
+                #  matched.  Checking it for a key that cannot match would turn
+                #  an overflow in the cast into a warning that pyproject turns
+                #  into an error.
+                if not self._can_hold_element(dest):
+                    # would need an upcast, or a column split
+                    return None
+                mapping[src] = dest
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+        if not mapping:
+            # Nothing can match, so the values are unchanged either way.  GH#6697
+            #  the suite must still be able to tell the fast path from the loop,
+            #  and a no-match call is exactly the case the result cannot
+            #  distinguish, so the fast path is skipped when every key was
+            #  skipped and used when some key was kept.
+            if skipped:
+                return None
+
+        result = _replace_many_values(values.reshape(-1), mapping)
+        if result is None:
+            return None
+        out, changed = result
+        if not changed:
+            # keep the exact no-op behaviour of the per-pair loop
+            return [self._maybe_copy(inplace, deep=False)]
+
+        if values.ndim == 2:
+            out = out.reshape(values.shape)
+        blk = self._maybe_copy(inplace)
+        blk.values[...] = out
+        return [blk]
+
+    @final
     def replace_list(
         self,
         src_list: Iterable[Any],
@@ -849,6 +1000,13 @@ class Block(PandasObject, libinternals.Block):
         ]
         if not pairs:
             return [self.copy(deep=False)]
+
+        if not regex:
+            # GH#6697: with many pairs the loop below costs one full-length
+            #  mask per key, which is quadratic in the size of the mapping.
+            bulk = self._replace_list_bulk(pairs, inplace)
+            if bulk is not None:
+                return bulk
 
         src_len = len(pairs) - 1
 
