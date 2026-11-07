@@ -463,7 +463,7 @@ did not have the same index as the input.
 .. code-block:: ipython
 
     In [3]: # Value in the last row should be np.nan
-            df.groupby('a', dropna=True).transform('sum')
+       ...: df.groupby('a', dropna=True).transform('sum')
     Out[3]:
        b
     0  5
@@ -471,14 +471,14 @@ did not have the same index as the input.
     2  5
 
     In [3]: # Should have one additional row with the value np.nan
-            df.groupby('a', dropna=True).transform(lambda x: x.sum())
+       ...: df.groupby('a', dropna=True).transform(lambda x: x.sum())
     Out[3]:
        b
     0  5
     1  5
 
     In [3]: # The value in the last row is np.nan interpreted as an integer
-            df.groupby('a', dropna=True).transform('ffill')
+       ...: df.groupby('a', dropna=True).transform('ffill')
     Out[3]:
                          b
     0                    2
@@ -486,7 +486,7 @@ did not have the same index as the input.
     2 -9223372036854775808
 
     In [3]: # Should have one additional row with the value np.nan
-            df.groupby('a', dropna=True).transform(lambda x: x)
+       ...: df.groupby('a', dropna=True).transform(lambda x: x)
     Out[3]:
        b
     0  2
@@ -979,8 +979,8 @@ results. (:issue:`46560`)
     In [1]: df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
 
     In [2]: # Reading the next line without knowing the contents of df, one would
-            # expect the result to contain the products for both columns a and b.
-            df[["a", "b"]].prod()
+       ...: # expect the result to contain the products for both columns a and b.
+       ...: df[["a", "b"]].prod()
     Out[2]:
     a    2
     dtype: int64
