@@ -1191,7 +1191,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left, right = value.left, value.right
             self.left._validate_fill_value(left)
             self.left._validate_fill_value(right)
-        elif is_valid_na_for_dtype(value, self.left.dtype):
+        elif is_valid_na_for_dtype(value, self.dtype) or is_valid_na_for_dtype(
+            value, self.left.dtype
+        ):
             # GH#18295
             left = right = self.left._na_value
         else:
@@ -1206,7 +1208,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         left, right = self._validate_scalar(value)
 
-        if is_valid_na_for_dtype(value, self.left.dtype):
+        if isna(value):
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 # GH#45484 TypeError, not ValueError, matches what we get with

@@ -205,9 +205,12 @@ def reconstruct_object(typ, obj, axes, dtype, name):
     res_t = np.result_type(obj.dtype, dtype)
 
     if not isinstance(typ, partial) and issubclass(typ, PandasObject):
+        # obj is a new numexpr result with no other owner, so the only reason to
+        #  copy it is to get column-major layout, see GH#57459
+        copy = not obj.flags.f_contiguous
         if name is None:
-            return typ(obj, dtype=res_t, **axes)
-        return typ(obj, dtype=res_t, name=name, **axes)
+            return typ(obj, dtype=res_t, copy=copy, **axes)
+        return typ(obj, dtype=res_t, name=name, copy=copy, **axes)
 
     # special case for pathological things like ~True/~False
     if hasattr(res_t, "type") and typ == np.bool_ and res_t != np.bool_:

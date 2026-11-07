@@ -593,7 +593,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
-* Regularization functions like ``snap`` and very fast ``asof`` logic.
+* Very fast ``asof`` logic.
 
 ``DatetimeIndex`` objects have all the basic functionality of regular ``Index``
 objects, and a smorgasbord of advanced time series specific methods for easy
@@ -1856,6 +1856,18 @@ end of the interval is closed:
    ts.resample("5Min", closed="right").mean()
 
    ts.resample("5Min", closed="left").mean()
+
+For the end-anchored offsets 'ME', 'YE', 'QE', 'BME', 'BYE', 'BQE', and 'W',
+``closed="right"`` puts the whole last day of each period in its bin, while
+with ``closed="left"`` the bin edge is midnight at the start of that day, so
+timestamps on that day fall in the next bin:
+
+.. ipython:: python
+
+   idx = pd.date_range("2011-01-30", "2011-02-01", freq="12h")
+   ser = pd.Series(range(len(idx)), index=idx)
+   ser.resample("ME", closed="right").count()
+   ser.resample("ME", closed="left").count()
 
 Parameters like ``label`` are used to manipulate the resulting labels.
 ``label`` specifies whether the result is labeled with the beginning or

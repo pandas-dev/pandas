@@ -94,6 +94,11 @@ from pandas._libs.khash cimport (
 
 {{endfor}}
 
+from pandas._libs.khash cimport (
+    kh_put_pymap_noexcept,
+    raise_if_errors,
+)
+
 # ----------------------------------------------------------------------
 # VectorData
 # ----------------------------------------------------------------------
@@ -1406,13 +1411,16 @@ cdef class PyObjectHashTable(HashTable):
 
         hash(key)
 
-        k = kh_put_pymap(self.table, <PyObject*>key, &ret)
+        # noexcept: a key inserted by a call that raised still has to be
+        # INCREF'ed before the exception propagates, see khash.pxd
+        k = kh_put_pymap_noexcept(self.table, <PyObject*>key, &ret)
+        if ret != 0:
+            Py_INCREF(key)
         if kh_exist_pymap(self.table, k):
-            if ret != 0:
-                Py_INCREF(key)
             self.table.vals[k] = val
         else:
             raise KeyError(key)
+        raise_if_errors()
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1428,10 +1436,12 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            k = kh_put_pymap(self.table, <PyObject*>val, &ret)
-            self.table.vals[k] = i
+            # noexcept, see set_item
+            k = kh_put_pymap_noexcept(self.table, <PyObject*>val, &ret)
             if ret != 0:
                 Py_INCREF(val)
+            self.table.vals[k] = i
+            raise_if_errors()
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1530,8 +1540,10 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_get_pymap(self.table, <PyObject*>val)
             if k == self.table.n_buckets:
                 # k hasn't been seen yet
-                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                # noexcept, see set_item
+                k = kh_put_pymap_noexcept(self.table, <PyObject*>val, &ret)
                 Py_INCREF(val)
+                raise_if_errors()
                 uniques.append(val)
                 if return_inverse:
                     self.table.vals[k] = count
