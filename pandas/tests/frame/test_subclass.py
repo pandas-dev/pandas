@@ -559,11 +559,11 @@ class TestDataFrameSubclassing:
 
         df["id"] = df.index
         exp_data = {
-            "X": x.tolist() + x.tolist(),
-            "A": ["a", "b", "c", "d", "e", "f"],
-            "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-            "year": [1970, 1970, 1970, 1980, 1980, 1980],
-            "id": [0, 1, 2, 0, 1, 2],
+            "X": [x[0], x[0], x[1], x[1], x[2], x[2]],
+            "A": ["a", "d", "b", "e", "c", "f"],
+            "B": [2.5, 3.2, 1.2, 1.3, 0.7, 0.1],
+            "year": [1970, 1980, 1970, 1980, 1970, 1980],
+            "id": [0, 0, 1, 1, 2, 2],
         }
         expected = tm.SubclassedDataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
