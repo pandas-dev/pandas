@@ -531,7 +531,7 @@ Parsing datetimes with mixed time zones is deprecated and shows a warning unless
 
   In [7]: data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
 
-  In [8]:  pd.to_datetime(data, utc=False)
+  In [8]: pd.to_datetime(data, utc=False)
   Out[8]:
   Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
 

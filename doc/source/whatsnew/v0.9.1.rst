@@ -161,7 +161,7 @@ New features
        In [1]: xl = pd.ExcelFile('data/test.xls')
 
        In [2]: xl.parse('Sheet1', index_col=0, parse_dates=True,
-                        parse_cols='A:D')
+          ...:          parse_cols='A:D')
 
 
   - Added option to disable pandas-style tick locators and formatters
