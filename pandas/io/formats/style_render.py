@@ -1069,10 +1069,10 @@ class StylerRenderer:
             Character used as thousands separator for floats, complex and integers.
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
-            in cell display string with HTML-safe sequences.
+            in the display strings of data cells with HTML-safe sequences.
             Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
-            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-            LaTeX-safe sequences.
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the display strings of data
+            cells with LaTeX-safe sequences.
             Use 'latex-math' to replace the characters the same way as in 'latex' mode,
             except for math substrings, which either are surrounded
             by two characters ``$`` or start with the character ``\(`` and
@@ -1333,10 +1333,10 @@ class StylerRenderer:
             Character used as thousands separator for floats, complex and integers.
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
-            in cell display string with HTML-safe sequences.
+            in the display strings of index or column labels with HTML-safe sequences.
             Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
-            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-            LaTeX-safe sequences.
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the display strings of
+            index or column labels with LaTeX-safe sequences.
             Escaping is done before ``formatter``.
         hyperlinks : {"html", "latex"}, optional
             Convert string patterns containing https://, http://, ftp:// or www. to
@@ -1689,10 +1689,10 @@ class StylerRenderer:
             Character used as thousands separator for floats, complex and integers.
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
-            in cell display string with HTML-safe sequences.
+            in the display strings of index or column names with HTML-safe sequences.
             Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
-            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-            LaTeX-safe sequences.
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the display strings of
+            index or column names with LaTeX-safe sequences.
             Escaping is done before ``formatter``.
         hyperlinks : {"html", "latex"}, optional
             Convert string patterns containing https://, http://, ftp:// or www. to
