@@ -315,6 +315,7 @@ class TestLocIterableScalarKey:
         expected = pd.DataFrame({"A": [0, 1, 2]}, index=pd.Index(["a", "b", key]))
         tm.assert_frame_equal(df, expected)
 
+
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
     def test_loc_npstr(self):

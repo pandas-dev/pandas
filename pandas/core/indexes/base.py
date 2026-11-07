@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import abc
 from copy import deepcopy
 from datetime import (
     datetime,
@@ -3679,7 +3678,7 @@ class Index(IndexOpsMixin, PandasObject):
     def symmetric_difference(
         self,
         other: Axes,
-        result_name: abc.Hashable | None = None,
+        result_name: Hashable | None = None,
         sort: bool | None = None,
     ) -> Index:
         """
