@@ -4144,6 +4144,20 @@ cdef class QuarterOffset(SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
+            if self._day_opt in ("start", "business_start"):
+                # GH#8435
+                from pandas.errors import Pandas4Warning
+
+                name = type(self).__name__
+                warnings.warn(
+                    f"The default startingMonth for {name} will change from 3 "
+                    f"to 1 in a future version, matching the '{self._prefix}' "
+                    "frequency alias. Pass startingMonth explicitly (3 for the "
+                    "current behavior, 1 for the future default) to silence "
+                    "this warning.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             startingMonth = self._default_starting_month
         self._startingMonth = startingMonth
 
@@ -4296,7 +4310,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         Examples
         --------
         >>> ts = pd.Timestamp(2022, 1, 1)
-        >>> freq = pd.offsets.BQuarterBegin()
+        >>> freq = pd.offsets.BQuarterBegin(startingMonth=3)
         >>> freq.is_on_offset(ts)
         False
         >>> ts = pd.Timestamp(2022, 3, 1)
@@ -4401,6 +4415,10 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth : int, default 3
         The month of the year in which quarters start.
 
+        .. deprecated:: 3.2.0
+            The default will change to 1 in a future version, matching the
+            ``"BQS"`` frequency alias. Pass ``startingMonth`` explicitly.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -4409,13 +4427,13 @@ cdef class BQuarterBegin(QuarterOffset):
     --------
     >>> from pandas.tseries.offsets import BQuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BQuarterBegin()
+    >>> ts + BQuarterBegin(startingMonth=3)
     Timestamp('2020-06-01 05:01:15')
-    >>> ts + BQuarterBegin(2)
+    >>> ts + BQuarterBegin(2, startingMonth=3)
     Timestamp('2020-09-01 05:01:15')
     >>> ts + BQuarterBegin(startingMonth=2)
     Timestamp('2020-08-03 05:01:15')
-    >>> ts + BQuarterBegin(-1)
+    >>> ts + BQuarterBegin(-1, startingMonth=3)
     Timestamp('2020-03-02 05:01:15')
 
     Attributes
@@ -4499,6 +4517,10 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth : int, default 3
         The month of the year in which quarters start.
 
+        .. deprecated:: 3.2.0
+            The default will change to 1 in a future version, matching the
+            ``"QS"`` frequency alias. Pass ``startingMonth`` explicitly.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -4506,7 +4528,7 @@ cdef class QuarterBegin(QuarterOffset):
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
-    >>> ts + pd.offsets.QuarterBegin()
+    >>> ts + pd.offsets.QuarterBegin(startingMonth=3)
     Timestamp('2022-03-01 00:00:00')
 
     Attributes

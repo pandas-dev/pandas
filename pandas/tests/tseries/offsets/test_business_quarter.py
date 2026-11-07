@@ -10,6 +10,9 @@ from datetime import datetime
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
@@ -27,11 +30,11 @@ def test_quarterly_dont_normalize():
     offsets = (BQuarterEnd, BQuarterBegin)
 
     for klass in offsets:
-        result = date + klass()
+        result = date + klass(startingMonth=3)
         assert result.time() == date.time()
 
 
-@pytest.mark.parametrize("offset", [BQuarterBegin(), BQuarterEnd()])
+@pytest.mark.parametrize("offset", [BQuarterBegin(startingMonth=3), BQuarterEnd()])
 def test_on_offset(offset):
     dates = [
         datetime(2016, m, d)
@@ -45,10 +48,20 @@ def test_on_offset(offset):
         assert res == slow_version
 
 
+def test_bquarter_begin_default_starting_month_deprecated():
+    # GH#8435
+    msg = "The default startingMonth for BQuarterBegin will change from 3 to 1"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        offset = BQuarterBegin()
+    assert offset == BQuarterBegin(startingMonth=3)
+
+    with tm.assert_produces_warning(None):
+        BQuarterBegin(startingMonth=3)
+        BQuarterEnd()
+
+
 class TestBQuarterBegin:
     def test_repr(self):
-        expected = "<BusinessQuarterBegin: startingMonth=3>"
-        assert repr(BQuarterBegin()) == expected
         expected = "<BusinessQuarterBegin: startingMonth=3>"
         assert repr(BQuarterBegin(startingMonth=3)) == expected
         expected = "<BusinessQuarterBegin: startingMonth=1>"
