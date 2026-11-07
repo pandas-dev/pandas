@@ -4501,6 +4501,10 @@ cdef class QuarterBegin(QuarterOffset):
 
     See Also
     --------
+    :class:`~pandas.tseries.offsets.HalfYearBegin` :
+        Half-year offset. With ``n=1``, its resample bins follow
+        ``startingMonth`` rather than where the data starts, which a
+        non-unitary ``QuarterBegin`` such as ``"2QS-MAR"`` does not.
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
