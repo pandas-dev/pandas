@@ -16099,11 +16099,15 @@ class DataFrame(NDFrame, OpsMixin):
         left_on : Hashable or a sequence of the previous, or array-like
             Column or index level names to join on in the left DataFrame. Can also
             be an array or list of arrays of the length of the left DataFrame.
-            These arrays are treated as if they are columns.
+            These arrays, including :class:`Series` and :class:`Index` objects, are
+            used as join key values, not column names. To use an :class:`Index` of
+            column names, convert it to a list first.
         right_on : Hashable or a sequence of the previous, or array-like
             Column or index level names to join on in the right DataFrame. Can also
             be an array or list of arrays of the length of the right DataFrame.
-            These arrays are treated as if they are columns.
+            These arrays, including :class:`Series` and :class:`Index` objects, are
+            used as join key values, not column names. To use an :class:`Index` of
+            column names, convert it to a list first.
         left_index : bool, default False
             Use the index from the left DataFrame as the join key(s). If it is a
             MultiIndex, the number of keys in the other DataFrame (either the index
