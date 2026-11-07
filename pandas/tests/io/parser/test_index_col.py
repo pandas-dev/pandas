@@ -358,6 +358,26 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("index_col", ["a", 0, ["a", "b"], [0, "b"]])
+@pytest.mark.parametrize("index_dtype", [None, "int32[pyarrow]"])
+def test_dtype_dict_omits_index_col(pyarrow_parser_only, index_col, index_dtype):
+    # GH#68041
+    parser = pyarrow_parser_only
+    data = "a,b,c\n1,2,3\n4,5,6\n"
+    dtype = {"c": "int32[pyarrow]"}
+    if index_dtype is not None:
+        dtype["a"] = index_dtype
+
+    result = parser.read_csv(
+        StringIO(data), index_col=index_col, dtype=dtype, dtype_backend="pyarrow"
+    )
+    expected = pd.DataFrame(
+        {"a": [1, 4], "b": [2, 5], "c": [3, 6]}, dtype="int64[pyarrow]"
+    ).astype(dtype)
+    expected = expected.set_index(["a", "b"] if isinstance(index_col, list) else "a")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", [str, object])
 def test_scalar_dtype_for_index_col(all_parsers, dtype, using_infer_string, request):
     # GH#45801 a scalar dtype applies to the index column too, like the c
