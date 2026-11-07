@@ -45,3 +45,4 @@ Linting checks require [pre-commit](https://pre-commit.com/), installed in a con
 - [contributing_codebase.rst](doc/source/development/contributing_codebase.rst) — all code standards: pre-commit, backward compatibility, typing, tests, benchmarks
 - [contributing_documentation.rst](doc/source/development/contributing_documentation.rst) — docs structure and building
 - [policies.rst](doc/source/development/policies.rst) — versioning and deprecation policy
+- [PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) — requirements the contributor will be asked for
