@@ -166,6 +166,10 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             mask = mask.copy()
         return values, mask
 
+    if isinstance(values, np.ma.MaskedArray):
+        mask = np.ma.getmaskarray(values)
+        values = values.data
+
     original = values
     if not copy:
         values = np.asarray(values)
@@ -181,7 +185,8 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
 
     elif values.dtype.kind == "b" and checker(dtype):
         # fastpath
-        mask = np.zeros(len(values), dtype=np.bool_)
+        if mask is None:
+            mask = np.zeros(len(values), dtype=np.bool_)
         if not copy:
             values = np.asarray(values, dtype=default_dtype)
         else:
@@ -245,7 +250,10 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
 
     # we copy as need to coerce here
     if mask.any():
-        values = values.copy()
+        if values.dtype.kind in "iub" and not is_integer_dtype(dtype):
+            values = values.astype(dtype, copy=True)
+        else:
+            values = values.copy()
         values[mask] = dtype_cls._internal_fill_value
     if inferred_type in ("string", "unicode"):
         # casts from str are always safe since they raise

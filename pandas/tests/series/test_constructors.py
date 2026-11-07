@@ -610,6 +610,50 @@ class TestSeriesConstructors:
         expected = pd.Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_maskedarray_large_uint64(self):
+        # GH#60050
+        data = ma.masked_array(
+            data=[0, 18446744073709551614, 18446744073709551615],
+            mask=[True, False, False],
+            dtype="uint64",
+        )
+        result_series = pd.Series(data, dtype="UInt64")
+        expected_series = pd.Series(
+            [pd.NA, 18446744073709551614, 18446744073709551615], dtype="UInt64"
+        )
+        tm.assert_series_equal(result_series, expected_series)
+
+        result_df = pd.DataFrame(data, dtype="UInt64")
+        expected_df = pd.DataFrame(expected_series)
+        tm.assert_frame_equal(result_df, expected_df)
+
+        result_df_dict = pd.DataFrame({"a": data}, dtype="UInt64")
+        expected_df_dict = pd.DataFrame({"a": expected_series})
+        tm.assert_frame_equal(result_df_dict, expected_df_dict)
+
+        result_index = pd.Index(data, dtype="UInt64")
+        expected_index = pd.Index(expected_series, dtype="UInt64")
+        tm.assert_index_equal(result_index, expected_index)
+
+    def test_constructor_maskedarray_boolean(self):
+        # GH#60050
+        data = ma.masked_array(
+            data=[True, False, True],
+            mask=[True, False, False],
+            dtype=bool,
+        )
+        result_series = pd.Series(data, dtype="boolean")
+        expected_series = pd.Series([pd.NA, False, True], dtype="boolean")
+        tm.assert_series_equal(result_series, expected_series)
+
+        result_df = pd.DataFrame(data, dtype="boolean")
+        expected_df = pd.DataFrame(expected_series)
+        tm.assert_frame_equal(result_df, expected_df)
+
+        result_index = pd.Index(data, dtype="boolean")
+        expected_index = pd.Index(expected_series, dtype="boolean")
+        tm.assert_index_equal(result_index, expected_index)
+
     def test_series_ctor_plus_datetimeindex(self):
         rng = pd.date_range("20090415", "20090519", freq="B")
         data = dict.fromkeys(rng, 1)
