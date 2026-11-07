@@ -1067,3 +1067,86 @@ def test_long_mantissa_correctly_rounded(value, sign):
     # GH#44145 a leading "+" bypassed the correctly rounded parser
     result = pd.to_numeric(pd.Series([sign + value]))
     tm.assert_series_equal(result, pd.Series([float(sign + value)]), check_exact=True)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_nan_mask_sync(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    ser = pd.Series([1.0, np.nan], dtype=np.float64)
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+
+    assert result.isna().sum() == 1
+    assert result.dropna().size == 1
+    expected_dtype = (
+        "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
+    )
+    expected = pd.Series([1.0, pd.NA], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_nan_mask_sync_distinguish_nan_and_na(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1.0, np.nan], dtype=np.float64)
+        result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+        expected_dtype = (
+            "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
+        )
+        expected = pd.Series([1.0, np.nan], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_masked_float_nan_sync(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    from pandas.core.arrays import FloatingArray
+
+    data = np.array([np.nan, 2.0, np.nan, 4.0, np.nan], dtype=np.float64)
+    mask = np.array([True, False, False, False, False], dtype=np.bool_)
+    ser = pd.Series(FloatingArray(data, mask))
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+
+    expected_dtype = (
+        "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
+    )
+    expected = pd.Series([pd.NA, 2.0, pd.NA, 4.0, pd.NA], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_downcast_with_nan(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    ser = pd.Series([1.0, np.nan])
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend, downcast="integer")
+    expected_dtype = "Int8" if dtype_backend == "numpy_nullable" else "int8[pyarrow]"
+    expected = pd.Series([1, pd.NA], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+@pytest.mark.parametrize(
+    "data, expected_vals, expected_type",
+    [
+        (["1", "x", None], [1, pd.NA, pd.NA], "int64[pyarrow]"),
+        (["1", "2", "x", None], [1, 2, pd.NA, pd.NA], "int64[pyarrow]"),
+        (["x", "y", None], [pd.NA, pd.NA, pd.NA], "double[pyarrow]"),
+    ],
+)
+def test_to_numeric_arrow_with_dtype_backend(
+    dtype_backend, data, expected_vals, expected_type
+):
+    # GH 63732
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce", dtype_backend=dtype_backend)
+    expected = pd.Series(expected_vals, dtype=expected_type)
+    tm.assert_series_equal(result, expected)

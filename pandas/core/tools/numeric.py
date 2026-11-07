@@ -11,6 +11,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     lib,
     missing as libmissing,
@@ -266,7 +268,13 @@ def to_numeric(
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
-        pass
+        if (
+            dtype_backend is not lib.no_default
+            and not isinstance(values_dtype, ArrowDtype)
+            and values.dtype.kind == "f"
+            and is_nan_na()
+        ):
+            new_mask = np.isnan(values)
     elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
@@ -330,6 +338,8 @@ def to_numeric(
             mask = new_mask
         else:
             mask = mask.copy()
+            if new_mask is not None:
+                mask[~mask] = new_mask
         assert isinstance(mask, np.ndarray)
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
