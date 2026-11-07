@@ -13,6 +13,15 @@ Resampling
 :class:`pandas.api.typing.Resampler` instances are returned by
 resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
 
+Resampler Classes
+~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   DatetimeIndexResampler
+   PeriodIndexResampler
+   TimedeltaIndexResampler
+
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
