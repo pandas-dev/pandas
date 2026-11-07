@@ -388,7 +388,7 @@ def read_sql_table(
     assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
-        if not pandas_sql.has_table(table_name):
+        if not pandas_sql.has_table(table_name, schema=schema):
             raise ValueError(f"Table {table_name} not found")
 
         table = pandas_sql.read_table(
@@ -397,6 +397,7 @@ def read_sql_table(
             coerce_float=coerce_float,
             parse_dates=parse_dates,
             columns=columns,
+            schema=schema,
             chunksize=chunksize,
             dtype_backend=dtype_backend,
         )
@@ -936,7 +937,7 @@ def has_table(table_name: str, con, schema: str | None = None) -> bool:
     boolean
     """
     with pandasSQL_builder(con, schema=schema) as pandas_sql:
-        return pandas_sql.has_table(table_name)
+        return pandas_sql.has_table(table_name, schema=schema)
 
 
 table_exists = has_table
@@ -2521,15 +2522,24 @@ class ADBCDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
-            depth="tables", db_schema_filter=schema, table_name_filter=name
+            depth="tables", table_name_filter=name
         ).read_all()
 
-        for catalog_schema in meta["catalog_db_schemas"].to_pylist():
-            if not catalog_schema:
+        for catalog in meta.to_pylist():
+            if not catalog["catalog_db_schemas"]:
                 continue
-            for schema_record in catalog_schema:
+            for schema_record in catalog["catalog_db_schemas"]:
                 if not schema_record:
                     continue
+                if schema is not None:
+                    # A driver without schemas (SQLite) lists an attached
+                    # database as a catalog, which is what ``schema.table``
+                    # names in its SQL.
+                    db_schema = (
+                        schema_record["db_schema_name"] or catalog["catalog_name"]
+                    )
+                    if db_schema != schema:
+                        continue
 
                 for table_record in schema_record["db_schema_tables"]:
                     if table_record["table_name"] == name:
