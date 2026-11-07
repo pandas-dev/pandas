@@ -16638,9 +16638,15 @@ class DataFrame(NDFrame, OpsMixin):
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
-            correl = libalgos.nancorr(mat, minp=min_periods)
+            if np.isfinite(mat).all():
+                correl = nanops.finite_corr_matrix(mat, min_periods)
+            else:
+                correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
-            correl = libalgos.nancorr_spearman(mat, minp=min_periods)
+            if np.isfinite(mat).all():
+                correl = nanops.finite_corr_matrix(libalgos.rank_2d(mat), min_periods)
+            else:
+                correl = libalgos.nancorr_spearman(mat, minp=min_periods)
         elif method == "kendall":
             correl = libalgos.nancorr_kendall(mat, minp=min_periods)
         elif callable(method):

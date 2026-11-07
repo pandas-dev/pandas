@@ -144,6 +144,7 @@ Other deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`DataFrame.corr` with ``method="pearson"`` or ``method="spearman"`` on large data without missing values (:issue:`40956`)
 - Performance improvement in :meth:`DataFrame.explode` when exploding multiple columns (:issue:`53967`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69632`, :issue:`69748`, :issue:`70140`)
 - Performance improvement and reduced memory usage in :meth:`DataFrame.loc` and :meth:`Series.loc` with a :class:`MultiIndex` when selecting on the first level with ``slice(None)`` for the remaining levels (:issue:`52714`)
@@ -194,6 +195,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.corr` with ``method="pearson"`` returning incorrect results for data without missing values that is nearly constant, has a large offset, or has very large or very small values (:issue:`40956`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)
