@@ -729,12 +729,13 @@ class BaseGrouper:
             or not data._flags._allows_duplicate_labels
             or lib.is_range_indexer(sort_idx, len(data))
             or any(
-                isinstance(blk.values, (BaseMaskedArray, StringArray))
+                isinstance(blk.values, (BaseMaskedArray, Categorical, StringArray))
                 for blk in data._mgr.blocks
             )
         ):
             # Metadata is not part of the key; already-sorted data needs no copy;
-            # to_numpy on masked and python-backed strings is writable, see GH#63099.
+            # to_numpy on masked and python-backed strings (see GH#63099) and values
+            # on categoricals are writable.
             return klass(
                 data,
                 self.ngroups,
@@ -1507,7 +1508,7 @@ def _is_indexed_like(obj, axes) -> bool:
 
 def _values_key(data: NDFrame) -> Hashable:
     """
-    Hashable identifier for the arrays backing data, shared by views of them.
+    Hashable identifier for the arrays backing data.
 
     Only meaningful while something holds a reference to those arrays.
     """
@@ -1520,7 +1521,8 @@ def _values_key(data: NDFrame) -> Hashable:
             address = values.__array_interface__["data"][0]
             layout = (address, values.shape, values.strides)
         else:
-            # slices of an ExtensionArray share refs but are distinct objects
+            # slices of an ExtensionArray share refs but are distinct objects; a list
+            # selection makes new ones each time, so it always misses
             layout = id(values)
         locs = blk.mgr_locs.as_array.tobytes() if data.ndim == 2 else None
         blocks.append((id(blk.refs), layout, locs, blk.dtype))
