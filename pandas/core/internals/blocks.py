@@ -798,7 +798,10 @@ class Block(PandasObject, libinternals.Block):
         if is_re(to_replace) and not regex_can_match:
             return [self.copy(deep=False)]
 
-        if isinstance(self.dtype, ArrowDtype) and is_string_dtype(self.dtype):
+        if callable(value):
+            # The result is a string, but may introduce a new category.
+            can_hold_value = not isinstance(self.dtype, CategoricalDtype)
+        elif isinstance(self.dtype, ArrowDtype) and is_string_dtype(self.dtype):
             # can_hold_element returns True for every ArrowDtype (GH#70458).
             #  Refuse bytes, which pyarrow would decode, so they upcast as with
             #  StringDtype; a regex value raises on write (pyarrow's own error)

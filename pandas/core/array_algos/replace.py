@@ -10,6 +10,7 @@ from re import Pattern
 from typing import (
     TYPE_CHECKING,
     Any,
+    cast,
 )
 
 import numpy as np
@@ -22,6 +23,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         ArrayLike,
         Scalar,
@@ -130,24 +133,15 @@ def replace_regex(
     Alters values in-place.
     """
 
-    # deal with replacing values with objects (strings) that match but
-    # whose replacement is not a string (numeric, nan, object)
-    if isna(value) or not isinstance(value, str):
+    substitute = isinstance(value, str) or callable(value)
 
-        def re_replacer(s):
-            if is_re(rx) and isinstance(s, str):
-                return value if rx.search(s) is not None else s
-            else:
-                return s
-
-    else:
-        # value is guaranteed to be a string here, s can be either a string
-        # or null if it's null it gets returned
-        def re_replacer(s):
-            if is_re(rx) and isinstance(s, str):
-                return rx.sub(value, s)
-            else:
-                return s
+    def re_replacer(s: object) -> object:
+        if not isinstance(s, str):
+            return s
+        if substitute:
+            replacement = cast("str | Callable[[re.Match[str]], str]", value)
+            return rx.sub(replacement, s)
+        return value if rx.search(s) is not None else s
 
     f = np.vectorize(re_replacer, otypes=[np.object_])
 
