@@ -63,7 +63,10 @@ from pandas.util._validators import (
     validate_min_count,
 )
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_is_view,
+    block_cast_dtype,
+)
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -217,6 +220,7 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.indexers.objects import BaseIndexer
+    from pandas.core.internals.blocks import Block
     from pandas.core.resample import Resampler
 
     _StylerKwargs: TypeAlias = dict[str, Any] | list[dict[str, Any]]
@@ -6778,8 +6782,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_type = dtype[self.name]
                 return self.astype(new_type, errors=errors)
 
-            # GH#44417 cast to Series so we can use .iat below, which will be
-            #  robust in case we
+            # GH#44417 a Series of target dtypes, reindexed to the columns below,
+            #  copes with duplicated column names
             from pandas import Series
 
             dtype_ser = Series(dtype, dtype=object)
@@ -6794,20 +6798,72 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
-            results = []
-            for i, (col_name, col) in enumerate(self.items()):
-                cdt = dtype_ser.iat[i]
-                if isna(cdt):
-                    res_col = col.copy(deep=False)
-                else:
+            def cast_by_column(locs, column_dtypes) -> list[Block]:
+                results = []
+                for loc, column_dtype in zip(locs, column_dtypes, strict=True):
                     try:
-                        res_col = col.astype(dtype=cdt, errors=errors)
+                        res = self._ixs(loc, axis=1).astype(column_dtype, errors=errors)
                     except ValueError as ex:
                         ex.args = (
-                            f"{ex}: Error while type casting for column '{col_name}'",
+                            f"{ex}: Error while type casting for column "
+                            f"'{self.columns[loc]}'",
                         )
                         raise
-                results.append(res_col)
+                    results.append(res)
+                return list(concat(results, axis=1)._mgr.blocks)
+
+            mgr = self._mgr
+            assert isinstance(mgr, BlockManager)  # Series case is handled above
+            current = mgr.get_dtypes()
+            mask = dtype_ser.notna().to_numpy()
+            locs = np.flatnonzero(mask)
+            column_dtypes = dtype_ser.to_numpy()[mask]
+
+            # GH#63433: cast columns going to the same numeric/bool numpy dtype
+            #  together, and every other column on its own as Series.astype does.
+            batches: dict[np.dtype, list[int]] = {}
+            by_column = np.ones(len(locs), dtype=bool)
+            resolved: dict[str | np.dtype | type, np.dtype | None] = {}
+            for i, column_dtype in enumerate(column_dtypes):
+                if not isinstance(column_dtype, (str, np.dtype, type)):
+                    continue
+                if column_dtype not in resolved:
+                    resolved[column_dtype] = block_cast_dtype(column_dtype)
+                target = resolved[column_dtype]
+                if target is None:
+                    continue
+                by_column[i] = False
+                if current[locs[i]] != target:
+                    # a column already of the target dtype stays as it is, a view
+                    batches.setdefault(target, []).append(locs[i])
+
+            if errors not in ("raise", "ignore"):
+                # let Series.astype reject an invalid errors value, as before
+                batches.clear()
+                by_column[:] = True
+            try:
+                pieces = [
+                    (
+                        np.asarray(batch, dtype=np.intp),
+                        self.iloc[:, batch].astype(target)._mgr.blocks,
+                    )
+                    for target, batch in batches.items()
+                ]
+                if by_column.any():
+                    pieces.append(
+                        (
+                            locs[by_column],
+                            cast_by_column(locs[by_column], column_dtypes[by_column]),
+                        )
+                    )
+            except Exception:
+                # Redo every column on its own, so the error (or errors="ignore")
+                #  is the same as when casting column by column.
+                pieces = [(locs, cast_by_column(locs, column_dtypes))]
+
+            new_mgr = mgr.replace_columns(pieces)
+            new = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            return new.__finalize__(self, method="astype")
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs

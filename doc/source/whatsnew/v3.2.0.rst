@@ -149,6 +149,7 @@ Performance improvements
 - Performance improvement and reduced memory usage in :meth:`DataFrame.loc` and :meth:`Series.loc` with a :class:`MultiIndex` when selecting on the first level with ``slice(None)`` for the remaining levels (:issue:`52714`)
 - Performance improvement in :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` with ``engine="numexpr"`` (:issue:`71806`)
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
+- Performance improvement in :meth:`DataFrame.astype` with a dict of dtypes (:issue:`63433`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with a ``date_format`` built from ``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f`` and ``%N`` (:issue:`44764`)
