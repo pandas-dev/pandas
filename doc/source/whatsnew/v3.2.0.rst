@@ -194,6 +194,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.agg` with ``axis=1`` on an empty DataFrame whose columns share a datetime-like dtype returning ``float64`` instead of preserving that dtype (:issue:`32802`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)

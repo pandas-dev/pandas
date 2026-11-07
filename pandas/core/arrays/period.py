@@ -90,6 +90,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         AnyArrayLike,
+        AxisInt,
         Dtype,
         DtypeObj,
         FillnaOptions,
@@ -1373,6 +1374,20 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     # ------------------------------------------------------------------
     # Reductions
+
+    def any(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
+        # GH#34479: override DatetimeLikeArrayMixin.any (nanops on i8 ordinals)
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'any'"
+        )
+
+    def all(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
+        # GH#34479: override DatetimeLikeArrayMixin.all (nanops on i8 ordinals)
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'all'"
+        )
 
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs

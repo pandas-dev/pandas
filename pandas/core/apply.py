@@ -28,6 +28,7 @@ from pandas.core.dtypes.cast import (
     is_nested_object,
 )
 from pandas.core.dtypes.common import (
+    is_datetime64_any_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_list_like,
@@ -38,6 +39,7 @@ from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -121,6 +123,22 @@ _frame_reduction_names = frozenset(
         "var",
     }
 )
+
+
+def _axis1_agg_via_reduction(func: str, obj) -> bool:
+    """True when axis=1 string agg should call the named reduction directly."""
+    # skew: apply_str rejects axis=1; keep the transpose path.
+    if func not in _frame_reduction_names or func == "skew":
+        return False
+    # all/any: homogeneous datetime64/Period raise on the reduction path;
+    # mixed frames succeed after transpose-to-object — keep that for them.
+    if func in ("all", "any"):
+        # no columns: find_common_type([]) raises; reduction path is fine.
+        if not obj._blk_dtypes:
+            return True
+        common = find_common_type(obj._blk_dtypes)
+        return is_datetime64_any_dtype(common) or isinstance(common, PeriodDtype)
+    return True
 
 
 def _stack_as_object(dtypes: list[DtypeObj]) -> bool:
@@ -1125,6 +1143,15 @@ class FrameApply(NDFrameApply):
     def agg(self):
         obj = self.obj
         axis = self.axis
+
+        # GH#32802: call the named reduction with axis=1 instead of
+        # transposing (transpose of a 0-row frame drops dtypes).
+        if (
+            axis == 1
+            and isinstance(self.func, str)
+            and _axis1_agg_via_reduction(self.func, obj)
+        ):
+            return self.apply_str()
 
         # TODO: Avoid having to change state
         self.obj = self.obj if self.axis == 0 else self.obj.T
