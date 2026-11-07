@@ -81,6 +81,8 @@ class TestNumpyEADtype:
             "datetime64[ns, US/Eastern]",
             "datetime64[ns, Asia/Tokyo]",
             "datetime64[ns, UTC]",
+            "datetime64[ns, UTC+05:30:15]",
+            "datetime64[ns, UTC-07:52:58]",
             # GH#33885 check that the M8 alias is understood
             "M8[ns, US/Eastern]",
             "M8[ns, Asia/Tokyo]",
