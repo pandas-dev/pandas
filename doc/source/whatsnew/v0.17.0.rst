@@ -918,11 +918,10 @@ Previous behavior:
 
 .. code-block:: ipython
 
-   In [27]:
-   df_with_missing.to_hdf('file.h5',
-                          key='df_with_missing',
-                          format='table',
-                          mode='w')
+   In [27]: df_with_missing.to_hdf('file.h5',
+      ...:                         key='df_with_missing',
+      ...:                         format='table',
+      ...:                         mode='w')
 
    In [28]: pd.read_hdf('file.h5', 'df_with_missing')
 
