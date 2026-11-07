@@ -250,6 +250,88 @@ class TestSeriesSortingKey:
         expected = series.iloc[[0, 4, 3, 1, 2, 5]]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "ascending, expected_index", [(True, [0, 2, 1]), (False, [1, 2, 0])]
+    )
+    def test_sort_values_key_map_unordered_categorical(self, ascending, expected_index):
+        # GH#58153
+        ser = pd.Series(["March", "Dec", "April"], dtype="category")
+        mapping = {"March": 0, "April": 1, "Dec": 3}
+
+        result = ser.sort_values(key=lambda x: x.map(mapping), ascending=ascending)
+
+        tm.assert_series_equal(result, ser.loc[expected_index])
+
+    def test_sort_values_key_map_swaps_categories(self):
+        # GH#58153 the new labels are the same set as the old ones
+        ser = pd.Series(["a", "b", "c"], dtype="category")
+        mapping = {"a": "c", "b": "b", "c": "a"}
+
+        result = ser.sort_values(key=lambda x: x.map(mapping))
+
+        tm.assert_series_equal(result, ser.loc[[2, 1, 0]])
+
+    @pytest.mark.parametrize(
+        "na_position, expected_index",
+        [("last", [0, 2, 1, 3]), ("first", [3, 0, 2, 1])],
+    )
+    def test_sort_values_key_map_categorical_with_na(self, na_position, expected_index):
+        # GH#58153
+        ser = pd.Series(["March", "Dec", "April", None], dtype="category")
+        mapping = {"March": 0, "April": 1, "Dec": 3}
+
+        result = ser.sort_values(key=lambda x: x.map(mapping), na_position=na_position)
+
+        tm.assert_series_equal(result, ser.loc[expected_index])
+
+    def test_sort_values_key_map_categorical_unsortable_labels(self):
+        # GH#58153 labels that cannot be compared keep the category order
+        ser = pd.Series(["b", "a"], dtype="category")
+
+        result = ser.sort_values(key=lambda x: x.map({"a": 1, "b": "z"}))
+
+        tm.assert_series_equal(result, ser.loc[[1, 0]])
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            lambda x: x.cat.reorder_categories(["c", "a", "b", "d"]),
+            lambda x: x.cat.set_categories(["c", "a", "b", "d", "e"]),
+            lambda x: x.cat.reorder_categories(["c", "b", "a", "d"]),
+        ],
+    )
+    def test_sort_values_key_keeps_explicit_category_order(self, key):
+        # GH#58153 a key that only sets the order must still be respected
+        ser = pd.Series(
+            pd.Categorical(["a", "b", "c"], categories=["c", "b", "a", "d"])
+        )
+
+        result = ser.sort_values(key=key)
+        expected = ser.iloc[np.argsort(key(ser).cat.codes.to_numpy(), kind="stable")]
+
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_values_key_moves_unused_category_only(self):
+        # GH#58153 codes are unchanged and the values are the same, so the
+        # category order is still what the key asks for
+        ser = pd.Series(pd.Categorical(["a", "b"], categories=["b", "a", "c", "d"]))
+
+        result = ser.sort_values(
+            key=lambda x: x.cat.reorder_categories(["b", "a", "d", "c"])
+        )
+
+        tm.assert_series_equal(result, ser.loc[[1, 0]])
+
+    def test_sort_values_key_map_ordered_categorical_keeps_order(self):
+        # GH#58153 category order is meaningful for ordered categoricals
+        ser = pd.Series(
+            pd.Categorical(["low", "HIGH"], categories=["low", "HIGH"], ordered=True)
+        )
+
+        result = ser.sort_values(key=lambda x: x.map(str.lower))
+
+        tm.assert_series_equal(result, ser)
+
 
 def test_sort_values_inplace_depr():
     msg = "The inplace keyword in Series.sort_values is deprecated"

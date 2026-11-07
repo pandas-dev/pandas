@@ -807,6 +807,37 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
 
         tm.assert_frame_equal(result, expected)
 
+    def test_sort_values_key_map_unordered_categorical(self):
+        # GH#58153
+        df = pd.DataFrame(
+            {
+                "a": [1, 5, 3],
+                "month": pd.Categorical(["March", "Dec", "April"]),
+            }
+        )
+        mapping = {"March": 0, "April": 1, "Dec": 3}
+
+        result = df.sort_values("month", key=lambda x: x.map(mapping))
+
+        tm.assert_frame_equal(result, df.loc[[0, 2, 1]])
+
+    def test_sort_values_key_map_unordered_categorical_multiple_by(self):
+        # GH#58153
+        df = pd.DataFrame(
+            {
+                "x": [1, 1, 1],
+                "month": pd.Categorical(["March", "Dec", "April"]),
+            }
+        )
+        mapping = {"March": 0, "April": 1, "Dec": 3}
+
+        def key(col):
+            return col.map(mapping) if col.name == "month" else col
+
+        result = df.sort_values(["x", "month"], key=key)
+
+        tm.assert_frame_equal(result, df.loc[[0, 2, 1]])
+
 
 @pytest.fixture
 def df_none():
