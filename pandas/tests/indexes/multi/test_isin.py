@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -135,3 +137,13 @@ def test_isin_wrong_length_tuples_raises_gh26622(values, bad_len, position):
     )
     with pytest.raises(ValueError, match=msg):
         midx.isin(values)
+
+
+def test_isin_dataframe_values_deprecated():
+    # GH#43460
+    midx = pd.MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]])
+    df = pd.DataFrame([[0, 0]], columns=midx[:2])
+    msg = "Passing a DataFrame to isin is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = midx.isin(df)
+    tm.assert_numpy_array_equal(result, np.array([True, True, False]))
