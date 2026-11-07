@@ -299,6 +299,15 @@ you add or change within Pandas is covered by a test. Please see our
 `code coverage dashboard through Codecov <https://app.codecov.io/github/pandas-dev/pandas>`_
 for more information.
 
+The dashboard covers only Python code. To measure coverage of the C/C++ code in
+``pandas/_libs`` on Linux or macOS, use :ref:`pixi <contributing.pixi>`:
+
+.. code-block:: shell
+
+   pixi run c-coverage-build
+   pixi run c-coverage-test pandas/tests/io/parser  # runs serially; defaults to all of pandas
+   pixi run c-coverage-report  # writes build/c-coverage-html/index.html
+
 Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
