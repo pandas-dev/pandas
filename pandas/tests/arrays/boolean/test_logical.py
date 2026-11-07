@@ -267,3 +267,44 @@ def test_logical_op_datetimelike_raises(op):
         op(left, right)
     with pytest.raises(TypeError, match=msg):
         op(right, left)
+
+
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        (operator.or_, [True, None, None]),
+        (operator.and_, [None, False, None]),
+        (operator.xor, [None, None, None]),
+    ],
+)
+@pytest.mark.parametrize(
+    "other",
+    [
+        np.array([np.nan] * 3),
+        np.array([np.nan] * 3, dtype=object),
+        np.array([None] * 3, dtype=object),
+        [np.nan] * 3,
+        [None] * 3,
+    ],
+)
+def test_logical_op_with_missing_values(op, expected, other):
+    # GH#71478 missing values in a non-boolean operand were cast to True
+    arr = pd.array([True, False, None], dtype="boolean")
+    expected = pd.array(expected, dtype="boolean")
+
+    tm.assert_extension_array_equal(op(arr, other), expected)
+    tm.assert_extension_array_equal(op(other, arr), expected)
+
+
+def test_logical_op_with_partial_missing_values():
+    # GH#71478 only the missing positions should be treated as NA
+    arr = pd.array([True, False, None, False], dtype="boolean")
+    other = np.array([np.nan, 1.0, 0.0, np.nan])
+
+    result = arr | other
+    expected = pd.array([True, True, None, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = arr & other
+    expected = pd.array([None, False, False, False], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
