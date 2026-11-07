@@ -955,7 +955,6 @@ def _mask_datetimelike_result(
     return result
 
 
-@_ensure_numeric_input
 @bottleneck_switch()
 @_datetimelike_compat
 def nanmean(
@@ -989,6 +988,24 @@ def nanmean(
     >>> nanops.nanmean(s.values)
     np.float64(1.5)
     """
+    try:
+        values = _ensure_numeric(values)
+    except TypeError:
+        # GH#71476: a Series can contain numeric ndarrays. Validate each
+        # element without trying to cast the outer array to a scalar dtype.
+        if values.dtype != object or not any(
+            isinstance(value, np.ndarray) for value in values.flat
+        ):
+            raise
+        values = values.copy()
+        for index, value in np.ndenumerate(values):
+            if isinstance(value, np.ndarray):
+                values[index] = _ensure_numeric(value)
+            else:
+                scalar = np.empty(1, dtype=object)
+                scalar[0] = value
+                values[index] = _ensure_numeric(scalar)[0]
+
     if values.size == 0:
         # GH#18976
         return cast("float", _na_for_min_count(values, axis))
