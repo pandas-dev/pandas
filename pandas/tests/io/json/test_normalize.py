@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 
 import numpy as np
@@ -593,6 +594,74 @@ class TestJSONNormalize:
         tm.assert_index_equal(result.index, idx)
         result = pd.json_normalize(series, "counties")
         tm.assert_index_equal(result.index, idx.repeat([3, 2]))
+
+    @pytest.mark.parametrize("max_level", [None, 1])
+    @pytest.mark.parametrize(
+        "dtype, all_columns",
+        [
+            ("Int64", True),
+            ({"id": "Int64"}, False),
+            (defaultdict(lambda: "Int64"), True),
+        ],
+    )
+    def test_dtype(self, dtype, all_columns, max_level):
+        # GH#33414 an int with a missing value must not round-trip through float64
+        big = 2**53 + 1
+        data = [{"id": big, "n": {"x": 1}}, {"n": {"x": 2}}]
+        result = pd.json_normalize(data, max_level=max_level, dtype=dtype)
+        expected = pd.DataFrame(
+            {"id": pd.array([big, None], dtype="Int64"), "n.x": [1, 2]}
+        )
+        if all_columns:
+            expected["n.x"] = expected["n.x"].astype("Int64")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("max_level", [None, 1])
+    def test_dtype_series_index(self, max_level):
+        # GH#33414
+        data = pd.Series([{"a": 1, "n": {"x": 1}}, {"n": {"x": 2}}], index=["p", "q"])
+        result = pd.json_normalize(data, max_level=max_level, dtype={"a": "Int64"})
+        expected = pd.DataFrame(
+            {"a": pd.array([1, None], dtype="Int64"), "n.x": [1, 2]}, index=["p", "q"]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_dtype_defaultdict_explicit_key(self):
+        # GH#33414 a listed key beats the default, and the mapping is not modified
+        dtype = defaultdict(lambda: "Int64", {"b": "float32"})
+        result = pd.json_normalize([{"a": 1, "b": 2}], dtype=dtype)
+        expected = pd.DataFrame(
+            {"a": pd.array([1], dtype="Int64"), "b": np.array([2], dtype="float32")}
+        )
+        tm.assert_frame_equal(result, expected)
+        assert dict(dtype) == {"b": "float32"}
+
+    def test_dtype_record_path(self):
+        # GH#33414 dict keys are the prefixed output names; unmatched keys ignored
+        big = 2**53 + 1
+        data = [
+            {"k": big, "recs": [{"a": big}, {"a": None}]},
+            {"k": None, "recs": [{"a": 1}]},
+        ]
+        dtype = {"r.a": "Int64", "m.k": "Int64", "a": "int8", "missing": "int8"}
+        result = pd.json_normalize(
+            data, "recs", meta=["k"], record_prefix="r.", meta_prefix="m.", dtype=dtype
+        )
+        expected = pd.DataFrame(
+            {
+                "r.a": pd.array([big, None, 1], dtype="Int64"),
+                "m.k": pd.array([big, big, None], dtype="Int64"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [object, {"s": object, "k": object}])
+    def test_dtype_object_keeps_strings_object(self, dtype):
+        # GH#33414
+        data = [{"k": "a", "recs": [{"s": "x"}, {"s": "y"}]}]
+        result = pd.json_normalize(data, "recs", meta=["k"], dtype=dtype)
+        expected = pd.DataFrame({"s": ["x", "y"], "k": ["a", "a"]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestNestedToRecord:

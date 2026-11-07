@@ -27,12 +27,19 @@ from pandas import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import (
+        Hashable,
+        Iterable,
+    )
 
     from pandas._typing import (
+        Dtype,
+        DtypeArg,
         IgnoreRaise,
         Scalar,
     )
+
+    from pandas import Index
 
 
 def convert_to_line_delimits(s: str) -> str:
@@ -299,6 +306,53 @@ def _validate_meta(meta: str | list[str | list[str]] | None) -> None:
             )
 
 
+def _records_to_frame(
+    records: dict[str, Any] | list[Any],
+    index: Index | None,
+    dtype: DtypeArg | None,
+    record_prefix: str | None,
+) -> DataFrame:
+    """
+    Construct the record columns of ``json_normalize``'s result.
+
+    Columns given a dtype are built from the raw values rather than cast
+    after inference, which would round ints with missing values through
+    float64 (GH#33414).
+    """
+    if dtype is None or isinstance(dtype, abc.Mapping):
+        result = DataFrame(records, index=index)
+    else:
+        result = DataFrame(records, index=index, dtype=object)
+    if record_prefix is not None:
+        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
+    if dtype is None:
+        return result
+
+    raw = None if isinstance(dtype, abc.Mapping) else result
+    for loc, col in enumerate(result.columns):
+        col_dtype = _get_col_dtype(dtype, col)
+        if col_dtype is None:
+            continue
+        if raw is None:
+            raw = DataFrame(records, dtype=object)
+        values = raw.iloc[:, loc]._values
+        # a Series, so that setting it does not re-infer object as str
+        col_values = Series(values, index=result.index, dtype=col_dtype, copy=False)
+        result.isetitem(loc, col_values)
+    return result
+
+
+def _get_col_dtype(dtype: DtypeArg | None, col: Hashable) -> Dtype | None:
+    if not isinstance(dtype, abc.Mapping):
+        return dtype
+    if col in dtype:
+        return dtype[col]
+    if isinstance(dtype, defaultdict) and dtype.default_factory is not None:
+        # like read_csv; default_factory() rather than dtype[col], which inserts
+        return dtype.default_factory()
+    return None
+
+
 @set_module("pandas")
 def json_normalize(
     data: dict[Any, Any] | list[dict[Any, Any]] | Series,
@@ -309,6 +363,7 @@ def json_normalize(
     errors: IgnoreRaise = "raise",
     sep: str = ".",
     max_level: int | None = None,
+    dtype: DtypeArg | None = None,
 ) -> DataFrame:
     """
     Normalize semi-structured JSON data into a flat table.
@@ -343,6 +398,13 @@ def json_normalize(
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
+    dtype : dtype or dict of {Hashable: dtype}, default None
+        Data type for the columns of the result, either for all columns or,
+        as a dict, for the columns named by its keys (after any prefix is
+        applied). Keys that do not match a column are ignored; the default
+        of a ``defaultdict`` applies to the columns it does not list.
+
+        .. versionadded:: 3.2.0
 
     Returns
     -------
@@ -366,6 +428,14 @@ def json_normalize(
     0  1.0     Coleen      Volk        NaN         NaN         NaN
     1  NaN        NaN       NaN       Mark      Regner         NaN
     2  2.0        NaN       NaN        NaN         NaN  Faye Raker
+
+    Use ``dtype`` to keep the ``id`` column as integers.
+
+    >>> pd.json_normalize(data, dtype={"id": "Int64"})
+         id name.first name.last name.given name.family        name
+    0     1     Coleen      Volk        NaN         NaN         NaN
+    1  <NA>        NaN       NaN       Mark      Regner         NaN
+    2     2        NaN       NaN        NaN         NaN  Faye Raker
 
     >>> data = [
     ...     {
@@ -575,7 +645,9 @@ def json_normalize(
         and record_prefix is None
         and max_level is None
     ):
-        return DataFrame(_simple_json_normalize(data, sep=sep), index=index)
+        return _records_to_frame(
+            _simple_json_normalize(data, sep=sep), index, dtype, None
+        )
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
@@ -587,10 +659,7 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        result = DataFrame(data, index=index)
-        if record_prefix is not None:
-            result = result.rename(columns=lambda x: f"{record_prefix}{x}")
-        return result
+        return _records_to_frame(data, index, dtype, record_prefix)
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -640,10 +709,7 @@ def json_normalize(
 
     _recursive_extract(data, record_path, {}, level=0)
 
-    result = DataFrame(records)
-
-    if record_prefix is not None:
-        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
+    result = _records_to_frame(records, None, dtype, record_prefix)
 
     # Data types, a problem
     for k, v in meta_vals.items():
@@ -664,7 +730,12 @@ def json_normalize(
             for i, val in enumerate(v):
                 values[i] = val
 
-        result[k] = values.repeat(lengths)
+        values = values.repeat(lengths)
+        col_dtype = _get_col_dtype(dtype, k)
+        if col_dtype is None:
+            result[k] = values
+        else:
+            result[k] = Series(values, index=result.index, dtype=col_dtype, copy=False)
     if index is not None:
         result.index = index.repeat(lengths)
     return result
