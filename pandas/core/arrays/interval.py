@@ -1164,6 +1164,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left_take, right_take)
 
     def _validate_listlike(self, value):
+        value_left: Index | ExtensionArray
+        value_right: Index | ExtensionArray
         # list-like of intervals
         try:
             array = IntervalArray(value)
@@ -1173,6 +1175,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # wrong type: not interval or NA
             msg = f"'value' should be an interval type, got {type(value)} instead."
             raise TypeError(msg) from err
+
+        mask = array.isna()
+        if mask.any() and not is_valid_na_for_dtype(np.nan, self.left.dtype):
+            # missing entries have NaN endpoints, which e.g. a Float64 subtype
+            #  would store as values under future.distinguish_nan_and_na
+            value_left = pd_array(np.asarray(value_left))
+            value_right = pd_array(np.asarray(value_right))
+            value_left[mask] = NA
+            value_right[mask] = NA
 
         try:
             self.left._validate_fill_value(value_left)
