@@ -2223,6 +2223,7 @@ pandas type     Table Schema type
 =============== =================
 int64           integer
 float64         number
+complex128      object
 bool            boolean
 datetime64[ns]  datetime
 timedelta64[ns] duration
@@ -2344,7 +2345,8 @@ for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table"
 
 The ``extDtype`` key carries the name of the extension, if you have properly registered
 the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
-and re-convert the serialized data into your custom dtype.
+and re-convert the serialized data into your custom dtype. Complex columns also use
+this key, with the name of their NumPy dtype.
 
 .. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
