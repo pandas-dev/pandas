@@ -819,6 +819,19 @@ class BaseMethodsTests:
         with pytest.raises(ValueError, match=msg):
             ser.where(cond, [first, second, first])
 
+    def test_np_where(self, data):
+        # GH#26380 np.where keeps the dtype
+        arr = data[:4]
+        other = data[4:8]
+        cond = np.array([True, False, True, False])
+        expected = data.take([0, 5, 2, 7])
+
+        result = np.where(cond, arr, other)
+        tm.assert_extension_array_equal(result, expected)
+
+        result = np.where(~cond, other, arr)
+        tm.assert_extension_array_equal(result, expected)
+
     def test_mask_listlike_other_inplace(self, data):
         # GH#63842
         cls = type(data)
