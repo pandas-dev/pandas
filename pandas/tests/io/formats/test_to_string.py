@@ -721,6 +721,20 @@ class TestDataFrameToString:
         result = pd.DataFrame(data=data).to_string(max_rows=0)
         assert result == expected
 
+    @pytest.mark.parametrize("max_rows", [2, 5])
+    @pytest.mark.parametrize(
+        "index, expected",
+        [
+            (True, "      a\n0   1.1\n..  ..."),
+            (False, "  a\n1.1\n .."),
+        ],
+    )
+    def test_to_string_min_rows_one(self, max_rows, index, expected):
+        # GH#64824
+        df = pd.DataFrame({"a": [1.1] * 10})
+        result = df.to_string(max_rows=max_rows, min_rows=1, index=index)
+        assert result == expected
+
     @pytest.mark.parametrize(
         "max_cols, max_rows, expected",
         [

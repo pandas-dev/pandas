@@ -707,7 +707,7 @@ class DataFrameFormatter:
             _slice = np.hstack([np.arange(row_num), np.arange(_len - row_num, _len)])
             self.tr_frame = self.tr_frame.iloc[_slice]
         else:
-            row_num = cast("int", self.max_rows)
+            row_num = max(self.max_rows_fitted, 0)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
         self.tr_row_num = row_num
 
