@@ -1027,6 +1027,73 @@ def test_embedded_nul_is_not_a_float(value):
 @pytest.mark.parametrize(
     "data, expected",
     [
+        ([1.0, "nan", None], [1.0, np.nan, pd.NA]),
+        ([1.0, "nan"], [1.0, np.nan]),
+        (["nan", 1.0], [np.nan, 1.0]),
+        (["nan", "nan"], [np.nan, np.nan]),
+        ([1.0, None], [1.0, pd.NA]),
+        (["1.0", np.nan], [1.0, np.nan]),
+        ([1.0, np.nan], [1.0, np.nan]),
+        ([np.nan, 1.0], [np.nan, 1.0]),
+        ([1, np.nan, None], [1.0, np.nan, pd.NA]),
+    ],
+)
+def test_string_distinguish_nan_and_specific_na_True(data, expected):
+    # GH#65237 - preserve nan values and keep them distingusihable between nan and na
+    ser = pd.Series(data, dtype=object)
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        res = pd.to_numeric(ser, dtype_backend="numpy_nullable")
+        expected = pd.Series(expected, dtype="Float64")
+        tm.assert_series_equal(res, expected)
+        expected_mask = [v is None or v is pd.NA for v in data]
+        assert res.array._mask.tolist() == expected_mask
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [1.0, "nan", None],
+        [1.0, "nan"],
+        ["nan", 1.0],
+        ["nan", "nan"],
+        [1.0, None],
+        ["1.0", np.nan],
+        [1.0, np.nan],
+        [np.nan, 1.0],
+    ],
+)
+def test_to_numeric_nan_vs_na(using_nan_is_na, data):
+    # GH#65237
+    ser = pd.Series(data, dtype=object)
+    res = pd.to_numeric(ser, dtype_backend="numpy_nullable")
+
+    def is_nan_like(v):
+        return (isinstance(v, float) and v != v) or v == "nan"
+
+    def is_na(v):
+        return v is None or v is pd.NA
+
+    expected_vals = []
+    expected_mask = []
+    for v in data:
+        if is_na(v) or (using_nan_is_na and is_nan_like(v)):
+            expected_vals.append(pd.NA)
+            expected_mask.append(True)
+        elif is_nan_like(v):
+            expected_vals.append(np.nan)
+            expected_mask.append(False)
+        else:
+            expected_vals.append(float(v))
+            expected_mask.append(False)
+
+    expected = pd.Series(expected_vals, dtype="Float64")
+    tm.assert_series_equal(res, expected)
+    assert res.array._mask.tolist() == expected_mask
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
         (["1.5", 2j], [1.5 + 0j, 2j]),
         ([True, 2j], [1 + 0j, 2j]),
     ],
