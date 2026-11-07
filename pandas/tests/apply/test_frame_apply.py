@@ -2121,6 +2121,44 @@ def test_agg_list_like_signed_int_and_float_is_float(funcs, values):
     assert result["a"].dtype == np.float64
 
 
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "uint64[pyarrow]"])
+@pytest.mark.parametrize("funcs", [["max", "mean"], ["sum", "median"]])
+def test_agg_list_like_arrow_int_and_float(dtype, funcs):
+    # GH#71875 rounds like numpy instead of raising ArrowInvalid
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.Series([10**17, 10**17 + 1], dtype=dtype)})
+
+    result = df.agg(funcs)
+
+    expected = df["a"].agg(funcs).astype("double[pyarrow]")
+    tm.assert_series_equal(result["a"], expected)
+
+
+def test_agg_list_like_arrow_float_and_large_int_labels():
+    # GH#71875 idxmax gives numpy int64 labels above 2**53
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {"a": pd.array([1.0, 2.0], dtype="double[pyarrow]")},
+        index=[10**17, 10**17 + 1],
+    )
+
+    result = df.agg(["idxmax", "mean"])
+
+    expected = df["a"].agg(["idxmax", "mean"]).astype("double[pyarrow]")
+    tm.assert_series_equal(result["a"], expected)
+
+
+def test_agg_list_like_arrow_int_and_float_keeps_na():
+    # GH#71875 a missing int result stays NA rather than becoming NaN
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.Series([1, None], dtype="int64[pyarrow]")})
+
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = df.agg(["max", "mean"], skipna=False)
+
+    assert result["a"].isna().all()
+
+
 def test_agg_list_like_unsigned_and_signed_common_int():
     # GH#65031 uint32 and int64 have a common integer dtype, so nothing is lost
     df = pd.DataFrame({"a": pd.Series([5, 1], dtype="uint32")})
