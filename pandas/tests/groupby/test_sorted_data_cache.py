@@ -131,6 +131,24 @@ def test_writable_to_numpy_not_cached(values, dtype):
     tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
 
 
+def test_writable_categorical_values_not_cached():
+    # GH#51077 sorting Series.values in a UDF must not reach later calls
+    ser = pd.Series(pd.Categorical([5, 4, 3, 2, 1, 9]))
+    keys = [1, 0, 1, 0, 1, 0]
+    gb = ser.groupby(keys)
+    first = lambda x: x.iloc[0]
+
+    def sort_in_place(group):
+        arr = group.values
+        arr.sort()
+        return arr[0]
+
+    gb.agg(sort_in_place)
+
+    assert len(gb._grouper._splitter_cache) == 0
+    tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
+
+
 def test_masked_source_to_numpy_write_seen():
     # GH#51077
     ser = pd.Series([1, 2, 3, 4], dtype="Int64")
