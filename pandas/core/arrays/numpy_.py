@@ -200,7 +200,7 @@ class NumpyExtensionArray(
         # Parent's searchsorted calls _validate_setitem_value, which is
         # too strict for search (e.g. rejects float into int). Delegate
         # directly to numpy which handles cross-dtype searches correctly.
-        return self._ndarray.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
+        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         result = super()._cast_pointwise_result(values)

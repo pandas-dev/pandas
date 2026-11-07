@@ -119,6 +119,13 @@ class UuidExtensionArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self._data)
 
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        return np.array(list(self), dtype=dtype)
+
     def copy(self) -> Self:
         return type(self)([UUID(bytes=x.tobytes()) for x in self._data], copy=True)
 

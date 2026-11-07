@@ -141,6 +141,13 @@ class DateArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self._year)  # all 3 arrays are enforced to have the same length
 
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        return np.array(list(self), dtype=dtype)
+
     def __getitem__(self, item: PositionalIndexer):
         if isinstance(item, int):
             return dt.date(self._year[item], self._month[item], self._day[item])

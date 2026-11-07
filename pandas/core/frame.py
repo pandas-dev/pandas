@@ -17278,7 +17278,7 @@ class DataFrame(NDFrame, OpsMixin):
             if acc_dtype is not None and vals.dtype != acc_dtype:
                 vals = vals.astype(acc_dtype)
             if name in ("min", "max"):
-                middle = ufunc.reduce(vals, axis=0)  # type: ignore[arg-type]
+                middle = ufunc.reduce(vals, axis=0)
             elif name == "mean":
                 middle = nanops.nansum(vals, axis=0, skipna=skipna, min_count=0)  # type: ignore[arg-type]
             elif name in ("sum", "prod"):

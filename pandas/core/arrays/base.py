@@ -31,7 +31,10 @@ from pandas._libs import (
 )
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -217,11 +220,13 @@ class ExtensionArray:
     * __repr__ : A default repr for the ExtensionArray.
     * _formatter : Print scalars inside a Series or DataFrame.
 
+    Subclasses should implement ``__array__``, such that ``np.asarray(arr)``
+    matches ``arr.to_numpy()``. The default implementation is deprecated.
+
     Some methods convert the ExtensionArray to an ndarray of Python objects,
-    with ``self.astype(object)`` or with ``np.asarray(self)`` when
-    ``__array__`` is not implemented, which may be expensive. When
-    performance is a concern, we highly recommend overriding the following
-    methods:
+    with ``self.astype(object)`` or with ``np.asarray(self)``, which may be
+    expensive. When performance is a concern, we highly recommend overriding
+    the following methods:
 
     * unique
     * factorize / _values_for_factorize
@@ -705,6 +710,63 @@ class ExtensionArray:
                 raise TypeError(f"index must be an integer, got {type(index)}")
             return self[index]
 
+    def __array__(
+        self, dtype: np.dtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
+        """
+        Convert to a NumPy ndarray for ``np.asarray(arr)``.
+
+        Subclasses should implement this. ``np.asarray(arr)`` with no arguments
+        should match ``arr.to_numpy()``. The default implementation iterates over
+        the elements, which is slow and is deprecated.
+
+        Parameters
+        ----------
+        dtype : numpy.dtype, optional
+            The dtype of the result.
+        copy : bool or None, optional
+            ``False`` requires a zero-copy conversion. Returning a new array,
+            and raising ``ValueError`` for ``copy=False``, is always valid;
+            the default implementation does this.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        # GH#45093
+        mro_array = getattr(super(), "__array__", None)
+        if mro_array is not None:
+            # e.g. a mixin listed after ExtensionArray in the bases
+            if copy is None:
+                return mro_array(dtype)
+            return mro_array(dtype, copy=copy)
+
+        warnings.warn(
+            f"{type(self).__name__} does not implement __array__. Converting it "
+            "to a NumPy array by iterating over its elements is deprecated and "
+            "will raise in a future version. ExtensionArray subclasses should "
+            "implement __array__.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        values = list(self)
+        if dtype is not None and dtype != object:
+            return np.array(values, dtype=dtype)
+        try:
+            result = np.array(values, dtype=dtype)
+        except ValueError:
+            # ragged list-like elements
+            result = None
+        if result is None or result.ndim != self.ndim:
+            # keep list-like elements as elements; numpy would otherwise
+            #  broadcast them when assigning into an object array
+            return construct_1d_object_array_from_listlike(values)
+        return result
+
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -757,7 +819,7 @@ class ExtensionArray:
             result.flags.writeable = False
 
         if na_value is not lib.no_default:
-            result[self.isna()] = na_value  # type: ignore[index]
+            result[self.isna()] = na_value
 
         return result
 

@@ -1569,9 +1569,7 @@ def searchsorted(
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    # Argument 1 to "searchsorted" of "ndarray" has incompatible type
-    # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
-    return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
+    return arr.searchsorted(value, side=side, sorter=sorter)
 
 
 # ---- #

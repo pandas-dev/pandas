@@ -126,8 +126,11 @@ limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
 
 pandas makes no restrictions on how an extension array is created via its
 ``__new__`` or ``__init__``, and puts no restrictions on how you store your
-data. We do require that your array be convertible to a NumPy array, even if
-this is relatively expensive (as it is for ``Categorical``).
+data. We do require that your array be convertible to a NumPy array by
+implementing ``__array__``, even if this is relatively expensive (as it is for
+``Categorical``). ``np.asarray(arr)`` should match ``arr.to_numpy()``.
+``__array__`` should accept ``dtype`` and ``copy`` keywords; returning a new
+array, and raising ``ValueError`` for ``copy=False``, is always valid.
 
 They may be backed by none, one, or many NumPy arrays. For example,
 :class:`pandas.Categorical` is an extension array backed by two arrays,
