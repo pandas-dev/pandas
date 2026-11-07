@@ -156,6 +156,7 @@ Performance improvements
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
 - Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
+- Reduced memory usage of :meth:`Series.duplicated`, non-unique :meth:`Index.duplicated`, and the corresponding ``drop_duplicates`` methods with ``keep="first"`` or ``keep="last"`` on data with many distinct values (:issue:`39799`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.bug_fixes:
