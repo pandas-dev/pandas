@@ -757,15 +757,15 @@ def raise_assert_detail(
         index_values = np.asarray(index_values)
 
     if isinstance(index_values, np.ndarray):
-        msg += f"\n[index]: {pprint_thing(index_values)}"
+        msg += f"\n[index]: {pprint_thing(index_values, use_display_precision=False)}"
 
     if isinstance(left, np.ndarray):
-        left = pprint_thing(left)
+        left = pprint_thing(left, use_display_precision=False)
     elif isinstance(left, (CategoricalDtype, StringDtype, NumpyEADtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
-        right = pprint_thing(right)
+        right = pprint_thing(right, use_display_precision=False)
     elif isinstance(right, (CategoricalDtype, StringDtype, NumpyEADtype)):
         right = repr(right)
 
