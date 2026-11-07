@@ -319,7 +319,7 @@ and attributes without holding entire tree in memory (:issue:`45442`).
     ...      "/path/to/downloaded/enwikisource-latest-pages-articles.xml",
     ...      iterparse = {"page": ["title", "ns", "id"]}
     ...  )
-    df
+    In [2]: df
     Out[2]:
                                                          title   ns        id
     0                                       Gettysburg Address    0     21450
