@@ -1348,6 +1348,42 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("categorical", [False, True])
+@pytest.mark.parametrize("with_na", [False, True])
+@pytest.mark.parametrize("multi_columns", [False, True])
+def test_unstack_sort_false_unused_labels(categorical, with_na, multi_columns):
+    # GH 64150
+    level = pd.Index(["unused0", "b", "unused2", "a"], name="group")
+    labels = pd.Index(["a", "b"], name="group")
+    if categorical:
+        level = pd.CategoricalIndex(level, ordered=True)
+        labels = pd.CategoricalIndex(labels, categories=level.categories, ordered=True)
+    codes = [3, 1]
+    values = [10, 20]
+    if with_na:
+        codes.insert(1, -1)
+        values.insert(1, 30)
+        labels = labels.insert(1, np.nan)
+    index = pd.MultiIndex(
+        levels=[level, [0]], codes=[codes, [0] * len(codes)], names=["group", "row"]
+    )
+    columns = pd.Index(["value"])
+    expected_columns = pd.MultiIndex.from_product(
+        [columns, labels], names=[None, "group"]
+    )
+    if multi_columns:
+        columns = pd.MultiIndex.from_tuples([("value", "amount")])
+        expected_columns = pd.MultiIndex.from_product(
+            [["value"], ["amount"], labels], names=[None, None, "group"]
+        )
+    frame = pd.DataFrame(values, index=index, columns=columns)
+    expected = pd.DataFrame(
+        [values], index=pd.Index([0], name="row"), columns=expected_columns
+    )
+    result = frame.unstack(level="group", sort=False)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", ["float64", "Float64"])
 def test_unstack_sort_false(frame_or_series, dtype):
     # GH 15105
