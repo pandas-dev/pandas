@@ -51,6 +51,16 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+# GH#71034 pyarrow takes the number of columns from the first row it reads,
+# not from "names", unlike the other engines, which pad rows that are shorter
+# than "names".
+_NAMES_COLUMN_COUNT_NOTE = (
+    "The 'pyarrow' engine takes the number of columns from the first "
+    "row it reads, not from 'names'; the 'c' and 'python' engines can "
+    "pad rows that are shorter than 'names'."
+)
+
+
 def _pyarrow_parse_type(dtype) -> pa.DataType | None:
     """
     The pyarrow type a column should be parsed as in order to faithfully
@@ -386,6 +396,16 @@ class ArrowParserWrapper(ParserBase):
                     "Number of passed names did not match number of "
                     "header fields in the file"
                 )
+            if len(self.names) > num_cols:
+                # GH#71034 pyarrow measured the width on the first row it read,
+                # so a wider row was skipped by 'on_bad_lines' rather than
+                # padded as the other engines do for shorter rows; explain the
+                # limitation instead of the confusing "Length mismatch" error
+                # that assigning the names afterwards would produce.
+                raise ParserError(
+                    f"Expected {len(self.names)} columns, but the file only "
+                    f"contained {num_cols}. {_NAMES_COLUMN_COUNT_NOTE}"
+                )
             if len(self.names) < num_cols:
                 # GH#65862 Leading columns not covered by names form the index,
                 # as with other engines. Pad the names to the expected length;
@@ -602,7 +622,11 @@ class ArrowParserWrapper(ParserBase):
             # pyarrow engine matches the "c" and "python" engines.
             if "Empty CSV file" in str(err):
                 raise EmptyDataError("No columns to parse from file") from err
-            raise ParserError(err) from err
+            msg = str(err)
+            if self.names is not None and "columns, got" in msg:
+                # GH#71034 explain where the count pyarrow reports comes from
+                msg += f". {_NAMES_COLUMN_COUNT_NOTE}"
+            raise ParserError(msg) from err
         except TypeError as err:
             # pyarrow can only read from a binary buffer; a text-mode file
             # handle raises a bare "a bytes-like object is required" TypeError.
