@@ -15,6 +15,7 @@ from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     EmptyDataError,
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 
@@ -1174,3 +1175,24 @@ def test_uint64_max_read_as_float_raises(pyarrow_parser_only):
     parser = pyarrow_parser_only
     with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
         parser.read_csv(StringIO("x\n18446744073709551615\n"), dtype={"x": "uint64"})
+
+
+def test_dtype_integer_key_implicit_index(all_parsers):
+    # GH#18566 key 0 is the implicit index column, so "b" keeps its dtype
+    parser = all_parsers
+    data = "b,c\n1,2,3"
+    if parser.engine == "pyarrow":
+        with pytest.raises(ParserError, match="Expected 2 columns, got 3"):
+            parser.read_csv(StringIO(data), dtype={0: "float64"})
+        return
+    if parser.engine == "python":
+        # deprecated: key 0 is "b" among the columns read
+        result = parser.read_csv_check_warnings(
+            Pandas4Warning, r"Integer keys \[0\]", StringIO(data), dtype={0: "float64"}
+        )
+        expected = pd.DataFrame({"b": [2.0], "c": [3]}, index=pd.Index([1]))
+        tm.assert_frame_equal(result, expected)
+        return
+    result = parser.read_csv(StringIO(data), dtype={0: "float64"})
+    expected = pd.DataFrame({"b": [2], "c": [3]}, index=pd.Index([1.0]))
+    tm.assert_frame_equal(result, expected)

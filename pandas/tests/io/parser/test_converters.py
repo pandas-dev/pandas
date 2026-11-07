@@ -9,6 +9,8 @@ from dateutil.parser import parse
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -489,3 +491,38 @@ def test_converter_unhashable_collections(all_parsers, converter, values):
     result = parser.read_csv(StringIO(data), converters={"A": converter})
     expected = pd.DataFrame({"A": values})
     tm.assert_frame_equal(result, expected)
+
+
+def test_converters_integer_key_implicit_index(all_parsers):
+    # GH#18566 the implicit index column is field 0, so key 2 is "c"
+    parser = all_parsers
+    data = "b,c,d\n1,2,3,4\n5,6,7,8"
+    converters = {2: lambda x: int(x) * 10}
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), converters=converters)
+        return
+    if parser.engine == "python":
+        # deprecated: key 2 is "d" among the columns read
+        msg = r"Integer keys \[2\] in 'converters'"
+        result = parser.read_csv_check_warnings(
+            Pandas4Warning, msg, StringIO(data), converters=converters
+        )
+        expected = pd.DataFrame(
+            {"b": [2, 6], "c": [3, 7], "d": [40, 80]}, index=pd.Index([1, 5])
+        )
+        tm.assert_frame_equal(result, expected)
+        return
+    result = parser.read_csv(StringIO(data), converters=converters)
+    expected = pd.DataFrame(
+        {"b": [2, 6], "c": [30, 70], "d": [4, 8]}, index=pd.Index([1, 5])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_converters_integer_key_out_of_range(python_parser_only):
+    # GH#18566 keys past the last column still raise, see GH#57944
+    parser = python_parser_only
+    with pytest.raises(IndexError, match="Integer key 5 is out of range"):
+        parser.read_csv(StringIO("a,b\n1,2"), converters={5: str})
