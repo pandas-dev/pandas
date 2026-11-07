@@ -11,7 +11,8 @@ def get_console_size() -> tuple[int | None, int | None]:
     """
     Return console size as tuple = (width, height).
 
-    Returns (None,None) in non-interactive session.
+    In a non-interactive session an unset width is the terminal width (80 when
+    not a tty) and an unset height is None.
     """
     from pandas._config.config import _global_config as config
 
@@ -21,29 +22,28 @@ def get_console_size() -> tuple[int | None, int | None]:
     # Consider
     # interactive shell terminal, can detect term size
     # interactive non-shell terminal (ipnb/ipqtconsole), cannot detect term
-    # size non-interactive script, should disregard term size
+    # size non-interactive script, uses term width but not height
 
     # in addition
-    # width,height have default values, but setting to 'None' signals
-    # should use Auto-Detection, But only in interactive shell-terminal.
-    # Simple. yeah.
+    # setting width/height to None signals auto-detection
 
     if in_interactive_session():
         if in_ipython_frontend():
-            # sane defaults for interactive non-shell terminal
-            # match default for width,height in config_init
+            # sane defaults for interactive non-shell terminal, which cannot
+            # auto-detect a width (GH#21337)
             from pandas._config.config import get_default_val
 
-            terminal_width = get_default_val("display.width")
+            terminal_width = 80
             terminal_height = get_default_val("display.max_rows")
         else:
             # pure terminal
             terminal_width, terminal_height = get_terminal_size()
     else:
-        terminal_width, terminal_height = None, None
+        # fit script output to the terminal width, GH#21337
+        terminal_width, terminal_height = get_terminal_size()[0], None
 
-    # Note if the User sets width/Height to None (auto-detection)
-    # and we're in a script (non-inter), this will return (None,None)
+    # Note if the User sets height to None (auto-detection)
+    # and we're in a script (non-inter), height will be None
     # caller needs to deal.
     return display_width or terminal_width, display_height or terminal_height
 
