@@ -2564,9 +2564,14 @@ class TableIterator:
         # iterate
         if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
-        current = self.start
-        while current < self.stop:
-            stop = min(current + self.chunksize, self.stop)
+        if self.coordinates is None:
+            current, end = self.start, self.stop
+        else:
+            # the coordinates are already limited to rows in [start, stop), so
+            # walk them by position rather than by row number (GH#71278)
+            current, end = 0, len(self.coordinates)
+        while current < end:
+            stop = min(current + self.chunksize, end)
             if self.coordinates is None:
                 # no `where` filter: iterate by (start, stop) directly so we
                 # don't materialize an np.arange(0, nrows) coordinate array,
@@ -2597,7 +2602,9 @@ class TableIterator:
                 # read_coordinates raises a clear NotImplementedError if the
                 #  where is a column projection (e.g. "columns=['A']") rather
                 #  than a row filter (GH#12953).
-                self.coordinates = self.s.read_coordinates(where=self.where)
+                self.coordinates = self.s.read_coordinates(
+                    where=self.where, start=self.start, stop=self.stop
+                )
 
             return self
 
@@ -5650,7 +5657,7 @@ class AppendableTable(Table):
         values = selection.select_coords()
 
         # delete the rows in reverse order
-        sorted_series = Series(values, copy=False).sort_values()
+        sorted_series = Series(values, copy=False).sort_values(ignore_index=True)
         ln = len(sorted_series)
 
         if ln:

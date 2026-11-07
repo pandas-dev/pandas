@@ -1035,9 +1035,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         Map values using input an input mapping or function.
 
         Maps the values (their categories, not the codes) of the index to new
-        categories. If the mapping correspondence is one-to-one the result is a
-        :class:`~pandas.CategoricalIndex` which has the same order property as
-        the original, otherwise an :class:`~pandas.Index` is returned.
+        categories. If the mapping correspondence is one-to-one and the new
+        values are hashable, the result is a :class:`~pandas.CategoricalIndex`
+        which has the same order property as the original, otherwise an
+        :class:`~pandas.Index` is returned.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
         mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`

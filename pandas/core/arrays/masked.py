@@ -100,24 +100,24 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
-    from pandas import Series
-    from pandas.core.arrays import BooleanArray
+
+    from pandas._libs.missing import NAType
     from pandas._typing import (
-        Dtype,
-        NumpySorter,
-        NumpyValueArrayLike,
         ArrayLike,
         AstypeArg,
         AxisInt,
+        Dtype,
         DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NpDtype,
+        NumpySorter,
+        NumpyValueArrayLike,
         PositionalIndexer,
         RankMethod,
         RankNaOption,
@@ -127,8 +127,12 @@ if TYPE_CHECKING:
         Shape,
         npt,
     )
-    from pandas._libs.missing import NAType
-    from pandas.core.arrays import FloatingArray
+
+    from pandas import Series
+    from pandas.core.arrays import (
+        BooleanArray,
+        FloatingArray,
+    )
 
 from pandas.compat.numpy import function as nv
 
@@ -584,6 +588,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def delete(self, loc, axis: AxisInt = 0) -> Self:
         data = np.delete(self._data, loc, axis=axis)
         mask = np.delete(self._mask, loc, axis=axis)
+        return self._simple_new(data, mask)
+
+    def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
+        if axis is None:
+            axis = 0
+        data = self._data.repeat(repeats, axis=axis)
+        mask = self._mask.repeat(repeats, axis=axis)
         return self._simple_new(data, mask)
 
     def reshape(self, *args, **kwargs) -> Self:
