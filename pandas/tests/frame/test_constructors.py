@@ -287,6 +287,14 @@ class TestDataFrameConstructors:
         df2 = pd.DataFrame(df.values, dtype=df[0].dtype)
         assert df2._mgr.blocks[0].values.flags.c_contiguous
 
+    @pytest.mark.parametrize("copy", [None, True])
+    @pytest.mark.parametrize("dtype", [None, "float64"])
+    def test_constructor_2d_ndarray_copy_is_column_major(self, copy, dtype):
+        # GH#52438 blocks store columns as rows, so c_contiguous means column-major
+        arr = np.arange(6, dtype="float64").reshape(3, 2)
+        df = pd.DataFrame(arr, dtype=dtype, copy=copy)
+        assert df._mgr.blocks[0].values.flags.c_contiguous
+
     def test_1d_object_array_does_not_copy(self, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")

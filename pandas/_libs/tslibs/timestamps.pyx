@@ -2470,6 +2470,11 @@ class Timestamp(_Timestamp):
         >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
         '2020-03-14T15:32:52.192548651'
         """
+        if not isinstance(format, str):
+            raise TypeError(
+                f"strftime() argument 1 must be str, not {type(format).__name__}"
+            )
+
         # Handle %N (nanoseconds) before delegating to datetime.strftime.
         # Replace %% with a placeholder first so that %%N is not misidentified.
         nano_placeholder = "^`NS`^"
