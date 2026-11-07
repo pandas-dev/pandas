@@ -843,3 +843,32 @@ def test_map_masked_result_nan_distinguish_nan_and_na(dtype):
         result = ser.map(lambda x: np.nan if x else 2.5)
         expected = pd.Series(pd.array([np.nan, 2.5], dtype="Float64"))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["Int64", pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize(
+    "mapper, na_action",
+    [
+        ({1: 10}.get, None),
+        ({1: 10}.get, "ignore"),
+        ({1: 10}, None),
+        ({1: 10}, "ignore"),
+        ({1: 10, 0: None}, None),
+    ],
+)
+def test_map_masked_result_none_distinguish_nan_and_na(dtype, mapper, na_action):
+    # None and missing keys became an unmasked NaN, follow-up to GH#71870
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1, 0, None], dtype=dtype)
+        result = ser.map(mapper, na_action=na_action)
+        expected = pd.Series([10, None, None], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = ser.map({1: 2.5, 0: np.nan}.get)
+        expected = pd.Series(pd.array([2.5, np.nan, None], dtype="Float64"))
+        if dtype == "int64[pyarrow]":
+            expected = expected.astype("float64[pyarrow]")
+        tm.assert_series_equal(result, expected)
