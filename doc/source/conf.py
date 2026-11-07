@@ -435,15 +435,14 @@ random.seed(42)"""
 nbsphinx_requirejs_path = ""
 
 # Strip input prompts when copying code cells so only code (not prompts or
-# outputs) is copied. Pattern covers the stock Python REPL, bash, and the
-# IPython prompts emitted by the ipython directive used across the user
-# guide (e.g. `In [1]:` with `...:` continuations, which gain a dot per
-# digit of the cell number: `....:` from `In [10]:`). When prompt lines are
-# detected, only those lines are copied, which excludes outputs
+# outputs) is copied. Pattern covers the stock Python REPL and IPython prompts
+# (e.g. `In [1]:` with `...:` continuations; the ipython directive adds a dot
+# per digit of the cell number, pasted sessions pad with spaces). When prompt
+# lines are detected, only those lines are copied, which excludes outputs
 # automatically. A `... ` line made only of dots and spaces is the ellipsis
 # row of a truncated repr, not a doctest continuation, so it is not a prompt.
 # See https://sphinx-copybutton.readthedocs.io/en/latest/use.html
-copybutton_prompt_text = r">>> |\.\.\. (?![\s.]*$)|\$ |In \[\d*\]: | {3}\.{3,}: "
+copybutton_prompt_text = r">>> |\.\.\. (?![\s.]*$)|In \[\d*\]: | *\.{3,}: "
 copybutton_prompt_is_regexp = True
 
 # Add any paths that contain templates here, relative to this directory.
