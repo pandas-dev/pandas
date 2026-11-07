@@ -56,9 +56,12 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.arrays import (
-    BaseMaskedArray,
+    ArrowExtensionArray,
     Categorical,
-    StringArray,
+    DatetimeArray,
+    IntervalArray,
+    PeriodArray,
+    TimedeltaArray,
 )
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
@@ -728,14 +731,25 @@ class BaseGrouper:
             or data.attrs
             or not data._flags._allows_duplicate_labels
             or lib.is_range_indexer(sort_idx, len(data))
-            or any(
-                isinstance(blk.values, (BaseMaskedArray, Categorical, StringArray))
+            or not all(
+                isinstance(
+                    blk.values,
+                    (
+                        np.ndarray,
+                        ArrowExtensionArray,
+                        DatetimeArray,
+                        IntervalArray,
+                        PeriodArray,
+                        TimedeltaArray,
+                    ),
+                )
                 for blk in data._mgr.blocks
             )
         ):
-            # Metadata is not part of the key; already-sorted data needs no copy;
-            # to_numpy on masked and python-backed strings (see GH#63099) and values
-            # on categoricals are writable.
+            # Metadata is not part of the key; already-sorted data needs no copy.
+            # Other arrays can return a writable view from to_numpy or values, see
+            # GH#63099. Revisit tz-aware, period and interval when Series.values
+            # returns their arrays (Pandas4Warning).
             return klass(
                 data,
                 self.ngroups,
