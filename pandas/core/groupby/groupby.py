@@ -1004,17 +1004,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = result.set_axis(index, axis=0)
             return result
 
-        # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(self._grouper.result_ilocs, copy=False)
-        result = result.set_axis(original_positions, axis=0)
-        result = result.sort_index(axis=0)
+        # row order is scrambled => invert the permutation given by result_ilocs;
+        # rows dropped due to dropna get -1 and are filled with NA
+        result_ilocs = self._grouper.result_ilocs
+        assert len(result) == len(result_ilocs)
         if self._grouper.has_dropped_na:
-            # Add back in any missing rows due to dropna - index here is integral
-            # with values referring to the row of the input so can use RangeIndex
-            result = result.reindex(default_index(len(index)), axis=0)
-        result = result.set_axis(index, axis=0)
-
-        return result
+            indexer = np.full(len(index), -1, dtype=np.intp)
+        else:
+            indexer = np.empty(len(index), dtype=np.intp)
+        indexer[result_ilocs] = np.arange(len(result_ilocs))
+        return result._reindex_with_indexers({0: (index, indexer)}, allow_dups=True)
 
     @final
     @property
