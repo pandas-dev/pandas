@@ -38,6 +38,7 @@ Other enhancements
 - :meth:`DataFrame.to_json`, :meth:`Series.to_json` and :meth:`DataFrame.to_xml` now warn when a compression method is requested but no path is given, since the returned string is not compressed, and raise for an unrecognized ``compression`` as they do with a path (:issue:`32326`)
 - :meth:`Series.astype` and :func:`array` with ``dtype="boolean"`` now convert values the same way as ``astype(bool)`` instead of raising for values other than booleans, 0 and 1 (e.g. ``"False"`` becomes ``True``), with missing values becoming ``NA`` (:issue:`37614`, :issue:`40566`)
 - :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
+- :meth:`Series.skew`, :meth:`Series.kurt`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`.Rolling.skew`, :meth:`.Rolling.kurt`, :meth:`.Expanding.skew`, :meth:`.Expanding.kurt`, :meth:`.SeriesGroupBy.skew`, :meth:`.SeriesGroupBy.kurt`, :meth:`.DataFrameGroupBy.skew`, and :meth:`.DataFrameGroupBy.kurt` now accept a ``bias`` parameter to skip the default correction for statistical bias and return the raw (uncorrected) value, matching the behavior of ``scipy.stats.skew`` and ``scipy.stats.kurtosis`` (:issue:`54556`)
 - Added :meth:`Categorical.to_dense` and :meth:`Series.cat.to_dense` to get the values with the dtype of the categories, including extension dtypes (:issue:`26410`)
 - Added :meth:`DatetimeIndex.set_freq` and :meth:`TimedeltaIndex.set_freq`, which return a new index with the given ``freq`` instead of modifying it in place (:issue:`61094`)
 - Added :meth:`Series.dt.shift` to shift datetime, timedelta, and period values by a number of frequency increments, like :meth:`DatetimeIndex.shift` (:issue:`31705`)
@@ -105,6 +106,7 @@ Other API changes
 - :meth:`.Styler.to_excel` now omits the rows, columns, index and header levels, and names hidden with :meth:`.Styler.hide`, matching the other :class:`.Styler` output methods; hiding the whole index with :class:`MultiIndex` columns now raises ``NotImplementedError``, as ``index=False`` does (:issue:`42276`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
+- :meth:`ExtensionArray._reduce` now receives a ``bias`` keyword for the ``skew`` and ``kurt`` reductions (:issue:`54556`)
 - ``range`` values are now displayed as ``range(0, 3)`` rather than as the tuple ``(0, 1, 2)``, matching :class:`.Styler` (:issue:`44799`)
 
 .. ---------------------------------------------------------------------------
