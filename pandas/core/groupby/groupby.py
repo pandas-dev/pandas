@@ -1011,7 +1011,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             indexer = np.empty(len(index), dtype=np.intp)
         result_ilocs = self._grouper.result_ilocs
-        assert len(result) == len(result_ilocs)
         indexer[result_ilocs] = np.arange(len(result_ilocs))
         return result._reindex_with_indexers({0: (index, indexer)}, allow_dups=True)
 
