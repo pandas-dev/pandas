@@ -253,6 +253,10 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
         values = values.astype(dtype, copy=copy)
     else:
         values = dtype_cls._safe_cast(values, dtype, copy=False)
+    if values.dtype.kind == "f" and is_nan_na():
+        nan_mask = np.isnan(values)
+        if nan_mask.any():
+            mask = mask | nan_mask
     return values, mask
 
 
