@@ -2903,13 +2903,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
-            fast_path = lambda group: getattr(group, func)(*args, **kwargs)
+            group_func = lambda group: getattr(group, func)(*args, **kwargs)
             col_func = lambda x: getattr(x, func)(*args, **kwargs)
         else:
-            fast_path = lambda group: func(group, *args, **kwargs)
+            group_func = lambda group: func(group, *args, **kwargs)
             col_func = lambda x: func(x, *args, **kwargs)
 
+        reduced_to_scalars = False
+
+        def fast_path(group: DataFrame):
+            if reduced_to_scalars:
+                # GH#41584 func reduced each column to a scalar, so calling it on
+                # the whole group is not equivalent, even if a single-row group
+                # makes both results compare equal. None keeps the slow path.
+                return None
+            return group_func(group)
+
         def slow_path(group: DataFrame):
+            nonlocal reduced_to_scalars
             col_results = []
 
             def record(column: Series):
@@ -2927,6 +2938,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ):
                 # apply cast the scalars to a common dtype, GH#42617
                 # None -> NaN, matching SeriesGroupBy.transform
+                reduced_to_scalars = True
                 res = group._constructor(
                     {
                         pos: np.nan if val is None else val

@@ -1340,6 +1340,38 @@ def test_transform_udf_scalar_user_defined_class():
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_udf_first_keeps_int_dtype_next_to_str_column():
+    # GH#41584
+    df = pd.DataFrame({"x": list("abcd"), "y": [5, 6, 7, 8], "g": [1, 2, 3, 3]})
+    result = df.groupby("g").transform(lambda c: c.iloc[0])
+    expected = pd.DataFrame({"x": list("abcc"), "y": [5, 6, 7, 7]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (
+            {"x": list("abcd"), "y": [5, 6, 7, 8]},
+            {"x": list("abcc"), "y": [5, 6, 7, 7]},
+        ),
+        (
+            {"x": [1, 2, 4, 8], "y": [2.0, 3.0, 5.0, 9.0]},
+            {"x": [1, 2, 4, 4], "y": [2.0, 3.0, 5.0, 5.0]},
+        ),
+    ],
+)
+def test_transform_udf_reduction_single_row_first_group_keeps_slow_path(data, expected):
+    # GH#41584 func reduces a column to a scalar but returns a DataFrame for a
+    # frame; a single-row first group must not make the frame path look valid
+    def first(obj):
+        return obj.iloc[0] if isinstance(obj, pd.Series) else obj.iloc[[0]]
+
+    df = pd.DataFrame(data)
+    result = df.groupby([1, 2, 3, 3]).transform(first)
+    tm.assert_frame_equal(result, pd.DataFrame(expected))
+
+
 def test_transform_udf_scalar_same_dtypes_uses_fast_path():
     # GH#42617 frames whose results share one dtype keep the fast path
     df = pd.DataFrame({"a": [1.0, 2.0, 4.0], "b": [2.0, 3.0, 5.0]})
