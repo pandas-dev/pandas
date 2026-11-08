@@ -4323,7 +4323,7 @@ class ArrowExtensionArray(
         if n in {-1, 0}:
             n = None
         if pat is None:
-            split_func = pc.utf8_split_whitespace
+            return self._str_split_whitespace(n)
         elif regex is True:
             split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
         elif regex is False:
@@ -4342,12 +4342,46 @@ class ArrowExtensionArray(
         if n in {-1, 0}:
             n = None
         if pat is None:
-            return self._from_pyarrow_array(
-                pc.utf8_split_whitespace(self._pa_array, max_splits=n, reverse=True)
-            )
+            return self._str_split_whitespace(n, reverse=True)
         return self._from_pyarrow_array(
             pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )
+
+    def _str_split_whitespace(self, n: int | None, reverse: bool = False) -> Self:
+        if n is not None and n < 0:
+            n = None
+        if n is None:
+            trim = pc.utf8_trim_whitespace
+        else:
+            trim = pc.utf8_rtrim_whitespace if reverse else pc.utf8_ltrim_whitespace
+        trimmed = trim(self._pa_array)
+        result = pc.utf8_split_whitespace(
+            trimmed, max_splits=n, reverse=reverse and n is not None
+        )
+        if n is None and not pc.any(pc.equal(trimmed, "")).as_py():
+            return self._from_pyarrow_array(result)
+
+        chunks = []
+        for chunk in result.chunks:
+            values = chunk.values
+            if n is not None:
+                # A bounded split can leave a whitespace-only remainder.
+                values = pc.utf8_trim_whitespace(values)
+            keep = pc.not_equal(values, "")
+            if not len(keep) or pc.all(keep).as_py():
+                chunks.append(chunk)
+                continue
+            # Remap list boundaries after filtering, preserving the original nulls.
+            offsets = chunk.offsets.to_numpy()
+            counts = np.empty(len(keep) + 1, dtype=offsets.dtype)
+            counts[0] = 0
+            np.cumsum(keep.to_numpy(zero_copy_only=False), out=counts[1:])
+            chunks.append(
+                pa.ListArray.from_arrays(
+                    counts[offsets], pc.filter(chunk.values, keep), mask=chunk.is_null()
+                )
+            )
+        return self._from_pyarrow_array(pa.chunked_array(chunks, type=result.type))
 
     def _str_translate(self, table: dict[int, str]) -> Self:
         predicate = lambda val: val.translate(table)

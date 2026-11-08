@@ -844,6 +844,95 @@ def test_get_strings(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["split", "rsplit"])
+@pytest.mark.parametrize("n", [None, -2, -1, 0, 1, 2, 10])
+@pytest.mark.parametrize("expand", [False, True])
+@pytest.mark.parametrize("large", [False, True])
+@pytest.mark.parametrize("chunked", [False, True])
+def test_split_arrow_dtype_whitespace(method, n, expand, large, chunked):
+    # GH#66368
+    pa = pytest.importorskip("pyarrow")
+    values = [
+        "  hi  there ",
+        "",
+        " \t\n ",
+        "a b  c ",
+        "single",
+        "\u2000a\u3000b\u2000",
+        "  a",
+        "b\v\u00a0",
+        None,
+    ]
+    dtype = pd.ArrowDtype(pa.large_string() if large else pa.string())
+    if chunked:
+        data = pa.chunked_array([values[:3], [], values[3:]], type=dtype.pyarrow_dtype)
+    else:
+        data = values
+    ser = pd.Series(data, dtype=dtype)
+    result = getattr(ser.str, method)(n=n, expand=expand)
+    maxsplit = -1 if n in (None, -1, 0) else n
+    expected_values = [
+        None if value is None else getattr(value, method)(maxsplit=maxsplit)
+        for value in values
+    ]
+    if expand:
+        width = max(len(value) if value is not None else 0 for value in expected_values)
+        expected = pd.DataFrame(
+            [
+                value + [None] * (width - len(value))
+                if value is not None
+                else [None] * width
+                for value in expected_values
+            ],
+            dtype=pd.ArrowDtype(pa.string()),
+        )
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = pd.Series(
+            expected_values, dtype=pd.ArrowDtype(pa.list_(dtype.pyarrow_dtype))
+        )
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["split", "rsplit"])
+@pytest.mark.parametrize("n", [None, 1, 2])
+@pytest.mark.parametrize("large", [False, True])
+@pytest.mark.parametrize("values", [[], [None, None], ["", " \t "]])
+def test_split_arrow_dtype_whitespace_empty(method, n, large, values):
+    # GH#66368
+    pa = pytest.importorskip("pyarrow")
+    arrow_type = pa.large_string() if large else pa.string()
+    ser = pd.Series(values, dtype=pd.ArrowDtype(arrow_type))
+    result = getattr(ser.str, method)(n=n)
+    expected = pd.Series(
+        [None if value is None else [] for value in values],
+        dtype=pd.ArrowDtype(pa.list_(arrow_type)),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["split", "rsplit"])
+@pytest.mark.parametrize("n", [None, -2, 0, 1, 2, 10])
+@pytest.mark.parametrize("large", [False, True])
+def test_split_arrow_dtype_whitespace_sliced(method, n, large):
+    # GH#66368: exercise nonempty fast paths and sliced Arrow input buffers.
+    pa = pytest.importorskip("pyarrow")
+    arrow_type = pa.large_string() if large else pa.string()
+    values = ["  a", " a b  ", "b\v\u00a0", "x y z", "single"]
+    arrow = pa.array(["unused", *values, "unused"], type=arrow_type)
+    data = pa.chunked_array(
+        [arrow.slice(1, len(values)), pa.array([], type=arrow_type)]
+    )
+    ser = pd.Series(data, dtype=pd.ArrowDtype(arrow_type))
+    result = getattr(ser.str, method)(n=n)
+    maxsplit = -1 if n is None or n <= 0 else n
+    expected = pd.Series(
+        [getattr(value, method)(maxsplit=maxsplit) for value in values],
+        dtype=pd.ArrowDtype(pa.list_(arrow_type)),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_split_arrow_dtype_regex_inference():
     # GH#58321 - ArrowDtype string should infer regex for multi-char patterns
     pa = pytest.importorskip("pyarrow")

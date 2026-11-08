@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas import (
     NA,
+    ArrowDtype,
     Categorical,
     DataFrame,
     Index,
@@ -238,6 +239,38 @@ class Split(Dtypes):
 
     def time_rsplit(self, dtype, expand):
         self.s.str.rsplit("--", expand=expand)
+
+
+class SplitWhitespace:
+    params = ([False, True], [None, 1, 10], ["mixed", "clean", "long"])
+    param_names = ["large", "n", "data"]
+
+    def setup(self, large, n, data):
+        try:
+            import pyarrow as pa
+        except ImportError as err:
+            raise NotImplementedError from err
+
+        dtype = ArrowDtype(pa.large_string() if large else pa.string())
+        if data == "mixed":
+            values = ["  alpha  beta gamma  ", "", " \t ", "single", None] * 2000
+        elif data == "clean":
+            values = ["alpha beta gamma"] * 10000
+        else:
+            values = ["word " * 1000] * 100
+        self.s = Series(values, dtype=dtype)
+
+    def time_split(self, large, n, data):
+        self.s.str.split(n=n)
+
+    def time_rsplit(self, large, n, data):
+        self.s.str.rsplit(n=n)
+
+    def peakmem_split(self, large, n, data):
+        self.s.str.split(n=n)
+
+    def peakmem_rsplit(self, large, n, data):
+        self.s.str.rsplit(n=n)
 
 
 class Extract(Dtypes):
