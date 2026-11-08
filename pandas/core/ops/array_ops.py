@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 import numpy as np
 
@@ -28,6 +29,8 @@ from pandas._libs.tslibs import (
     is_supported_dtype,
     is_unitless,
 )
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -475,6 +478,12 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     disallow_datetimelike_logical_op(lvalues, rvalues, op)
 
+    # Check before fill_bool casts rvalues
+    has_float = lvalues.dtype.kind in "fc" or (
+        isinstance(rvalues, (np.ndarray, ABCExtensionArray))
+        and rvalues.dtype.kind in "fc"
+    )
+
     if should_extension_dispatch(lvalues, rvalues):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
@@ -495,6 +504,18 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         #   integer dtypes.  Otherwise these are boolean ops
         if not (left.dtype.kind in "iu" and is_other_int_dtype):
             res_values = fill_bool(res_values)
+
+    if has_float:
+        # GH#61881 warn only once the op succeeded, many of these already raise
+        warnings.warn(
+            "Logical ops (and, or, xor) with float or complex dtypes, including "
+            "float columns created by alignment, are deprecated and will raise in "
+            "a future version. Align and cast to bool before operating instead, "
+            "e.g. `ser.fillna(0).astype(bool)`; results can differ where a value is "
+            "missing.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     return res_values
 

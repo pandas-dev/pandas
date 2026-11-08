@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -219,3 +221,72 @@ def test_logical_op_datetimelike_raises(op, dtype):
         op(left, right)
     with pytest.raises(TypeError, match=msg):
         op(right, left)
+
+
+FLOAT_LOGICAL_OP_MSG = "Logical ops .* with float or complex dtypes"
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        pd.DataFrame({"a": [0.5, 0.0], "b": [1.0, np.nan]}),
+        pd.DataFrame({"a": [0.5, 0.0], "b": [True, False]}),
+        np.array([[0.5, 1.0], [0.0, np.nan]]),
+        pd.Series([0.5, 0.0], index=["a", "b"]),
+        [0.5, 0.0],
+    ],
+    ids=["frame", "mixed-frame", "2d-ndarray", "series", "list"],
+)
+def test_logical_op_bool_with_float_deprecated(other):
+    # GH#61881
+    df = pd.DataFrame({"a": [True, False], "b": [False, False]})
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        df | other
+
+
+def test_logical_op_all_nan_left_deprecated():
+    # GH#61881
+    df = pd.DataFrame({"a": [np.nan, np.nan]})
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        result = df | pd.DataFrame({"a": [True, True]})
+    tm.assert_frame_equal(result, pd.DataFrame({"a": [False, False]}))
+
+
+def test_logical_op_float_left_raises_without_warning():
+    # GH#61881
+    df = pd.DataFrame({"a": [0.5, np.nan]})
+    with tm.assert_produces_warning(None):
+        with pytest.raises(TypeError, match="unsupported operand"):
+            df | pd.DataFrame({"a": [True, True]})
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        pd.DataFrame({"a": [1, 0]}, index=[1, 2]),
+        pd.DataFrame({"z": [0.5, 0.0, 1.0]}),
+        pd.DataFrame({"z": [True, False, True]}),
+        pd.Series({"z": True}),
+        pd.DataFrame(),
+    ],
+    ids=[
+        "int-subset-of-index",
+        "float-other-column",
+        "bool-other-column",
+        "series",
+        "empty-frame",
+    ],
+)
+def test_logical_op_float_from_alignment_deprecated(other):
+    # GH#61881 includes columns that only alignment made float, even for bool operands
+    df = pd.DataFrame({"a": [True, False, True]})
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        df | other
+
+
+def test_logical_op_alignment_without_float_does_not_warn():
+    # GH#61881 only the shared column is operated on
+    df = pd.DataFrame({"a": [True, False], "b": [1, 2]})
+    other = pd.DataFrame({"a": [True, True], "c": [0.5, 0.0]})
+    with tm.assert_produces_warning(None):
+        df | other

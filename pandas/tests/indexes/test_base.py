@@ -2067,3 +2067,19 @@ def test_join_mismatched_dtypes_keeps_dtype_of_kept_side(
     tm.assert_index_equal(result, expected)
     tm.assert_equal(lidx, exp_lidx)
     tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+
+@pytest.mark.parametrize(
+    "left, right",
+    [
+        (Index([True, False]), Index([0.5, np.nan])),
+        (Index([True, False]), np.array([0.5, np.nan])),
+        (Index([np.nan, np.nan]), Index([True, False])),
+    ],
+    ids=["bool-index-float-index", "bool-index-float-ndarray", "all-nan-index"],
+)
+def test_logical_op_with_float_deprecated(left, right):
+    # GH#61881
+    msg = "Logical ops .* with float or complex dtypes"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        left | right

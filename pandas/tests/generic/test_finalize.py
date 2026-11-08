@@ -414,6 +414,7 @@ def test_finalize_called_eval_numexpr():
     ],
     ids=lambda x: f"({type(x[0]).__name__},{type(x[1]).__name__})",
 )
+@pytest.mark.filterwarnings("ignore:Logical ops:pandas.errors.Pandas4Warning")
 def test_binops(request, args, annotate, all_binary_operators):
     # This generates 624 tests... Is that needed?
     left, right = args
