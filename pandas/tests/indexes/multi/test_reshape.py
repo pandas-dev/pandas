@@ -147,6 +147,15 @@ def test_append_index():
     tm.assert_index_equal(result, expected)
 
 
+def test_append_tuples_of_different_lengths():
+    # GH#50293
+    mi = pd.MultiIndex.from_tuples([("a", "b")])
+    other = pd.Index([("x", "y", "z")], tupleize_cols=False)
+    result = mi.append(other)
+    expected = pd.Index([("a", "b"), ("x", "y", "z")], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("name, exp", [("b", "b"), ("c", None)])
 def test_append_names_match(name, exp):
     # GH#48288

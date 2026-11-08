@@ -296,6 +296,15 @@ def test_map_dict_with_tuple_keys():
     tm.assert_series_equal(df["labels"], df["expected_labels"], check_names=False)
 
 
+@pytest.mark.parametrize("box", [dict, pd.Series])
+def test_map_tuples_of_different_lengths(box):
+    # GH#50293
+    ser = pd.Series([("a", "b"), ("b",), ("a", "b", "c")])
+    result = ser.map(box({("a", "b"): "x"}))
+    expected = pd.Series(["x", np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_counter():
     s = pd.Series(["a", "b", "c"], index=[1, 2, 3])
     counter = Counter()
@@ -481,6 +490,42 @@ def test_map_box_period():
     res = ser.map(lambda x: f"{type(x).__name__}_{x.freqstr}")
     exp = pd.Series(["Period_M", "Period_M"])
     tm.assert_series_equal(res, exp)
+
+
+@pytest.mark.parametrize(
+    "data,mapper",
+    [
+        (
+            pd.date_range("2026-10-24", periods=3, freq="h"),
+            lambda ts: ts.replace(year=2067),
+        ),
+        (
+            pd.date_range("2026-10-24", periods=3, freq="h", tz="UTC"),
+            lambda ts: ts.replace(year=2067),
+        ),
+        (
+            pd.timedelta_range("1 day", periods=3),
+            lambda td: td * 2,
+        ),
+        (
+            pd.period_range("2026-10", periods=3, freq="M"),
+            lambda period: period + 1,
+        ),
+    ],
+    ids=["datetime64", "datetime64_tz", "timedelta64", "period"],
+)
+def test_map_datetimelike_result_writable(data, mapper):
+    # https://github.com/pandas-dev/pandas/issues/71567
+    ser = pd.Series(data)
+    result = ser.map(mapper)
+    assert result._values._readonly is False
+
+    expected = pd.Series([mapper(x) for x in data])
+    tm.assert_series_equal(result, expected)
+
+    # ensure the result is still writable through assignment
+    result.iloc[0] = result.iloc[1]
+    assert result.iloc[0] == result.iloc[1]
 
 
 def test_map_categorical(na_action, using_infer_string):
@@ -783,4 +828,18 @@ def test_map_masked_result_all_nat(dtype):
     ser = pd.Series([1, 0], dtype=dtype)
     result = ser.map(lambda x: pd.NaT)
     expected = pd.Series([pd.NaT, pd.NaT], dtype="M8[s]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_map_masked_result_nan_distinguish_nan_and_na(dtype):
+    # GH#71870 NaN results became NA, and Int64 raised for all-NaN results
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1, 0], dtype=dtype)
+        result = ser.map(lambda x: np.nan)
+        expected = pd.Series(pd.array([np.nan, np.nan], dtype="Float64"))
+        tm.assert_series_equal(result, expected)
+
+        result = ser.map(lambda x: np.nan if x else 2.5)
+        expected = pd.Series(pd.array([np.nan, 2.5], dtype="Float64"))
     tm.assert_series_equal(result, expected)

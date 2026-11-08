@@ -140,6 +140,38 @@ class TestDataFrameColor:
         ax = df.plot.bar(color=colors)
         _check_colors(ax.patches, facecolors=[colors[0]] * 4)
 
+    @pytest.mark.parametrize("kind", ["bar", "line"])
+    def test_colors_single_col_tuple_of_names(self, kind):
+        # GH#18449 a 3-tuple of color names behaves like the equivalent list
+        df = pd.DataFrame({"Test": [1, 3, 5, 7]})
+        ax = df.plot(kind=kind, color=("green", "blue", "red"))
+        if kind == "bar":
+            _check_colors(ax.patches, facecolors=["green"] * 4)
+        else:
+            _check_colors(ax.get_lines(), linecolors=["green"])
+
+    @pytest.mark.parametrize("color", [(255, 0, 0), (0.1, 0.2, 1.5)])
+    def test_scatter_out_of_range_rgb_tuple_raises(self, color):
+        # GH#18449 an invalid RGB tuple is still one color, not per-point values
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        with pytest.raises(ValueError, match="RGBA values should be within 0-1 range"):
+            df.plot.scatter(x="a", y="b", color=color)
+
+    @pytest.mark.parametrize(
+        "color, expected",
+        [
+            ((0.1, 0.2, 0.3), [(0.1, 0.2, 0.3)]),
+            (("g", "b", "r"), ["g", "b", "r"]),
+            (((1, 0, 0), (0, 1, 0), (0, 0, 1)), [(1, 0, 0), (0, 1, 0), (0, 0, 1)]),
+        ],
+    )
+    def test_scatter_tuple_color(self, color, expected):
+        # GH#18449 an RGB tuple is one color, a tuple of colors is one per point
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        ax = df.plot.scatter(x="a", y="b", color=color)
+        result = ax.collections[0].get_facecolors()
+        tm.assert_numpy_array_equal(result, mpl.colors.to_rgba_array(expected))
+
     def test_bar_colors_single_col_y_list(self):
         # GH#18006 selecting a single column with y= colors each bar
         # individually, unlike the per-column behavior in

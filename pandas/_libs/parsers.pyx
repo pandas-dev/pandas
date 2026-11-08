@@ -581,11 +581,15 @@ cdef class TextReader:
 
         if len(decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
+        if ord(decimal) > 127:
+            raise ValueError("Only ASCII decimal markers supported")
         self.parser.decimal = <char>ord(decimal)
 
         if thousands is not None:
             if len(thousands) != 1:
                 raise ValueError("Only length-1 thousands markers supported")
+            if ord(thousands) > 127:
+                raise ValueError("Only ASCII thousands markers supported")
             self.parser.thousands = <char>ord(thousands)
 
         if escapechar is not None:
@@ -2251,7 +2255,7 @@ cdef class TextReader:
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
 # which causes a class attribute lookup and violates best practices
-# https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
+# https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-methods-dealloc-and-del
 cdef _close(TextReader reader):
     reader.is_closed = True
     # Drop the pre-loaded buffer reference deterministically so the caller

@@ -65,7 +65,7 @@ class CSSDict(TypedDict):
 
 
 CSSStyles: TypeAlias = list[CSSDict]
-Subset = slice | Sequence[Any] | Index
+Subset = slice | Sequence[Any] | Index | Callable[[DataFrame], Any]
 
 # Chromium ignores selectors past the 8192nd in a single rule, GH#40913
 _MAX_SELECTORS_PER_RULE = 8192
@@ -1053,7 +1053,7 @@ class StylerRenderer:
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -1269,7 +1269,7 @@ class StylerRenderer:
             return self  # clear the formatter / revert to default and avoid looping
 
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         data = self.data.loc[subset]
 
         if not isinstance(formatter, Mapping):
@@ -2095,13 +2095,19 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
-def non_reducing_slice(slice_: Subset):
+def non_reducing_slice(slice_: Subset, data: DataFrame):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
     Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
     """
+    # evaluate callables on `data` as DataFrame.loc does, GH#46685
+    if isinstance(slice_, tuple):
+        slice_ = tuple(com.apply_if_callable(part, data) for part in slice_)
+    else:
+        slice_ = com.apply_if_callable(slice_, data)
+
     # default to column slice, like DataFrame
     # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
     kinds = (ABCSeries, np.ndarray, Index, list, str)

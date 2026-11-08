@@ -1450,7 +1450,8 @@ class _MergeOperation:
             (left_indexer, right_indexer) = self._get_join_indexers()
 
             if self.right_index:
-                if len(self.left) > 0:
+                # GH#41171 asof takes the left index even when left is empty
+                if len(self.left) > 0 or self.how == "asof":
                     join_index = self._create_join_index(
                         left_ax,
                         right_ax,
@@ -1829,21 +1830,17 @@ class _MergeOperation:
             elif (lk_is_object_or_string and is_numeric_dtype(rk.dtype)) or (
                 is_numeric_dtype(lk.dtype) and rk_is_object_or_string
             ):
-                inferred_left = lib.infer_dtype(lk, skipna=False)
-                inferred_right = lib.infer_dtype(rk, skipna=False)
-                bool_types = ["integer", "mixed-integer", "boolean", "empty"]
-                string_types = ["string", "unicode", "mixed", "bytes", "empty"]
-
-                # inferred bool
-                if inferred_left in bool_types and inferred_right in bool_types:
-                    pass
-
-                # unless we are merging non-string-like with string-like
+                # raise if the non-numeric key holds only str or bytes values,
+                # ignoring missing values
+                obj_key = lk if lk_is_object_or_string else rk
+                if not isinstance(obj_key.dtype, np.dtype):
+                    # raise for string extension dtypes, not e.g. Sparse[object]
+                    if is_string_dtype(obj_key.dtype):
+                        raise ValueError(msg)
                 elif (
-                    inferred_left in string_types and inferred_right not in string_types
-                ) or (
-                    inferred_right in string_types and inferred_left not in string_types
-                ):
+                    lib.is_string_array(obj_key, skipna=True)
+                    or lib.is_bytes_array(obj_key, skipna=True)
+                ) and not isna(obj_key).all():
                     raise ValueError(msg)
 
             # datetimelikes must match exactly

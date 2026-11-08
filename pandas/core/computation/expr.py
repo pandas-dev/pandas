@@ -21,6 +21,7 @@ import numpy as np
 
 from pandas.errors import UndefinedVariableError
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import is_string_dtype
 
 import pandas.core.common as com
@@ -38,6 +39,7 @@ from pandas.core.computation.ops import (
     Op,
     Term,
     UnaryOp,
+    is_datetimelike,
     is_term,
 )
 from pandas.core.computation.parsing import (
@@ -470,6 +472,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if (
             left.is_scalar
             and hasattr(left, "value")
+            and not is_datetimelike(left)
             and not right.is_scalar
             and right.return_type == f32
         ):
@@ -479,6 +482,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if (
             right.is_scalar
             and hasattr(right, "value")
+            and not is_datetimelike(right)
             and not left.is_scalar
             and left.return_type == f32
         ):
@@ -510,19 +514,15 @@ class BaseExprVisitor(ast.NodeVisitor):
     ):
         res = op(lhs, rhs)
 
+        if self.engine != "pytables" and (is_datetimelike(lhs) or is_datetimelike(rhs)):
+            # numexpr has no datetime64/timedelta64 support
+            return self._maybe_eval(res, self.binary_ops)
+
         if res.has_invalid_return_type:
             raise TypeError(
                 f"unsupported operand type(s) for {res.op}: "
                 f"'{lhs.type}' and '{rhs.type}'"
             )
-
-        if self.engine != "pytables" and (
-            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
-            or getattr(rhs, "is_datetime", False)
-        ):
-            # all date ops must be done in python bc numexpr doesn't work
-            # well with NaT
-            return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
@@ -534,9 +534,10 @@ class BaseExprVisitor(ast.NodeVisitor):
                 or getattr(rhs, "return_type", None) == object
                 or is_string_dtype(getattr(rhs, "return_type", None))
             ):
-                # evaluate "==" and "!=" in python if either of our operands
-                # has an object or string return type
-                return self._maybe_eval(res, eval_in_python + maybe_eval_in_python)
+                # numexpr can't handle object or string operands; see GH#27639
+                return self._maybe_eval(
+                    res, eval_in_python + maybe_eval_in_python + (res.op,)
+                )
         return res
 
     def visit_BinOp(self, node, **kwargs):
@@ -547,7 +548,12 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
         operand = self.visit(node.operand)
-        return op(operand)
+        res = op(operand)
+        dtype = operand.return_type
+        if isinstance(dtype, (np.dtype, ExtensionDtype)) and is_string_dtype(dtype):
+            # numexpr can't handle object or string operands; see GH#45876
+            return res.evaluate(self.env, self.engine, self.parser, self.term_type, ())
+        return res
 
     def visit_Name(self, node, **kwargs) -> Term:
         return self.term_type(node.id, self.env, **kwargs)

@@ -134,6 +134,8 @@ from pandas.core.util.numba_ import (
     prepare_function_arguments,
 )
 
+from pandas.io.formats.printing import pprint_thing
+
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
     from pandas._libs.tslibs.timedeltas import Timedelta
@@ -164,9 +166,22 @@ class GroupByPlot(PandasObject):
     def __init__(self, groupby: GroupBy[Any]) -> None:
         self._groupby = groupby
 
+    @staticmethod
+    def _set_default_title(
+        kwargs: dict[str, Any], group: NDFrame, key: Hashable
+    ) -> None:
+        # GH#12452: without ax, each DataFrame group gets its own figure; Series
+        #  groups share one axes, so a title there would just be overwritten
+        if group.ndim == 2 and kwargs.get("ax") is None:
+            kwargs.setdefault("title", pprint_thing(key))
+
     def __call__(self, *args, **kwargs):
         def f(self, key):
-            return self.plot(*args, **kwargs)
+            local_kwargs = kwargs.copy()
+            # ax and title can also be passed positionally after x, y, kind
+            if len(args) <= 3:
+                GroupByPlot._set_default_title(local_kwargs, self, key)
+            return self.plot(*args, **local_kwargs)
 
         f.__name__ = "plot"
 
@@ -176,6 +191,7 @@ class GroupByPlot(PandasObject):
         def attr(*args, **kwargs):
             def f(self, key):
                 local_kwargs = kwargs.copy()
+                GroupByPlot._set_default_title(local_kwargs, self, key)
 
                 if name == "scatter" and kwargs.get("legend"):
                     local_kwargs.setdefault("label", key)
@@ -914,10 +930,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         from pandas.core.reshape.concat import concat
 
+        # GH#12824 apply may return None for a group to drop it
+        mask = np.array([value is not None for value in values], dtype=bool)
+        if not mask.all():
+            values = [value for value in values if value is not None]
+
         if self.group_keys and not is_transform:
             if self.as_index:
                 # possible MI return case
                 group_keys = self._grouper.result_index
+                if not mask.all():
+                    group_keys = group_keys[mask]
                 group_levels = self._grouper.levels
                 group_names = self._grouper.names
 
@@ -941,16 +964,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mask = labels != -1
                 ax = ax[mask]
 
-            # this is a very unfortunate situation
             # we can't use reindex to restore the original order
-            # when the ax has duplicates
-            # so we resort to this
-            # GH 14776, 30667
-            # TODO: can we reuse e.g. _reindex_non_unique?
-            if ax.has_duplicates and not result.axes[0].equals(ax):
-                # e.g. test_category_order_transformer
-                target = algorithms.unique1d(ax._values)
-                indexer, _ = result.index.get_indexer_non_unique(target)
+            # when the ax has duplicates, so use the positions
+            # of the rows in the input instead
+            # GH 14776, 30667, 57906
+            if ax.has_duplicates:
+                # e.g. test_apply_with_duplicated_non_sorted_axis
+                indexer = np.argsort(self._grouper.result_ilocs)
                 result = result.take(indexer, axis=0)
             else:
                 result = result.reindex(ax, axis=0)
@@ -5290,7 +5310,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     fill_value,
                 )
                 shifted = self._python_apply_general(
-                    f, self._selected_obj, is_transform=True
+                    f, self._obj_with_exclusions, is_transform=True
                 )
             else:
                 if fill_value is lib.no_default:
@@ -5497,15 +5517,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if fill_method is not None:
             raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
-        # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
-        #  GH#23918 is fixed
+        # with freq, dividing by self.shift(freq=freq) would align labels
+        #  across groups, so compute per group
         if freq is not None:
             f = lambda x: x.pct_change(
                 periods=periods,
                 freq=freq,
                 axis=0,
             )
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            return self._python_apply_general(
+                f, self._obj_with_exclusions, is_transform=True
+            )
 
         shifted = self.shift(periods=periods)
         return (self._obj_with_exclusions / shifted) - 1

@@ -1650,6 +1650,28 @@ def test_read_sql_column_labels_are_str(conn, request, string_storage):
         assert type(result.columns[0]) is str
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_percent_without_params(conn, request):
+    # GH#49561 a lone "%" means the query is passed through unchanged, "%%" included
+    conn = request.getfixturevalue(conn)
+    query = (
+        "SELECT '100%' AS a, '100%%' AS b, "
+        "CASE WHEN 'mexico' LIKE '%mex%' THEN 1 ELSE 0 END AS c"
+    )
+    result = pd.read_sql(query, conn)
+    assert result.iloc[0].tolist() == ["100%", "100%%", 1]
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_escaped_percent_without_params(conn, request):
+    # GH#49561 with every "%" escaped, drivers that %-format still unescape "%%"
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    expected = "100%%" if "sqlite" in conn_name else "100%"
+    result = pd.read_sql("SELECT '100%%' AS a", conn)
+    assert result.iloc[0, 0] == expected
+
+
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     if "adbc" in conn:
@@ -1672,9 +1694,7 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings):
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings):
-    if "mysql" in conn or ("postgresql" in conn and "adbc" not in conn):
-        request.applymarker(pytest.mark.xfail(reason="broken test"))
-
+    # GH#49561
     conn_name = conn
     conn = request.getfixturevalue(conn)
 
@@ -2598,6 +2618,46 @@ def test_warning_case_insensitive_table_name(conn, request, test_frame1):
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize(
+    "if_exists, preexisting, checked",
+    [
+        ("append", True, False),
+        ("delete_rows", True, False),
+        ("replace", True, True),
+        ("append", False, True),
+    ],
+)
+def test_to_sql_case_check_only_for_new_table(
+    conn, if_exists, preexisting, checked, monkeypatch, request, test_frame1
+):
+    # GH#52601 listing all tables can block on MSSQL, so only list them
+    # when the table was (re)created
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy.engine.reflection import Inspector
+
+    if preexisting:
+        test_frame1.to_sql(name="CaseSensitive", con=conn)
+
+    counts = {"get_table_names": 0, "check_case_sensitive": 0}
+
+    def spy(cls, attr):
+        orig = getattr(cls, attr)
+
+        def wrapper(self, *args, **kwargs):
+            counts[attr] += 1
+            return orig(self, *args, **kwargs)
+
+        monkeypatch.setattr(cls, attr, wrapper)
+
+    spy(Inspector, "get_table_names")
+    spy(sql.SQLDatabase, "check_case_sensitive")
+    test_frame1.to_sql(name="CaseSensitive", con=conn, if_exists=if_exists)
+    assert bool(counts["check_case_sensitive"]) is checked
+    if not checked:
+        assert counts["get_table_names"] == 0
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_sqlalchemy_type_mapping(conn, request):
     conn = request.getfixturevalue(conn)
     from sqlalchemy import TIMESTAMP
@@ -2858,6 +2918,30 @@ def test_delete_rows_success(conn_name, test_frame1, request):
 
         assert count_rows(conn, table_name) == 0
         assert pandasSQL.has_table(table_name)
+
+
+def test_delete_rows_temp_table(sqlite_conn):
+    # GH#52601 previously raised as MetaData.reflect doesn't see temp tables
+    sqlite_conn.exec_driver_sql("CREATE TEMP TABLE tmp (a INTEGER)")
+    sqlite_conn.exec_driver_sql("INSERT INTO tmp VALUES (5)")
+    df = pd.DataFrame({"a": [1]})
+    assert df.to_sql(name="tmp", con=sqlite_conn, if_exists="delete_rows", index=False)
+    result = sql.read_sql_query("SELECT * FROM tmp", sqlite_conn)
+    tm.assert_frame_equal(result, df)
+
+
+def test_delete_rows_schema(sqlite_conn):
+    # GH#52601 only the table in the given schema is emptied
+    sqlite_conn.exec_driver_sql("ATTACH DATABASE ':memory:' AS other")
+    df = pd.DataFrame({"a": [1]})
+    df.to_sql(name="t", con=sqlite_conn, index=False)
+    df.to_sql(name="t", con=sqlite_conn, schema="other", index=False)
+    new = pd.DataFrame({"a": [9]})
+    new.to_sql(
+        name="t", con=sqlite_conn, schema="other", if_exists="delete_rows", index=False
+    )
+    tm.assert_frame_equal(sql.read_sql_query("SELECT * FROM main.t", sqlite_conn), df)
+    tm.assert_frame_equal(sql.read_sql_query("SELECT * FROM other.t", sqlite_conn), new)
 
 
 @pytest.mark.parametrize("conn_name", all_connectable)
@@ -3237,6 +3321,51 @@ def test_datetime_time(conn, request, sqlite_buildin):
         tm.assert_frame_equal(ref, res)
     res = sql.read_sql_table("test_time3", conn)
     tm.assert_frame_equal(df, res)
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_datetime_time_fractional_seconds_roundtrip(conn, request):
+    # GH#48435 MySQL rounded fractional seconds away
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    ts = pd.Timestamp("2022-09-07 17:42:52.771654")
+    df = pd.DataFrame(
+        {
+            "naive": pd.Series([ts], dtype="M8[us]"),
+            "aware": pd.Series([ts.tz_localize("UTC")], dtype="M8[us, UTC]"),
+            "time": [ts.time()],
+        }
+    )
+    assert df.to_sql(name="test_fractional", con=conn, index=False) == 1
+    result = sql.read_sql_table("test_fractional", conn)
+
+    expected = df.copy()
+    if "postgresql" not in conn_name:
+        # timestamps with timezones come back naive outside postgresql
+        expected["aware"] = expected["aware"].dt.tz_localize(None)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("mariadb", [False, True])
+def test_mysql_datetime_types_keep_fractional_seconds(mariadb, sqlite_engine):
+    # GH#48435
+    from sqlalchemy.dialects import mysql
+    from sqlalchemy.dialects.mysql.mariadb import MariaDBDialect
+    from sqlalchemy.schema import CreateTable
+
+    dialect = MariaDBDialect() if mariadb else mysql.dialect()
+    ts = pd.Timestamp("2022-09-07 17:42:52.771654")
+    df = pd.DataFrame(
+        {"naive": [ts], "aware": [ts.tz_localize("UTC")], "time": [ts.time()]},
+        index=pd.DatetimeIndex([ts], tz="UTC", name="idx"),
+    )
+    with sql.SQLDatabase(sqlite_engine) as pandas_sql:
+        table = sql.SQLTable("test", pandas_sql, frame=df, index=True)
+        create_sql = str(CreateTable(table.table).compile(dialect=dialect))
+    assert "naive DATETIME(6)" in create_sql
+    assert "aware TIMESTAMP(6)" in create_sql
+    assert "time TIME(6)" in create_sql
+    assert "idx TIMESTAMP(6)" in create_sql
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
