@@ -87,14 +87,12 @@ def ser(request):
     return pd.Series(values, dtype=dtype, name="a")
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    ["float64", "int64[pyarrow]", pd.StringDtype("pyarrow", na_value=np.nan)],
-    ids=str,
-)
+@pytest.mark.parametrize("dtype", ["float64", "int64[pyarrow]", "str_pyarrow"])
 def test_repeated_calls_hit_cache_by_dtype(dtype):
     # GH#51077
     pytest.importorskip("pyarrow")
+    if dtype == "str_pyarrow":
+        dtype = pd.StringDtype("pyarrow", na_value=np.nan)
     values = list("1234") if isinstance(dtype, pd.StringDtype) else [1, 2, 3, 4]
     df = pd.DataFrame({"a": pd.Series(values, dtype=dtype)})
     gb = df.groupby(np.array([1, 0, 1, 0]))
