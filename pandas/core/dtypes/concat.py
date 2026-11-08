@@ -104,12 +104,7 @@ def concat_compat(
             # e.g. DatetimeArray
             # NB: We are assuming here that ensure_wrapped_if_arraylike has
             #  been called where relevant.
-            return obj._concat_same_type(
-                # error: Unexpected keyword argument "axis" for "_concat_same_type"
-                # of "ExtensionArray"
-                to_concat_eas,
-                axis=axis,  # type: ignore[call-arg]
-            )
+            return obj._concat_same_type(to_concat_eas, axis=axis)
 
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
@@ -134,10 +129,7 @@ def concat_compat(
         if ea_compat_axis or axis == 0:
             return cls._concat_same_type(to_concat_eas)
         else:
-            return cls._concat_same_type(
-                to_concat_eas,
-                axis=axis,  # type: ignore[call-arg]
-            )
+            return cls._concat_same_type(to_concat_eas, axis=axis)
     else:
         to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
         result = np.concatenate(to_concat_arrs, axis=axis)
