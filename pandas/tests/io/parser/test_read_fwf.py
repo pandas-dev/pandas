@@ -881,6 +881,47 @@ def test_colspecs_with_comment():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("colspecs", ["infer", [(3, 6), (9, 12)]])
+@pytest.mark.parametrize("skip_blank_lines", [True, False])
+@pytest.mark.parametrize("chunksize", [None, 1])
+def test_comment_outside_colspecs(colspecs, skip_blank_lines, chunksize):
+    # GH 53922
+    data = "# a comment\n   1.5   2.5\n   # another comment\n   3.5   4.5\n"
+    result = read_fwf(
+        StringIO(data),
+        colspecs=colspecs,
+        comment="#",
+        header=None,
+        skip_blank_lines=skip_blank_lines,
+        chunksize=chunksize,
+        infer_nrows=2,
+    )
+    if chunksize is not None:
+        with result:
+            result = pd.concat(result, ignore_index=True)
+    expected = pd.DataFrame([[1.5, 2.5], [3.5, 4.5]])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("skiprows", [[1], [0, 1]])
+def test_comment_outside_colspecs_skiprows(skiprows):
+    # GH 53922: skiprows counts physical lines, including comments.
+    data = "# a comment\n   1.5   2.5\n# another comment\n   3.5   4.5\n"
+    result = read_fwf(
+        StringIO(data), comment="#", header=None, skiprows=skiprows, nrows=1
+    )
+    expected = pd.DataFrame([[3.5, 4.5]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_comment_outside_colspecs_preserves_blank_line():
+    # GH 53922
+    data = "# a comment\n\n   1.5   2.5\n"
+    result = read_fwf(StringIO(data), comment="#", header=None, skip_blank_lines=False)
+    expected = pd.DataFrame([[np.nan, np.nan], [1.5, 2.5]])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_skip_rows_and_n_rows():
     # GH#44021
     data = """a\tb

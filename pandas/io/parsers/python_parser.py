@@ -909,14 +909,14 @@ class PythonParser(ParserBase):
                 except IndexError as err:
                     raise StopIteration from err
         else:
-            while self.skipfunc(self.pos):
-                # consume first: on an exhausted file this raises and self.pos must
-                # not advance past the last line, or skipfooter trims from the wrong
-                # end (GH#36827)
-                next(self.data)
-                self.pos += 1
-
             while True:
+                while self.skipfunc(self.pos):
+                    # consume first: on an exhausted file this raises and self.pos must
+                    # not advance past the last line, or skipfooter trims from the wrong
+                    # end (GH#36827)
+                    next(self.data)
+                    self.pos += 1
+
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
                 self.pos += 1
 
@@ -1527,6 +1527,11 @@ class FixedWidthReader(abc.Iterator[list[str]]):
                 line = next(self.f)  # type: ignore[arg-type]
         else:
             line = next(self.f)  # type: ignore[arg-type]
+        if self.comment is not None and line.lstrip(self.delimiter).startswith(
+            self.comment
+        ):
+            # Preserve full comments for PythonParser even if colspecs omit them.
+            return [line.strip(self.delimiter)]
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]
 
