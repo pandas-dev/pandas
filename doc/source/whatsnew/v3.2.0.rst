@@ -152,7 +152,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
-- Performance improvement in :meth:`DataFrameGroupBy.transform` and :meth:`SeriesGroupBy.transform` with a user-defined function when the groups are not in sorted order (:issue:`???`)
+- Performance improvement in :meth:`DataFrameGroupBy.transform` and :meth:`SeriesGroupBy.transform` with a user-defined function when the input rows are not already ordered by group or NA group keys are dropped (:issue:`???`)
 - Performance improvement in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with a ``date_format`` built from ``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f`` and ``%N`` (:issue:`44764`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)

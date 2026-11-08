@@ -1006,12 +1006,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # row order is scrambled => invert the permutation given by result_ilocs;
         # rows dropped due to dropna get -1 and are filled with NA
-        result_ilocs = self._grouper.result_ilocs
-        assert len(result) == len(result_ilocs)
         if self._grouper.has_dropped_na:
             indexer = np.full(len(index), -1, dtype=np.intp)
         else:
             indexer = np.empty(len(index), dtype=np.intp)
+        result_ilocs = self._grouper.result_ilocs
+        assert len(result) == len(result_ilocs)
         indexer[result_ilocs] = np.arange(len(result_ilocs))
         return result._reindex_with_indexers({0: (index, indexer)}, allow_dups=True)
 
