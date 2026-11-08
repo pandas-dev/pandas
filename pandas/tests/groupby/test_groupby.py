@@ -749,6 +749,9 @@ def test_frame_groupby_external_name_collision():
     expected = pd.DataFrame({"a": [1, 2], "b": [7, 5]})
     tm.assert_frame_equal(df.groupby("a", as_index=False).sum(), expected)
 
+    result = df.groupby(external.rename("group"), as_index=False).sum()
+    expected = pd.DataFrame({"group": [6, 7], "a": [2, 2], "b": [7, 5]})
+    tm.assert_frame_equal(result, expected)
 
 def test_frame_groupby_external_callable_inserts_key_once():
     # GH#58337
