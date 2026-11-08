@@ -93,6 +93,7 @@ from pandas.io._util import _arrow_dtype_mapping
 if TYPE_CHECKING:
     from collections.abc import (
         Collection,
+        Mapping,
         Sequence,
     )
 
@@ -787,7 +788,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
     return dtype, val
 
 
-def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
+def dict_compat(d: Mapping[Scalar, Scalar]) -> dict[Scalar, Scalar]:
     """
     Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
 

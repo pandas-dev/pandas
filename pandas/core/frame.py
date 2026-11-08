@@ -291,12 +291,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     Parameters
     ----------
-    data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
-        data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index. This alignment also
-        occurs if data is a Series or a DataFrame itself. Alignment is done on
-        Series/DataFrame inputs.
+    data : ndarray (structured or homogeneous), Iterable, Mapping, or DataFrame
+        Mappings can contain Series, arrays, constants, dataclass or list-like objects.
+        If data is a mapping, column order follows its iteration order. If a mapping
+        contains Series which have an index defined, they are aligned by index. This
+        alignment also occurs if data is a Series or a DataFrame itself. Alignment is
+        done on Series/DataFrame inputs.
 
         If data is a list of dicts, column order follows insertion-order.
 
@@ -314,10 +314,10 @@ class DataFrame(NDFrame, OpsMixin):
         missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
         Copy data from inputs.
-        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
+        For mapping data, the default of None behaves like ``copy=True``. For DataFrame
         or 2d ndarray input, the default of None behaves like ``copy=False``.
-        If data is a dict containing one or more Series (possibly of different dtypes),
-        ``copy=False`` will ensure that these inputs are not copied.
+        If data is a mapping containing one or more Series (possibly of different
+        dtypes), ``copy=False`` will ensure that these inputs are not copied.
 
     See Also
     --------
@@ -510,7 +510,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
-            if isinstance(data, dict):
+            if isinstance(data, abc.Mapping):
                 # retain pre-GH#38939 default behavior
                 copy = True
             elif not isinstance(data, (Index, DataFrame, Series)):
@@ -529,8 +529,8 @@ class DataFrame(NDFrame, OpsMixin):
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
-        elif isinstance(data, dict):
-            # GH#38939 de facto copy defaults to False only in non-dict cases
+        elif isinstance(data, abc.Mapping):
+            # GH#38939 de facto copy defaults to False only in non-mapping cases
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
             from numpy.ma import mrecords
