@@ -863,6 +863,34 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, temp_file, pa)
 
+    def test_categorical_string_dtype_categories(
+        self, pa, temp_file, string_dtype_no_object
+    ):
+        # GH#46863 append makes pyarrow-backed categories multi-chunk
+        cats = pd.Index(["x", "y", "z"], dtype=string_dtype_no_object).append(
+            pd.Index(["q"], dtype=string_dtype_no_object)
+        )
+        df = pd.DataFrame({"a": pd.Categorical.from_codes([0, -1, 2], categories=cats)})
+
+        # categories are read back with the default string dtype
+        expected = df.copy()
+        expected["a"] = expected["a"].cat.set_categories(cats.astype("str"))
+        check_round_trip(df, temp_file, pa, expected=expected)
+
+    @pytest.mark.skipif(
+        pa_version_under20p0, reason="pyarrow<20 reads dictionary indices as int32"
+    )
+    @pytest.mark.parametrize("n_categories, index_type", [(3, "int8"), (300, "int16")])
+    def test_read_dtype_backend_pyarrow_category_index_type(
+        self, pa, temp_file, n_categories, index_type
+    ):
+        # GH#58062
+        df = pd.DataFrame({"a": pd.Categorical([f"c{i}" for i in range(n_categories)])})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+        assert str(result["a"].dtype.pyarrow_dtype.index_type) == index_type
+
     @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(
         self, df_compat, s3_bucket_public, s3so, pa, temp_file
@@ -1062,6 +1090,15 @@ class TestParquetPyArrow(Base):
         result = read_parquet(temp_file, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    def test_nested_list_compliant(self, pa, temp_file):
+        # GH#43689 nested lists use the Parquet-spec "element" field name
+        pq = pytest.importorskip("pyarrow.parquet")
+        df = pd.DataFrame({"a": [[[1, 2, 3]], [[4, 5, 6]]]})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = pq.ParquetFile(temp_file).schema.column(0).path
+        assert result == "a.list.element.list.element"
+
     # from the direct pyarrow.Table.from_pandas call, see GH#68426
     @pytest.mark.filterwarnings(
         "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
@@ -1114,7 +1151,7 @@ class TestParquetPyArrow(Base):
                 [b"foo", b"bar"],
                 marks=pytest.mark.xfail(
                     pa_version_under20p0,
-                    raises=NotImplementedError,
+                    raises=TypeError,
                     reason="https://github.com/apache/arrow/pull/44171",
                 ),
             ),

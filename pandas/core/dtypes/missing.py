@@ -16,6 +16,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
@@ -30,6 +32,8 @@ from pandas.core.dtypes.common import (
     is_string_or_object_np_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -670,6 +674,13 @@ def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):  # pyright: ignore[reportGeneralTypeIssues]
         return False
+    elif (
+        lib.is_float(obj)
+        and isinstance(dtype, (BaseMaskedDtype, ArrowDtype))
+        and not is_nan_na()
+    ):
+        # under future.distinguish_nan_and_na a float NaN is a value, not NA
+        return False
     elif dtype.kind == "M":
         if isinstance(dtype, np.dtype):
             # i.e. not tzaware
@@ -700,7 +711,8 @@ def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
         return lib.is_float(obj) or obj is None or obj is libmissing.NA
 
     elif isinstance(dtype, CategoricalDtype):
-        return is_valid_na_for_dtype(obj, dtype.categories.dtype)
+        # NaN marks a missing entry whatever the dtype of the categories
+        return lib.is_float(obj) or is_valid_na_for_dtype(obj, dtype.categories.dtype)
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))

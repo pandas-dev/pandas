@@ -131,6 +131,7 @@ from signature_overrides import apply_signature_overrides
 
 extensions = [
     "contributors",  # custom pandas extension
+    "rst_list_indentation",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
@@ -173,6 +174,9 @@ else:
 # (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
+if pattern:
+    # Sphinx uses "/"-separated docnames, see GH#26574
+    pattern = pattern.replace(os.sep, "/")
 single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
 include_api = pattern is None or pattern == "whatsnew"
 if pattern:
@@ -181,6 +185,7 @@ if pattern:
         for fname in fnames:
             if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
                 rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+                rel_fname = rel_fname.replace(os.sep, "/")
 
                 if rel_fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
@@ -193,8 +198,6 @@ if pattern:
                 ):
                     exclude_patterns.append(rel_fname)
                 elif single_doc and rel_fname != pattern:
-                    if "\\" in rel_fname:
-                        rel_fname = rel_fname.replace("\\", "/")
                     exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
@@ -208,6 +211,7 @@ with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     )
 autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
+maximum_signature_line_length = 88
 
 # numpydoc
 numpydoc_show_class_members = False
@@ -1047,11 +1051,37 @@ def rstjinja(app, docname, source) -> None:
     source[0] = rendered
 
 
+def resolve_pandas_toplevel_xref(app, env, node, contnode):
+    """
+    Retry an unresolved ``py`` reference with a ``pandas.`` prefix.
+
+    numpydoc emits "See Also" entries like ``DataFrame.pipe`` as unqualified
+    references, which Sphinx fails to resolve on pages whose current module is
+    not ``pandas`` (e.g. ``pandas.api.typing``), see GH#31661.
+    """
+    if node.get("refdomain") != "py":
+        return None
+    target = node.get("reftarget", "")
+    if not target or target.startswith("pandas."):
+        return None
+    py_domain = env.get_domain("py")
+    return py_domain.resolve_xref(
+        env,
+        node.get("refdoc"),
+        app.builder,
+        node.get("reftype", "obj"),
+        f"pandas.{target}",
+        node,
+        contnode,
+    )
+
+
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
+    app.connect("missing-reference", resolve_pandas_toplevel_xref)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)

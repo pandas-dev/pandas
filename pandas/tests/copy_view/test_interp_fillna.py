@@ -45,6 +45,33 @@ def test_interp_fill_functions(func):
 
 
 @pytest.mark.parametrize("func", ["ffill", "bfill"])
+@pytest.mark.parametrize("kwargs", [{}, {"limit": 1}])
+@pytest.mark.parametrize(
+    "vals, dtype",
+    [
+        (["a", "b", "c"], "str"),
+        (["a", "b", "c"], "string[pyarrow]"),
+        ([1, 2, 3], "int64[pyarrow]"),
+    ],
+)
+def test_interp_fill_functions_no_na_ea(func, kwargs, vals, dtype, frame_or_series):
+    # GH#71515
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    obj = frame_or_series(vals, dtype=dtype)
+    obj_orig = obj.copy()
+
+    result = getattr(obj, func)(**kwargs)
+    result_orig = result.copy()
+    result.iloc[0] = vals[1]
+    tm.assert_equal(obj, obj_orig)
+
+    result = getattr(obj, func)(**kwargs)
+    obj.iloc[0] = vals[1]
+    tm.assert_equal(result, result_orig)
+
+
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
 @pytest.mark.parametrize(
     "vals",
     [[1, np.nan, 2], [pd.Timestamp("2019-12-31"), pd.NaT, pd.Timestamp("2020-12-31")]],

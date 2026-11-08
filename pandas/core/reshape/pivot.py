@@ -46,7 +46,6 @@ if TYPE_CHECKING:
         AggFuncTypeBase,
         AggFuncTypeDict,
         IndexLabel,
-        SequenceNotStr,
     )
 
     from pandas import DataFrame
@@ -963,11 +962,8 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            indexed = data._constructor(
-                data[values]._values,
-                index=multiindex,
-                columns=cast("SequenceNotStr[Hashable]", values),
-            )
+            # GH#43547
+            indexed = data[values].set_axis(multiindex, axis=0).set_axis(values, axis=1)
         else:
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union

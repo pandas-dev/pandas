@@ -10,19 +10,10 @@ kinds of benchmarks relevant to pandas:
 ## pandas benchmarks
 
 pandas benchmarks are implemented in the [asv_bench](https://github.com/pandas-dev/pandas/tree/main/asv_bench)
-directory of our repository. The benchmarks are implemented for the
-[airspeed velocity](https://asv.readthedocs.io/en/latest/) (asv for short) framework.
-
-The benchmarks can be run locally by any pandas developer. This can be done
-with the `asv run` command, and it can be useful to detect if local changes have
-an impact in performance, by running the benchmarks before and after the changes.
-More information on running the performance test suite is found
-[here](https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#running-the-performance-test-suite).
-
-Note that benchmarks are not deterministic, and running in different hardware or
-running in the same hardware with different levels of stress have a big impact in
-the result. Even running the benchmarks with identical hardware and almost identical
-conditions can produce significant differences when running the same exact code.
+directory of our repository, using the [airspeed velocity](https://asv.readthedocs.io/en/latest/)
+(asv for short) framework. See
+[running the performance test suite]({{ base_url }}docs/development/contributing_codebase.html#running-the-performance-test-suite)
+in the contributing guide for how to run them.
 
 ## Automated benchmark runner
 

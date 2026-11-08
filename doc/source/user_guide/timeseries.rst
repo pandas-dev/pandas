@@ -88,7 +88,8 @@ Date offsets            ``DateOffset``     ``None``              ``None``       
 
 The default resolution for date times and time deltas is microsecond ("us"), though second ("s"),
 millisecond ("ms"), and nanosecond ("ns") are also supported. The resolution can be changed using
-:meth:`~Series.dt.as_unit`.
+:meth:`~Series.dt.as_unit`. Arithmetic keeps the resolution of its operands, see
+:ref:`Timedelta arithmetic <timedeltas.unit_preserving_arithmetic>`.
 
 For time series data, it's conventional to represent the time component in the index of a :class:`Series` or :class:`DataFrame`
 so manipulations can be performed with respect to the time element.
@@ -592,7 +593,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
-* Regularization functions like ``snap`` and very fast ``asof`` logic.
+* Very fast ``asof`` logic.
 
 ``DatetimeIndex`` objects have all the basic functionality of regular ``Index``
 objects, and a smorgasbord of advanced time series specific methods for easy
@@ -1856,6 +1857,18 @@ end of the interval is closed:
 
    ts.resample("5Min", closed="left").mean()
 
+For the end-anchored offsets 'ME', 'YE', 'QE', 'BME', 'BYE', 'BQE', and 'W',
+``closed="right"`` puts the whole last day of each period in its bin, while
+with ``closed="left"`` the bin edge is midnight at the start of that day, so
+timestamps on that day fall in the next bin:
+
+.. ipython:: python
+
+   idx = pd.date_range("2011-01-30", "2011-02-01", freq="12h")
+   ser = pd.Series(range(len(idx)), index=idx)
+   ser.resample("ME", closed="right").count()
+   ser.resample("ME", closed="left").count()
+
 Parameters like ``label`` are used to manipulate the resulting labels.
 ``label`` specifies whether the result is labeled with the beginning or
 the end of the interval.
@@ -2180,6 +2193,21 @@ Because ``freq`` represents a span of ``Period``, it cannot be negative like "-3
    pd.Period("2012-1-1 19:00", freq="h")
 
    pd.Period("2012-1-1 19:00", freq="5h")
+
+A ``Period`` starts at the beginning of its frequency's base unit, so any finer
+time information is discarded: a ``"D"`` period always starts at midnight.
+To represent a day-long span starting at another time, use a multiple of a finer
+frequency such as ``"24h"``; to group timestamps into days starting at 08:00, use
+``resample("D", offset="8h")`` instead. ``pd.DateOffset`` objects such as
+``pd.DateOffset(days=1)`` are not supported as a ``Period`` frequency.
+
+.. ipython:: python
+
+   period = pd.Period("2012-1-1 08:00", freq="D")
+   period.start_time, period.end_time
+
+   period = pd.Period("2012-1-1 08:00", freq="24h")
+   period.start_time, period.end_time
 
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).

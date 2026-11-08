@@ -320,6 +320,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 
     @classmethod
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
+    ) -> Self:
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    @classmethod
     def _from_sequence_not_strict(
         cls,
         data,
@@ -2042,7 +2048,6 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
         DatetimeIndex.time : Returns numpy array of datetime.time objects.
             The time part of the Timestamps.
 
