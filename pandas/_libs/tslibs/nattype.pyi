@@ -27,6 +27,9 @@ NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
+# nat_strings plus the empty string; each parses to NaT
+NaTStrings: TypeAlias = Literal["", "NaT", "nat", "NAT", "nan", "NaN", "NAN"]
+
 _TimeLike: TypeAlias = datetime | timedelta | Period | np.datetime64 | np.timedelta64
 _TimeDelta: TypeAlias = timedelta | np.timedelta64
 

@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     NaTType,
     Tick,
 )
+from pandas._libs.tslibs.nattype import NaTStrings
 from pandas._typing import (
     Frequency,
     TimeUnit,
@@ -96,20 +97,30 @@ class Timedelta(timedelta):
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
     _value: int  # np.int64
+    # error: "__new__" must return a class instance (got "NaTType")
     @overload
     def __new__(  # type: ignore[misc]
         cls,
-        value: NaTType | NAType | None,
+        value: NaTType | NAType | NaTStrings | None,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
     ) -> NaTType: ...
     @overload
     def __new__(
         cls,
-        value: object = ...,
+        value: int | np.integer | str | timedelta | Tick = ...,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
     ) -> Self: ...
+    # float NaN and np.timedelta64 can represent NaT
+    # error: "__new__" must return a class instance (got "Timedelta | NaTType")
+    @overload
+    def __new__(  # type: ignore[misc]
+        cls,
+        value: object,
+        unit: str | None = ...,
+        **kwargs: float | np.integer | np.floating,
+    ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property

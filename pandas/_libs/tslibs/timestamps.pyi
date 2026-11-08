@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
 )
+from pandas._libs.tslibs.nattype import NaTStrings
 from pandas._typing import (
     Frequency,
     TimestampNonexistent,
@@ -42,12 +43,12 @@ class Timestamp(datetime):
 
     resolution: ClassVar[Timedelta]
     _value: int  # np.int64
-    # null-like input yields NaT; see the Timestamp docstring Notes. NaT from
-    # strings like "NaT" or from float NaN is not reflected in the return type.
+    # null-like input yields NaT; see the Timestamp docstring Notes
+    # error: "__new__" must return a class instance (got "NaTType")
     @overload
     def __new__(  # type: ignore[misc]
         cls,
-        ts_input: NaTType | NAType | None,
+        ts_input: NaTType | NAType | NaTStrings | None,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
@@ -66,7 +67,7 @@ class Timestamp(datetime):
     @overload
     def __new__(
         cls,
-        ts_input: (np.integer | float | str | _date | datetime | np.datetime64) = ...,
+        ts_input: int | np.integer | str | _date | datetime = ...,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
@@ -82,6 +83,27 @@ class Timestamp(datetime):
         unit: str | int | None = ...,
         fold: int | None = ...,
     ) -> Self: ...
+    # float NaN and np.datetime64 can represent NaT
+    # error: "__new__" must return a class instance (got "Timestamp | NaTType")
+    @overload
+    def __new__(  # type: ignore[misc]
+        cls,
+        ts_input: float | np.floating | np.datetime64,
+        year: int | None = ...,
+        month: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
+        # the 8th positional argument is pydatetime's tzinfo
+        microsecond: int | _tzinfo | None = ...,
+        tzinfo: _tzinfo | None = ...,
+        *,
+        nanosecond: int | None = ...,
+        tz: _TimeZones = ...,
+        unit: str | int | None = ...,
+        fold: int | None = ...,
+    ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _TimeZones

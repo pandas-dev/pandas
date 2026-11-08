@@ -1,3 +1,4 @@
+from datetime import date
 from typing import (
     Literal,
     Self,
@@ -6,9 +7,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.missing import NAType
 from pandas._libs.tslibs.dtypes import PeriodDtypeBase
-from pandas._libs.tslibs.nattype import NaTType
+from pandas._libs.tslibs.nattype import (
+    NaTStrings,
+    NaTType,
+)
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
@@ -85,10 +88,11 @@ class Period(PeriodMixin):
     freq: BaseOffset
     _dtype: PeriodDtypeBase
 
+    # error: "__new__" must return a class instance (got "NaTType")
     @overload
     def __new__(  # type: ignore[misc]
         cls,
-        value: NaTType | NAType | None,
+        value: NaTType | NaTStrings | None,
         freq: int | str | BaseOffset | None = ...,
         ordinal: int | None = ...,
         year: int | None = ...,
@@ -102,7 +106,7 @@ class Period(PeriodMixin):
     @overload
     def __new__(
         cls,
-        value: object = ...,
+        value: Period | date | int | str = ...,
         freq: int | str | BaseOffset | None = ...,
         ordinal: int | None = ...,
         year: int | None = ...,
@@ -113,6 +117,22 @@ class Period(PeriodMixin):
         minute: int | None = ...,
         second: int | None = ...,
     ) -> Self: ...
+    # float NaN can represent NaT
+    # error: "__new__" must return a class instance (got "Period | NaTType")
+    @overload
+    def __new__(  # type: ignore[misc]
+        cls,
+        value: object,
+        freq: int | str | BaseOffset | None = ...,
+        ordinal: int | None = ...,
+        year: int | None = ...,
+        month: int | None = ...,
+        quarter: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
+    ) -> Self | NaTType: ...
     @classmethod
     def _maybe_convert_freq(cls, freq: object) -> BaseOffset: ...
     @classmethod
