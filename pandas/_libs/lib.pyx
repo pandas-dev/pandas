@@ -2657,6 +2657,7 @@ def maybe_convert_numeric(
 
     for i in range(n):
         val = values[i]
+        val = item_from_zerodim(val)
         # We only want to disable NaNs showing as float if
         # a) convert_to_masked_nullable = True
         # b) no floats have been seen ( assuming an int shows up later )
