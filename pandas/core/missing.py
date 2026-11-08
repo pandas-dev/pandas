@@ -449,6 +449,8 @@ def interpolate_2d_inplace(
         # Block.interpolate passes this for any 2-d block
         axis == 1
         and method in INTERP1D_METHODS
+        # rows are grouped by the NaNs in data, not by mask
+        and mask is None
         # would start broadcasting against the rows
         and not is_list_like(fill_value)
         # SciPy rejects a 1-d longdouble y for some methods, but not a 2-d one

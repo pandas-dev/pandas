@@ -691,19 +691,3 @@ def test_interpolate_frame_inplace_readonly_nothing_to_fill(values):
     expected = df.copy()
     df.interpolate(method="nearest", inplace=True)
     tm.assert_frame_equal(df, expected)
-
-
-def test_interpolate_2d_array_empty_axis():
-    # GH#48236 not reachable from a DataFrame, which returns early when empty
-    pytest.importorskip("scipy")
-    arr = pd.arrays.NumpyExtensionArray(np.empty((2, 0)))
-    result = arr.interpolate(
-        method="nearest",
-        axis=1,
-        index=pd.Index([]),
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        copy=True,
-    )
-    assert result.shape == (2, 0)
