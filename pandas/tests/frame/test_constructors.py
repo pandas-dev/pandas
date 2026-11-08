@@ -19,11 +19,13 @@ from datetime import (
 )
 import functools
 import re
+from typing import overload
 import zoneinfo
 
 import numpy as np
 from numpy import ma
 from numpy.ma import mrecords
+import numpy.typing as npt
 import pytest
 
 from pandas._libs import lib
@@ -66,10 +68,14 @@ MIXED_INT_DTYPES = [
 
 class DummyContainer(abc.Sequence[object]):
     # stand-in for third-party Sequence implementations such as numba.typed.List
-    def __init__(self, lst) -> None:
+    def __init__(self, lst: abc.Sequence[object] | npt.NDArray[np.generic]) -> None:
         self._lst = lst
 
-    def __getitem__(self, n):
+    @overload
+    def __getitem__(self, n: int) -> object: ...
+    @overload
+    def __getitem__(self, n: slice) -> abc.Sequence[object]: ...
+    def __getitem__(self, n: int | slice) -> object | abc.Sequence[object]:
         return self._lst[n]
 
     def __len__(self) -> int:
@@ -78,7 +84,9 @@ class DummyContainer(abc.Sequence[object]):
 
 class DummyArrayContainer(DummyContainer):
     # a Sequence that is also convertible via __array__
-    def __array__(self, dtype=None, copy=None):
+    def __array__(
+        self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
+    ) -> npt.NDArray[np.generic]:
         return np.array(self._lst, dtype=dtype, copy=copy)
 
 
@@ -1500,6 +1508,7 @@ class TestDataFrameConstructors:
             lambda lst: memoryview(np.array(lst)),
             DummyContainer,
         ],
+        ids=["deque", "UserList", "array.array", "memoryview", "DummyContainer"],
     )
     def test_constructor_1d_sequence(self, box):
         # GH#27539 a 1D Sequence that is not a list/tuple/range used to raise
@@ -1520,14 +1529,20 @@ class TestDataFrameConstructors:
             [],
         ],
     )
-    def test_constructor_1d_sequence_dtype_inference(self, data):
+    @pytest.mark.parametrize(
+        "box",
+        [deque, DummyContainer, DummyArrayContainer],
+        ids=["deque", "DummyContainer", "DummyArrayContainer"],
+    )
+    def test_constructor_1d_sequence_dtype_inference(self, data, box):
         # GH#27539 dtype inference for a generic Sequence must match both the
-        #  equivalent list and what the Series constructor would infer
-        result = pd.DataFrame(deque(data))
+        #  equivalent list and what the Series constructor would infer, whether
+        #  or not the Sequence also implements __array__
+        result = pd.DataFrame(box(data))
         expected = pd.DataFrame(data)
         tm.assert_frame_equal(result, expected)
         if data:
-            assert result.dtypes.iloc[0] == pd.Series(deque(data)).dtype
+            assert result.dtypes.iloc[0] == pd.Series(data).dtype
 
     def test_constructor_1d_sequence_array_interface_copy(self):
         # GH#27539 a Sequence implementing __array__ is copied by default
@@ -1535,6 +1550,19 @@ class TestDataFrameConstructors:
         result = pd.DataFrame(DummyArrayContainer(arr))
         arr[0] = 99.0
         expected = pd.DataFrame([1.0, 2.0, 3.0])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_nested_sequence_array_interface(self):
+        # GH#27539 a Sequence implementing __array__ keeps the nested-list
+        #  path, as on main, so per-column dtypes and Series alignment survive
+        result = pd.DataFrame(DummyArrayContainer([[1, "a"], [2, "b"]]))
+        expected = pd.DataFrame([[1, "a"], [2, "b"]])
+        tm.assert_frame_equal(result, expected)
+
+        ser1 = pd.Series([1, 2], index=["x", "y"])
+        ser2 = pd.Series([3, 4], index=["y", "x"])
+        result = pd.DataFrame(DummyArrayContainer([ser1, ser2]))
+        expected = pd.DataFrame([ser1, ser2])
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no("numba")
