@@ -869,7 +869,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if isinstance(other, Timestamp):
             tz = other.tz
         else:
-            tz = Timestamp(other).tz  # type: ignore[arg-type]
+            tz = Timestamp(other).tz  # type: ignore[call-overload]
         if tz is None or timezones.is_utc(tz):
             return -freq  # type: ignore[return-value]
         return None

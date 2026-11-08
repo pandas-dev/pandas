@@ -9,6 +9,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs import (
     NaTType,
     Tick,
@@ -95,13 +96,20 @@ class Timedelta(timedelta):
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
     _value: int  # np.int64
-    # error: "__new__" must return a class instance (got "Timedelta | NaTType")
+    @overload
     def __new__(  # type: ignore[misc]
-        cls: type[Self],
+        cls,
+        value: NaTType | NAType | None,
+        unit: str | None = ...,
+        **kwargs: float | np.integer | np.floating,
+    ) -> NaTType: ...
+    @overload
+    def __new__(
+        cls,
         value: object = ...,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
-    ) -> Self | NaTType: ...
+    ) -> Self: ...
     @classmethod
     def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property

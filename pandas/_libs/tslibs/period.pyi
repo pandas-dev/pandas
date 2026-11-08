@@ -1,7 +1,12 @@
-from typing import Literal
+from typing import (
+    Literal,
+    Self,
+    overload,
+)
 
 import numpy as np
 
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.offsets import BaseOffset
@@ -80,8 +85,22 @@ class Period(PeriodMixin):
     freq: BaseOffset
     _dtype: PeriodDtypeBase
 
-    # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
+    @overload
     def __new__(  # type: ignore[misc]
+        cls,
+        value: NaTType | NAType | None,
+        freq: int | str | BaseOffset | None = ...,
+        ordinal: int | None = ...,
+        year: int | None = ...,
+        month: int | None = ...,
+        quarter: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
+    ) -> NaTType: ...
+    @overload
+    def __new__(
         cls,
         value: object = ...,
         freq: int | str | BaseOffset | None = ...,
@@ -93,7 +112,7 @@ class Period(PeriodMixin):
         hour: int | None = ...,
         minute: int | None = ...,
         second: int | None = ...,
-    ) -> Period | NaTType: ...
+    ) -> Self: ...
     @classmethod
     def _maybe_convert_freq(cls, freq: object) -> BaseOffset: ...
     @classmethod

@@ -493,10 +493,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            # error: Argument 1 to "Timestamp" has incompatible type "object";
-            # expected "integer[Any] | float | str | date | datetime |
-            # datetime64[date | int | None]"  [arg-type]
-            other = self._scalar_type(other)  # type: ignore[arg-type]
+            # error: No overload variant of "Timestamp" matches argument type
+            # "object"  [call-overload]
+            other = self._scalar_type(other)  # type: ignore[call-overload]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -568,9 +567,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(msg)
 
         elif isinstance(value, self._recognized_scalars):
-            # error: Argument 1 to "Timestamp" has incompatible type "object"; expected
-            # "integer[Any] | float | str | date | datetime | datetime64"
-            value = self._scalar_type(value)  # type: ignore[arg-type]
+            # error: No overload variant of "Timestamp" matches argument type
+            # "object"  [call-overload]
+            value = self._scalar_type(value)  # type: ignore[call-overload]
 
         else:
             msg = self._validation_error_message(value, allow_listlike)

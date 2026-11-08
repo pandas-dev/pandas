@@ -42,21 +42,12 @@ class Timestamp(datetime):
 
     resolution: ClassVar[Timedelta]
     _value: int  # np.int64
-    #  error: "__new__" must return a class instance (got "Timestamp | NaTType")
+    # null-like input yields NaT; see the Timestamp docstring Notes. NaT from
+    # strings like "NaT" or from float NaN is not reflected in the return type.
+    @overload
     def __new__(  # type: ignore[misc]
-        cls: type[Self],
-        # null-like input yields NaT; see the Timestamp docstring Notes
-        ts_input: (
-            np.integer
-            | float
-            | str
-            | _date
-            | datetime
-            | np.datetime64
-            | NaTType
-            | NAType
-            | None
-        ) = ...,
+        cls,
+        ts_input: NaTType | NAType | None,
         year: int | None = ...,
         month: int | None = ...,
         day: int | None = ...,
@@ -71,7 +62,26 @@ class Timestamp(datetime):
         tz: _TimeZones = ...,
         unit: str | int | None = ...,
         fold: int | None = ...,
-    ) -> Self | NaTType: ...
+    ) -> NaTType: ...
+    @overload
+    def __new__(
+        cls,
+        ts_input: (np.integer | float | str | _date | datetime | np.datetime64) = ...,
+        year: int | None = ...,
+        month: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
+        # the 8th positional argument is pydatetime's tzinfo
+        microsecond: int | _tzinfo | None = ...,
+        tzinfo: _tzinfo | None = ...,
+        *,
+        nanosecond: int | None = ...,
+        tz: _TimeZones = ...,
+        unit: str | int | None = ...,
+        fold: int | None = ...,
+    ) -> Self: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _TimeZones
