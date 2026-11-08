@@ -4377,7 +4377,7 @@ def test_loc_setitem_expansion_empty_frame_bool_not_cast(box):
 
 
 def test_loc_setitem_expansion_empty_frame_not_retained_keeps_value():
-    # GH#19647 a column that does not retain its dtype is not rebuilt from object
+    # GH#19647 a column that cannot hold its value still warns and keeps the value
     pytest.importorskip("pyarrow")
     df = pd.DataFrame(
         {"a": pd.Series(dtype="int64[pyarrow]"), "b": pd.Series(dtype="float64")}
@@ -4402,7 +4402,8 @@ def test_loc_setitem_expansion_empty_frame_arrow_decimal_retained():
 def test_loc_setitem_expansion_empty_frame_stays_consolidated():
     # GH#19647
     df = pd.DataFrame(np.empty((0, 3)))
-    df.loc[0] = np.arange(3.0)
+    df.loc[0] = [1, 2, 3]
+    assert (df.dtypes == "float64").all()
     assert df._mgr.nblocks == 1
 
 

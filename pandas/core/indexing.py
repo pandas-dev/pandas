@@ -3155,6 +3155,8 @@ class _iLocIndexer(_LocationIndexer):
                     )
                     if retained is not new_values:
                         df.isetitem(loc, retained)
+                # isetitem splits each retained column into its own block
+                df._consolidate_inplace()
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append_internal(value)._mgr
@@ -3973,7 +3975,8 @@ def _retain_empty_dtype(orig: ExtensionArray, value, new_values) -> ArrayLike:
             stored = _as_python_scalar(result[0])
             expected = _as_python_scalar(value)
             if stored == expected and is_bool(stored) == is_bool(expected):
-                # e.g. a tz mismatch, which non-empty expansion turns into object
+                # keep the dtype only if a second insert of value would too,
+                #  see test_setitem_empty_series_tz_mismatch_not_retained
                 later_insert = Series(result)
                 later_insert.loc[1] = value
                 if later_insert.dtype == result.dtype:
