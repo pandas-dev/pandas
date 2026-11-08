@@ -3579,3 +3579,77 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     else:
         expected = pd.DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)
+
+
+class TestMergeMissingKeyError:
+    # GH#71819 - the KeyError for a missing merge key says which DataFrame
+    # is missing it and which keys are available
+
+    @pytest.fixture
+    def orders(self):
+        return pd.DataFrame({"customer_id": [1, 2, 3], "amount": [10, 20, 30]})
+
+    @pytest.fixture
+    def customers(self):
+        return pd.DataFrame({"id": [1, 2, 3], "name": ["A", "B", "C"]})
+
+    @pytest.mark.parametrize(
+        "kwargs, msg",
+        [
+            (
+                {"on": "customer_id"},
+                "'customer_id' not found in right DataFrame. "
+                "Available columns: ['id', 'name']",
+            ),
+            (
+                {"on": "id"},
+                "'id' not found in left DataFrame. "
+                "Available columns: ['customer_id', 'amount']",
+            ),
+            (
+                {"on": "zzz"},
+                "'zzz' not found in left or right DataFrame. "
+                "Left columns: ['customer_id', 'amount']. "
+                "Right columns: ['id', 'name']",
+            ),
+            (
+                {"left_on": "customr_id", "right_on": "id"},
+                "'customr_id' not found in left DataFrame. "
+                "Available columns: ['customer_id', 'amount']",
+            ),
+            (
+                {"left_on": "customer_id", "right_on": "idd"},
+                "'idd' not found in right DataFrame. Available columns: ['id', 'name']",
+            ),
+            (
+                {"left_on": "zzz", "right_index": True},
+                "'zzz' not found in left DataFrame. "
+                "Available columns: ['customer_id', 'amount']",
+            ),
+            (
+                {"left_index": True, "right_on": "zzz"},
+                "'zzz' not found in right DataFrame. Available columns: ['id', 'name']",
+            ),
+        ],
+    )
+    def test_merge_missing_key_names_side(self, orders, customers, kwargs, msg):
+        with pytest.raises(KeyError, match=re.escape(msg)) as err:
+            orders.merge(customers, **kwargs)
+        # the original KeyError is chained
+        assert isinstance(err.value.__cause__, KeyError)
+
+    def test_merge_missing_key_lists_index_levels(self, customers):
+        left = pd.DataFrame({"a": [1, 2]}, index=pd.Index([1, 2], name="lvl"))
+        msg = (
+            "'zzz' not found in left DataFrame. "
+            "Available columns: ['a'], index levels: ['lvl']"
+        )
+        with pytest.raises(KeyError, match=re.escape(msg)):
+            left.merge(customers, left_on="zzz", right_on="id")
+
+    def test_merge_missing_key_non_string_labels(self):
+        left = pd.DataFrame({0: [1, 2], 1: [3, 4]})
+        right = pd.DataFrame({0: [1, 2], 2: [5, 6]})
+        msg = "2 not found in left DataFrame. Available columns: [0, 1]"
+        with pytest.raises(KeyError, match=re.escape(msg)):
+            left.merge(right, on=2)

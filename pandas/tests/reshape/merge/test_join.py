@@ -139,8 +139,12 @@ class TestJoin:
         assert np.isnan(joined["two"]["c"])
         assert np.isnan(joined["three"]["c"])
 
-        # merge column not p resent
-        with pytest.raises(KeyError, match="^'E'$"):
+        # merge column not present
+        msg = (
+            r"'E' not found in left DataFrame\. "
+            r"Available columns: \['A', 'B', 'C', 'D'\]"
+        )
+        with pytest.raises(KeyError, match=msg):
             target.join(source, on="E")
 
         # overlap
