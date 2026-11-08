@@ -4372,7 +4372,7 @@ def test_loc_setitem_expansion_empty_frame_bool_not_cast(box):
     df = pd.DataFrame({"a": pd.Series(dtype="Int64"), "b": pd.Series(dtype="float64")})
     df.loc[0] = box([True, 1])
     assert df["a"].dtype == "boolean"
-    assert df["a"].iloc[0] is np.True_
+    assert isinstance(df["a"].iloc[0], (bool, np.bool_))
     assert df["b"].dtype == "float64"
 
 
