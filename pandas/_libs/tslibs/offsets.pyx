@@ -3091,6 +3091,13 @@ cdef class BusinessHour(BusinessMixin):
     >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.BusinessHour(start="09:30", end="16:00")
+    Timestamp('2022-08-08 10:00:00')
+
     Passing the parameter ``normalize`` equal to True, you shift the start
     of the next business hour to midnight.
 
@@ -7283,6 +7290,13 @@ cdef class CustomBusinessHour(BusinessHour):
 
     >>> ts = pd.Timestamp(2022, 8, 5, 22)
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
+    Timestamp('2022-08-08 10:00:00')
+
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.CustomBusinessHour(start="09:30", end="16:00")
     Timestamp('2022-08-08 10:00:00')
 
     You can divide your business day hours into several parts.

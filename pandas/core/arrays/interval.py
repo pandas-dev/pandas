@@ -1008,18 +1008,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[IntervalArray]) -> Self:
+    def _concat_same_type(
+        cls, to_concat: Sequence[IntervalArray], axis: AxisInt = 0
+    ) -> Self:
         """
         Concatenate multiple IntervalArray
 
         Parameters
         ----------
         to_concat : sequence of IntervalArray
+        axis : int, default 0
+            Must be 0 or -1; IntervalArray is 1D-only.
 
         Returns
         -------
         IntervalArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         closed_set = {interval.closed for interval in to_concat}
         if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")

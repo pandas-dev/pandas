@@ -103,6 +103,7 @@ Other API changes
 - :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
 - :class:`ExtensionArray` now implements ``__array_function__``. Code expecting :func:`numpy.concatenate` or :func:`numpy.delete` to return a NumPy array for :class:`ExtensionArray` input, including ``_concat_same_type`` and ``delete`` implementations in :class:`ExtensionArray` subclasses, may need updating, as may code mixing an :class:`ExtensionArray` with another library's ``__array_function__`` arrays (:issue:`26380`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
+- :meth:`.ExtensionArray._concat_same_type` now has an ``axis`` keyword (default ``0``); pandas only passes it for dtypes that support 2D, so existing implementations without it keep working (:issue:`47514`)
 - :meth:`.Styler.to_excel` now omits the rows, columns, index and header levels, and names hidden with :meth:`.Styler.hide`, matching the other :class:`.Styler` output methods; hiding the whole index with :class:`MultiIndex` columns now raises ``NotImplementedError``, as ``index=False`` does (:issue:`42276`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
@@ -131,6 +132,7 @@ Other deprecations
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
 - Deprecated :meth:`DatetimeIndex.snap`; for non-fixed offsets use the offset's ``rollback`` and ``rollforward`` methods. For fixed frequencies ``snap`` returns the values unchanged; use :meth:`DatetimeIndex.round` if rounding was intended (:issue:`27098`)
 - Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, ``cummax``, ``clip``, and the comparisons ``<``, ``<=``, ``>``, ``>=`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`, :issue:`70087`)
+- Deprecated :meth:`DataFrame.iterrows`. Use :meth:`DataFrame.itertuples` instead (:issue:`43874`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a list-like ``name`` to :meth:`Index.copy`; pass the label itself instead (:issue:`19171`)
@@ -151,13 +153,16 @@ Performance improvements
 - Performance improvement and reduced memory usage in :meth:`DataFrame.loc` and :meth:`Series.loc` with a :class:`MultiIndex` when selecting on the first level with ``slice(None)`` for the remaining levels (:issue:`52714`)
 - Performance improvement in :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` with ``engine="numexpr"`` (:issue:`71806`)
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
+- Performance improvement in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with PyArrow-backed string data (:issue:`60861`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
+- Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with a ``date_format`` built from ``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f`` and ``%N`` (:issue:`44764`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
 - Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
+- Reduced memory usage of :meth:`Series.duplicated`, non-unique :meth:`Index.duplicated`, and the corresponding ``drop_duplicates`` methods with ``keep="first"`` or ``keep="last"`` on data with many distinct values (:issue:`39799`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.bug_fixes:
@@ -179,6 +184,7 @@ Datetimelike
 - Bug in :class:`Timestamp` constructor, :func:`to_datetime`, and :func:`read_csv` with ``parse_dates`` where a comma used as a date separator was read as a decimal point, silently giving a wrong result (e.g. ``"2013,11,04"`` parsed as ``2013-04-01``); such strings now raise, and :func:`read_csv` leaves the column unparsed (:issue:`17265`)
 - Bug in :func:`infer_freq` returning ``None`` for a semi-monthly :class:`DatetimeIndex`, e.g. one built with ``freq="SME"`` or ``freq="SMS"`` (:issue:`45819`)
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)
+- Bug in :meth:`DataFrame.to_csv` and ``astype(str)`` raising for some timezone-aware datetime data outside the range of :class:`datetime.datetime` (:issue:`44764`)
 - Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
 - Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on datetime-like data missing ``numpy.datetime64`` or ``numpy.timedelta64`` values (``NaT``, or any value on numpy < 2.2) when ``values`` also held non-datetime-like entries (:issue:`71186`)
 - Bug in ``!=`` between a :class:`Tick` offset such as :class:`Hour` and an array-like of ``timedelta64`` values or ``pd.NA`` raising ``ValueError`` or ``TypeError`` (:issue:`71162`)
@@ -207,6 +213,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
+- Bug in :func:`to_numeric` raising ``TypeError`` for object values containing 0-dimensional :class:`numpy.ndarray` elements instead of converting them (:issue:`47408`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
 - Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
 - Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting integer and boolean columns when the equal values were only in rows dropped from the result (:issue:`39899`)
@@ -371,6 +378,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.resample` followed by :meth:`.Resampler.aggregate` with a list of functions aggregating the grouping and ``on`` columns, raising ``TypeError`` or returning them as extra result columns (:issue:`32162`)
 - Bug in :meth:`.DataFrameGroupBy.shift` and :meth:`.DataFrameGroupBy.pct_change` with ``freq`` including the grouping columns in the result, or raising for non-numeric grouping columns (:issue:`46944`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
+- Bug in :meth:`.DataFrameGroupBy.sum`, :meth:`.SeriesGroupBy.sum` and :meth:`DataFrame.sum` with ``axis=1`` ignoring ``min_count`` for :class:`ArrowDtype` string data (:issue:`60861`)
 - Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`42617`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`.GroupBy.quantile` raising ``NotImplementedError`` with no message, instead of ``TypeError``, on :class:`ArrowDtype` columns it does not support, e.g. binary columns (:issue:`69808`)
@@ -389,6 +397,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
+- Bug in :func:`concat` raising ``ArrowInvalid`` when casting integers exceeding ``2**53`` to a PyArrow float dtype, e.g. ``int64[pyarrow]`` with ``uint64[pyarrow]``; these now round as with NumPy dtypes (:issue:`58819`)
 - Bug in :func:`concat` raising ``ValueError`` when tuple ``keys`` contain a missing value such as ``None`` (:issue:`57993`)
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)

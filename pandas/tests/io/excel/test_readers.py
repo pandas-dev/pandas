@@ -223,9 +223,9 @@ class TestReaders:
 
         tm.assert_frame_equal(df1, df2)
 
-        for idx, row in df2.iterrows():
+        for idx in range(len(df2)):
             for col in df2.columns:
-                val = row[col]
+                val = df2.iloc[idx][col]
                 exp_val = df1.iloc[idx][col]
                 # Check if values match
                 assert val == exp_val, (
