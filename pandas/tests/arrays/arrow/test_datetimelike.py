@@ -755,6 +755,21 @@ def test_dt_timedelta_total_seconds():
     tm.assert_series_equal(result, expected)
 
 
+def test_dt_timedelta_total_seconds_large_values():
+    # GH 71953
+    ser = pd.Series(
+        [pd.Timedelta(days=200), pd.Timedelta(days=-200), None],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.total_seconds()
+    expected = pd.Series(
+        ArrowExtensionArray(
+            pa.array([17_280_000.0, -17_280_000.0, None], type=pa.float64())
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_dt_timedelta_components():
     # Test that .dt.components returns correct values for Arrow duration arrays
     ser = pd.Series(

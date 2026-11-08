@@ -4518,8 +4518,24 @@ class ArrowExtensionArray(
 
     def _dt_total_seconds(self) -> Self:
         unit = self._pa_array.type.unit
-        unit_per_second = {"s": 1.0, "ms": 1e3, "us": 1e6, "ns": 1e9}
-        result = pc.divide(pc.cast(self._pa_array, pa.int64()), unit_per_second[unit])
+        values = pc.cast(self._pa_array, pa.int64())
+        if unit == "s":
+            # Duration values are already expressed in seconds.
+            result = pc.cast(values, pa.float64(), safe=False)
+        else:
+            units_per_second = {"ms": 1_000, "us": 1_000_000, "ns": 1_000_000_000}
+            divisor = units_per_second[unit]
+            # Do the division while values are integers.  Casting a large
+            # nanosecond value to float before dividing is rejected by Arrow
+            # outside the exact-integer range of float64 (GH 71953).
+            whole_seconds = floor_div_int64(values, divisor)
+            remainder = pc.subtract(values, pc.multiply(whole_seconds, divisor))
+            result = pc.add(
+                pc.cast(whole_seconds, pa.float64(), safe=False),
+                pc.divide(
+                    pc.cast(remainder, pa.float64(), safe=False), float(divisor)
+                ),
+            )
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:
