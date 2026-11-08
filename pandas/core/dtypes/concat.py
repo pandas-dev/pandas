@@ -20,7 +20,10 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     np_find_common_type,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCSeries,
@@ -104,12 +107,7 @@ def concat_compat(
             # e.g. DatetimeArray
             # NB: We are assuming here that ensure_wrapped_if_arraylike has
             #  been called where relevant.
-            return obj._concat_same_type(
-                # error: Unexpected keyword argument "axis" for "_concat_same_type"
-                # of "ExtensionArray"
-                to_concat_eas,
-                axis=axis,  # type: ignore[call-arg]
-            )
+            return obj._concat_same_type(to_concat_eas, axis=axis)
 
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
@@ -122,7 +120,7 @@ def concat_compat(
     any_ea, kinds, target_dtype = _get_result_dtype(to_concat, non_empties)
 
     if target_dtype is not None:
-        to_concat = [astype_array(arr, target_dtype, copy=False) for arr in to_concat]
+        to_concat = [_astype_for_concat(arr, target_dtype) for arr in to_concat]
 
     if not isinstance(to_concat[0], np.ndarray):
         # i.e. isinstance(to_concat[0], ExtensionArray)
@@ -134,10 +132,7 @@ def concat_compat(
         if ea_compat_axis or axis == 0:
             return cls._concat_same_type(to_concat_eas)
         else:
-            return cls._concat_same_type(
-                to_concat_eas,
-                axis=axis,  # type: ignore[call-arg]
-            )
+            return cls._concat_same_type(to_concat_eas, axis=axis)
     else:
         to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
         result = np.concatenate(to_concat_arrs, axis=axis)
@@ -146,6 +141,17 @@ def concat_compat(
             # GH#39817 cast to object instead of casting bools to numeric
             result = result.astype(object, copy=False)
     return result
+
+
+def _astype_for_concat(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
+    if isinstance(dtype, ArrowDtype) and dtype.kind == "f" and arr.dtype.kind in "iu":
+        # pyarrow's checked cast refuses ints beyond 2**53; round them like
+        #  numpy and the masked dtypes do (GH#58819)
+        import pyarrow as pa
+
+        pa_array = pa.array(arr).cast(dtype.pyarrow_dtype, safe=False)
+        return dtype.construct_array_type()(pa_array)
+    return astype_array(arr, dtype, copy=False)
 
 
 def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical:

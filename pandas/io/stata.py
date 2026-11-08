@@ -3357,11 +3357,11 @@ class StataStrLWriter:
         gso_df = self.df
         columns = list(gso_df.columns)
         selected = gso_df[self.columns]
-        col_index = [(col, columns.index(col)) for col in self.columns]
+        col_index = [columns.index(col) for col in self.columns]
         keys = np.empty(selected.shape, dtype=np.uint64)
-        for o, (idx, row) in enumerate(selected.iterrows()):
-            for j, (col, v) in enumerate(col_index):
-                val = row[col]
+        for o, row in enumerate(selected.values):
+            for j, v in enumerate(col_index):
+                val = row[j]
                 # Allow columns with mixed str and None or pd.NA (GH 23633)
                 val = "" if isna(val) else val
                 key = gso_table.get(val, None)
