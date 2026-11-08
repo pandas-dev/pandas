@@ -85,6 +85,7 @@ objects.
       api.extensions.ExtensionArray.tolist
       api.extensions.ExtensionDtype.construct_array_type
       api.extensions.ExtensionDtype.construct_from_string
+      api.extensions.ExtensionDtype.empty
       api.extensions.ExtensionDtype.is_dtype
       api.extensions.ExtensionDtype.kind
       api.extensions.ExtensionDtype.name

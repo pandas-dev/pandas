@@ -172,6 +172,11 @@ class Styler(StylerRenderer):
     return values with strings containing CSS ``'attr: value'`` that will
     be applied to the indicated cells.
 
+    Styling methods such as ``Styler.map`` and ``Styler.format`` modify the
+    ``Styler`` in place and return it, to allow method chaining. Style functions
+    are evaluated lazily at render time, so a faulty one stays queued until
+    ``Styler.clear`` resets the Styler.
+
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
     to automatically render itself. Otherwise call Styler.to_html to get
     the generated HTML.
@@ -276,7 +281,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified Styler appended.
+            This Styler, with specified Styler appended.
 
         See Also
         --------
@@ -387,6 +392,15 @@ class Styler(StylerRenderer):
             return self.to_latex()
         return None
 
+    def __repr__(self) -> str:
+        # Jupyter computes text/plain on every display, so avoid a full render.
+        data = self.data
+        if len(self.hidden_rows) or len(self.hidden_columns):
+            rows = np.setdiff1d(np.arange(data.shape[0]), self.hidden_rows)
+            cols = np.setdiff1d(np.arange(data.shape[1]), self.hidden_columns)
+            data = data.iloc[rows, cols]
+        return repr(data)
+
     def set_tooltips(
         self,
         ttips: DataFrame,
@@ -421,7 +435,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with DataFrame set for strings on ``Styler``
+            This Styler, with DataFrame set for strings on ``Styler``
                 generating ``:hover`` tooltips.
 
         See Also
@@ -625,6 +639,15 @@ class Styler(StylerRenderer):
         and cell character count does not exceed Excel's limitations.
         All other limitations must be checked by the user.
 
+        Styles from :meth:`Styler.set_table_styles` and
+        :meth:`Styler.set_td_classes` are not exported, and only a subset of CSS
+        properties is supported; see
+        `Table Visualization <../../user_guide/style.ipynb>`_.
+        Display formatting from :meth:`Styler.format` is ignored. To control how
+        values are displayed in Excel, set an Excel format code with the
+        ``number-format`` property, writing ``§`` in place of Excel's ``;`` section
+        separator.
+
         Examples
         --------
 
@@ -659,6 +682,15 @@ class Styler(StylerRenderer):
         automatically chosen depending on the file extension):
 
         >>> df1.to_excel("output1.xlsx", engine="xlsxwriter")  # doctest: +SKIP
+
+        To set Excel number formats, here showing negative totals in red:
+
+        >>> df3 = pd.DataFrame({"share": [0.25, -0.1], "total": [1234.5, -99.0]})
+        >>> styler = df3.style.map(lambda v: "number-format: 0.0%;", subset=["share"])
+        >>> styler = styler.map(
+        ...     lambda v: "number-format: #,##0.00§[Red]-#,##0.00;", subset=["total"]
+        ... )
+        >>> styler.to_excel("styled.xlsx")  # doctest: +SKIP
         """
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -1710,7 +1742,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with ``class`` attribute set for ``<td>``
+            This Styler, with ``class`` attribute set for ``<td>``
                 HTML elements.
 
         See Also
@@ -1957,7 +1989,7 @@ class Styler(StylerRenderer):
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         data = self.data.loc[subset]
         if data.empty:
             result = DataFrame()
@@ -2033,7 +2065,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -2043,7 +2075,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2150,7 +2182,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2227,7 +2259,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2280,7 +2312,7 @@ class Styler(StylerRenderer):
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
             subset = IndexSlice[:]
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         result = self.data.loc[subset].map(func)
         self._update_ctx(result)
         return self
@@ -2297,7 +2329,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a string.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -2307,7 +2339,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS-styling function applied elementwise.
+            This Styler, with CSS-styling function applied elementwise.
 
         See Also
         --------
@@ -2363,7 +2395,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified table attributes set.
+            This Styler, with specified table attributes set.
 
         See Also
         --------
@@ -2467,7 +2499,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with defined styler attributes added.
+            This Styler, with defined styler attributes added.
 
         See Also
         --------
@@ -2524,7 +2556,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified uuid for `id` attributes set.
+            This Styler, with specified uuid for `id` attributes set.
 
         See Also
         --------
@@ -2577,7 +2609,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with text set for ``<caption>`` HTML element.
+            This Styler, with text set for ``<caption>`` HTML element.
 
         See Also
         --------
@@ -2636,7 +2668,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS set for permanently displaying headers
+            This Styler, with CSS set for permanently displaying headers
                 in scrolling frame.
 
         See Also
@@ -2801,7 +2833,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified table styles set.
+            This Styler, with specified table styles set.
 
         See Also
         --------
@@ -2925,7 +2957,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 1d input or single key along the axis within
             `DataFrame.loc[<subset>, :]` or `DataFrame.loc[:, <subset>]` depending
             upon ``axis``, to limit ``data`` to select hidden rows / columns.
@@ -2941,7 +2973,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified headers/rows/columns hidden from display.
+            This Styler, with specified headers/rows/columns hidden from display.
 
         See Also
         --------
@@ -2951,13 +2983,6 @@ class Styler(StylerRenderer):
 
         Notes
         -----
-        .. warning::
-           This method only works with the output methods ``to_html``, ``to_string``,
-           ``to_latex`` and ``to_typst``.
-
-           Other output methods, including ``to_excel``, ignore this hiding method
-           and will display all data.
-
         This method has multiple functionality depending upon the combination
         of the ``subset``, ``level`` and ``names`` arguments (see examples). The
         ``axis`` argument is used only to control whether the method is applied to row
@@ -3100,12 +3125,12 @@ class Styler(StylerRenderer):
                 subset_1 = IndexSlice[
                     subset, :
                 ]  # separate var so mypy reads different type
-                subset = non_reducing_slice(subset_1)
+                subset = non_reducing_slice(subset_1, self.data)
             else:
                 subset_2 = IndexSlice[
                     :, subset
                 ]  # separate var so mypy reads different type
-                subset = non_reducing_slice(subset_2)
+                subset = non_reducing_slice(subset_2, self.data)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             setattr(self, f"hidden_{alt}", h_els)
@@ -3159,7 +3184,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3185,7 +3210,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with background colored in gradient style.
+            This Styler, with background colored in gradient style.
 
         See Also
         --------
@@ -3316,7 +3341,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3338,7 +3363,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with background colored in gradient style.
+            This Styler, with text colored in gradient style.
 
         See Also
         --------
@@ -3441,7 +3466,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3451,7 +3476,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS-properties set for each ``<td>`` HTML element
+            This Styler, with CSS-properties set for each ``<td>`` HTML element
                 in the given subset
 
         See Also
@@ -3499,7 +3524,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3551,7 +3576,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Contains list-like attribute with bar chart data as formatted CSS.
+            This Styler, with bar chart CSS applied.
 
         See Also
         --------
@@ -3623,7 +3648,7 @@ class Styler(StylerRenderer):
         ----------
         color : str, default 'red'
            Background color to use for highlighting.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3634,7 +3659,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where null values are highlighted with given style.
+            This Styler, where null values are highlighted with given style.
 
         See Also
         --------
@@ -3674,7 +3699,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3691,7 +3716,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where max value is highlighted in given style.
+            This Styler, where max value is highlighted in given style.
 
         See Also
         --------
@@ -3733,7 +3758,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3750,7 +3775,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where min value is highlighted in given style.
+            This Styler, where min value is highlighted in given style.
 
         See Also
         --------
@@ -3795,7 +3820,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3817,7 +3842,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with range highlighted in given style.
+            This Styler, with range highlighted in given style.
 
         See Also
         --------
@@ -3916,7 +3941,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -3941,7 +3966,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where values in quantile highlighted with given style.
+            This Styler, where values in quantile highlighted with given style.
 
         See Also
         --------
@@ -3983,7 +4008,7 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/hq_props.png
         """
         subset_ = slice(None) if subset is None else subset
-        subset_ = non_reducing_slice(subset_)
+        subset_ = non_reducing_slice(subset_, self.data)
         data = self.data.loc[subset_]
 
         # after quantile is found along axis, e.g. along rows,

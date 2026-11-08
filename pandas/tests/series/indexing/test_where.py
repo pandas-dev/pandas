@@ -416,6 +416,16 @@ def test_where_datetimetz():
     tm.assert_series_equal(rs, expected)
 
 
+def test_where_other_list_of_nested_tuples():
+    # GH#43780
+    key1 = (("a1", "a2"), ("b1", "b2"))
+    key2 = (("x1", "x2"), ("y1", "y2"))
+    ser = pd.Series([key1, key1])
+    result = ser.where([True, False], [key2, key2])
+    expected = pd.Series([key1, key2])
+    tm.assert_series_equal(result, expected)
+
+
 def test_where_sparse():
     # GH#17198 make sure we dont get an AttributeError for sp_index
     ser = pd.Series(pd.arrays.SparseArray([1, 2]))

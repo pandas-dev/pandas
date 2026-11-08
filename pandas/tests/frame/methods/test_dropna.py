@@ -254,6 +254,31 @@ class TestDataFrameMissingData:
         with pytest.raises(KeyError, match="['D']"):
             df.dropna(subset="D", axis=0)
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_subset_multiindex_partial_key(self, axis):
+        # GH#17737
+        mi = pd.MultiIndex.from_tuples([("I", "a"), ("I", "b"), ("II", "a"), ("x", "")])
+        df = pd.DataFrame(
+            [[1, np.nan, 1, 1], [1, 2, np.nan, 1], [1, 2, 3, np.nan], [1, 2, 3, 4]],
+            columns=mi,
+        )
+        if axis == 1:
+            df = df.T
+
+        result = df.dropna(subset=["I", "x"], axis=axis)
+        expected = df.drop(labels=[0, 2], axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.dropna(subset="II", axis=axis)
+        expected = df.drop(labels=[1], axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.dropna(subset=(key for key in ["II"]), axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+        with pytest.raises(KeyError, match=r"\['zz'\] not in index"):
+            df.dropna(subset=["I", "zz"], axis=axis)
+
     def test_subset_is_nparray(self):
         # GH 41021
         df = pd.DataFrame({"A": [1, 2, np.nan], "B": list("abc"), "C": [4, np.nan, 5]})
