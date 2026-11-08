@@ -433,6 +433,20 @@ class TestPandasContainer:
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
+    @pytest.mark.parametrize("precise_float", [True, False])
+    @pytest.mark.parametrize("orient", ["table", "split", "columns"])
+    def test_frame_float_max_roundtrip(self, orient, precise_float):
+        # GH#21454
+        df = pd.DataFrame({"A": [np.finfo(np.float64).max, -1.7976931348e308]})
+        result = pd.read_json(
+            StringIO(df.to_json(orient=orient)),
+            orient=orient,
+            precise_float=precise_float,
+        )
+        # the fewest digits from double_precision=10 up that stay finite
+        expected = pd.DataFrame({"A": [1.79769313486e308, -1.7976931348e308]})
+        tm.assert_frame_equal(result, expected, check_exact=precise_float)
+
     def test_frame_to_json_except(self):
         df = pd.DataFrame([1, 2, 3])
         msg = "Invalid value 'garbage' for option 'orient'"
@@ -794,6 +808,33 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             data = StringIO(s.to_json())
         result = pd.read_json(data, typ="series", dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_series_all_null_not_datetime(self):
+        # GH#35464
+        result = pd.read_json(StringIO('{"a": null}'), typ="series")
+        expected = pd.Series([np.nan], index=["a"])
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_series_all_null_not_datetime_pyarrow(self):
+        # GH#35464
+        result = pd.read_json(
+            StringIO('{"a": null}'), typ="series", dtype_backend="pyarrow"
+        )
+        expected = pd.Series([None], index=["a"], dtype="null[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+    def test_series_all_nan_roundtrip(self, orient):
+        # GH#35464
+        ser = pd.Series([np.nan, np.nan], name="a")
+        data = StringIO(ser.to_json(orient=orient))
+        result = pd.read_json(data, typ="series", orient=orient)
+        expected = ser
+        if orient in ("values", "records"):
+            expected = expected.reset_index(drop=True)
+        if orient != "split":
+            expected = expected.rename(None)
         tm.assert_series_equal(result, expected)
 
     def test_frame_from_json_precise_float(self):
@@ -1449,6 +1490,17 @@ class TestPandasContainer:
         with pytest.raises(AttributeError, match="_creso"):
             ser.to_json(date_format="iso")
 
+    def test_to_json_iso_datetime_conversion_failure_raises(self):
+        # GH#69461 PyDateTimeToIso returned NULL without setting errorMsg,
+        # which segfaulted instead of propagating the Python exception
+        class BadTZ(datetime.tzinfo):
+            def utcoffset(self, dt):
+                raise RuntimeError("boom")
+
+        ser = pd.Series([datetime.datetime(2020, 1, 1, tzinfo=BadTZ())], dtype=object)
+        with pytest.raises(RuntimeError, match="boom"):
+            ser.to_json(date_format="iso")
+
     def test_default_handler(self):
         value = object()
         frame = pd.DataFrame({"a": [7, value]})
@@ -1688,6 +1740,49 @@ class TestPandasContainer:
         )
         assert result == expected
 
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_timestamp_nanoseconds_preserved(self, tz):
+        # GH#53473 Timestamps serialized as objects (including tz-aware
+        # DataFrame columns) used to drop their sub-microsecond part
+        dti = pd.DatetimeIndex(["2023-01-01 00:00:00.333333333"]).tz_localize(tz)
+        suffix = "" if tz is None else "Z"
+        utc_hour = "05" if tz == "US/Eastern" else "00"
+        iso = f"2023-01-01T{utc_hour}:00:00.333333333{suffix}"
+        epoch = dti.as_unit("ns").asi8[0]
+
+        for df in [pd.DataFrame({"a": dti}), pd.DataFrame({"a": dti.astype(object)})]:
+            result = df.to_json(date_format="iso", date_unit="ns")
+            assert result == f'{{"a":{{"0":"{iso}"}}}}'
+            with tm.assert_produces_warning(Pandas4Warning, match="'epoch' date"):
+                result = df.to_json(date_format="epoch", date_unit="ns")
+            assert result == f'{{"a":{{"0":{epoch}}}}}'
+
+        df = pd.DataFrame({"a": [1]}, index=dti.astype(object))
+        result = df.to_json(date_format="iso", date_unit="ns")
+        assert result == f'{{"a":{{"{iso}":1}}}}'
+
+    @pytest.mark.parametrize(
+        "value, units",
+        [
+            (pd.Timestamp("1960-06-15 12:34:56.123456789", tz="UTC"), "s ms us ns"),
+            (datetime.datetime(1960, 6, 15, 12, 34, 56, 123456), "s ms us ns"),
+            # outside the nanosecond bounds
+            (datetime.datetime(3000, 1, 1), "s ms us"),
+        ],
+    )
+    def test_datetime_object_epoch_matches_datetime64(self, value, units):
+        # GH#53473 object datetimes round like datetime64 values (toward
+        # negative infinity) and are not scaled through nanoseconds
+        ser = pd.Series([value])
+        obj_ser = pd.Series([value], dtype=object)
+        msg = "'epoch' date"
+        for unit in units.split():
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                expected = ser.to_json(date_format="epoch", date_unit=unit)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                result = obj_ser.to_json(date_format="epoch", date_unit=unit)
+            assert result == expected
+
     def test_read_inline_jsonl(self):
         # GH9180
 
@@ -1766,17 +1861,39 @@ class TestPandasContainer:
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
-    def test_read_json_large_numbers(self, bigNum):
-        # GH20599, 26068
-        json = StringIO('{"articleId":' + str(bigNum) + "}")
-        msg = "|".join(["Value is too small", "Value is too big"])
-        with pytest.raises(ValueError, match=msg):
-            pd.read_json(json)
+    def test_read_json_int_beyond_float_range(self):
+        # GH#20599
+        big_num = 10**400
+        json = '{"0":{"articleId":' + str(big_num) + "}}"
+        result = pd.read_json(StringIO(json))
+        expected = pd.DataFrame(big_num, dtype=object, index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
 
-        json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
-        with pytest.raises(ValueError, match=msg):
-            pd.read_json(json)
+    @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64, 5 * 2**63])
+    def test_read_json_large_numbers(self, bigNum):
+        # GH#20599, GH#26068
+        json = '{"0":{"articleId":' + str(bigNum) + "}}"
+        result = pd.read_json(StringIO(json), dtype=False)
+        expected = pd.DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.read_json(StringIO(json))
+        expected = pd.DataFrame(float(bigNum), index=["articleId"], columns=[0])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [str(2**64), f'"{2**64}"'])
+    def test_read_json_large_numbers_explicit_dtype_raises(self, value):
+        # GH#20599 an explicit dtype that cannot hold the value is not ignored
+        json = '{"a":{"0":' + value + ',"1":1}}'
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            pd.read_json(StringIO(json), dtype={"a": "int64"})
 
     def test_read_json_large_numbers2(self):
         # GH18842
@@ -2665,6 +2782,32 @@ def test_to_json_unsupported_object_gh36211():
     msg = "Unable to serialize object to JSON: encountered an unsupported object type"
     with pytest.raises(ValueError, match=msg):
         df.to_json()
+
+
+class _RaisingTZ(datetime.tzinfo):
+    def utcoffset(self, dt):
+        raise RuntimeError("boom")
+
+
+class _DatetimeSubclass(datetime.datetime):
+    pass
+
+
+@pytest.mark.parametrize("dt_cls", [datetime.datetime, _DatetimeSubclass])
+@pytest.mark.parametrize(
+    "box",
+    [
+        lambda val: pd.Series([{"a": val}], dtype=object),
+        lambda val: pd.DataFrame({"a": pd.Series([val], dtype=object)}),
+        lambda val: pd.Series([1], index=pd.Index([val], dtype=object)),
+        lambda val: pd.DataFrame([[1]], columns=pd.Index([val], dtype=object)),
+    ],
+)
+def test_to_json_iso_utcoffset_raises(dt_cls, box):
+    # GH#69461 an error raised by utcoffset should propagate
+    obj = box(dt_cls(2020, 1, 1, tzinfo=_RaisingTZ()))
+    with pytest.raises(RuntimeError, match="boom"):
+        obj.to_json(date_format="iso")
 
 
 @pytest.mark.parametrize("other", ['"notadate"', "true"])

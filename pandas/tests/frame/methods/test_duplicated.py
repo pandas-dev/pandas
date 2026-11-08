@@ -68,7 +68,7 @@ def test_duplicated_nan_none(keep, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("subset", [None, ["A", "B"], "A"])
+@pytest.mark.parametrize("subset", [None, ["A", "B"], "A", []])
 def test_duplicated_subset(subset, keep):
     df = pd.DataFrame(
         {

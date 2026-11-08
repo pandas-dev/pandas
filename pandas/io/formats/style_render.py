@@ -65,7 +65,7 @@ class CSSDict(TypedDict):
 
 
 CSSStyles: TypeAlias = list[CSSDict]
-Subset = slice | Sequence[Any] | Index
+Subset = slice | Sequence[Any] | Index | Callable[[DataFrame], Any]
 
 # Chromium ignores selectors past the 8192nd in a single rule, GH#40913
 _MAX_SELECTORS_PER_RULE = 8192
@@ -1053,7 +1053,7 @@ class StylerRenderer:
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -1119,12 +1119,12 @@ class StylerRenderer:
         When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
-          - ``styler.format.formatter``: default None.
-          - ``styler.format.na_rep``: default None.
-          - ``styler.format.precision``: default 6.
-          - ``styler.format.decimal``: default ".".
-          - ``styler.format.thousands``: default None.
-          - ``styler.format.escape``: default None.
+        - ``styler.format.formatter``: default None.
+        - ``styler.format.na_rep``: default None.
+        - ``styler.format.precision``: default 6.
+        - ``styler.format.decimal``: default ".".
+        - ``styler.format.thousands``: default None.
+        - ``styler.format.escape``: default None.
 
         .. warning::
            `Styler.format` is ignored when using the output format `Styler.to_excel`,
@@ -1269,7 +1269,7 @@ class StylerRenderer:
             return self  # clear the formatter / revert to default and avoid looping
 
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         data = self.data.loc[subset]
 
         if not isinstance(formatter, Mapping):
@@ -1408,7 +1408,7 @@ class StylerRenderer:
         >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
         ... # doctest: +SKIP
                        A       B
-              2.0    nan     4.0
+              2.0    NaN     4.0
         0       1      2       3
 
         Using a callable ``formatter`` function.
@@ -1548,10 +1548,10 @@ class StylerRenderer:
         This method should be used, rather than :meth:`Styler.format_index`, in one of
         the following cases (see examples):
 
-          - A specified set of labels are required which are not a function of the
-            underlying index keys.
-          - The function of the underlying index keys requires a counter variable,
-            such as those available upon enumeration.
+        - A specified set of labels are required which are not a function of the
+          underlying index keys.
+        - The function of the underlying index keys requires a counter variable,
+          such as those available upon enumeration.
 
         Examples
         --------
@@ -1973,7 +1973,10 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     value : Any
         Matches input type, or string if input is float or complex or int with sep.
     """
-    if is_float(x) or is_complex(x):
+    if is_float(x) and np.isnan(x):
+        # match DataFrame repr, GH#12710
+        return "NaN"
+    elif is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
         return f"{x:,}" if thousands else str(x)
@@ -2092,13 +2095,19 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
-def non_reducing_slice(slice_: Subset):
+def non_reducing_slice(slice_: Subset, data: DataFrame):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
     Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
     """
+    # evaluate callables on `data` as DataFrame.loc does, GH#46685
+    if isinstance(slice_, tuple):
+        slice_ = tuple(com.apply_if_callable(part, data) for part in slice_)
+    else:
+        slice_ = com.apply_if_callable(slice_, data)
+
     # default to column slice, like DataFrame
     # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
     kinds = (ABCSeries, np.ndarray, Index, list, str)
@@ -2147,14 +2156,52 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
             )
-        s = style.split(";")
-        return [
-            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
-            for x in s
-            if x.strip() != ""
-        ]
+        declarations = (
+            decl.partition(":")
+            for decl in _split_css_declarations(style)
+            if decl.strip() != ""
+        )
+        return [(prop.strip(), value.strip()) for prop, _, value in declarations]
 
     return style
+
+
+def _split_css_declarations(style: str) -> list[str]:
+    """
+    Split a CSS declaration string on ``;``, ignoring separators that appear
+    inside quoted strings or parentheses.
+
+    This keeps values such as ``url("data:image/png;base64,...")`` intact.
+
+    Examples
+    --------
+    >>> _split_css_declarations("a: b; c: url('x;y')")
+    ['a: b', " c: url('x;y')"]
+    """
+    declarations = []
+    start = 0
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for i, char in enumerate(style):
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif quote is not None:
+            if char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+        elif char == ";" and depth == 0:
+            declarations.append(style[start:i])
+            start = i + 1
+    declarations.append(style[start:])
+    return declarations
 
 
 def refactor_levels(

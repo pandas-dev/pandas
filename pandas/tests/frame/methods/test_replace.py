@@ -810,6 +810,22 @@ class TestDataFrameReplace:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_replace_with_None_keeps_dtype_of_unmatched_columns(self, inplace):
+        # GH#30512 A and B share a block; only A has a match
+        df = pd.DataFrame({"A": [np.nan, 2.0], "B": [1.5, 3.0], "C": [1, 2]})
+        result = df.replace({np.nan: None}, inplace=inplace)
+        if inplace:
+            result = df
+        expected = pd.DataFrame(
+            {
+                "A": pd.Series([None, 2.0], dtype=object),
+                "B": [1.5, 3.0],
+                "C": [1, 2],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_all_NA(self):
         # GH#60688
         df = pd.DataFrame({"ticker": ["#1234#"], "name": [None]})
@@ -1357,6 +1373,16 @@ class TestDataFrameReplace:
         # https://github.com/pandas-dev/pandas/issues/32988
         df = pd.DataFrame(np.eye(2), dtype=dtype)
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [{"to_replace": {5: 0}}, {"to_replace": 5, "value": 0}],
+    )
+    def test_replace_no_match_keeps_object_dtype(self, kwargs):
+        # GH#53539 dict and scalar to_replace both keep object dtype on no match
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, dtype=object)
+        result = df.replace(**kwargs)
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("replacement", [np.nan, 5])

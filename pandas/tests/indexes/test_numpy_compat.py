@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
@@ -11,7 +13,8 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 def test_numpy_ufuncs_out(index):
-    result = index == index
+    # GH#71022 for a nullable dtype the comparison is a boolean ExtensionArray
+    result = np.asarray(index == index, dtype=bool)
 
     out = np.empty(index.shape, dtype=bool)
     np.equal(index, index, out=out)
@@ -154,13 +157,16 @@ def test_numpy_ufuncs_reductions(index_sortable, func):
             func.reduce(index)
         return
 
-    result = func.reduce(index)
+    warn = Pandas4Warning if index.dtype.kind == "c" else None
+    with tm.assert_produces_warning(warn, match="deprecated on complex data"):
+        result = func.reduce(index)
 
-    if func is np.maximum:
-        expected = index.max(skipna=False)
-    else:
-        expected = index.min(skipna=False)
-        # TODO: do we have cases both with and without NAs?
+    with tm.assert_produces_warning(warn, match="deprecated on complex data"):
+        if func is np.maximum:
+            expected = index.max(skipna=False)
+        else:
+            expected = index.min(skipna=False)
+            # TODO: do we have cases both with and without NAs?
 
     assert type(result) is type(expected)
     if pd.isna(result):

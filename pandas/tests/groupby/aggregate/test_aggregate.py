@@ -509,6 +509,19 @@ def test_groupby_agg_dict_with_getitem():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_agg_dict_forwards_args_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"key": [1, 1, 2], "x": [np.nan, np.nan, 1.0]})
+    gb = df.groupby("key")
+    result = gb.agg({"x": "sum"}, min_count=1)
+    expected = pd.DataFrame({"x": [np.nan, 1.0]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+    result = gb.agg({"x": lambda ser, a, b=0: a + b}, 3, b=4)
+    expected = pd.DataFrame({"x": [7, 7]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_agg_dict_dup_columns():
     # GH#55006
     df = pd.DataFrame(
@@ -1886,6 +1899,25 @@ def test_agg_with_as_index_false_with_list():
         data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
         columns=pd.MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("spelling", ["dict", "named", "list"])
+def test_agg_many_columns_no_fragmentation_warning(spelling):
+    # GH#61628 per-column agg results made inserting the keys warn
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    df.insert(0, "key", [0, 0, 1, 1])
+    if spelling == "dict":
+        kwargs = {"func": dict.fromkeys(cols, "sum")}
+    elif spelling == "named":
+        kwargs = {col: pd.NamedAgg(col, "sum") for col in cols}
+    else:
+        kwargs = {"func": ["sum"]}
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("key", as_index=False).agg(**kwargs)
+        expected = df.groupby("key").agg(**kwargs).reset_index()
     tm.assert_frame_equal(result, expected)
 
 

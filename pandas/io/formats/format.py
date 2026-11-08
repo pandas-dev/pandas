@@ -791,12 +791,26 @@ class DataFrameFormatter:
 
         if isinstance(columns, MultiIndex):
             fmt_columns = columns._format_multi(sparsify=False, include_names=False)
-            if self.sparsify and len(fmt_columns):
-                fmt_columns = sparsify_labels(fmt_columns)
+            if len(fmt_columns):
+                # same padding issue as the flat case below (GH#8300)
+                fmt_columns = [
+                    [x.strip() for x in level_labels]
+                    if is_numeric_dtype(level.dtype)
+                    else level_labels
+                    for level_labels, level in zip(
+                        fmt_columns, columns.levels, strict=True
+                    )
+                ]
+                if self.sparsify:
+                    fmt_columns = sparsify_labels(fmt_columns, columns.codes)
 
             str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
+            if is_numeric_dtype(columns.dtype):
+                # _format_flat pads labels to a common width, but each column
+                #  is justified separately (GH#8300)
+                fmt_columns = [x.strip() for x in fmt_columns]
             str_columns = [
                 [
                     " " + x
@@ -1514,7 +1528,10 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         # large values: more that 8 characters including decimal symbol
         # and first digit, hence > 1e6
         has_large_values = (abs_vals > 1e6).any()
-        has_small_values = ((abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)).any()
+        # values at or below chop_threshold are displayed as 0 (GH#12374)
+        has_small_values = (
+            (abs_vals < 10 ** (-self.digits)) & (abs_vals > max(threshold or 0, 0))
+        ).any()
 
         if has_small_values or (too_long and has_large_values):
             float_format = self._fixed_width_format("e")

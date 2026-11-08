@@ -317,8 +317,43 @@ def test_multi_chunk_pyarrow() -> None:
     table = pa.table([n_legs], names=names)
     with pytest.raises(
         RuntimeError,
-        match="Cannot do zero copy conversion into multi-column DataFrame block",
+        match="Needed to copy 2 chunks with 0 nulls, but zero_copy_only was True",
     ):
+        pd.api.interchange.from_dataframe(table, allow_copy=False)
+
+
+@pytest.mark.parametrize(
+    "obj_func",
+    [lambda tbl: tbl, lambda tbl: tbl.to_batches()[0]],
+    ids=["Table", "RecordBatch"],
+)
+def test_from_dataframe_pyarrow_zero_copy(obj_func) -> None:
+    # GH#71189
+    pa = pytest.importorskip("pyarrow", "14.0.0")
+    table = pa.table({"x": [1, 2, 3], "y": [4.0, 5.5, 6.8]})
+    obj = obj_func(table)
+    result = pd.api.interchange.from_dataframe(obj, allow_copy=False)
+    expected = pd.DataFrame({"x": [1, 2, 3], "y": [4.0, 5.5, 6.8]})
+    tm.assert_frame_equal(result, expected)
+    for name in ["x", "y"]:
+        buf = table.column(name).chunk(0).buffers()[1]
+        assert np.shares_memory(
+            result[name].to_numpy(), np.frombuffer(buf, dtype=np.uint8)
+        )
+
+
+@pytest.mark.parametrize(
+    "data, msg",
+    [
+        ([1, None, 3], "Needed to copy 1 chunks with 1 nulls"),
+        ([True, False, True], "Zero copy conversions not possible with boolean types"),
+    ],
+)
+def test_from_dataframe_pyarrow_zero_copy_impossible(data, msg) -> None:
+    # GH#71189
+    pa = pytest.importorskip("pyarrow", "14.0.0")
+    table = pa.table({"a": data})
+    with pytest.raises(RuntimeError, match=msg):
         pd.api.interchange.from_dataframe(table, allow_copy=False)
 
 

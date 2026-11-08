@@ -511,13 +511,8 @@ class TestAstypeString:
         ],
     )
     def test_astype_string_to_extension_dtype_roundtrip(
-        self, data, dtype, request, nullable_string_dtype
+        self, data, dtype, nullable_string_dtype
     ):
-        if dtype == "boolean":
-            mark = pytest.mark.xfail(
-                reason="TODO StringArray.astype() with missing values #GH40566"
-            )
-            request.applymarker(mark)
         # GH-40351
         ser = pd.Series(data, dtype=dtype)
 
@@ -778,6 +773,21 @@ def test_astype_object_to_datetimelike_no_unit(dtype):
 
     with pytest.raises(ValueError, match="dtype with no precision is not allowed"):
         ser.astype(dtype)
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
+def test_astype_strings_mixed_iso_formats_to_dt64(any_string_dtype, box):
+    # GH#53127 each string is parsed on its own, not with a format guessed
+    #  from the first one
+    obj = box(["2007-07-07 01:01:01.10", "2007-07-07 01:01:01"], dtype=any_string_dtype)
+
+    result = obj.astype("M8[ns]")
+
+    expected = box(
+        [pd.Timestamp("2007-07-07 01:01:01.1"), pd.Timestamp("2007-07-07 01:01:01")],
+        dtype="M8[ns]",
+    )
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("value", [np.inf, -np.inf, 1e30, -1e30, float(2**63)])

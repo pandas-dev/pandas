@@ -253,7 +253,10 @@ def frame_apply(
     kwargs=None,
 ) -> FrameApply:
     """construct and return a row or column based frame apply object"""
-    _, func, columns, _ = reconstruct_func(func, **kwargs)
+    relabeling, func, columns, _ = reconstruct_func(func, **kwargs)
+    if relabeling:
+        # kwargs held the named aggregation spec, now consumed into func
+        kwargs = {}
 
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
@@ -473,7 +476,10 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self.agg_or_apply_list_like(op_name="agg")
+        result = self.agg_or_apply_list_like(op_name="agg")
+        # per-column results are concatenated one block per column; consolidate so
+        #  a later insert (e.g. reset_index) does not warn about fragmentation, GH#61628
+        return result._consolidate() if isinstance(result, ABCDataFrame) else result
 
     def compute_list_like(
         self,
@@ -580,7 +586,9 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self.agg_or_apply_dict_like(op_name="agg")
+        result = self.agg_or_apply_dict_like(op_name="agg")
+        # see agg_list_like
+        return result._consolidate() if isinstance(result, ABCDataFrame) else result
 
     def compute_dict_like(
         self,
@@ -621,6 +629,12 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast("AggFuncTypeDict", self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
 
+        def call(colg, how):
+            if op_name == "apply":
+                return colg.apply(how, **kwargs)
+            args = [self.axis, *self.args] if include_axis(op_name, colg) else self.args
+            return colg.agg(how, *args, **kwargs)
+
         is_non_unique_col = (
             selected_obj.ndim == 2
             and selected_obj.columns.nunique() < len(selected_obj.columns)
@@ -629,7 +643,7 @@ class Apply(metaclass=abc.ABCMeta):
         if selected_obj.ndim == 1:
             # key only used for output
             colg = obj._gotitem(selection, ndim=1)
-            results = [getattr(colg, op_name)(how, **kwargs) for _, how in func.items()]
+            results = [call(colg, how) for _, how in func.items()]
             keys = list(func.keys())
         elif not is_groupby and is_non_unique_col:
             # key used for column selection and output
@@ -644,7 +658,7 @@ class Apply(metaclass=abc.ABCMeta):
                     label_to_indices[label].append(index)
 
                 key_data = [
-                    getattr(selected_obj._ixs(indice, axis=1), op_name)(how, **kwargs)
+                    call(selected_obj._ixs(indice, axis=1), how)
                     for label, indices in label_to_indices.items()
                     for indice in indices
                 ]
@@ -661,17 +675,16 @@ class Apply(metaclass=abc.ABCMeta):
 
                 if cols.ndim == 1:
                     series = obj._gotitem(key, ndim=1, subset=cols)
-                    results.append(getattr(series, op_name)(how, **kwargs))
+                    results.append(call(series, how))
                     keys.append(key)
                 else:
                     for _, col in cols.items():
                         series = obj._gotitem(key, ndim=1, subset=col)
-                        results.append(getattr(series, op_name)(how, **kwargs))
+                        results.append(call(series, how))
                         keys.append(key)
         else:
             results = [
-                getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
-                for key, how in func.items()
+                call(obj._gotitem(key, ndim=1), how) for key, how in func.items()
             ]
             keys = list(func.keys())
 
@@ -942,10 +955,13 @@ class NDFrameApply(Apply):
         assert op_name in ["agg", "apply"]
         obj = self.obj
 
-        kwargs = {}
         if op_name == "apply":
+            # TODO: dropping args/kwargs here is a bug, but forwarding them makes
+            #  apply_compat map reducers elementwise instead of reducing
             by_row = "_compat" if self.by_row else False
-            kwargs.update({"by_row": by_row})
+            kwargs = {"by_row": by_row}
+        else:
+            kwargs = dict(self.kwargs)
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -1874,15 +1890,10 @@ class GroupByApply(Apply):
     def agg_or_apply_dict_like(
         self, op_name: Literal["agg", "apply"]
     ) -> DataFrame | Series:
-        from pandas.core.groupby.generic import (
-            DataFrameGroupBy,
-            SeriesGroupBy,
-        )
-
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
-        kwargs: dict[str, Any] = {}
+        kwargs = dict(self.kwargs)
         if op_name == "apply":
             by_row = "_compat" if self.by_row else False
             kwargs.update({"by_row": by_row})
@@ -1892,14 +1903,6 @@ class GroupByApply(Apply):
 
         selected_obj = obj._selected_obj
         selection = obj._selection
-
-        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
-
-        # Numba Groupby engine/engine-kwargs passthrough
-        if is_groupby:
-            engine = self.kwargs.get("engine", None)
-            engine_kwargs = self.kwargs.get("engine_kwargs", None)
-            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
 
         with com.temp_setattr(
             obj, "as_index", True, condition=hasattr(obj, "as_index")

@@ -423,6 +423,36 @@ def test_apply_to_one_column_of_df():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "func",
+    [lambda x: x["col"] < "a", lambda x: x.col < "a"],
+    ids=["getitem", "getattr"],
+)
+def test_apply_error_not_chained(func):
+    # GH#50980 an error raised by the apply retry should not be chained onto the
+    #  KeyError/AttributeError that triggered the retry
+    df = pd.DataFrame(
+        {"col": range(3)}, index=date_range("2012-01-01", periods=3, freq="h")
+    )
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        df.resample("h").apply(func)
+    assert err.value.__context__ is None
+
+
+def test_apply_error_not_chained_non_reducing():
+    # GH#50980 same as above, for the retry after a non-reducing function raises
+    #  "Must produce aggregated value"
+    def func(x):
+        if x.iloc[0] >= 3:
+            return x < "a"
+        return x.cumsum()
+
+    ser = pd.Series([1, 2, 3, 4], index=date_range("2012-01-01", periods=4, freq="h"))
+    with pytest.raises(TypeError, match="Invalid comparison") as err:
+        ser.resample("2h").apply(func)
+    assert err.value.__context__ is None
+
+
 def test_resample_groupby_agg():
     # GH: 33548
     df = pd.DataFrame(
@@ -480,6 +510,23 @@ def test_resample_groupby_agg_listlike():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("on", [None, "date"])
+def test_resample_groupby_agg_listlike_excludes_keys(on):
+    # GH#32162
+    df = pd.DataFrame(
+        {"a": [0, 1, 2, 3, 0, 1, 2], "cat": pd.Categorical(list("abccbaa"))},
+        index=date_range("2020-01-01", freq="7h", periods=7, name="date"),
+    )
+    if on is not None:
+        df = df.reset_index()
+    resampled = df.groupby("cat", observed=True).resample("20h", on=on)
+    result = resampled.agg(["sum", "mean"])
+    expected = pd.concat(
+        {"sum": resampled.sum(), "mean": resampled.mean()}, axis=1
+    ).swaplevel(axis=1)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 def test_empty(keys):
     # GH 26411
@@ -495,6 +542,16 @@ def test_empty(keys):
         expected.index.name = keys[0]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_ohlc_empty_excludes_keys():
+    # GH#32162
+    df = pd.DataFrame(
+        {"a": [1, 2], "k": ["x", "y"]}, index=date_range("2020", periods=2)
+    )
+    result = df.iloc[:0].groupby("k").resample("D").ohlc()
+    expected = df.groupby("k").resample("D").ohlc()
+    tm.assert_index_equal(result.columns, expected.columns)
 
 
 @pytest.mark.parametrize("consolidate", [True, False])

@@ -222,3 +222,14 @@ class TestMixedResolutionDatetime64:
         expected_missing = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected_indexer)
         tm.assert_numpy_array_equal(missing, expected_missing)
+
+
+def test_get_loc_dtypes_with_equal_strings():
+    # GH#43581 np.dtype compares equal to these strings but hashes differently,
+    # so as with dict lookup they are not found, regardless of hash seed
+    idx = pd.Index([np.dtype("int64"), np.dtype(object), np.dtype("float64")])
+    for key in ["int64", "i8", "object", "O", "float64", "f8", "float", "double"]:
+        assert any(dtype == key for dtype in idx)
+        assert key not in idx
+        with pytest.raises(KeyError, match=key):
+            idx.get_loc(key)

@@ -596,6 +596,15 @@ def test_union_nan_in_both(dup):
     tm.assert_index_equal(result, expected)
 
 
+def test_union_object_nan_sorted_last():
+    # GH#70216
+    left = pd.Index([3, np.nan], dtype=object)
+    right = pd.Index([1, 2], dtype=object)
+    result = left.union(right)
+    expected = pd.Index([1, 2, 3, np.nan], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+
 def test_union_rangeindex_sort_true():
     # GH 53490
     idx1 = pd.RangeIndex(1, 100, 6)
