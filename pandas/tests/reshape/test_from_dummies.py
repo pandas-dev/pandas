@@ -95,6 +95,14 @@ def test_error_contains_non_dummies():
         pd.from_dummies(dummies)
 
 
+@pytest.mark.parametrize("values", [[0, 0.5], ["0", "1"]])
+def test_error_contains_non_dummies_bool_castable(values):
+    # values that astype("boolean") accepts but are not 0 or 1
+    dummies = pd.DataFrame({"a": values, "b": [1, 0]})
+    with pytest.raises(TypeError, match=r"Passed DataFrame contains non-dummy data"):
+        pd.from_dummies(dummies)
+
+
 def test_error_with_prefix_multiple_separators():
     dummies = pd.DataFrame(
         {
@@ -246,6 +254,20 @@ def test_no_prefix_string_cats_basic_mixed_bool_values():
         {"a": [1, 0, 0, 1], "b": [False, True, False, False], "c": [0, 0, 1, 0]}
     )
     expected = pd.DataFrame({"": ["a", "b", "c", "a"]})
+    result = pd.from_dummies(dummies)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "uint8", "float64", "Int64", "boolean", "int64[pyarrow]"]
+)
+def test_no_prefix_string_cats_basic_dtypes(dtype):
+    if dtype == "int64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    dummies = pd.DataFrame(
+        {"a": [1, 0, 0], "b": [0, 1, 0], "c": [0, 0, 1]}, dtype=dtype
+    )
+    expected = pd.DataFrame({"": ["a", "b", "c"]})
     result = pd.from_dummies(dummies)
     tm.assert_frame_equal(result, expected)
 

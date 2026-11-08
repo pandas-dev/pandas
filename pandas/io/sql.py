@@ -476,6 +476,10 @@ def read_sql_query(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -631,6 +635,10 @@ def read_sql(
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
         Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        With a ``format`` or ``pyformat`` paramstyle driver (e.g. psycopg2,
+        pymysql), write a literal ``%`` as ``%%`` when ``params`` is given.
+        Without ``params``, a query containing any unescaped ``%`` is passed
+        to the driver unchanged.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -1035,21 +1043,27 @@ class SQLTable(PandasObject):
         with self.pd_sql.run_transaction():
             self.table.create(bind=self.pd_sql.con)
 
-    def create(self) -> None:
+    def create(self) -> bool:
+        """
+        Create the table if needed; return whether a table was (re)created.
+        """
         if self.exists():
             if self.if_exists == "fail":
                 raise ValueError(f"Table '{self.name}' already exists.")
             elif self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
+                return True
             elif self.if_exists == "append":
                 pass
             elif self.if_exists == "delete_rows":
                 self.pd_sql.delete_rows(self.name, self.schema)
             else:
                 raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
+            return False
         else:
             self._execute_create()
+            return True
 
     def _execute_insert(self, conn, keys: list[str], data_iter) -> int:
         """
@@ -1734,13 +1748,18 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.exc import SQLAlchemyError
 
         args = [] if params is None else [params]
+        kwargs: dict[str, Any] = {}
         if isinstance(sql, str):
             execute_function = self.con.exec_driver_sql
+            if params is None and "%" in sql.replace("%%", ""):
+                # GH#49561 a driver that %-formats empty params rejects or mangles
+                # an unescaped "%", so pass the query to it unchanged
+                kwargs["execution_options"] = {"no_parameters": True}
         else:
             execute_function = self.con.execute
 
         try:
-            return execute_function(sql, *args)
+            return execute_function(sql, *args, **kwargs)
         except SQLAlchemyError as exc:
             raise DatabaseError(f"Execution failed on sql '{sql}': {exc}") from exc
 
@@ -1958,9 +1977,11 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
-    ) -> SQLTable:
+    ) -> tuple[SQLTable, bool]:
         """
         Prepares table in the database for data insertion. Creates it if needed, etc.
+
+        Returns the table and whether it was (re)created.
         """
         if dtype:
             if not is_dict_like(dtype):
@@ -1994,8 +2015,8 @@ class SQLDatabase(PandasSQL):
             schema=schema,
             dtype=dtype,
         )
-        table.create()
-        return table
+        created = table.create()
+        return table, created
 
     def check_case_sensitive(
         self,
@@ -2089,7 +2110,7 @@ class SQLDatabase(PandasSQL):
         """
         sql_engine = get_engine(engine)
 
-        table = self.prep_table(
+        table, created = self.prep_table(
             frame=frame,
             name=name,
             if_exists=if_exists,
@@ -2111,7 +2132,10 @@ class SQLDatabase(PandasSQL):
             **engine_kwargs,
         )
 
-        self.check_case_sensitive(name=name, schema=schema)
+        if created:
+            # the case warning only applies to a table we just created; listing
+            # every table can block on MSSQL (GH#52601)
+            self.check_case_sensitive(name=name, schema=schema)
         return total_inserted
 
     @property
@@ -2150,14 +2174,14 @@ class SQLDatabase(PandasSQL):
             self.meta.clear()
 
     def delete_rows(self, table_name: str, schema: str | None = None) -> None:
+        # No reflection: MetaData.reflect lists every table in the schema,
+        # which can block on MSSQL (GH#52601)
+        from sqlalchemy import table as sqlalchemy_table
+
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
-            self.meta.reflect(
-                bind=self.con, only=[table_name], schema=schema, views=True
-            )
-            table = self.get_table(table_name, schema)
+            table = sqlalchemy_table(table_name, schema=schema)
             self.execute(table.delete()).close()
-            self.meta.clear()
 
     def _create_sql_schema(
         self,

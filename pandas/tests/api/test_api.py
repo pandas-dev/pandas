@@ -55,7 +55,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
+    private_lib = ["compat", "core", "util"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]

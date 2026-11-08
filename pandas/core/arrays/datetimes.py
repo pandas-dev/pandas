@@ -2048,7 +2048,6 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
         DatetimeIndex.time : Returns numpy array of datetime.time objects.
             The time part of the Timestamps.
 

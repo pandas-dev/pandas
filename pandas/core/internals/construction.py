@@ -62,6 +62,7 @@ from pandas.core.construction import (
     extract_array,
     range_to_ndarray,
     sanitize_array,
+    warn_compound_dtype,
 )
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -87,6 +88,7 @@ from pandas.core.internals.managers import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Mapping,
         Sequence,
@@ -299,6 +301,9 @@ def ndarray_to_mgr(
             copy=copy,
             allow_2d=True,
         )
+    elif isinstance(values, np.ndarray) and values.dtype.names is not None:
+        # GH#49388 e.g. a list of 0-dim structured arrays
+        warn_compound_dtype()
 
     # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
@@ -831,6 +836,11 @@ def to_arrays(
     elif isinstance(data[0], ABCSeries):
         return _list_of_series_to_arrays(data, columns, dtype)
     else:
+        # a str first row is split without warning, e.g. from_records(["ab", "cd"])
+        has_str_rows = not is_scalar(data[0]) and _warn_if_str_rows(
+            set(map(type, data))
+        )
+
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
@@ -845,29 +855,44 @@ def to_arrays(
         ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
+            constructor: Callable[..., ArrayLike]
+            if isinstance(common_dtype, np.dtype) and common_dtype.kind == "V":
+                # GH#49388 avoid pd.array's void-dtype warning; for structured
+                #  rows sanitize_array warns instead
+                constructor = np.array
+            else:
+                constructor = pd_array
             arrays = [
-                pd_array([row[col_idx] for row in data], dtype=common_dtype)
+                constructor([row[col_idx] for row in data], dtype=common_dtype)
                 for col_idx in range(ncols)
             ]
             columns = _validate_or_indexify_columns(arrays, columns)
             return arrays, columns
 
         data = [tuple(x) for x in data]
-        arr = _list_to_arrays(data)
+        arr = _list_to_arrays(data, check_ragged=not has_str_rows)
 
     content, columns = _finalize_columns_and_data(arr, columns, dtype)
     return content, columns
 
 
-def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
+def _list_to_arrays(
+    data: list[tuple[Any, ...] | list[Any]], check_ragged: bool = True
+) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
 
     # GH#65751 shorter sequences get padded with NaN out to the longest one,
     #  which is deprecated.  A null scalar counts as length 1, mirroring the
     #  handling in lib.to_object_array_tuples.
-    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
-    if len(lengths) > 1:
+    row_types = set(map(type, data))
+    if all(issubclass(typ, (list, tuple)) for typ in row_types):
+        lengths = set(map(len, data))
+    else:
+        if _warn_if_str_rows(row_types):
+            check_ragged = False
+        lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+    if check_ragged and len(lengths) > 1:
         warnings.warn(
             "Constructing a DataFrame from a list of sequences with mismatched "
             "lengths is deprecated and will raise in a future version. The "
@@ -883,6 +908,22 @@ def _list_to_arrays(data: list[tuple[Any, ...] | list[Any]]) -> np.ndarray:
         # list of lists
         content = lib.to_object_array(data)
     return content
+
+
+def _warn_if_str_rows(row_types: set[type]) -> bool:
+    # GH#50461 called when the first row is list-like. Returns whether a str or
+    #  bytes row was found, in which case the caller skips the mismatched-lengths
+    #  warning since this deprecation already covers the call.
+    if not any(issubclass(typ, (str, bytes)) for typ in row_types):
+        return False
+    warnings.warn(
+        "Constructing a DataFrame with a str or bytes row after a list-like row "
+        "is deprecated and will raise in a future version. Such rows are "
+        "currently split into their elements; pass list(row) to split explicitly.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    return True
 
 
 def _list_of_series_to_arrays(

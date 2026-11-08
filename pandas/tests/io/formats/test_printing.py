@@ -114,6 +114,16 @@ def test_repr_object_dtype_0d_array(box):
     assert "array(5)" not in result
 
 
+def test_repr_range():
+    # GH#44799 range objects are shown with their own repr, not as a tuple
+    assert printing.pprint_thing(range(3)) == "range(0, 3)"
+    assert printing.pprint_thing([range(3)]) == "[range(0, 3)]"
+
+    ser = pd.Series([range(3), range(100)])
+    expected = "0      range(0, 3)\n1    range(0, 100)\ndtype: object"
+    assert repr(ser) == expected
+
+
 def test_repr_two_values_wraps_at_display_width():
     # GH#16334
     arr = pd.array(["x" * 50, "y" * 50], dtype=object)

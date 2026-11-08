@@ -35,7 +35,9 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    get_supported_dtype,
     is_supported_dtype,
+    is_unitless,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -902,6 +904,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sanitize_array(data, index=None),  # type: ignore[arg-type]
             dtype=dtype,  # type: ignore[arg-type]
         )
+        if (
+            dtype is None
+            and lib.is_np_dtype(sparse_values.dtype, "mM")
+            and not is_supported_dtype(sparse_values.dtype)
+        ):
+            # GH#68522 cast as the constructor does; an unsupported dtype= still raises
+            sparse_values = np.asarray(ensure_wrapped_if_datetimelike(sparse_values))
         indices = np.asarray(indices, dtype=np.int32)
 
         if len(sparse_values) != len(indices):
@@ -910,6 +919,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 f"length of indices ({len(indices)})."
             )
 
+        if kind == "block":
+            # validate the indices, which get_blocks does not
+            IntIndex(length, indices)
         sparse_index = make_sparse_index(length, indices, kind)
 
         if fill_value is None:
@@ -2909,6 +2921,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _sparse_array_op(self, other, op, op_name)
 
         elif is_scalar(other):
+            if isinstance(other, (np.datetime64, np.timedelta64)):
+                # GH#64808 cast first; numpy's m8[D] arithmetic truncates 1.5 days
+                if is_unitless(other.dtype) and isna(other):
+                    # match the dense ops, see maybe_prepare_scalar_for_op
+                    other = other.astype(f"{other.dtype.kind}8[s]")
+                elif not is_supported_dtype(other.dtype):
+                    other = other.astype(get_supported_dtype(other.dtype))
             with np.errstate(all="ignore"):
                 fill = op(_get_fill(self), np.asarray(other))
                 result = op(self.sp_values, other)
