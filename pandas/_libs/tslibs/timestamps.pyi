@@ -25,9 +25,9 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
 )
-from pandas._libs.tslibs.nattype import NaTStrings
 from pandas._typing import (
     Frequency,
+    NaTStrings,
     TimestampNonexistent,
     TimeUnit,
 )

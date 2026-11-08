@@ -14,9 +14,9 @@ from pandas._libs.tslibs import (
     NaTType,
     Tick,
 )
-from pandas._libs.tslibs.nattype import NaTStrings
 from pandas._typing import (
     Frequency,
+    NaTStrings,
     TimeUnit,
     npt,
 )

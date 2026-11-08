@@ -8,14 +8,12 @@ from typing import (
 import numpy as np
 
 from pandas._libs.tslibs.dtypes import PeriodDtypeBase
-from pandas._libs.tslibs.nattype import (
-    NaTStrings,
-    NaTType,
-)
+from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
     Frequency,
+    NaTStrings,
     npt,
 )
 
