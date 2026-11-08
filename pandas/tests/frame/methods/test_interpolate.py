@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import missing
 
 
 class TestDataFrameInterpolate:
@@ -507,3 +510,200 @@ class TestDataFrameInterpolate:
         )
         expected = pd.DataFrame({"a": [0.0, 1.0, 3.0, 7.0]}, index=index)
         tm.assert_frame_equal(result, expected)
+
+
+def _spy_on_scipy_calls(monkeypatch):
+    calls = []
+    real = missing._interpolate_scipy_wrapper
+
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(missing, "_interpolate_scipy_wrapper", spy)
+    return calls
+
+
+def _interpolate_each_column(df, **kwargs):
+    # Series always take the per-slice path
+    return pd.DataFrame(
+        {name: df[name].interpolate(**kwargs) for name in df}, index=df.index
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"method": "nearest"},
+        {"method": "zero"},
+        {"method": "slinear"},
+        {"method": "quadratic"},
+        {"method": "cubic"},
+        {"method": "polynomial", "order": 3},
+        {"method": "nearest", "limit": 1},
+        {"method": "nearest", "limit_direction": "both"},
+        {"method": "nearest", "limit_area": "inside"},
+        {"method": "nearest", "limit_area": "outside"},
+        {"method": "slinear", "fill_value": "extrapolate"},
+        {"method": "nearest", "fill_value": 7.5},
+    ],
+    ids=str,
+)
+@pytest.mark.parametrize(
+    "index_values", [None, [0.0, 1.5, 2.0, 6.0, 6.5, 9.0, 20.0], [5, 1, 3, 0, 6, 2, 4]]
+)
+@pytest.mark.parametrize("dtype", ["float64", "float32", "complex128"])
+def test_interpolate_frame_same_nans_matches_series(kwargs, index_values, dtype):
+    # GH#48236 columns with their NaNs in the same places are interpolated together
+    pytest.importorskip("scipy")
+    first = [np.nan, 1.0, np.nan, 3.5, 5.0, np.nan, -2.0]
+    second = [np.nan, 7.0, np.nan, -3.0, 0.25, np.nan, 8.0]
+    third = [4.0, 1.0, np.nan, np.nan, 5.0, -1.0, 2.0]
+    data = {
+        "a": first,
+        "b": second,
+        "c": third,
+        "d": first,
+        "e": third,
+        "has_inf": [4.0, np.inf, np.nan, np.nan, 5.0, -1.0, 2.0],
+        "f": [9.0, 8.0, 6.0, 5.5, np.nan, 2.0, 1.0],
+        "all_nan": [np.nan] * 7,
+        "no_nan": [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0],
+    }
+    df = pd.DataFrame(data, index=index_values, dtype=dtype)
+    expected = _interpolate_each_column(df, **kwargs)
+    tm.assert_frame_equal(df.interpolate(**kwargs), expected, check_exact=True)
+    tm.assert_frame_equal(
+        df.T.interpolate(axis=1, **kwargs), expected.T, check_exact=True
+    )
+
+    result = df.copy()
+    result.interpolate(inplace=True, **kwargs)
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+def test_interpolate_frame_nans_differ_after_eighth_row():
+    # GH#48236 these must not end up in the same group
+    pytest.importorskip("scipy")
+    first = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, np.nan, 10.0]
+    second = [1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, np.nan]
+    df = pd.DataFrame({"a": first, "b": second})
+    result = df.interpolate(method="nearest")
+    expected = _interpolate_each_column(df, method="nearest")
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+def test_interpolate_frame_same_nans_one_valid_value():
+    # GH#48236
+    pytest.importorskip("scipy")
+    df = pd.DataFrame({"a": [np.nan, 1.0, np.nan], "b": [np.nan, 2.0, np.nan]})
+    result = df.interpolate(method="nearest")
+    expected = _interpolate_each_column(df, method="nearest")
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+def test_interpolate_frame_same_nans_one_scipy_call_per_pattern(monkeypatch):
+    # GH#48236 the equivalence tests can't tell how often SciPy was called
+    pytest.importorskip("scipy")
+    calls = _spy_on_scipy_calls(monkeypatch)
+    first = [1.0, np.nan, 3.0, 4.0]
+    second = [1.0, 2.0, np.nan, 4.0]
+    df = pd.DataFrame({"a": first, "b": first, "c": second, "d": first})
+    df.interpolate(method="nearest")
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("chunk_size, n_calls", [(8, 3), (1, 5)])
+def test_interpolate_frame_same_nans_chunks(chunk_size, n_calls, monkeypatch):
+    # GH#48236 a group split over several SciPy calls must come out the same
+    pytest.importorskip("scipy")
+    values = [1.0, np.nan, 3.0, 4.0]
+    df = pd.DataFrame(dict.fromkeys("abcde", values)) * [1.0, 2.0, 3.0, 4.0, 5.0]
+    expected = _interpolate_each_column(df, method="nearest")
+    calls = _spy_on_scipy_calls(monkeypatch)
+    monkeypatch.setattr(missing, "_INTERP1D_CHUNK_SIZE", chunk_size)
+    tm.assert_frame_equal(df.interpolate(method="nearest"), expected, check_exact=True)
+    assert len(calls) == n_calls
+
+
+def test_interpolate_frame_same_nans_list_fill_value_raises():
+    # GH#48236 must not start broadcasting against the columns
+    pytest.importorskip("scipy")
+    values = [1.0, np.nan, 3.0]
+    df = pd.DataFrame({"a": values, "b": values})
+    with pytest.raises(ValueError, match="broadcast"):
+        df.interpolate(method="nearest", fill_value=[1.0, 2.0])
+
+
+def test_interpolate_frame_longdouble_matches_series():
+    # GH#48236 SciPy can reject a 1-d longdouble y where it takes a 2-d one
+    pytest.importorskip("scipy")
+    values = np.array([1.0, np.nan, 3.0, 4.0, 5.0, 7.0], dtype=np.longdouble)
+    df = pd.DataFrame({"a": values, "b": values})
+    try:
+        expected = df["a"].interpolate(method="cubic")
+    except ValueError as err:
+        with pytest.raises(ValueError, match=re.escape(str(err))):
+            df.interpolate(method="cubic")
+    else:
+        result = df.interpolate(method="cubic")
+        tm.assert_series_equal(result["a"], expected)
+
+
+def test_interpolate_frame_same_nans_first_error_in_column_order():
+    # GH#48236
+    pytest.importorskip("scipy")
+    df = pd.DataFrame(
+        {"a": [1.0, 2.0, np.nan, np.nan], "b": [np.nan, np.nan, np.nan, 2.0]}
+    )
+    with pytest.raises(ValueError, match="derivatives") as expected:
+        df["a"].interpolate(method="cubic")
+    with pytest.raises(ValueError, match="derivatives") as result:
+        df.interpolate(method="cubic")
+    assert str(result.value) == str(expected.value)
+
+
+def test_interpolate_frame_no_partial_columns_without_scipy(monkeypatch):
+    # GH#48236 a frame whose columns are all valid or all NaN never needs SciPy
+    real_import = missing.import_optional_dependency
+
+    def no_scipy(name, *args, **kwargs):
+        if name == "scipy":
+            raise ImportError("Missing optional dependency 'scipy'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(missing, "import_optional_dependency", no_scipy)
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [np.nan, np.nan, np.nan]})
+    tm.assert_frame_equal(df.interpolate(method="nearest"), df)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[[1.0, 2.0], [3.0, 4.0]], [[1.0, np.nan, np.nan], [3.0, np.nan, np.nan]]],
+    ids=["no_nan", "all_nan_columns"],
+)
+def test_interpolate_frame_inplace_readonly_nothing_to_fill(values):
+    # GH#48236 a column with nothing to fill is not written to
+    pytest.importorskip("scipy")
+    arr = np.array(values)
+    arr.flags.writeable = False
+    df = pd.DataFrame(arr, copy=False)
+    expected = df.copy()
+    df.interpolate(method="nearest", inplace=True)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_interpolate_2d_array_empty_axis():
+    # GH#48236 not reachable from a DataFrame, which returns early when empty
+    pytest.importorskip("scipy")
+    arr = pd.arrays.NumpyExtensionArray(np.empty((2, 0)))
+    result = arr.interpolate(
+        method="nearest",
+        axis=1,
+        index=pd.Index([]),
+        limit=None,
+        limit_direction="forward",
+        limit_area=None,
+        copy=True,
+    )
+    assert result.shape == (2, 0)

@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_array_like_deprecate_non_pandas,
     is_arrow_temporal_dtype,
     is_bool_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     needs_i8_conversion,
@@ -226,6 +227,14 @@ SP_METHODS = [
     "akima",
     "cubicspline",
 ]
+
+# methods _interpolate_scipy_wrapper hands to interp1d, which can take many rows
+# at once as long as they all have the same x values
+INTERP1D_METHODS = ["nearest", "zero", "slinear", "quadratic", "cubic", "polynomial"]
+
+# how many values to hand to interp1d at once when grouping rows, since it copies
+# what it is given
+_INTERP1D_CHUNK_SIZE = 2**18
 
 
 def clean_interp_method(method: str, index: Index, **kwargs) -> str:
@@ -421,7 +430,7 @@ def interpolate_2d_inplace(
     indices = _index_to_interp_indices(index, method, shift=shift)
 
     def func(yvalues: np.ndarray) -> None:
-        # process 1-d slices in the axis direction
+        # process slices in the axis direction
 
         _interpolate_1d(
             indices=indices,
@@ -435,6 +444,26 @@ def interpolate_2d_inplace(
             mask=mask,
             **kwargs,
         )
+
+    if (
+        # Block.interpolate passes this for any 2-d block
+        axis == 1
+        and method in INTERP1D_METHODS
+        # would start broadcasting against the rows
+        and not is_list_like(fill_value)
+        # SciPy rejects a 1-d longdouble y for some methods, but not a 2-d one
+        and data.dtype.type is not np.longdouble
+    ):
+        # GH#48236 rows with their NaNs in the same places share x values, so
+        #  SciPy can take them together
+        for rows in _rows_with_same_nans(data):
+            if len(rows) == 1:
+                func(data[rows[0]])
+            else:
+                group = data[rows]
+                func(group)
+                data[rows] = group
+        return
 
     np.apply_along_axis(func, axis, data)
 
@@ -502,6 +531,30 @@ def _index_to_interp_indices(
     return inds
 
 
+def _rows_with_same_nans(data: np.ndarray) -> list[list[int]]:
+    """
+    Group the rows of `data` that have something to fill by where their NaNs are,
+    splitting up groups too big to interpolate at once.
+
+    Groups are in order of appearance, so the first error raised is the same as
+    going row by row.
+    """
+    invalid = isna(data)
+    partial = np.flatnonzero(invalid.any(axis=1) & ~invalid.all(axis=1))
+    if not len(partial):
+        return []
+    packed = np.packbits(invalid, axis=1)
+    groups: dict[bytes, list[int]] = {}
+    for row in partial.tolist():
+        groups.setdefault(packed[row].tobytes(), []).append(row)
+    step = max(1, _INTERP1D_CHUNK_SIZE // data.shape[1])
+    return [
+        rows[start : start + step]
+        for rows in groups.values()
+        for start in range(0, len(rows), step)
+    ]
+
+
 def _interpolate_1d(
     indices: np.ndarray,
     yvalues: np.ndarray,
@@ -517,7 +570,9 @@ def _interpolate_1d(
 ) -> None:
     """
     Logic for the 1-d interpolation.  The input
-    indices and yvalues will each be 1-d arrays of the same length.
+    indices and yvalues will each be 1-d arrays of the same length. For
+    INTERP1D_METHODS on float or complex values with no mask, yvalues can also be
+    2-d with rows of that length and their NaNs in the same places.
 
     Bounds_error is currently hardcoded to False since non-scipy ones don't
     take it as an argument.
@@ -528,6 +583,8 @@ def _interpolate_1d(
     """
     if mask is not None:
         invalid = mask
+    elif yvalues.ndim == 2:
+        invalid = isna(yvalues[0])
     else:
         invalid = isna(yvalues)
     valid = ~invalid
@@ -608,9 +665,9 @@ def _interpolate_1d(
                 raise exc(f"Extrapolated values are out of bounds for {orig_dtype}")
         yvalues[invalid] = new_y
     else:
-        yvalues[invalid] = _interpolate_scipy_wrapper(
+        yvalues[..., invalid] = _interpolate_scipy_wrapper(
             indices[valid],
-            yvalues[valid],
+            yvalues[..., valid],
             indices[invalid],
             method=method,
             fill_value=fill_value,
@@ -625,7 +682,7 @@ def _interpolate_1d(
     elif is_datetimelike:
         yvalues[preserve_nans] = NaT.value
     else:
-        yvalues[preserve_nans] = np.nan
+        yvalues[..., preserve_nans] = np.nan
     return
 
 
@@ -707,16 +764,8 @@ def _interpolate_scipy_wrapper(
         "pchip": interpolate.pchip_interpolate,
     }
 
-    interp1d_methods = [
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "polynomial",
-    ]
     terp: Callable[..., np.ndarray] | None
-    if method in interp1d_methods:
+    if method in INTERP1D_METHODS:
         if method == "polynomial":
             kind = order
         else:
