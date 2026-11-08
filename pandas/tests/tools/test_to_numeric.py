@@ -158,6 +158,31 @@ def test_coerce_unhashable_nested_tuple():
     tm.assert_series_equal(result, expected)
 
 
+def test_zero_dim_ndarray_elements(errors):
+    # GH#47408 - a 0-dimensional array converts as the scalar it holds instead
+    # of tripping the len() check meant for empty containers.
+    kwargs = {"errors": errors} if errors is not None else {}
+    ser = pd.Series([3, np.array(2.1), np.array(4)], dtype=object)
+
+    result = pd.to_numeric(ser, **kwargs)
+
+    expected = pd.Series([3.0, 2.1, 4.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_zero_dim_ndarray_with_unparsable_string():
+    # GH#47408
+    ser = pd.Series([3, np.array(2.1), "a"], dtype=object)
+
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([3.0, 2.1, np.nan])
+    tm.assert_series_equal(result, expected)
+
+    msg = "Unable to parse string 'a' at position 2"
+    with pytest.raises(ValueError, match=msg):
+        pd.to_numeric(ser, errors="raise")
+
+
 def test_ignore_error():
     ser = pd.Series([1, -3.14, "apple"])
     result = pd.to_numeric(ser, errors="coerce")
