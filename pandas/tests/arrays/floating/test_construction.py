@@ -229,3 +229,21 @@ def test_from_arrow_nan_vs_none(using_nan_is_na):
         assert ser.isna()[2]
     # inf is always preserved
     assert ser.iloc[3] == np.inf
+
+
+@pytest.mark.parametrize("dtype", ["Float32", "Float64"])
+def test_floating_array_from_sequence_with_strings_and_nan(dtype, using_nan_is_na):
+    # GH#71918
+    result = pd.Series(["1", 2.0, np.nan], dtype=dtype)
+    expected = pd.Series([1.0, 2.0, np.nan], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    result_arr = pd.array(["1", 2.0, np.nan], dtype=dtype)
+    expected_arr = pd.array([1.0, 2.0, np.nan], dtype=dtype)
+    tm.assert_extension_array_equal(result_arr, expected_arr)
+
+    assert result.isna().tolist() == [False, False, using_nan_is_na]
+    assert result_arr.isna().tolist() == [False, False, using_nan_is_na]
+
+    result_str_nan = pd.Series(["1", "2.0", "nan"], dtype=dtype)
+    tm.assert_series_equal(result_str_nan, expected)
