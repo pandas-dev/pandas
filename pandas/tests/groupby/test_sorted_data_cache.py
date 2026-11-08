@@ -190,6 +190,25 @@ def test_values_write_not_shared(values):
     tm.assert_series_equal(gb.agg(first), ser.groupby(keys).agg(first))
 
 
+def test_tz_aware_values_write_raises():
+    # GH#51077 cached because Series.values is read-only; once it returns the
+    # array (Pandas4Warning), it must stop being cached
+    ser = pd.Series(pd.date_range("2000", periods=6, tz="UTC"))
+    gb = ser.groupby([1, 0, 1, 0, 1, 0])
+
+    def write_first(group):
+        arr = group.values
+        arr[0] = arr[-1]
+        return 0
+
+    msg = "Series.values returning an ndarray that drops timezone"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        with pytest.raises(ValueError, match="read-only"):
+            gb.agg(write_first)
+
+    assert len(gb._grouper._splitter_cache) == 1
+
+
 def test_masked_source_to_numpy_write_seen():
     # GH#51077
     ser = pd.Series([1, 2, 3, 4], dtype="Int64")
