@@ -738,6 +738,18 @@ def test_series_groupby_as_index_false_name_collision(index, kwargs, method, arg
         getattr(ser.groupby(**kwargs), method)(*args).reset_index()
 
 
+def test_frame_groupby_external_name_collision():
+    # GH#58337: an external grouper must not be silently replaced by a column.
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    external = pd.Series([6, 6, 7], name="a")
+
+    with pytest.raises(ValueError, match="cannot insert a, already exists"):
+        df.groupby(external, as_index=False).sum()
+
+    expected = pd.DataFrame({"a": [1, 2], "b": [7, 5]})
+    tm.assert_frame_equal(df.groupby("a", as_index=False).sum(), expected)
+
+
 def test_groupby_multiple_key():
     df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
