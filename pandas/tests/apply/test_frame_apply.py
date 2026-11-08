@@ -1843,6 +1843,7 @@ def test_apply_raw_masked_array_results(axis):
 
 @pytest.mark.parametrize("axis", [0, 1])
 def test_apply_raw_zero_dim_array_results(axis):
+    # GH#61632
     df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
     func = lambda arr: np.array(1) if arr[0] == 1 else np.array(2.5)
     result = df.apply(func, axis=axis, raw=True)
