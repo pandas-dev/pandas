@@ -39,7 +39,9 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import (
     can_hold_element,
     floats_fit_integer_dtype,
+    maybe_box_datetimelike,
     maybe_downcast_to_dtype,
+    np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
     is_array_like_deprecate_non_pandas,
@@ -3083,6 +3085,10 @@ class _iLocIndexer(_LocationIndexer):
                 #  _values
                 new_values = ensure_wrapped_if_datetimelike(new_values)
                 new_values = concat_compat([self.obj._values, new_values])
+            elif not is_object_dtype(self.obj.dtype):
+                # GH#19647 object is the default dtype of an empty Series, so
+                #  only a non-object dtype is known to be worth retaining.
+                new_values = _retain_empty_dtype(self.obj.array, value, new_values)
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr
@@ -3123,7 +3129,7 @@ class _iLocIndexer(_LocationIndexer):
                 value = Series(value, index=self.obj.columns, name=indexer)
 
             if not len(self.obj):
-                # We will ignore the existing dtypes instead of using
+                # We start from the value's dtypes instead of using
                 #  internals.concat logic
                 df = value.to_frame().T
 
@@ -3138,6 +3144,17 @@ class _iLocIndexer(_LocationIndexer):
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
                     df = df.infer_objects()
+                new_dtypes = df._mgr.get_dtypes()
+                for loc, orig_dtype in enumerate(self.obj._mgr.get_dtypes()):
+                    # GH#19647 same as the Series case above
+                    if is_object_dtype(orig_dtype) or orig_dtype == new_dtypes[loc]:
+                        continue
+                    new_values = df.iloc[:, loc]._values
+                    retained = _retain_empty_dtype(
+                        self.obj.iloc[:, loc].array, df.iat[0, loc], new_values
+                    )
+                    if retained is not new_values:
+                        df.isetitem(loc, retained)
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append_internal(value)._mgr
@@ -3916,6 +3933,55 @@ def _expansion_can_hold(orig: ExtensionArray, new_arr) -> bool:
     return array_equivalent(
         np.asarray(converted, dtype=object), np.asarray(new_arr, dtype=object)
     )
+
+
+def _as_python_scalar(value):
+    # box first: numpy has 1 == np.timedelta64(1, "s"), and item() can be a bare int
+    value = maybe_box_datetimelike(value)
+    return value.item() if isinstance(value, (np.number, np.bool_)) else value
+
+
+def _retain_empty_dtype(orig: ExtensionArray, value, new_values) -> ArrayLike:
+    """
+    Return a length-1 array of orig's dtype if it can hold value, else new_values.
+    """
+    from pandas import Series
+
+    dtype = orig.dtype
+    if not is_scalar(value) or dtype.kind == "V":
+        return new_values
+    np_dtype = dtype.numpy_dtype if isinstance(dtype, NumpyEADtype) else None
+
+    result: ArrayLike
+    try:
+        with warnings.catch_warnings():
+            # an internal probe, so e.g. numpy casting warnings are spurious
+            warnings.simplefilter("ignore")
+            if is_valid_na_for_dtype(value, dtype):
+                filled = orig.take([-1], allow_fill=True)
+                return filled if filled.dtype == orig.dtype else new_values
+            if np_dtype is not None:
+                casted = np_can_hold_element(np_dtype, value)
+                result = np.array([casted], dtype=np_dtype)
+            else:
+                # e.g. arrow decimals reject np.int64 but accept int
+                result = type(orig)._from_sequence(
+                    [_as_python_scalar(value)], dtype=dtype
+                )
+
+            # numpy would compare 2**53 + 1 and float(2**53) as floats; True == 1
+            stored = _as_python_scalar(result[0])
+            expected = _as_python_scalar(value)
+            if stored == expected and is_bool(stored) == is_bool(expected):
+                # e.g. a tz mismatch, which non-empty expansion turns into object
+                later_insert = Series(result)
+                later_insert.loc[1] = value
+                if later_insert.dtype == result.dtype:
+                    return result
+    except Exception:
+        # EAs raise assorted exception types for values they cannot hold
+        pass
+    return new_values
 
 
 def maybe_warn_multiindex_expansion(index: Index, key, target: str, hint: str) -> None:

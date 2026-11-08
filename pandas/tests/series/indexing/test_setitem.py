@@ -547,6 +547,151 @@ class TestSetitemWithExpansion:
         )
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize(
+        "dtype, value",
+        [
+            ("float64", 1),
+            ("float32", 1),
+            ("int8", 1),
+            ("Int64", 1.0),
+            ("Float64", 1),
+            ("double[pyarrow]", 1),
+            ("M8[ns, UTC]", pd.Timestamp("2020-01-01", tz="UTC")),
+            ("Sparse[float64]", 1),
+            ("interval[int64, right]", pd.Interval(0, 1)),
+            ("complex128", 1),
+            ("float64", np.float32(0.5)),
+            (
+                "timestamp[ns][pyarrow]",
+                pd.Timestamp("2020-01-01 00:00:00.000000001"),
+            ),
+        ],
+    )
+    def test_setitem_empty_series_retains_dtype(self, indexer_sl, dtype, value):
+        # GH#19647
+        if "pyarrow" in dtype:
+            pytest.importorskip("pyarrow")
+        ser = pd.Series(dtype=dtype)
+        indexer_sl(ser)[0] = value
+        expected = pd.Series([value]).astype(dtype)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype(na_value=np.nan),
+            "string",
+            "int64[pyarrow]",
+            "Sparse[float64]",
+            "period[M]",
+            "M8[ns, UTC]",
+        ],
+    )
+    def test_setitem_empty_series_na_retains_dtype(self, dtype):
+        # GH#19647
+        if "pyarrow" in str(dtype):
+            pytest.importorskip("pyarrow")
+        ser = pd.Series(dtype=dtype)
+        ser.loc[0] = None
+        assert ser.dtype == dtype
+        assert ser.isna().all()
+
+    def test_setitem_empty_series_numpy_scalar_arrow_decimal(self):
+        # GH#19647 arrow decimals reject np.int64 but accept int
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.decimal128(10, 2))
+        ser = pd.Series(dtype=dtype)
+        ser.loc[0] = np.int64(1)
+        assert ser.dtype == dtype
+        assert ser.iloc[0] == 1
+
+    def test_setitem_empty_series_fill_does_not_warn(self):
+        # GH#19647 the first value must not narrow the dtype, or the second
+        #  would get the GH#62369 incompatible-dtype warning
+        ser = pd.Series(dtype="float64")
+        ser.loc[0] = 1
+        with tm.assert_produces_warning(None):
+            ser.loc[1] = 2.5
+        tm.assert_series_equal(ser, pd.Series([1.0, 2.5]))
+
+    @pytest.mark.parametrize(
+        "dtype, value, expected",
+        [
+            ("Int64", True, "boolean"),
+            ("boolean", 1, "Int64"),
+            ("double[pyarrow]", True, "bool[pyarrow]"),
+        ],
+    )
+    def test_setitem_empty_series_bool_numeric_not_cast(self, dtype, value, expected):
+        # GH#19647 True == 1, but casting between them would change the value
+        if "pyarrow" in dtype:
+            pytest.importorskip("pyarrow")
+        ser = pd.Series(dtype=dtype)
+        ser.loc[0] = value
+        assert ser.dtype == expected
+
+    @pytest.mark.filterwarnings("ignore::pandas.errors.Pandas4Warning")
+    @pytest.mark.parametrize(
+        "dtype, value",
+        [
+            ("int64", 2**63),
+            ("int8", np.uint8(200)),
+            ("float64", 2**53 + 1),
+            ("float64", Decimal("1")),
+            ("Float64", Decimal("1")),
+            ("complex64", 0.1),
+            ("M8[s]", pd.Timestamp("2020-01-01 00:00:00.5")),
+            ("Float64", 2**53 + 1),
+            ("Int64", np.timedelta64(1, "ns")),
+            ("Sparse[int64]", np.timedelta64(5, "ns")),
+            ("Sparse[int64]", np.timedelta64(1, "s")),
+            ("Sparse[int64]", np.datetime64("2020-01-01", "s")),
+            ("m8[ns]", "2020-01"),
+            ("m8[s]", "1"),
+            ("M8[ns]", "2020-01-01"),
+            ("period[M]", "2020-01-15"),
+        ],
+    )
+    def test_setitem_empty_series_inexact_keeps_value(self, dtype, value):
+        # GH#19647 the dtype is not retained for a value it would change
+        ser = pd.Series(dtype=dtype)
+        ser.loc[0] = value
+        assert ser.dtype != dtype
+        assert ser.iloc[0] == value
+
+    def test_setitem_empty_series_tz_mismatch_not_retained(self):
+        # GH#19647 retaining UTC would send a second insert to object
+        ts = pd.Timestamp("2020-01-01", tz="US/Pacific")
+        ser = pd.Series(dtype="M8[ns, UTC]")
+        ser.loc[0] = ts
+        ser.loc[1] = ts
+        assert ser.dt.tz == ts.tz
+        assert ser.tolist() == [ts, ts]
+
+    def test_setitem_empty_series_float_arrow_decimal_not_retained(self):
+        # GH#19647 retaining the decimal would send a second insert to object
+        pa = pytest.importorskip("pyarrow")
+        ser = pd.Series(dtype=pd.ArrowDtype(pa.decimal128(10, 2)))
+        ser.loc[0] = 1.5
+        ser.loc[1] = 1.5
+        assert ser.dtype == pd.ArrowDtype(pa.float64())
+        assert ser.tolist() == [1.5, 1.5]
+
+    def test_setitem_empty_series_non_scalar_not_retained(self):
+        # GH#19647
+        ser = pd.Series(dtype="int64")
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[0] = [1]
+        assert ser.dtype == object
+        assert ser.iloc[0] == [1]
+
+    def test_setitem_empty_series_probe_does_not_warn(self):
+        # GH#19647 the cast tried for float32 overflows
+        ser = pd.Series(dtype="float32")
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[0] = 1e300
+        assert ser.iloc[0] == 1e300
+
     def test_setitem_with_expansion_void_dtype(self):
         # GH#49388 no warning about pd.array's void dtype deprecation
         ser = pd.Series(np.zeros(2, dtype="V8"))

@@ -5,6 +5,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
@@ -508,3 +510,11 @@ def test_custom_asserts():
 
     with pytest.raises(AssertionError, match=msg):
         custom_assert_frame_equal(a.to_frame(), b.to_frame())
+
+
+def test_loc_setitem_expansion_empty_invalid_value():
+    # GH#19647 JSONArray cannot hold an int, so the dtype is not retained
+    ser = pd.Series(dtype=JSONDtype())
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[0] = 1
+    assert ser.dtype == "int64"

@@ -4317,6 +4317,127 @@ def test_loc_setitem_expansion_empty_frame_warns(using_infer_string):
     assert df["a"].dtype == expected_dtype
 
 
+@pytest.mark.parametrize(
+    "value, expected_b",
+    [
+        ([1, 2], 2),
+        ({"a": 1, "b": 2}, 2),
+        (1, 1),
+        (np.array([1, 2]), 2),
+        (pd.Series({"a": 1, "b": 2}), 2),
+    ],
+)
+def test_loc_setitem_expansion_empty_frame_retains_dtype(value, expected_b):
+    # GH#19647
+    df = pd.DataFrame({"a": pd.Series(dtype="float64"), "b": pd.Series(dtype="Int64")})
+    df.loc[0] = value
+    assert df["a"].dtype == "float64"
+    assert df["b"].dtype == "Int64"
+    assert df.loc[0, "a"] == 1
+    assert df.loc[0, "b"] == expected_b
+
+
+def test_loc_setitem_expansion_empty_frame_fill_does_not_warn():
+    # GH#19647 the first row must not narrow the dtype, or the second would warn
+    df = pd.DataFrame({"a": pd.Series(dtype="float64")})
+    df.loc[0] = [1]
+    with tm.assert_produces_warning(None):
+        df.loc[1] = [2.5]
+    tm.assert_frame_equal(df, pd.DataFrame({"a": [1.0, 2.5]}))
+
+
+def test_loc_setitem_expansion_empty_frame_na_retains_dtype():
+    # GH#19647
+    dtypes = {"a": "Int64", "b": "M8[ns]", "c": "float64"}
+    df = pd.DataFrame({key: pd.Series(dtype=dtype) for key, dtype in dtypes.items()})
+    df.loc[0] = None
+    assert df.dtypes.to_dict() == dtypes
+    assert df.isna().all(axis=None)
+
+
+def test_loc_setitem_expansion_empty_frame_per_column():
+    # GH#19647 a value that one column cannot hold does not affect the others
+    df = pd.DataFrame(
+        {"a": pd.Series(dtype="float64"), "b": pd.Series(dtype="float64")}
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[0] = [1, "x"]
+    assert df["a"].dtype == "float64"
+    assert df["b"].dtype != "float64"
+
+
+@pytest.mark.parametrize("box", [lambda row: pd.Series(row, index=["a", "b"]), list])
+def test_loc_setitem_expansion_empty_frame_bool_not_cast(box):
+    # GH#19647 an object-dtype row must not turn True into 1
+    df = pd.DataFrame({"a": pd.Series(dtype="Int64"), "b": pd.Series(dtype="float64")})
+    df.loc[0] = box([True, 1])
+    assert df["a"].dtype == "boolean"
+    assert df["a"].iloc[0] is np.True_
+    assert df["b"].dtype == "float64"
+
+
+def test_loc_setitem_expansion_empty_frame_not_retained_keeps_value():
+    # GH#19647 a column that does not retain its dtype is not rebuilt from object
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {"a": pd.Series(dtype="int64[pyarrow]"), "b": pd.Series(dtype="float64")}
+    )
+    period = pd.Period("2020-01-01", "D")
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[0] = pd.Series({"a": period, "b": 1})
+    assert df["a"].iloc[0] == period
+    assert df["b"].dtype == "float64"
+
+
+def test_loc_setitem_expansion_empty_frame_arrow_decimal_retained():
+    # GH#19647 the row's numpy scalars must not stop the dtype being retained
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(pa.decimal128(10, 2))
+    df = pd.DataFrame({"a": pd.Series(dtype=dtype)})
+    df.loc[0] = [1]
+    assert df["a"].dtype == dtype
+    assert df.loc[0, "a"] == 1
+
+
+def test_loc_setitem_expansion_empty_frame_stays_consolidated():
+    # GH#19647
+    df = pd.DataFrame(np.empty((0, 3)))
+    df.loc[0] = np.arange(3.0)
+    assert df._mgr.nblocks == 1
+
+
+def test_loc_setitem_expansion_empty_frame_void_column_not_retained():
+    # GH#19647
+    df = pd.DataFrame({"a": pd.Series(np.empty(0, dtype="V8"))})
+    df.loc[0] = [np.nan]
+    assert df["a"].dtype == "float64"
+
+
+def test_loc_setitem_expansion_empty_frame_tz_mismatch_not_retained():
+    # GH#19647 retaining UTC would send a second insert to object
+    df = pd.DataFrame({"a": pd.Series(dtype="M8[ns, UTC]")})
+    ts = pd.Timestamp("2020-01-01", tz="US/Pacific")
+    df.loc[0] = [ts]
+    df.loc[1] = [ts]
+    assert df["a"].dt.tz == ts.tz
+    assert df["a"].tolist() == [ts, ts]
+
+
+def test_loc_setitem_expansion_empty_frame_int_column_na_not_retained():
+    # GH#19647 int64 cannot hold NA
+    df = pd.DataFrame({"a": pd.Series(dtype="int64")})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[0] = [None]
+    assert df["a"].dtype == object
+
+
+def test_loc_setitem_expansion_empty_frame_object_still_infers():
+    # GH#19647 object is the default, so it does not indicate a chosen dtype
+    df = pd.DataFrame(columns=["a"])
+    df.loc[0] = [1]
+    assert df["a"].dtype == "int64"
+
+
 def test_loc_setitem_expansion_ea_column_warns():
     # GH#62369 EA-dtyped columns participate in the expansion deprecation
     df = pd.DataFrame({"a": pd.Series([1, 2], dtype="Int64"), "b": [1.5, 2.5]})
