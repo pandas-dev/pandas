@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     BaseMaskedDtype,
     ExtensionDtype,
 )
@@ -1021,7 +1022,10 @@ class IndexOpsMixin(OpsMixin):
             if using_python_scalars() and values.dtype.kind != "O":
                 if isinstance(values.dtype, BaseMaskedDtype):
                     return iter(values.tolist())
-                return map(maybe_unbox_numpy_scalar, values)
+                if values.dtype.kind not in "mM" and not isinstance(
+                    values.dtype, ArrowDtype
+                ):
+                    return map(maybe_unbox_numpy_scalar, values)
             return iter(values)
         else:
             return map(values.item, range(values.size))
