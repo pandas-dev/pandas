@@ -1234,14 +1234,13 @@ def test_groupby_as_index_agg(df):
     gr = df.groupby(ts)
     gr.nth(0)  # invokes set_selection_from_grouper internally
 
-    for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
-        gr = df.groupby(ts, as_index=False)
-        left = getattr(gr, attr)()
+    gr = df.groupby(ts, as_index=False)
+    for attr in ["mean", "max", "count", "idxmax", "all"]:
+        # GH#58337: reductions insert the external key as a result column.
+        with pytest.raises(ValueError, match="cannot insert jim, already exists"):
+            getattr(gr, attr)()
 
-        gr = df.groupby(ts.values, as_index=True)
-        right = getattr(gr, attr)().reset_index(drop=True)
-
-        tm.assert_frame_equal(left, right)
+    tm.assert_frame_equal(gr.cumsum(), df.groupby(ts.values).cumsum())
 
 
 @pytest.mark.parametrize(

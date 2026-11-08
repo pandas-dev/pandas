@@ -750,6 +750,16 @@ def test_frame_groupby_external_name_collision():
     tm.assert_frame_equal(df.groupby("a", as_index=False).sum(), expected)
 
 
+def test_frame_groupby_external_callable_inserts_key_once():
+    # GH#58337
+    df = pd.DataFrame({"value": [2, 4, 9]})
+    key = pd.Series([6, 6, 7], name="group")
+
+    result = df.groupby(key, as_index=False).agg(lambda x: x.max() - x.min())
+    expected = pd.DataFrame({"group": [6, 7], "value": [2, 0]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_multiple_key():
     df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
