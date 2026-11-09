@@ -110,6 +110,10 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=0,
     ),
+    "kwds": inspect.Parameter(
+        "kwds",
+        inspect.Parameter.VAR_KEYWORD,
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -309,6 +313,11 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "wom_weekday",
     ),
+    pd.tseries.offsets.DateOffset: (
+        "n",
+        "normalize",
+        "kwds",
+    ),
 }
 
 
@@ -319,7 +328,11 @@ def apply_signature_overrides() -> None:
         )
 
         assert offset_class() == offset_class(
-            **{name: param.default for name, param in signature.parameters.items()}
+            **{
+                name: param.default
+                for name, param in signature.parameters.items()
+                if param.default is not inspect.Parameter.empty
+            }
         )
 
         offset_class.__signature__ = signature
