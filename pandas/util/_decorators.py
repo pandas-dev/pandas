@@ -348,6 +348,45 @@ def deprecate_nonkeyword_arguments(
     return decorate
 
 
+def deprecate_first_arg_keyword(
+    klass: type[PandasChangeWarning], old_arg_name: str
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """
+    Decorator to deprecate passing a renamed positional-only first argument
+    by its old keyword name.
+
+    Parameters
+    ----------
+    klass : Warning
+        The warning class to use.
+    old_arg_name : str
+        The name the first argument had before it became positional-only.
+    """
+
+    def decorate(func: Callable[P, T]) -> Callable[P, T]:
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> T:
+            if old_arg_name in kwargs:
+                if args:
+                    raise TypeError(
+                        f"{func.__name__}() got multiple values for argument "
+                        f"{old_arg_name!r}"
+                    )
+                msg = (
+                    f"Passing {old_arg_name!r} as a keyword argument to "
+                    f"{func.__name__} is deprecated. "
+                    f"{future_version_msg(klass.version())} it must be passed "
+                    "positionally."
+                )
+                warnings.warn(msg, klass, stacklevel=find_stack_level())
+                return func(kwargs.pop(old_arg_name), *args, **kwargs)
+            return func(*args, **kwargs)
+
+        return cast("Callable[P, T]", wrapper)
+
+    return decorate
+
+
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module https://matplotlib.org/users/license.html
 

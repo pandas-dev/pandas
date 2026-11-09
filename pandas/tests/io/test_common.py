@@ -6,6 +6,7 @@ import codecs
 import contextlib
 import errno
 from functools import partial
+import inspect
 from io import (
     BytesIO,
     IOBase,
@@ -915,3 +916,108 @@ def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed()
     with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
         with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
             sql.read_sql("SELECT 1", conn)
+
+
+@pytest.mark.parametrize(
+    "reader, old_name, module, path",
+    [
+        (pd.read_csv, "filepath_or_buffer", "os", ("io", "data", "csv", "iris.csv")),
+        (pd.read_table, "filepath_or_buffer", "os", ("io", "data", "csv", "iris.csv")),
+        (
+            pd.read_fwf,
+            "filepath_or_buffer",
+            "os",
+            ("io", "data", "fixed_width", "fixed_width_format.txt"),
+        ),
+        (pd.read_excel, "io", "openpyxl", ("io", "data", "excel", "test1.xlsx")),
+        (pd.read_html, "io", "lxml", ("io", "data", "html", "spam.html")),
+        (
+            pd.read_json,
+            "path_or_buf",
+            "os",
+            ("io", "json", "data", "tsframe_v012.json"),
+        ),
+        (pd.read_xml, "path_or_buffer", "lxml", ("io", "data", "xml", "books.xml")),
+        (
+            pd.read_hdf,
+            "path_or_buf",
+            "tables",
+            ("io", "data", "legacy_hdf", "pytables_native2.h5"),
+        ),
+        (
+            pd.read_feather,
+            "path",
+            "pyarrow",
+            ("io", "data", "feather", "simple_dataset.feather"),
+        ),
+        (
+            pd.read_parquet,
+            "path",
+            "pyarrow",
+            ("io", "data", "parquet", "simple.parquet"),
+        ),
+        (
+            pd.read_orc,
+            "path",
+            "pyarrow.orc",
+            ("io", "data", "orc", "TestOrcFile.test1.orc"),
+        ),
+        (
+            pd.read_spss,
+            "path",
+            "pyreadstat",
+            ("io", "data", "spss", "labelled-num.sav"),
+        ),
+        (
+            pd.read_pickle,
+            "filepath_or_buffer",
+            "os",
+            ("io", "data", "pickle", "categorical.0.25.0.pickle"),
+        ),
+        (
+            pd.read_sas,
+            "filepath_or_buffer",
+            "os",
+            ("io", "sas", "data", "test1.sas7bdat"),
+        ),
+        (
+            pd.read_stata,
+            "filepath_or_buffer",
+            "os",
+            ("io", "data", "stata", "stata10_115.dta"),
+        ),
+    ],
+)
+def test_read_first_arg_old_keyword_deprecated(
+    reader, old_name, module, path, datapath
+):
+    # GH#54616
+    param = inspect.signature(reader).parameters["source"]
+    assert param.kind is inspect.Parameter.POSITIONAL_ONLY
+
+    pytest.importorskip(module)
+    path = datapath(*path)
+    # silence unrelated deprecations
+    kwargs = {"read_excel": {"engine": "openpyxl"}, "read_sas": {"encoding": None}}
+    kwargs = kwargs.get(reader.__name__, {})
+    expected = reader(path, **kwargs)
+
+    msg = f"Passing '{old_name}' as a keyword argument to {reader.__name__}"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        result = reader(**{old_name: path}, **kwargs)
+
+    if isinstance(expected, list):
+        # read_html
+        assert len(result) == len(expected)
+        for res, exp in zip(result, expected, strict=True):
+            tm.assert_frame_equal(res, exp)
+    else:
+        tm.assert_equal(result, expected)
+
+
+def test_read_first_arg_passed_twice():
+    # GH#54616
+    with pytest.raises(
+        TypeError, match="got multiple values for argument 'filepath_or_buffer'"
+    ):
+        pd.read_csv(StringIO("a"), filepath_or_buffer=StringIO("a"))

@@ -22,8 +22,12 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
+    Pandas4Warning,
 )
-from pandas.util._decorators import set_module
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -1030,8 +1034,10 @@ def _parse(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "io")
 def read_html(
-    io: FilePath | ReadBuffer[str],
+    source: FilePath | ReadBuffer[str],
+    /,
     *,
     match: str | Pattern[str] = ".+",
     flavor: HTMLFlavors | Sequence[HTMLFlavors] | None = None,
@@ -1065,12 +1071,16 @@ def read_html(
 
     Parameters
     ----------
-    io : str, path object, or file-like object
+    source : str, path object, or file-like object
         String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a string ``read()`` function.
         The string can represent a URL. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``io``. Passing it by keyword is deprecated.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -1240,11 +1250,11 @@ def read_html(
     validate_header_arg(header)
     check_dtype_backend(dtype_backend)
 
-    io = stringify_path(io)
+    source = stringify_path(source)
 
     return _parse(
         flavor=flavor,
-        io=io,
+        io=source,
         match=match,
         header=header,
         index_col=index_col,

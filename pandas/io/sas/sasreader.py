@@ -16,7 +16,11 @@ from typing import (
 )
 
 from pandas._libs import lib
-from pandas.util._decorators import set_module
+from pandas.errors import Pandas4Warning
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 
 from pandas.io.common import stringify_path
 
@@ -59,7 +63,8 @@ class SASReader(Iterator["DataFrame"], ABC):
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[bytes],
+    /,
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
@@ -72,7 +77,8 @@ def read_sas(
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[bytes],
+    /,
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
@@ -84,8 +90,10 @@ def read_sas(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "filepath_or_buffer")
 def read_sas(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[bytes],
+    /,
     *,
     format: str | None = None,
     index: Hashable | None = None,
@@ -102,7 +110,7 @@ def read_sas(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object, or file-like object
+    source : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``read()`` function. The string could be
         a URL. Valid URL schemes include http, ftp, s3, and file. For file
@@ -112,6 +120,10 @@ def read_sas(
         Certain URL schemes may require additional packages. For example, S3
         URLs require the ``s3fs`` library. See
         :ref:`install.optional_dependencies` for a full list.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``filepath_or_buffer``. Passing it by keyword is deprecated.
     format : str {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.
@@ -134,7 +146,7 @@ def read_sas(
         If True, returns an iterator for reading the file incrementally.
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
-        'filepath_or_buffer' is path-like, then detect compression from the
+        'source' is path-like, then detect compression from the
         following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
         '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
         Set to ``None`` for no decompression.
@@ -170,10 +182,10 @@ def read_sas(
             "If this is a buffer object rather "
             "than a string name, you must specify a format string"
         )
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
-        if not isinstance(filepath_or_buffer, str):
+        source = stringify_path(source)
+        if not isinstance(source, str):
             raise ValueError(buffer_error_msg)
-        fname = filepath_or_buffer.lower()
+        fname = source.lower()
         if ".xpt" in fname:
             format = "xport"
         elif ".sas7bdat" in fname:
@@ -188,7 +200,7 @@ def read_sas(
         from pandas.io.sas.sas_xport import XportReader
 
         reader = XportReader(
-            filepath_or_buffer,
+            source,
             index=index,
             encoding=encoding,
             chunksize=chunksize,
@@ -198,7 +210,7 @@ def read_sas(
         from pandas.io.sas.sas7bdat import SAS7BDATReader
 
         reader = SAS7BDATReader(
-            filepath_or_buffer,
+            source,
             index=index,
             encoding=encoding,
             chunksize=chunksize,

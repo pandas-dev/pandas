@@ -35,6 +35,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -87,7 +88,8 @@ EXCEL_ROWS_MAX = 1_048_576
 
 @overload
 def read_excel(
-    io,
+    source,
+    /,
     # sheet name is str or int -> DataFrame
     sheet_name: str | int = ...,
     *,
@@ -126,7 +128,8 @@ def read_excel(
 
 @overload
 def read_excel(
-    io,
+    source,
+    /,
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     *,
@@ -164,8 +167,10 @@ def read_excel(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "io")
 def read_excel(
-    io,
+    source,
+    /,
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
     header: int | Sequence[int] | None = 0,
@@ -212,7 +217,7 @@ def read_excel(
 
     Parameters
     ----------
-    io : str, ExcelFile, workbook object, path object, or file-like object
+    source : str, ExcelFile, workbook object, path object, or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -229,6 +234,10 @@ def read_excel(
 
         A workbook object from a supported engine's library, such as an
         ``openpyxl.Workbook``, is read with that engine.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``io``. Passing it by keyword is deprecated.
 
     sheet_name : str, int, list, or None, default 0
         Strings are used for sheet names. Integers are used in zero-indexed
@@ -314,11 +323,11 @@ def read_excel(
 
         When ``engine=None``, the following logic will be used to determine the engine:
 
-        - If ``io`` is a workbook object, the engine that created it will be used.
-        - Otherwise if ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+        - If ``source`` is a workbook object, the engine that created it will be used.
+        - Otherwise if ``source`` is an OpenDocument format (.odf, .ods, .odt),
           then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-        - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
-        - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+        - Otherwise if ``source`` is an xls format, ``xlrd`` will be used.
+        - Otherwise if ``source`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
 
         .. deprecated:: 3.1.0
@@ -517,22 +526,22 @@ def read_excel(
     if engine_kwargs is None:
         engine_kwargs = {}
 
-    if not isinstance(io, ExcelFile):
+    if not isinstance(source, ExcelFile):
         should_close = True
-        io = ExcelFile(
-            io,
+        source = ExcelFile(
+            source,
             storage_options=storage_options,
             engine=engine,
             engine_kwargs=engine_kwargs,
         )
-    elif engine and engine != io.engine:
+    elif engine and engine != source.engine:
         raise ValueError(
             "Engine should not be specified when passing "
             "an ExcelFile - ExcelFile already has the engine set"
         )
 
     try:
-        data = io._reader.parse(
+        data = source._reader.parse(
             sheet_name=sheet_name,
             header=header,
             names=names,
@@ -559,7 +568,7 @@ def read_excel(
     finally:
         # make sure to close opened file handles
         if should_close:
-            io.close()
+            source.close()
     return data
 
 
