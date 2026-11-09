@@ -294,7 +294,7 @@ The required steps for adding a maintainer are:
 If adding to ``pandas-core``, there are two additional steps:
 
 3. Add the contributor to the pandas Google group.
-4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/doc/website.yml``.
+4. Create a pull request to add the contributor's GitHub handle to ``pandas_website_data`` in ``pandas-dev/pandas/doc/source/conf.py``.
 
 The current list of core-team members is on the `team page <https://pandas.pydata.org/about/team.html>`__.
 

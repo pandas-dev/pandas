@@ -215,7 +215,7 @@ The pages of the pandas website (about us, community, blog, PDEPs...) are the
 Markdown files in ``doc/source/``, written with
 `MyST <https://myst-parser.readthedocs.io/>`__ and
 `Jinja2 <https://jinja.palletsprojects.com/>`__. Their data (e.g. the maintainers
-and the sponsors) is in ``doc/website.yml``.
+and the sponsors) is in ``pandas_website_data`` in ``doc/source/conf.py``.
 
 {% raw %}
 
