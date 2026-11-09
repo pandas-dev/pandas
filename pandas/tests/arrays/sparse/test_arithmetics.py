@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import roperator
@@ -779,6 +781,24 @@ def test_mul_timedelta64_operand():
     tm.assert_numpy_array_equal(result.to_dense(), np.arange(1, 4) * tda)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+)
+@pytest.mark.parametrize("op", [operator.mul, roperator.rtruediv])
+@pytest.mark.parametrize(
+    "args", [(3, "W"), (3, "D"), (3, "h"), (3, "m"), ("NaT",), (5,)], ids=str
+)
+def test_timedelta64_scalar_unsupported_unit(op, args):
+    # GH#64808
+    # built here, not at collection, so the generic-unit warning is filtered
+    other = np.timedelta64(*args)
+    values = np.array([1.5, 2.0, 1.0])
+    result = op(SparseArray(values, fill_value=1.0), other)
+    expected = np.asarray(op(pd.Series(values), other))
+    assert result.dtype.subtype == expected.dtype
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+
 _NO_COMMON_SUBTYPE_VALUES = {
     "i8": np.array([1, 2, 3]),
     "f8": np.array([1.0, np.nan, 3.0]),
@@ -1122,3 +1142,23 @@ def test_op_result_keeps_signed_zero_complex():
     expected = (pd.Series([-1 + 1j, 2 + 0j]) * 0).to_numpy()
     tm.assert_numpy_array_equal(np.signbit(result.real), np.signbit(expected.real))
     tm.assert_numpy_array_equal(np.signbit(result.imag), np.signbit(expected.imag))
+
+
+@pytest.mark.parametrize("op", [operator.lt, operator.le, operator.gt, operator.ge])
+def test_complex_ordering_cmp_deprecated(op):
+    # GH#43770 complex has no natural ordering
+    arr = SparseArray([1 + 2j, 3j, np.nan])
+    msg = "deprecated on complex data"
+    for other in [1, arr, np.array([1, 2, 3])]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            op(arr, other)
+
+    with tm.assert_produces_warning(None):
+        arr == 1
+
+
+def test_complex_ordering_cmp_deprecated_list_operand():
+    # GH#43770
+    arr = SparseArray([1.0, 2.0])
+    with tm.assert_produces_warning(Pandas4Warning, match="deprecated on complex"):
+        arr < [1j, 2j]

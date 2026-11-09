@@ -1031,6 +1031,19 @@ def test_parallel_dup_names_dict_dtype_matches_serial(tmp_path, monkeypatch):
     assert result.dtypes["a"] == result.dtypes["a.1"]
 
 
+def test_parallel_object_dtype_dict_matches_serial(tmp_path, monkeypatch):
+    # an object dtype must survive DataFrame construction, see GH#56047
+    raw = b"a,b,c\n" + b"".join(f"x{i},y{i},{i}\n".encode() for i in range(500))
+    path = tmp_path / "obj.csv"
+    path.write_bytes(raw)
+
+    dtype = {"a": object, "c": "float32"}
+    result = _read_forced_parallel(path, monkeypatch, dtype=dtype)
+    expected = pd.read_csv(io.BytesIO(raw), dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+    assert result.dtypes["a"] == object
+
+
 def test_parallel_comment_before_header_matches_serial(tmp_path, monkeypatch):
     # A full-line comment above the header shifts the preamble byte offset;
     # the header row must not be ingested as data (GH#64347).
@@ -2221,6 +2234,20 @@ def test_parallel_chunk_count_follows_file_size(tmp_path, monkeypatch):
 
 
 @pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+def test_parallel_read_many_chunks_per_worker(tmp_path, monkeypatch):
+    # Workers slicing one shared memoryview raised "released memoryview" on
+    # free-threaded builds (GH#71418).  The race is narrow, so split a single
+    # column (which gets the whole piece budget) into tiny chunks and repeat.
+    path = tmp_path / "data.csv"
+    _write_grid(path, 20_000, 1)
+    for _ in range(20):
+        n_chunks = _planned_chunk_count(
+            path, monkeypatch, chunk_bytes=16, n_workers=8, min_chunk_rows=1
+        )
+        assert n_chunks >= 1000
+
+
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
 def test_parallel_chunk_count_bounded_by_column_pieces(tmp_path, monkeypatch):
     # Every chunk repeats a per-column cost, so the byte term stays bounded by
     # the (column x chunk) piece budget on a wide frame (GH#66798).
@@ -2373,7 +2400,7 @@ def test_parallel_chunk_count_respects_the_row_floor(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def _blocked_frame(n_rows: int = 30_000) -> pd.DataFrame:
+def _blocked_frame(n_rows: int = 10_000) -> pd.DataFrame:
     # >= 16 columns, so numeric columns qualify for row-blocked conversion at
     # any worker count; the string columns qualify on their own
     rng = np.random.default_rng(0)
@@ -2451,12 +2478,12 @@ def test_row_blocked_conversion_late_dtype_miss(tmp_path, monkeypatch, threads):
     # A column whose leading block infers one kind but whose later rows do
     # not must fall back to the whole-column inference cascade.
     df = _blocked_frame().astype(object)
-    df.loc[25_000, "i0"] = 1.5  # int -> float
-    df.loc[25_000, "i1"] = 2**63 + 5  # int -> uint64
-    df.loc[25_000, "i2"] = "abc"  # int -> str
-    df.loc[25_000, "f0"] = "oops"  # float -> str
-    df.loc[25_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
-    df.loc[25_100, "i3"] = np.nan  # NA past the leading block
+    df.loc[9_000, "i0"] = 1.5  # int -> float
+    df.loc[9_000, "i1"] = 2**63 + 5  # int -> uint64
+    df.loc[9_000, "i2"] = "abc"  # int -> str
+    df.loc[9_000, "f0"] = "oops"  # float -> str
+    df.loc[9_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
+    df.loc[9_100, "i3"] = np.nan  # NA past the leading block
     path = tmp_path / "late.csv"
     df.to_csv(path, index=False)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)

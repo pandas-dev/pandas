@@ -3,6 +3,8 @@ Common location for shared fused types
 """
 
 from numpy cimport (
+    complex64_t,
+    complex128_t,
     float32_t,
     float64_t,
     int8_t,
@@ -34,3 +36,9 @@ ctypedef fused numeric_t:
 ctypedef fused numeric_object_t:
     numeric_t
     object
+
+# All numeric types + object + complex
+ctypedef fused numeric_object_complex_t:
+    numeric_object_t
+    complex64_t
+    complex128_t

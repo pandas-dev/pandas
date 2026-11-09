@@ -147,3 +147,21 @@ def test_drop_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         ser.drop("a", inplace=True)
     tm.assert_series_equal(ser, expected)
+
+
+def test_drop_columns_deprecated():
+    # GH#39509
+    ser = pd.Series([1, 3], index=["a", "b"])
+    msg = "Series.drop ignores the 'columns' keyword"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.drop(columns=["a"])
+    tm.assert_series_equal(result, ser)
+
+    with tm.assert_produces_warning(False):
+        ser.drop(index="a", columns=None)
+
+    # calls that already raise do not also warn
+    msg = "Cannot specify both 'labels' and 'index'/'columns'"
+    with tm.assert_produces_warning(False):
+        with pytest.raises(ValueError, match=msg):
+            ser.drop("a", columns="b")

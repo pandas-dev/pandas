@@ -306,3 +306,21 @@ def test_compare_nullable_int64_dtype(df1_val, df2_val, diff_self, diff_other):
     )
     result = df1.compare(df2, keep_shape=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "val, val2",
+    [
+        (1567808378753000000, 1567808378753274000),
+        (np.uint64(2**63 + 1), np.uint64(2**63 + 3)),
+        (True, False),
+    ],
+)
+def test_compare_no_upcast_from_dropped_rows(val, val2):
+    # GH#39899 equal values in dropped rows should not upcast the column
+    df1 = pd.DataFrame({"a": [val, val], "b": [0, 0]})
+    df2 = pd.DataFrame({"a": [val2, val], "b": [0, 0]})
+
+    result = df1.compare(df2)
+    expected = pd.DataFrame({("a", "self"): [val], ("a", "other"): [val2]})
+    tm.assert_frame_equal(result, expected)

@@ -619,6 +619,81 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    def test_iloc_setitem_reversed_slice_column_indexer_referenced_block(self, dtype):
+        # GH#65446 a slice column indexer takes the cross product with the
+        #  row indexer; on a referenced frame it became an array instead
+        df = pd.DataFrame(
+            np.arange(12, dtype="i8").reshape(4, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        value = np.arange(100, 106, dtype="i8").reshape(2, 3).astype(dtype)
+        df.iloc[[2, 0], ::-1] = value
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[2] = value[0, ::-1]
+        expected.iloc[0] = value[1, ::-1]
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    @pytest.mark.parametrize(
+        "key, shape",
+        [
+            (([2, 0], slice(0, 2)), (2, 2)),
+            (([2, 0], slice(2, None, -2)), (2, 2)),
+            # these keys reject a 2-D value even on an unreferenced frame
+            ((range(2, 0, -1), [0, 2]), None),
+            (((2, 1), [0, 2]), None),
+            ((pd.array([2, 1], dtype="Int64"), [0, 2]), None),
+            ((np.array([2, 1]), range(0, 3, 2)), None),
+            ((np.array([2, 1]), pd.array([0, 2], dtype="Int64")), None),
+            ((np.array([0, 2]), None), None),
+            (([2, 1, 0], Ellipsis), (3, 3)),
+            ((Ellipsis, [2, 0, 1]), (4, 3)),
+            ((np.array([True, False, True, False]), slice(None, None, -1)), (2, 3)),
+            ((np.array([[1, 0]]), slice(None, None, -1)), (2, 3)),
+        ],
+    )
+    def test_iloc_setitem_referenced_block_matches_unreferenced(
+        self, key, shape, dtype
+    ):
+        # GH#65446 a distinct value per cell, so a transposed or reordered
+        #  write shows up; a scalar still tells a cross product from a
+        #  pointwise write
+        df = pd.DataFrame(
+            np.arange(12, dtype="i8").reshape(4, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        if shape is None:
+            value = df_orig.iloc[3, 1]
+        else:
+            value = np.arange(100, 100 + np.prod(shape), dtype="i8").reshape(shape)
+            value = value.astype(dtype)
+
+        expected = df.copy()
+        expected.iloc[key] = value
+        ref = df[["a", "b", "c"]]
+        df.iloc[key] = value
+        df._mgr._verify_integrity()
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_loc_setitem_boolean_row_mask_reversed_slice_referenced_block(self):
+        # GH#65446 a reversed label slice reaches the same path through loc
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        df.loc[[True, False, True, False], "c":"a":-1] = 99.0
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[[0, 2]] = 99.0
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
@@ -1401,6 +1476,30 @@ class TestiLocBaseIndependent:
         s = pd.Series([1, 2])
         result = s.iloc[np.array(0)]
         assert result == 1
+
+    def test_setitem_zerodim_np_array(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            dtype="Int64",
+        )
+        expected = df.copy()
+
+        expected.iloc[1] = 9
+        df.iloc[np.array(1)] = 9
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_zerodim_np_array_tuple(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            dtype="Int64",
+        )
+        expected = df.copy()
+        expected.iloc[1, 0] = 9
+        df.iloc[np.array(1), np.array(0)] = 9
+        tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
@@ -2216,7 +2315,7 @@ def test_iloc_setitem_single_column_key_empty_selection_is_noop(row_key):
     tm.assert_frame_equal(df, pd.DataFrame(np.zeros((4, 3)), columns=list("abc")))
 
 
-@pytest.mark.parametrize("row_key", [np.array(0), np.array([[0], [1]])])
+@pytest.mark.parametrize("row_key", [np.array([[0], [1]])])
 def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key):
     # GH#68021 length_of_indexer cannot measure these, so they keep taking the
     #  whole-block path and its clearer message
@@ -2224,6 +2323,41 @@ def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key
 
     with pytest.raises(ValueError, match="Cross index must be 1 dimensional"):
         df.iloc[row_key, [1]] = [1.0, 2.0]
+
+
+def test_iloc_setitem_zerodim_np_array_invalid_value():
+    # GH#70256
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    expected = df.copy()
+
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        expected.iloc[0, [1]] = [1.0, 2.0]
+
+    tm.assert_frame_equal(df, expected)
+
+    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+        df.iloc[np.array(0), [1]] = [1.0, 2.0]
+
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("tuple_key", [False, True])
+def test_iloc_setitem_zerodim_np_array_callable(tuple_key):
+    # GH#70256
+    df = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6]},
+        dtype="Int64",
+    )
+    expected = df.copy()
+
+    if tuple_key:
+        expected.iloc[1, 0] = 9
+        df.iloc[lambda d: np.array(1), 0] = 9
+    else:
+        expected.iloc[1] = 9
+        df.iloc[lambda d: np.array(1)] = 9
+
+    tm.assert_frame_equal(df, expected)
 
 
 def test_iloc_setitem_out_of_bounds_boolean_column_key_raises():

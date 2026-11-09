@@ -254,6 +254,16 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_argmin_argmax_all_na(self, method, data, na_value):
         super().test_argmin_argmax_all_na(method, data, na_value)
 
+    def _compare_other(self, ser, data, op, other):
+        warn = None
+        if op.__name__ not in ["eq", "ne"] and data.dtype.kind == "c":
+            # GH#43770 complex has no natural ordering
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(
+            warn, match="deprecated on complex data", check_stacklevel=False
+        ):
+            super()._compare_other(ser, data, op, other)
+
     @pytest.mark.xfail(reason="NumpyExtensionArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
