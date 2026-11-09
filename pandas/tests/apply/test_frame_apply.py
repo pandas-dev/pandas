@@ -1773,6 +1773,60 @@ def test_apply_raw_returns_string(engine):
     tm.assert_series_equal(result, expected)
 
 
+def test_apply_raw_zero_dim_object_array_holding_list():
+    df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
+    wrapped = np.empty((), dtype=object)
+    wrapped[()] = [1, 2]
+    result = df.apply(lambda arr: wrapped, raw=True)
+    expected = pd.Series([[1, 2]] * 3)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_raw_func_reuses_output_array(axis):
+    df = pd.DataFrame(np.arange(1, 13, dtype="int64").reshape(4, 3))
+    buffer = np.zeros(df.shape[axis], dtype="int64")
+
+    def func(arr):
+        buffer[:] = arr * 2
+        return buffer
+
+    result = df.apply(func, axis=axis, raw=True)
+    tm.assert_frame_equal(result, df * 2)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_raw_func_reuses_zero_dim_output_array(axis):
+    df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
+    buffer = np.zeros((), dtype="int64")
+
+    def func(arr):
+        buffer[()] = arr.sum()
+        return buffer
+
+    result = df.apply(func, axis=axis, raw=True)
+    tm.assert_series_equal(result, df.sum(axis=axis))
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_raw_masked_array_results(axis):
+    df = pd.DataFrame(np.arange(1.0, 13.0).reshape(4, 3))
+
+    def func(arr):
+        return np.ma.masked_array(arr, mask=np.isin(arr, [1, 12]))
+
+    result = df.apply(func, axis=axis, raw=True)
+    tm.assert_frame_equal(result, df.mask(df.isin([1, 12])))
+
+
+def test_apply_raw_scalar_results_args_kwargs():
+    df = pd.DataFrame(np.arange(1, 13, dtype="int64").reshape(4, 3))
+    func = lambda arr, add, extra=0: arr[0] + add + extra
+    result = df.apply(func, args=(1,), extra=2, raw=True)
+    expected = pd.Series([4, 5, 6])
+    tm.assert_series_equal(result, expected)
+
+
 def test_aggregation_func_column_order():
     # GH40420: the result of .agg should have an index that is sorted
     # according to the arguments provided to agg.

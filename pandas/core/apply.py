@@ -1270,21 +1270,6 @@ class FrameApply(NDFrameApply):
     def apply_raw(self, engine="python", engine_kwargs=None):
         """apply to the values as a numpy array"""
 
-        def wrap_function(func):
-            """
-            Wrap user supplied function to work around numpy issue.
-
-            see https://github.com/numpy/numpy/issues/8352
-            """
-
-            def wrapper(*args, **kwargs):
-                result = func(*args, **kwargs)
-                if isinstance(result, str):
-                    result = np.array(result, dtype=object)
-                return result
-
-            return wrapper
-
         if engine == "numba":
             args, kwargs = prepare_function_arguments(
                 self.func,  # type: ignore[arg-type]
@@ -1304,13 +1289,18 @@ class FrameApply(NDFrameApply):
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
-            result = np.apply_along_axis(
-                wrap_function(self.func),
-                self.axis,
-                self.values,
-                *self.args,
-                **self.kwargs,
-            )
+            func = cast("Callable[..., Any]", self.func)
+            values = self.values.T if self.axis == 0 else self.values
+            res = func(values[0], *self.args, **self.kwargs)
+            # a fixed-width str dtype would truncate later, longer str results
+            first = np.asanyarray(res, dtype=object if isinstance(res, str) else None)
+            result = np.zeros_like(first, shape=(len(values), *first.shape))
+            result[0, ...] = first
+            for i, arr in enumerate(values[1:], start=1):
+                # write now, as func may reuse its output array between calls
+                result[i, ...] = np.asanyarray(func(arr, *self.args, **self.kwargs))
+            if self.axis == 0:
+                result = np.moveaxis(result, 0, -1)
 
         # TODO: mixed type case
         if result.ndim == 2:
