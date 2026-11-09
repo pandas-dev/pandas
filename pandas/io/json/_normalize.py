@@ -119,10 +119,9 @@ def nested_to_record(
     new_ds = []
     for d in ds:
         new_d = copy.deepcopy(d)
-        for k, v in d.items():
+        for orig_key, v in d.items():
             # each key gets renamed with prefix
-            if not isinstance(k, str):
-                k = str(k)
+            k = str(orig_key) if not isinstance(orig_key, str) else orig_key
             if level == 0:
                 newkey = k
             else:
@@ -136,11 +135,11 @@ def nested_to_record(
                 max_level is not None and level >= max_level
             ):
                 if level != 0:  # so we skip copying for top level, common case
-                    v = new_d.pop(k)
+                    v = new_d.pop(orig_key)
                     new_d[newkey] = v
                 continue
 
-            v = new_d.pop(k)
+            v = new_d.pop(orig_key)
             new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level))
         new_ds.append(new_d)
 
