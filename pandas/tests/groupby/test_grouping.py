@@ -108,6 +108,15 @@ class TestSelection:
         with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
             df.groupby("A")["C", "D"].mean()
 
+    def test_getitem_multiindex_partial_tuple_key(self):
+        # GH#13914
+        mi = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("k", "")])
+        df = pd.DataFrame([[1, 4, 1], [2, 5, 1], [3, 6, 2]], columns=mi)
+        with tm.assert_produces_warning(None):
+            result = df.groupby(("k", ""))[("A",)].sum()
+        expected = df.groupby(("k", "")).sum()[("A",)]
+        tm.assert_frame_equal(result, expected)
+
     def test_getitem_single_column(self):
         df = pd.DataFrame(
             {
@@ -1153,6 +1162,20 @@ class TestIteration:
         # we need to use a dictionary comprehension here
         groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
+
+    def test_iter_key_types_single_and_multiple_columns(self):
+        # GH 46659
+        df = pd.DataFrame({"x": [1, 2], "y": [1, 2]})
+
+        single_keys = [key for key, _ in df.groupby("x")]
+        multi_keys = [key for key, _ in df.groupby(["x", "y"])]
+
+        assert single_keys == [1, 2]
+        assert multi_keys == [(1, 1), (2, 2)]
+        for key in single_keys:
+            assert type(key) is int
+        for key in multi_keys:
+            assert all(type(part) is int for part in key)
 
     def test_dictify(self, df):
         dict(iter(df.groupby("A")))

@@ -60,7 +60,7 @@ For example, in spreadsheets, you would reference the first row as ``A1:Z1``, wh
 could use ``populations.loc['Chicago']``.
 
 Index values are also persistent, so if you re-order the rows in a ``DataFrame``, the label for a
-particular row don't change.
+particular row doesn't change.
 
 See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index``
 effectively.

@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
+    SparseDtype,
 )
 
 from pandas.core.arrays import SparseArray
@@ -156,6 +157,14 @@ def get_dummies(
     0  1.0  0.0  0.0
     1  0.0  1.0  0.0
     2  0.0  0.0  1.0
+
+    Unobserved categories of a categorical input are included:
+
+    >>> pd.get_dummies(pd.Categorical(list("aca"), categories=["a", "b", "c"]))
+           a      b      c
+    0   True  False  False
+    1  False  False   True
+    2   True  False  False
     """
     from pandas.core.reshape.concat import concat
 
@@ -357,7 +366,7 @@ def _get_dummies_1d(
 
         sparse_series = []
         N = len(data)
-        sp_indices: list[list] = [[] for _ in range(len(dummy_cols))]
+        sp_indices: list[list[int]] = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
@@ -371,12 +380,10 @@ def _get_dummies_1d(
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices, strict=True):
-            sarr = SparseArray(
-                np.ones(len(ixs), dtype=dtype),
-                sparse_index=IntIndex(N, ixs),
-                fill_value=fill_value,
-                dtype=dtype,
-            )
+            sp_values = np.ones(len(ixs), dtype=dtype)
+            sp_index = IntIndex(N, ixs)
+            sparse_dtype = SparseDtype(sp_values.dtype, fill_value)
+            sarr = SparseArray._simple_new(sp_values, sp_index, sparse_dtype)
             sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
         return concat(sparse_series, axis=1)
@@ -540,11 +547,9 @@ def from_dummies(
             f"Dummy DataFrame contains NA value in column: '{col_isna_mask.idxmax()}'"
         )
 
-    # index data with a list of all columns that are dummies
-    try:
-        data_to_decode = data.astype("boolean")
-    except TypeError as err:
-        raise TypeError("Passed DataFrame contains non-dummy data") from err
+    if not data.isin([0, 1]).all().all():
+        raise TypeError("Passed DataFrame contains non-dummy data")
+    data_to_decode = data.astype("boolean")
 
     # collect prefixes and get lists to slice data for each prefix
     variables_slice = defaultdict(list)

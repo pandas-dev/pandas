@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -65,7 +68,7 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
     _exhausted: bool
-    # When False, read() leaves deferred string columns as raw pending
+    # When False, _read_arrays() leaves deferred string columns as raw pending
     # handles for the caller to materialize (one chunked ExtensionArray per
     # column, e.g. post-gather in a parallel read).
     wrap_deferred: bool = True
@@ -103,7 +106,7 @@ class CParserWrapper(ParserBase):
             import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
         # Let the pyarrow string fast path return raw pending-column handles;
-        # read() wraps them into one ExtensionArray per column at the end.
+        # _read_arrays() wraps them into one ExtensionArray per column at the end.
         self._reader.defer_pa_wrap = True
 
         self.unnamed_cols = self._reader.unnamed_cols
@@ -275,7 +278,7 @@ class CParserWrapper(ParserBase):
         )
         return {position: named.get(position) for position in positions}
 
-    def read(
+    def _read_arrays(
         self,
         nrows: int | None = None,
     ) -> tuple[
@@ -472,7 +475,7 @@ def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
     column_names: Sequence[Hashable] | Mapping[int, Hashable],
     warn_mixed: bool = True,
-) -> dict:
+) -> dict[Any, ArrayLike]:
     """
     Concatenate chunks of data read with low_memory=True.
 
@@ -491,7 +494,7 @@ def _concatenate_chunks(
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result: dict = {}
+    result: dict[Any, ArrayLike] = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
 
@@ -548,7 +551,9 @@ def ensure_dtype_objs(
     if isinstance(dtype, defaultdict):
         # "None" not callable  [misc]
         default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
-        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        dtype_converted: defaultdict[Hashable, DtypeObj] = defaultdict(
+            lambda: default_dtype
+        )
         for key in dtype.keys():
             dtype_converted[key] = pandas_dtype(dtype[key])
         return dtype_converted

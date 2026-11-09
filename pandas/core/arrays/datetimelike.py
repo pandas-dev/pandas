@@ -299,7 +299,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         return lib.map_infer(values, self._box_func, convert=False)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim > 1:
             return (self[n] for n in range(len(self)))
         else:
@@ -758,12 +758,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         from pandas import Index
 
         result = map_array(self, mapper, na_action=na_action)
-        result = Index(result)
+        result = Index(result, copy=False)
 
         if isinstance(result, ABCMultiIndex):
             return result.to_numpy()
         else:
-            return result.array
+            return result._data
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
@@ -796,6 +796,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 else:
                     # TODO: Deprecate this case
                     # https://github.com/pandas-dev/pandas/pull/58645/files#r1604055791
+                    kind = self.dtype.kind
+                    values = construct_1d_object_array_from_listlike(
+                        [_box_numpy_datetimelike(val, kind) for val in values]
+                    )
                     return isin(self.astype(object), values)
             return np.zeros(self.shape, dtype=bool)
 
@@ -1590,7 +1594,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[s]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -1669,8 +1673,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
@@ -1830,7 +1833,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
         raise AbstractMethodError(self)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim > 1:
             for i in range(len(self)):
                 yield self[i]
@@ -2099,8 +2102,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2206,8 +2207,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2313,8 +2312,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2498,6 +2495,9 @@ def ensure_arraylike_for_datetimelike(
         data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
 
+    if data.ndim == 0:
+        raise ValueError(f"Cannot construct {cls_name} from 0-dim input")
+
     return data, copy
 
 
@@ -2554,3 +2554,27 @@ def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype | ArrowDtype) -> str:
             raise ValueError(f"{dtype=} does not have a resolution.")
         return dtype.pyarrow_dtype.unit
     return np.datetime_data(dtype)[0]
+
+
+def _box_numpy_datetimelike(val, kind: str):
+    """
+    Box np.datetime64/np.timedelta64 of dtype kind ``kind`` as
+    Timestamp/Timedelta where exact.
+
+    Hash-based matching otherwise misses them: before numpy 2.2 their hashes
+    differ from Timestamp/Timedelta, and NaT does not match ``pd.NaT``. The other
+    kind is left alone, as it could only match via NaT.
+    """
+    if isinstance(val, (np.datetime64, np.timedelta64)) and val.dtype.kind == kind:
+        unit = np.datetime_data(val.dtype)[0]
+        if unit in ("ps", "fs", "as") or (unit == "generic" and not np.isnat(val)):
+            # truncated by Timestamp, or ambiguous unless NaT
+            return val
+        try:
+            if isinstance(val, np.datetime64):
+                return Timestamp(val)
+            return Timedelta(val)
+        except ValueError:
+            # out of bounds, or Timedelta with "Y"/"M" units
+            return val
+    return val

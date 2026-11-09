@@ -547,6 +547,16 @@ class TestSetitemWithExpansion:
         )
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_with_expansion_void_dtype(self):
+        # GH#49388 no warning about pd.array's void dtype deprecation
+        ser = pd.Series(np.zeros(2, dtype="V8"))
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="incompatible dtype"
+        ) as record:
+            ser.loc[5] = 1
+        assert len(record) == 1
+        assert ser.dtype == object
+
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
@@ -596,6 +606,18 @@ class TestSetitemWithExpansion:
                 ser[indexer] = na
             expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
             expected = pd.Series(expected_values, dtype=target_dtype)
+            tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, warn", [("Float64", None), ("Int64", Pandas4Warning)]
+    )
+    def test_setitem_enlarge_nan_distinguish_nan_and_na(self, dtype, warn):
+        # GH#71870 NaN was converted to NA
+        with pd.option_context("future.distinguish_nan_and_na", True):
+            ser = pd.Series([1, 2], dtype=dtype)
+            with tm.assert_produces_warning(warn, match="incompatible dtype"):
+                ser.loc[2] = np.nan
+            expected = pd.Series([1.0, 2.0, np.nan], dtype="Float64")
             tm.assert_series_equal(ser, expected)
 
     def test_setitem_enlargement_object_none(self, nulls_fixture, using_infer_string):
@@ -847,7 +869,7 @@ class SetitemCastingEquivalents:
 
         if is_list_like(val) and len(val) < len(obj):
             # Series.where is not valid here
-            msg = "operands could not be broadcast together with shapes"
+            msg = r"Length of values \(\d+\) does not match length of index"
             with pytest.raises(ValueError, match=msg):
                 obj.where(~mask, val)
             return
@@ -1765,8 +1787,6 @@ def test_setitem_int_not_positional():
     # GH#42215 deprecated falling back to positional on __setitem__ with an
     #  int not contained in the index; enforced in 2.0
     ser = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.0, 4.1])
-    assert not ser.index._should_fallback_to_positional
-    # assert not ser.index.astype(object)._should_fallback_to_positional
 
     # 3.0 is in our index, so post-enforcement behavior is unchanged
     ser[3] = 10
@@ -2010,6 +2030,18 @@ def test_setitem_enlarge_within_int64_range():
     ser.loc[2] = 2**62
 
     expected = pd.Series([1, 2, 2**62], dtype="int64")
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_enlarge_float16_no_overflow_warning():
+    # GH#68315 floats_fit_integer_dtype's float16 overflow warning (see
+    #  test_downcast.py) fires here too, on setitem-with-expansion
+    ser = pd.Series([1, 2], dtype="int64")
+
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = np.float16(3.0)
+
+    expected = pd.Series([1, 2, 3], dtype="int64")
     tm.assert_series_equal(ser, expected)
 
 

@@ -574,9 +574,8 @@ def test_logical_op_sparse_datetimelike_operand_raises(op, dtype):
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 @pytest.mark.parametrize("dtype", ["period[D]", "datetime64[ns, US/Pacific]"])
 def test_logical_op_sparse_ea_datetimelike_raises(op, dtype):
-    # GH#68452 SparseArray._logical_method np.asarray()s the operand before handing it
-    #  to logical_op, which flattens these two to object; only the Series wrapper
-    #  catches them, so the raw array needs its own guard
+    # GH#68452 with no Series wrapper, these two reach logical_op's guard only through
+    #  SparseArray._logical_method's dense fallback
     left = pd.array([True, False, True], dtype="Sparse[bool]")
     right = pd.array(["NaT", "2016-01-01", "2016-01-02"], dtype=dtype)
 

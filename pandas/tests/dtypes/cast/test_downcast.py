@@ -113,6 +113,18 @@ def test_downcast_object_within_integer_range():
     tm.assert_numpy_array_equal(result, np.array([1, 2], dtype="int64"))
 
 
+def test_downcast_float16_no_overflow_warning():
+    # GH#68315 the int64 bounds cast down to float16 and overflowed to inf,
+    #  raising a spurious RuntimeWarning even though the result is correct
+    arr = np.array([1.0, 2.0], dtype="float16")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = maybe_downcast_numeric(arr, np.dtype("int64"))
+
+    tm.assert_numpy_array_equal(result, np.array([1, 2], dtype="int64"))
+
+
 def test_downcast_do_round_out_of_range():
     # GH#66394 rounding can push a value out of range, so the bounds check
     #  has to happen after rounding

@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays.sparse import SparseArray
 
 
 @pytest.fixture(params=[0, np.nan])
@@ -108,8 +109,9 @@ class TestSparseGroupby:
         # GH#64758 the NaN fill_value must be materialized rather than
         #  unsafely cast to the int64 subtype
         keys = ["a", "a", "b", "b"]
-        sparse_ser = pd.Series([1, 0, 1, 0]).astype("Sparse[int64]")
-        sparse_ser = sparse_ser.astype(pd.SparseDtype(np.int64, np.nan))
+        sparse_ser = pd.Series(
+            SparseArray([1, np.nan, 1, np.nan], dtype=pd.SparseDtype(np.int64, np.nan))
+        )
         assert sparse_ser.array.sp_index.ngaps == 2
 
         dense_ser = pd.Series([1.0, np.nan, 1.0, np.nan])
@@ -122,10 +124,8 @@ class TestSparseGroupby:
         # GH#64758 a NaN fill_value on a bool subtype was cast to True; the gaps
         #  are missing values, so the dense equivalent is object dtype
         keys = ["a", "a", "b", "b"]
-        sparse_ser = pd.Series([True, False, True, False]).astype(
-            pd.SparseDtype(bool, False)
-        )
-        sparse_ser = sparse_ser.astype(pd.SparseDtype(bool, np.nan))
+        dtype = pd.SparseDtype(bool, np.nan)
+        sparse_ser = pd.Series(SparseArray([True, np.nan, True, np.nan], dtype=dtype))
         assert sparse_ser.array.sp_index.ngaps == 2
 
         dense_ser = pd.Series([True, np.nan, True, np.nan])

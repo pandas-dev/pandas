@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
 import pytest
@@ -273,7 +274,7 @@ class TestMultiIndexConcat:
         ],
     )
     def test_concat_with_various_multiindex_dtypes(
-        self, mi1_list: list, mi2_list: list
+        self, mi1_list: list[Any], mi2_list: list[Any]
     ):
         # GitHub #23478
         mi1 = pd.MultiIndex.from_product(mi1_list)
@@ -320,6 +321,23 @@ class TestMultiIndexConcat:
         )
         tm.assert_frame_equal(result_df, expected_df)
 
+    @pytest.mark.filterwarnings("ignore:.*sort order is undefined:RuntimeWarning")
+    def test_concat_multiindex_period_levels_mixed_freq(self):
+        # GH#59775
+        pi_y = pd.period_range("2000", periods=2, freq="Y")
+        pi_q = pd.period_range("2000", periods=2, freq="Q")
+        ser_y = pd.Series([1.0, 2.0], index=pd.MultiIndex.from_product([["v"], pi_y]))
+        ser_q = pd.Series([3.0, 4.0], index=pd.MultiIndex.from_product([["v"], pi_q]))
+
+        result = pd.concat([ser_y, ser_q, ser_y, ser_q])
+
+        periods = pd.Index([*pi_y, *pi_q, *pi_y, *pi_q], dtype=object)
+        expected = pd.Series(
+            [1.0, 2.0, 3.0, 4.0] * 2,
+            index=pd.MultiIndex.from_arrays([["v"] * 8, periods]),
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_concat_with_key_not_unique(self):
         # GitHub #46519
         df1 = pd.DataFrame({"name": [1]})
@@ -362,6 +380,61 @@ class TestMultiIndexConcat:
         msg = r"Level values not unique: \['x', 'y', 'y'\]"
         with pytest.raises(ValueError, match=msg):
             pd.concat([df1, df2], keys=["x", "y"], levels=[["x", "y", "y"]])
+
+    @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA, pd.NaT])
+    @pytest.mark.parametrize("same_index", [True, False])
+    def test_concat_tuple_keys_with_missing_values(
+        self, na_value, same_index, frame_or_series
+    ):
+        # GH#57993
+        obj1 = frame_or_series([1], index=["x"])
+        obj2 = obj1 if same_index else frame_or_series([2, 3], index=["x", "y"])
+        keys = [("a", na_value), (na_value, "c")]
+        result = pd.concat([obj1, obj2], keys=keys)
+
+        expected = pd.concat([obj1, obj2])
+        tuples = [("a", np.nan, "x")] + [(np.nan, "c", idx) for idx in obj2.index]
+        expected.index = pd.MultiIndex.from_tuples(tuples)
+        tm.assert_equal(result, expected)
+
+    def test_concat_nested_tuple_keys_with_missing_value(self):
+        # GH#57993
+        ser = pd.Series([1], index=["x"])
+        keys = [(("a", "b"), None), (("c", "d"), "e")]
+        result = pd.concat([ser, ser], keys=keys)
+
+        tuples = [(("a", "b"), np.nan, "x"), (("c", "d"), "e", "x")]
+        expected = pd.Series([1, 1], index=pd.MultiIndex.from_tuples(tuples))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("same_index", [True, False])
+    def test_concat_tuple_keys_missing_value_in_levels(self, same_index):
+        # GH#57993
+        ser1 = pd.Series([1], index=["x"])
+        ser2 = ser1 if same_index else pd.Series([2, 3], index=["x", "y"])
+        keys = [("a", None), ("b", "c")]
+        result = pd.concat([ser1, ser2], keys=keys, levels=[["a", "b"], ["c", np.nan]])
+
+        expected = pd.concat([ser1, ser2])
+        expected.index = pd.MultiIndex(
+            levels=[["a", "b"], ["c", np.nan], ser2.index],
+            codes=[
+                [0] + [1] * len(ser2),
+                [1] + [0] * len(ser2),
+                [0, *range(len(ser2))],
+            ],
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("same_index", [True, False])
+    def test_concat_tuple_keys_missing_value_not_in_levels(self, same_index):
+        # GH#57993 explicitly passed levels must still contain missing keys
+        ser1 = pd.Series([1], index=["x"])
+        ser2 = ser1 if same_index else pd.Series([2, 3], index=["x", "y"])
+        keys = [("a", None), ("b", "c")]
+        msg = "|".join(["Values not found in passed level", "Key nan not in level"])
+        with pytest.raises(ValueError, match=msg):
+            pd.concat([ser1, ser2], keys=keys, levels=[["a", "b"], ["c"]])
 
     @pytest.mark.parametrize("levels", [[["x", "y"]], [["x", "y", "y"]]])
     def test_concat_with_levels_with_none_keys(self, levels):

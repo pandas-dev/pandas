@@ -34,6 +34,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -103,10 +104,8 @@ class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
 
-    .. warning::
-
-       StringDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
+    The data is stored as Python ``str`` objects or in a PyArrow array,
+    depending on ``storage``. See :ref:`text` for details.
 
     Parameters
     ----------
@@ -414,6 +413,9 @@ class BaseStringArray(ExtensionArray):
     # TODO(4.0): Once the deprecation here is enforced, this method can be
     #  removed and we use the parent class method instead.
     def _logical_method(self, other, op):
+        # the GH#60234 arm below silently broadcasts a 2-D ndarray
+        ops.raise_if_2d(other)
+
         if (
             op in (roperator.ror_, roperator.rand_, roperator.rxor)
             and isinstance(other, np.ndarray)
@@ -431,7 +433,7 @@ class BaseStringArray(ExtensionArray):
             return op(other, self.astype(bool))
         return NotImplemented
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the value.
 
@@ -617,10 +619,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
     Extension array for string data.
 
-    .. warning::
-
-       StringArray is considered experimental. The implementation and
-       parts of the API may change without warning.
+    This is the ``storage="python"`` implementation of :class:`StringDtype`,
+    holding Python ``str`` objects in a NumPy object-dtype array.
 
     Parameters
     ----------
@@ -1104,6 +1104,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         result = masked_reductions.sum(
             values=self._ndarray,
             mask=self.isna(),
@@ -1232,6 +1233,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             BooleanArray,
         )
 
+        ops.raise_if_2d(other)
+
         if (
             isinstance(other, BaseStringArray)
             and self.dtype.na_value is not libmissing.NA
@@ -1271,7 +1274,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     stacklevel=find_stack_level(),
                 )
             if len(other) != len(self):
-                # prevent improper broadcasting when other is 2D
                 raise ValueError(
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )

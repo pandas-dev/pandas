@@ -110,6 +110,7 @@ def test_series_from_array_different_dtype(copy):
     "idx",
     [
         pd.Index([1, 2]),
+        pd.RangeIndex(2),
         pd.DatetimeIndex([pd.Timestamp("2019-12-31"), pd.Timestamp("2020-12-31")]),
         pd.PeriodIndex([pd.Period("2019-12-31"), pd.Period("2020-12-31")]),
         pd.TimedeltaIndex([pd.Timedelta("1 days"), pd.Timedelta("2 days")]),
@@ -122,6 +123,7 @@ def test_series_from_index(idx):
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
+    tm.assert_numpy_array_equal(get_array(idx), get_array(expected))
 
     # forcing copy=False still gives a CoW shallow copy
     ser = pd.Series(idx, copy=False)
@@ -129,6 +131,7 @@ def test_series_from_index(idx):
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
+    tm.assert_numpy_array_equal(get_array(idx), get_array(expected))
 
     # forcing copy=True still results in a copy
     ser = pd.Series(idx, copy=True)
@@ -269,10 +272,8 @@ def test_dataframe_from_series_or_index(data, dtype, index_or_series):
 
     # forcing copy=True still results in an actual hard copy up front
     df = pd.DataFrame(obj, copy=True)
-    if not (obj.dtype == "str" and obj.dtype.storage == "pyarrow"):
-        # ArrowExtensionArray deep copy still points to the same underlying data
-        assert not tm.shares_memory(get_array(obj), get_array(df, 0))
-        assert df._mgr._has_no_reference(0)
+    assert not tm.shares_memory(get_array(obj), get_array(df, 0))
+    assert df._mgr._has_no_reference(0)
 
     df.iloc[0, 0] = data[-1]
     tm.assert_equal(obj, obj_orig)
@@ -323,6 +324,64 @@ def test_dataframe_from_numpy_array(copy):
         assert np.shares_memory(get_array(df, 0), arr)
 
 
+@pytest.mark.parametrize("shape", [(4,), (2, 2)], ids=["1d", "2d"])
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_numpy_array_ea_dtype(copy, shape):
+    # GH#52338
+    arr = np.ones(shape, dtype="int64")
+    df = pd.DataFrame(arr, dtype="Int64", copy=copy)
+    result = get_array(df, 0)
+
+    if copy is False:
+        assert np.shares_memory(result, arr)
+    else:
+        assert not np.shares_memory(result, arr)
+        # non-contiguous columns make take extremely slow
+        assert result.flags.c_contiguous
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "datetime64[ns, UTC]"])
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_dict_of_numpy_array_ea_dtype(copy, dtype):
+    # GH#52338
+    arr = np.ones(4, dtype="int64")
+    df = pd.DataFrame({"a": arr}, dtype=dtype, copy=copy)
+
+    assert np.shares_memory(get_array(df, "a"), arr) is (copy is False)
+
+
+@pytest.mark.parametrize("as_dict", [False, True], ids=["series", "dict"])
+@pytest.mark.parametrize("dtype", ["Int64", "datetime64[ns, UTC]"])
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_series_ea_dtype(copy, dtype, as_dict):
+    # GH#52338 writing to df must not reach ser
+    ser = pd.Series([1, 2, 3], dtype="int64")
+    ser_orig = ser.copy()
+    df = pd.DataFrame({"a": ser} if as_dict else ser, dtype=dtype, copy=copy)
+
+    df.iloc[0, 0] = df.iloc[1, 0]
+    tm.assert_series_equal(ser, ser_orig)
+
+
+def test_dataframe_from_datetime_array_arrow_dtype():
+    # GH#52338
+    pytest.importorskip("pyarrow")
+    arr = pd.array(np.array(["2020-01-01"], dtype="M8[ns]"))
+    df = pd.DataFrame(arr, dtype="timestamp[ns][pyarrow]")
+
+    arr[0] = pd.Timestamp("2030-01-01")
+    assert df.iloc[0, 0] == pd.Timestamp("2020-01-01")
+
+
+def test_dataframe_from_object_array_python_string_dtype():
+    # GH#52338
+    arr = np.array(["a", "b"], dtype=object)
+    df = pd.DataFrame(arr, dtype=pd.StringDtype("python"))
+
+    df.iloc[0, 0] = "z"
+    assert arr.tolist() == ["a", "b"]
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [
@@ -361,3 +420,18 @@ def test_frame_from_dict_of_index():
 
     df.iloc[0, 0] = 100
     tm.assert_index_equal(idx, expected)
+
+
+def test_rangeindex_cached_data():
+    # https://github.com/pandas-dev/pandas/issues/67055
+    # creating a Series from a RangeIndex should still track a reference because
+    # the RangeIndex caches the materialized _data used by the Series
+    idx = pd.RangeIndex(3)
+    ser = pd.Series(idx)
+
+    # idx2 takes a view of idx -> shares the cache and tracks a reference
+    idx2 = idx.rename("a")
+    del idx
+    ser.iloc[0] = 99
+
+    tm.assert_numpy_array_equal(idx2._data, np.array([0, 1, 2], dtype="int64"))

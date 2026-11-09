@@ -78,6 +78,9 @@ def data_for_grouping():
     )
 
 
+@pytest.mark.filterwarnings(
+    "ignore:JSONArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(
         reason="comparison method not implemented for JSONArray (GH-37867)"
@@ -193,6 +196,14 @@ class TestJSONArray(base.ExtensionTests):
 
     def test_combine_first(self, data):
         super().test_combine_first(data)
+
+    @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
+    def test_where_series_listlike_other(self, data):
+        super().test_where_series_listlike_other(data)
+
+    @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
+    def test_mask_listlike_other_inplace(self, data):
+        super().test_mask_listlike_other_inplace(data)
 
     @pytest.mark.xfail(reason="broadcasting error")
     def test_where_series(self, data, na_value):

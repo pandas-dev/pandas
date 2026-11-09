@@ -11,6 +11,7 @@ import pytest
 
 from pandas._libs import iNaT
 from pandas.compat import PY315
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_integer
 
@@ -1607,6 +1608,47 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(val, pd.Timedelta)
 
 
+@pytest.mark.parametrize(
+    "indexer", [lambda df: df.iloc[0], lambda df: df.loc[0], lambda df: df.xs(0)]
+)
+def test_mixed_dtype_row_python_scalars(indexer):
+    # GH#13468 match iterrows
+    stored = np.int8(3)
+    df = pd.DataFrame(
+        {
+            "a": [1, 2],
+            "b": [1.5, 2.5],
+            "c": [True, False],
+            "d": pd.array([4, None], dtype="Int64"),
+            "e": np.array([stored, 4], dtype=object),
+        }
+    )
+    with pd.option_context("future.python_scalars", True):
+        row = indexer(df)
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            _, expected = next(df.iterrows())
+    assert row.dtype == object
+    assert [type(x) for x in row.array] == [int, float, bool, int, np.int8]
+    # NumPy scalars stored in object dtype are user data, not unboxed
+    assert row["e"] is stored
+    tm.assert_series_equal(row, expected)
+
+
+def test_mixed_dtype_row_python_scalars_extension_dtype():
+    # GH#13468 the row has an extension dtype, so values are left to the array
+    stored = np.int8(3)
+    df = pd.DataFrame(
+        {
+            "a": pd.arrays.SparseArray(np.array([stored, None], dtype=object)),
+            "b": [7, 8],
+        }
+    )
+    with pd.option_context("future.python_scalars", True):
+        row = df.iloc[0]
+    assert isinstance(row.dtype, pd.SparseDtype)
+    assert row.array[0] is stored
+
+
 msg1 = r"Cannot setitem on a Categorical with a new category( \(.*\))?, set the"
 msg2 = "Cannot set a Categorical with another, without identical categories"
 
@@ -1964,3 +2006,27 @@ class TestSetitemValidation:
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
         df = pd.DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)
         self._check_setitem_invalid(df, invalid, indexer)
+
+
+def test_error_raised_from_custom_hash_method():
+    # GH 57052
+    class testkey:
+        def __init__(self, value):
+            self.value = value
+
+        def __hash__(self):
+            raise RuntimeError(f"exception in {self!r}.__hash__")
+
+        def __eq__(self, other):
+            return self.value == other.value
+
+        def __repr__(self):
+            return f"testkey({self.value})"
+
+    df = pd.DataFrame({"i": map(testkey, range(10))}).set_index("i")
+    for i in range(len(df.index)):
+        key = testkey(i)
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key!r}.__hash__")
+        ):
+            df.loc[key]

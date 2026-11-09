@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -218,12 +220,11 @@ class TestReductions:
         assert pd.isna(result)
 
     def test_mean_all_na_datetimelike(self):
-        # GH#68484 the NA is the subtype's, not float nan
+        # GH#68484 the NA is NaT, not float nan
         arr = SparseArray(np.array([], dtype="m8[ns]"))
         with tm.assert_produces_warning(None):
             result = arr.mean()
-        assert isinstance(result, np.timedelta64)
-        assert pd.isna(result)
+        assert result is pd.NaT
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_mean_raises_for_unsupported_object_dtype_with_na(self, skipna):
@@ -331,8 +332,7 @@ class TestMinMax:
         arr = SparseArray(data, dtype=dtype)
         result = getattr(arr, func)()
         if expected is pd.NaT:
-            # TODO: pin down whether we wrap datetime64("NaT")
-            assert result is pd.NaT or np.isnat(result)
+            assert result is pd.NaT
         else:
             assert np.isnan(result)
 
@@ -568,6 +568,49 @@ def test_datetimelike_reductions_match_dense(name, unit, skipna):
     )
 
 
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("shape", ["na_fill", "stored_fill", "all_fill"])
+@pytest.mark.parametrize(
+    "name, unit",
+    [
+        (name, unit)
+        for unit in ["M8[us]", "m8[us]"]
+        for name in ["min", "max", "mean", "sum", "median", "std"]
+        # sum and mean reduce the sp_values with ndarray.sum(), which numpy
+        #  rejects for datetime64
+        if not (unit == "M8[us]" and name in ("sum", "mean"))
+    ],
+)
+def test_datetimelike_reductions_box_the_scalar(name, unit, shape, skipna):
+    # GH#68555 these returned a raw np.datetime64/np.timedelta64
+    if shape == "all_fill":
+        # every value is the fill value, so there are no stored values to reduce
+        values = np.array([7, 7], dtype=unit)
+    else:
+        values = np.array([1, 3, "NaT", 5], dtype=unit)
+    # a numpy-scalar fill value is stored unboxed; a Timestamp one is stored
+    #  boxed already and so would not reach the leak
+    fill_value = None if shape == "na_fill" else values[-1]
+    arr = SparseArray(values, fill_value=fill_value)
+    expected = getattr(pd.Series(values), name)(skipna=skipna)
+
+    for result in [
+        getattr(arr, name)(skipna=skipna),
+        getattr(pd.Series(arr), name)(skipna=skipna),
+    ]:
+        assert type(result) is type(expected)
+        if pd.isna(expected):
+            assert result is pd.NaT
+        else:
+            assert result == expected
+
+    frame_result = getattr(pd.DataFrame({"a": arr}), name)(skipna=skipna)
+    frame_expected = getattr(pd.DataFrame({"a": values}), name)(skipna=skipna)
+    # the subtype is what the keepdims arm picks; the fill value follows the input
+    assert frame_result.dtype.subtype == frame_expected.dtype
+    tm.assert_series_equal(frame_result.astype(frame_expected.dtype), frame_expected)
+
+
 def test_frame_std_datetime64_widens_to_timedelta64():
     # GH#68194 the keepdims widening skips datetimelike subtypes because
     #  min/max/median stay closed over them; std does not
@@ -581,12 +624,8 @@ def test_frame_std_datetime64_widens_to_timedelta64():
     tm.assert_series_equal(result, expected)
 
 
-# skew/kurt cast to float64 inside nanops, on the dense path too
-@pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
-)
 @pytest.mark.parametrize("fill_value", [np.nan, 1 + 1j])
-@pytest.mark.parametrize("name", ["var", "std", "sem", "skew", "kurt"])
+@pytest.mark.parametrize("name", ["var", "std", "sem"])
 def test_frame_complex_reduction_narrows_to_real(name, fill_value):
     # GH#68194 these map complex to real, which np.result_type widens straight back
     values = np.array([1 + 2j, 3 - 1j, 5 + 0j])
@@ -608,11 +647,18 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
     values = np.array([1 + 2j, 3 - 1j, np.nan])
     arr = SparseArray(values, dtype=pd.SparseDtype("complex128", np.nan))
 
-    result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
-    expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
+    warn = Pandas4Warning if name in ("min", "max") else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
     tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize(
     "name, kwargs",
     [("median", {"skipna": False}), ("sem", {"ddof": 5}), ("std", {"ddof": 5})],
@@ -644,7 +690,7 @@ def test_describe():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "subtype,fill_value,dense_dtype",
@@ -670,6 +716,12 @@ def test_reductions_with_na_fill_value_match_dense(
     arr = SparseArray([1.0, np.nan, 5.0, np.nan]).astype(
         pd.SparseDtype(subtype, fill_value)
     )
+    if subtype == "complex128" and name in ["skew", "kurt"]:
+        # GH#43770
+        with pytest.raises(TypeError, match="not allowed for this dtype"):
+            getattr(pd.Series(arr), name)(skipna=skipna)
+        return
+
     dense = pd.Series(
         [np.nan if pd.isna(value) else value for value in arr], dtype=dense_dtype
     )
@@ -683,8 +735,7 @@ def test_reductions_with_na_fill_value_match_dense(
 
 @pytest.mark.parametrize("name", ["median", "std"])
 def test_reduction_keeps_sub_microsecond_fill_value(name):
-    # GH#68194 np.full routes a Timedelta fill value through the stdlib datetime
-    #  protocol, which floors it to microseconds
+    # GH#68194 a sub-microsecond fill value must survive the reduction
     values = np.array([1000, 2500, 2500, 4000], dtype="m8[ns]")
     arr = SparseArray(values, fill_value=pd.Timedelta("2500ns"))
     assert arr.sp_index.ngaps == 2
@@ -769,6 +820,50 @@ def test_any_all_na_fill_value():
 
 
 @pytest.mark.parametrize("name", ["any", "all"])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+@pytest.mark.parametrize("data", [[1, None], [1, 0, None]])
+def test_any_all_skipna_false_numeric_na_fill_value(name, dtype, data):
+    # GH#68559 sparsifying a nullable numeric array gives a numeric subtype with a
+    #  pd.NA fill, whose truth the skipna=False gate took directly; the gaps densify
+    #  to a truthy NaN. [1, 0, None] covers all() falling through to a False value
+    arr = SparseArray(pd.array(data, dtype=dtype))
+    assert arr.fill_value is pd.NA
+    expected = getattr(pd.Series(arr._densify()), name)(skipna=False)
+
+    assert getattr(arr, name)(skipna=False) == expected
+    assert arr._reduce(name, skipna=False) == expected
+    assert getattr(pd.Series(arr), name)(skipna=False) == expected
+    assert getattr(pd.DataFrame({"A": arr}), name)(skipna=False)["A"] == expected
+
+
+@pytest.mark.parametrize("name", ["any", "all"])
+@pytest.mark.parametrize(
+    "subtype", ["int64", "uint64", "float64", "complex128", "m8[ns]"]
+)
+def test_any_all_skipna_false_na_fill_value(name, subtype):
+    # GH#68559 an NA fill value on a numeric subtype; the gaps densify to that
+    #  subtype's own NA, NaN or NaT, both truthy
+    sp_values = np.array([1], dtype=subtype)
+    arr = SparseArray.from_indices(sp_values, indices=[0], length=3, fill_value=pd.NA)
+    assert arr.sp_index.ngaps
+
+    assert getattr(arr, name)(skipna=False)
+
+
+@pytest.mark.parametrize("name", ["any", "all"])
+def test_any_all_skipna_false_bool_subtype_na_fill_value(name):
+    # GH#68559 a bool subtype densifies to object holding pd.NA rather than to a
+    #  numpy NA, so unlike the numeric subtypes it goes on raising like dense
+    arr = SparseArray.from_indices(
+        np.array([True]), indices=[0], length=3, fill_value=pd.NA
+    )
+    assert arr.sp_index.ngaps
+
+    with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
+        getattr(arr, name)(skipna=False)
+
+
+@pytest.mark.parametrize("name", ["any", "all"])
 @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]"])
 def test_any_all_datetime64_raises(name, unit):
     # GH#68438 sparse answered for a datetime64 subtype where dense raises
@@ -824,11 +919,15 @@ def test_frame_idxmin_idxmax(subtype, order, sparsify_min):
     #  sparsify_min routes _argmin_argmax through its _first_fill_value_loc branch.
     values = np.array(order).astype(subtype)
     arr = SparseArray(values, fill_value=values.min() if sparsify_min else None)
-    assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
+    # GH#43770 complex ordering is deprecated
+    warn = Pandas4Warning if subtype == "complex128" else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
 
     index = pd.Index(list("xyz"))
     df = pd.DataFrame({"a": arr}, index=index)
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(warn, match=msg):
         assert df.idxmin()["a"] == index[values.argmin()]
         assert df.idxmax()["a"] == index[values.argmax()]
 
@@ -870,3 +969,74 @@ def test_frame_and_series_mean_all_na(arr, subtype):
     assert result.dtype.subtype == subtype
     assert pd.isna(result["a"])
     assert pd.isna(series_result)
+
+
+@pytest.mark.parametrize(
+    "arr, expected",
+    [
+        (SparseArray(["a", "a", "b"], fill_value="a"), "aab"),
+        (SparseArray(["a", "a"], fill_value="a"), "aa"),
+        (SparseArray(["b", "c"], fill_value="a"), "bc"),
+        (
+            SparseArray(np.array([b"a", b"a", b"b"], dtype=object), fill_value=b"a"),
+            b"aab",
+        ),
+        (SparseArray(np.array([], dtype=object), fill_value="a"), 0),
+        (SparseArray(np.array([np.nan], dtype=object), fill_value="a"), 0),
+    ],
+)
+def test_sum_object_fill_value(arr, expected):
+    # GH#68581 str and bytes concatenation is not commutative, so the closed-form
+    #  fill_value * nsparse adjustment appended the gaps, and degenerated to
+    #  int(0) + str when no stored value was non-NA
+    result = arr.sum()
+    assert result == expected
+    assert result == pd.Series(arr.to_dense(), dtype=object).sum()
+
+
+def test_sum_object_fill_value_na_raises_like_dense():
+    # GH#68581 a stored NA among strings raises in nanops instead of being
+    #  skipped; sparse now matches dense here rather than returning the gaps
+    #  out of order.  Both sides flip together when that is fixed.
+    arr = SparseArray(np.array(["a", np.nan, "b"], dtype=object), fill_value="a")
+    msg = "can only concatenate str"
+    with pytest.raises(TypeError, match=msg):
+        arr.sum()
+    with pytest.raises(TypeError, match=msg):
+        pd.Series(arr.to_dense(), dtype=object).sum()
+
+
+def test_sum_object_null_fill_value_keeps_stored_order():
+    # GH#68581 an NA fill needs no adjustment, so this stays on the closed-form
+    #  path; it deliberately does not match dense, which raises instead
+    arr = SparseArray(["a", "b", None])
+    assert arr._null_fill_value
+    assert arr.sum() == "ab"
+
+
+@pytest.mark.parametrize("op", ["sum", "any", "max"])
+def test_frame_reduction_axis_1_different_fill_values(op, performance_warning):
+    # GH#35795 the axis=1 path concatenates the columns, which read the second
+    #  column's gaps as the first column's fill_value
+    df = pd.DataFrame(
+        {
+            "a": SparseArray([0, 0, 1], fill_value=0),
+            "b": SparseArray([1, 0, 0], fill_value=1),
+        }
+    )
+
+    msg = "Concatenating sparse arrays with multiple fill values"
+    with tm.assert_produces_warning(performance_warning, match=msg):
+        result = getattr(df, op)(axis=1)
+
+    expected = getattr(df.sparse.to_dense(), op)(axis=1)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max", "argmin", "argmax"])
+def test_complex_ordering_deprecated(func):
+    # GH#43770 complex has no natural ordering
+    arr = SparseArray([1 + 2j, 3 - 1j, 0j], fill_value=0j)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(arr, func)()

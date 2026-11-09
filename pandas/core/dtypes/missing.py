@@ -7,6 +7,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
+    Any,
     TypeVar,
     cast,
     overload,
@@ -14,6 +15,8 @@ from typing import (
 import warnings
 
 import numpy as np
+
+from pandas._config import is_nan_na
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
@@ -29,6 +32,8 @@ from pandas.core.dtypes.common import (
     is_string_or_object_np_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -71,12 +76,12 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar | Pattern | NAType | NaTType) -> bool: ...
+def isna(obj: Scalar | Pattern[Any] | NAType | NaTType) -> bool: ...
 
 
 @overload
 def isna(
-    obj: ArrayLike | Index | list,
+    obj: ArrayLike | Index | list[Any],
 ) -> npt.NDArray[np.bool_]: ...
 
 
@@ -87,7 +92,7 @@ def isna(obj: NDFrameT) -> NDFrameT: ...
 # handle unions
 @overload
 def isna(
-    obj: NDFrameT | ArrayLike | Index | list,
+    obj: NDFrameT | ArrayLike | Index | list[Any],
 ) -> NDFrameT | npt.NDArray[np.bool_]: ...
 
 
@@ -285,12 +290,12 @@ def _isna_recarray_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
 
 
 @overload
-def notna(obj: Scalar | Pattern | NAType | NaTType) -> bool: ...
+def notna(obj: Scalar | Pattern[Any] | NAType | NaTType) -> bool: ...
 
 
 @overload
 def notna(
-    obj: ArrayLike | Index | list,
+    obj: ArrayLike | Index | list[Any],
 ) -> npt.NDArray[np.bool_]: ...
 
 
@@ -301,7 +306,7 @@ def notna(obj: NDFrameT) -> NDFrameT: ...
 # handle unions
 @overload
 def notna(
-    obj: NDFrameT | ArrayLike | Index | list,
+    obj: NDFrameT | ArrayLike | Index | list[Any],
 ) -> NDFrameT | npt.NDArray[np.bool_]: ...
 
 
@@ -669,6 +674,13 @@ def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):  # pyright: ignore[reportGeneralTypeIssues]
         return False
+    elif (
+        lib.is_float(obj)
+        and isinstance(dtype, (BaseMaskedDtype, ArrowDtype))
+        and not is_nan_na()
+    ):
+        # under future.distinguish_nan_and_na a float NaN is a value, not NA
+        return False
     elif dtype.kind == "M":
         if isinstance(dtype, np.dtype):
             # i.e. not tzaware
@@ -699,7 +711,8 @@ def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
         return lib.is_float(obj) or obj is None or obj is libmissing.NA
 
     elif isinstance(dtype, CategoricalDtype):
-        return is_valid_na_for_dtype(obj, dtype.categories.dtype)
+        # NaN marks a missing entry whatever the dtype of the categories
+        return lib.is_float(obj) or is_valid_na_for_dtype(obj, dtype.categories.dtype)
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))

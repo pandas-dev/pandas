@@ -4,10 +4,11 @@ Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 
 from decimal import Decimal
 import inspect
-import warnings
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -274,6 +275,9 @@ class TestSeriesStatReductions:
 @pytest.mark.parametrize(
     "opname",
     [
+        "std",
+        "sem",
+        "var",
         "skew",
         "kurt",
     ],
@@ -304,6 +308,21 @@ def test_reduction_consistency(opname, loc, scale):
     tm.assert_almost_equal(result_series, result_frame)
 
 
+@pytest.mark.parametrize("opname", ["var", "std", "sem"])
+def test_stat_nobs_equal_ddof(opname):
+    s = pd.Series([1.0, 2.0, 3.0])
+    ddof = 3
+
+    result_series = getattr(s, opname)(ddof=ddof)
+    assert np.isnan(result_series)
+
+    result_gb = getattr(s.groupby([0, 0, 0]), opname)(ddof=ddof).iloc[0]
+    assert np.isnan(result_gb)
+
+    result_window = getattr(s.rolling(3, min_periods=3), opname)(ddof=ddof).iloc[2]
+    assert np.isnan(result_window)
+
+
 # ---------------------------------------------------------------------------
 # object dtype
 #
@@ -331,9 +350,18 @@ def test_object_stat_matches_numeric_dtype(opname, data, numeric_dtype):
     obj = pd.Series(data, dtype=object)
     expected_obj = pd.Series(np.array(data, dtype=numeric_dtype))
 
-    with warnings.catch_warnings():
-        # skew/kurt of complex data warn about the discarded imaginary part
-        warnings.simplefilter("ignore", np.exceptions.ComplexWarning)
+    if numeric_dtype == "complex128" and opname in ["skew", "kurt"]:
+        # GH#43770 the imaginary part would be discarded
+        msg = f"reduction operation '{opname}' not allowed for this dtype"
+        for ser in [obj, expected_obj]:
+            with pytest.raises(TypeError, match=msg):
+                getattr(ser, opname)()
+        return
+
+    warn = (
+        Pandas4Warning if numeric_dtype == "complex128" and opname == "median" else None
+    )
+    with tm.assert_produces_warning(warn, match="deprecated on complex data"):
         expected = getattr(expected_obj, opname)()
         result = getattr(obj, opname)()
 

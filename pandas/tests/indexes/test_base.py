@@ -613,6 +613,18 @@ class TestIndex:
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
+    def test_map_with_tuples_of_different_lengths(self):
+        # GH#50293
+        index = Index([1, 2], name="n")
+        result = index.map(lambda x: (x,) * x)
+        expected = Index([(1,), (2, 2)], name="n", tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
+        mi = MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+        result = mi.map(lambda tup: (*tup, "z") if tup[0] == "a" else tup)
+        expected = Index([("a", "b", "z"), ("c", "d")], tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "index",
         [
@@ -1831,6 +1843,86 @@ def test_nan_comparison_same_object(op):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([1, 2, pd.NA], "Int64"),
+        ([1.5, 2.5, pd.NA], "Float64"),
+        ([True, False, pd.NA], "boolean"),
+        (["a", "b", pd.NA], "string[python]"),
+        pytest.param(
+            ["a", "b", pd.NA], "string[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+        pytest.param([1, 2, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_comparison_same_object_nullable_dtype(values, dtype, comparison_op):
+    # GH#71022 comparing an Index with itself took a fastpath that returned
+    # a numpy bool array, dropping the NA semantics of the extension dtype
+    idx = Index(values, dtype=dtype)
+
+    result = comparison_op(idx, idx)
+    expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
+    assert result[-1] is pd.NA
+
+
+@pytest.mark.parametrize(
+    "idx",
+    [
+        pd.DatetimeIndex(["2020-01-01", pd.NaT, "2020-01-03"], tz="US/Eastern"),
+        pd.PeriodIndex(["2020-01", pd.NaT, "2020-03"], freq="M"),
+        pd.IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)]),
+        pd.CategoricalIndex(["a", np.nan, "b"], ordered=True),
+        Index(["a", np.nan, "b"], dtype="str"),
+    ],
+)
+def test_comparison_same_object_non_nullable_extension_dtype(idx, comparison_op):
+    # GH#71022 extension dtypes whose comparisons return a numpy bool array
+    # keep the fastpath and must match comparing against a copy
+    result = comparison_op(idx, idx)
+    expected = comparison_op(idx, idx.copy())
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_comparison_same_object_distinguish_nan_and_na(comparison_op):
+    # GH#71022 with NaN kept distinct from NA, NaN is not missing and must
+    # compare like any other value, as it does against a copy
+    pa = pytest.importorskip("pyarrow")
+    arr = pd.array(
+        pa.array([1.0, float("nan"), None], from_pandas=False),
+        dtype=pd.ArrowDtype(pa.float64()),
+    )
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        idx = Index(arr)
+
+        result = comparison_op(idx, idx)
+        expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Float64", "Float64"),
+        ("Int64", "Float64"),
+        pytest.param(
+            "float64[pyarrow]", "float64[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+def test_insert_nan_distinguish_nan_and_na(dtype, expected_dtype):
+    # GH#71870 NaN was converted to NA
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = Index([1, 2], dtype=dtype).insert(0, np.nan)
+        assert result.dtype == expected_dtype
+        assert np.isnan(result[0])
+        assert result[1:].tolist() == [1.0, 2.0]
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333
@@ -1960,3 +2052,37 @@ def test_slice_locs_quarterly_string_bound_utc_offset_check(wrap):
     with tm.assert_produces_warning(None):
         with pytest.raises(ValueError, match="Both dates must"):
             idx.slice_locs(wrap("2000Q1"), "2000-06-01 00:00:00+06:00")
+
+
+@pytest.mark.parametrize(
+    "left, right, expected, exp_lidx, exp_ridx",
+    [
+        (
+            Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            Index(["x", "x", 1], dtype=object),
+            Index(["x", "x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            np.array([0, 0, 1], dtype=np.intp),
+            np.array([0, 1, -1], dtype=np.intp),
+        ),
+        (
+            Index([3, 1, 2], dtype=np.int64),
+            Index(["a", 1], dtype=object),
+            Index([3, 1, 2], dtype=np.int64),
+            None,
+            np.array([-1, 1, -1], dtype=np.intp),
+        ),
+    ],
+)
+def test_join_mismatched_dtypes_keeps_dtype_of_kept_side(
+    left, right, expected, exp_lidx, exp_ridx
+):
+    # GH#63371
+    result, lidx, ridx = left.join(right, how="left", return_indexers=True)
+    tm.assert_index_equal(result, expected)
+    tm.assert_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+    result, ridx, lidx = right.join(left, how="right", return_indexers=True)
+    tm.assert_index_equal(result, expected)
+    tm.assert_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)

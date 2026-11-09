@@ -88,7 +88,8 @@ Date offsets            ``DateOffset``     ``None``              ``None``       
 
 The default resolution for date times and time deltas is microsecond ("us"), though second ("s"),
 millisecond ("ms"), and nanosecond ("ns") are also supported. The resolution can be changed using
-:meth:`~Series.dt.as_unit`.
+:meth:`~Series.dt.as_unit`. Arithmetic keeps the resolution of its operands, see
+:ref:`Timedelta arithmetic <timedeltas.unit_preserving_arithmetic>`.
 
 For time series data, it's conventional to represent the time component in the index of a :class:`Series` or :class:`DataFrame`
 so manipulations can be performed with respect to the time element.
@@ -592,7 +593,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
-* Regularization functions like ``snap`` and very fast ``asof`` logic.
+* Very fast ``asof`` logic.
 
 ``DatetimeIndex`` objects have all the basic functionality of regular ``Index``
 objects, and a smorgasbord of advanced time series specific methods for easy
@@ -1304,6 +1305,20 @@ results in ``ValueError``.
     pd.Timestamp("2014-08-01 09:00") + bh
     pd.Timestamp("2014-08-01 18:00") + bh
 
+Each business hour is 60 minutes of business time; any part of an hour that
+does not fit before closing continues from the next opening. If the business
+hours are not a whole number of hours long, a ``date_range`` therefore no
+longer lines up with the opening time after the first day.
+
+.. ipython:: python
+
+    bh = pd.offsets.BusinessHour(start="09:30", end="16:00")
+    pd.date_range("2014-08-01 09:30", periods=9, freq=bh)
+
+A 24-hour business day cannot be expressed with ``BusinessHour``. For hourly
+timestamps around the clock on weekdays only, filter an hourly range instead,
+e.g. ``dti[dti.day_of_week < 5]``.
+
 Passing ``start`` time later than ``end`` represents midnight business hour.
 In this case, business hour exceeds midnight and overlap to the next day.
 Valid business hours are distinguished by whether it started from valid ``BusinessDay``.
@@ -1570,6 +1585,9 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+For a calendar step that is not anchored, such as yearly from an arbitrary
+date, pass a :class:`DateOffset` like ``freq=pd.DateOffset(years=1)``.
+
 Anchored offset semantics
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1812,7 +1830,8 @@ financial applications.
 on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
-The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
+The ``resample()`` method can be used directly from
+:class:`~pandas.api.typing.DataFrameGroupBy` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 Basics
@@ -1851,6 +1870,18 @@ end of the interval is closed:
    ts.resample("5Min", closed="right").mean()
 
    ts.resample("5Min", closed="left").mean()
+
+For the end-anchored offsets 'ME', 'YE', 'QE', 'BME', 'BYE', 'BQE', and 'W',
+``closed="right"`` puts the whole last day of each period in its bin, while
+with ``closed="left"`` the bin edge is midnight at the start of that day, so
+timestamps on that day fall in the next bin:
+
+.. ipython:: python
+
+   idx = pd.date_range("2011-01-30", "2011-02-01", freq="12h")
+   ser = pd.Series(range(len(idx)), index=idx)
+   ser.resample("ME", closed="right").count()
+   ser.resample("ME", closed="left").count()
 
 Parameters like ``label`` are used to manipulate the resulting labels.
 ``label`` specifies whether the result is labeled with the beginning or
@@ -2176,6 +2207,21 @@ Because ``freq`` represents a span of ``Period``, it cannot be negative like "-3
    pd.Period("2012-1-1 19:00", freq="h")
 
    pd.Period("2012-1-1 19:00", freq="5h")
+
+A ``Period`` starts at the beginning of its frequency's base unit, so any finer
+time information is discarded: a ``"D"`` period always starts at midnight.
+To represent a day-long span starting at another time, use a multiple of a finer
+frequency such as ``"24h"``; to group timestamps into days starting at 08:00, use
+``resample("D", offset="8h")`` instead. ``pd.DateOffset`` objects such as
+``pd.DateOffset(days=1)`` are not supported as a ``Period`` frequency.
+
+.. ipython:: python
+
+   period = pd.Period("2012-1-1 08:00", freq="D")
+   period.start_time, period.end_time
+
+   period = pd.Period("2012-1-1 08:00", freq="24h")
+   period.start_time, period.end_time
 
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).

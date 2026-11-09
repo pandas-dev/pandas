@@ -7,6 +7,8 @@ import textwrap
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 
 import pandas.io.formats.format as fmt
@@ -204,6 +206,15 @@ def test_to_html_multiindex_sparsify(multi_sparse, expected, datapath):
         result = df.to_html()
     expected = expected_html(datapath, expected)
     assert result == expected
+
+
+def test_to_html_multiindex_sparsify_by_value():
+    # GH#10796 distinct values that format identically are not merged
+    mi = pd.MultiIndex.from_arrays([[201500000100.0, 201500000101.0], ["a", "a"]])
+    df = pd.DataFrame({"C": [3, 4]}, index=mi)
+    result = df.to_html()
+    assert "rowspan" not in result
+    assert result.count("<th>2.015000e+11</th>") == 2
 
 
 @pytest.mark.parametrize(
@@ -1082,6 +1093,26 @@ def test_to_html_na_rep_non_scalar_data(datapath):
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([1, None], "Int64"),
+        ([1.5, None], "Float64"),
+        ([True, None], "boolean"),
+        (["a", None], "string"),
+        pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ([1, None], object),
+        ([1, pd.NA], object),
+        ([1, pd.NaT], object),
+    ],
+)
+def test_to_html_na_rep_none_and_na(values, dtype):
+    # GH#54872
+    df = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
+    result = df.to_html(na_rep="foo")
+    assert result.count("<td>foo</td>") == 1
+
+
 def test_to_html_float_format_object_col(datapath):
     # GH#40024
     df = pd.DataFrame(data={"x": [1000.0, "test"]})
@@ -1163,3 +1194,109 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
+
+
+def test_series_repr_html():
+    # GH#5563 no column header, so it is distinct from a one-column DataFrame
+    ser = pd.Series([1, 2], index=pd.Index(["a", "b"], name="idx"), name="x")
+    result = ser._repr_html_()
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        "    <tr>\n"
+        "      <th>idx</th>\n"
+        "      <th></th>\n"
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "    <tr>\n"
+        "      <th>a</th>\n"
+        "      <td>1</td>\n"
+        "    </tr>\n"
+        "    <tr>\n"
+        "      <th>b</th>\n"
+        "      <td>2</td>\n"
+        "    </tr>\n"
+        "  </tbody>\n"
+        "</table>\n"
+        "<p>Name: x, dtype: int64</p>\n"
+        "</div>"
+    )
+    assert result.startswith("<div>\n<style scoped>")
+    assert result[result.index("<table") :] == expected
+
+
+@pytest.mark.parametrize(
+    "ser, footer",
+    [
+        (pd.Series([1.5]), "dtype: float64"),
+        (pd.Series([], dtype="int64"), "dtype: int64"),
+        (
+            pd.Series([1], dtype="category"),
+            "dtype: category<br>Categories (1, int64): [1]",
+        ),
+        (
+            pd.Series([1], index=pd.date_range("2020", periods=1, freq="D")),
+            "Freq: D, dtype: int64",
+        ),
+        (pd.Series([1], name="<a&b>"), "Name: &lt;a&amp;b&gt;, dtype: int64"),
+    ],
+)
+def test_series_repr_html_footer(ser, footer):
+    # GH#5563 footer matches the text repr
+    result = ser._repr_html_()
+    assert f"</table>\n<p>{footer}</p>\n</div>" in result
+
+
+@pytest.mark.parametrize("show_dimensions", ["truncate", True, False])
+@pytest.mark.parametrize("length, truncated", [(10, False), (11, True)])
+def test_series_repr_html_truncated(length, truncated, show_dimensions):
+    # GH#5563
+    ser = pd.Series(range(length))
+    with pd.option_context(
+        "display.max_rows",
+        10,
+        "display.min_rows",
+        4,
+        "display.show_dimensions",
+        show_dimensions,
+    ):
+        result = ser._repr_html_()
+    assert ("<td>...</td>" in result) is truncated
+    # min_rows=4 data rows plus the "..." row
+    assert result.count("<tr>") == (5 if truncated else length)
+    show_length = show_dimensions is True or (show_dimensions and truncated)
+    assert (f"Length: {length}" in result) is show_length
+
+
+def test_series_repr_html_multiindex():
+    # GH#5563 index names get a header row, values column has no label
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("a", 2)], names=["k", None])
+    result = pd.Series([1, 2], index=mi, name="x")._repr_html_()
+    expected = (
+        "  <thead>\n"
+        "    <tr>\n"
+        "      <th>k</th>\n"
+        "      <th></th>\n"
+        "      <th></th>\n"
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "    <tr>\n"
+        '      <th rowspan="2" valign="top">a</th>\n'
+        "      <th>1</th>\n"
+        "      <td>1</td>\n"
+        "    </tr>\n"
+        "    <tr>\n"
+        "      <th>2</th>\n"
+        "      <td>2</td>\n"
+        "    </tr>\n"
+        "  </tbody>\n"
+    )
+    assert expected in result
+
+
+def test_series_repr_html_disabled():
+    # GH#5563
+    with pd.option_context("display.notebook_repr_html", False):
+        assert pd.Series([1])._repr_html_() is None

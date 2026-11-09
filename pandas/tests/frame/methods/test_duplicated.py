@@ -68,7 +68,7 @@ def test_duplicated_nan_none(keep, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("subset", [None, ["A", "B"], "A"])
+@pytest.mark.parametrize("subset", [None, ["A", "B"], "A", []])
 def test_duplicated_subset(subset, keep):
     df = pd.DataFrame(
         {
@@ -124,3 +124,22 @@ def test_frame_datetime64_duplicated():
     tst = pd.DataFrame({"date": dates})
     result = tst.date.duplicated()
     assert (-result).all()
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.to_datetime(["2020-01-01", "2020-01-01", None]).tz_localize("UTC"),
+        pd.PeriodIndex(["2020-01-01", "2020-01-01", None], freq="D"),
+        pd.arrays.IntervalArray.from_tuples([(0.0, 1.0), (0.0, 1.0), None]),
+    ],
+)
+def test_duplicated_no_values_deprecation(values):
+    # GH#69025 the multi-column path must not self-trigger the .values deprecation
+    df = pd.DataFrame({"a": values, "b": [1, 1, 1]})
+    with tm.assert_produces_warning(None):
+        result = df.duplicated()
+        dropped = df.drop_duplicates()
+
+    tm.assert_series_equal(result, pd.Series([False, True, False]))
+    tm.assert_frame_equal(dropped, df.iloc[[0, 2]])

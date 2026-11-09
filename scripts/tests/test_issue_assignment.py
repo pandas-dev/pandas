@@ -313,10 +313,46 @@ INVALID_DECISION: core.GateDecision = {
 }
 
 
+ASSIGNED_OTHER_DECISION: core.GateDecision = {
+    "outcome": "invalid_assignment",
+    "variant": "assigned_other",
+    "issue": 7,
+    "assignee": "bob",
+}
+
+
+class TestGateMessages:
+    def test_assigned_other_closing_note(self) -> None:
+        open_body = messages.gate_flagged("alice", ASSIGNED_OTHER_DECISION)
+        closed_body = messages.gate_flagged("alice", ASSIGNED_OTHER_DECISION, True)
+        assert "unlikely to be reviewed" in open_body
+        assert "closed" not in open_body
+        assert "I've closed this pull request" in closed_body
+        assert "unlikely to be reviewed" not in closed_body
+
+    def test_unassigned_never_has_closing_note(self) -> None:
+        assert messages.gate_flagged("alice", INVALID_DECISION, True) == (
+            messages.gate_flagged("alice", INVALID_DECISION)
+        )
+
+
 class TestGateAction:
-    def test_not_in_scope_none(self) -> None:
+    @pytest.mark.parametrize("close_assigned_other", [False, True])
+    @pytest.mark.parametrize("label_present", [False, True])
+    def test_exempt_never_touched(
+        self, label_present: bool, close_assigned_other: bool
+    ) -> None:
+        # Exempt authors' PRs are never touched, not even to clear a label.
         decision: core.GateDecision = {"outcome": "not_in_scope", "reason": "exempt"}
-        assert core.gate_action(decision, False, False) == "none"
+        assert core.gate_action(decision, label_present, close_assigned_other) == "none"
+
+    def test_no_linked_issue_clears_present_label(self) -> None:
+        # e.g. the closing keyword was removed from the description
+        decision: core.GateDecision = {
+            "outcome": "not_in_scope",
+            "reason": "no_linked_issue",
+        }
+        assert core.gate_action(decision, True, False) == "clear_label"
 
     def test_valid_clears_present_label(self) -> None:
         decision: core.GateDecision = {"outcome": "valid_assignment"}
@@ -326,17 +362,34 @@ class TestGateAction:
         decision: core.GateDecision = {"outcome": "valid_assignment"}
         assert core.gate_action(decision, False, False) == "none"
 
-    def test_invalid_flags(self) -> None:
-        assert core.gate_action(INVALID_DECISION, False, False) == "flag"
+    @pytest.mark.parametrize("close_assigned_other", [False, True])
+    def test_unassigned_flags(self, close_assigned_other: bool) -> None:
+        # An unclaimed issue never closes the PR, on open or in the sweep.
+        assert core.gate_action(INVALID_DECISION, False, close_assigned_other) == (
+            "flag"
+        )
 
-    def test_invalid_already_flagged_not_recommented(self) -> None:
+    @pytest.mark.parametrize("close_assigned_other", [False, True])
+    def test_unassigned_already_flagged_not_recommented(
+        self, close_assigned_other: bool
+    ) -> None:
         # Reopening without fixing the assignment mustn't repost the comment.
-        assert core.gate_action(INVALID_DECISION, True, False) == "none"
+        assert core.gate_action(INVALID_DECISION, True, close_assigned_other) == (
+            "none"
+        )
 
     @pytest.mark.parametrize("label_present", [False, True])
-    def test_close_mode_always_comments_and_closes(self, label_present: bool) -> None:
-        out = core.gate_action(INVALID_DECISION, label_present, True)
-        assert out == "flag_and_close"
+    def test_assigned_other_on_open_closes(self, label_present: bool) -> None:
+        # Someone else holds the issue: comment and close, even on a reopen.
+        assert (
+            core.gate_action(ASSIGNED_OTHER_DECISION, label_present, True)
+            == "flag_and_close"
+        )
+
+    def test_assigned_other_in_sweep_only_flags(self) -> None:
+        # The daily re-check never closes: a lost assignment goes stale instead.
+        assert core.gate_action(ASSIGNED_OTHER_DECISION, False, False) == "flag"
+        assert core.gate_action(ASSIGNED_OTHER_DECISION, True, False) == "none"
 
 
 class TestIssueIsActive:
@@ -358,21 +411,34 @@ class TestIssueIsActive:
 
 class TestPrSubjectToStale:
     def test_exempt_author_never_subject(self) -> None:
-        assert core.pr_subject_to_stale(True, False, dt(5), None) is False
+        assert core.pr_subject_to_stale(True, False, False, dt(5), None) is False
 
     def test_draft_never_subject(self) -> None:
-        assert core.pr_subject_to_stale(False, True, dt(5), None) is False
+        assert core.pr_subject_to_stale(False, True, False, dt(5), None) is False
 
     def test_awaiting_contributor_is_subject(self) -> None:
         # changes requested, no re-review since
-        assert core.pr_subject_to_stale(False, False, dt(5), None) is True
+        assert core.pr_subject_to_stale(False, False, False, dt(5), None) is True
 
     def test_awaiting_review_not_subject(self) -> None:
         # author re-requested review after changes -> back in maintainers' court
-        assert core.pr_subject_to_stale(False, False, dt(5), dt(2)) is False
+        assert core.pr_subject_to_stale(False, False, False, dt(5), dt(2)) is False
 
     def test_no_changes_requested_not_subject(self) -> None:
-        assert core.pr_subject_to_stale(False, False, None, None) is False
+        assert core.pr_subject_to_stale(False, False, False, None, None) is False
+
+    def test_gated_is_subject(self) -> None:
+        # Needs Issue Assignment: won't be reviewed, so the ball is with the author
+        assert core.pr_subject_to_stale(False, False, True, None, None) is True
+
+    def test_gated_after_rereview_still_subject(self) -> None:
+        assert core.pr_subject_to_stale(False, False, True, dt(5), dt(2)) is True
+
+    def test_gated_draft_not_subject(self) -> None:
+        assert core.pr_subject_to_stale(False, True, True, None, None) is False
+
+    def test_gated_exempt_not_subject(self) -> None:
+        assert core.pr_subject_to_stale(True, False, True, None, None) is False
 
 
 class TestPrStaleAction:
@@ -498,6 +564,8 @@ def pr(
     draft: bool = False,
     author: str | None = "alice",
     author_association: str | None = "NONE",
+    author_is_bot: bool = False,
+    linked_issues: list[core.LinkedIssue] | None = None,
     reviews: list[core.Review] | None = None,
     review_requests: list[core.ReviewRequest] | None = None,
     has_pending_review_requests: bool = False,
@@ -507,12 +575,15 @@ def pr(
     reopened_events: list[core.Comment] | None = None,
     labels: list[str] | None = None,
     stale_marked_at: datetime | None = None,
+    gate_marked_at: datetime | None = None,
 ) -> core.OpenPRState:
     return {
         "number": number,
         "is_draft": draft,
         "author": author,
         "author_association": author_association,
+        "author_is_bot": author_is_bot,
+        "linked_issues": linked_issues if linked_issues is not None else [],
         "reviews": reviews if reviews is not None else [],
         "review_requests": review_requests if review_requests is not None else [],
         "has_pending_review_requests": has_pending_review_requests,
@@ -522,6 +593,7 @@ def pr(
         "reopened_events": reopened_events if reopened_events is not None else [],
         "labels": labels if labels is not None else [],
         "stale_marked_at": stale_marked_at,
+        "gate_marked_at": gate_marked_at,
     }
 
 
@@ -580,6 +652,7 @@ class TestReconcileAll:
             [
                 pr(
                     5,
+                    linked_issues=[{"number": 50, "assignees": ["alice"]}],
                     reviews=[review("CHANGES_REQUESTED", 3)],
                     labels=[AWAITING],
                 )
@@ -746,8 +819,14 @@ class TestRunPrStaleSweep:
     def test_linked_issue_comment_prevents_stale(self) -> None:
         # PR untouched 20d, but the author commented on a linked issue 2d ago.
         client = FakeClient(
-            [pr(4, reviews=changes(30), last_commit_at=ago(20))],
-            linked={4: [{"number": 40, "assignees": ["alice"]}]},
+            [
+                pr(
+                    4,
+                    linked_issues=[{"number": 40, "assignees": ["alice"]}],
+                    reviews=changes(30),
+                    last_commit_at=ago(20),
+                )
+            ],
             activity={40: activity([{"author": "alice", "created_at": ago(2)}])},
         )
         unassign_inactive.run_pr_stale_sweep(client)
@@ -757,7 +836,6 @@ class TestRunPrStaleSweep:
     def test_linked_issue_comment_clears_existing_stale(self) -> None:
         client = FakeClient(
             [pr(5, reviews=changes(30), last_commit_at=ago(20), labels=[STALE])],
-            linked={5: [{"number": 50, "assignees": ["alice"]}]},
             activity={50: activity([{"author": "alice", "created_at": ago(2)}])},
         )
         unassign_inactive.run_pr_stale_sweep(client)
@@ -790,6 +868,7 @@ class TestRunPrStaleSweep:
             [
                 pr(
                     8,
+                    linked_issues=[{"number": 80, "assignees": ["alice", "bob"]}],
                     reviews=changes(30),
                     last_commit_at=ago(22),
                     labels=[STALE],
@@ -907,6 +986,234 @@ class TestRunPrStaleSweep:
         unassign_inactive.run_pr_stale_sweep(client)
         assert client.exact_comment_reads == []
         assert client.added == [(15, (STALE,))]
+
+    def test_gated_pr_marks_stale_without_review(self) -> None:
+        # No changes requested — but the PR is gated, so the author's
+        # inactivity counts and it goes stale like any awaiting-author PR.
+        client = FakeClient(
+            [
+                pr(
+                    16,
+                    linked_issues=[{"number": 160, "assignees": []}],
+                    labels=[GATE],
+                    gate_marked_at=ago(15),
+                    last_commit_at=ago(40),
+                )
+            ],
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.removed == []
+        assert client.added == [(16, (STALE,))]
+        assert client.comments == [(16, messages.pr_marked_stale(160))]
+        assert client.closed == []
+
+    def test_gated_pr_clock_floors_at_label(self) -> None:
+        # Old commit, but the gate label was only applied 2d ago: the clock
+        # runs from the bot's comment, not from the commit.
+        client = FakeClient(
+            [
+                pr(
+                    17,
+                    linked_issues=[{"number": 170, "assignees": []}],
+                    labels=[GATE],
+                    gate_marked_at=ago(2),
+                    last_commit_at=ago(40),
+                )
+            ],
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.removed == []
+
+    def test_gated_pr_author_now_assigned_is_ungated(self) -> None:
+        # The author ran /take since: drop the gate label and, with no changes
+        # requested, the PR is back in the maintainers' court — Stale clears.
+        client = FakeClient(
+            [
+                pr(
+                    18,
+                    linked_issues=[{"number": 180, "assignees": ["alice"]}],
+                    labels=[GATE, STALE],
+                    gate_marked_at=ago(30),
+                    last_commit_at=ago(40),
+                    stale_marked_at=ago(10),
+                )
+            ],
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.removed == [(18, GATE), (18, STALE)]
+        assert client.added == []
+        assert client.closed == []
+
+    def test_gated_pr_without_linked_issue_is_ungated(self) -> None:
+        # Closing keyword removed from the description: out of the gate's scope.
+        client = FakeClient(
+            [pr(19, labels=[GATE], gate_marked_at=ago(30), last_commit_at=ago(40))]
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.removed == [(19, GATE)]
+        assert client.added == []
+
+    def test_gated_pr_still_invalid_keeps_label(self) -> None:
+        # Issue now held by someone else: label stays, stale engine proceeds.
+        client = FakeClient(
+            [
+                pr(
+                    20,
+                    linked_issues=[{"number": 200, "assignees": ["bob"]}],
+                    labels=[GATE],
+                    gate_marked_at=ago(15),
+                    last_commit_at=ago(40),
+                )
+            ],
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.removed == []
+        assert client.added == [(20, (STALE,))]
+        # The warning points at claiming the issue, not at re-requesting
+        # review, which does nothing for a gated PR.
+        [(_, body)] = client.comments
+        assert body == messages.pr_marked_stale(200)
+        assert "`/take` on #200" in body
+        assert "re-request a review" not in body
+        assert "re-request a review" in messages.pr_marked_stale()
+
+    def test_gated_pr_close_frees_no_issue(self) -> None:
+        # The author never held the issue, so closing unassigns nothing.
+        client = FakeClient(
+            [
+                pr(
+                    21,
+                    linked_issues=[{"number": 210, "assignees": ["bob"]}],
+                    labels=[GATE, STALE],
+                    gate_marked_at=ago(30),
+                    last_commit_at=ago(40),
+                    stale_marked_at=ago(8),
+                )
+            ],
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.closed == [21]
+        assert client.unassigned == []
+        assert client.comments == [(21, messages.pr_closed_stale())]
+
+    def test_gated_draft_not_swept(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    22,
+                    linked_issues=[{"number": 220, "assignees": []}],
+                    draft=True,
+                    labels=[GATE],
+                    gate_marked_at=ago(30),
+                    last_commit_at=ago(40),
+                )
+            ],
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.removed == []
+
+    def test_lost_assignment_is_reflagged(self) -> None:
+        # The author held the issue when the gate last passed, then lost it
+        # (/untake, inactivity release). The daily reconcile re-applies the
+        # label with the gate comment; the stale clock starts from that
+        # comment, so an old commit doesn't make it stale in the same run.
+        client = FakeClient(
+            [
+                pr(
+                    24,
+                    linked_issues=[{"number": 240, "assignees": []}],
+                    labels=[AWAITING],
+                    last_commit_at=ago(40),
+                )
+            ]
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == [(24, (GATE,))]
+        assert client.comments == [(24, messages.gate_unassigned("alice", 240))]
+        assert client.removed == []
+        assert client.closed == []
+
+    def test_issue_taken_by_other_is_reflagged(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    25,
+                    linked_issues=[{"number": 250, "assignees": ["bob"]}],
+                    last_commit_at=ago(40),
+                )
+            ]
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == [(25, (GATE,))]
+        assert client.comments == [
+            (25, messages.gate_assigned_other("alice", 250, "bob"))
+        ]
+        assert client.closed == []
+
+    def test_valid_assignment_without_label_untouched(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    26,
+                    linked_issues=[{"number": 260, "assignees": ["alice"]}],
+                    last_commit_at=ago(40),
+                )
+            ]
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.removed == []
+        assert client.comments == []
+
+    def test_bot_author_not_flagged(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    27,
+                    author="dependabot",
+                    author_is_bot=True,
+                    linked_issues=[{"number": 270, "assignees": []}],
+                    last_commit_at=ago(40),
+                )
+            ]
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.comments == []
+
+    def test_exempt_author_not_flagged(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    28,
+                    author_association="COLLABORATOR",
+                    linked_issues=[{"number": 280, "assignees": []}],
+                    last_commit_at=ago(40),
+                )
+            ]
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.comments == []
+
+    def test_gated_exempt_author_left_alone(self) -> None:
+        # Exempt PRs are outside the engine entirely: no re-check, no stale.
+        client = FakeClient(
+            [
+                pr(
+                    23,
+                    author_association="MEMBER",
+                    labels=[GATE],
+                    gate_marked_at=ago(30),
+                    last_commit_at=ago(40),
+                )
+            ]
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.removed == []
 
 
 class TestRunSweep:

@@ -37,6 +37,7 @@ from pandas._libs.tslibs.fields import (
 )
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
+    contains_str,
     floordiv_object_array,
     ints_to_pytimedelta,
     parse_timedelta_unit,
@@ -48,8 +49,12 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
 )
 from pandas.util._decorators import set_module
-from pandas.util._validators import validate_endpoints
+from pandas.util._validators import (
+    validate_endpoints,
+    validate_min_count,
+)
 
+from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_float_dtype,
@@ -276,16 +281,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         unit = None
         if dtype is not None:
             if data.dtype == object:
-                # the unit applies iff the non-null values are all numeric
-                mask = isna(data)
-                notna_data = data[~mask] if mask.any() else data
-                is_numeric = lib.is_integer_float_array(notna_data)
+                # GH#68639 the unit applies to the numeric entries, matching
+                #  to_timedelta(data, unit=...), except that a str alongside
+                #  them would make array_to_timedelta64 reject the unit
+                apply_unit = not contains_str(data)
             else:
-                is_numeric = data.dtype.kind in "iuf"
-            if is_numeric:
-                # numeric data is interpreted in the dtype's unit, matching
-                #  to_timedelta(data, unit=...); mixed Timedelta/numeric data
-                #  keeps the "ns" default, unlike to_timedelta
+                apply_unit = data.dtype.kind in "iuf"
+            if apply_unit:
                 unit = np.datetime_data(dtype)[0]
 
         data = sequence_to_td64ns(data, copy=copy, unit=unit)
@@ -408,6 +410,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         nv.validate_sum(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
         )
+        min_count = validate_min_count(min_count)
 
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
@@ -429,9 +432,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         )
 
         result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
-        if axis is None or self.ndim == 1:
-            return self._box_func(result)
-        return self._from_backing_data(result)
+        return self._wrap_reduction_result(axis, result)
 
     # ----------------------------------------------------------------
     # Accumulations
@@ -891,7 +892,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         2   2 days
         3   3 days
         4   4 days
-        dtype: timedelta64[s]
+        dtype: timedelta64[us]
 
         >>> s.dt.total_seconds()
         0         0.0
@@ -906,7 +907,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[s]', freq=None)
+                       dtype='timedelta64[us]', freq=None)
 
         >>> idx.total_seconds()
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
@@ -972,7 +973,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[s]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.to_pytimedelta()
         array([datetime.timedelta(days=1), datetime.timedelta(days=2),
                datetime.timedelta(days=3)], dtype=object)
@@ -1008,7 +1009,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   1 days
     1   2 days
     2   3 days
-    dtype: timedelta64[s]
+    dtype: timedelta64[us]
     >>> ser.dt.days
     0    1
     1    2
@@ -1046,7 +1047,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     0   0 days 00:00:01
     1   0 days 00:00:02
     2   0 days 00:00:03
-    dtype: timedelta64[s]
+    dtype: timedelta64[us]
     >>> ser.dt.seconds
     0    1
     1    2
@@ -1058,7 +1059,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
-                   dtype='timedelta64[s]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.seconds
     Index([1, 2, 3], dtype='int32')"""
     )
@@ -1263,8 +1264,8 @@ def sequence_to_td64ns(
     int_mask = None
     if isinstance(data, IntegerArray):
         # GH#66988 use the underlying int/uint ndarray + mask directly instead
-        #  of going through to_numpy() to convert to int64 (could overflow)
-        #  or float64 (could loose precision large large int64/uint64 data)
+        #  of going through to_numpy() to convert to int64, which could overflow
+        #  for large uint64 data
         int_mask = data._mask if data._hasna else None
         data = data._data
         if int_mask is not None:
@@ -1312,18 +1313,16 @@ def sequence_to_td64ns(
             mask = np.isnan(data)
 
         if unit is not None and unit != "ns":
-            # if all non-NaN entries are round, treat these like ints and give
-            #  back the requested unit (or closest-supported)
+            # if all non-NaN entries are round, treat these like ints
+            # (which results in 'us' unit instead of 'ns')
             with np.errstate(invalid="ignore"):
                 int_data = data.astype(np.int64)
             # On ARM, float-to-int64 overflow saturates to INT64_MAX
             # instead of wrapping, which makes the data == int_data
             # check pass incorrectly for OOB values like float(2**63).
-            # Exclude values outside the int64 domain from the check.
-            i64 = np.iinfo(np.int64)
-            in_int64_range = (data >= np.float64(i64.min)) & (
-                data < np.float64(i64.max)
-            )
+            # Exclude values outside the int64 domain from the check; NaN is
+            # not outside it by that predicate, but mask already covers NaN.
+            in_int64_range = ~float_outside_int64(data)
             all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
                 result = sequence_to_td64ns(
@@ -1408,9 +1407,8 @@ def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        new_dtype = get_supported_dtype(data.dtype)
-        if new_dtype != data.dtype:
-            data = astype_overflowsafe(data, dtype=new_dtype)
+        if unit != "us":
+            data = astype_overflowsafe(data, dtype=np.dtype("timedelta64[us]"))
 
             # the astype conversion makes a copy, so we can avoid re-copying later
             copy_made = True

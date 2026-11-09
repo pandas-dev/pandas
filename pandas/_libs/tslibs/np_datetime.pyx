@@ -450,6 +450,12 @@ cpdef ndarray astype_overflowsafe(
             "both-datetime64 or both-timedelta64."
         )
 
+    if not cnp.PyDataType_ISNOTSWAPPED(dtype):
+        # GH#68565 the conversions below view their natively-written results as
+        #  `dtype`, so a non-native target would read back byteswapped; pandas
+        #  stores datetimelike data natively in any case
+        dtype = (<object>dtype).newbyteorder("=")
+
     raise_if_unit_multiplier(values.dtype)
     raise_if_unit_multiplier(dtype)
 

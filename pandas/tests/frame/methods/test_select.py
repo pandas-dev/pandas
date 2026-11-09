@@ -130,6 +130,45 @@ def test_select_expression_duplicate_label(columns):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["b", "b", "a"],
+        ["b", "a", "b"],
+        [np.nan, np.nan, "a"],
+        [np.nan, "a", np.nan],
+    ],
+)
+@pytest.mark.parametrize("dtype", [None, object])
+def test_select_expression_duplicate_label_length_matches(columns, dtype):
+    # GH#69412
+    # the number of rows equals the number of duplicates of the name
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=pd.Index(columns, dtype=dtype))
+    label = columns[0]
+    result = df.select(pd.col("a").rename(label), label)
+    expected = pd.concat([df["a"]] * 3, axis=1)
+    expected.columns = df.columns[[0, 0, 0]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.col("a"),
+        pd.Series([6, 3], index=[1, 0]),
+        np.array([3, 6], dtype=np.int64),
+        [3, 6],
+    ],
+)
+def test_select_kwarg_duplicate_label_length_matches(value):
+    # GH#69412
+    # the number of rows equals the number of duplicates of the name
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["b", "b", "a"])
+    result = df.select(b=value)
+    expected = pd.DataFrame({"b": [3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_select_missing_raises(df):
     # https://github.com/pandas-dev/pandas/issues/61522
     with pytest.raises(KeyError, match=r"\['nope'\] not in index"):

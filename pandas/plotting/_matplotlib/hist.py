@@ -7,6 +7,7 @@ from typing import (
     final,
 )
 
+import matplotlib.dates as mdates
 import numpy as np
 
 from pandas.core.dtypes.common import (
@@ -20,10 +21,12 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     isna,
+    notna,
     remove_na_arraylike,
 )
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib.converter import DatetimeConverter
 from pandas.plotting._matplotlib.core import (
     LinePlot,
     MPLPlot,
@@ -89,13 +92,36 @@ class HistPlot(LinePlot):
                 by_modified = unpack_single_str_list(self.by)
                 grouped = self.data.groupby(by_modified)[self.columns]
                 bins = [self._calculate_bins(group, bins) for key, group in grouped]
+            elif self.subplots and not self.sharex:
+                # computed per axis in _make_plot, GH#13489
+                pass
             else:
                 bins = self._calculate_bins(self.data, bins)
+        # error: Item "int" of "int | ndarray[...] | list[ndarray[...]]" has no
+        # attribute "__iter__" (not iterable)
+        elif self.by is not None and not any(is_list_like(edges) for edges in bins):  # type: ignore[union-attr]
+            # explicit bin edges are shared by every group
+            bins = [np.asarray(bins)] * len(self._grouped)
         return bins
 
     def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
-        nd_values = data.infer_objects()._get_numeric_data()
+        data = data.infer_objects()
+        if (
+            isinstance(data, ABCDataFrame)
+            and data.shape[1]
+            and all(dtype.kind == "M" for dtype in data.dtypes)
+        ):
+            # GH#17372 bin on the same floats matplotlib converts datetimes to
+            values = np.concatenate(
+                [mdates.date2num(ser.dropna()) for _, ser in data.items()]
+            )
+            bin_range = self._bin_range
+            if bin_range is not None:
+                bin_range = DatetimeConverter._convert_1d(bin_range, None, None)
+            return np.histogram_bin_edges(values, bins=bins, range=bin_range)
+
+        nd_values = data._get_numeric_data()
         values = nd_values.values
         if nd_values.ndim == 2:
             values = values.reshape(-1)
@@ -138,6 +164,18 @@ class HistPlot(LinePlot):
             if self.by is not None
             else self.data
         )
+        axis_bins = None
+        if self._kind == "hist" and is_integer(self.bins):
+            # subplots without a shared x-axis each get their own bins
+            axis_columns: dict[int, list[int]] = {}
+            for col_idx in range(self.data.shape[1]):
+                axis_idx = self._col_idx_to_axis_idx(col_idx)
+                axis_columns.setdefault(axis_idx, []).append(col_idx)
+            axis_bins = {
+                axis_idx: self._calculate_bins(self.data.iloc[:, columns], self.bins)
+                for axis_idx, columns in axis_columns.items()
+            }
+
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
 
@@ -154,6 +192,8 @@ class HistPlot(LinePlot):
                 kwds["style"] = style
 
             self._make_plot_keywords(kwds, y)
+            if axis_bins is not None:
+                kwds["bins"] = axis_bins[self._col_idx_to_axis_idx(i)]
 
             # the bins is multi-dimension array now and each plot need only 1-d and
             # when by is applied, label should be columns that are grouped
@@ -304,6 +344,7 @@ def _grouped_plot(
     layout=None,
     rot: float = 0,
     ax=None,
+    weights=None,
     **kwargs,
 ):
     # error: Non-overlapping equality check (left operand type: "Optional[Tuple[float,
@@ -324,9 +365,18 @@ def _grouped_plot(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    for ax, (key, group) in zip(flatten_axes(axes), grouped, strict=False):
+    if weights is not None:
+        # split the weights positionally alongside the data, see GH#9540
+        weights = np.asarray(weights)
+        group_ids = grouped.ngroup().to_numpy()
+
+    for i, (ax, (key, group)) in enumerate(
+        zip(flatten_axes(axes), grouped, strict=False)
+    ):
         if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
+        if weights is not None:
+            kwargs["weights"] = weights[group_ids == i]
         plotf(group, ax, **kwargs)
         ax.set_title(pprint_thing(key))
 
@@ -384,8 +434,28 @@ def _grouped_hist(
         else:
             kwargs["label"] = column
 
-    def plot_group(group, ax) -> None:
-        ax.hist(np.asarray(group.dropna()._values), bins=bins, **kwargs)
+    weights = kwargs.pop("weights", None)
+    if weights is not None and not (
+        is_list_like(weights) and len(weights) == len(data)
+    ):
+        # not aligned with data, so pass it to every group unchanged
+        kwargs["weights"] = weights
+        weights = None
+
+    def plot_group(group, ax, weights=None) -> None:
+        hist_kwargs = kwargs
+        if weights is not None:
+            mask = notna(group)
+            if group.ndim == 2:
+                mask = mask.all(axis=1)
+            weights = weights[np.asarray(mask)]
+            if group.ndim == 2 and weights.ndim == 1:
+                # use the same weights for each column
+                weights = np.broadcast_to(
+                    weights[:, None], (len(weights), group.shape[1])
+                )
+            hist_kwargs = {**kwargs, "weights": weights}
+        ax.hist(np.asarray(group.dropna()._values), bins=bins, **hist_kwargs)
         if legend:
             ax.legend()
 
@@ -403,6 +473,7 @@ def _grouped_hist(
         figsize=figsize,
         layout=layout,
         rot=rot,
+        weights=weights,
     )
 
     set_ticks_props(
@@ -433,6 +504,9 @@ def hist_series(
 
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
+    if self.dtype.kind == "m":
+        # GH#43941 same error as Series.plot.hist
+        raise TypeError("no numeric data to plot")
 
     if by is None:
         if kwds.get("layout", None) is not None:
@@ -512,6 +586,11 @@ def hist_frame(
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
     if by is not None:
+        if column is None:
+            # don't plot the grouping column(s), see GH#41188
+            exclusions = list(data.groupby(by).exclusions)
+            if exclusions:
+                column = data.drop(columns=exclusions).columns.unique()
         axes = _grouped_hist(
             data,
             column=column,

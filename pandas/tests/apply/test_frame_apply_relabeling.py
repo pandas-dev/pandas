@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -103,3 +104,39 @@ def test_reconstruct_func():
     result = pd.core.apply.reconstruct_func("min")
     expected = (False, "min", None, None)
     tm.assert_equal(result, expected)
+
+
+def test_reconstruct_func_allow_skip_normalization():
+    # GH#63743 the fast path is observationally equivalent by design, so only
+    #  reconstruct_func itself can pin that it still fires
+    result = pd.core.apply.reconstruct_func(None, True, B=("B", "sum"))
+    assert result == (False, {"B": "sum"}, None, None)
+
+
+def test_agg_relabel_output_name_matches_column():
+    # GH#63743 named aggregation returns a DataFrame indexed by the output
+    #  names even when those names match the source column names
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+    result = df.agg(A=("A", "min"))
+    expected = pd.DataFrame({"A": [1]}, index=pd.Index(["A"]))
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg(A=("A", "min"), B=("B", "max"))
+    expected = pd.DataFrame(
+        {"A": [1.0, np.nan], "B": [np.nan, 6.0]}, index=pd.Index(["A", "B"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_output_name_matches_column_axis_1():
+    # GH#63743 named aggregation with axis=1 raises regardless of whether the
+    #  output name matches the column name
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["A", "B", "C"])
+    msg = "Named aggregation is not supported when axis=1."
+
+    with pytest.raises(NotImplementedError, match=msg):
+        df.agg(A=("A", "min"), axis=1)
+
+    with pytest.raises(NotImplementedError, match=msg):
+        df.agg(x=("A", "min"), axis=1)

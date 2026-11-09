@@ -694,7 +694,7 @@ def test_append_misc_empty_frame(temp_hdfstore):
     # 0 len
     df_empty = pd.DataFrame(columns=list("ABC"))
     msg = "Writing an empty DataFrame or Series with format='table'"
-    with tm.assert_produces_warning(UserWarning, match=msg):
+    with tm.assert_produces_warning(UserWarning, match=f"{msg}.*for key 'df'"):
         temp_hdfstore.append("df", df_empty)
     with pytest.raises(KeyError, match="'No object named df in the file'"):
         temp_hdfstore.select("df")

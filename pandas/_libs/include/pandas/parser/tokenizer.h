@@ -110,7 +110,7 @@ typedef struct parser_t {
   int64_t *word_ends; // stream offset of each word's trailing NUL
   uint64_t words_len;
   uint64_t words_cap;
-  uint64_t max_words_cap; // maximum word cap encountered
+  uint64_t max_words_needed; // most word slots any reservation needed
 
   int64_t word_start; // position start of current field
 

@@ -44,11 +44,14 @@ from pandas.core.base import (
     PandasObject,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from pandas._typing import Frequency
+
     from pandas import (
         DataFrame,
         Series,
@@ -134,6 +137,74 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             self._parent
         )
 
+    def shift(self, periods: int = 1, freq: Frequency | None = None) -> Series:
+        """
+        Shift the values by desired number of time frequency increments.
+
+        Unlike :meth:`Series.shift`, which moves values to different positions,
+        this adds ``periods * freq`` to each value, like :meth:`DatetimeIndex.shift`.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+        freq : pandas.DateOffset, pandas.Timedelta or str, optional
+            Frequency increment to shift by. If None, the frequency inferred
+            from the values (see :attr:`Series.dt.freq`) is used, so values in
+            descending order move backward for positive ``periods``. Must be
+            None for period values, which are shifted by their own frequency.
+
+        Returns
+        -------
+        Series
+            Series with the shifted values, indexed like the original Series.
+
+        Raises
+        ------
+        NullFrequencyError
+            If ``freq`` is None, ``periods`` is nonzero, and no frequency can
+            be inferred from the values.
+        TypeError
+            If ``freq`` is passed for period values.
+
+        See Also
+        --------
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
+        Series.shift : Shift values by desired number of positions.
+
+        Examples
+        --------
+        >>> ser = pd.Series(pd.date_range("2020-01-01", periods=3, freq="D"))
+        >>> ser.dt.shift(1)
+        0   2020-01-02
+        1   2020-01-03
+        2   2020-01-04
+        dtype: datetime64[us]
+
+        >>> ser.dt.shift(2, freq="h")
+        0   2020-01-01 02:00:00
+        1   2020-01-02 02:00:00
+        2   2020-01-03 02:00:00
+        dtype: datetime64[us]
+        """
+        from pandas import Series
+
+        values = self._get_values()
+        if isinstance(values, PeriodArray):
+            if freq is not None:
+                raise TypeError(
+                    "`freq` argument is not supported for Series.dt.shift "
+                    "with period values"
+                )
+            values = PeriodIndex(values, copy=False)
+        elif freq is None:
+            freq = values._inferred_freq_str
+        result = values.shift(periods, freq)
+        return Series(
+            result._values, index=self._parent.index, name=self.name
+        ).__finalize__(self._parent)
+
 
 @delegate_names(
     delegate=ArrowExtensionArray,
@@ -151,7 +222,14 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 )
 @delegate_names(
     delegate=ArrowExtensionArray,
-    accessors=DatetimeArray._datetimelike_ops,
+    accessors=[
+        *DatetimeArray._datetimelike_ops,
+        # deprecated, but should still work
+        "dayofweek",
+        "dayofyear",
+        "daysinmonth",
+        "weekday",
+    ],
     typ="property",
     accessor_mapping=lambda x: f"_dt_{x}",
     raise_on_missing=False,
@@ -391,6 +469,11 @@ class DatetimeProperties(Properties):
         Series.dt.to_period : Cast to PeriodArray/PeriodIndex at a particular
             frequency.
 
+        Notes
+        -----
+        A Series does not store a ``freq``, so this can differ from the ``freq`` of
+        the :class:`DatetimeIndex` it was created from.
+
         Examples
         --------
         >>> ser = pd.Series(["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04"])
@@ -440,6 +523,70 @@ class DatetimeProperties(Properties):
         Name: week, dtype: UInt32
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
+
+    @property
+    def weekday(self) -> Series:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week  # type: ignore[attr-defined]
+
+    @property
+    def dayofweek(self) -> Series:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofweek is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week  # type: ignore[attr-defined]
+
+    @property
+    def dayofyear(self) -> Series:
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_year` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofyear is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year  # type: ignore[attr-defined]
+
+    @property
+    def daysinmonth(self) -> Series:
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.days_in_month` instead.
+        """
+        warnings.warn(
+            "Series.dt.daysinmonth is deprecated and will be removed in a "
+            "future version. Use Series.dt.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.days_in_month  # type: ignore[attr-defined]
 
 
 @delegate_names(
@@ -502,7 +649,7 @@ class TimedeltaProperties(Properties):
         2   2 days
         3   3 days
         4   4 days
-        dtype: timedelta64[s]
+        dtype: timedelta64[us]
 
         >>> s.dt.to_pytimedelta()
         array([datetime.timedelta(0), datetime.timedelta(days=1),
@@ -548,7 +695,7 @@ class TimedeltaProperties(Properties):
         2   0 days 00:00:02
         3   0 days 00:00:03
         4   0 days 00:00:04
-        dtype: timedelta64[s]
+        dtype: timedelta64[us]
         >>> s.dt.components
            days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
         0     0      0        0        0             0             0            0
@@ -580,6 +727,11 @@ class TimedeltaProperties(Properties):
         --------
         Series.dt.components : Return a DataFrame of the components of the
             Timedeltas.
+
+        Notes
+        -----
+        A Series does not store a ``freq``, so this can differ from the ``freq`` of
+        the :class:`TimedeltaIndex` it was created from.
 
         Examples
         --------
@@ -661,6 +813,70 @@ class PeriodProperties(Properties):
     3    4
     dtype: int64
     """
+
+    @property
+    def weekday(self) -> Series:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week  # type: ignore[attr-defined]
+
+    @property
+    def dayofweek(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofweek is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week  # type: ignore[attr-defined]
+
+    @property
+    def dayofyear(self):
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_year` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofyear is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year  # type: ignore[attr-defined]
+
+    @property
+    def daysinmonth(self):
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.days_in_month` instead.
+        """
+        warnings.warn(
+            "Series.dt.daysinmonth is deprecated and will be removed in a "
+            "future version. Use Series.dt.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.days_in_month  # type: ignore[attr-defined]
 
 
 class CombinedDatetimelikeProperties(
