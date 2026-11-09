@@ -80,8 +80,9 @@ encoding : str
     'infer' is equivalent to the default ISO-8859-1.
 chunksize : int
     Read file `chunksize` lines at a time, returns iterator.
-usecols : list-like, optional
-    Names of the columns to read; the others are skipped during parsing."""
+columns : list-like, optional
+    Names of the columns to read, in the order to return them; the others are
+    skipped during parsing."""
 
 _format_params_doc = """\
 format : str
@@ -257,9 +258,9 @@ class XportReader(SASReader):
         encoding: str | lib.NoDefault | None = _default_encoding,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
-        usecols: ListLike | None = None,
+        columns: ListLike | None = None,
     ) -> None:
-        self._usecols = usecols
+        self._columns = columns
         # lib.no_default is only passed by read_sas, whose default is still
         # None (raw bytes) but is deprecated in favor of _default_encoding.
         # XPORT files record no encoding of their own, so "infer" just means
@@ -392,12 +393,9 @@ class XportReader(SASReader):
 
         self.fields = fields
         self.columns = [x["name"].decode() for x in self.fields]
-        if self._usecols is None:
-            self._used_columns = list(range(len(self.columns)))
-        else:
-            self._used_columns = self._usecols_positions(
-                self._usecols, self.columns, self._index
-            )
+        positions = self._column_positions(self._columns, self.columns, self._index)
+        self._used_columns = sorted(positions)
+        self._output_columns = [self.columns[j] for j in positions]
         if not self._encoding_specified and any(
             fields[j]["ntype"] == "char" for j in self._used_columns
         ):
@@ -534,7 +532,7 @@ class XportReader(SASReader):
                     v = [y.decode(self._encoding) for y in v]
 
             df_data.update({x: v})
-        df = pd.DataFrame(df_data)
+        df = pd.DataFrame(df_data, columns=self._output_columns)
         if not self._used_columns:
             df.columns = pd.Index([], dtype=object)
 

@@ -297,8 +297,9 @@ class SAS7BDATReader(SASReader):
     convert_header_text : bool, defaults to True
         If False, header text, including column names, are left as raw
         bytes.
-    usecols : list-like, optional
-        Names of the columns to read; the others are skipped during parsing.
+    columns : list-like, optional
+        Names of the columns to read, in the order to return them; the others
+        are skipped during parsing.
     """
 
     _int_length: int
@@ -319,9 +320,9 @@ class SAS7BDATReader(SASReader):
         convert_text: bool = True,
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
-        usecols: ListLike | None = None,
+        columns: ListLike | None = None,
     ) -> None:
-        self._usecols = usecols
+        self._columns = columns
         self._encoding_specified = encoding is not lib.no_default
         self._non_ascii_header_text = False
 
@@ -640,12 +641,10 @@ class SAS7BDATReader(SASReader):
             else:
                 self._column_convert_types.append(None)
 
-        if self._usecols is None:
-            self._used_columns = list(range(self.column_count))
-        else:
-            self._used_columns = self._usecols_positions(
-                self._usecols, self.column_names, self.index
-            )
+        positions = self._column_positions(self._columns, self.column_names, self.index)
+        # sas.pyx ends a row at its first zero-length column, so keep file order
+        self._used_columns = sorted(positions)
+        self._output_columns = [self.column_names[j] for j in positions]
 
         # The default also governs header text, which is decoded either way, so
         #  a numeric-only file with non-ascii column names changes too
@@ -1239,10 +1238,7 @@ class SAS7BDATReader(SASReader):
                 self.close()
                 raise ValueError(f"unknown column type {self._column_types[j]!r}")
 
-        columns = self.column_names
-        if self._usecols is not None:
-            columns = [columns[j] for j in self._used_columns]
-        df = DataFrame(rslt, columns=columns, index=ix, copy=False)
+        df = DataFrame(rslt, columns=self._output_columns, index=ix, copy=False)
         return df
 
     def _string_column(self, js: int) -> ArrowStringArray:
