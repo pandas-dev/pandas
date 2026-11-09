@@ -52,26 +52,30 @@ class SASReader(Iterator["DataFrame"], ABC):
     def close(self) -> None: ...
 
     @staticmethod
-    def _usecols_positions(
-        usecols: ListLike, names: Sequence[str | bytes], index: Hashable | None
+    def _column_positions(
+        columns: ListLike | None, names: Sequence[str | bytes], index: Hashable | None
     ) -> list[int]:
         """
-        Return the positions in ``names`` that ``usecols`` selects, in file order.
+        Return the positions in ``names`` of ``columns``, in the order given.
         """
-        if not is_list_like(usecols):
-            raise TypeError("usecols must be list-like.")
-        usecols = list(usecols)
-        known = set(names)
-        missing = [col for col in usecols if col not in known]
+        if columns is None:
+            return list(range(len(names)))
+        if not is_list_like(columns):
+            raise TypeError("columns must be list-like")
+        if isinstance(columns, (set, frozenset)):
+            raise TypeError("columns must be ordered, not a set; use a list")
+        columns = list(columns)
+        if len(set(columns)) != len(columns):
+            raise ValueError("columns contains duplicate entries")
+        positions = {name: pos for pos, name in enumerate(names)}
+        missing = [col for col in columns if col not in positions]
         if missing:
             raise ValueError(
-                "Usecols do not match columns, columns expected but not found: "
-                f"{missing}"
+                f"The following columns were not found in the SAS file: {missing}"
             )
-        wanted = set(usecols)
-        if index is not None and index not in wanted:
-            raise ValueError(f"usecols must include the index column {index!r}")
-        return [pos for pos, name in enumerate(names) if name in wanted]
+        if index is not None and index not in columns:
+            raise ValueError(f"columns must include the index column {index!r}")
+        return [positions[col] for col in columns]
 
     def __enter__(self) -> Self:
         return self
@@ -91,7 +95,7 @@ def read_sas(
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
-    usecols: ListLike | None = ...,
+    columns: ListLike | None = ...,
     encoding: str | lib.NoDefault | None = ...,
     chunksize: int = ...,
     iterator: bool = ...,
@@ -105,7 +109,7 @@ def read_sas(
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
-    usecols: ListLike | None = ...,
+    columns: ListLike | None = ...,
     encoding: str | lib.NoDefault | None = ...,
     chunksize: None = ...,
     iterator: bool = ...,
@@ -119,7 +123,7 @@ def read_sas(
     *,
     format: str | None = None,
     index: Hashable | None = None,
-    usecols: ListLike | None = None,
+    columns: ListLike | None = None,
     encoding: str | lib.NoDefault | None = lib.no_default,
     chunksize: int | None = None,
     iterator: bool = False,
@@ -148,10 +152,10 @@ def read_sas(
         'sas7bdat', uses the corresponding format.
     index : identifier of index column, defaults to None
         Identifier of column that should be used as index of the DataFrame.
-    usecols : list-like of str, optional
-        Names of the columns to read, returned in the order they appear in the
-        file. The other columns are skipped during parsing, which saves time
-        and memory on wide files. Must include ``index`` if it is given.
+    columns : list-like of str, optional
+        Names of the columns to read, returned in the given order. The other
+        columns are skipped during parsing, which saves time and memory on
+        wide files. Must include ``index`` if it is given.
 
         .. versionadded:: 3.2.0
     encoding : str, 'infer' or None, default is None
@@ -227,7 +231,7 @@ def read_sas(
         reader = XportReader(
             filepath_or_buffer,
             index=index,
-            usecols=usecols,
+            columns=columns,
             encoding=encoding,
             chunksize=chunksize,
             compression=compression,
@@ -238,7 +242,7 @@ def read_sas(
         reader = SAS7BDATReader(
             filepath_or_buffer,
             index=index,
-            usecols=usecols,
+            columns=columns,
             encoding=encoding,
             chunksize=chunksize,
             compression=compression,
