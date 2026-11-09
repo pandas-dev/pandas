@@ -1237,7 +1237,7 @@ def test_base_exception_from_eq_propagates_from_public_api():
 # Keys occur twice, so an insert that failed unnoticed shows up in the result
 _INTS = np.tile(np.arange(1000, dtype=np.int64), 2)
 _OBJS = np.tile(np.array([f"s{num}" for num in range(1000)], dtype=object), 2)
-# Too many to fit a table presized to their number, so inserts resize it
+# More than kh_resize(table, len(keys)) holds at its load factor, so inserts grow it
 _DISTINCT_INTS = np.arange(2000, dtype=np.int64)
 # In the map methods a second occurrence would redo a failed insert
 _DISTINCT_OBJS = _OBJS[:1000]

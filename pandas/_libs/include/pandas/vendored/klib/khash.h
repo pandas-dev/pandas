@@ -257,8 +257,8 @@ static const double __ac_HASH_UPPER = 0.77;
   extern khuint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret);      \
   extern void kh_del_##name(kh_##name##_t *h, khuint_t x);
 
-// For kh_put's resize path: left in kh_put, its size can stop compilers from
-// inlining kh_put into per-element loops, see GH#32907.
+// Keeps kh_put's resize path out of line so kh_put itself can still inline
+// into per-element loops, see GH#32907.
 #if defined(_MSC_VER)
 #  define KH_NOINLINE __declspec(noinline)
 #elif defined(__GNUC__) || defined(__clang__)
