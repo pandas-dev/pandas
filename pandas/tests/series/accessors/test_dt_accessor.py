@@ -398,6 +398,10 @@ class TestSeriesDatetimeValues:
         with tm.external_error_raised(ValueError):
             getattr(df1.date.dt, method)("h", ambiguous="raise")
 
+        # GH#37592 default resolves each ambiguous result from the original
+        result = getattr(df1["date"].dt, method)("h")
+        tm.assert_series_equal(result, df1["date"])
+
     @pytest.mark.parametrize(
         "method, ts_str, freq",
         [

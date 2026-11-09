@@ -162,6 +162,27 @@ class TestDatetimeIndexRound:
         )
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "method, start, freq, expected_second",
+        [
+            ["floor", "03:10", "2h", "04:00"],
+            ["ceil", "01:50", "h", "05:00"],
+            ["round", "01:50", "h", "04:00"],
+        ],
+    )
+    def test_round_dst_border_nonexistent_nat_ambiguous_default(
+        self, method, start, freq, expected_second, unit
+    ):
+        # GH#37592 a result in the spring-forward gap is NaT, not treated as ambiguous
+        dti = pd.DatetimeIndex(
+            [f"2020-03-08 {start}", "2020-03-08 04:10"], tz="America/New_York"
+        ).as_unit(unit)
+        result = getattr(dti, method)(freq, nonexistent="NaT")
+        expected = pd.DatetimeIndex(
+            [None, f"2020-03-08 {expected_second}"], tz="America/New_York"
+        ).as_unit(unit)
+        tm.assert_index_equal(result, expected)
+
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
         tz = tz_naive_fixture
