@@ -2663,10 +2663,8 @@ def maybe_convert_numeric(
         # b) no floats have been seen ( assuming an int shows up later )
         # However, if no ints present (all null array), we need to return floats
         allow_null_in_int = convert_to_masked_nullable and not seen.float_
-        print(f"check for {use_na_values and val.__hash__ is not None and val in na_values} {val}")
 
         if use_na_values and val.__hash__ is not None and val in na_values:
-            print(f"Converting NA value at position {i}: {val}")
             if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1
@@ -2678,13 +2676,10 @@ def maybe_convert_numeric(
             if have_complexes:
                 complexes[i] = NaN
         elif util.is_float_object(val):
-            print(f"Encountered float value at position {i}: {val}")
             fval = val
             if fval != fval:
                 seen.null_ = True
-                print(f"Value at position {i} is NaN")
                 if distinguish_nan_and_na:
-                    print(f"Distinguishing NaN and NA at position {i}")
                     seen.float_ = True
                 elif allow_null_in_int:
                     mask[i] = 1
@@ -2698,7 +2693,6 @@ def maybe_convert_numeric(
             if have_complexes:
                 complexes[i] = fval
         elif util.is_integer_object(val):
-            print(f"Encountered integer value at position {i}: {val}")
             floats[i] = val
             if have_complexes:
                 complexes[i] = val
@@ -2728,7 +2722,6 @@ def maybe_convert_numeric(
                     seen.overflow_ = True
 
         elif util.is_bool_object(val):
-            print(f"Encountered boolean value at position {i}: {val}")
             if not have_ints:
                 ints, uints, pyints = _empty_int_buffers(values)
                 have_ints = True
@@ -2740,7 +2733,6 @@ def maybe_convert_numeric(
                 complexes[i] = val
             seen.bool_ = True
         elif val is None or val is C_NA:
-            print(f"Encountered null value at position {i}: {val}")
             if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1
@@ -2752,7 +2744,6 @@ def maybe_convert_numeric(
             if have_complexes:
                 complexes[i] = NaN
         elif hasattr(val, "__len__") and len(val) == 0:
-            print(f"Encountered empty value at position {i}: {val}")
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
                 floats[i] = NaN
@@ -2762,7 +2753,6 @@ def maybe_convert_numeric(
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
-            print(f"Encountered complex value at position {i}: {val}")
             if not have_complexes:
                 complexes = cnp.PyArray_EMPTY(
                     1, values.shape, cnp.NPY_COMPLEX128, 0
@@ -2774,17 +2764,14 @@ def maybe_convert_numeric(
             complexes[i] = val
             seen.complex_ = True
         elif is_decimal(val):
-            print(f"Encountered decimal value at position {i}: {val}")
             floats[i] = val
             if have_complexes:
                 complexes[i] = val
             seen.float_ = True
         else:
-            print(f"Encountered unrecognized value at position {i}: {val}")
             if isinstance(val, str) and convert_to_masked_nullable:
                 val_lower = val.lower()
                 if val_lower in ("nan", "-nan", "+nan"):
-                    print(f"Converting string '{val}' to NaN")
                     fval = NaN
                     seen.null_ = True
                     if distinguish_nan_and_na:
@@ -2798,7 +2785,6 @@ def maybe_convert_numeric(
                         complexes[i] = fval
                     continue
             try:
-                print(f"Attempting to convert value '{val}' to float")
                 floatify(val, &fval, &maybe_int)
                 if fval in na_values:
                     seen.saw_null()
