@@ -3360,11 +3360,11 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
    When ``engine=None``, the following logic will be used to determine the engine:
 
-   - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+   - If ``source`` is an OpenDocument format (.odf, .ods, .odt),
      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used
+   - Otherwise if ``source`` is an xls format, ``xlrd`` will be used
      if installed (deprecated), and ``calamine`` otherwise.
-   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used
+   - Otherwise if ``source`` is in xlsb format, ``pyxlsb`` will be used
      if installed (deprecated), and ``calamine`` otherwise.
    - Otherwise ``openpyxl`` will be used (deprecated default, see below).
 
