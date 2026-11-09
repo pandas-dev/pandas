@@ -330,6 +330,11 @@ def roll_prod(const float64_t[:] values, ndarray[int64_t] start,
                 zero_count = 0
                 neg_count = 0
                 nobs = 0
+                # If the recomputed product itself passes through the
+                # subnormal/overflow range, prod_x carries that error even
+                # after it returns to the normal range, so keep the flag set
+                # and recompute the next window from scratch as well.
+                numerically_unstable = False
 
                 for j in range(s, e):
                     add_prod(
@@ -340,8 +345,6 @@ def roll_prod(const float64_t[:] values, ndarray[int64_t] start,
                         &prod_x,
                         &numerically_unstable,
                     )
-
-                numerically_unstable = False
 
             output[i] = calc_prod(minp, nobs, zero_count, neg_count, prod_x)
 

@@ -643,6 +643,20 @@ def test_rolling_prod_recovers_from_subnormal(small):
     tm.assert_series_equal(result, expected, atol=0)
 
 
+def test_rolling_prod_recovers_after_subnormal_intermediate():
+    # GH 66968
+    # The first full window's running product passes through the subnormal
+    # range and back; that lost precision must not leak into later windows.
+    values = pd.Series([1.3e-160, 1.7e-160, 1e300, 2.0])
+    expected = pd.Series(
+        [np.nan, np.nan, 1.3e-160 * 1.7e-160 * 1e300, 1.7e-160 * 1e300 * 2.0]
+    )
+
+    result = values.rolling(3).prod()
+
+    tm.assert_series_equal(result, expected, atol=0, rtol=0)
+
+
 def test_rolling_prod_preserves_signed_zero():
     # GH 48030
     values = pd.Series([-2.0, 0.0, 3.0])
