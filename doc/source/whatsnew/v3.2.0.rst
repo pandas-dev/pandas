@@ -333,6 +333,7 @@ I/O
 - Bug in :func:`read_csv` where using ``engine="python"`` with custom ``converters`` returning unhashable types (such as lists or dicts) raised ``TypeError`` (:issue:`56848`)
 - Bug in :func:`read_excel` with ``dtype_backend="numpy_nullable"`` converting mixed-type columns and ``datetime.time`` columns to string dtype; such columns now preserve object dtype and the original Python types (:issue:`63830`)
 - Bug in :func:`read_excel` with ``dtype_backend="pyarrow"`` raising ``pyarrow.ArrowInvalid`` for columns with mixed types (e.g. integers and strings); such columns now fall back to object dtype, matching the default behaviour without ``dtype_backend="pyarrow"`` (:issue:`63830`)
+- Bug in :func:`read_json` with ``orient="table"`` raising for a tz-naive ``datetime`` field whose values carry a UTC offset, such as files written by pandas before 1.5; the values are now converted to UTC (:issue:`52595`)
 - Bug in :func:`read_json` with ``typ="series"`` returning ``datetime64`` dtype for all-null data instead of ``float64``, matching ``DataFrame`` columns (:issue:`35464`)
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
 - Bug in :func:`read_sql_query` and :func:`read_sql_table` with a SQLAlchemy connection returning column labels that require ``sqlalchemy`` to unpickle (:issue:`52816`)
