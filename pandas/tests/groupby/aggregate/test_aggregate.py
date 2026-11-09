@@ -661,6 +661,16 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
     tm.assert_frame_equal(result2, expected2)
 
 
+def test_ohlc_pyarrow_dtype():
+    pytest.importorskip("pyarrow")
+    ser = pd.Series([1.0, 2.0, 3.0], dtype="float64[pyarrow]")
+
+    result = ser.groupby(["a", "a", "b"]).ohlc()
+
+    expected = np.array([[1.0, 2.0, 1.0, 2.0], [3.0, 3.0, 3.0, 3.0]])
+    tm.assert_numpy_array_equal(result.to_numpy(dtype=float), expected)
+
+
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
 @pytest.mark.parametrize("how", ["first", "last", "min", "max", "mean", "median"])
 def test_uint64_type_handling(dtype, how):
