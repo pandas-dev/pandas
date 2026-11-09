@@ -4174,6 +4174,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         self._month = month
 
     cpdef __setstate__(self, state):
+        # legacy pickles store the pre-GH#5307 name
         self._month = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
@@ -4588,6 +4589,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         self._month = month
 
     cpdef __setstate__(self, state):
+        # legacy pickles store the pre-GH#5307 name
         self._month = state.pop("startingMonth")
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
@@ -6157,6 +6159,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     cpdef __setstate__(self, state):
         self._n = state.pop("n")
         self._normalize = state.pop("normalize")
+        # legacy pickles store the pre-GH#5307 name
         self._month = state.pop("startingMonth")
         self._weekday = state.pop("weekday")
         self._variation = state.pop("variation")
