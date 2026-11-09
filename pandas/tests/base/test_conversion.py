@@ -171,7 +171,12 @@ class TestToIterable:
             lambda x: [x.item()],
             lambda x: list(x.to_series(index=x).to_dict()),
             lambda x: [key for key, _ in pd.DataFrame(columns=x).items()],
-            lambda x: [key for key, _ in pd.DataFrame(index=x).iterrows()],
+            pytest.param(
+                lambda x: [key for key, _ in pd.DataFrame(index=x).iterrows()],
+                marks=pytest.mark.filterwarnings(
+                    "ignore:DataFrame.iterrows:pandas.errors.Pandas4Warning"
+                ),
+            ),
             lambda x: [key for key, _ in pd.Series(0, index=x).groupby(level=0)],
         ],
         ids=["iter", "item", "to_dict", "frame_items", "iterrows", "groupby"],

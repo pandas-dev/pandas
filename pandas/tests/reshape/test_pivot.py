@@ -619,8 +619,8 @@ class TestPivotTable:
             pv = pd.pivot(df, index="a", columns="b", values="c")
         assert pv.notna().values.sum() == len(df)
 
-        for _, row in df.iterrows():
-            assert pv.loc[row["a"], row["b"]] == row["c"]
+        for row in df.itertuples():
+            assert pv.loc[row.a, row.b] == row.c
 
         if method:
             result = df.pivot(index="b", columns="a", values="c")
