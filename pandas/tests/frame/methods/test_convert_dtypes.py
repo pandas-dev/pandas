@@ -231,8 +231,18 @@ class TestConvertDtypes:
             }
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
-        assert result["a"].dtype == pd.ArrowDtype(pa.list_(pa.int64()))
-        assert result["b"].dtype == pd.ArrowDtype(pa.struct([("x", pa.int64())]))
+        expected = pd.DataFrame(
+            {
+                "a": pd.array(
+                    [[1, 2], [3], None], dtype=pd.ArrowDtype(pa.list_(pa.int64()))
+                ),
+                "b": pd.array(
+                    [{"x": 1}, {"x": 2}, None],
+                    dtype=pd.ArrowDtype(pa.struct([("x", pa.int64())])),
+                ),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_convert_dtypes_pyarrow_object_inference_scope(self):
         # GH#65034 pyarrow inference applies only to object columns of
@@ -252,6 +262,15 @@ class TestConvertDtypes:
             pd.Timestamp("2020-01-01", tz="US/Eastern"),
         ]
         ser = pd.Series(vals, dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
+        ser = pd.Series(
+            [
+                [pd.Timestamp("2020-01-01", tz="UTC")],
+                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
+            ]
+        )
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_series_equal(result, ser)
 
