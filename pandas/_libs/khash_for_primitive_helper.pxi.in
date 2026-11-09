@@ -50,7 +50,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     void kh_destroy_{{name}}(kh_{{name}}_t*) nogil
     void kh_clear_{{name}}(kh_{{name}}_t*) nogil
     khuint_t kh_get_{{name}}(kh_{{name}}_t*, {{c_type}}) nogil
-    void kh_resize_{{name}}(kh_{{name}}_t*, khuint_t) nogil
+    int kh_resize_{{name}}(kh_{{name}}_t*, khuint_t) nogil
     khuint_t kh_put_{{name}}(kh_{{name}}_t*, {{c_type}}, int*) nogil
     void kh_del_{{name}}(kh_{{name}}_t*, khuint_t) nogil
 
@@ -71,7 +71,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     void kh_destroy_{{name}}(kh_{{name}}_t*) nogil
     void kh_clear_{{name}}(kh_{{name}}_t*) nogil
     khuint_t kh_get_{{name}}(kh_{{name}}_t*, {{c_type}}) nogil
-    void kh_resize_{{name}}(kh_{{name}}_t*, khuint_t) nogil
+    int kh_resize_{{name}}(kh_{{name}}_t*, khuint_t) nogil
     khuint_t kh_put_{{name}}(kh_{{name}}_t*, {{c_type}}, int*) nogil
     void kh_del_{{name}}(kh_{{name}}_t*, khuint_t) nogil
 

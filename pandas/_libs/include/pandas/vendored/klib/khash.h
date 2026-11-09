@@ -253,9 +253,19 @@ static const double __ac_HASH_UPPER = 0.77;
   extern void kh_destroy_##name(kh_##name##_t *h);                             \
   extern void kh_clear_##name(kh_##name##_t *h);                               \
   extern khuint_t kh_get_##name(const kh_##name##_t *h, khkey_t key);          \
-  extern void kh_resize_##name(kh_##name##_t *h, khuint_t new_n_buckets);      \
+  extern int kh_resize_##name(kh_##name##_t *h, khuint_t new_n_buckets);       \
   extern khuint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret);      \
   extern void kh_del_##name(kh_##name##_t *h, khuint_t x);
+
+// For kh_put's resize path: left in kh_put, its size can stop compilers from
+// inlining kh_put into per-element loops, see GH#32907.
+#if defined(_MSC_VER)
+#  define KH_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#  define KH_NOINLINE __attribute__((noinline))
+#else
+#  define KH_NOINLINE
+#endif
 
 #define KHASH_INIT2(name, SCOPE, khkey_t, khval_t, kh_is_map, __hash_func,     \
                     __hash_equal)                                              \
@@ -300,7 +310,7 @@ static const double __ac_HASH_UPPER = 0.77;
     } else                                                                     \
       return 0;                                                                \
   }                                                                            \
-  SCOPE void kh_resize_##name(                                                 \
+  SCOPE int kh_resize_##name(                                                  \
       kh_##name##_t *h,                                                        \
       khuint_t new_n_buckets) { /* This function uses 0.25*n_bucktes bytes of  \
                                    working space instead of                    \
@@ -316,14 +326,27 @@ static const double __ac_HASH_UPPER = 0.77;
       else {   /* hash table size to be changed (shrink or expand); rehash */  \
         new_flags = (khuint32_t *)KHASH_MALLOC(__ac_fsize(new_n_buckets) *     \
                                                sizeof(khuint32_t));            \
+        if (!new_flags)                                                        \
+          return -1;                                                           \
         memset(new_flags, 0xff,                                                \
                __ac_fsize(new_n_buckets) * sizeof(khuint32_t));                \
         if (h->n_buckets < new_n_buckets) { /* expand */                       \
-          h->keys = (khkey_t *)KHASH_REALLOC(h->keys,                          \
-                                             new_n_buckets * sizeof(khkey_t)); \
-          if (kh_is_map)                                                       \
-            h->vals = (khval_t *)KHASH_REALLOC(h->vals, new_n_buckets *        \
-                                                            sizeof(khval_t));  \
+          khkey_t *new_keys = (khkey_t *)KHASH_REALLOC(                        \
+              h->keys, new_n_buckets * sizeof(khkey_t));                       \
+          if (!new_keys) {                                                     \
+            KHASH_FREE(new_flags);                                             \
+            return -1;                                                         \
+          }                                                                    \
+          h->keys = new_keys;                                                  \
+          if (kh_is_map) {                                                     \
+            khval_t *new_vals = (khval_t *)KHASH_REALLOC(                      \
+                h->vals, new_n_buckets * sizeof(khval_t));                     \
+            if (!new_vals) {                                                   \
+              KHASH_FREE(new_flags);                                           \
+              return -1;                                                       \
+            }                                                                  \
+            h->vals = new_vals;                                                \
+          }                                                                    \
         } /* otherwise shrink */                                               \
       }                                                                        \
     }                                                                          \
@@ -370,11 +393,17 @@ static const double __ac_HASH_UPPER = 0.77;
         }                                                                      \
       }                                                                        \
       if (h->n_buckets > new_n_buckets) { /* shrink the hash table */          \
-        h->keys = (khkey_t *)KHASH_REALLOC(h->keys,                            \
-                                           new_n_buckets * sizeof(khkey_t));   \
-        if (kh_is_map)                                                         \
-          h->vals = (khval_t *)KHASH_REALLOC(h->vals,                          \
-                                             new_n_buckets * sizeof(khval_t)); \
+        /* on failure the old, larger buffer is still valid, so keep it */     \
+        khkey_t *new_keys = (khkey_t *)KHASH_REALLOC(                          \
+            h->keys, new_n_buckets * sizeof(khkey_t));                         \
+        if (new_keys)                                                          \
+          h->keys = new_keys;                                                  \
+        if (kh_is_map) {                                                       \
+          khval_t *new_vals = (khval_t *)KHASH_REALLOC(                        \
+              h->vals, new_n_buckets * sizeof(khval_t));                       \
+          if (new_vals)                                                        \
+            h->vals = new_vals;                                                \
+        }                                                                      \
       }                                                                        \
       KHASH_FREE(h->flags); /* free the working space */                       \
       h->flags = new_flags;                                                    \
@@ -382,14 +411,19 @@ static const double __ac_HASH_UPPER = 0.77;
       h->n_occupied = h->size;                                                 \
       h->upper_bound = (khuint_t)(h->n_buckets * __ac_HASH_UPPER + 0.5);       \
     }                                                                          \
+    return 0;                                                                  \
+  }                                                                            \
+  static KH_NOINLINE int kh_grow_##name(kh_##name##_t *h) {                    \
+    /* clear "deleted" elements, or else expand the hash table */              \
+    return kh_resize_##name(h, h->n_buckets > (h->size << 1)                   \
+                                   ? h->n_buckets - 1                          \
+                                   : h->n_buckets + 1);                        \
   }                                                                            \
   SCOPE khuint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret) {      \
     khuint_t x;                                                                \
-    if (h->n_occupied >= h->upper_bound) { /* update the hash table */         \
-      if (h->n_buckets > (h->size << 1))                                       \
-        kh_resize_##name(h, h->n_buckets - 1); /* clear "deleted" elements */  \
-      else                                                                     \
-        kh_resize_##name(h, h->n_buckets + 1); /* expand the hash table */     \
+    if (h->n_occupied >= h->upper_bound && kh_grow_##name(h) < 0) {            \
+      *ret = -1;                                                               \
+      return h->n_buckets;                                                     \
     } /* TODO: to implement automatically shrinking; resize() already support  \
          shrinking */                                                          \
     {                                                                          \
@@ -542,6 +576,7 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
   @param  name  Name of the hash table [symbol]
   @param  h     Pointer to the hash table [khash_t(name)*]
   @param  s     New size [khuint_t]
+  @return       0 on success, -1 if memory allocation fails [int]
  */
 #define kh_resize(name, h, s) kh_resize_##name(h, s)
 
@@ -552,7 +587,8 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
   @param  k     Key [type of keys]
   @param  r     Extra return code: 0 if the key is present in the hash table;
                 1 if the bucket is empty (never used); 2 if the element in
-                                the bucket has been deleted [int*]
+                                the bucket has been deleted; -1 if memory
+                                allocation fails [int*]
   @return       Iterator to the inserted element [khuint_t]
  */
 #define kh_put(name, h, k, r) kh_put_##name(h, k, r)

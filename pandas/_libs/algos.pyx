@@ -50,6 +50,7 @@ from pandas._libs.khash cimport (
     kh_int64_t,
     kh_put_int64,
     kh_resize_int64,
+    khash_set_alloc_fail_countdown,
     khiter_t,
 )
 from pandas._libs.missing cimport (
@@ -145,7 +146,9 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         ndarray[int64_t, ndim=1] result
 
     table = kh_init_int64()
-    kh_resize_int64(table, 10)
+    if kh_resize_int64(table, 10) < 0:
+        kh_destroy_int64(table)
+        raise MemoryError()
 
     # n - 1 is the max possible number of unique deltas
     if n > 1:
@@ -159,6 +162,10 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         k = kh_get_int64(table, val)
         if k == table.n_buckets:
             kh_put_int64(table, val, &ret)
+            if ret < 0:
+                kh_destroy_int64(table)
+                free(uniques)
+                raise MemoryError()
             uniques[num_uniques] = val
             num_uniques += 1
     kh_destroy_int64(table)
@@ -2151,3 +2158,8 @@ def nancorr_kendall(const float64_t[:, :] mat, Py_ssize_t minp=1):
 # generated from template
 include "algos_common_helper.pxi"
 include "algos_take_helper.pxi"
+
+
+def _set_khash_alloc_fail_countdown(int countdown) -> int:
+    # for tests: fail the khash allocation in this module that takes this to 0
+    return khash_set_alloc_fail_countdown(countdown)
