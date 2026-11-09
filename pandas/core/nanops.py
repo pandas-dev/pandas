@@ -2134,8 +2134,8 @@ def finite_corr_matrix(mat: np.ndarray, min_periods: int | None = None) -> np.nd
     """
     Pearson correlation between the columns of an all-finite 2D float64 array.
 
-    Without missing values every pair of columns uses all rows, so ``_pearson_corr``
-    on each pair reduces to a single matrix product, which BLAS evaluates quickly.
+    Without missing values every pair of columns uses all rows, so the pairwise
+    computation reduces to a single matrix product, which BLAS evaluates quickly.
 
     Parameters
     ----------
@@ -2151,35 +2151,33 @@ def finite_corr_matrix(mat: np.ndarray, min_periods: int | None = None) -> np.nd
     if nobs < 2 or (min_periods is not None and nobs < min_periods):
         return np.full((ncols, ncols), np.nan)
 
-    # F-order because the mean and sum of C-order columns round far worse, which can
-    # exceed the variation in a nearly-constant column
+    # F-order because it is faster on tall frames
     centered = np.array(mat, order="F")
 
-    # 0/0 for a constant column; a column whose sum overflows comes out all-NaN
+    # a column whose sum overflows comes out all-NaN
     with np.errstate(all="ignore"):
+        # twice because the first mean rounds, which can dominate nearly-constant data
         centered -= centered.mean(axis=0)
-        scale = np.maximum(centered.max(axis=0), -centered.min(axis=0))
-        # same bounds as _pearson_corr; a zero scale has nothing to rescale
-        rescale = (scale != 0) & ~((scale > 1e-50) & (scale < 1e50))
-        if rescale.any():
-            centered[:, rescale] /= scale[rescale]
+        centered -= centered.mean(axis=0)
 
-        # corrected two-pass, see _pearson_corr
-        sums = centered.sum(axis=0)
+        high = centered.max(axis=0)
+        low = centered.min(axis=0)
+        constant = high == low
+        # so that ssq * ssq cannot overflow or underflow
+        scale = np.maximum(high, -low)
+        scale[constant] = 1.0
+        centered /= scale
+
         correl = np.dot(centered.T, centered)
-        scratch = np.outer(sums, sums)
-        scratch /= nobs
-        correl -= scratch
 
         # sqrt(ssq * ssq) == ssq exactly, so the diagonal comes out as exactly 1
         ssq = np.diag(correl).copy()
-        np.outer(ssq, ssq, out=scratch)
+        scratch = np.outer(ssq, ssq)
         np.sqrt(scratch, out=scratch)
         correl /= scratch
 
-    invalid = ssq <= 0
-    correl[invalid, :] = np.nan
-    correl[:, invalid] = np.nan
+    correl[constant, :] = np.nan
+    correl[:, constant] = np.nan
     return np.clip(correl, -1.0, 1.0, out=correl)
 
 

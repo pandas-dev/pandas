@@ -266,8 +266,7 @@ class TestDataFrameCorr:
         assert result.loc["b", "b"] == 1.0
 
     def test_corr_no_missing_values_constant_column(self):
-        # GH#40956 copy=False keeps C-order, where the mean of a long column would round
-        # badly enough for the residual after centering to count as variation
+        # GH#40956 copy=False keeps C-order, where a long column's mean rounds worse
         rng = np.random.default_rng(2)
         size = 100_003
         arr = np.column_stack([np.full(size, 1 / 3), rng.random(size)])
