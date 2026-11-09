@@ -202,6 +202,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :class:`ArrowDtype` boolean data not being treated as numeric: it was dropped from ``numeric_only=True`` reductions and raised ``TypeError`` in reductions like :meth:`Series.std` and accumulations like :meth:`Series.cumsum`. It now behaves like NumPy ``bool`` and :class:`BooleanDtype`; ``sum`` and ``prod`` return ``int64[pyarrow]`` instead of ``uint64[pyarrow]`` (:issue:`71106`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)
@@ -221,6 +222,7 @@ Conversion
 - Bug in :meth:`DataFrame.replace` with a dict or list replacing values with ``None`` casting other columns of the same dtype to ``object`` even when they contained no value to replace (:issue:`30512`)
 - Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
 - Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
+- Bug in :meth:`arrays.BooleanArray.to_numpy` returning ``object`` dtype when missing values were present and a non-missing ``na_value`` was given; it now returns ``bool``, matching :class:`ArrowDtype` boolean data (:issue:`71106`)
 - Fixed bug in :func:`to_numeric` with ``errors="coerce"`` raising ``TypeError`` for object values containing unhashable nested elements, such as a tuple containing a list, instead of coercing them to ``NaN`` (:issue:`69916`)
 -
 

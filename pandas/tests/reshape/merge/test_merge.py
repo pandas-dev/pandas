@@ -3069,6 +3069,18 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["inner", "outer"])
+def test_merge_arrow_bool_with_na_and_numpy_bool(how):
+    # GH#71106
+    pytest.importorskip("pyarrow")
+    left = pd.DataFrame({"k": [False, True, None], "a": [1, 2, 3]})
+    right = pd.DataFrame({"k": np.array([True, False]), "b": [10, 20]})
+
+    result = left.astype({"k": "bool[pyarrow]"}).merge(right, on="k", how=how)
+    expected = left.astype({"k": "boolean"}).merge(right, on="k", how=how)
+    tm.assert_frame_equal(result, expected.astype({"k": "bool[pyarrow]"}))
+
+
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
 @pytest.mark.parametrize(
     "left_unit, right_unit, expected_unit",

@@ -319,7 +319,12 @@ def test_to_numpy_with_defaults(data, using_nan_is_na):
     else:
         expected = np.array(data._pa_array)
 
-    if data._hasna and (not is_numeric_dtype(data.dtype) or not using_nan_is_na):
+    # bool has no NaN, so bool with NA is always object
+    if data._hasna and (
+        not is_numeric_dtype(data.dtype)
+        or pa.types.is_boolean(pa_type)
+        or not using_nan_is_na
+    ):
         expected = expected.astype(object)
         expected[pd.isna(data)] = pd.NA
 
@@ -367,6 +372,22 @@ def test_to_numpy_without_dtype():
     result = arr.to_numpy(na_value=0.0)
     expected = np.array([1.0, 0.0], dtype=np.float32)
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["bool[pyarrow]", "boolean"])
+def test_to_numpy_bool_with_na_value_keeps_bool(dtype):
+    # GH#71106
+    arr = pd.array([True, None, False], dtype=dtype)
+    result = arr.to_numpy(na_value=False)
+    tm.assert_numpy_array_equal(result, np.array([True, False, False]))
+    assert arr.to_numpy().dtype == object
+
+
+def test_to_numpy_bool_integer_na_value():
+    # GH#71106
+    arr = pd.array([True, None, False], dtype="bool[pyarrow]")
+    result = arr.to_numpy(na_value=1, dtype=bool)
+    tm.assert_numpy_array_equal(result, np.array([True, True, False]))
 
 
 def test_from_arrow_respecting_given_dtype():

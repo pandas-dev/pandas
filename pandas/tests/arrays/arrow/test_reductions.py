@@ -19,6 +19,61 @@ def test_median_not_approximate(typ):
     assert result == 1.5
 
 
+@pytest.mark.parametrize(
+    "op", ["mean", "sum", "std", "var", "median", "sem", "skew", "kurt"]
+)
+def test_numeric_only_includes_bool(op):
+    # GH#71106 bool[pyarrow] is kept by numeric_only and matches numpy/masked
+    if op in ("skew", "kurt") and pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew/kurtosis added in pyarrow 20.0.0")
+    values = [True, False, True, False, True]
+
+    def reduce(dtype):
+        df = pd.DataFrame({"flag": pd.array(values, dtype=dtype), "val": range(5)})
+        return getattr(df, op)(numeric_only=True)
+
+    result = reduce("bool[pyarrow]")
+    assert "flag" in result.index
+    expected = reduce(bool)["flag"]
+    assert result["flag"] == pytest.approx(expected)
+    assert reduce("boolean")["flag"] == pytest.approx(expected)
+
+
+def test_bool_sum_prod_int64():
+    # GH#71106
+    df = pd.DataFrame(
+        {"flag": pd.array([True, False, True], dtype="bool[pyarrow]"), "val": [1, 2, 3]}
+    )
+    result = df.sum(numeric_only=True)
+    expected = pd.Series([2, 6], index=["flag", "val"], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+    ser = df["flag"]
+    assert ser.sum() == 2
+    assert ser.prod() == 0
+    assert ser.to_frame().sum().dtype == "int64[pyarrow]"
+
+
+def test_bool_quantile_raises():
+    # GH#71106
+    df = pd.DataFrame(
+        {"flag": pd.array([True, False, None], dtype="bool[pyarrow]"), "val": [1, 2, 3]}
+    )
+    msg = "does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
+        df.quantile(0.5, numeric_only=True)
+    with pytest.raises(TypeError, match=msg):
+        df["flag"].quantile(0.5)
+
+
+def test_bool_describe_still_dropped():
+    # GH#71106 describe still excludes bool
+    df = pd.DataFrame(
+        {"flag": pd.array([True, False, True], dtype="bool[pyarrow]"), "val": [1, 2, 3]}
+    )
+    assert "flag" not in df.describe().columns
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624
@@ -69,12 +124,14 @@ def test_quantile(data, interpolation, quantile, request):
     data = data.take([0, 0, 0])
     ser = pd.Series(data)
 
-    if (
-        pa.types.is_string(pa_dtype)
-        or pa.types.is_binary(pa_dtype)
-        or pa.types.is_boolean(pa_dtype)
-    ):
-        # For string, bytes, and bool, we don't *expect* to have quantile work
+    if pa.types.is_boolean(pa_dtype):
+        msg = "does not support operation 'quantile'"
+        with pytest.raises(TypeError, match=msg):
+            ser.quantile(q=quantile, interpolation=interpolation)
+        return
+
+    if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+        # For string and bytes, we don't *expect* to have quantile work
         # Note this matches the non-pyarrow behavior
         msg = r"Function 'quantile' has no kernel matching input types \(.*\)"
         with pytest.raises(pa.ArrowNotImplementedError, match=msg):
