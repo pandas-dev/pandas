@@ -139,6 +139,13 @@ class TestRangeIndexConstructors:
         assert copy.name == "copy"
         assert new.name == "new"
 
+    def test_constructor_tuple_name(self):
+        # GH#19171
+        orig = pd.RangeIndex(2, name=("a", "b"))
+        assert pd.Index(orig).name == ("a", "b")
+        assert pd.RangeIndex(orig).name == ("a", "b")
+        assert pd.RangeIndex(orig, name=("x",)).name == ("x",)
+
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = pd.RangeIndex(1, 5)

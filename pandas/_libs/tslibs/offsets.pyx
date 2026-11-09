@@ -1438,7 +1438,10 @@ cdef class Tick(SingleConstructorOffset):
         return self._as_pd_timedelta == other
 
     def __ne__(self, other):
-        return not (self == other)
+        if isinstance(other, str):
+            return not (self == other)
+        # __eq__ can return an array or NA, which `not` rejects
+        return self._as_pd_timedelta != other
 
     def __le__(self, other):
         return self._as_pd_timedelta.__le__(other)
@@ -3088,6 +3091,13 @@ cdef class BusinessHour(BusinessMixin):
     >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.BusinessHour(start="09:30", end="16:00")
+    Timestamp('2022-08-08 10:00:00')
+
     Passing the parameter ``normalize`` equal to True, you shift the start
     of the next business hour to midnight.
 
@@ -4006,25 +4016,8 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
-# The pair of classes `_YearEnd` and `YearEnd` exist because of
-# https://github.com/cython/cython/issues/3873
 
-cdef class _YearEnd(YearOffset):
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
-
-
-class YearEnd(_YearEnd):
+cdef class YearEnd(YearOffset):
     """
     DateOffset increments between calendar year end dates.
 
@@ -4072,8 +4065,18 @@ class YearEnd(_YearEnd):
     None
     """
 
-    def __new__(cls, n=1, normalize=False, month=None):
-        return _YearEnd.__new__(cls, n, normalize, month)
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 cdef class YearBegin(YearOffset):
@@ -7289,6 +7292,13 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.CustomBusinessHour(start="09:30", end="16:00")
+    Timestamp('2022-08-08 10:00:00')
+
     You can divide your business day hours into several parts.
 
     >>> import datetime as dt
@@ -7800,7 +7810,12 @@ deprec_to_valid_alias = {
 }
 
 
-def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
+def raise_invalid_freq(freq: object, extra_message: str | None = None) -> None:
+    if not isinstance(freq, str):
+        raise TypeError(
+            "freq must be a str, datetime.timedelta or BaseOffset, "
+            f"got {type(freq).__name__}"
+        )
     msg = f"Invalid frequency: {freq}."
     if extra_message is not None:
         msg += f" {extra_message}"
@@ -7924,6 +7939,8 @@ cpdef to_offset(freq, bint is_period=False):
     ------
     ValueError
         If freq is an invalid frequency
+    TypeError
+        If freq is not a str, datetime.timedelta, BaseOffset or None
 
     See Also
     --------

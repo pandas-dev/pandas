@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -918,6 +919,29 @@ class TestIsValidNAForDtype:
 
         dtype = IntervalDtype("datetime64[ns]", "both")
         assert not is_valid_na_for_dtype(pd.NaT, dtype)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            "Int64",
+            "boolean",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_is_valid_na_for_dtype_nan_distinguish_nan_and_na(self, dtype):
+        # GH#71870
+        dtype = pandas_dtype(dtype)
+        categorical = CategoricalDtype(pd.Index([1, 0], dtype=dtype))
+        with pd.option_context("future.distinguish_nan_and_na", False):
+            assert is_valid_na_for_dtype(np.nan, dtype)
+            assert is_valid_na_for_dtype(np.nan, categorical)
+
+        with pd.option_context("future.distinguish_nan_and_na", True):
+            assert not is_valid_na_for_dtype(np.nan, dtype)
+            assert is_valid_na_for_dtype(pd.NA, dtype)
+            assert is_valid_na_for_dtype(np.nan, categorical)
+            assert is_valid_na_for_dtype(np.nan, np.dtype("float64"))
 
     def test_is_valid_na_for_dtype_categorical(self):
         dtype = CategoricalDtype(categories=[0, 1, 2])

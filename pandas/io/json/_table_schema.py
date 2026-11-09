@@ -14,6 +14,8 @@ from typing import (
 )
 import warnings
 
+import numpy as np
+
 from pandas._config import option_context
 
 from pandas._libs import lib
@@ -24,6 +26,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_complex_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_string_dtype,
@@ -79,6 +82,7 @@ def as_json_table_type(x: DtypeObj) -> str:
     ==============  =================
     int64           integer
     float64         number
+    complex128      object
     bool            boolean
     datetime64[ns]  datetime
     timedelta64[ns] duration
@@ -90,6 +94,9 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "integer"
     elif is_bool_dtype(x):
         return "boolean"
+    elif is_complex_dtype(x):
+        # written as {"imag": ..., "real": ...}, which is not a JSON number
+        return "object"
     elif is_numeric_dtype(x):
         return "number"
     elif lib.is_np_dtype(x, "M") or isinstance(x, (DatetimeTZDtype, PeriodDtype)):
@@ -159,7 +166,7 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
                 # fixed-offset stdlib timezone, e.g. timezone(timedelta(hours=1));
                 # str gives a round-trippable "UTC+HH:MM" (GH#39537)
                 field["tz"] = str(zone)
-    elif isinstance(dtype, ExtensionDtype):
+    elif isinstance(dtype, ExtensionDtype) or is_complex_dtype(dtype):
         field["extDtype"] = dtype.name
     return field
 
@@ -214,6 +221,8 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
         return field.get("extDtype", "float64")
     elif typ == "boolean":
         return field.get("extDtype", "bool")
+    elif typ == "object":
+        return field.get("extDtype", "object")
     elif typ == "duration":
         return "timedelta64"
     elif typ == "datetime":
@@ -439,8 +448,24 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
+    for pos, field in enumerate(schema["fields"]):
+        if field["type"] == "object" and is_complex_dtype(dtypes[pos]):
+            # astype cannot parse {"imag": ..., "real": ...}; NaN is written as null
+            values = np.empty(len(df), dtype=np.complex128)
+            values.real = [val["real"] for val in df[pos]]
+            values.imag = [val["imag"] for val in df[pos]]
+            df[pos] = values
+
+    # values of a tz-naive field may still carry an offset, e.g. the "Z" that
+    # pandas<1.5 appended, so parse as UTC and then drop the tz; GH#52595
+    naive = {name for name, dtype in dtypes.items() if dtype == "datetime64[ns]"}
+    dtypes.update(dict.fromkeys(naive, "datetime64[ns, UTC]"))
+
     with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
+
+    for pos in naive:
+        df.isetitem(pos, df[pos].dt.tz_convert(None))
 
     if "primaryKey" in schema:
         primary_key = schema["primaryKey"]

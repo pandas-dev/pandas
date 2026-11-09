@@ -123,7 +123,9 @@ class TestGroupbyAggPyArrowNative:
         assert pd.isna(result.iloc[0])
         assert result.iloc[1] == ("c" if how == "min" else "d")
 
-    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize(
+        "how, expected", [("min", "c"), ("max", "d"), ("sum", "dc")]
+    )
     @pytest.mark.parametrize(
         "dtype",
         [
@@ -134,14 +136,81 @@ class TestGroupbyAggPyArrowNative:
         ],
         ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype", "ArrowDtype_large"],
     )
-    def test_groupby_string_dtypes_min_count(self, dtype, how):
-        # GH#63416 min_count used to be ignored, so a group with fewer non-NA
-        # values than min_count still got a value
+    def test_groupby_string_dtypes_min_count(self, dtype, how, expected):
+        # GH#63416, GH#60861 min_count used to be ignored, so a group with fewer
+        # non-NA values than min_count still got a value
         ser = pd.Series(["b", None, "d", "c"], dtype=dtype)
         result = getattr(ser.groupby([1, 1, 2, 2]), how)(min_count=2)
         assert result.dtype == ser.dtype
         assert pd.isna(result.iloc[0])
-        assert result.iloc[1] == ("c" if how == "min" else "d")
+        assert result.iloc[1] == expected
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+            ArrowDtype(pa.string()),
+            ArrowDtype(pa.large_string()),
+        ],
+        ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype", "ArrowDtype_large"],
+    )
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            ({}, ["ab", "c", ""]),
+            ({"min_count": 1}, ["ab", "c", None]),
+            ({"min_count": 2}, ["ab", None, None]),
+            ({"skipna": False}, ["ab", None, None]),
+        ],
+    )
+    def test_groupby_arrow_string_sum(self, dtype, kwargs, expected):
+        # GH#60861 matches a per-group Series.sum; DataFrame.sum(axis=1) takes
+        # the same path
+        ser = pd.Series(["a", "c", None, "b", None, None], dtype=dtype)
+        result = ser.groupby([0, 1, 2, 0, 1, 2]).sum(**kwargs)
+        tm.assert_series_equal(
+            result, pd.Series(expected, index=[0, 1, 2], dtype=dtype)
+        )
+
+        df = pd.DataFrame({"x": ser.iloc[:3].array, "y": ser.iloc[3:].array})
+        result = df.sum(axis=1, **kwargs)
+        tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+            ArrowDtype(pa.string()),
+            ArrowDtype(pa.large_string()),
+        ],
+        ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype", "ArrowDtype_large"],
+    )
+    def test_groupby_string_sum_row_order(self, dtype):
+        # GH#60861 values join in row order, across chunks, without the NA key
+        pa_type = dtype.pyarrow_dtype if isinstance(dtype, ArrowDtype) else pa.string()
+        chunks = [
+            pa.array(["a", "b"], type=pa_type),
+            pa.array(["c", "d", "é"], pa_type),
+        ]
+        arr = ArrowExtensionArray(pa.chunked_array(chunks))
+        ser = pd.Series(arr).astype(dtype)
+        result = ser.groupby(np.array([1, np.nan, 0, 1, 1])).sum()
+        expected = pd.Series(["c", "adé"], index=[0.0, 1.0], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = ser.groupby(np.array([1, np.nan, 0, 1, 1])).sum(min_count=2)
+        expected = pd.Series([None, "adé"], index=[0.0, 1.0], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_string_sum_too_large_for_string(self):
+        # GH#60861 nbytes counts the shared chunk each time, so this stays small
+        chunk = pa.repeat(pa.scalar("x" * 2**20, type=pa.string()), 64)
+        arr = ArrowExtensionArray(pa.chunked_array([chunk] * 33))
+        ids = np.zeros(len(arr), dtype=np.intp)
+        result = arr._groupby_string_sum(min_count=0, ngroups=1, ids=ids, skipna=True)
+        assert result is None
 
     @pytest.mark.parametrize(
         "dtype,values,expected,agg_func",
@@ -446,10 +515,19 @@ class TestGroupbyAggPyArrowNative:
         ],
         ids=["str[pyarrow]", "string[pyarrow]", "ArrowDtype"],
     )
-    def test_groupby_string_sum_falls_back(self, dtype):
-        # GH#63416 PyArrow has no string sum, so it goes to the fallback path
-        # and concatenates
+    def test_groupby_string_sum_concatenates(self, dtype):
+        # GH#63416
         ser = pd.Series(["b", "a", "d", "c"], dtype=dtype)
+        result = ser.groupby([1, 1, 2, 2]).sum()
+        assert result.dtype == ser.dtype
+        assert result.tolist() == ["ba", "dc"]
+
+    def test_groupby_string_sum_falls_back(self, monkeypatch):
+        # GH#60861 a pa.string() column too large for the native path still sums
+        monkeypatch.setattr(
+            ArrowExtensionArray, "_groupby_string_sum", lambda self, **kwargs: None
+        )
+        ser = pd.Series(["b", "a", "d", "c"], dtype=ArrowDtype(pa.string()))
         result = ser.groupby([1, 1, 2, 2]).sum()
         assert result.dtype == ser.dtype
         assert result.tolist() == ["ba", "dc"]
@@ -620,6 +698,41 @@ def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
     msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
     with pytest.raises(TypeError, match=msg):
         getattr(obj.groupby([0, 0, 1, 1]), how)()
+
+
+@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array([b"b", b"a", None, b"c"]),
+        pa.array(["b", "a", None, "c"]),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_quantile_unsupported_raises_typeerror(arr, frame):
+    # GH#69808 used to raise NotImplementedError with no message
+    ser = pd.Series(ArrowExtensionArray(arr))
+    obj = ser.to_frame() if frame else ser
+    msg = f"dtype '{re.escape(str(ser.dtype))}' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
+        obj.groupby([0, 0, 1, 1]).quantile()
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
+        pa.array([time(2), time(1), None, time(3)]),
+        pa.array([Decimal(2), Decimal(1), None, Decimal(3)]),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_quantile_not_yet_implemented(arr):
+    # GH#69808 Series.quantile supports these, so they are not a TypeError
+    ser = pd.Series(ArrowExtensionArray(arr))
+    msg = f"quantile is not yet implemented for dtype '{re.escape(str(ser.dtype))}'"
+    with pytest.raises(NotImplementedError, match=msg):
+        ser.groupby([0, 0, 1, 1]).quantile()
 
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])

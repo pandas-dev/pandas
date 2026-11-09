@@ -37,6 +37,7 @@ from pandas._libs import (
     algos as libalgos,
     lib,
     properties,
+    reshape,
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
@@ -313,8 +314,8 @@ class DataFrame(NDFrame, OpsMixin):
         missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
         Copy data from inputs.
-        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
-        or 2d ndarray input, the default of None behaves like ``copy=False``.
+        The default of None behaves like ``copy=False`` for Series or Index input, or
+        for DataFrame input with no other arguments, and like ``copy=True`` otherwise.
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
 
@@ -1319,6 +1320,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
+        .. deprecated:: 3.2.0
+            Use :meth:`itertuples` instead.
+
         Each row is yielded as a (index, Series) tuple; the Series has
         the same index as the DataFrame columns. Note that dtypes may
         not be preserved across rows. Prefer :meth:`itertuples` for
@@ -1365,6 +1369,12 @@ class DataFrame(NDFrame, OpsMixin):
         >>> print(df["int"].dtype)
         int64
         """
+        warnings.warn(
+            f"{type(self).__name__}.iterrows is deprecated and "
+            "will be removed in a future version. Use .itertuples instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         columns = self.columns
         klass = self._constructor_sliced
         for k, v in zip(self.index, self.values, strict=True):
@@ -1794,7 +1804,9 @@ class DataFrame(NDFrame, OpsMixin):
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
                     index = Index(data.keys())
-                    data = _from_nested_dict(data)
+                    data = _from_nested_dict(
+                        dict(zip(index, data.values(), strict=True))
+                    )
                 else:
                     index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
@@ -2276,7 +2288,7 @@ class DataFrame(NDFrame, OpsMixin):
                     result_index = ensure_index_from_sequences(index_data, names=index)
                     exclude.update(index)
 
-        if any(exclude):
+        if exclude:
             arr_exclude = (x for x in exclude if x in arr_columns)
             to_remove = {
                 arr_columns.get_loc(col)
@@ -3497,6 +3509,12 @@ class DataFrame(NDFrame, OpsMixin):
         or attributes, and the output supports namespaces, XSLT stylesheets,
         and custom root/row element names.
 
+        .. warning::
+
+           XSLT is a programming language, and a ``stylesheet`` is run without
+           restrictions: it can read and write local files. Only use stylesheets
+           from trusted sources.
+
         Parameters
         ----------
         path_or_buffer : str, path object, file-like object, or None, default None
@@ -4483,16 +4501,18 @@ class DataFrame(NDFrame, OpsMixin):
 
     def isetitem(self, loc, value) -> None:
         """
-        Set the given value in the column with position `loc`.
+        Set the given value in the column(s) with position `loc`.
 
         This is a positional analogue to ``__setitem__``.
 
         Parameters
         ----------
-        loc : int or sequence of ints
-            Index position for the column.
+        loc : int, slice, or array-like of ints or bools
+            Index position(s) for the column(s).
         value : scalar or arraylike
-            Value(s) for the column.
+            Value(s) for the column(s). When ``loc`` selects several positions, a
+            scalar fills each of them and an arraylike must have one column per
+            position.
 
         See Also
         --------
@@ -4519,6 +4539,10 @@ class DataFrame(NDFrame, OpsMixin):
         0     1  5
         1     2  6
         """
+        if not is_integer(loc):
+            # resolve a slice or boolean mask to positions
+            loc = np.arange(len(self.columns))[loc]
+
         if isinstance(value, DataFrame):
             if is_integer(loc):
                 loc = [loc]
@@ -4531,6 +4555,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             for i, idx in enumerate(loc):
                 arraylike, refs = self._sanitize_column(value.iloc[:, i])
+                self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
+            return
+
+        if not is_list_like(value) and not is_integer(loc):
+            # GH#71098 a scalar fills every selected column, as df[cols] = 5
+            #  does; sanitize per position so the columns don't share one array
+            for idx in loc:
+                arraylike, refs = self._sanitize_column(value)
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
@@ -4860,8 +4892,29 @@ class DataFrame(NDFrame, OpsMixin):
         except KeyError:
             # This item wasn't present, just insert at end
             self._mgr.insert(len(self._info_axis), key, value, refs)
-        else:
-            self._iset_item_mgr(loc, value, refs=refs)
+            return
+
+        if value.ndim == 1 and not is_integer(loc):
+            # key matched several columns, e.g. duplicate labels or a partial
+            #  date string; broadcast across them
+            positions = np.arange(len(self._info_axis))[loc]
+            if is_1d_only_ea_dtype(value.dtype):
+                # GH#71098 one copy per column so they don't share an array
+                self._iset_item_mgr(positions[0], value, refs=refs)
+                for idx in positions[1:]:
+                    self._iset_item_mgr(idx, value.copy())
+                return
+            # GH#71078 reshape/repeat rather than np.tile, which would
+            #  degrade a 2-D-capable EA (tz-aware datetime64, period)
+            #  to object. repeat(axis=) is not in the _supports_2d
+            #  contract, only NDArrayBacked honours it; see GH#69153
+            # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+            # has no attribute "reshape"  [union-attr]
+            value = value.reshape(1, -1)  # type: ignore[union-attr]
+            value = value.repeat(len(positions), axis=0).T
+            refs = None
+
+        self._iset_item_mgr(loc, value, refs=refs)
 
     def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
@@ -4893,19 +4946,6 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         value, refs = self._sanitize_column(value)
-
-        if (
-            key in self.columns
-            and value.ndim == 1
-            and not isinstance(value.dtype, ExtensionDtype)
-        ):
-            # broadcast across multiple columns if necessary
-            if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
-                existing_piece = self[key]
-                if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1)).T
-                    refs = None
-
         self._set_item_mgr(key, value, refs)
 
     def _set_value(
@@ -5111,6 +5151,9 @@ class DataFrame(NDFrame, OpsMixin):
             with. Reducing those columns back to one dimension, as in
             ``df.query("a.max(axis=1) > 4")``, is fine.
 
+            If ``expr`` evaluates to anything other than a boolean array or a
+            DataFrame.
+
         See Also
         --------
         eval : Evaluate a string describing operations on
@@ -5246,6 +5289,17 @@ class DataFrame(NDFrame, OpsMixin):
                 "a row mask. Rename or drop the duplicate labels, or reduce "
                 "the result to one dimension with e.g. .any(axis=1)."
             )
+
+        # GH#8560 a non-boolean result would otherwise be silently used as labels;
+        #  a non-boolean DataFrame already raises in __getitem__
+        if not isinstance(res, DataFrame) and not com.is_bool_indexer(res):
+            msg = "expr must evaluate to a boolean array, got"
+            dtype = getattr(res, "dtype", None) if is_list_like(res) else None
+            if dtype is None:
+                raise ValueError(f"{msg} {type(res).__name__}")
+            # an empty object column may still be a bool column once it has rows
+            if not (dtype == object and len(res) == 0):
+                raise ValueError(f"{msg} dtype {dtype}")
 
         try:
             result = self.loc[res]
@@ -6203,7 +6257,9 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
-            Content of the inserted column.
+            Content of the inserted column. A Series is aligned to the
+            DataFrame's index: index labels missing from ``value`` become
+            missing values, and labels of ``value`` not in the index are dropped.
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
@@ -6229,7 +6285,7 @@ class DataFrame(NDFrame, OpsMixin):
         0   100     1      99     3
         1   100     2      99     4
 
-        Notice that pandas uses index alignment in case of `value` from type `Series`:
+        A Series is aligned on the index:
 
         >>> df.insert(0, "col0", pd.Series([5, 6], index=[1, 2]))
         >>> df
@@ -8721,10 +8777,16 @@ class DataFrame(NDFrame, OpsMixin):
             if not is_list_like(subset):
                 subset = [cast("Hashable", subset)]
             ax = self._get_axis(agg_axis)
-            indices = ax.get_indexer_for(subset)  # type: ignore[arg-type]
-            check = indices == -1
-            if check.any():
-                raise KeyError(np.array(subset)[check].tolist())
+            if isinstance(ax, MultiIndex):
+                # accept partial keys, matching df[subset]; GH#17737
+                _, indices = ax._get_indexer_strict(
+                    com.maybe_iterable_to_list(subset), self._get_axis_name(agg_axis)
+                )
+            else:
+                indices = ax.get_indexer_for(subset)  # type: ignore[arg-type]
+                check = indices == -1
+                if check.any():
+                    raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
         if thresh is not lib.no_default:
@@ -14514,11 +14576,27 @@ class DataFrame(NDFrame, OpsMixin):
             result = df[columns[0]].explode()
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
-            counts0 = self[columns[0]].apply(mylen)
-            for c in columns[1:]:
-                if not all(counts0 == self[c].apply(mylen)):
+            exploded = {}
+            counts0 = None
+            for c in columns:
+                series = df[c]
+                if series.dtype == object:
+                    # Reuse the per-row lengths computed by the explode kernel.
+                    values, counts = reshape.explode(np.asarray(series._values))
+                    exploded[c] = Series(
+                        values,
+                        index=df.index.repeat(counts),  # type: ignore[arg-type]
+                        copy=False,
+                    )
+                else:
+                    counts = series.apply(mylen).to_numpy()
+                    exploded[c] = series.explode()
+
+                if counts0 is None:
+                    counts0 = counts
+                elif not np.array_equal(counts0, counts):
                     raise ValueError("columns must have matching element counts")
-            result = DataFrame({c: df[c].explode() for c in columns})
+            result = DataFrame(exploded)
         result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))
@@ -15226,8 +15304,8 @@ class DataFrame(NDFrame, OpsMixin):
 
          .. note::
 
-                When ``raw=True``, the result dtype is inferred from the **first**
-                returned value.
+                When ``raw=True`` and ``func`` returns list-like results, the
+                result dtype is inferred from the **first** returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             How to interpret list-like results from `func`:
@@ -17198,6 +17276,11 @@ class DataFrame(NDFrame, OpsMixin):
             ufunc = np.fmax if skipna else np.maximum  # type: ignore[assignment]
         else:
             raise NotImplementedError(name)
+
+        if name in ("min", "max") and any(
+            block.dtype.kind == "c" for block in self._mgr.blocks
+        ):
+            nanops.warn_complex_unordered()
 
         for block in self._mgr.blocks:
             vals = block.values
@@ -20349,11 +20432,7 @@ class _DuplicateColumnRecorder(dict[Any, Any]):
     this only takes note and ``query`` decides once it can see the result.
 
     Lookups always raise ``KeyError`` so that the column resolvers behind this
-    one still supply the value. The names live in an attribute rather than in
-    the dict itself because the scope machinery rewrites an ``@local``
-    reference by writing it into the first resolver that *contains* that name
-    (``Scope.swapkey``), so anything stored here would capture locals sharing a
-    name with a duplicated column.
+    one still supply the value.
     """
 
     def __init__(self, names: set[Hashable]) -> None:

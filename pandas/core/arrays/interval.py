@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     IntervalDtype,
 )
@@ -81,6 +82,7 @@ from pandas.core.algorithms import (
     take,
     unique,
 )
+from pandas.core.array_algos.putmask import extract_bool_array
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
@@ -681,6 +683,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170. Keep the cython reconstructor so these load in older pandas.
+        reduced = super().__reduce__()
+        attrs = {key: val for key, val in self.__dict__.items() if key != "_cache"}
+        return reduced[0], reduced[1], (attrs,)
+
     @overload
     def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 
@@ -999,18 +1008,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[IntervalArray]) -> Self:
+    def _concat_same_type(
+        cls, to_concat: Sequence[IntervalArray], axis: AxisInt = 0
+    ) -> Self:
         """
         Concatenate multiple IntervalArray
 
         Parameters
         ----------
         to_concat : sequence of IntervalArray
+        axis : int, default 0
+            Must be 0 or -1; IntervalArray is 1D-only.
 
         Returns
         -------
         IntervalArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         closed_set = {interval.closed for interval in to_concat}
         if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
@@ -1155,6 +1170,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left_take, right_take)
 
     def _validate_listlike(self, value):
+        value_left: Index | ExtensionArray
+        value_right: Index | ExtensionArray
         # list-like of intervals
         try:
             array = IntervalArray(value)
@@ -1164,6 +1181,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # wrong type: not interval or NA
             msg = f"'value' should be an interval type, got {type(value)} instead."
             raise TypeError(msg) from err
+
+        mask = array.isna()
+        if mask.any() and not is_valid_na_for_dtype(np.nan, self.left.dtype):
+            # missing entries have NaN endpoints, which e.g. a Float64 subtype
+            #  would store as values under future.distinguish_nan_and_na
+            value_left = pd_array(np.asarray(value_left))
+            value_right = pd_array(np.asarray(value_right))
+            value_left[mask] = NA
+            value_right[mask] = NA
 
         try:
             self.left._validate_fill_value(value_left)
@@ -1182,7 +1208,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left, right = value.left, value.right
             self.left._validate_fill_value(left)
             self.left._validate_fill_value(right)
-        elif is_valid_na_for_dtype(value, self.left.dtype):
+        elif is_valid_na_for_dtype(value, self.dtype) or is_valid_na_for_dtype(
+            value, self.left.dtype
+        ):
             # GH#18295
             left = right = self.left._na_value
         else:
@@ -1197,7 +1225,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         left, right = self._validate_scalar(value)
 
-        if is_valid_na_for_dtype(value, self.left.dtype):
+        if isna(value):
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 # GH#45484 TypeError, not ValueError, matches what we get with
@@ -1347,10 +1375,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Index([0.5, 3.0], dtype='float64')
         """
         try:
-            return 0.5 * (self.left + self.right)
+            mid = 0.5 * (self.left + self.right)
         except TypeError:
             # datetime safe version
             return self.left + 0.5 * self.length
+        subtype = self.dtype.subtype
+        # pyarrow ints already raise on overflow, and comparing them with a
+        #  float mid raises past 2**53
+        if subtype.kind == "f" or (
+            subtype.kind in "iu" and not isinstance(subtype, ArrowDtype)
+        ):
+            # an overflowing sum lands outside the interval; there, halve before
+            #  adding, which cannot overflow but rounds more, see GH#25499
+            outside = extract_bool_array(
+                (mid._values < self._left) | (mid._values > self._right)
+            )
+            if outside.any():
+                mid = mid.putmask(outside, 0.5 * self.left + 0.5 * self.right)
+        return mid
 
     def overlaps(self, other):
         """

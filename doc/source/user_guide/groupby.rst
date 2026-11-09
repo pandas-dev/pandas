@@ -19,20 +19,20 @@ might wish to do one of the following:
 * **Aggregation**: compute a summary statistic (or statistics) for each
   group. Some examples:
 
-    * Compute group sums or means.
-    * Compute group sizes / counts.
+  * Compute group sums or means.
+  * Compute group sizes / counts.
 
 * **Transformation**: perform some group-specific computations and return a
   like-indexed object. Some examples:
 
-    * Standardize data (zscore) within a group.
-    * Filling NAs within groups with a value derived from each group.
+  * Standardize data (zscore) within a group.
+  * Filling NAs within groups with a value derived from each group.
 
 * **Filtration**: discard some groups, according to a group-wise computation
   that evaluates to True or False. Some examples:
 
-    * Discard data that belong to groups with only a few members.
-    * Filter out data based on the group sum or mean.
+  * Discard data that belong to groups with only a few members.
+  * Filter out data based on the group sum or mean.
 
 Many of these operations are defined on GroupBy objects. These operations are similar
 to those of the :ref:`aggregating API <basics.aggregate>`,
