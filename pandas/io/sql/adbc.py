@@ -419,7 +419,8 @@ class ADBCDatabase(PandasSQL):
                 ) from exc
 
         self.con.commit()
-        return total_inserted
+        # adbc_ingest returns -1 when the driver can't count the rows
+        return None if total_inserted < 0 else total_inserted
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(

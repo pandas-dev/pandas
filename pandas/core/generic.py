@@ -2943,7 +2943,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         None or int
             Number of rows affected by to_sql. None is returned if the callable
-            passed into ``method`` does not return an integer number of rows.
+            passed into ``method`` does not return an integer number of rows, or
+            if the driver reports a negative ``rowcount`` (it can't tell how many
+            rows were written).
 
             The number of returned rows affected is the sum of the ``rowcount``
             attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not

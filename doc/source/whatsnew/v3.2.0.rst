@@ -322,6 +322,7 @@ I/O
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` dropping the nanoseconds of tz-aware datetime columns and :class:`Timestamp` objects, and with ``date_format="epoch"`` mis-rounding pre-1970 ``datetime`` objects or raising ``OverflowError`` for ones outside the nanosecond bounds at a coarser ``date_unit`` (:issue:`53473`)
 - Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
 - Bug in :meth:`DataFrame.to_sql` creating MySQL and MariaDB datetime and time columns that silently dropped fractional seconds (:issue:`48435`)
+- Bug in :meth:`DataFrame.to_sql` returning a negative number of rows, such as ``-1`` or ``-3`` with ``chunksize``, for drivers like duckdb that can't report how many rows were written; it now returns ``None`` (:issue:`XXXXX`)
 - Bug in :meth:`DataFrame.to_sql` with ``if_exists="append"`` or ``if_exists="delete_rows"`` writing to an existing table hanging on SQL Server while another session had uncommitted changes to an unrelated table (:issue:`52601`)
 - Bug in :meth:`DataFrame.to_sql` with ``if_exists="delete_rows"`` raising ``InvalidRequestError`` for an existing temporary table (:issue:`52601`)
 - Bug in :meth:`DataFrame.to_stata` raising ``ValueError`` for an empty DataFrame with a categorical column, and :func:`read_stata` not converting the column back to a categorical (:issue:`71126`)

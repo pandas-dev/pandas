@@ -656,7 +656,9 @@ def to_sql(
     -------
     None or int
         Number of rows affected by to_sql. None is returned if the callable
-        passed into ``method`` does not return an integer number of rows.
+        passed into ``method`` does not return an integer number of rows, or
+        if the driver reports a negative ``rowcount`` (it can't tell how many
+        rows were written).
 
     Notes
     -----
