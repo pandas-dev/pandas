@@ -2944,6 +2944,21 @@ def test_delete_rows_schema(sqlite_conn):
     tm.assert_frame_equal(sql.read_sql_query("SELECT * FROM other.t", sqlite_conn), new)
 
 
+def test_read_sql_table_schema_adbc(sqlite_adbc_conn):
+    # GH#71274 the table of that name in the given schema, not the default one
+    with sqlite_adbc_conn.cursor() as cur:
+        cur.execute("ATTACH DATABASE ':memory:' AS other")
+        cur.execute("CREATE TABLE main.t (a INTEGER)")
+        cur.execute("INSERT INTO main.t VALUES (1)")
+        cur.execute("CREATE TABLE other.t (a INTEGER)")
+        cur.execute("INSERT INTO other.t VALUES (2)")
+    sqlite_adbc_conn.commit()
+    result = sql.read_sql_table("t", sqlite_adbc_conn, schema="other")
+    assert result["a"].tolist() == [2]
+    assert sql.has_table("t", sqlite_adbc_conn, schema="other")
+    assert not sql.has_table("t", sqlite_adbc_conn, schema="nosuch")
+
+
 @pytest.mark.parametrize("conn_name", all_connectable)
 def test_delete_rows_is_atomic(conn_name, request):
     sqlalchemy = pytest.importorskip("sqlalchemy")
