@@ -24,6 +24,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     algos as libalgos,
     groupby as libgroupby,
@@ -3178,7 +3180,9 @@ class ExtensionArray:
         [10, 20, <NA>]
         Length: 3, dtype: Int64
         """
-        result = map_array(self, mapper, na_action=na_action)
+        # Under future.distinguish_nan_and_na, inference would turn None
+        #  into NaN, which _cast_pointwise_result then keeps as a value.
+        result = map_array(self, mapper, na_action=na_action, convert=is_nan_na())
         if isinstance(result, np.ndarray):
             return self._cast_pointwise_result(result)
         return result
