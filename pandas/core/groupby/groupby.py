@@ -3610,7 +3610,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaResampler
+        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaIndexResampler
             Resampler object for the type of the index.
 
         See Also
