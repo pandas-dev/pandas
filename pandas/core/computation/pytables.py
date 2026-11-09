@@ -20,6 +20,8 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    NaT,
+    Period,
     Timedelta,
     Timestamp,
     iNaT,
@@ -27,6 +29,7 @@ from pandas._libs.tslibs import (
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas.core.common as com
 from pandas.core.computation import (
@@ -228,6 +231,18 @@ class BinOp(ops.BinOp):
         """whether my field is an ordered Categorical (None if unrecorded)"""
         return getattr(self.queryables.get(self.lhs.value), "ordered", None)
 
+    @property
+    def dtype_name(self) -> str:
+        """the name of the dtype my field was stored from ("" if unrecorded)"""
+        field = self.queryables.get(self.lhs.value)
+        name = ensure_decoded(getattr(field, "dtype", None))
+        return name if isinstance(name, str) else ""
+
+    @property
+    def is_period(self) -> bool:
+        """whether my field holds Periods, which are stored as int64 ordinals"""
+        return self.dtype_name.startswith("period")
+
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
@@ -245,10 +260,23 @@ class BinOp(ops.BinOp):
             op = "<=" if self.op in ("<", "<=") else ">"
             return f"({lhs} {op} {val})"
         kind = ensure_decoded(self.kind) or ""
-        if self.op in ("<", "<=") and kind.startswith(("datetime", "timedelta")):
-            # datetime64/timedelta64 columns are stored as int64 with NaT as
-            # iNaT, which sorts below every real value, so an unguarded "less
-            # than" would match the NaT rows. ">"/">=" need no such guard.
+        if ensure_decoded(self.meta) == "category" and self.op in (
+            "<",
+            "<=",
+            ">",
+            ">=",
+        ):
+            # a Categorical stores its codes, and a missing value has the code
+            # -1, which sorts below every real code, so an unguarded "<" would
+            # match the missing rows. Comparing a missing value is False.
+            return f"(({lhs} >= 0) & ({lhs} {self.op} {val}))"
+        if self.op in ("<", "<=") and (
+            kind.startswith(("datetime", "timedelta")) or self.is_period
+        ):
+            # datetime64/timedelta64 columns (and Periods, as ordinals) are
+            # stored as int64 with NaT as iNaT, which sorts below every real
+            # value, so an unguarded "less than" would match the NaT rows.
+            # ">"/">=" need no such guard.
             return f"(({lhs} != {iNaT}) & ({lhs} {self.op} {val}))"
         return f"({lhs} {self.op} {val})"
 
@@ -310,6 +338,20 @@ class BinOp(ops.BinOp):
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
+        elif (
+            kind == "integer"
+            and self.is_period
+            and not (lib.is_integer(conv_val) or lib.is_float(conv_val))
+        ):
+            # a Period column is stored as int64 ordinals: compare against the
+            # ordinal of the Period the value stands for, at the column's freq
+            freq = PeriodDtype.construct_from_string(self.dtype_name).freq
+            period = Period(conv_val, freq=freq)
+            if period is NaT:
+                raise ValueError(
+                    f"Cannot compare [{self.lhs.value}] to a missing Period"
+                )
+            return TermValue(period.ordinal, period.ordinal, kind)
         elif kind == "integer":
             try:
                 v_dec = Decimal(conv_val)
@@ -556,7 +598,19 @@ class PyTablesExprVisitor(BaseExprVisitor):
         if isinstance(node.op, (ast.Not, ast.Invert)):
             return UnaryOp("~", self.visit(node.operand))
         elif isinstance(node.op, ast.USub):
-            return self.const_type(-self.visit(node.operand).value, self.env)
+            operand = self.visit(node.operand)
+            if isinstance(operand, ops.BinOp):
+                # e.g. -(1 + 1): fold the arithmetic of constants
+                try:
+                    value = operand(self.env)
+                except Exception as err:
+                    raise NotImplementedError(
+                        "unary minus is only supported on a constant or on "
+                        "arithmetic of constants inside an HDFStore 'where'"
+                    ) from err
+            else:
+                value = operand.value
+            return self.const_type(-value, self.env)
         elif isinstance(node.op, ast.UAdd):
             raise NotImplementedError("Unary addition not supported")
         # TODO: return None might never be reached
@@ -615,7 +669,11 @@ class PyTablesExprVisitor(BaseExprVisitor):
         raise ValueError(f"Invalid Attribute context {ctx.__name__}")
 
     def translate_In(self, op):
-        return ast.Eq() if isinstance(op, ast.In) else op
+        if isinstance(op, ast.In):
+            return ast.Eq()
+        if isinstance(op, ast.NotIn):
+            return ast.NotEq()
+        return op
 
     def _rewrite_membership_op(self, node, left, right):
         return self.visit(node.op), node.op, left, right
@@ -709,7 +767,14 @@ class PyTablesExpr(expr.Expr):
                     local_dict = w.env.scope
                 else:
                     where[idx] = _validate_where(w)
-            _where = " & ".join([f"({w})" for w in com.flatten(where)])
+            # a PyTablesExpr formats as its parsed terms, which do not parse
+            #  back, so combine the text it was made from
+            _where = " & ".join(
+                [
+                    f"({w.expr if isinstance(w, PyTablesExpr) else w})"
+                    for w in com.flatten(where)
+                ]
+            )
         else:
             # _validate_where ensures we otherwise have a string
             _where = where

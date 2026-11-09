@@ -246,6 +246,116 @@ def test_select_or_and_with_list_matches_in_memory(temp_hdfstore, where, mask):
     tm.assert_frame_equal(result, df[mask(df, values)])
 
 
+_COMPARE = {
+    "<": operator.lt,
+    "<=": operator.le,
+    ">": operator.gt,
+    ">=": operator.ge,
+    "==": operator.eq,
+    "!=": operator.ne,
+}
+
+
+def test_select_not_in(temp_hdfstore):
+    # "not in" is "!=" for every value: it used to fail to parse
+    df = pd.DataFrame({"a": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+    result = temp_hdfstore.select("df", where="a not in [1, 5, 9]")
+    tm.assert_frame_equal(result, df[~df["a"].isin([1, 5, 9])])
+    result = temp_hdfstore.select("df", where="a not in 3")
+    tm.assert_frame_equal(result, df[df["a"] != 3])
+
+
+def test_select_negated_constant_expression(temp_hdfstore):
+    df = pd.DataFrame({"a": np.arange(-5, 5)})
+    temp_hdfstore.append("df", df, data_columns=True)
+    result = temp_hdfstore.select("df", where="a > -(1 + 1)")
+    tm.assert_frame_equal(result, df[df["a"] > -2])
+
+    # only arithmetic of constants can be folded
+    with pytest.raises(NotImplementedError, match="unary minus"):
+        temp_hdfstore.select("df", where="a > -(a + 1)")
+
+
+@pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
+def test_select_ordered_categorical_comparison_skips_missing(temp_hdfstore, op):
+    # a missing value is stored as the code -1, which sorts below every category
+    cat = pd.Categorical(
+        ["a", None, "b", "c", None, "a"], categories=list("abc"), ordered=True
+    )
+    df = pd.DataFrame({"cat": cat, "x": range(6)})
+    temp_hdfstore.append("df", df, data_columns=True)
+    result = temp_hdfstore.select("df", where=f"cat {op} 'b'")
+    expected = df[_COMPARE[op](df["cat"], "b")]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["<", "<=", ">", ">=", "==", "!="])
+def test_select_period_column_comparison(temp_hdfstore, op):
+    # a Period column is stored as int64 ordinals, with NaT as the smallest
+    periods = pd.array(
+        ["2020-01-01", None, "2020-01-03", "2020-01-04", None, "2020-01-06"],
+        dtype="period[D]",
+    )
+    df = pd.DataFrame({"per": periods, "x": range(6)})
+    temp_hdfstore.append("df", df, data_columns=True)
+    result = temp_hdfstore.select("df", where=f"per {op} '2020-01-04'")
+    mask = _COMPARE[op](df["per"], pd.Period("2020-01-04", "D"))
+    tm.assert_frame_equal(result, df[mask])
+
+
+def test_select_pytablesexpr_in_where_list(temp_hdfstore):
+    from pandas.core.computation.pytables import PyTablesExpr
+
+    dti = pd.to_datetime(["2020-01-01", "2020-01-03", None] * 2)
+    df = pd.DataFrame({"col": dti, "a": range(6)})
+    temp_hdfstore.append("df", df, data_columns=True)
+    queryables = temp_hdfstore.get_storer("df").queryables()
+    expr = PyTablesExpr("col < '2020-01-02'", queryables=queryables)
+    result = temp_hdfstore.select("df", where=[expr, "a == 3 | a == 1"])
+    tm.assert_frame_equal(result, df.iloc[[3]])
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda x: np.array(x, dtype=np.int64),
+        lambda x: pd.Index(x, dtype=np.int64),
+        lambda x: pd.Series(x, dtype=np.int64),
+    ],
+    ids=["ndarray", "Index", "Series"],
+)
+@pytest.mark.parametrize("coords", [[], [1, 2, 5], [5, 1, 2], [0, 9]])
+def test_coordinates_select_and_remove(temp_hdfstore, make, coords):
+    df = pd.DataFrame({"a": range(10)})
+    where = make(coords)
+    temp_hdfstore.put("df", df, format="table", track_times=False)
+    result = temp_hdfstore.select("df", where=where)
+    tm.assert_index_equal(
+        result.index.sort_values(), pd.Index(sorted(coords), dtype=result.index.dtype)
+    )
+    got = temp_hdfstore.select_as_coordinates("df", where=where)
+    assert sorted(got.tolist()) == sorted(coords)
+
+    # remove deletes exactly those rows, however they are ordered
+    assert temp_hdfstore.remove("df", where=where) == len(coords)
+    remaining = temp_hdfstore.select("df")
+    tm.assert_frame_equal(remaining, df.drop(index=coords))
+
+
+@pytest.mark.parametrize("start, stop", [(None, None), (4, 17), (0, 5), (10, None)])
+def test_select_chunksize_with_where_and_start_stop(temp_hdfstore, start, stop):
+    df = pd.DataFrame({"a": range(20), "b": np.arange(20) % 3})
+    temp_hdfstore.append("df", df, data_columns=True)
+    where = "b != 1"
+    chunks = temp_hdfstore.select(
+        "df", where=where, chunksize=3, start=start, stop=stop
+    )
+    result = pd.concat(list(chunks))
+    expected = df.iloc[start:stop]
+    tm.assert_frame_equal(result, expected[expected["b"] != 1])
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = pd.DataFrame(
