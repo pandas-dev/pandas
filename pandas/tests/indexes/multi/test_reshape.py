@@ -175,6 +175,89 @@ def test_append_names_dont_match():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("n", [1, 2, 3, 4, 5, 8, 9])
+def test_append_many(n):
+    # GH#70884
+    pieces = [
+        pd.MultiIndex.from_product([[i + 1, i], [f"x{i}", "a"]], names=["k", "v"])
+        for i in range(n)
+    ]
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_tuples(
+        [tup for piece in pieces for tup in piece], names=["k", "v"]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], pd.Index(list(range(n + 1)), name="k"))
+    tm.assert_index_equal(
+        result.levels[1], pd.Index(["a", *(f"x{i}" for i in range(n))], name="v")
+    )
+
+
+@pytest.mark.parametrize("n", [3, 4, 5])
+@pytest.mark.parametrize(
+    "level",
+    [
+        pd.date_range("2020-03-08", periods=10, freq="h", tz="America/New_York"),
+        pd.timedelta_range("0s", periods=10),
+        pd.period_range("2020-01", periods=10, freq="M"),
+        pd.CategoricalIndex(list("abcdefghij"), categories=list("abcdefghijk")),
+        pd.Index(range(10), dtype="Int64"),
+        pd.interval_range(0, 10),
+    ],
+)
+def test_append_many_specialized_levels(n, level):
+    # GH#70884
+    pieces = [
+        pd.MultiIndex.from_product([level[positions], ["a", "b"]], names=["k", "v"])
+        for positions in np.array_split(np.arange(len(level)), n)
+    ]
+
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_product([level, ["a", "b"]], names=["k", "v"])
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], expected.levels[0])
+
+
+def test_append_many_mixed_dtypes():
+    # GH#70884
+    values = [
+        np.array([1], dtype="int64"),
+        np.array([2], dtype="int64"),
+        np.array([3], dtype="uint64"),
+        np.array([4.5]),
+    ]
+    pieces = [pd.MultiIndex.from_arrays([value, ["a"]]) for value in values]
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2, 3, 4.5], dtype=object), ["a"] * 4]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], expected.levels[0])
+
+
+def test_append_many_unorderable_object_levels():
+    # GH#70884 a pairwise union of the last two levels tries to sort tuples
+    # and strings together, which emits a warning about unequal tuple lengths.
+    values = [[0], [1], [("x", "y")], ["b", ("z",)]]
+    pieces = [
+        pd.MultiIndex(
+            levels=[pd.Index(value, dtype=object, tupleize_cols=False), ["a"]],
+            codes=[list(range(len(value))), [0] * len(value)],
+        )
+        for value in values
+    ]
+
+    with tm.assert_produces_warning(False):
+        result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_tuples([tup for piece in pieces for tup in piece])
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], expected.levels[0])
+
+
 def test_append_mixed_date_tzaware_timestamp():
     # GH#68577 the combined level cannot be converted to datetime64, so it
     #  stays object instead of raising "Mixed timezones detected"
