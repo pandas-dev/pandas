@@ -212,34 +212,8 @@ Website pages
 ~~~~~~~~~~~~~
 
 The pages of the pandas website (about us, community, blog, PDEPs...) are the
-Markdown files in ``doc/source/``, written with
-`MyST <https://myst-parser.readthedocs.io/>`__ and
-`Jinja2 <https://jinja.palletsprojects.com/>`__. Their data (e.g. the maintainers
-and the sponsors) is in ``doc/website.yml``.
-
-{% raw %}
-
-In Markdown, a blank line ends a block of HTML, and the lines after it indented
-four or more spaces are shown as code. So Jinja tags on their own line inside a
-block of HTML must remove the whitespace before them, which removes the line, by
-starting with ``{%-``. For example::
-
-    <ul>
-        {%- for company in sponsors.past %}
-            <li>{{ company.name }}</li>
-        {%- endfor %}
-    </ul>
-
-{% endraw %}
-
-Images of the website pages and the pandas logos go in ``doc/source/static/``,
-not ``doc/source/_static/``. Don't rename or remove its files, since the
-documentation of previous versions and other sites link to them.
-
-The website pages are only built when building the whole documentation
-(``python make.py html``, with or without ``--no-api``), not with ``--single`` or
-``--whatsnew``. Set the ``GITHUB_TOKEN`` environment variable to a GitHub token
-to avoid exceeding the quota of the GitHub API.
+Markdown files in ``doc/source/``. Page data such as maintainers and sponsors
+is configured in ``pandas_website_data`` in ``doc/source/conf.py``.
 
 Previewing changes
 ------------------

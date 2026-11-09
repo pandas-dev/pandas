@@ -5,10 +5,9 @@ The website (https://pandas.pydata.org/) is part of the documentation. Its
 pages are the Markdown files in ``doc/source`` (parsed with MyST), which are
 rendered with Jinja2 before being parsed, like the rest of the pages (see
 ``rstjinja`` in ``doc/source/conf.py``). This extension adds to the context
-used to render them the data obtained by parsing ``doc/website.yml``, and
-enriching it with the context preprocessors listed in its
-``main.context_preprocessors`` section (for example, to fetch the latest
-releases from GitHub).
+used to render them the data in the ``pandas_website_data`` config value, enriched
+by the context preprocessors (for example, to fetch the latest releases from
+GitHub).
 
 Fetching the context requires network access, so it's skipped when the
 ``pandas_website_context`` config value is false (e.g. when building a single
@@ -18,8 +17,8 @@ page); the pages using it are excluded from those builds.
 from __future__ import annotations
 
 import collections
+import copy
 import datetime
-import importlib
 import itertools
 import json
 import operator
@@ -45,8 +44,6 @@ import yaml
 if TYPE_CHECKING:
     from sphinx.application import Sphinx
 
-CONFIG_PATH = pathlib.Path(__file__).parents[1] / "website.yml"
-
 api_token = os.environ.get("GITHUB_TOKEN")
 if api_token is not None:
     GITHUB_API_HEADERS = {"Authorization": f"Bearer {api_token}"}
@@ -61,14 +58,14 @@ class Preprocessors:
     Context preprocessors are functions that receive the context used to
     render the templates, and enriches it with additional information.
 
-    The original context is obtained by parsing ``config.yml``, and
+    The original context is the ``pandas_website_data`` config value, and
     anything else needed just be added with context preprocessors.
     """
 
     @staticmethod
     def blog_add_posts(context):
         """
-        Given the blog feed defined in the configuration yaml, this context
+        Given the blog feed defined in the website data, this context
         preprocessor fetches the posts in the feeds, and returns the relevant
         information for them (sorted from newest to oldest).
         """
@@ -134,7 +131,7 @@ class Preprocessors:
     @staticmethod
     def maintainers_add_info(context):
         """
-        Given the active maintainers defined in the yaml file, it fetches
+        Given the active maintainers defined in the website data, it fetches
         the GitHub user information for them.
         """
         repeated = set(context["maintainers"]["active"]) & set(
@@ -355,48 +352,21 @@ class Preprocessors:
         return context
 
 
-def get_callable(obj_as_str: str) -> object:
+def get_context(data: dict, **kwargs) -> dict:
     """
-    Get a Python object from its string representation.
-
-    For example, for ``sys.stdout.write`` would import the module ``sys``
-    and return the ``write`` function.
+    Copy the website data as the base context, and enrich it with the
+    information added by the context preprocessors.
     """
-    components = obj_as_str.split(".")
-    attrs = []
-    while components:
-        try:
-            obj = importlib.import_module(".".join(components))
-        except ImportError:
-            attrs.insert(0, components.pop())
-        else:
-            break
-
-    if not obj:
-        raise ImportError(f'Could not import "{obj_as_str}"')
-
-    for attr in attrs:
-        obj = getattr(obj, attr)
-
-    return obj
-
-
-def get_context(config_fname: pathlib.Path, **kwargs):
-    """
-    Load the config yaml as the base context, and enrich it with the
-    information added by the context preprocessors defined in the file.
-    """
-    with config_fname.open(encoding="utf-8") as f:
-        context = yaml.safe_load(f)
-
-    context["source_path"] = config_fname.parent
+    # copied so the preprocessors don't modify the config value
+    context = copy.deepcopy(data)
     context.update(kwargs)
 
-    preprocessors = (
-        get_callable(context_prep)
-        for context_prep in context["main"]["context_preprocessors"]
-    )
-    for preprocessor in preprocessors:
+    for preprocessor in (
+        Preprocessors.blog_add_posts,
+        Preprocessors.maintainers_add_info,
+        Preprocessors.home_add_releases,
+        Preprocessors.roadmap_pdeps,
+    ):
         context = preprocessor(context)
         msg = f"{preprocessor.__name__} is missing the return statement"
         assert context is not None, msg
@@ -423,7 +393,9 @@ def load_context(app: Sphinx) -> None:
     outdir = pathlib.Path(app.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     context = get_context(
-        CONFIG_PATH, source_path=pathlib.Path(app.srcdir), target_path=outdir
+        app.config.pandas_website_data,
+        source_path=pathlib.Path(app.srcdir),
+        target_path=outdir,
     )
     app.config.html_context.update(context)
 
@@ -476,6 +448,7 @@ def copy_static(app: Sphinx, exception: Exception | None) -> None:
 
 def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("pandas_website_context", True, "env", types=[bool])
+    app.add_config_value("pandas_website_data", {}, "env", types=[dict])
     app.connect("builder-inited", load_context)
     app.connect("doctree-read", add_legacy_heading_ids)
     app.connect("build-finished", copy_static)
