@@ -300,7 +300,6 @@ timedelta-like}
         int64_t[::1] result
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
-        bint overflowed = False
         bint fill_nonexist = False
         str stamp
         Localizer info = Localizer(tz, creso=creso)
@@ -435,8 +434,10 @@ timedelta-like}
                             "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
-                    overflowed = checked_add(val, shift_delta, &new_local)
-                    if overflowed or new_local == NPY_NAT:
+                    if (
+                        checked_add(val, shift_delta, &new_local)
+                        or new_local == NPY_NAT
+                    ):
                         # landing on the NaT sentinel is out of bounds too, GH#66697
                         raise_out_of_bounds(
                             val,
