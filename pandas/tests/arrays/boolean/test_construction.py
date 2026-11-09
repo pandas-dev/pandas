@@ -154,9 +154,19 @@ def test_float_ea_astype_boolean_distinguish_nan_and_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_to_boolean_array_2d_raises():
+@pytest.mark.parametrize(
+    "values",
+    [
+        [[True, False]],
+        np.array([[0, 1], [1, 0]]),
+        np.array([[0.0, 1.0]]),
+        np.array([["2020-01-01"]], dtype="M8[ns]"),
+        np.array(1),
+    ],
+)
+def test_to_boolean_array_not_1d_raises(values):
     with pytest.raises(TypeError, match="values must be a 1D list-like"):
-        pd.array([[True, False]], dtype="boolean")
+        pd.array(values, dtype="boolean")
 
 
 def test_to_boolean_array_from_integer_array():

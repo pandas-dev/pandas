@@ -214,6 +214,8 @@ def coerce_to_array(
         if copy:
             values = values.copy()
     elif isinstance(values, np.ndarray) and values.dtype.kind in "iufcmM":
+        if values.ndim != 1:
+            raise TypeError("values must be a 1D list-like")
         if values.dtype.kind in "fc" and not is_nan_na():
             mask_values = np.zeros(values.shape, dtype=bool)
         else:
