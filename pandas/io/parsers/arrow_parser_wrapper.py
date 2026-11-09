@@ -92,6 +92,36 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
     return None
 
 
+class _NewlineTerminatedReader:
+    """
+    Read from ``src``, adding a final newline if ``src`` fits in the first
+    read and lacks one.
+
+    GH#62635 pyarrow infers the number of columns from the first complete line
+    in its first block, so a single line without a trailing newline fails.
+    """
+
+    def __init__(self, src: ReadBuffer[bytes]) -> None:
+        self.src = src
+        self.closed = False  # required by pyarrow
+        self._first = True
+
+    def read(self, size: int = -1) -> bytes:
+        data = self.src.read(size)
+        if not self._first or not isinstance(data, bytes):
+            return data
+        self._first = False
+        # a short read need not be EOF, so read until full or EOF
+        while size < 0 or len(data) < size:
+            chunk = self.src.read(-1 if size < 0 else size - len(data))
+            if not chunk:
+                if data and data[-1:] not in b"\r\n":
+                    data += b"\n"
+                break
+            data += chunk
+        return data
+
+
 class ArrowParserWrapper(ParserBase):
     """
     Wrapper for the pyarrow engine for read_csv()
@@ -588,10 +618,15 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
         convert_options = self._get_convert_options()
+        src: ReadBuffer[bytes] | _NewlineTerminatedReader = self.src
+        if "a\n".encode(self.encoding).endswith(b"a\n"):
+            # the reader appends b"\n", a newline only in ASCII-compatible
+            # encodings
+            src = _NewlineTerminatedReader(self.src)
 
         try:
             table = pyarrow_csv.read_csv(
-                self.src,
+                src,
                 read_options=pyarrow_csv.ReadOptions(**self.read_options),
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
                 convert_options=convert_options,
@@ -601,15 +636,7 @@ class ArrowParserWrapper(ParserBase):
             # any columns from the source; re-raise as EmptyDataError so the
             # pyarrow engine matches the "c" and "python" engines.
             if "Empty CSV file" in str(err):
-                msg = "No columns to parse from file"
-                if "cannot infer number of columns" in str(err):
-                    # GH#62635 pyarrow can't tell blank input from a single line
-                    # without a trailing newline
-                    msg += (
-                        ". The 'pyarrow' engine also raises this for a single "
-                        "line without a trailing newline; use engine='c' instead."
-                    )
-                raise EmptyDataError(msg) from err
+                raise EmptyDataError("No columns to parse from file") from err
             raise ParserError(err) from err
         except TypeError as err:
             # pyarrow can only read from a binary buffer; a text-mode file

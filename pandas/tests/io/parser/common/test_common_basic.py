@@ -6,7 +6,11 @@ specific classification into the other test modules.
 import csv
 from datetime import datetime
 from inspect import signature
-from io import StringIO
+from io import (
+    BytesIO,
+    RawIOBase,
+    StringIO,
+)
 import os
 import re
 import sys
@@ -919,7 +923,6 @@ def test_read_csv_line_break_as_separator(key, sep, lineterminator, all_parsers)
         parser.read_csv(StringIO(data), lineterminator=lineterminator, **{key: sep})
 
 
-@skip_pyarrow
 def test_dict_keys_as_names(all_parsers):
     # GH: 36928
     data = "1,2"
@@ -972,17 +975,39 @@ def test_short_single_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_single_line_without_line_terminator(all_parsers):
+@pytest.mark.parametrize(
+    "data, kwargs, expected",
+    [
+        ("1,2,3", {"names": ["a", "b", "c"]}, [[1, 2, 3]]),
+        ("1,2,3", {"header": None}, [[1, 2, 3]]),
+        ("x,y,z\n1,2,3", {"header": None, "skiprows": 1}, [[1, 2, 3]]),
+    ],
+)
+def test_single_line_without_line_terminator(all_parsers, data, kwargs, expected):
     # GH#62635
     parser = all_parsers
-    data = "1,2,3"
-    if parser.engine == "pyarrow":
-        msg = "The 'pyarrow' engine also raises this for a single line"
-        with pytest.raises(EmptyDataError, match=msg):
-            parser.read_csv(StringIO(data), names=["a", "b", "c"])
-        return
-    result = parser.read_csv(StringIO(data), names=["a", "b", "c"])
-    expected = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+    result = parser.read_csv(StringIO(data), **kwargs)
+    expected = pd.DataFrame(expected, columns=kwargs.get("names"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_short_reads_without_line_terminator(all_parsers):
+    # GH#62635 a short read is not EOF, so no newline is added after it
+    class ShortReads(RawIOBase):
+        def __init__(self, data: bytes) -> None:
+            self.buffer = BytesIO(data)
+
+        def readable(self) -> bool:
+            return True
+
+        def readinto(self, buf) -> int:
+            chunk = self.buffer.read(min(len(buf), 2))
+            buf[: len(chunk)] = chunk
+            return len(chunk)
+
+    parser = all_parsers
+    result = parser.read_csv(ShortReads(b"1,2,3\n4,5,6"), header=None)
+    expected = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
     tm.assert_frame_equal(result, expected)
 
 
