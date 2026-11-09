@@ -14,6 +14,8 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
 
+FLOAT_LOGICAL_OP_MSG = "Logical ops .* with float or complex dtypes"
+
 
 class TestSeriesLogicalOps:
     @pytest.mark.parametrize("bool_op", [operator.and_, operator.or_, operator.xor])
@@ -227,8 +229,7 @@ class TestSeriesLogicalOps:
 
         # s_0123 will be all false now because of reindexing like s_tft
         expected = pd.Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        depr_msg = "Logical ops .* with float or complex dtypes"
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
             result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
@@ -240,12 +241,12 @@ class TestSeriesLogicalOps:
 
         s_a0b1c0 = pd.Series([1], list("b"))
 
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
             res = s_tft & s_a0b1c0
         expected = s_tff.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
             res = s_tft | s_a0b1c0
         expected = s_tft.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
@@ -277,12 +278,11 @@ class TestSeriesLogicalOps:
 
         expected = pd.DataFrame(False, index=range(9), columns=["A", *list(range(9))])
 
-        msg = "Logical ops .* with float or complex dtypes"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
             result = s & d
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
             result = d & s
         tm.assert_frame_equal(result, expected)
 
@@ -401,13 +401,12 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
-        msg = "Logical ops .* with float or complex dtypes"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
             result = a & pd.Series([1], ["z"])
         expected = pd.Series([False, False, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
             result = a | pd.Series([1], ["z"])
         expected = pd.Series([True, True, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
@@ -423,7 +422,7 @@ class TestSeriesLogicalOps:
             pd.Series(np.nan, b.index),
             pd.Series(np.nan, a.index),
         ]:
-            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
                 result = a[a | e]
             tm.assert_series_equal(result, a[a])
 
@@ -715,9 +714,6 @@ def test_logical_op_datetimelike_scalar_raises(op, scalar, left_dtype):
         op(left, scalar)
     with pytest.raises(TypeError, match=msg):
         op(scalar, left)
-
-
-FLOAT_LOGICAL_OP_MSG = "Logical ops .* with float or complex dtypes"
 
 
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])

@@ -509,8 +509,8 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#61881 warn only once the op succeeded, many of these already raise
         warnings.warn(
             "Logical ops (and, or, xor) with float or complex dtypes, including "
-            "float columns created by alignment, are deprecated and will raise in "
-            "a future version. Align and cast to bool before operating instead, "
+            "floats introduced by alignment, are deprecated and will raise in a "
+            "future version. Align and cast to bool before operating instead, "
             "e.g. `ser.fillna(0).astype(bool)`; results can differ where a value is "
             "missing.",
             Pandas4Warning,
