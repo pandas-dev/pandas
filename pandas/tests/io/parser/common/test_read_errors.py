@@ -7,7 +7,9 @@ import codecs
 import csv
 from io import StringIO
 from pathlib import Path
+import re
 
+import numpy as np
 import pytest
 
 from pandas.errors import (
@@ -444,3 +446,125 @@ a,b
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
+
+
+# GH#71034 the explanation pandas adds when "names" disagrees with the
+#  number of columns pyarrow read
+NOTE = re.escape(
+    "The 'pyarrow' engine takes the number of columns from the first "
+    "row it reads, not from 'names'; the 'c' and 'python' engines can "
+    "pad rows that are shorter than 'names'."
+)
+
+
+def test_names_wider_than_first_row(all_parsers):
+    # GH#71034 the c and python engines take the width from "names" and pad the
+    #  rows that are narrower; pyarrow takes it from the first row instead, so
+    #  the wider rows are bad lines and the read cannot succeed
+    parser = all_parsers
+    data = "1,2\n3,4,5,6\n"
+    names = ["w", "x", "y", "z"]
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(ParserError, match=NOTE):
+            parser.read_csv(StringIO(data), header=None, names=names)
+        return
+
+    result = parser.read_csv(StringIO(data), header=None, names=names)
+    expected = pd.DataFrame(
+        {"w": [1, 3], "x": [2, 4], "y": [np.nan, 5.0], "z": [np.nan, 6.0]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("on_bad_lines", ["error", "skip", "warn"])
+def test_names_wider_than_first_row_pyarrow(pyarrow_parser_only, on_bad_lines):
+    # GH#71034 every way of handling the bad lines explains the limitation
+    #  instead of leaving the user with pyarrow's column count or the
+    #  "Length mismatch" error from assigning the names afterwards
+    parser = pyarrow_parser_only
+    data = "a,b\n1,2,3,4\n"
+    names = ["w", "x", "y", "z"]
+
+    if on_bad_lines == "error":
+        # pyarrow's own message is kept and followed by the explanation
+        msg = (
+            r"^CSV parse error: Expected 2 columns, got 4: 1,2,3,4\. "
+            f"{NOTE}$"
+        )
+    else:
+        # the wider rows were skipped, so pandas reports the mismatch itself
+        msg = rf"^Expected 4 columns, but the file only contained 2\. {NOTE}$"
+
+    if on_bad_lines == "warn":
+        with tm.assert_produces_warning(
+            ParserWarning,
+            match="Expected 2 columns, but found 4: 1,2,3,4",
+            check_stacklevel=False,
+        ):
+            with pytest.raises(ParserError, match=msg):
+                parser.read_csv(
+                    StringIO(data), header=None, names=names, on_bad_lines=on_bad_lines
+                )
+    else:
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(
+                StringIO(data), header=None, names=names, on_bad_lines=on_bad_lines
+            )
+
+
+def test_names_shorter_than_file_pyarrow_still_forms_an_index(pyarrow_parser_only):
+    # GH#71034, GH#65862 fewer names than the file must not be reported as a
+    #  mismatch: the leading columns the names do not cover become the index
+    parser = pyarrow_parser_only
+    data = "1,2,3\n4,5,6"
+    result = parser.read_csv(StringIO(data), header=None, names=["b", "c"])
+    expected = pd.DataFrame({"b": [2, 5], "c": [3, 6]}, index=[1, 4])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_names_column_count_error_appends_note(pyarrow_parser_only):
+    # GH#71034 the note is appended whenever "names" was passed and pyarrow
+    #  reported a column count, even when the counts agree; with no names
+    #  there is nothing to explain and the message is pyarrow's own
+    parser = pyarrow_parser_only
+    data = "a,b\n1,2,3,4\n"
+
+    msg = rf"^CSV parse error: Expected 2 columns, got 4: 1,2,3,4\. {NOTE}$"
+    with pytest.raises(ParserError, match=msg):
+        parser.read_csv(StringIO(data), header=None, names=["w", "x"])
+
+    # and with no names at all, as there is nothing to explain
+    msg = "^CSV parse error: Expected 2 columns, got 4: 1,2,3,4$"
+    with pytest.raises(ParserError, match=msg):
+        parser.read_csv(StringIO(data))
+
+
+def test_uniformly_short_rows_with_longer_names_pyarrow(pyarrow_parser_only):
+    # GH#71034 no row is bad here, pyarrow simply reads fewer columns than
+    #  "names" has, which used to leak a "Length mismatch" ValueError
+    parser = pyarrow_parser_only
+    data = "1,2\n3,4"
+
+    msg = rf"^Expected 3 columns, but the file only contained 2\. {NOTE}$"
+    with pytest.raises(ParserError, match=msg):
+        parser.read_csv(StringIO(data), header=None, names=["a", "b", "c"])
+
+
+def test_ragged_row_error_does_not_suggest_other_engines(all_parsers):
+    # GH#71034 a row wider than "names" fails with every engine, so the
+    #  message must not point the user at engine='c' or engine='python'
+    parser = all_parsers
+    data = "1,2\n3,4,5,6\n"
+
+    with pytest.raises(ParserError) as excinfo:
+        parser.read_csv(StringIO(data), header=None, names=["w"])
+
+    msg = str(excinfo.value)
+    assert "engine='c'" not in msg
+    assert "engine='python'" not in msg
+    if parser.engine == "pyarrow":
+        assert re.search(NOTE, msg)
+    else:
+        # the c and python engines reject the wider row themselves
+        assert "Expected 2 fields in line 2, saw 4" in msg
