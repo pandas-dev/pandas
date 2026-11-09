@@ -9,6 +9,7 @@ from pandas import (
     MultiIndex,
     RangeIndex,
     Series,
+    Timedelta,
     array,
     date_range,
 )
@@ -429,6 +430,22 @@ class Append:
 
     def time_append(self, dtype):
         self.left.append(self.right)
+
+
+class AppendMany:
+    def setup(self):
+        N1 = 200
+        N2 = 1000
+
+        level1 = date_range("2000-01-01", periods=N2, freq="s", unit="ns")
+
+        self.pieces = [
+            MultiIndex.from_product([level1 + Timedelta(days=i), ["a", "b"]])
+            for i in range(N1)
+        ]
+
+    def time_append_many(self):
+        self.pieces[0].append(self.pieces[1:])
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

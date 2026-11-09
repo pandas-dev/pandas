@@ -134,6 +134,8 @@ from pandas.core.util.numba_ import (
     prepare_function_arguments,
 )
 
+from pandas.io.formats.printing import pprint_thing
+
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
     from pandas._libs.tslibs.timedeltas import Timedelta
@@ -164,9 +166,22 @@ class GroupByPlot(PandasObject):
     def __init__(self, groupby: GroupBy[Any]) -> None:
         self._groupby = groupby
 
+    @staticmethod
+    def _set_default_title(
+        kwargs: dict[str, Any], group: NDFrame, key: Hashable
+    ) -> None:
+        # GH#12452: without ax, each DataFrame group gets its own figure; Series
+        #  groups share one axes, so a title there would just be overwritten
+        if group.ndim == 2 and kwargs.get("ax") is None:
+            kwargs.setdefault("title", pprint_thing(key))
+
     def __call__(self, *args, **kwargs):
         def f(self, key):
-            return self.plot(*args, **kwargs)
+            local_kwargs = kwargs.copy()
+            # ax and title can also be passed positionally after x, y, kind
+            if len(args) <= 3:
+                GroupByPlot._set_default_title(local_kwargs, self, key)
+            return self.plot(*args, **local_kwargs)
 
         f.__name__ = "plot"
 
@@ -176,6 +191,7 @@ class GroupByPlot(PandasObject):
         def attr(*args, **kwargs):
             def f(self, key):
                 local_kwargs = kwargs.copy()
+                GroupByPlot._set_default_title(local_kwargs, self, key)
 
                 if name == "scatter" and kwargs.get("legend"):
                     local_kwargs.setdefault("label", key)
@@ -988,17 +1004,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = result.set_axis(index, axis=0)
             return result
 
-        # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(self._grouper.result_ilocs, copy=False)
-        result = result.set_axis(original_positions, axis=0)
-        result = result.sort_index(axis=0)
+        # row order is scrambled => invert the permutation given by result_ilocs;
+        # rows dropped due to dropna get -1 and are filled with NA
         if self._grouper.has_dropped_na:
-            # Add back in any missing rows due to dropna - index here is integral
-            # with values referring to the row of the input so can use RangeIndex
-            result = result.reindex(default_index(len(index)), axis=0)
-        result = result.set_axis(index, axis=0)
-
-        return result
+            indexer = np.full(len(index), -1, dtype=np.intp)
+        else:
+            indexer = np.empty(len(index), dtype=np.intp)
+        result_ilocs = self._grouper.result_ilocs
+        indexer[result_ilocs] = np.arange(len(result_ilocs))
+        return result._reindex_with_indexers({0: (index, indexer)}, allow_dups=True)
 
     @final
     @property

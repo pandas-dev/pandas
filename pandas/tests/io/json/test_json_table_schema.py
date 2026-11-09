@@ -199,6 +199,11 @@ class TestTableSchemaType:
     def test_as_json_table_type_float_dtypes(self, float_dtype):
         assert as_json_table_type(float_dtype) == "number"
 
+    @pytest.mark.parametrize("complex_dtype", [complex, np.complex64, np.complex128])
+    def test_as_json_table_type_complex_dtypes(self, complex_dtype):
+        # GH#50782
+        assert as_json_table_type(complex_dtype) == "object"
+
     @pytest.mark.parametrize("bool_dtype", [bool, np.bool_])
     def test_as_json_table_type_bool_dtypes(self, bool_dtype):
         assert as_json_table_type(bool_dtype) == "boolean"
@@ -904,6 +909,76 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+    def test_read_json_table_orient_complex(self, dtype):
+        # GH#50782
+        arr = np.array([1.5 + 2j, complex(np.nan, np.nan), -3 - 4j], dtype)
+        df = pd.DataFrame(
+            {"a": arr, "b": [1, 2, 3]},
+            index=pd.Index(arr[::-1], name="idx"),
+        )
+
+        out = df.to_json(orient="table")
+
+        assert json.loads(out)["schema"]["fields"][1] == {
+            "name": "a",
+            "type": "object",
+            "extDtype": dtype,
+        }
+        result = pd.read_json(StringIO(out), orient="table")
+        tm.assert_frame_equal(result, df)
+
+    def test_read_json_table_orient_complex_partial_nan(self):
+        # GH#50782 assert_frame_equal treats every complex NA as equal
+        arr = np.array(
+            [
+                complex(np.nan, 1),
+                complex(3, np.nan),
+                complex(np.nan, np.nan),
+                0.1 + 0.2j,
+            ]
+        )
+        out = pd.DataFrame({"a": arr}).to_json(orient="table")
+        result = pd.read_json(StringIO(out), orient="table")["a"].to_numpy()
+        tm.assert_numpy_array_equal(result.real, arr.real)
+        tm.assert_numpy_array_equal(result.imag, arr.imag)
+
+    def test_read_json_table_orient_complex_empty(self):
+        # GH#50782
+        df = pd.DataFrame({"a": np.array([], dtype="complex128")})
+        out = df.to_json(orient="table")
+        result = pd.read_json(StringIO(out), orient="table")
+        tm.assert_series_equal(result["a"], df["a"], check_index_type=False)
+
+    @pytest.mark.parametrize("values", [[1.5 + 2j, np.nan], []])
+    def test_read_json_table_orient_complex_sparse(self, values):
+        # GH#50782
+        arr = pd.arrays.SparseArray(np.array(values, dtype=np.complex128))
+        df = pd.DataFrame({"a": arr})
+        out = df.to_json(orient="table")
+        result = pd.read_json(StringIO(out), orient="table")
+        tm.assert_series_equal(result["a"], df["a"], check_index_type=False)
+
+    def test_read_json_table_orient_number_field_complex_dtype(self):
+        # GH#50782 only an "object" field holds {"imag": ..., "real": ...}
+        out = (
+            '{"schema":{"fields":[{"name":"a","type":"number",'
+            '"extDtype":"complex128"}]},"data":[{"a":1.5}]}'
+        )
+        result = pd.read_json(StringIO(out), orient="table")
+        expected = pd.DataFrame({"a": [1.5 + 0j]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_json_table_orient_object_field(self):
+        # GH#50782 a Table Schema "object" field without extDtype keeps the payload
+        out = (
+            '{"schema":{"fields":[{"name":"a","type":"object"}]},'
+            '"data":[{"a":{"b":1}}]}'
+        )
+        result = pd.read_json(StringIO(out), orient="table")
+        expected = pd.DataFrame({"a": [{"b": 1}]})
+        tm.assert_frame_equal(result, expected)
+
     def test_empty_frame_roundtrip(self):
         # GH 21287
         df = pd.DataFrame(columns=["a", "b", "c"])
@@ -945,6 +1020,38 @@ class TestTableOrientReader:
         expected = pd.DataFrame({"a": [1, 2.0, "s"]})
         result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            # pandas<1.5 wrote tz-naive datetimes with a "Z" suffix
+            ["2022-09-12T11:42:33.330Z", "2022-09-13T00:00:00.000Z", None],
+            ["2022-09-12T13:42:33.330+02:00", "2022-09-13T01:00:00+01:00", None],
+        ],
+    )
+    def test_read_json_table_naive_field_with_offset(self, values):
+        # GH#52595
+        data = [{"idx": val, "a": val} for val in values]
+        df_json = json.dumps(
+            {
+                "schema": {
+                    "fields": [
+                        {"name": "idx", "type": "datetime"},
+                        {"name": "a", "type": "datetime"},
+                    ],
+                    "primaryKey": ["idx"],
+                    "pandas_version": "1.4.0",
+                },
+                "data": data,
+            }
+        )
+        result = pd.read_json(StringIO(df_json), orient="table")
+
+        dti = pd.DatetimeIndex(
+            ["2022-09-12 11:42:33.330", "2022-09-13 00:00:00", None], dtype="M8[ns]"
+        )
+        expected = pd.DataFrame({"a": dti}, index=dti.rename("idx"))
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["M", "2M", "Q", "2Q", "Y", "2Y"])
     def test_read_json_table_orient_period_depr_freq(self, freq):

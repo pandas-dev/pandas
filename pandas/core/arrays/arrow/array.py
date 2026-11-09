@@ -108,6 +108,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.nanops import check_below_min_count
+from pandas.core.sorting import get_group_index_sorter
 
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
@@ -502,6 +503,18 @@ def _has_dictionary_or_view_child(pa_type: pa.DataType) -> bool:
         ):
             return True
     return False
+
+
+def _unwrap_storage_type(pa_type: pa.DataType) -> pa.DataType:
+    """
+    The storage type of an extension type, and the value type of a run-end-encoded
+    type; any other type unchanged.
+    """
+    if isinstance(pa_type, pa.BaseExtensionType):
+        pa_type = pa_type.storage_type
+    if pa.types.is_run_end_encoded(pa_type):
+        pa_type = pa_type.value_type
+    return pa_type
 
 
 @set_module("pandas.arrays")
@@ -1045,11 +1058,22 @@ class ArrowExtensionArray(
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
                 mask = is_pdna_or_none(arr_value)
 
-            try:
-                pa_array = pa.array(value, type=pa_type, mask=mask)
-            except (pa.ArrowInvalid, pa.ArrowTypeError):
-                # GH50430: let pyarrow infer type, then cast
+            if (
+                isinstance(value, np.ndarray)
+                and value.dtype.kind in "US"
+                and pa_type is not None
+                and pa.types.is_primitive(_unwrap_storage_type(pa_type))
+            ):
+                # pyarrow can segfault converting a numpy str array with a mask
+                #  to a primitive type, also as extension storage or run-end
+                #  encoded values (GH#71827); infer string/binary, then cast below
                 pa_array = pa.array(value, mask=mask)
+            else:
+                try:
+                    pa_array = pa.array(value, type=pa_type, mask=mask)
+                except (pa.ArrowInvalid, pa.ArrowTypeError):
+                    # GH50430: let pyarrow infer type, then cast
+                    pa_array = pa.array(value, mask=mask)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
@@ -1934,7 +1958,9 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            return self
+            if not copy:
+                return self
+            return self._from_pyarrow_array(self._pa_array)
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
@@ -2647,18 +2673,22 @@ class ArrowExtensionArray(
         return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
-    def _concat_same_type(cls, to_concat) -> Self:
+    def _concat_same_type(cls, to_concat, axis: AxisInt = 0) -> Self:
         """
         Concatenate multiple ArrowExtensionArrays.
 
         Parameters
         ----------
         to_concat : sequence of ArrowExtensionArrays
+        axis : int, default 0
+            Must be 0 or -1; ArrowExtensionArray is 1D-only.
 
         Returns
         -------
         ArrowExtensionArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype
@@ -3713,10 +3743,17 @@ class ArrowExtensionArray(
             return None
 
         # See _groupby_op for the types routed here.
-        # PyArrow doesn't support sum/prod/mean/std/var/sem on strings.
         pa_type = self._pa_array.type
         is_str = pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
-        if is_str and how in ["sum", "prod", "mean", "std", "var", "sem"]:
+        if is_str and how == "sum":
+            return self._groupby_string_sum(
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+        # PyArrow doesn't support prod/mean/std/var/sem on strings.
+        if is_str and how in ["prod", "mean", "std", "var", "sem"]:
             return None
 
         # Filter out NA group (ids == -1)
@@ -3828,6 +3865,44 @@ class ArrowExtensionArray(
                 # keep the skipna=False nulls, fill only the empty groups
                 pa_result = pc.if_else(pc.is_null(indices), default_value, pa_result)
         return self._from_pyarrow_array(pa_result)
+
+    def _groupby_string_sum(
+        self,
+        *,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        skipna: bool,
+    ) -> Self | None:
+        """
+        Concatenate the strings of each group, in row order.
+
+        Linear in the size of each group, unlike repeated concatenation. Returns
+        None if the result may not fit in a single string (not large_string) array.
+        """
+        pa_type = self._pa_array.type
+        if pa.types.is_string(pa_type) and self._pa_array.nbytes >= 2**31:
+            return None
+
+        keep = ids >= 0
+        if skipna:
+            keep &= ~self.isna()
+        kept_ids = ids[keep]
+        indices = np.flatnonzero(keep)[get_group_index_sorter(kept_ids, ngroups)]
+        values = pc.take(self._pa_array, indices).combine_chunks()
+
+        counts = np.bincount(kept_ids, minlength=ngroups)
+        offsets = np.concatenate([[0], counts.cumsum()], dtype=np.int64)
+        lists = pa.LargeListArray.from_arrays(offsets, values)
+        # binary_join gives null for a group containing a null, "" for an empty one;
+        # the separator's type must match the values'
+        result = pc.binary_join(lists, pa.scalar("", type=pa_type))
+
+        if min_count > 0:
+            result = pc.if_else(
+                counts < min_count, pa.scalar(None, type=pa_type), result
+            )
+        return self._from_pyarrow_array(result)
 
     def _to_groupby_compatible(self) -> ExtensionArray:
         """Convert to a type compatible with groupby cython ops."""
@@ -4042,10 +4117,9 @@ class ArrowExtensionArray(
         self,
         pat: str | re.Pattern[str],
         case: bool = True,
-        flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        pat, case, flags = self._unwrap_re_pattern(pat, case)
 
         if flags:
             compiled = self._compile_re_fallback(pat, case, flags)
@@ -4053,7 +4127,7 @@ class ArrowExtensionArray(
             result = self._apply_re_fallback(func, pa.bool_())
             return self._convert_bool_result(result, na=na, method_name="match")
 
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+        return ArrowStringArrayMixin._str_match(self, pat, case, na)
 
     def _str_fullmatch(
         self,
