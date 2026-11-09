@@ -277,12 +277,13 @@ class TestDataFrameCorr:
     def test_corr_no_missing_values_within_bounds(self):
         # GH#40956 perfectly (anti-)correlated columns can round to just past +/-1
         rng = np.random.default_rng(2)
-        factors = rng.uniform(-1, 1, 200)
+        factors = rng.uniform(-1, 1, 300)
         df = pd.DataFrame(np.outer(rng.random(10), factors))
         result = df.corr().to_numpy()
         expected = np.sign(np.outer(factors, factors))
         tm.assert_almost_equal(result, expected)
         assert np.abs(result).max() == 1.0
+        tm.assert_numpy_array_equal(result, result.T)
 
     @pytest.mark.parametrize("method", ["pearson", "spearman"])
     def test_corr_no_missing_values_matches_missing_values_path(self, method):

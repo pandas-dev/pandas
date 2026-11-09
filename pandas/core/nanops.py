@@ -2170,11 +2170,12 @@ def finite_corr_matrix(mat: np.ndarray, min_periods: int | None = None) -> np.nd
 
         correl = np.dot(centered.T, centered)
 
-        # sqrt(ssq * ssq) == ssq exactly, so the diagonal comes out as exactly 1
         ssq = np.diag(correl).copy()
-        scratch = np.outer(ssq, ssq)
-        np.sqrt(scratch, out=scratch)
-        correl /= scratch
+        # row blocks bound the scratch memory; dividing by sqrt(ssq_i * ssq_j)
+        # keeps the result symmetric and the diagonal exactly 1
+        for start in range(0, ncols, 256):
+            rows = slice(start, start + 256)
+            correl[rows] /= np.sqrt(np.outer(ssq[rows], ssq))
 
     correl[constant, :] = np.nan
     correl[:, constant] = np.nan
