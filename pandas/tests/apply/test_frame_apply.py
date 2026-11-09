@@ -1773,6 +1773,28 @@ def test_apply_raw_returns_string(engine):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize(
+    "first, rest",
+    [
+        (1, np.nan),
+        (1, 2.5),
+        (np.int8(1), 300),
+        (3.0, 1 + 2j),
+        (1, None),
+        (1, "a"),
+        (True, 2),
+    ],
+)
+def test_apply_raw_scalar_dtype_inferred_from_all_results(first, rest, axis):
+    # GH#61632 later results must not be cast to the dtype of the first
+    df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
+    result = df.apply(lambda arr: first if arr[0] == 1 else rest, axis=axis, raw=True)
+    length = df.shape[1 - axis]
+    expected = pd.Series([first] + [rest] * (length - 1))
+    tm.assert_series_equal(result, expected)
+
+
 def test_apply_raw_zero_dim_object_array_holding_list():
     df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
     wrapped = np.empty((), dtype=object)
@@ -1817,6 +1839,16 @@ def test_apply_raw_masked_array_results(axis):
 
     result = df.apply(func, axis=axis, raw=True)
     tm.assert_frame_equal(result, df.mask(df.isin([1, 12])))
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_raw_zero_dim_array_results(axis):
+    # GH#61632
+    df = pd.DataFrame(np.arange(1, 13).reshape(4, 3))
+    func = lambda arr: np.array(1) if arr[0] == 1 else np.array(2.5)
+    result = df.apply(func, axis=axis, raw=True)
+    expected = pd.Series([1.0] + [2.5] * (df.shape[1 - axis] - 1))
+    tm.assert_series_equal(result, expected)
 
 
 def test_apply_raw_scalar_results_args_kwargs():

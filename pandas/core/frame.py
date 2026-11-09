@@ -15304,8 +15304,8 @@ class DataFrame(NDFrame, OpsMixin):
 
          .. note::
 
-                When ``raw=True``, the result dtype is inferred from the **first**
-                returned value.
+                When ``raw=True`` and ``func`` returns list-like results, the
+                result dtype is inferred from the **first** returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             How to interpret list-like results from `func`:
