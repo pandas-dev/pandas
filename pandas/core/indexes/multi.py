@@ -9,10 +9,7 @@ from collections.abc import (
     Sequence,
 )
 from copy import deepcopy
-from functools import (
-    reduce,
-    wraps,
-)
+from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
 from typing import (
@@ -5203,14 +5200,21 @@ def _raise_key_length_error(key_length: int, nlevels: int) -> NoReturn:
 
 
 def _union_levels(levels: list[Index]) -> Index:
-    if not lib.dtypes_all_equal([level.dtype for level in levels]):
-        # the result dtype depends on the order the levels are combined in
-        return reduce(Index.union, levels)
+    if is_object_dtype(levels[0].dtype) or not lib.dtypes_all_equal(
+        [level.dtype for level in levels]
+    ):
+        # Mixed dtypes can change the result dtype. Object values can be
+        # unorderable, so intermediate unions also depend on the original order.
+        result = levels[0]
+        for level in levels[1:]:
+            result = result.union(level)
+        return result
 
     while len(levels) > 1:
-        levels = [
-            reduce(Index.union, levels[i : i + 2]) for i in range(0, len(levels), 2)
-        ]
+        pairs = [levels[i].union(levels[i + 1]) for i in range(0, len(levels) - 1, 2)]
+        if len(levels) % 2:
+            pairs.append(levels[-1])
+        levels = pairs
     return levels[0]
 
 

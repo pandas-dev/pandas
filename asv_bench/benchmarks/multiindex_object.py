@@ -9,6 +9,7 @@ from pandas import (
     MultiIndex,
     RangeIndex,
     Series,
+    Timedelta,
     array,
     date_range,
 )
@@ -432,27 +433,18 @@ class Append:
 
 
 class AppendMany:
-    params = ["datetime64[ns]", "int64", "str"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
+    def setup(self):
         N1 = 200
         N2 = 1000
 
-        if dtype == "datetime64[ns]":
-            level1 = date_range("2000-01-01", periods=N1 * N2, freq="s", unit="ns")
-        elif dtype == "int64":
-            level1 = Index(np.arange(N1 * N2))
-        elif dtype == "str":
-            level1 = Index([f"i-{i:06d}" for i in range(N1 * N2)], dtype="str")
-        else:
-            raise NotImplementedError
+        level1 = date_range("2000-01-01", periods=N2, freq="s", unit="ns")
 
         self.pieces = [
-            MultiIndex.from_product([level1[i::N1], ["a", "b"]]) for i in range(N1)
+            MultiIndex.from_product([level1 + Timedelta(days=i), ["a", "b"]])
+            for i in range(N1)
         ]
 
-    def time_append_many(self, dtype):
+    def time_append_many(self):
         self.pieces[0].append(self.pieces[1:])
 
 
