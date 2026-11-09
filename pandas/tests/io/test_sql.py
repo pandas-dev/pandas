@@ -2075,6 +2075,20 @@ def test_api_timedelta(conn, request):
     tm.assert_series_equal(result["foo"], expected)
 
 
+def test_to_sql_timedelta_writes_nanoseconds(sqlite_buildin):
+    df = pd.DataFrame(
+        {"duration": pd.to_timedelta(["00:00:01.5", "02:30:00"])}
+    )
+
+    with tm.assert_produces_warning(UserWarning, match="the 'timedelta' type"):
+        df.to_sql("timedelta_nanoseconds", sqlite_buildin, index=False)
+
+    result = sqlite_buildin.execute(
+        "SELECT duration FROM timedelta_nanoseconds"
+    ).fetchall()
+    assert result == [(1_500_000_000,), (9_000_000_000_000,)]
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_complex_raises(conn, request):
     conn_name = conn

@@ -1132,7 +1132,9 @@ class SQLTable(PandasObject):
                 if isinstance(vals, ArrowExtensionArray):
                     vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
                 # store as integers, see GH#6921, GH#7076
-                d = vals.view("i8").astype(object)
+                # SQL backends expect the documented nanosecond representation,
+                # regardless of the column's native timedelta unit.
+                d = vals.astype("timedelta64[ns]").view("i8").astype(object)
             else:
                 d = ser._values.astype(object)
 
