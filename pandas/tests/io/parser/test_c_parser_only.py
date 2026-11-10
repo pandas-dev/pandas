@@ -606,6 +606,57 @@ def test_chunk_whitespace_on_boundary(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "line, expected",
+    [(" b", [" b"]), ("  b", ["  b"]), ("\tb", ["\tb"]), ("  ", [])],
+)
+def test_leading_whitespace_split_at_chunk_boundary(c_parser_only, line, expected):
+    # GH#34085: the line's first blank is the last byte of the first chunk
+    parser = c_parser_only
+    first = "a" * (1024 * 256 - 2)
+    data = first + "\n" + line + "\nc\n"
+    result = parser.read_csv(StringIO(data), header=None)
+
+    tm.assert_frame_equal(result, pd.DataFrame([first, *expected, "c"]))
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, expected",
+    [
+        ("x,y\n a ,b\n", {"quotechar": " "}, [["x", "y"], ["a", "b"]]),
+        ("x,y\n\t\t,b\n", {"escapechar": "\t"}, [["x", "y"], ["\t", "b"]]),
+        ("x,y\n \t\t,b\n", {"escapechar": "\t"}, [["x", "y"], [" \t", "b"]]),
+        # not skipped as blank, matching engine="python"
+        ("x\n \t\nc\n", {"escapechar": "\t"}, [["x"], [" \nc"]]),
+        (
+            "x,y\n  \ta,b\t,c\n",
+            {"quotechar": "\t", "skipinitialspace": True},
+            [["x", "y"], ["a,b", "c"]],
+        ),
+    ],
+)
+def test_line_starting_with_blank_quotechar_or_escapechar(
+    c_parser_only, data, kwargs, expected
+):
+    # GH#34085: a blank quotechar or escapechar keeps its meaning at line start
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(data), header=None, dtype=str, **kwargs)
+
+    tm.assert_frame_equal(result, pd.DataFrame(expected, dtype="str"))
+
+
+@pytest.mark.parametrize(
+    "data, kwargs",
+    [("x\n  \r\nc\n", {}), ("x\n  \rc\n", {}), ("x\n  #z\nc\n", {"comment": "#"})],
+)
+def test_skipped_line_leading_blanks_not_kept(c_parser_only, data, kwargs):
+    # GH#34085: blanks held while probing a skipped line must not reach the next
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(data), **kwargs)
+
+    tm.assert_frame_equal(result, pd.DataFrame({"x": ["c"]}))
+
+
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_file_handles_mmap(c_parser_only, csv1):
     # gh-14418
@@ -810,8 +861,7 @@ def test_string_storage_python_consistent(c_parser_only):
 @pytest.mark.parametrize("lineterm", ["\n", "\r\n"])
 def test_block_lane_blank_and_whitespace_lines(c_parser_only, lineterm):
     # The SIMD block fast lane defers lines led by blanks (or entirely
-    # blank) to the state machine; a no-progress lane exit must preserve
-    # the post-WHITESPACE_LINE state instead of ping-ponging (GH#66274).
+    # blank) to the state machine (GH#66274).
     parser = c_parser_only
     rows = []
     for i in range(200):
