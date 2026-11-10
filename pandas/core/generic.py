@@ -2948,8 +2948,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             rows were written).
 
             The number of returned rows affected is the sum of the ``rowcount``
-            attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not
-            reflect the exact number of written rows as stipulated in the
+            attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable, or None if
+            any of them is negative. It may not reflect the exact number of written
+            rows as stipulated in the
             `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
             `SQLAlchemy <https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.rowcount>`__.
 

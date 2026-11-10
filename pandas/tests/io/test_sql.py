@@ -1316,6 +1316,19 @@ def test_to_sql_driver_unknown_rowcount(method, chunksize):
         assert conn.execute("SELECT count(*) FROM t").fetchone() == (5,)
 
 
+@pytest.mark.parametrize("conn", ["sqlite_engine", "sqlite_conn"])
+@pytest.mark.parametrize("method", [None, "multi"])
+def test_to_sql_sqlalchemy_unknown_rowcount(conn, method, request, monkeypatch):
+    # SQLAlchemy reports -1 when the DBAPI driver can't count the rows
+    from sqlalchemy.engine import CursorResult
+
+    conn = request.getfixturevalue(conn)
+    monkeypatch.setattr(CursorResult, "rowcount", property(lambda self: -1))
+    df = pd.DataFrame({"a": range(5)})
+    assert df.to_sql("t", conn, index=False, method=method, chunksize=2) is None
+    assert count_rows(conn, "t") == 5
+
+
 def test_to_sql_adbc_unknown_rowcount(sqlite_adbc_conn, monkeypatch):
     # adbc_ingest returns -1 when the driver can't count the rows
     from adbc_driver_manager import dbapi
