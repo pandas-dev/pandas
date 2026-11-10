@@ -1163,6 +1163,20 @@ class TestIteration:
         groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
 
+    def test_iter_key_types_single_and_multiple_columns(self):
+        # GH 46659
+        df = pd.DataFrame({"x": [1, 2], "y": [1, 2]})
+
+        single_keys = [key for key, _ in df.groupby("x")]
+        multi_keys = [key for key, _ in df.groupby(["x", "y"])]
+
+        assert single_keys == [1, 2]
+        assert multi_keys == [(1, 1), (2, 2)]
+        for key in single_keys:
+            assert type(key) is int
+        for key in multi_keys:
+            assert all(type(part) is int for part in key)
+
     def test_dictify(self, df):
         dict(iter(df.groupby("A")))
         dict(iter(df.groupby(["A", "B"])))

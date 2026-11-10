@@ -47,6 +47,7 @@ from pandas.io.sql import (
     read_sql_query,
     read_sql_table,
 )
+from pandas.io.sql.sqlite import _get_valid_sqlite_name
 
 if TYPE_CHECKING:
     import sqlalchemy
@@ -556,7 +557,7 @@ def drop_table(
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
     if isinstance(conn, sqlite3.Connection):
-        conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
+        conn.execute(f"DROP TABLE IF EXISTS {_get_valid_sqlite_name(table_name)}")
         conn.commit()
 
     else:
@@ -577,7 +578,7 @@ def drop_view(
     import sqlalchemy
 
     if isinstance(conn, sqlite3.Connection):
-        conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
+        conn.execute(f"DROP VIEW IF EXISTS {_get_valid_sqlite_name(view_name)}")
         conn.commit()
     else:
         adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
@@ -1651,6 +1652,28 @@ def test_read_sql_column_labels_are_str(conn, request, string_storage):
         assert type(result.columns[0]) is str
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_percent_without_params(conn, request):
+    # GH#49561 a lone "%" means the query is passed through unchanged, "%%" included
+    conn = request.getfixturevalue(conn)
+    query = (
+        "SELECT '100%' AS a, '100%%' AS b, "
+        "CASE WHEN 'mexico' LIKE '%mex%' THEN 1 ELSE 0 END AS c"
+    )
+    result = pd.read_sql(query, conn)
+    assert result.iloc[0].tolist() == ["100%", "100%%", 1]
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_escaped_percent_without_params(conn, request):
+    # GH#49561 with every "%" escaped, drivers that %-format still unescape "%%"
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    expected = "100%%" if "sqlite" in conn_name else "100%"
+    result = pd.read_sql("SELECT '100%%' AS a", conn)
+    assert result.iloc[0, 0] == expected
+
+
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     if "adbc" in conn:
@@ -1673,9 +1696,7 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings):
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings):
-    if "mysql" in conn or ("postgresql" in conn and "adbc" not in conn):
-        request.applymarker(pytest.mark.xfail(reason="broken test"))
-
+    # GH#49561
     conn_name = conn
     conn = request.getfixturevalue(conn)
 
@@ -4752,7 +4773,7 @@ def test_xsqlite_write_row_by_row(sqlite_buildin):
     cur.execute(create_sql)
 
     ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-    for _, row in frame.iterrows():
+    for row in frame.itertuples(index=False):
         fmt_sql = format_query(ins, *row)
         tquery(fmt_sql, con=sqlite_buildin)
 

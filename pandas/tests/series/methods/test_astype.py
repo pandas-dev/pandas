@@ -511,13 +511,8 @@ class TestAstypeString:
         ],
     )
     def test_astype_string_to_extension_dtype_roundtrip(
-        self, data, dtype, request, nullable_string_dtype
+        self, data, dtype, nullable_string_dtype
     ):
-        if dtype == "boolean":
-            mark = pytest.mark.xfail(
-                reason="TODO StringArray.astype() with missing values #GH40566"
-            )
-            request.applymarker(mark)
         # GH-40351
         ser = pd.Series(data, dtype=dtype)
 

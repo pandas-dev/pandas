@@ -877,6 +877,20 @@ class TestParquetPyArrow(Base):
         expected["a"] = expected["a"].cat.set_categories(cats.astype("str"))
         check_round_trip(df, temp_file, pa, expected=expected)
 
+    @pytest.mark.skipif(
+        pa_version_under20p0, reason="pyarrow<20 reads dictionary indices as int32"
+    )
+    @pytest.mark.parametrize("n_categories, index_type", [(3, "int8"), (300, "int16")])
+    def test_read_dtype_backend_pyarrow_category_index_type(
+        self, pa, temp_file, n_categories, index_type
+    ):
+        # GH#58062
+        df = pd.DataFrame({"a": pd.Categorical([f"c{i}" for i in range(n_categories)])})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+        assert str(result["a"].dtype.pyarrow_dtype.index_type) == index_type
+
     @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(
         self, df_compat, s3_bucket_public, s3so, pa, temp_file
@@ -1137,7 +1151,7 @@ class TestParquetPyArrow(Base):
                 [b"foo", b"bar"],
                 marks=pytest.mark.xfail(
                     pa_version_under20p0,
-                    raises=NotImplementedError,
+                    raises=TypeError,
                     reason="https://github.com/apache/arrow/pull/44171",
                 ),
             ),

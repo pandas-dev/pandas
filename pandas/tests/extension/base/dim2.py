@@ -85,6 +85,16 @@ class Dim2CompatTests:
         expected = data.take([0, 0, -1]).reshape(-1, 1)
         tm.assert_extension_array_equal(result, expected)
 
+    def test_repeat_2d(self, data):
+        # GH#69153
+        result = data.reshape(1, -1).repeat(3, axis=0)
+        expected = data._concat_same_type([data] * 3).reshape(3, -1)
+        tm.assert_extension_array_equal(result, expected)
+
+        result = data.reshape(-1, 1).repeat(2, axis=1)
+        expected = data.repeat(2).reshape(-1, 2)
+        tm.assert_extension_array_equal(result, expected)
+
     def test_repr_2d(self, data):
         # this could fail in a corner case where an element contained the name
         res = repr(data.reshape(1, -1))
