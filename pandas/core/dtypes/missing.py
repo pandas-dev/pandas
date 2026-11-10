@@ -528,8 +528,8 @@ def _array_equivalent_object(
 
     try:
         if mask is None:
-            return lib.array_equivalent_object(left, right)
-        if not lib.array_equivalent_object(left[~mask], right[~mask]):
+            return lib.array_equivalent_object(left, right, strict_nan)
+        if not lib.array_equivalent_object(left[~mask], right[~mask], strict_nan):
             return False
         left_remaining = left[mask]
         right_remaining = right[mask]
@@ -546,8 +546,11 @@ def _array_equivalent_object(
         elif left_value is libmissing.NA and right_value is not libmissing.NA:
             return False
 
-        elif isinstance(left_value, float) and np.isnan(left_value):
-            if not isinstance(right_value, float) or not np.isnan(right_value):
+        elif (lib.is_float(left_value) or lib.is_complex(left_value)) and np.isnan(
+            left_value
+        ):
+            # includes numpy float32 and complex NaNs, GH#55492
+            if not libmissing.is_matching_na(left_value, right_value):
                 return False
         else:
             with warnings.catch_warnings():

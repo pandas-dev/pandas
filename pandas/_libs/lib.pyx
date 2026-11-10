@@ -708,10 +708,13 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(ndarray left, ndarray right) -> bool:
+def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) -> bool:
     """
     Perform an element by element comparison on N-d object arrays
     taking into account nan positions.
+
+    If strict_nan, NaN and None are considered different, also inside
+    nested arrays.
     """
     # left and right both have object dtype, but we cannot annotate that
     #  without limiting ndim.
@@ -734,14 +737,14 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 if x.shape != y.shape:
                     return False
                 if x.dtype == y.dtype == object:
-                    if not array_equivalent_object(x, y):
+                    if not array_equivalent_object(x, y, strict_nan):
                         return False
                 else:
                     # Circular import isn't great, but so it goes.
                     # TODO: could use np.array_equal?
                     from pandas.core.dtypes.missing import array_equivalent
 
-                    if not array_equivalent(x, y):
+                    if not array_equivalent(x, y, strict_nan=strict_nan):
                         return False
 
             elif PyArray_Check(x) or PyArray_Check(y):
@@ -750,7 +753,7 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 return False
             elif not (
                 PyObject_RichCompareBool(x, y, Py_EQ)
-                or is_matching_na(x, y, nan_matches_none=True)
+                or is_matching_na(x, y, nan_matches_none=not strict_nan)
             ):
                 return False
         except (ValueError, TypeError):
