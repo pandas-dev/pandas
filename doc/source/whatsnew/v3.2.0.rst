@@ -29,7 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Series`, :class:`DataFrame`, :class:`Index`, and :class:`ExtensionArray` now support the ``minimummaximum`` ufunc reduction backing ``np.minmax`` (NumPy 2.6+), returning the same results as ``np.minimum.reduce`` and ``np.maximum.reduce`` (:issue:`71380`)
-- :func:`numpy.delete` on an :class:`ExtensionArray`, and :func:`numpy.concatenate` on :class:`ExtensionArray` objects of the same dtype, now return an :class:`ExtensionArray` of that dtype instead of a NumPy array (:issue:`26380`)
+- :func:`numpy.delete` on an :class:`ExtensionArray`, and :func:`numpy.concatenate`, :func:`numpy.append` and :func:`numpy.hstack` on :class:`ExtensionArray` objects of the same dtype, now return an :class:`ExtensionArray` of that dtype instead of a NumPy array (:issue:`26380`)
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
 - :meth:`.DataFrameGroupBy.plot` now titles each group's figure with its group key, unless ``title`` or ``ax`` is passed (:issue:`12452`)
@@ -128,7 +128,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
-- :class:`ExtensionArray` now implements ``__array_function__``. Code expecting :func:`numpy.concatenate` or :func:`numpy.delete` to return a NumPy array for :class:`ExtensionArray` input, including ``_concat_same_type`` and ``delete`` implementations in :class:`ExtensionArray` subclasses, may need updating, as may code mixing an :class:`ExtensionArray` with another library's ``__array_function__`` arrays (:issue:`26380`)
+- :class:`ExtensionArray` now implements ``__array_function__``. Code expecting :func:`numpy.concatenate`, :func:`numpy.append`, :func:`numpy.hstack` or :func:`numpy.delete` to return a NumPy array for :class:`ExtensionArray` input, including ``_concat_same_type`` and ``delete`` implementations in :class:`ExtensionArray` subclasses, may need updating, as may code mixing an :class:`ExtensionArray` with another library's ``__array_function__`` arrays (:issue:`26380`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
 - :class:`Timedelta` and :func:`to_timedelta` now raise ``ValueError`` for a string with a comma between digits outside the seconds field, such as ``"1,5 days"`` or ``"1,234 days"``, instead of ignoring the comma (:issue:`71877`)
 - :meth:`.ExtensionArray._concat_same_type` now has an ``axis`` keyword (default ``0``); pandas only passes it for dtypes that support 2D, so existing implementations without it keep working (:issue:`47514`)

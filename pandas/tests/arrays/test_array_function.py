@@ -31,6 +31,9 @@ def test_axis_spellings(axis):
     result = np.concatenate([arr, arr[:1]], axis=axis)
     tm.assert_extension_array_equal(result, arr.take([0, 1, 2, 0]))
 
+    result = np.append(arr, arr[:1], axis=axis)
+    tm.assert_extension_array_equal(result, arr.take([0, 1, 2, 0]))
+
 
 @pytest.mark.parametrize(
     "kwargs",
@@ -40,6 +43,14 @@ def test_concatenate_with_kwargs_falls_back(kwargs):
     arr = pd.array([1, None], dtype="Int64")
     result = np.concatenate([arr, arr], **kwargs)
     expected = np.concatenate([np.asarray(arr)] * 2, **kwargs)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"dtype": object}, {"casting": "unsafe"}])
+def test_hstack_with_kwargs_falls_back(kwargs):
+    arr = pd.array([1, None], dtype="Int64")
+    result = np.hstack([arr, arr], **kwargs)
+    expected = np.hstack([np.asarray(arr)] * 2, **kwargs)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -60,11 +71,17 @@ def test_concatenate_out_falls_back():
         np.array([1]),
     ],
 )
-def test_concatenate_mismatched_falls_back(other):
+@pytest.mark.parametrize(
+    "func",
+    [np.concatenate, np.hstack, lambda arrays: np.append(*arrays)],
+    ids=["concatenate", "hstack", "append"],
+)
+def test_concatenate_mismatched_falls_back(other, func):
     arr = pd.array([1, None], dtype="Int64")
-    result = np.concatenate([arr, other])
-    expected = np.concatenate([np.asarray(arr), np.asarray(other)])
-    tm.assert_numpy_array_equal(result, expected)
+    for arrays in [[arr, other], [other, arr]]:
+        result = func(arrays)
+        expected = func([np.asarray(x) for x in arrays])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -92,6 +109,9 @@ def test_2d_falls_back():
 
     result = np.concatenate([arr, arr])
     tm.assert_numpy_array_equal(result, np.concatenate([expected, expected]))
+
+    result = np.append(arr, arr)
+    tm.assert_numpy_array_equal(result, np.append(expected, expected))
 
 
 class ArrayFunctionOverride:

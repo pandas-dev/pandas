@@ -3456,9 +3456,20 @@ def _concatenate(arrays, axis=0, out=None, dtype=None, casting="same_kind"):
     return cls._concat_same_type(arrays)
 
 
+# for 1D input these are np.concatenate
+def _append(arr, values, axis=None):
+    return _concatenate((arr, values), axis=axis)
+
+
+def _hstack(tup, *, dtype=None, casting="same_kind"):
+    return _concatenate(tup, dtype=dtype, casting=casting)
+
+
 _ARRAY_FUNCTION_OVERRIDES: dict[Callable[..., Any], Callable[..., Any]] = {
     np.delete: _delete,
     np.concatenate: _concatenate,
+    np.append: _append,
+    np.hstack: _hstack,
 }
 
 
