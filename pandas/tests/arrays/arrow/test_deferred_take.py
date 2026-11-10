@@ -1,7 +1,7 @@
 """
-Tests for the deferred gather of variable-width binary Arrow arrays: ``take``,
-slices and boolean masks of a string or binary ``ArrowExtensionArray`` record
-the positions and gather on first access to ``_pa_array``.
+Tests for the deferred gather of ``large_string`` and ``large_binary`` Arrow
+arrays: ``take``, slices and boolean masks of such an ``ArrowExtensionArray``
+record the positions and gather on first access to ``_pa_array``.
 """
 
 from __future__ import annotations
@@ -23,21 +23,17 @@ def _is_pending(arr) -> bool:
 
 
 @pytest.fixture(
-    params=[
-        pa.string(),
-        pa.large_string(),
-        pa.binary(),
-        pa.large_binary(),
-        "str",
-    ],
-    ids=["string", "large_string", "binary", "large_binary", "str"],
+    params=[pa.large_string(), pa.large_binary(), "str"],
+    ids=["large_string", "large_binary", "str"],
 )
 def data(request):
-    n = 100
     if request.param == "str":
-        values = [f"v{i}" if i % 7 else None for i in range(n)]
+        values = [f"v{i}" if i % 7 else None for i in range(100)]
         return pd.array(values, dtype=pd.StringDtype("pyarrow", na_value=np.nan))
-    pa_type = request.param
+    return _arrow_array(request.param)
+
+
+def _arrow_array(pa_type, n=100):
     if pa.types.is_binary(pa_type) or pa.types.is_large_binary(pa_type):
         values = [f"v{i}".encode() if i % 7 else None for i in range(n)]
     else:
@@ -152,10 +148,48 @@ def test_take_out_of_bounds_raises(data):
         pending.take(np.array([50] * 10))
 
 
-def test_fixed_width_take_not_deferred():
-    arr = pd.array(np.arange(100), dtype="int64[pyarrow]")
-    result = arr.take(np.arange(99, -1, -1))
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.binary(), pa.int64()], ids=str)
+def test_take_not_deferred(pa_type):
+    # 32-bit offsets can overflow in a take over chunks, and fixed-width
+    # values are cheap to gather
+    if pa.types.is_integer(pa_type):
+        arr = pd.array(np.arange(100), dtype=pd.ArrowDtype(pa_type))
+    else:
+        arr = _arrow_array(pa_type)
+    positions = np.arange(99, -1, -1)
+    result = arr.take(positions)
     assert not _is_pending(result)
+    tm.assert_extension_array_equal(result, _expected(arr, positions))
+    mask = np.arange(100) % 2 == 0
+    result = arr[mask]
+    assert not _is_pending(result)
+    tm.assert_extension_array_equal(result, _expected(arr, np.flatnonzero(mask)))
+
+
+def test_selective_mask_is_eager(data):
+    mask = np.zeros(len(data), dtype=bool)
+    mask[[3, 50]] = True
+    result = data[mask]
+    assert not _is_pending(result)
+    tm.assert_extension_array_equal(result, _expected(data, [3, 50]))
+
+
+@pytest.mark.parametrize("i", [0, 7, 42, -1, -100])
+def test_scalar_getitem_does_not_gather(data, i):
+    pending = data.take(np.arange(99, -1, -1))
+    result = pending[i]
+    expected = data[::-1][i]
+    if pd.isna(expected):
+        assert result is data.dtype.na_value
+    else:
+        assert result == expected
+    assert _is_pending(pending)
+
+
+def test_scalar_getitem_out_of_bounds(data):
+    pending = data.take(np.arange(99, -1, -1))
+    with pytest.raises(IndexError, match="out of bounds"):
+        pending[100]
 
 
 def test_materialize_releases_parent(data):
@@ -174,10 +208,12 @@ def test_view_shares_buffers(data):
     assert view._pa_array is pending._pa_array
 
 
-def test_copy_does_not_share_buffers(data):
+def test_copy_gathers(data):
     pending = data.take(np.arange(99, -1, -1))
     copied = pending.copy()
-    assert _is_pending(copied)
+    # the copy owns its buffers, so it does not keep the parent alive
+    assert not _is_pending(copied)
+    assert _is_pending(pending)
     assert not tm.shares_memory(pending, copied)
     tm.assert_extension_array_equal(copied, pending)
 
@@ -199,22 +235,34 @@ def test_pickle_pending(data):
     assert "_pending_take" not in result.__dict__
 
 
-def test_concurrent_materialize(data):
-    pending = data.take(np.arange(99, -1, -1))
-    views = [pending.view() for _ in range(8)]
+@pytest.mark.parametrize("share", [True, False], ids=["same-array", "views"])
+def test_concurrent_materialize(share):
+    # large enough that the gather, which releases the GIL, takes a while
+    n = 200_000
+    data = pd.array([f"value{i}" for i in range(n)], dtype="str")
+    pending = data.take(np.arange(n - 1, -1, -1))
+    views = [pending if share else pending.view() for _ in range(8)]
     barrier = threading.Barrier(len(views))
-    results = [None] * len(views)
+    results: list = [None] * len(views)
+    errors: list[BaseException] = []
 
     def run(i):
         barrier.wait()
-        results[i] = views[i]._pa_array
+        try:
+            assert len(views[i]) == n
+            results[i] = views[i]._pa_array
+            assert len(views[i]) == n
+        except BaseException as err:
+            errors.append(err)
 
     threads = [threading.Thread(target=run, args=(i,)) for i in range(len(views))]
     for thread in threads:
         thread.start()
     for thread in threads:
         thread.join()
+    assert not errors
     assert all(result is results[0] for result in results)
+    tm.assert_extension_array_equal(pending, data[::-1])
 
 
 def test_series_mask_and_merge():
