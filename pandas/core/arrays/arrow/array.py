@@ -518,13 +518,6 @@ def _unwrap_storage_type(pa_type: pa.DataType) -> pa.DataType:
     return pa_type
 
 
-# A deferred take keeps its parent alive until the gather runs (or the
-# array is copied: ``copy`` always gathers). When the result would hold
-# fewer rows than this fraction of the parent, gather right away instead:
-# the gather is cheap at that size, and the parent can be released.
-_DEFERRED_TAKE_MIN_FRACTION = 0.1
-
-
 def _take_by_chunk(
     parent: pa.ChunkedArray, indices: npt.NDArray[np.intp]
 ) -> pa.ChunkedArray:
@@ -589,6 +582,10 @@ class _PendingTake:
     Further takes, slices and masks compose their positions with these, so
     a chain of them runs as a single gather. Views share one instance, so
     the gather runs once for all of them and they share its buffers.
+
+    Like a slice, which is a view of its parent's buffers, a deferred take
+    keeps its parent alive until it is gathered; ``copy`` gathers, and so
+    releases the parent.
     """
 
     __slots__ = ("indices", "lock", "parent", "result")
@@ -939,7 +936,6 @@ class ArrowExtensionArray(
             if (
                 not isinstance(positions, np.ndarray)
                 or positions.dtype.kind not in "iu"
-                or len(positions) < _DEFERRED_TAKE_MIN_FRACTION * len(parent)
                 or not _is_varbinary_type(parent.type)
             ):
                 return None
@@ -951,9 +947,9 @@ class ArrowExtensionArray(
             # indexing a NumPy array with an array or a slice: a new array
             # or a view of ``base``, which is never modified
             composed = base[positions]
-            if len(composed) < _DEFERRED_TAKE_MIN_FRACTION * len(parent):
-                # small result: gather it straight from the parent
-                return self._from_pyarrow_array(_gather(parent, composed))
+        if not len(composed):
+            # nothing to defer, and no reason to keep the parent alive
+            return self._from_pyarrow_array(_gather(parent, composed))
         return self._with_pending_take(_PendingTake(parent, composed))
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
@@ -1387,9 +1383,7 @@ class ArrowExtensionArray(
                 deferred = None
                 if "_pending_take" in self.__dict__:
                     deferred = self._deferred_take(item)
-                elif _is_varbinary_type(self._pa_array.type) and (
-                    np.count_nonzero(item) >= _DEFERRED_TAKE_MIN_FRACTION * len(item)
-                ):
+                elif _is_varbinary_type(self._pa_array.type):
                     deferred = self._deferred_take(np.flatnonzero(item), copy=False)
                 if deferred is not None:
                     return deferred

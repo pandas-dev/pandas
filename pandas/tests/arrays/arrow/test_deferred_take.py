@@ -94,17 +94,34 @@ def test_mask_is_deferred(data):
     tm.assert_extension_array_equal(result, _expected(data, np.flatnonzero(mask)))
 
 
-def test_small_result_is_gathered_eagerly(data):
+def test_small_result_is_deferred(data):
     result = data.take(np.array([3, 1, 4]))
-    assert not _is_pending(result)
+    assert _is_pending(result)
     tm.assert_extension_array_equal(result, _expected(data, [3, 1, 4]))
 
-    # composing down to a small result gathers straight from the parent
     pending = data.take(np.arange(99, -1, -1))
     result = pending.take(np.array([0, 1]))
-    assert not _is_pending(result)
-    assert _is_pending(pending)
+    assert _is_pending(result)
     tm.assert_extension_array_equal(result, _expected(data, [99, 98]))
+    assert _is_pending(pending)
+
+    mask = np.zeros(len(data), dtype=bool)
+    mask[[3, 50]] = True
+    result = data[mask]
+    assert _is_pending(result)
+    tm.assert_extension_array_equal(result, _expected(data, [3, 50]))
+
+
+def test_empty_result_is_eager(data):
+    result = data[np.zeros(len(data), dtype=bool)]
+    assert not _is_pending(result)
+    assert len(result) == 0
+    assert result.dtype == data.dtype
+
+    pending = data.take(np.arange(99, -1, -1))
+    result = pending[np.zeros(len(pending), dtype=bool)]
+    assert not _is_pending(result)
+    assert len(result) == 0
 
 
 def test_slice_of_materialized_array_is_not_deferred(data):
@@ -194,7 +211,8 @@ def test_gather_over_2gib(pa_type):
     half = n // 2
     expected = pa.array([b"\0" * width] * 3, type=pa_type)
 
-    # small results are gathered from the parent: sorted positions ...
+    # small results composed onto the parent, gathered from it: sorted
+    # positions ...
     result = pending.take(np.array([0, half - 1, half]))
     assert pa.chunked_array(result._pa_array).combine_chunks().equals(expected)
     mask = np.zeros(len(pending), dtype=bool)
@@ -204,14 +222,6 @@ def test_gather_over_2gib(pa_type):
     # ... and unsorted ones
     result = pending.take(np.array([half + 3, 2, half]))
     assert result._pa_array.combine_chunks().equals(expected)
-
-
-def test_selective_mask_is_eager(data):
-    mask = np.zeros(len(data), dtype=bool)
-    mask[[3, 50]] = True
-    result = data[mask]
-    assert not _is_pending(result)
-    tm.assert_extension_array_equal(result, _expected(data, [3, 50]))
 
 
 @pytest.mark.parametrize("i", [0, 7, 42, -1, -100])
