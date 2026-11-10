@@ -992,7 +992,8 @@ def test_single_line_without_line_terminator(all_parsers, data, kwargs, expected
 
 
 def test_short_reads_without_line_terminator(all_parsers):
-    # GH#62635 a short read is not EOF, so no newline is added after it
+    # GH#62635 unbuffered sources like a bufsize=0 pipe can return short reads
+    # before EOF; no newline should be added after them
     class ShortReads(RawIOBase):
         def __init__(self, data: bytes) -> None:
             self.buffer = BytesIO(data)
