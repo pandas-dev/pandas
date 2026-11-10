@@ -92,19 +92,11 @@ class Period(PeriodMixin):
         cls,
         value: NaTType | NaTStrings | None,
         freq: int | str | BaseOffset | None = ...,
-        ordinal: int | None = ...,
-        year: int | None = ...,
-        month: int | None = ...,
-        quarter: int | None = ...,
-        day: int | None = ...,
-        hour: int | None = ...,
-        minute: int | None = ...,
-        second: int | None = ...,
     ) -> NaTType: ...
     @overload
     def __new__(
         cls,
-        value: Period | date | int | str = ...,
+        value: Period | date | int | str | None = ...,
         freq: int | str | BaseOffset | None = ...,
         ordinal: int | None = ...,
         year: int | None = ...,
