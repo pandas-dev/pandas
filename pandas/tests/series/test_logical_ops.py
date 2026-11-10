@@ -375,7 +375,7 @@ class TestSeriesLogicalOps:
         result = a & b
         tm.assert_series_equal(result, expected)
 
-        expected = pd.Series([True, True, False, False], list("abcd"))
+        expected = pd.Series([True, True, False, True], list("abcd"))
         result = a | b
         tm.assert_series_equal(result, expected)
 
@@ -398,7 +398,7 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         result = a | pd.Series([1], ["z"])
-        expected = pd.Series([True, True, False, False], list("abcz"))
+        expected = pd.Series([True, True, False, True], list("abcz"))
         tm.assert_series_equal(result, expected)
 
         # identity
@@ -469,19 +469,14 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(s1 & s2, exp)
         tm.assert_series_equal(s2 & s1, exp)
 
-        # True | np.nan => True
-        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s1 | s2, exp_or1)
-        # np.nan | True => np.nan, filled with False
-        exp_or = pd.Series([True, True, False, False], index=list("ABCD"), name="x")
+        # GH#51267 NaN from alignment counts as False on either side
+        exp_or = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
+        tm.assert_series_equal(s1 | s2, exp_or)
         tm.assert_series_equal(s2 | s1, exp_or)
 
-        # DataFrame doesn't fill nan with False
         tm.assert_frame_equal(s1.to_frame() & s2.to_frame(), exp.to_frame())
         tm.assert_frame_equal(s2.to_frame() & s1.to_frame(), exp.to_frame())
-
-        exp = pd.DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
-        tm.assert_frame_equal(s1.to_frame() | s2.to_frame(), exp_or1.to_frame())
+        tm.assert_frame_equal(s1.to_frame() | s2.to_frame(), exp_or.to_frame())
         tm.assert_frame_equal(s2.to_frame() | s1.to_frame(), exp_or.to_frame())
 
         # different length
@@ -492,18 +487,48 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(s3 & s4, exp)
         tm.assert_series_equal(s4 & s3, exp)
 
-        # np.nan | True => np.nan, filled with False
-        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s3 | s4, exp_or1)
-        # True | np.nan => True
         exp_or = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
+        tm.assert_series_equal(s3 | s4, exp_or)
         tm.assert_series_equal(s4 | s3, exp_or)
 
         tm.assert_frame_equal(s3.to_frame() & s4.to_frame(), exp.to_frame())
         tm.assert_frame_equal(s4.to_frame() & s3.to_frame(), exp.to_frame())
 
-        tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
+        tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or.to_frame())
         tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
+
+    @pytest.mark.parametrize("na_value", [np.nan, None, pd.NA])
+    @pytest.mark.parametrize("box", [pd.Series, pd.Index])
+    @pytest.mark.parametrize(
+        "op, expected",
+        [
+            (operator.or_, [True, True]),
+            (operator.and_, [False, False]),
+            (operator.xor, [True, True]),
+        ],
+    )
+    def test_logical_ops_object_na_commutative(self, op, expected, box, na_value):
+        # GH#51267
+        left = box([True, na_value], dtype=object)
+        right = box([na_value, True], dtype=object)
+        expected = box(expected)
+        tm.assert_equal(op(left, right), expected)
+        tm.assert_equal(op(right, left), expected)
+        tm.assert_equal(op(right, True), op(right, box([True, True], dtype=object)))
+
+    @pytest.mark.parametrize(
+        "na_value, other",
+        [
+            (pd.NA, np.array([True])),
+            (np.nan, np.array([[True, True]])),
+            (np.nan, np.array([[True], [True]])),
+        ],
+    )
+    def test_logical_ops_object_ndarray_shapes(self, na_value, other):
+        # GH#51267
+        ser = pd.Series([na_value, False], dtype=object)
+        result = ser | other
+        tm.assert_series_equal(result, pd.Series([True, True]))
 
     def test_int_dtype_different_index_not_bool(self):
         # GH 52500
