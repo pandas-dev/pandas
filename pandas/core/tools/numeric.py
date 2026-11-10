@@ -288,13 +288,8 @@ def to_numeric(
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif (
-        (dtype_backend is not lib.no_default and new_mask is None)
-        or (
-            isinstance(values_dtype, StringDtype)
-            and values_dtype.na_value is libmissing.NA
-        )
-        or isinstance(values_dtype, ArrowDtype)
+    elif (dtype_backend is not lib.no_default and new_mask is None) or (
+        isinstance(values_dtype, StringDtype) and values_dtype.na_value is libmissing.NA
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
