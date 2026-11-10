@@ -90,8 +90,8 @@ the ``NA`` really is ``True`` or ``False``, since ``True & True`` is ``True``,
 but ``True & False`` is ``False``, so we can't determine the output.
 
 
-This differs from how ``np.nan`` behaves in logical operations, where pandas
-treats it as ``False``.
+This differs from how ``np.nan`` behaves in an object-dtype Series, where it
+counts as ``False``.
 
 In ``or``
 

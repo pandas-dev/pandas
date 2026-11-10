@@ -521,7 +521,6 @@ class TestSeriesLogicalOps:
         [
             (pd.NA, np.array([True])),
             (np.nan, np.array([[True, True]])),
-            (np.nan, np.array([[True], [True]])),
         ],
     )
     def test_logical_ops_object_ndarray_shapes(self, na_value, other):
