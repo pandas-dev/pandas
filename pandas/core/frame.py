@@ -11,6 +11,11 @@ labeling information
 
 from __future__ import annotations
 
+__lazy_modules__ = (
+    "pandas.io.common",
+    "pandas.io.formats.info",
+)
+
 import collections
 from collections import abc
 import functools
@@ -314,8 +319,8 @@ class DataFrame(NDFrame, OpsMixin):
         missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
         Copy data from inputs.
-        For dict data, the default of None behaves like ``copy=True``.  For DataFrame
-        or 2d ndarray input, the default of None behaves like ``copy=False``.
+        The default of None behaves like ``copy=False`` for Series or Index input, or
+        for DataFrame input with no other arguments, and like ``copy=True`` otherwise.
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
 
@@ -1320,6 +1325,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
+        .. deprecated:: 3.2.0
+            Use :meth:`itertuples` instead.
+
         Each row is yielded as a (index, Series) tuple; the Series has
         the same index as the DataFrame columns. Note that dtypes may
         not be preserved across rows. Prefer :meth:`itertuples` for
@@ -1366,6 +1374,12 @@ class DataFrame(NDFrame, OpsMixin):
         >>> print(df["int"].dtype)
         int64
         """
+        warnings.warn(
+            f"{type(self).__name__}.iterrows is deprecated and "
+            "will be removed in a future version. Use .itertuples instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         columns = self.columns
         klass = self._constructor_sliced
         for k, v in zip(self.index, self.values, strict=True):
@@ -15295,8 +15309,8 @@ class DataFrame(NDFrame, OpsMixin):
 
          .. note::
 
-                When ``raw=True``, the result dtype is inferred from the **first**
-                returned value.
+                When ``raw=True`` and ``func`` returns list-like results, the
+                result dtype is inferred from the **first** returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             How to interpret list-like results from `func`:

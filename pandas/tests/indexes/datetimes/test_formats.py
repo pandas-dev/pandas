@@ -17,8 +17,8 @@ import pandas._testing as tm
 
 
 def test_get_values_for_csv_sub_minute_utc_offset():
-    # GH#66547 array formatting routes through Timestamp.isoformat, so a UTC
-    #  offset carrying seconds used to have the fraction spliced into it
+    # GH#66547 a UTC offset carrying seconds used to have the fraction spliced
+    #  into it
     dti = pd.DatetimeIndex(["1800-01-01 00:00:00.000000001"], tz="UTC").tz_convert(
         "Asia/Tokyo"
     )

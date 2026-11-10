@@ -46,6 +46,18 @@ class CustomFSPath:
         return self.path
 
 
+class CustomFSPathReadWrite(CustomFSPath):
+    """PathLike with read/write convenience methods, like py.path.local"""
+
+    def read(self, mode="r"):
+        with open(self.path, mode) as fh:
+            return fh.read()
+
+    def write(self, data, mode="w"):
+        with open(self.path, mode) as fh:
+            fh.write(data)
+
+
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -81,8 +93,10 @@ bar2,12,13,14,15
         redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
 
-    def test_stringify_path_fspath(self):
-        p = CustomFSPath("foo/bar.csv")
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_stringify_path_fspath(self, path_cls):
+        # GH#71769 for CustomFSPathReadWrite
+        p = path_cls("foo/bar.csv")
         result = icom.stringify_path(p)
         assert result == "foo/bar.csv"
 
@@ -318,11 +332,13 @@ Look,a snake,🐍"""
     @pytest.mark.filterwarnings(
         "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
     )
-    def test_read_fspath_all(self, reader, module, path, datapath):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_read_fspath_all(self, reader, module, path, path_cls, datapath):
+        # GH#71769 for CustomFSPathReadWrite
         pytest.importorskip(module)
         path = datapath(*path)
 
-        mypath = CustomFSPath(path)
+        mypath = path_cls(path)
         result = reader(mypath)
         expected = reader(path)
 
@@ -345,7 +361,11 @@ Look,a snake,🐍"""
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
     )
-    def test_write_fspath_all(self, writer_name, writer_kwargs, module, tmp_path):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_write_fspath_all(
+        self, writer_name, writer_kwargs, module, path_cls, tmp_path
+    ):
+        # GH#71769 for CustomFSPathReadWrite
         if writer_name in ["to_latex"]:  # uses Styler implementation
             pytest.importorskip("jinja2")
         string = str(tmp_path / "string")
@@ -353,7 +373,7 @@ Look,a snake,🐍"""
         df = pd.DataFrame({"A": [1, 2]})
 
         pytest.importorskip(module)
-        mypath = CustomFSPath(fspath)
+        mypath = path_cls(fspath)
         writer = getattr(df, writer_name)
 
         writer(string, **writer_kwargs)
@@ -370,7 +390,8 @@ Look,a snake,🐍"""
                 expected = f_path.read()
                 assert result == expected
 
-    def test_write_fspath_hdf5(self, tmp_path):
+    @pytest.mark.parametrize("path_cls", [CustomFSPath, CustomFSPathReadWrite])
+    def test_write_fspath_hdf5(self, path_cls, tmp_path):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
         # have to read and compare equality
@@ -380,7 +401,7 @@ Look,a snake,🐍"""
         string = str(tmp_path / "string")
         fspath = str(tmp_path / "fspath")
 
-        mypath = CustomFSPath(fspath)
+        mypath = path_cls(fspath)
         df.to_hdf(mypath, key="bar")
         df.to_hdf(string, key="bar")
 
@@ -731,6 +752,52 @@ def test_binary_buffer_without_mode_respects_encoding(encoding):
             return self.buffer.read(-1 if amt is None else amt)
 
     result = pd.read_csv(StreamingBuffer(data), encoding=encoding)
+    tm.assert_frame_equal(result, expected)
+
+
+class AutoClosingBuffer(IOBase):
+    # mimics a urllib3 response (e.g. requests' Response.raw), which reports
+    # closed once exhausted
+    auto_close = True
+
+    def __init__(self, data) -> None:
+        self.buffer = BytesIO(data)
+
+    def readable(self) -> bool:
+        return True
+
+    @property
+    def closed(self) -> bool:
+        return self.buffer.closed
+
+    def read(self, amt=None):
+        if self.buffer.closed:
+            return b""
+        data = self.buffer.read(-1 if amt is None else amt)
+        if amt is None or not data:
+            self.buffer.close()
+        return data
+
+    def flush(self) -> None:
+        # urllib3 also skips flushing a closed response
+        pass
+
+
+@pytest.mark.parametrize(
+    "reader, kwargs, data",
+    [
+        (pd.read_csv, {"encoding": "latin1"}, "a,b\n1,\N{DEGREE SIGN}\n"),
+        (pd.read_csv, {"engine": "python"}, "a,b\n1,x\n"),
+        (pd.read_json, {}, '{"a":{"0":1},"b":{"0":"x"}}'),
+        (pd.read_xml, {"parser": "etree"}, "<data><row><a>1</a><b>x</b></row></data>"),
+    ],
+)
+def test_read_auto_closing_buffer(reader, kwargs, data):
+    # GH#71883 wrapping a buffer that closes itself at EOF in a TextIOWrapper
+    # raised "I/O operation on closed file"
+    encoding = kwargs.get("encoding", "utf-8")
+    expected = reader(BytesIO(data.encode(encoding)), **kwargs)
+    result = reader(AutoClosingBuffer(data.encode(encoding)), **kwargs)
     tm.assert_frame_equal(result, expected)
 
 

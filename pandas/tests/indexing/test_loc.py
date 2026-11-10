@@ -2063,7 +2063,9 @@ class TestLocWithMultiIndex:
         expected = pd.Series(["a", "b", "c", "a"], dtype="category")
         tm.assert_series_equal(result, expected)
 
-    def test_loc_set_nan_in_categorical_series(self, any_numeric_ea_dtype):
+    def test_loc_set_nan_in_categorical_series(
+        self, any_numeric_ea_dtype, using_nan_is_na
+    ):
         # GH#47677
         srs = pd.Series(
             [1, 2, 3],

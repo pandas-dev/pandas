@@ -268,10 +268,16 @@ def stringify_path(
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    if not convert_file_like and is_file_like(filepath_or_buffer):
+    if (
+        not convert_file_like
+        and is_file_like(filepath_or_buffer)
+        and hasattr(filepath_or_buffer, "__iter__")
+    ):
         # GH 38125: some fsspec objects implement os.PathLike but have already opened a
         # file. This prevents opening the file a second time. infer_compression calls
         # this function with convert_file_like=True to infer the compression.
+        # Requiring __iter__ keeps py.path.local, whose read/write are convenience
+        # methods, on the path branch (GH#71769).
         return cast("BaseBufferT", filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, os.PathLike):
@@ -1028,6 +1034,8 @@ def get_handle(
                 or not hasattr(handle, "seekable")
             ):
                 handle = _IOWrapper(handle)
+            elif getattr(handle, "auto_close", False):
+                handle = _AutoCloseIOWrapper(handle)
             # error: Value of type variable "_BufferT_co" of "TextIOWrapper" cannot
             # be "_IOWrapper | BaseBuffer" [type-var]
             handle = TextIOWrapper(
@@ -1229,6 +1237,14 @@ class _IOWrapper:
         if hasattr(self.buffer, "writable"):
             return self.buffer.writable()
         return True
+
+
+class _AutoCloseIOWrapper(_IOWrapper):
+    # urllib3 responses (e.g. requests' Response.raw) close themselves at EOF
+    # when auto_close is set, after which TextIOWrapper raises on every read
+    @property
+    def closed(self) -> bool:
+        return False
 
 
 class _BytesIOWrapper:
