@@ -1557,6 +1557,7 @@ class ArrowExtensionArray(
                     "pow",
                     "rpow",
                 }:
+                    op_name = op_name.lstrip("r")
                     raise NotImplementedError(
                         f"operator '{op_name}' not implemented for bool dtypes"
                     )

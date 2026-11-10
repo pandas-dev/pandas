@@ -783,7 +783,12 @@ def test_bool_add_mul_matches_masked(op, other):
 def test_bool_arith_not_allowed(op, exc, other):
     # GH#63064 same exceptions as bool Series and masked bools
     arr = pd.array([True, False, None], dtype="bool[pyarrow]")
-    with pytest.raises(exc, match="bool"):
+    if exc is NotImplementedError:
+        op_name = op.__name__.lstrip("r")
+        msg = f"operator '{op_name}' not implemented for bool dtypes"
+    else:
+        msg = "bool"
+    with pytest.raises(exc, match=msg):
         op(arr, other)
 
 
