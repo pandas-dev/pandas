@@ -470,7 +470,6 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
     def test_ser_div_ser(
         self,
-        switch_numexpr_min_elements,
         dtype1,
         any_real_numpy_dtype,
     ):
