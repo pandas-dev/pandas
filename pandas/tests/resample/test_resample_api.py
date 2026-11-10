@@ -984,6 +984,20 @@ def test_end_and_end_day_origin(
 
 
 @pytest.mark.parametrize(
+    "closed, expected_label",
+    [("left", "1969-06-01 00:01"), ("right", "1969-05-31 23:01")],
+)
+def test_end_day_origin_offset_first_bin(closed, expected_label):
+    # GH#44957
+    ser = pd.Series([7], index=pd.DatetimeIndex(["1969-06-01 00:01"]))
+    result = ser.resample(
+        "1h", origin="end_day", offset="1min", closed=closed, label="left"
+    ).sum()
+    expected = pd.Series([7], index=date_range(expected_label, periods=1, freq="1h"))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     # expected_data is a string when op raises a ValueError
     "method, numeric_only, expected_data",
     [
