@@ -927,7 +927,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         False
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_valid_na_for_dtype(key, self.categories.dtype):
+        if is_valid_na_for_dtype(key, self.dtype):
             return self.hasnans
         if self.categories._typ == "rangeindex":
             container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
@@ -979,7 +979,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         try:
             return self._data._unbox_scalar(key)
         except KeyError:
-            if is_valid_na_for_dtype(key, self.categories.dtype):
+            if is_valid_na_for_dtype(key, self.dtype):
                 return -1
             raise
 

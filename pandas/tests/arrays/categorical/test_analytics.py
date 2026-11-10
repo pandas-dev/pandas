@@ -137,7 +137,7 @@ class TestCategoricalAnalytics:
             f"of {method}"
         )
         if kwarg == "axis":
-            msg = r"`axis` must be fewer than the number of dimensions \(1\)"
+            msg = r"`axis` must be less than the number of dimensions \(1\)"
         kwargs = {kwarg: 42}
         method = getattr(np, method)
         with pytest.raises(ValueError, match=msg):

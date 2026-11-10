@@ -198,6 +198,40 @@ class TestSetitem:
 
         tm.assert_extension_array_equal(result, expected)
 
+    def test_set_nan_masked_subtype_distinguish_nan_and_na(self):
+        # GH#71870 NaN marks a missing interval whatever the dtype of the endpoints
+        with pd.option_context("future.distinguish_nan_and_na", True):
+            arr = IntervalArray.from_arrays(
+                pd.array([0.0, 1.0], dtype="Float64"),
+                pd.array([1.0, 2.0], dtype="Float64"),
+            )
+            arr[0] = np.nan
+            assert arr.isna().tolist() == [True, False]
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            "Int64",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+            pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "value, expected",
+        [([np.nan], [True, False]), ([pd.Interval(0, 1), None], [False, True])],
+    )
+    def test_set_listlike_nan_masked_subtype_distinguish_nan_and_na(
+        self, dtype, value, expected
+    ):
+        # follow-up to GH#71870: Float64 stored NaN endpoints, Int64 raised
+        with pd.option_context("future.distinguish_nan_and_na", True):
+            arr = IntervalArray.from_arrays(
+                pd.array([0, 1], dtype=dtype), pd.array([1, 2], dtype=dtype)
+            )
+            arr[list(range(len(value)))] = value
+            assert arr.isna().tolist() == expected
+
     def test_setitem_mismatched_closed(self):
         arr = IntervalArray.from_breaks(range(4))
         orig = arr.copy()
@@ -229,7 +263,7 @@ class TestReductions:
         left, right = left_right_dtypes
         arr = IntervalArray.from_arrays(left, right)
 
-        msg = "`axis` must be fewer than the number of dimensions"
+        msg = "`axis` must be less than the number of dimensions"
         for axis in [-2, 1]:
             with pytest.raises(ValueError, match=msg):
                 arr.min(axis=axis)

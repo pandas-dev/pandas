@@ -1550,7 +1550,8 @@ class Parser:
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
-                if all(notna(data)):
+                # fillna would discard the non-NaN part of a complex value
+                if data.dtype.kind == "c" or all(notna(data)):
                     return data, False
 
                 filled = data.fillna(np.nan)
