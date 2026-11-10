@@ -123,7 +123,7 @@ def test_parse_datetime_string_with_reso_nanosecond_reso():
             "millisecond",
         ),
         (
-            "Tue, 01 Jan 2020 10:00:00 +0000",
+            "Wed, 01 Jan 2020 10:00:00 +0000",
             datetime(2020, 1, 1, 10, tzinfo=UTC),
             "second",
         ),
@@ -134,7 +134,7 @@ def test_parse_datetime_string_with_reso_nanosecond_reso():
         ),
         ("01-Jan-2012", datetime(2012, 1, 1), "day"),
         ("1/13/2000 09:30", datetime(2000, 1, 13, 9, 30), "minute"),
-        ("13.1.2000 9:30 PM", datetime(2000, 1, 13, 21, 30), "minute"),
+        ("1.13.2000 9:30 PM", datetime(2000, 1, 13, 21, 30), "minute"),
         ("2005/11/09 10:15:32", datetime(2005, 11, 9, 10, 15, 32), "second"),
         ("20010101 12", datetime(2001, 1, 1, 12), "hour"),
         ("201710290300", datetime(2017, 10, 29, 3), "minute"),
@@ -177,6 +177,7 @@ def test_parse_datetime_string_with_reso_without_dateutil(
     ],
 )
 @pytest.mark.parametrize("dayfirst", [False, True])
+@pytest.mark.filterwarnings("ignore::pandas.errors.Pandas4Warning")
 def test_strings_match_dateutil(date_str, dayfirst):
     # GH#65381 formats parsed without dateutil must give dateutil's result
     result = parsing.py_parse_datetime_string(date_str, dayfirst=dayfirst)
@@ -200,6 +201,63 @@ def test_parse_without_dateutil_invalid_day():
     )
     with pytest.raises(parsing.DateParseError, match=msg):
         parse_datetime_string_with_reso("Feb 30 2020")
+
+
+@pytest.mark.parametrize(
+    "date_str, dayfirst, expected, msg",
+    [
+        ("Jan 5", False, datetime(1, 1, 5), "relies on dateutil"),
+        ("2005-11-09 08H", False, datetime(2005, 11, 9, 8), "relies on dateutil"),
+        ("T 1.75 1/3", False, datetime(2003, 1, 1), "relies on dateutil"),
+        # 2020-01-01 is a Wednesday
+        ("Tue, 01 Jan 2020", False, datetime(2020, 1, 1), "relies on dateutil"),
+        ("13/1/2000", False, datetime(2000, 1, 13), "as day-first when dayfirst=False"),
+        (
+            "13/1/2000 09:30",
+            False,
+            datetime(2000, 1, 13, 9, 30),
+            "as day-first when dayfirst=False",
+        ),
+        ("1/13/2000", True, datetime(2000, 1, 13), "as month-first when dayfirst=True"),
+        ("2000-01-05", True, datetime(2000, 5, 1), "as year-day-month"),
+        ("20000105", True, datetime(2000, 5, 1), "as year-day-month"),
+    ],
+)
+def test_parse_deprecated(date_str, dayfirst, expected, msg):
+    # GH#65381
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = parsing.py_parse_datetime_string(date_str, dayfirst=dayfirst)
+    assert result == expected
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result, _ = parse_datetime_string_with_reso(date_str, dayfirst=dayfirst)
+    assert result == expected
+
+
+def test_parse_deprecated_time_only():
+    # GH#65381
+    with tm.assert_produces_warning(Pandas4Warning, match="relies on dateutil"):
+        result = pd.Timestamp("10:00")
+    assert (result.hour, result.minute) == (10, 0)
+
+
+@pytest.mark.parametrize(
+    "date_str, expected",
+    [
+        # formats still under discussion in GH#65381
+        ("1/2/03", datetime(2003, 1, 2)),
+        ("13/1/03", datetime(2003, 1, 13)),
+        ("Jan 5 20 10:00", datetime(2020, 1, 5, 10)),
+        ("5th of January 2020", datetime(2020, 1, 5)),
+        ("Jan 5, 2020 10:00 p.m.", datetime(2020, 1, 5, 22)),
+        ("Jan 3,2020", datetime(2020, 1, 3)),
+    ],
+)
+def test_parse_undecided_formats_do_not_warn(date_str, expected):
+    # GH#65381
+    with tm.assert_produces_warning(None):
+        result = parsing.py_parse_datetime_string(date_str)
+    assert result == expected
 
 
 def test_parse_datetime_string_with_reso_invalid_type():
@@ -400,6 +458,7 @@ def test_parsers_decimal_comma_in_date(date_str):
         ("Nov 14,2013.", datetime(2013, 11, 14)),
     ],
 )
+@pytest.mark.filterwarnings("ignore:Parsing:pandas.errors.Pandas4Warning")
 def test_parsers_comma_not_decimal_in_date(date_str, expected):
     # GH#17265
     assert parsing.py_parse_datetime_string(date_str) == expected
@@ -489,12 +548,18 @@ def test_guess_datetime_format_utc_alias(tzname, template, fmt):
         dtstr = template.format(tz=tzname)
         assert parsing.guess_datetime_format(dtstr) == fmt
 
+        # GH#65381 only dateutil parses a zone before the year
+        warning = Pandas4Warning if template.endswith("2020") else None
+        msg = "relies on dateutil"
         expected = pd.Timestamp("2020-01-15 08:30", tz="UTC")
-        assert pd.Timestamp(dtstr) == expected
+        with tm.assert_produces_warning(warning, match=msg):
+            assert pd.Timestamp(dtstr) == expected
         # the scalar arg shape infers a format too, unlike the Timestamp constructor
-        assert pd.to_datetime(dtstr) == expected
+        with tm.assert_produces_warning(warning, match=msg):
+            assert pd.to_datetime(dtstr) == expected
 
-        result = pd.to_datetime([dtstr])
+        with tm.assert_produces_warning(warning, match=msg):
+            result = pd.to_datetime([dtstr])
         assert result[0] == expected
         assert result.tz is UTC
 

@@ -782,7 +782,8 @@ class TestTimestampClassMethodConstructors:
 class TestTimestampResolutionInference:
     def test_construct_from_time_unit(self):
         # GH#54097 only passing a time component, no date
-        ts = pd.Timestamp("01:01:01.111")
+        with tm.assert_produces_warning(Pandas4Warning, match="relies on dateutil"):
+            ts = pd.Timestamp("01:01:01.111")
         assert ts.unit == "us"
 
     def test_constructor_str_infer_reso(self):
@@ -800,20 +801,24 @@ class TestTimestampResolutionInference:
             ts = pd.Timestamp("2015Q1")
         assert ts.unit == "us"
 
-        # dateutil_parse path
         ts = pd.Timestamp("2016-01-01 1:30:01 PM")
         assert ts.unit == "us"
 
-        ts = pd.Timestamp("2016 June 3 15:25:01.345")
+        # dateutil_parse path, GH#65381
+        msg = "relies on dateutil"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ts = pd.Timestamp("2016 June 3 15:25:01.345")
         assert ts.unit == "us"
 
-        ts = pd.Timestamp("300-01-01")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ts = pd.Timestamp("300-01-01")
         assert ts.unit == "us"
 
-        ts = pd.Timestamp("300 June 1:30:01.300")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ts = pd.Timestamp("300 June 1:30:01.300")
         assert ts.unit == "us"
 
-        # dateutil path -> don't drop trailing zeros
+        # don't drop trailing zeros
         ts = pd.Timestamp("01-01-2013T00:00:00.000000000+0000")
         assert ts.unit == "ns"
 
@@ -1234,11 +1239,14 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
     def test_out_of_bounds_string_consistency(self, arg):
         # GH 15829
+        # GH#65381 the 3-digit year is only parsed by dateutil
+        warning = Pandas4Warning if arg == "001-01-01" else None
+        with tm.assert_produces_warning(warning, match="relies on dateutil"):
+            ts = pd.Timestamp(arg)
         msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            pd.Timestamp(arg).as_unit("ns")
+            ts.as_unit("ns")
 
-        ts = pd.Timestamp(arg)
         assert ts.unit == "us"
         assert ts.year == ts.month == ts.day == 1
 

@@ -1063,12 +1063,8 @@ class TestPeriodIndex:
         msg_l = "Invalid frequency: L"
 
         with pytest.raises(ValueError, match=msg_l):
-            period_range(
-                "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="L"
-            )
-        rng_l = period_range(
-            "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="ms"
-        )
+            period_range("2020-01-01 00:00:00", "2020-01-01 00:01:00", freq="L")
+        rng_l = period_range("2020-01-01 00:00:00", "2020-01-01 00:01:00", freq="ms")
         ser = pd.Series(np.arange(len(rng_l)), index=rng_l)
 
         with pytest.raises(ValueError, match=msg_t):

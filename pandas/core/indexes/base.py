@@ -8504,14 +8504,16 @@ def _slice_bound_tzinfo(bound: str | datetime) -> tzinfo | None:
     ``get_slice_bound`` gives, and on a :class:`PeriodIndex` or an object Index
     it would be spurious. A quarterly string is always naive, so the opted-out
     parse is needed only to recognize one; anything else falls through to
-    ``Timestamp``, which does not warn.
+    ``Timestamp``, with the GH#65381 deprecation silenced for the same reason.
     """
     if isinstance(bound, str) and ("Q" in bound or "q" in bound):
         # GH#45580 parse_datetime_string_with_reso rejects a non-exact str
         parsed, reso = parse_datetime_string_with_reso(str(bound), warn_quarter=False)
         if reso == "quarter":
             return parsed.tzinfo
-    return Timestamp(bound).tzinfo
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Parsing '", Pandas4Warning)
+        return Timestamp(bound).tzinfo
 
 
 def _validate_join_method(method: str) -> None:
