@@ -3397,11 +3397,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def ohlc(self) -> DataFrame:
+    def ohlc(self, numeric_only: bool = False) -> DataFrame:
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -3494,6 +3501,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             obj = self._selected_obj
 
             is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                raise TypeError(
+                    f"Cannot use numeric_only=True with {type(self).__name__}.ohlc "
+                    "and non-numeric dtypes."
+                )
             if not is_numeric:
                 raise DataError("No numeric types to aggregate")
 
@@ -3509,7 +3521,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result.reset_index()
             return result
 
-        result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
+        result = self._apply_to_column_groupbys(
+            lambda sgb: sgb.ohlc(), numeric_only=numeric_only
+        )
         return result
 
     def describe(
