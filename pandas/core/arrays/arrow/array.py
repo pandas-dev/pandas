@@ -2064,6 +2064,18 @@ class ArrowExtensionArray(
 
         return super().fillna(value=value, limit=limit, copy=copy)
 
+    def insert(self, loc: int, item) -> Self:
+        if (
+            lib.is_float(item)
+            and np.isnan(item)
+            and not is_nan_na()
+            and not _is_temporal_pa_type(self._pa_array.type)
+        ):
+            # _from_sequence would store e.g. "nan" or True; raise like setitem
+            #  so Index.insert upcasts. timestamp/duration store NA, like NaT.
+            self._validate_setitem_value(item)
+        return super().insert(loc, item)
+
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
         if not len(values):
