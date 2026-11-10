@@ -413,7 +413,7 @@ def test_eval_attrs_one_sided_numexpr():
     # GH#28283 operands without attrs are ignored, matching binops (GH#51607)
     df1 = pd.DataFrame({"A": [1, 2]})
     df1.attrs = {"a": 1}
-    df2 = pd.DataFrame({"A": [3, 4]})
+    df2 = pd.DataFrame({"A": [3, 4]})  # noqa: F841
     expected = pd.eval("df1 + df2", engine="python")
     result = pd.eval("df1 + df2", engine="numexpr")
     assert result.attrs == expected.attrs == {"a": 1}
