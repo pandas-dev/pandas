@@ -3973,7 +3973,7 @@ cdef int _try_double_nogil(parser_t *parser,
                     if error != 0 or p_end == word or p_end != word_end:
                         error = 0
                         if (parse_special_float(word, word_len, data) != 0
-                            and not _is_nan_token(word, word_len, data)):
+                                and not _is_nan_token(word, word_len, data)):
                             return 1
                 if use_na_flist:
                     k64 = kh_get_float64(na_fhashset, data[0])

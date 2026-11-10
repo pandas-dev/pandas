@@ -2780,7 +2780,7 @@ def maybe_convert_numeric(
                     if c0 == "n" or c0 == "N" or c0 == "-" or c0 == "+":
                         val_lower = val.lower()
                         if (convert_to_masked_nullable
-                        and val_lower in ("nan", "-nan", "+nan")):
+                                and val_lower in ("nan", "-nan", "+nan")):
                             fval = NaN
                             seen.null_ = True
                             if distinguish_nan_and_na:
