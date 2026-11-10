@@ -16,6 +16,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import roperator
 
 pa = pytest.importorskip("pyarrow")
 
@@ -734,3 +735,95 @@ def test_mul_numpy_nullable_with_pyarrow_float():
 
     result4 = right == left
     tm.assert_series_equal(result4, expected3)
+
+
+@pytest.mark.parametrize(
+    "op", [operator.add, roperator.radd, operator.mul, roperator.rmul]
+)
+@pytest.mark.parametrize(
+    "other",
+    [
+        True,
+        np.False_,
+        pd.NA,
+        [True, False, False],
+        pd.array([None, None, False], dtype="bool[pyarrow]"),
+        np.array([True, False, False]),
+        pd.array([True, False, None], dtype="boolean"),
+        pd.array([True, False, None], dtype="bool[pyarrow]"),
+    ],
+)
+def test_bool_add_mul_matches_masked(op, other):
+    # GH#63064 add/mul are logical or/and, as for numpy and masked bools
+    arr = pd.array([True, False, None], dtype="bool[pyarrow]")
+    result = op(arr, other)
+
+    if isinstance(other, pd.arrays.ArrowExtensionArray):
+        other = other.astype("boolean")
+    expected = op(arr.astype("boolean"), other).astype("bool[pyarrow]")
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op, exc",
+    [
+        (operator.sub, TypeError),
+        (roperator.rsub, TypeError),
+        (operator.truediv, NotImplementedError),
+        (roperator.rtruediv, NotImplementedError),
+        (operator.floordiv, NotImplementedError),
+        (roperator.rfloordiv, NotImplementedError),
+        (operator.pow, NotImplementedError),
+        (roperator.rpow, NotImplementedError),
+    ],
+)
+@pytest.mark.parametrize(
+    "other", [True, pd.array([True, False, None], dtype="bool[pyarrow]")]
+)
+def test_bool_arith_not_allowed(op, exc, other):
+    # GH#63064 same exceptions as bool Series and masked bools
+    arr = pd.array([True, False, None], dtype="bool[pyarrow]")
+    with pytest.raises(exc, match="bool"):
+        op(arr, other)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        operator.add,
+        roperator.radd,
+        operator.sub,
+        roperator.rsub,
+        operator.mul,
+        roperator.rmul,
+        operator.truediv,
+        roperator.rtruediv,
+        operator.pow,
+        roperator.rpow,
+    ],
+)
+@pytest.mark.parametrize(
+    "other, expected_dtype",
+    [
+        (2, "int64[pyarrow]"),
+        (1.5, "double[pyarrow]"),
+        (np.array([2, 3, 4], dtype=np.int16), "int16[pyarrow]"),
+        (pd.array([2, 3, 4], dtype="int8[pyarrow]"), "int8[pyarrow]"),
+        (pd.array([2.0, 3.0, None], dtype="float32[pyarrow]"), "float[pyarrow]"),
+    ],
+)
+def test_bool_numeric_arith(op, other, expected_dtype):
+    # GH#63064 the bool operand is treated as numbers, as in numpy
+    arr = pd.array([True, False, None], dtype="bool[pyarrow]")
+    result = op(arr, other)
+    expected = op(arr.astype(expected_dtype), other)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_bool_float16_arith_raises():
+    # GH#63064 pyarrow cannot cast bool to float16
+    arr = pd.array([True, False, None], dtype="bool[pyarrow]")
+    other = np.array([1, 2, 3], dtype=np.float16)
+    msg = "operation 'add' not supported for dtype 'bool[pyarrow]'"
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        arr + other
