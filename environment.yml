@@ -109,15 +109,14 @@ dependencies:
   - notebook>=7.0.6
   - ipykernel
 
-  # web
+  # documentation: website pages
   # - jinja2  # already listed in optional dependencies, but documented here for reference
-  - markdown
+  - myst-parser
   - feedparser
   - pyyaml
   - requests
-  - pygments # Code highlighting
 
-  # web interactive REPL
+  # documentation: interactive REPL
   # see the following links for more context:
   # 1. https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/#compatibility
   # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
