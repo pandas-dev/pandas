@@ -24,8 +24,8 @@ def test_assert_extension_array_equal_not_exact(kwargs):
 ExtensionArray are different
 
 ExtensionArray values are different \\(50\\.0 %\\)
-\\[left\\]:  \\[-0\\.173876.*, 0\\.341415.*\\]
-\\[right\\]: \\[-0\\.173876.*, 0\\.341415.*\\]"""
+\\[left\\]:  \\[-0\\.17387645482451206, 0\\.3414148016424936\\]
+\\[right\\]: \\[-0\\.17387645482451206, 0\\.3414148016424937\\]"""
 
         with pytest.raises(AssertionError, match=msg):
             tm.assert_extension_array_equal(arr1, arr2, **kwargs)

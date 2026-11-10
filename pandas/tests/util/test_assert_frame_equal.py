@@ -677,3 +677,37 @@ def test_assert_frame_equal_check_freq_categorical_index():
 
     with tm.assert_produces_warning(None):
         tm.assert_frame_equal(left, right, check_freq=False)
+
+
+@pytest.mark.parametrize("box", [pd.DataFrame, pd.Series])
+@pytest.mark.parametrize("precision", [0, 6, 12])
+@pytest.mark.parametrize("check_exact", [True, False])
+@pytest.mark.parametrize(
+    "left_value, right_value, expected_left, expected_right",
+    [
+        (1.0, 1.000000001, "[1.0]", "[1.000000001]"),
+        (
+            1.0 + 2.0j,
+            1.000000001 + 2.000000001j,
+            "[(1+2j)]",
+            "[(1.000000001+2.000000001j)]",
+        ),
+    ],
+)
+def test_assert_equal_message_float_precision(
+    box, precision, check_exact, left_value, right_value, expected_left, expected_right
+):
+    # GH#71509
+    left = box([left_value], index=[1.000000001])
+    right = box([right_value], index=[1.000000001])
+    assert_equal = (
+        tm.assert_frame_equal if box is pd.DataFrame else tm.assert_series_equal
+    )
+    with pd.option_context("display.precision", precision):
+        with pytest.raises(AssertionError, match="values are different") as err:
+            assert_equal(left, right, check_exact=check_exact, rtol=0, atol=1e-12)
+
+    message = str(err.value)
+    assert "[index]: [1.000000001]" in message
+    assert f"[left]:  {expected_left}" in message
+    assert f"[right]: {expected_right}" in message
