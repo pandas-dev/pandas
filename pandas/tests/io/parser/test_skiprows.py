@@ -279,6 +279,24 @@ def test_skiprows_infield_quote(all_parsers):
 
 
 @pytest.mark.parametrize(
+    "preamble",
+    [
+        '# Value: ";"\n# Time: 4\n# Time: ""\n',
+        '"title\nsubtitle\nnotes"\n',
+    ],
+)
+def test_skiprows_leading_lines_with_quotes(all_parsers, preamble):
+    # GH#34732 rows skipped at the start of the file are physical lines, so a
+    # quote in them does not open a field spanning later lines
+    parser = all_parsers
+    data = preamble + "a;b\n1;2"
+    expected = pd.DataFrame({"a": [1], "b": [2]})
+
+    result = parser.read_csv(StringIO(data), sep=";", skiprows=3)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "kwargs,expected",
     [
         ({}, "1"),
