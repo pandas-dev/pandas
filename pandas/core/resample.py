@@ -2382,6 +2382,15 @@ class TimedeltaIndexResamplerGroupBy(  # type: ignore[misc]
         return TimedeltaIndexResampler
 
 
+def _rule_code(freq: BaseOffset) -> str:
+    try:
+        return freq.rule_code
+    except NotImplementedError:
+        # GH#31697: e.g. a generic DateOffset or Easter has no rule_code,
+        #  and neither is an end-anchored freq
+        return ""
+
+
 def get_resampler(obj: Series | DataFrame, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
@@ -2493,7 +2502,7 @@ class TimeGrouper(Grouper):
                 )
 
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
-        rule = freq.rule_code
+        rule = _rule_code(freq)
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
                 closed = "right"
@@ -2735,9 +2744,8 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
-            0
-        ] in (
+        rule = _rule_code(self.freq)
+        if rule in ("BME", "ME", "W") or rule.split("-")[0] in (
             "BQE",
             "BYE",
             "QE",
