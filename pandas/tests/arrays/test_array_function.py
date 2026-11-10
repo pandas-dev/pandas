@@ -113,6 +113,9 @@ def test_2d_falls_back():
     result = np.append(arr, arr)
     tm.assert_numpy_array_equal(result, np.append(expected, expected))
 
+    result = np.hstack([arr, arr])
+    tm.assert_numpy_array_equal(result, np.hstack([expected, expected]))
+
 
 class ArrayFunctionOverride:
     def __array_function__(self, func, types, args, kwargs):
