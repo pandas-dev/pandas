@@ -117,6 +117,42 @@ class TestSelection:
         expected = df.groupby(("k", "")).sum()[("A",)]
         tm.assert_frame_equal(result, expected)
 
+    def test_getitem_multiindex_full_tuple_key(self):
+        # GH#58282 a multi-element tuple naming a full MultiIndex column
+        # selects a single column, matching DataFrame.__getitem__
+        mi = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("k", "")])
+        df = pd.DataFrame([[1, 4, 1], [2, 5, 1], [3, 6, 2]], columns=mi)
+        with tm.assert_produces_warning(None):
+            result = df.groupby(("k", ""))[("A", 1)].sum()
+        expected = df.groupby(("k", "")).sum()[("A", 1)]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_multiindex_single_column_tuple_key(self):
+        # GH#58282
+        df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]}).set_index("a")
+        df.columns = pd.MultiIndex.from_tuples([("b", 1)])
+        result = df.groupby("a")[("b", 1)].sum()
+        expected = pd.Series([7, 5], index=pd.Index([1, 2], name="a"), name=("b", 1))
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_multiindex_deep_partial_tuple_key(self):
+        # GH#58282 partial tuple keys with more than one element
+        mi = pd.MultiIndex.from_tuples([("A", 1, "x"), ("A", 2, "y"), ("k", "", "z")])
+        df = pd.DataFrame([[1, 4, 1], [2, 5, 1], [3, 6, 2]], columns=mi)
+        with tm.assert_produces_warning(None):
+            result = df.groupby(("k", "", "z"))[("A",)].sum()
+        expected = df.groupby(("k", "", "z")).sum()[("A",)]
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(None):
+            result = df.groupby(("k", "", "z"))[("A", 2)].sum()
+        expected = df.groupby(("k", "", "z")).sum()[("A", 2)]
+        tm.assert_frame_equal(result, expected)
+
+        # tuple that does not match any (partial) column still raises
+        with pytest.raises(ValueError, match="Cannot subset columns with a tuple"):
+            df.groupby(("k", "", "z"))[("A", "nope")].sum()
+
     def test_getitem_single_column(self):
         df = pd.DataFrame(
             {
