@@ -62,6 +62,7 @@ from pandas.core.construction import (
     extract_array,
     range_to_ndarray,
     sanitize_array,
+    warn_compound_dtype,
 )
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -87,6 +88,7 @@ from pandas.core.internals.managers import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Mapping,
         Sequence,
@@ -199,6 +201,17 @@ def rec_array_to_mgr(
 # DataFrame Constructor Interface
 
 
+def _views_as_ea(arr, dtype: DtypeObj | None) -> bool:
+    """
+    Would casting ``arr`` to the extension ``dtype`` view its data?
+    """
+    return (
+        isinstance(dtype, ExtensionDtype)
+        and isinstance(arr, (np.ndarray, ABCSeries, ExtensionArray))
+        and astype_is_view(arr.dtype, dtype)
+    )
+
+
 def ndarray_to_mgr(
     values, index, columns, dtype: DtypeObj | None, copy: bool
 ) -> Manager:
@@ -236,13 +249,15 @@ def ndarray_to_mgr(
         else:
             values = [values]
 
-        # Handle copy semantics: already copy 1d-only EA. Other arrays will
-        # be copied when consolidating the blocks
+        # Copy 1d-only EAs and arrays the cast would view
         if copy:
             values = [
                 (x.copy(deep=True) if isinstance(x, Index) else x.copy())
-                if isinstance(x, (ExtensionArray, Index, ABCSeries))
-                and is_1d_only_ea_dtype(x.dtype)
+                if (
+                    isinstance(x, (ExtensionArray, Index, ABCSeries))
+                    and is_1d_only_ea_dtype(x.dtype)
+                )
+                or _views_as_ea(x, dtype)
                 else x
                 for x in values
             ]
@@ -299,6 +314,9 @@ def ndarray_to_mgr(
             copy=copy,
             allow_2d=True,
         )
+    elif isinstance(values, np.ndarray) and values.dtype.names is not None:
+        # GH#49388 e.g. a list of 0-dim structured arrays
+        warn_compound_dtype()
 
     # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
@@ -449,11 +467,11 @@ def dict_to_mgr(
 
     if copy:
         # We only need to copy arrays that will not get consolidated, i.e.
-        #  only EA arrays
+        #  only EA arrays and arrays an EA would view
         arrays = [
             (
                 x.copy()
-                if isinstance(x, ExtensionArray)
+                if isinstance(x, ExtensionArray) or _views_as_ea(x, dtype)
                 else (
                     x.copy(deep=True)
                     if (
@@ -850,8 +868,15 @@ def to_arrays(
         ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
+            constructor: Callable[..., ArrayLike]
+            if isinstance(common_dtype, np.dtype) and common_dtype.kind == "V":
+                # GH#49388 avoid pd.array's void-dtype warning; for structured
+                #  rows sanitize_array warns instead
+                constructor = np.array
+            else:
+                constructor = pd_array
             arrays = [
-                pd_array([row[col_idx] for row in data], dtype=common_dtype)
+                constructor([row[col_idx] for row in data], dtype=common_dtype)
                 for col_idx in range(ncols)
             ]
             columns = _validate_or_indexify_columns(arrays, columns)

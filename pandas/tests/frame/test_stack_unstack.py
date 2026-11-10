@@ -1082,9 +1082,10 @@ class TestDataFrameReshape:
         assert left.notna().values.sum() == 2 * len(df)
 
         for col in ["jim", "joe"]:
-            for _, r in df.iterrows():
-                key = r["1st"], (col, r["2nd"], r["3rd"])
-                assert r[col] == left.loc[key]
+            for idx in range(len(df)):
+                row = df.iloc[idx]
+                key = row["1st"], (col, row["2nd"], row["3rd"])
+                assert row[col] == left.loc[key]
 
     def test_stack_datetime_column_multiIndex(self, future_stack):
         # GH 8039
@@ -1687,6 +1688,49 @@ def test_unstack_unused_entry_from_nan_in_other_level(sort):
         [[np.nan, 2.0], [1.0, 3.0]] if sort else [[1.0, 3.0], [np.nan, 2.0]],
         index=pd.Index(order, name="i"),
         columns=pd.Index(["a", "b"], name="j"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+@pytest.mark.parametrize(
+    "fill_value, expected_fill", [(None, complex("nan")), (1j, 1j)]
+)
+def test_unstack_complex_missing_cells(dtype, fill_value, expected_fill):
+    # GH#25221
+    index = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    ser = pd.Series([1 + 2j, 3 + 4j, 5 + 6j], index=index, dtype=dtype)
+    expected = pd.DataFrame(
+        {"x": [1 + 2j, 5 + 6j], "y": [3 + 4j, expected_fill]},
+        index=["a", "b"],
+        dtype=dtype,
+    )
+
+    result = ser.unstack(fill_value=fill_value)
+    tm.assert_frame_equal(result, expected)
+
+    # with a second dtype, each block is unstacked separately
+    other = pd.Series([1.5, 2.5, 3.5], index=index, dtype=object)
+    df = pd.DataFrame({"val": ser, "other": other})
+    result = df.unstack(fill_value=fill_value)["val"]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_complex_empty():
+    # GH#25221
+    index = pd.MultiIndex.from_arrays([[], []])
+    result = pd.Series([], index=index, dtype="complex128").unstack()
+    assert result.shape == (0, 0)
+
+
+def test_unstack_real_with_complex_fill_value():
+    # GH#25221
+    index = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    ser = pd.Series([1.0, 2.0, 3.0], index=index)
+    with tm.assert_produces_warning(Pandas4Warning, match="Using a fill_value"):
+        result = ser.unstack(fill_value=1j)
+    expected = pd.DataFrame(
+        {"x": [1 + 0j, 3 + 0j], "y": [2 + 0j, 1j]}, index=["a", "b"], dtype="complex128"
     )
     tm.assert_frame_equal(result, expected)
 

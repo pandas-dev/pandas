@@ -273,6 +273,9 @@ int parser_init(parser_t *self) {
 
   self->lines_cap = sz;
   self->lines = 0;
+  // GH#12228 a 32-bit counter wraps after 2**31 lines and breaks skiprows
+  static_assert(sizeof(self->file_lines) >= 8,
+                "file_lines must be at least 64 bits");
   self->file_lines = 0;
 
   if (self->stream == NULL || self->word_ends == NULL ||

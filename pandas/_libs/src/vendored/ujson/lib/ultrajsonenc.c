@@ -854,14 +854,25 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
 #if defined(_WIN32) && defined(_MSC_VER)
     sprintf_s(precision_str + 2, sizeof(precision_str) - 2, "%ug",
               enc->doublePrecision);
-    enc->offset += sprintf_s(str, enc->end - enc->offset, precision_str,
-                             neg ? -value : value);
+    count = sprintf_s(str, enc->end - enc->offset, precision_str,
+                      neg ? -value : value);
 #else
     snprintf(precision_str + 2, sizeof(precision_str) - 2, "%ug",
              enc->doublePrecision);
-    enc->offset += snprintf(str, enc->end - enc->offset, precision_str,
-                            neg ? -value : value);
+    count = snprintf(str, enc->end - enc->offset, precision_str,
+                     neg ? -value : value);
 #endif
+    // rounding near DBL_MAX can overflow to inf; add digits until it
+    // doesn't; 17 digits always round-trip, see GH#21454
+    if (value > 1e308) {
+      int prec = (int)enc->doublePrecision;
+      while (isinf(strtod(str, NULL)) && prec < 17) {
+        prec++;
+        count = snprintf(str, enc->end - enc->offset, "%.*g", prec,
+                         neg ? -value : value);
+      }
+    }
+    enc->offset += count;
     return TRUE;
   }
 
