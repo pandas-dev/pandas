@@ -1015,6 +1015,46 @@ def test_coerce_pyarrow_backend():
     tm.assert_series_equal(result, expected)
 
 
+def test_coerce_pyarrow_string_unparseable():
+    # GH#67949
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["1", "x"], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([1, None], dtype=pd.ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_coerce_pyarrow_string_nan_literal():
+    # GH#67949: a "NaN" string must become a missing value detected by
+    #  isna, not a stored float NaN
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["1", "NaN"], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([1, None], dtype=pd.ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_coerce_pyarrow_string_with_existing_na(kwargs):
+    # GH#67949: parse failures must be merged back into their original
+    #  positions; a failure after an existing missing value must not
+    #  duplicate the last successfully parsed value
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["1", None, "x"], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce", **kwargs)
+    expected = pd.Series([1, None, None], dtype=pd.ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_coerce_pyarrow_string_float_with_existing_na():
+    # GH#67949
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["1.5", None, "x"], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([1.5, None, None], dtype=pd.ArrowDtype(pa.float64()))
+    tm.assert_series_equal(result, expected)
+
+
 def test_large_exponent_coerce():
     # GH#63650 - exponent overflow in precise_xstrtod should not segfault
     ser = pd.Series(["1E3000000000"])
