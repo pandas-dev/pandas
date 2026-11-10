@@ -525,21 +525,60 @@ def _unwrap_storage_type(pa_type: pa.DataType) -> pa.DataType:
 _DEFERRED_TAKE_MIN_FRACTION = 0.1
 
 
-def _is_deferrable_type(pa_type: pa.DataType) -> bool:
+def _take_by_chunk(
+    parent: pa.ChunkedArray, indices: npt.NDArray[np.intp]
+) -> pa.ChunkedArray:
     """
-    Whether a ``take`` on this type is deferred (see ``_PendingTake``).
+    ``parent.take(indices)`` for sorted ``indices``, one chunk at a time.
 
-    Only the 64-bit offset types: a ``take`` on a ChunkedArray of ``string``
-    or ``binary`` holding more than 2 GiB of data overflows its offsets,
-    where the ``filter`` that boolean masks of eager arrays use works chunk
-    by chunk.
+    The result keeps the chunk boundaries of ``parent``, as ``filter`` does.
     """
-    return pa.types.is_large_string(pa_type) or pa.types.is_large_binary(pa_type)
+    lengths = np.fromiter((len(chunk) for chunk in parent.chunks), dtype=np.intp)
+    ends = np.cumsum(lengths)
+    pieces = np.split(indices, np.searchsorted(indices, ends[:-1]))
+    chunks = [
+        chunk.take(pa.array(piece - (end - length)))
+        for chunk, piece, end, length in zip(
+            parent.chunks, pieces, ends, lengths, strict=True
+        )
+        if len(piece)
+    ]
+    return pa.chunked_array(chunks, type=parent.type)
+
+
+def _gather(parent: pa.ChunkedArray, indices: npt.NDArray[np.intp]) -> pa.ChunkedArray:
+    """
+    ``parent.take(indices)``, safe for ``string`` and ``binary`` data over 2 GiB.
+
+    ``ChunkedArray.take`` concatenates the chunks first, which overflows the
+    32-bit offsets of ``string`` and ``binary`` once ``parent`` holds more
+    than 2 GiB, however few values are taken. Sorted positions, which every
+    boolean mask produces, are gathered chunk by chunk instead: this costs
+    no more than the concatenating take and never overflows. Unsorted
+    positions are only gathered that way if the plain take overflows.
+    """
+    if parent.num_chunks <= 1:
+        return parent.take(pa.array(indices))
+    if bool((indices[1:] >= indices[:-1]).all()):
+        return _take_by_chunk(parent, indices)
+    try:
+        return parent.take(pa.array(indices))
+    except pa.ArrowInvalid:
+        if pa.types.is_large_string(parent.type) or pa.types.is_large_binary(
+            parent.type
+        ):
+            raise
+    # gather in sorted order, then restore the requested order; this only
+    # fails if the result itself is over 2 GiB
+    order = np.argsort(indices, kind="stable")
+    inverse = np.empty_like(order)
+    inverse[order] = np.arange(len(order))
+    return _take_by_chunk(parent, indices[order]).take(pa.array(inverse))
 
 
 class _PendingTake:
     """
-    A ``take`` on ``large_string`` or ``large_binary`` data that has not run yet.
+    A ``take`` on string or binary data that has not run yet.
 
     Gathering string and binary values copies every byte of every selected
     value, which dominates merges and boolean-mask filtering of wide frames,
@@ -584,7 +623,8 @@ class _PendingTake:
         with self.lock:
             if self.result is None:
                 assert self.parent is not None
-                self.result = self.parent.take(pa.array(self.indices))
+                assert self.indices is not None
+                self.result = _gather(self.parent, self.indices)
                 # release the parent and the positions
                 self.parent = self.indices = None
             return self.result
@@ -876,7 +916,7 @@ class ArrowExtensionArray(
     def _can_defer_take(self) -> bool:
         if "_pending_take" in self.__dict__:
             return True
-        return _is_deferrable_type(self._pa_array.type)
+        return _is_varbinary_type(self._pa_array.type)
 
     def _deferred_take(
         self,
@@ -900,7 +940,7 @@ class ArrowExtensionArray(
                 not isinstance(positions, np.ndarray)
                 or positions.dtype.kind not in "iu"
                 or len(positions) < _DEFERRED_TAKE_MIN_FRACTION * len(parent)
-                or not _is_deferrable_type(parent.type)
+                or not _is_varbinary_type(parent.type)
             ):
                 return None
             if copy:
@@ -913,7 +953,7 @@ class ArrowExtensionArray(
             composed = base[positions]
             if len(composed) < _DEFERRED_TAKE_MIN_FRACTION * len(parent):
                 # small result: gather it straight from the parent
-                return self._from_pyarrow_array(parent.take(pa.array(composed)))
+                return self._from_pyarrow_array(_gather(parent, composed))
         return self._with_pending_take(_PendingTake(parent, composed))
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
@@ -1347,7 +1387,7 @@ class ArrowExtensionArray(
                 deferred = None
                 if "_pending_take" in self.__dict__:
                     deferred = self._deferred_take(item)
-                elif _is_deferrable_type(self._pa_array.type) and (
+                elif _is_varbinary_type(self._pa_array.type) and (
                     np.count_nonzero(item) >= _DEFERRED_TAKE_MIN_FRACTION * len(item)
                 ):
                     deferred = self._deferred_take(np.flatnonzero(item), copy=False)
@@ -2107,7 +2147,7 @@ class ArrowExtensionArray(
             if base is not None:
                 # gather into new buffers, so the copy does not keep the
                 # parent alive; ``self`` stays deferred
-                return self._from_pyarrow_array(parent.take(pa.array(base)))
+                return self._from_pyarrow_array(_gather(parent, base))
         return self._from_pyarrow_array(_copy_pyarrow_buffers(self._pa_array))
 
     def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:

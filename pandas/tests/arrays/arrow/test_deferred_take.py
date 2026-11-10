@@ -1,7 +1,7 @@
 """
-Tests for the deferred gather of ``large_string`` and ``large_binary`` Arrow
-arrays: ``take``, slices and boolean masks of such an ``ArrowExtensionArray``
-record the positions and gather on first access to ``_pa_array``.
+Tests for the deferred gather of string and binary Arrow arrays: ``take``,
+slices and boolean masks of such an ``ArrowExtensionArray`` record the
+positions and gather on first access to ``_pa_array``.
 """
 
 from __future__ import annotations
@@ -23,8 +23,8 @@ def _is_pending(arr) -> bool:
 
 
 @pytest.fixture(
-    params=[pa.large_string(), pa.large_binary(), "str"],
-    ids=["large_string", "large_binary", "str"],
+    params=[pa.string(), pa.large_string(), pa.binary(), pa.large_binary(), "str"],
+    ids=["string", "large_string", "binary", "large_binary", "str"],
 )
 def data(request):
     if request.param == "str":
@@ -148,14 +148,9 @@ def test_take_out_of_bounds_raises(data):
         pending.take(np.array([50] * 10))
 
 
-@pytest.mark.parametrize("pa_type", [pa.string(), pa.binary(), pa.int64()], ids=str)
-def test_take_not_deferred(pa_type):
-    # 32-bit offsets can overflow in a take over chunks, and fixed-width
-    # values are cheap to gather
-    if pa.types.is_integer(pa_type):
-        arr = pd.array(np.arange(100), dtype=pd.ArrowDtype(pa_type))
-    else:
-        arr = _arrow_array(pa_type)
+def test_fixed_width_not_deferred():
+    # fixed-width values are cheap to gather
+    arr = pd.array(np.arange(100), dtype="int64[pyarrow]")
     positions = np.arange(99, -1, -1)
     result = arr.take(positions)
     assert not _is_pending(result)
@@ -164,6 +159,51 @@ def test_take_not_deferred(pa_type):
     result = arr[mask]
     assert not _is_pending(result)
     tm.assert_extension_array_equal(result, _expected(arr, np.flatnonzero(mask)))
+
+
+@pytest.mark.parametrize("sort", [True, False], ids=["sorted", "unsorted"])
+def test_gather_across_chunks(data, sort):
+    rng = np.random.default_rng(2)
+    positions = rng.choice(len(data), size=60, replace=False)
+    if sort:
+        positions = np.sort(positions)
+    result = data.take(positions)
+    assert _is_pending(result)
+    gathered = result._pa_array
+    tm.assert_extension_array_equal(result, _expected(data, positions))
+    if sort:
+        # sorted positions are gathered chunk by chunk, like filter
+        assert gathered.num_chunks == data._pa_array.num_chunks
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.binary()], ids=str)
+def test_gather_over_2gib(pa_type):
+    # ChunkedArray.take concatenates the chunks, which overflows 32-bit
+    # offsets past 2 GiB. The data buffer is never written, so this needs
+    # little real memory.
+    width, n = 1000, 1_150_000
+    data = pa.py_buffer(np.zeros(width * n, dtype=np.uint8))
+    offsets = pa.py_buffer((np.arange(n + 1, dtype=np.int64) * width).astype(np.int32))
+    chunk = pa.Array.from_buffers(pa_type, n, [None, offsets, data])
+    arr = pd.arrays.ArrowExtensionArray(pa.chunked_array([chunk, chunk]))
+
+    # every other row: deferred, and never gathered in full
+    pending = arr.take(np.arange(0, 2 * n, 2))
+    assert _is_pending(pending)
+    half = n // 2
+    expected = pa.array([b"\0" * width] * 3, type=pa_type)
+
+    # small results are gathered from the parent: sorted positions ...
+    result = pending.take(np.array([0, half - 1, half]))
+    assert pa.chunked_array(result._pa_array).combine_chunks().equals(expected)
+    mask = np.zeros(len(pending), dtype=bool)
+    mask[[1, half + 1, half + 2]] = True
+    result = pending[mask]
+    assert result._pa_array.combine_chunks().equals(expected)
+    # ... and unsorted ones
+    result = pending.take(np.array([half + 3, 2, half]))
+    assert result._pa_array.combine_chunks().equals(expected)
 
 
 def test_selective_mask_is_eager(data):
