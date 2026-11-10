@@ -2636,7 +2636,10 @@ def maybe_convert_numeric(
     # costs ~5x the memory of the array actually returned (GH#35051).
     cdef:
         int maybe_int
+        str val_lower
         Py_ssize_t i, n = values.size
+        Py_ssize_t _len 
+        Py_UCS4 c0
         Seen seen = Seen(coerce_numeric)
         ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_FLOAT64, 0
@@ -2664,7 +2667,9 @@ def maybe_convert_numeric(
         # b) no floats have been seen ( assuming an int shows up later )
         # However, if no ints present (all null array), we need to return floats
         allow_null_in_int = convert_to_masked_nullable and not seen.float_
-
+        print("enterring here")
+        print(f"val is {val}")
+        print(f"varaiable checks {seen.float_}, {seen.null_}, {mask[i]}")
         if use_na_values and val.__hash__ is not None and val in na_values:
             if allow_null_in_int:
                 seen.null_ = True
@@ -2677,12 +2682,15 @@ def maybe_convert_numeric(
             if have_complexes:
                 complexes[i] = NaN
         elif util.is_float_object(val):
+            print("here")
             fval = val
             if fval != fval:
                 seen.null_ = True
+                # if allow_null_in_int:
                 if distinguish_nan_and_na:
                     seen.float_ = True
                 elif allow_null_in_int:
+                    print("allow_null_in_int")
                     mask[i] = 1
                 else:
                     if convert_to_masked_nullable:
@@ -2770,21 +2778,47 @@ def maybe_convert_numeric(
                 complexes[i] = val
             seen.float_ = True
         else:
-            if isinstance(val, str) and convert_to_masked_nullable:
-                val_lower = val.lower()
-                if val_lower in ("nan", "-nan", "+nan"):
-                    fval = NaN
-                    seen.null_ = True
-                    if distinguish_nan_and_na:
-                        seen.float_ = True
-                    else:
-                        mask[i] = 1
-                        if not allow_null_in_int:
-                            seen.float_ = True
-                    floats[i] = fval
-                    if have_complexes:
-                        complexes[i] = fval
-                    continue
+            # if isinstance(val, str):
+            #     _len = len(val)
+            #     if _len == 3 or _len == 4:
+            #         c0 = val[0]
+            #         if c0 == 'n' or c0 == 'N' or c0 == '-' or c0 == '+':
+            #             val_lower = val.lower()
+            #             if val_lower in ("nan", "-nan", "+nan"):
+            #                 fval = NaN
+            #                 seen.null_ = True
+            #                 if convert_to_masked_nullable:
+            #                     if distinguish_nan_and_na:
+            #                         seen.float_ = True          # unmasked NaN
+            #                     else:
+            #                         mask[i] = 1                 # masked NA
+            #                         if not allow_null_in_int:
+            #                             seen.float_ = True
+            #                 else:
+            #                     seen.float_ = True              # plain numpy NaN, no mask
+            #                 floats[i] = fval
+            #                 if have_complexes:
+            #                     complexes[i] = fval
+            #                 continue
+            if isinstance(val, str):
+                _len = len(val)
+                if _len == 3 or _len == 4:
+                    c0 = val[0]
+                    if c0 == 'n' or c0 == 'N' or c0 == '-' or c0 == '+':
+                        val_lower = val.lower()
+                        if convert_to_masked_nullable and val_lower in ("nan", "-nan", "+nan"):
+                            fval = NaN
+                            seen.null_ = True
+                            if distinguish_nan_and_na:
+                                seen.float_ = True
+                            else:
+                                mask[i] = 1
+                                if not allow_null_in_int:
+                                    seen.float_ = True
+                            floats[i] = fval
+                            if have_complexes:
+                                complexes[i] = fval
+                            continue
             try:
                 floatify(val, &fval, &maybe_int)
                 if fval in na_values:

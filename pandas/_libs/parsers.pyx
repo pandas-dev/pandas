@@ -59,6 +59,7 @@ from cpython.unicode cimport (
     PyUnicode_DecodeUTF8,
 )
 from cython cimport Py_ssize_t
+from libc.math cimport NAN
 from libc.stdint cimport (
     INT32_MAX,
     INT64_MAX,
@@ -1705,7 +1706,25 @@ cdef class TextReader:
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
                              set na_fset, bint raise_on_invalid):
+        print("convert")
+        if dtype is not None and end - start <= 10:
+            raw_values, _ = self._string_convert(
+                i, start, end, False, na_hashset
+            )
+            print(
+                "DEBUG",
+                "dtype=", repr(dtype),
+                "column=", i,
+                "rows=", start, end,
+                "tokens=", [repr(value) for value in raw_values],
+            )
+        print(start)
+        print(end)
+        print(dtype)
+        print(type(dtype))
+        print(dtype.kind)
         if isinstance(dtype, CategoricalDtype):
+            print("CategoricalDtype")
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
             codes, cats, na_count = _categorical_convert(
@@ -1747,6 +1766,7 @@ cdef class TextReader:
             return cat, na_count, None
 
         elif isinstance(dtype, ExtensionDtype):
+            print("1755")
             if isinstance(dtype, BaseMaskedDtype) and dtype.kind in "iuf":
                 # Fast path for nullable Integer/Floating dtypes: parse straight
                 # from the C buffers via the nogil numeric converters, instead
@@ -1786,7 +1806,7 @@ cdef class TextReader:
 
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
-
+            print(1809)
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
@@ -1805,7 +1825,9 @@ cdef class TextReader:
                     f"Extension Array: {array_type} must implement "
                     f"_from_sequence_of_strings in order "
                     f"to be used in parser methods")
-
+            print("convert returning")
+            print("return result, na_count, None")
+            print(f"result={result}, na_count={na_count}")
             return result, na_count, None
 
         elif dtype.kind in "iu":
@@ -1837,6 +1859,7 @@ cdef class TextReader:
             return result, na_count, na_mask
 
         elif dtype.kind == "f":
+            print("covert here")
             result, na_count, na_mask = _try_double(self.parser, i, start, end,
                                                     na_filter, na_hashset, na_fset)
 
@@ -1962,7 +1985,6 @@ cdef class TextReader:
         cdef:
             object ivals = None
             object mask = None
-
         try:
             ivals, _, mask = _try_int64(self.parser, i, start, end,
                                         na_filter, na_hashset, True)
@@ -1979,14 +2001,21 @@ cdef class TextReader:
                 return None
             # decimal / exponent form -> fall through to the float parse
             ivals = None
-
+        
         if ivals is not None:
+            print("in _parse_numeric_natural")
             return IntegerArray(ivals, mask)
-
+        print("numeric parse:", "na_filter=", na_filter)
         fvals, _, mask = _try_double(self.parser, i, start, end,
                                      na_filter, na_hashset, na_fset)
+        print("double result:", fvals, "mask:", mask)
         if fvals is None:
+
+            print("2in _parse_numeric_natural")
             return None
+        
+        print("in _parse_numeric_natural")
+        # print(natural, natural._mask)
         return _maybe_upcast(fvals, use_dtype_backend=True,
                              dtype_backend="numpy_nullable", na_mask=mask)
 
@@ -2003,6 +2032,9 @@ cdef class TextReader:
             result = array_type._from_sequence(natural, dtype=dtype)
         except (TypeError, ValueError, OverflowError):
             return None
+        
+        print("in _reconcile_numeric")
+        print(natural, natural._mask)
         return result, int(natural._mask.sum())
 
     # -> tuple[ExtensionArray, int] | None
@@ -3883,10 +3915,12 @@ cdef _try_double(parser_t *parser, int64_t col,
     na_fhashset = kset_float64_from_set(na_fset)
     with nogil:
         error = _probe_double(parser, col, line_start, line_end,
-                              na_filter, na_hashset)
+                              na_filter, na_hashset)     
         if error == 0:
             data = <float64_t *>malloc(
                 (lines if lines > 0 else 1) * sizeof(float64_t))
+    
+    print(f"parse error: {error}")  
     if error == 0:
         if data == NULL:
             kh_destroy_float64(na_fhashset)
@@ -3899,12 +3933,25 @@ cdef _try_double(parser_t *parser, int64_t col,
                                       na_filter, na_hashset, use_na_flist,
                                       na_fhashset, NA, data, &na_count,
                                       <uint8_t *>na_mask.data)
+        print(f"parse error: {error}")
 
     kh_destroy_float64(na_fhashset)
     if error != 0:
         return None, None, None
     return result, na_count, na_mask
 
+cdef inline bint _is_nan_token(const char *w, int64_t n, double *out) noexcept nogil:
+    # "nan", "-nan", "+nan", case-insensitive
+    cdef int64_t o = 0
+    if n == 4 and (w[0] == b"-" or w[0] == b"+"):
+        o = 1
+    elif n != 3:
+        return False
+    if ((w[o] | 0x20) == b"n" and (w[o+1] | 0x20) == b"a"
+            and (w[o+2] | 0x20) == b"n"):
+        out[0] = NAN   # or: out[0] = 0.0 / 0.0 style; use a module-level NaN
+        return True
+    return False
 
 cdef int _try_double_nogil(parser_t *parser,
                            float64_t (*double_converter)(
@@ -3957,7 +4004,7 @@ cdef int _try_double_nogil(parser_t *parser,
                                                1, &error, NULL, word_end)
                     if error != 0 or p_end == word or p_end != word_end:
                         error = 0
-                        if parse_special_float(word, word_len, data) != 0:
+                        if parse_special_float(word, word_len, data) != 0 and not _is_nan_token(word, word_len, data):
                             return 1
                 if use_na_flist:
                     k64 = kh_get_float64(na_fhashset, data[0])
@@ -3979,6 +4026,7 @@ cdef int _try_double_nogil(parser_t *parser,
                 if error != 0 or p_end == word or p_end != word_end:
                     error = 0
                     if parse_special_float(word, word_end - word, data) != 0:
+                        # if not _is_nan_token(word, word_len, data):
                         return 1
             data += 1
 
