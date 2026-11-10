@@ -287,6 +287,14 @@ class TestDataFrameConstructors:
         df2 = pd.DataFrame(df.values, dtype=df[0].dtype)
         assert df2._mgr.blocks[0].values.flags.c_contiguous
 
+    @pytest.mark.parametrize("copy", [None, True])
+    @pytest.mark.parametrize("dtype", [None, "float64"])
+    def test_constructor_2d_ndarray_copy_is_column_major(self, copy, dtype):
+        # GH#52438 blocks store columns as rows, so c_contiguous means column-major
+        arr = np.arange(6, dtype="float64").reshape(3, 2)
+        df = pd.DataFrame(arr, dtype=dtype, copy=copy)
+        assert df._mgr.blocks[0].values.flags.c_contiguous
+
     def test_1d_object_array_does_not_copy(self, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")
@@ -3268,6 +3276,18 @@ class TestDataFrameConstructorWithDtypeCoercion:
             pd.DataFrame(arr).astype("i8")
         with pytest.raises(IntCastingNaNError, match=msg):
             pd.Series(arr[0]).astype("i8")
+
+
+@pytest.mark.parametrize("data", [[[1], [np.nan]], {0: [1, np.nan]}])
+def test_constructor_nan_masked_dtype_distinguish_nan_and_na(data):
+    # GH#71870 list-of-lists NaN was inferred as NA, unlike dict-of-lists
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.DataFrame(data, dtype="Float64")
+        expected = pd.DataFrame({0: pd.array([1.0, np.nan], dtype="Float64")})
+        tm.assert_frame_equal(result, expected)
+
+        with pytest.raises(ValueError, match="Cannot cast NaN value to Integer"):
+            pd.DataFrame(data, dtype="Int64")
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

@@ -1253,3 +1253,27 @@ def test_cmp_categorical_positional_listlike_deprecated():
     for other in [(1, 2, 3), range(3)]:
         with tm.assert_produces_warning(None):
             cat == other
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.date_range("2016-01-01", periods=3),
+        pd.date_range("2016-01-01", tz="US/Pacific", periods=3),
+        pd.timedelta_range("1 Day", periods=3),
+    ],
+)
+def test_arithmetic_mismatched_datetime_units(index):
+    # GH#63417 the left operand's unit is kept
+    left = index.as_unit("us")
+    right = index.as_unit("ns")
+    ser = pd.Series([1, 2, 3], index=left)
+    ser2 = pd.Series([1, 2, 3], index=right)
+
+    result = ser + ser2
+    expected = pd.Series([2, 4, 6], index=left)
+    tm.assert_series_equal(result, expected)
+
+    result2 = ser2 + ser
+    expected2 = pd.Series([2, 4, 6], index=right)
+    tm.assert_series_equal(result2, expected2)
