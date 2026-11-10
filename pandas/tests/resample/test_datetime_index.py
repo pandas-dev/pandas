@@ -2523,3 +2523,17 @@ def test_resample_dateoffset_bins_start_at_first_day(
         index=DatetimeIndex(expected_dates, freq=freq),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_easter():
+    # GH#31697
+    ser = pd.Series(1, index=date_range("2020-01-01", "2021-12-31", freq="D"))
+    result = ser.resample(offsets.Easter()).sum()
+
+    expected = pd.Series(
+        [102, 357, 272],
+        index=DatetimeIndex(
+            ["2019-04-21", "2020-04-12", "2021-04-04"], freq=offsets.Easter()
+        ),
+    )
+    tm.assert_series_equal(result, expected)
