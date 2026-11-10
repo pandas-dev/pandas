@@ -1494,3 +1494,16 @@ def test_groupby_rolling_selected_grouping_column_and_index_level():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+
+def test_groupby_rolling_external_grouper_with_matching_column_name():
+    # A Series grouper is external even when its name matches a DataFrame column.
+    # The matching column must not be treated as an explicitly selected grouping
+    # column; rolling therefore sees the non-numeric column and raises.
+    df = pd.DataFrame({"key": ["a", "b", "b"], "val": [1, 2, 3]})
+
+    with pytest.raises(
+        pd.errors.DataError, match="Cannot aggregate non-numeric type: object"
+    ):
+        df.groupby(df["key"].str.upper()).rolling(2).sum()
