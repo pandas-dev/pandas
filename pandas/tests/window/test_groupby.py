@@ -1496,14 +1496,16 @@ def test_groupby_rolling_selected_grouping_column_and_index_level():
     tm.assert_frame_equal(result, expected)
 
 
-
 def test_groupby_rolling_external_grouper_with_matching_column_name():
-    # A Series grouper is external even when its name matches a DataFrame column.
-    # The matching column must not be treated as an explicitly selected grouping
-    # column; rolling therefore sees the non-numeric column and raises.
+    # GH#71286: Preserve the historical exclusion when an external grouper's
+    # name matches a column, unless the column was explicitly selected.
     df = pd.DataFrame({"key": ["a", "b", "b"], "val": [1, 2, 3]})
 
-    with pytest.raises(
-        pd.errors.DataError, match="Cannot aggregate non-numeric type: object"
-    ):
-        df.groupby(df["key"].str.upper()).rolling(2).sum()
+    result = df.groupby(df["key"].str.upper()).rolling(2).sum()
+    expected = pd.DataFrame(
+        {"val": [np.nan, np.nan, 5.0]},
+        index=pd.MultiIndex.from_arrays(
+            [["A", "B", "B"], [0, 1, 2]], names=["key", None]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
