@@ -3852,7 +3852,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         obj = self._selected_obj
         if obj.ndim == 2 and self._selection is None:
-            obj = obj.drop(columns=self.exclusions, errors="ignore")
+            obj = obj.drop(
+                columns=[*self.exclusions, *self._grouper.names], errors="ignore"
+            )
 
         return RollingGroupBy(
             obj,
@@ -3935,7 +3937,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         obj = self._selected_obj
         if obj.ndim == 2 and self._selection is None:
-            obj = obj.drop(columns=self.exclusions, errors="ignore")
+            obj = obj.drop(
+                columns=[*self.exclusions, *self._grouper.names], errors="ignore"
+            )
 
         return ExpandingGroupBy(
             obj,
@@ -4041,7 +4045,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         obj = self._selected_obj
         if obj.ndim == 2 and self._selection is None:
-            obj = obj.drop(columns=self.exclusions, errors="ignore")
+            obj = obj.drop(
+                columns=[*self.exclusions, *self._grouper.names], errors="ignore"
+            )
 
         return ExponentialMovingWindowGroupBy(
             obj,
