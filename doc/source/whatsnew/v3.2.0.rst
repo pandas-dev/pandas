@@ -335,6 +335,7 @@ I/O
 - Bug in :func:`read_csv` with ``engine="c"`` and ``skiprows`` treating a quote in a skipped leading line as opening a field, skipping the wrong lines or raising ``EmptyDataError`` (:issue:`34732`)
 - Bug in :func:`read_csv` with ``engine="c"`` occasionally dropping leading whitespace from the first value of a line in large inputs (:issue:`34085`)
 - Bug in :func:`read_csv` with ``engine="c"`` shifting a row's values one column left when the row starts with the delimiter and follows a blank, comment, or skipped line in a file with ``\r`` line endings (:issue:`71409`)
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` and ``parse_dates`` converting a non-date ``index_col`` (e.g. integers) to strings (:issue:`71873`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``EmptyDataError`` for input whose only line lacks a trailing newline (:issue:`62635`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` silently wrapping values outside the range of the requested integer ``dtype`` instead of raising (:issue:`38013`)
 - Bug in :func:`read_csv` with ``engine="python"`` and ``index_col`` reading a date like ``"20180101"`` as nanoseconds since the epoch when ``dtype`` is a pyarrow timestamp dtype (:issue:`24542`)
