@@ -1018,7 +1018,7 @@ def test_invalid_dtype_backend():
     ],
 )
 def test_coerce_pyarrow_string(data, expected, kwargs, dtype):
-    # GH#52588, GH#67949: unparseable strings (including the "NaN" literal)
+    # GH#52588, GH#67949: unparsable strings (including the "NaN" literal)
     #  must become a real pd.NA that isna() sees, and a parse failure after
     #  an existing missing value must not duplicate the last parsed value
     pa = pytest.importorskip("pyarrow")
