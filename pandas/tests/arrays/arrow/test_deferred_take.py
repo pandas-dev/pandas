@@ -19,7 +19,7 @@ pa = pytest.importorskip("pyarrow")
 
 
 def _is_pending(arr) -> bool:
-    return "_pending_take" in arr.__dict__
+    return arr._pending_take is not None
 
 
 @pytest.fixture(
@@ -132,7 +132,7 @@ def test_slice_of_materialized_array_is_not_deferred(data):
 def test_full_slice_shares_pending(data):
     pending = data.take(np.arange(99, -1, -1))
     result = pending[:]
-    assert result.__dict__["_pending_take"] is pending.__dict__["_pending_take"]
+    assert result._pending_take is pending._pending_take
 
 
 def test_take_with_fill_is_eager(data):
@@ -244,7 +244,7 @@ def test_scalar_getitem_out_of_bounds(data):
 
 def test_materialize_releases_parent(data):
     result = data.take(np.arange(99, -1, -1))
-    pending = result.__dict__["_pending_take"]
+    pending = result._pending_take
     result._pa_array
     assert pending.parent is None
     assert pending.indices is None
@@ -282,7 +282,7 @@ def test_pickle_pending(data):
     pending = data.take(np.arange(99, -1, -1))
     result = pickle.loads(pickle.dumps(pending))
     tm.assert_extension_array_equal(result, data[::-1])
-    assert "_pending_take" not in result.__dict__
+    assert not _is_pending(result)
 
 
 @pytest.mark.parametrize("share", [True, False], ids=["same-array", "views"])

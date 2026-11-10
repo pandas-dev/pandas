@@ -687,8 +687,10 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
     # results from calls to methods decorated with cache_readonly get added here
     _cache: dict[str, pa.ChunkedArray]
-    # set instead of _pa_array until a deferred take runs (see _PendingTake)
-    _pending_take: _PendingTake
+    # set on the instance instead of _pa_array until a deferred take runs
+    # (see _PendingTake); the class default keeps lookups on other arrays
+    # from reaching __getattr__
+    _pending_take: _PendingTake | None = None
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if not HAS_PYARROW:
@@ -876,7 +878,7 @@ class ArrowExtensionArray(
         # Note that Python also calls this when a property getter raises
         # AttributeError, so such an error surfaces as the generic one below.
         if name == "_pa_array":
-            pending = self.__dict__.get("_pending_take")
+            pending = self._pending_take
             if pending is not None:
                 pa_array = pending.materialize()
                 # store the result before dropping the pending take, so a
@@ -905,13 +907,13 @@ class ArrowExtensionArray(
         The array to gather from, and the positions to compose with: those of
         a deferred take that has not run, else None.
         """
-        pending = self.__dict__.get("_pending_take")
+        pending = self._pending_take
         if pending is not None:
             return pending.source()
         return self._pa_array, None
 
     def _can_defer_take(self) -> bool:
-        if "_pending_take" in self.__dict__:
+        if self._pending_take is not None:
             return True
         return _is_varbinary_type(self._pa_array.type)
 
@@ -1333,7 +1335,7 @@ class ArrowExtensionArray(
         to the values where ``item`` is True.
         """
         if isinstance(item, slice):
-            pending = self.__dict__.get("_pending_take")
+            pending = self._pending_take
             if pending is not None:
                 n = len(self)
                 deferred: ArrowExtensionArray | None
@@ -1381,7 +1383,7 @@ class ArrowExtensionArray(
                 return self.take(item)
             elif item.dtype.kind == "b":
                 deferred = None
-                if "_pending_take" in self.__dict__:
+                if self._pending_take is not None:
                     deferred = self._deferred_take(item)
                 elif _is_varbinary_type(self._pa_array.type):
                     deferred = self._deferred_take(np.flatnonzero(item), copy=False)
@@ -1410,7 +1412,7 @@ class ArrowExtensionArray(
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
         value = None
-        pending = self.__dict__.get("_pending_take")
+        pending = self._pending_take
         if pending is not None and is_integer(item):
             parent, base = pending.source()
             if base is not None and -len(base) <= item < len(base):
@@ -1898,7 +1900,7 @@ class ArrowExtensionArray(
         -------
         length : int
         """
-        pending = self.__dict__.get("_pending_take")
+        pending = self._pending_take
         if pending is not None:
             # a deferred take: its length is known without gathering
             return len(pending)
@@ -2135,7 +2137,7 @@ class ArrowExtensionArray(
         -------
         type(self)
         """
-        pending = self.__dict__.get("_pending_take")
+        pending = self._pending_take
         if pending is not None:
             parent, base = pending.source()
             if base is not None:
@@ -2163,7 +2165,7 @@ class ArrowExtensionArray(
         # Override since the ExtensionArray.view create a new pa_array.
         if dtype is not None:
             return super().view(dtype)
-        pending = self.__dict__.get("_pending_take")
+        pending = self._pending_take
         if pending is not None:
             # share the deferred take, so all views gather once and share
             # the buffers
