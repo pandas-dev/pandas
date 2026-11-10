@@ -1016,6 +1016,16 @@ class TestGetGroup:
         expected = pd.DataFrame({"ids": [(dt[0],), (dt[0],)]}, index=[0, 2])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_get_group_multiple_keys_with_nat(self, tz):
+        # GH#44517
+        dt = pd.to_datetime(["2020-01-01", None, None]).tz_localize(tz)
+        df = pd.DataFrame({"a": [1, 2, 2], "b": dt, "c": [1, 2, 3]})
+        gb = df.groupby(["a", "b"], dropna=False)
+        result = gb.get_group((2, pd.NaT))
+        expected = df.iloc[1:]
+        tm.assert_frame_equal(result, expected)
+
     def test_get_group_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = pd.DataFrame(

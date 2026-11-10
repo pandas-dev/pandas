@@ -644,11 +644,19 @@ def test_filter_with_non_values_multi_index():
 
 
 @pytest.mark.parametrize("keys", ["b", ["a", "b"]])
-def test_filter_dropna_false_keeps_nan_group(keys):
+@pytest.mark.parametrize(
+    "b",
+    [
+        [2, 2, np.nan, np.nan, 3],
+        pd.to_datetime(["2020-01-01", "2020-01-01", None, None, "2020-01-03"]),
+        pd.to_datetime(
+            ["2020-01-01", "2020-01-01", None, None, "2020-01-03"]
+        ).tz_localize("UTC"),
+    ],
+)
+def test_filter_dropna_false_keeps_nan_group(keys, b):
     # GH#44517 a group with NaN in its key stays when the filter keeps it
-    df = pd.DataFrame(
-        {"a": [1, 1, 2, 2, 3], "b": [2, 2, np.nan, np.nan, 3], "c": [1, 2, 3, 4, 5]}
-    )
+    df = pd.DataFrame({"a": [1, 1, 2, 2, 3], "b": b, "c": [1, 2, 3, 4, 5]})
     result = df.groupby(keys, dropna=False).filter(lambda x: len(x) > 1)
     expected = df.iloc[:4]
     tm.assert_frame_equal(result, expected)
