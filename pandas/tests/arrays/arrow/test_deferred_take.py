@@ -66,6 +66,44 @@ def test_take_does_not_alias_indexer(data):
     tm.assert_extension_array_equal(result, _expected(data, np.arange(50)))
 
 
+def test_take_keeps_owned_readonly_indexer(data):
+    positions = np.arange(50)
+    positions.flags.writeable = False
+    result = data.take(positions)
+    assert result._pending_take.indices is positions
+
+    # a read-only view could still change through its base: copied
+    base = np.arange(50)
+    view = base[:]
+    view.flags.writeable = False
+    result = data.take(view)
+    assert result._pending_take.indices is not view
+    base[:] = 0
+    tm.assert_extension_array_equal(result, _expected(data, np.arange(50)))
+
+
+def test_frame_take_shares_indexer_across_columns():
+    df = pd.DataFrame(
+        {
+            "a": pd.array([f"a{i}" for i in range(100)], dtype="str"),
+            "b": pd.array([f"b{i}" for i in range(100)], dtype="str"),
+            "c": np.arange(100),
+        }
+    )
+    indexer = np.arange(99, -1, -1)
+    result = df.take(indexer)
+    a = result["a"].array._pending_take
+    b = result["b"].array._pending_take
+    # one copy of the indexer for the whole frame, not one per column
+    assert a.indices is b.indices
+    assert a.indices is not indexer
+    # the caller's indexer is left writeable, and changing it does not
+    # change the result
+    assert indexer.flags.writeable
+    indexer[:] = 0
+    tm.assert_frame_equal(result, df.iloc[::-1])
+
+
 def test_compose_take_slice_mask(data):
     first = data.take(np.arange(99, -1, -1))
     second = first.take(np.arange(0, 100, 2))
