@@ -533,8 +533,6 @@ class XportReader(SASReader):
 
             df_data.update({x: v})
         df = pd.DataFrame(df_data, columns=self._output_columns)
-        if not self._used_columns:
-            df.columns = pd.Index([], dtype=object)
 
         if self._index is None:
             df.index = pd.Index(range(self._lines_read, self._lines_read + read_lines))
