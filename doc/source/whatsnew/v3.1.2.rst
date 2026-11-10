@@ -1,0 +1,36 @@
+.. _whatsnew_312:
+
+What's new in 3.1.2 (November XX, 2026)
+---------------------------------------
+
+These are the changes in pandas 3.1.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_312.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed a regression in :class:`arrays.SparseArray` arithmetic with a ``timedelta64`` scalar in a unit pandas does not support, such as ``np.timedelta64(1, "D")``, raising ``TypeError`` (:issue:`71872`)
+- Fixed a regression in :func:`read_csv`, :func:`read_json` and :func:`read_xml` raising ``ValueError: I/O operation on closed file`` when reading from a stream that closes itself once exhausted, such as a ``requests`` ``Response.raw`` (:issue:`71983`)
+- Fixed a regression in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and the other assertion functions, where the failure message rounded float values to ``display.precision``, so differing values could look identical (:issue:`71509`)
+- Fixed a regression in :meth:`DataFrame.agg` with a list of functions raising ``ArrowInvalid`` on pyarrow-backed columns with large integer results (:issue:`71875`)
+- Fixed a regression in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ConversionError`` when plotting timezone-aware datetime data containing missing values (:issue:`71879`)
+- Fixed a regression in :meth:`Timestamp.strftime` raising ``AttributeError`` instead of ``TypeError`` when ``format`` is not a string (:issue:`71914`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_312.bugs:
+
+Bug fixes
+~~~~~~~~~
+- Fixed :meth:`arrays.SparseArray.from_indices` raising on ``datetime64`` or ``timedelta64`` data in a unit pandas does not support, and silently accepting unsorted, duplicate or negative ``indices`` with ``kind="block"`` (:issue:`71872`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_312.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.1.1..v3.1.2|HEAD

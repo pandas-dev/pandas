@@ -15,6 +15,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
@@ -37,7 +38,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -70,6 +73,7 @@ if TYPE_CHECKING:
         AggFuncTypeBase,
         AggFuncTypeDict,
         AggObjType,
+        ArrayLike,
         Axis,
         AxisInt,
         DtypeObj,
@@ -1270,21 +1274,6 @@ class FrameApply(NDFrameApply):
     def apply_raw(self, engine="python", engine_kwargs=None):
         """apply to the values as a numpy array"""
 
-        def wrap_function(func):
-            """
-            Wrap user supplied function to work around numpy issue.
-
-            see https://github.com/numpy/numpy/issues/8352
-            """
-
-            def wrapper(*args, **kwargs):
-                result = func(*args, **kwargs)
-                if isinstance(result, str):
-                    result = np.array(result, dtype=object)
-                return result
-
-            return wrapper
-
         if engine == "numba":
             args, kwargs = prepare_function_arguments(
                 self.func,  # type: ignore[arg-type]
@@ -1304,13 +1293,25 @@ class FrameApply(NDFrameApply):
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
-            result = np.apply_along_axis(
-                wrap_function(self.func),
-                self.axis,
-                self.values,
-                *self.args,
-                **self.kwargs,
-            )
+            func = cast("Callable[..., Any]", self.func)
+            values = self.values.T if self.axis == 0 else self.values
+            res = func(values[0], *self.args, **self.kwargs)
+            first = lib.item_from_zerodim(res)
+            if lib.is_scalar(first):
+                # infer the dtype from all results, as with raw=False
+                results = [first]
+                for arr in values[1:]:
+                    res = func(arr, *self.args, **self.kwargs)
+                    results.append(lib.item_from_zerodim(res))
+                return self.obj._constructor_sliced(results, index=self.agg_axis)
+            first = np.asanyarray(res)
+            result = np.zeros_like(first, shape=(len(values), *first.shape))
+            result[0, ...] = first
+            for i, arr in enumerate(values[1:], start=1):
+                # write now, as func may reuse its output array between calls
+                result[i, ...] = np.asanyarray(func(arr, *self.args, **self.kwargs))
+            if self.axis == 0:
+                result = np.moveaxis(result, 0, -1)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -1401,10 +1402,52 @@ class FrameApply(NDFrameApply):
         if len(results) == 0 and constructor_sliced is Series:
             result = constructor_sliced(results, dtype=np.float64)
         else:
-            result = constructor_sliced(results)
+            values = self._pointwise_cast_results(results)
+            if values is None:
+                result = constructor_sliced(results)
+            else:
+                # GH#61812 retain the frame's extension dtype instead of
+                #  inferring one from the scalar results, as groupby.agg does
+                result = constructor_sliced(values, copy=False)
         result.index = res_index
 
         return result
+
+    def _pointwise_cast_results(self, results: ResType) -> ArrayLike | None:
+        """
+        The scalar results cast back to the frame's extension dtype, or None if
+        there is no dtype to retain and they should be inferred as before.
+
+        Only a frame with a single extension dtype qualifies: every value handed
+        to the function then had that dtype, so one result dtype is well-defined
+        for either axis.
+        """
+        dtypes = self.obj._mgr.get_dtypes()
+        if not isinstance(dtypes[0], ExtensionDtype):
+            return None
+        if isinstance(dtypes[0], SparseDtype):
+            # sparsity is a storage layout rather than a result dtype, and
+            #  SparseArray's cast drops a tz, see test_apply_sparse_not_retained
+            return None
+        if isinstance(dtypes[0], CategoricalDtype):
+            # the cast keeps category only if every result is a category, so the
+            #  dtype would depend on the values, see test_apply_categorical_not_retained
+            return None
+        if any(dtype != dtypes[0] for dtype in dtypes[1:]):
+            return None
+        # cast: a single ExtensionDtype implies an ExtensionArray
+        arr = cast("ExtensionArray", self.obj._get_column_array(0))
+        try:
+            values = arr._cast_pointwise_result(list(results.values()))
+        except Exception:
+            # Deliberately broad: retaining a dtype must not make a working
+            #  apply raise, see test_apply_ea_dtype_falls_back_when_cast_raises
+            return None
+        if not isinstance(values.dtype, ExtensionDtype):
+            # the cast fell back to inference; leave that to the constructor so
+            #  a frame with nothing to retain behaves exactly as before
+            return None
+        return values
 
     def apply_str(self) -> DataFrame | Series:
         # Caller is responsible for checking isinstance(self.func, str)
@@ -2017,6 +2060,9 @@ def reconstruct_func(
 
     columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
+    invalid_named_agg_msg = (
+        "Named aggregation {!r} must be a tuple of (column, aggfunc) or a NamedAgg."
+    )
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
@@ -2027,6 +2073,9 @@ def reconstruct_func(
             )
         if func is None:
             # nicer error message
+            for key, val in kwargs.items():
+                if not (isinstance(val, tuple) and len(val) == 2):
+                    raise TypeError(invalid_named_agg_msg.format(key))
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
@@ -2046,6 +2095,9 @@ def reconstruct_func(
                         x, *a, **kw
                     )
             else:
+                # GH#43838 invalid values only get here when mixed with a NamedAgg
+                if not is_list_like(val) or len(val) != 2:
+                    raise TypeError(invalid_named_agg_msg.format(key))
                 column, aggfunc = val
 
             # The un-normalized {column: aggfunc} form only matches the normalized

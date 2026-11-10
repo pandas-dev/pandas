@@ -1550,7 +1550,8 @@ class Parser:
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
-                if all(notna(data)):
+                # fillna would discard the non-NaN part of a complex value
+                if data.dtype.kind == "c" or all(notna(data)):
                     return data, False
 
                 filled = data.fillna(np.nan)
@@ -1589,7 +1590,7 @@ class Parser:
             try:
                 data = data.astype("float64")
                 converted = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         if data.dtype.kind == "f" and data.dtype != "float64":

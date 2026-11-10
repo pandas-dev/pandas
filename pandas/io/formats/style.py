@@ -172,6 +172,11 @@ class Styler(StylerRenderer):
     return values with strings containing CSS ``'attr: value'`` that will
     be applied to the indicated cells.
 
+    Styling methods such as ``Styler.map`` and ``Styler.format`` modify the
+    ``Styler`` in place and return it, to allow method chaining. Style functions
+    are evaluated lazily at render time, so a faulty one stays queued until
+    ``Styler.clear`` resets the Styler.
+
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
     to automatically render itself. Otherwise call Styler.to_html to get
     the generated HTML.
@@ -276,7 +281,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified Styler appended.
+            This Styler, with specified Styler appended.
 
         See Also
         --------
@@ -430,7 +435,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with DataFrame set for strings on ``Styler``
+            This Styler, with DataFrame set for strings on ``Styler``
                 generating ``:hover`` tooltips.
 
         See Also
@@ -638,10 +643,10 @@ class Styler(StylerRenderer):
         :meth:`Styler.set_td_classes` are not exported, and only a subset of CSS
         properties is supported; see
         `Table Visualization <../../user_guide/style.ipynb>`_.
-        Display formatting from :meth:`Styler.format` and hiding from
-        :meth:`Styler.hide` are ignored. To control how values are displayed in
-        Excel, set an Excel format code with the ``number-format`` property,
-        writing ``§`` in place of Excel's ``;`` section separator.
+        Display formatting from :meth:`Styler.format` is ignored. To control how
+        values are displayed in Excel, set an Excel format code with the
+        ``number-format`` property, writing ``§`` in place of Excel's ``;`` section
+        separator.
 
         Examples
         --------
@@ -1737,7 +1742,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with ``class`` attribute set for ``<td>``
+            This Styler, with ``class`` attribute set for ``<td>``
                 HTML elements.
 
         See Also
@@ -2070,7 +2075,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2177,7 +2182,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2254,7 +2259,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2334,7 +2339,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS-styling function applied elementwise.
+            This Styler, with CSS-styling function applied elementwise.
 
         See Also
         --------
@@ -2390,7 +2395,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified table attributes set.
+            This Styler, with specified table attributes set.
 
         See Also
         --------
@@ -2494,7 +2499,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with defined styler attributes added.
+            This Styler, with defined styler attributes added.
 
         See Also
         --------
@@ -2551,7 +2556,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified uuid for `id` attributes set.
+            This Styler, with specified uuid for `id` attributes set.
 
         See Also
         --------
@@ -2604,7 +2609,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with text set for ``<caption>`` HTML element.
+            This Styler, with text set for ``<caption>`` HTML element.
 
         See Also
         --------
@@ -2663,7 +2668,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS set for permanently displaying headers
+            This Styler, with CSS set for permanently displaying headers
                 in scrolling frame.
 
         See Also
@@ -2828,7 +2833,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified table styles set.
+            This Styler, with specified table styles set.
 
         See Also
         --------
@@ -2968,7 +2973,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified headers/rows/columns hidden from display.
+            This Styler, with specified headers/rows/columns hidden from display.
 
         See Also
         --------
@@ -2978,13 +2983,6 @@ class Styler(StylerRenderer):
 
         Notes
         -----
-        .. warning::
-           This method only works with the output methods ``to_html``, ``to_string``,
-           ``to_latex`` and ``to_typst``.
-
-           Other output methods, including ``to_excel``, ignore this hiding method
-           and will display all data.
-
         This method has multiple functionality depending upon the combination
         of the ``subset``, ``level`` and ``names`` arguments (see examples). The
         ``axis`` argument is used only to control whether the method is applied to row
@@ -3212,7 +3210,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with background colored in gradient style.
+            This Styler, with background colored in gradient style.
 
         See Also
         --------
@@ -3365,7 +3363,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with background colored in gradient style.
+            This Styler, with text colored in gradient style.
 
         See Also
         --------
@@ -3478,7 +3476,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS-properties set for each ``<td>`` HTML element
+            This Styler, with CSS-properties set for each ``<td>`` HTML element
                 in the given subset
 
         See Also
@@ -3578,7 +3576,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Contains list-like attribute with bar chart data as formatted CSS.
+            This Styler, with bar chart CSS applied.
 
         See Also
         --------
@@ -3661,7 +3659,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where null values are highlighted with given style.
+            This Styler, where null values are highlighted with given style.
 
         See Also
         --------
@@ -3718,7 +3716,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where max value is highlighted in given style.
+            This Styler, where max value is highlighted in given style.
 
         See Also
         --------
@@ -3777,7 +3775,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where min value is highlighted in given style.
+            This Styler, where min value is highlighted in given style.
 
         See Also
         --------
@@ -3844,7 +3842,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with range highlighted in given style.
+            This Styler, with range highlighted in given style.
 
         See Also
         --------
@@ -3968,7 +3966,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where values in quantile highlighted with given style.
+            This Styler, where values in quantile highlighted with given style.
 
         See Also
         --------
