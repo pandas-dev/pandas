@@ -972,6 +972,8 @@ def get_handle(
                 or not hasattr(handle, "seekable")
             ):
                 handle = _IOWrapper(handle)
+            elif getattr(handle, "auto_close", False):
+                handle = _AutoCloseIOWrapper(handle)
             # error: Value of type variable "_BufferT_co" of "TextIOWrapper" cannot
             # be "_IOWrapper | BaseBuffer" [type-var]
             handle = TextIOWrapper(
@@ -1173,6 +1175,14 @@ class _IOWrapper:
         if hasattr(self.buffer, "writable"):
             return self.buffer.writable()
         return True
+
+
+class _AutoCloseIOWrapper(_IOWrapper):
+    # urllib3 responses (e.g. requests' Response.raw) close themselves at EOF
+    # when auto_close is set, after which TextIOWrapper raises on every read
+    @property
+    def closed(self) -> bool:
+        return False
 
 
 class _BytesIOWrapper:
