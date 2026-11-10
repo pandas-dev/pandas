@@ -355,11 +355,11 @@ class TestMerge:
         # manually compute outer merge
         ldict, rdict = defaultdict(list), defaultdict(list)
 
-        for idx, row in left.set_index(list("ABCDEFG")).iterrows():
-            ldict[idx].append(row["left"])
+        for row in left.set_index(list("ABCDEFG")).itertuples():
+            ldict[row.Index].append(row.left)
 
-        for idx, row in right.set_index(list("ABCDEFG")).iterrows():
-            rdict[idx].append(row["right"])
+        for row in right.set_index(list("ABCDEFG")).itertuples():
+            rdict[row.Index].append(row.right)
 
         vals = []
         for k, lval in ldict.items():
@@ -682,3 +682,17 @@ def test_safe_sort_multiindex():
         [pd.Series([1, 2, pd.NA, pd.NA], dtype="Int64"), [1, 2, 3, 3]]
     )
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([("b", 1), "ab", ("a", 2)], [("a", 2), "ab", ("b", 1)]),
+        ([(98, 1), b"ab", (97, 2)], [(97, 2), b"ab", (98, 1)]),
+    ],
+)
+def test_safe_sort_tuples_mixed_with_str(values, expected):
+    # GH#50461 a str or bytes element is ordered as the tuple of its elements,
+    #  without the DataFrame constructor's deprecation warning
+    result = safe_sort(np.array(values, dtype=object))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=object))

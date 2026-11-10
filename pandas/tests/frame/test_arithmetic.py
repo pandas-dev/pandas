@@ -1804,6 +1804,23 @@ class TestFrameArithmeticUnsorted:
         tm.assert_frame_equal(result1, result3)
         tm.assert_frame_equal(result1, result4)
 
+    def test_inplace_ops_align_rows_left(self):
+        # GH#12755 rows only in other must not upcast the result
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [True, False, True]})
+        orig = df
+        other = pd.DataFrame(
+            {"a": [10, 20, 30, 40], "b": [True] * 4, "c": 1}, index=[3, 2, 1, 0]
+        )
+        df &= other
+        assert df is orig
+        expected = pd.DataFrame({"a": [0, 2, 0], "b": [True, False, True]})
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df["a"] += pd.Series(10, index=range(4))
+        expected = pd.DataFrame({"a": [11, 12, 13]})
+        tm.assert_frame_equal(df, expected)
+
     def test_inplace_ops_identity(self):
         # GH 5104
         # make sure that we are actually changing the object
@@ -2492,3 +2509,22 @@ def test_frame_with_period_series():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_arithmetic_mismatched_datetime_units(axis):
+    # GH#63417 equal values skip the join, so the left operand's unit is kept
+    dti = pd.date_range("2016-01-01", periods=2)
+    left = dti.as_unit("us")
+    right = dti.as_unit("ns")
+    values = pd.DataFrame([[1, 2], [3, 4]])
+    df = values.set_axis(left, axis=axis)
+    df2 = values.set_axis(right, axis=axis)
+
+    result = df + df2
+    expected = (values * 2).set_axis(left, axis=axis)
+    tm.assert_frame_equal(result, expected)
+
+    result2 = df2 + df
+    expected2 = (values * 2).set_axis(right, axis=axis)
+    tm.assert_frame_equal(result2, expected2)

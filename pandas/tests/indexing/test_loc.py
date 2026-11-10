@@ -1352,6 +1352,45 @@ class TestLocBaseIndependent:
         result = s.loc[np.array(0)]
         assert result == 1
 
+    @pytest.mark.parametrize(
+        "key, scalar_key, columns",
+        [
+            (np.array(1), 1, ["a", "b"]),
+            ((np.array(1), "a"), (1, "a"), ["a", "b"]),
+            ((np.array(1), np.array(10)), (1, 10), [10, 20]),
+            (lambda d: np.array(1), 1, ["a", "b"]),
+            ((lambda d: np.array(1), "a"), (1, "a"), ["a", "b"]),
+        ],
+    )
+    def test_setitem_zerodim_np_array(self, key, scalar_key, columns):
+        # GH#70256
+        df = pd.DataFrame(
+            [[1, 4], [2, 5], [3, 6]],
+            columns=columns,
+            dtype="Int64",
+        )
+        expected = df.copy()
+
+        expected.loc[scalar_key] = 9
+        df.loc[key] = 9
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_zerodim_np_array_mixed_dtype(self):
+        # GH#70256
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": ["x", "y", "z"],
+            }
+        )
+        expected = df.copy()
+
+        expected.loc[1] = [9, "changed"]
+        df.loc[np.array(1)] = [9, "changed"]
+
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_reverse_assignment(self):
         # GH26939
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
@@ -1584,13 +1623,9 @@ class TestLocBaseIndependent:
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = pd.DataFrame(index=idx, columns=["var"], dtype=np.float64)
-        if idxer == "var":
-            with pytest.raises(TypeError, match="Invalid value"):
-                result.loc[:, idxer] = expected
-        else:
-            # See https://github.com/pandas-dev/pandas/issues/56223
-            result.loc[:, idxer] = expected
-            tm.assert_frame_equal(result, expected)
+        # See https://github.com/pandas-dev/pandas/issues/56223
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_time_key(self):
         index = pd.date_range("2012-01-01", "2012-01-05", freq="30min")
@@ -2028,7 +2063,9 @@ class TestLocWithMultiIndex:
         expected = pd.Series(["a", "b", "c", "a"], dtype="category")
         tm.assert_series_equal(result, expected)
 
-    def test_loc_set_nan_in_categorical_series(self, any_numeric_ea_dtype):
+    def test_loc_set_nan_in_categorical_series(
+        self, any_numeric_ea_dtype, using_nan_is_na
+    ):
         # GH#47677
         srs = pd.Series(
             [1, 2, 3],
@@ -4182,6 +4219,85 @@ def test_loc_setitem_extension_array_into_object_series():
     ser.loc[:] = arr
     expected = pd.Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
+
+
+class TestLocSetitemDataFrameAlignment:
+    def test_loc_setitem_scalar_column_dataframe_alignment(self):
+        # GH#58482
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        item = pd.DataFrame([100], columns=["A"], index=["v"])
+
+        # Setting a single block dataframe's column with a dataframe should align
+        df.loc[:, "A"] = item
+
+        expected = pd.DataFrame(
+            [[np.nan, 2.0], [np.nan, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_scalar_column_dataframe_alignment_partial_match(self):
+        # GH#58482
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        item = pd.DataFrame([100, 101], columns=["A"], index=["v", "x"])
+
+        df.loc[:, "A"] = item
+
+        expected = pd.DataFrame(
+            [[101.0, 2.0], [np.nan, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_scalar_column_dataframe_non_unique_columns(self):
+        # GH#58482
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        item = pd.DataFrame(
+            [[10.0, 20.0], [30.0, 40.0]], index=["x", "y"], columns=["A", "A"]
+        )
+        msg = "Setting with non-unique columns is not allowed."
+        with pytest.raises(ValueError, match=msg):
+            df.loc[:, "A"] = item
+
+    @pytest.mark.parametrize(
+        "target",
+        [
+            pd.DataFrame(
+                [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+            ),
+            pd.DataFrame({"A": [1.0, 3.0], "B": ["p", "q"]}, index=["x", "y"]),
+        ],
+        ids=["single-block", "multi-block"],
+    )
+    def test_loc_setitem_scalar_column_dataframe_unrelated_duplicate_columns(
+        self, target
+    ):
+        # GH#58482 / PR#65852 review: non-unique columns in value should be rejected
+        # uniformly on both single-block and multi-block DataFrames
+        item = pd.DataFrame(
+            [[10.0, 20.0, 30.0], [40.0, 50.0, 60.0]],
+            index=["x", "y"],
+            columns=["A", "B", "B"],
+        )
+        msg = "Setting with non-unique columns is not allowed."
+        with pytest.raises(ValueError, match=msg):
+            target.loc[:, "A"] = item
+
+    def test_loc_setitem_scalar_column_dataframe_row_slice(self):
+        # GH#58482
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        other = pd.DataFrame([[100.0]], columns=["A"], index=["x"])
+        df.loc[["x"], "A"] = other
+        expected = pd.DataFrame(
+            [[100.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 def test_loc_setitem_expansion_incompatible_dtype_warns():

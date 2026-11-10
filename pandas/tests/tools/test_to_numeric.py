@@ -158,6 +158,31 @@ def test_coerce_unhashable_nested_tuple():
     tm.assert_series_equal(result, expected)
 
 
+def test_zero_dim_ndarray_elements(errors):
+    # GH#47408 - a 0-dimensional array converts as the scalar it holds instead
+    # of tripping the len() check meant for empty containers.
+    kwargs = {"errors": errors} if errors is not None else {}
+    ser = pd.Series([3, np.array(2.1), np.array(4)], dtype=object)
+
+    result = pd.to_numeric(ser, **kwargs)
+
+    expected = pd.Series([3.0, 2.1, 4.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_zero_dim_ndarray_with_unparsable_string():
+    # GH#47408
+    ser = pd.Series([3, np.array(2.1), "a"], dtype=object)
+
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([3.0, 2.1, np.nan])
+    tm.assert_series_equal(result, expected)
+
+    msg = "Unable to parse string 'a' at position 2"
+    with pytest.raises(ValueError, match=msg):
+        pd.to_numeric(ser, errors="raise")
+
+
 def test_ignore_error():
     ser = pd.Series([1, -3.14, "apple"])
     result = pd.to_numeric(ser, errors="coerce")
@@ -1045,10 +1070,25 @@ def test_complex_keeps_preceding_values(data, expected):
     ],
 )
 def test_leading_plus_fractional_leading_zeros(value):
-    # GH#68311 a leading "+" routes the token to the same fallback converter
-    # read_csv uses for thousands=, which charged the fractional leading zeros
-    # against its 17 significant-digit budget
+    # GH#68311, GH#44145 a leading "+" must parse like the unsigned value
     result = pd.to_numeric(pd.Series([value]))
     # check_exact: the default atol=1e-8 compares the pre-fix 0.0 equal to the
     # 5e-25 it should be, so without this the test passes either way
     tm.assert_series_equal(result, pd.Series([float(value)]), check_exact=True)
+
+
+@pytest.mark.parametrize("sign", ["", "+", "-"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "0.01234567890123456789",
+        "0.00498124967521367",
+        "1.4833969477515917953304135",
+        "2.5000806360837783533",
+        "2.4703282292062328e-324",
+    ],
+)
+def test_long_mantissa_correctly_rounded(value, sign):
+    # GH#44145 a leading "+" bypassed the correctly rounded parser
+    result = pd.to_numeric(pd.Series([sign + value]))
+    tm.assert_series_equal(result, pd.Series([float(sign + value)]), check_exact=True)

@@ -966,9 +966,15 @@ def _parse(
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
-    retained = None
+    retained: Exception | None = None
     for flav in flavor:
-        parser = _parser_dispatch(flav)
+        try:
+            parser = _parser_dispatch(flav)
+        except ImportError as caught:
+            # GH#30281
+            if retained is None:
+                retained = caught
+            continue
         p = parser(
             io,
             compiled_match,

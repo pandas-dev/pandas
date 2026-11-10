@@ -32,7 +32,10 @@ from pandas.core.computation import (
     expr,
     pytables,
 )
-from pandas.core.computation.engines import ENGINES
+from pandas.core.computation.engines import (
+    ENGINES,
+    NumExprEngine,
+)
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
@@ -416,13 +419,9 @@ class TestEval:
         lhs = pd.DataFrame(
             {"b": ["a", 1, 2.0], "c": np.random.default_rng(2).standard_normal(3) > 0.5}
         )
-        if engine == "numexpr":
-            with pytest.raises(ValueError, match="unknown type object"):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+        msg = "bad operand type for unary ~: 'str'"
+        with pytest.raises(TypeError, match=msg):
+            pd.eval(expr, engine=engine, parser=parser)
 
     def test_series_invert(self, engine, parser):
         # ~ ####
@@ -463,13 +462,9 @@ class TestEval:
 
         # object
         lhs = pd.Series(["a", 1, 2.0])
-        if engine == "numexpr":
-            with pytest.raises(ValueError, match="unknown type object"):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            msg = "bad operand type for unary ~: 'str'"
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
+        msg = "bad operand type for unary ~: 'str'"
+        with pytest.raises(TypeError, match=msg):
+            pd.eval(expr, engine=engine, parser=parser)
 
     def test_frame_negate(self, engine, parser):
         expr = "-lhs"
@@ -1924,6 +1919,22 @@ def test_compare_string_literals(expr, expected, engine, parser):
     assert result == expected
 
 
+@pytest.mark.parametrize("dtype", [object, "str", "string"])
+@pytest.mark.parametrize(
+    "expr, op",
+    [
+        ('a + "x"', lambda df: df["a"] + "x"),
+        ('"x" + a', lambda df: "x" + df["a"]),
+        ('(a + b) + "x"', lambda df: (df["a"] + df["b"]) + "x"),
+    ],
+)
+def test_string_concat_literal(dtype, expr, op, engine, parser):
+    # GH#47734
+    df = pd.DataFrame({"a": ["a", "b", None], "b": ["1", "2", "3"]}, dtype=dtype)
+    result = df.eval(expr, engine=engine, parser=parser)
+    tm.assert_series_equal(result, op(df))
+
+
 def test_inf(engine, parser):
     s = "inf + 1"
     expected = np.inf
@@ -1981,6 +1992,22 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     result = df.query(f"{column}>6", engine=engine, parser=parser)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "expr",
+    [
+        "a > Timestamp('2020-01-01')",
+        "a > datetime(2020, 1, 1)",
+        "a > datetime.strptime('2020-01-01', '%Y-%m-%d')",
+        "a > list((Timestamp('2020-01-01'),))[0]",
+    ],
+)
+def test_query_default_global_call(engine, parser, expr):
+    # GH#50442
+    df = pd.DataFrame({"a": pd.date_range("2020-01-01", periods=3)})
+    result = df.query(expr, engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[1:])
 
 
 @pytest.mark.parametrize("column", ["inf", "Inf"])
@@ -2344,3 +2371,73 @@ def test_not_object_returns_bool():
     result = df.eval("not x", engine="python")
     expected = pd.Series([False, True, True, False], name="x")
     tm.assert_series_equal(result, expected)
+
+
+@skip_if_no_numexpr
+@pytest.mark.parametrize("expr", ["obj", "+obj", "obj * 1", "obj + obj", "obj > 0"])
+@pytest.mark.parametrize(
+    "obj",
+    [
+        pd.Series(np.arange(6.0)),
+        pd.Series(np.arange(6.0), name="a"),
+        pd.DataFrame(np.arange(6.0).reshape(3, 2)),
+    ],
+    ids=["series", "named_series", "frame"],
+)
+def test_numexpr_result_not_copied(expr, obj, monkeypatch):
+    # GH#71806
+    outputs = []
+    orig_evaluate = NumExprEngine._evaluate
+
+    def _evaluate(self):
+        outputs.append(orig_evaluate(self))
+        return outputs[-1]
+
+    monkeypatch.setattr(NumExprEngine, "_evaluate", _evaluate)
+    result = pd.eval(expr, engine="numexpr")
+    assert tm.shares_memory(result, outputs[0])
+    assert not tm.shares_memory(result, obj)
+
+
+@skip_if_no_numexpr
+@pytest.mark.parametrize(
+    "frame, other",
+    [
+        (pd.DataFrame(np.arange(6.0).reshape(3, 2)), np.ones((3, 2))),
+        (pd.DataFrame(np.arange(6.0).reshape(3, 2), copy=False), 1.0),
+    ],
+    ids=["c_order_ndarray", "c_order_frame"],
+)
+def test_numexpr_result_column_major(frame, other):
+    # GH#71806 numexpr output in C order still gets the layout from GH#57459
+    result = pd.eval("frame + other", engine="numexpr")
+    assert result._mgr.blocks[0].values.flags.c_contiguous
+    tm.assert_frame_equal(result, frame + other)
+
+
+@skip_if_no_numexpr
+def test_numexpr_result_casts_to_result_type():
+    # GH#71806 numexpr returns float32 here, the result type is float64
+    arr = np.arange(6).reshape(3, 2)
+    left = pd.DataFrame(arr, dtype="float32")
+    right = pd.DataFrame(arr, dtype="int32")
+    result = pd.eval("left + right", engine="numexpr")
+    expected = left + right
+    assert (expected.dtypes == "float64").all()
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_if_no_numexpr
+@pytest.mark.parametrize(
+    "klass, values",
+    [
+        (tm.SubclassedDataFrame, np.arange(6.0).reshape(3, 2)),
+        (tm.SubclassedSeries, np.arange(6.0)),
+    ],
+    ids=["frame", "series"],
+)
+def test_eval_single_term_keeps_subclass(klass, values):
+    # GH#71806
+    result = pd.eval("-sub", engine="numexpr", local_dict={"sub": klass(values)})
+    assert type(result) is klass
+    tm.assert_numpy_array_equal(result.to_numpy(), -values)

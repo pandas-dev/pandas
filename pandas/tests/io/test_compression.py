@@ -1,6 +1,7 @@
 import gzip
 import io
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tarfile
@@ -447,3 +448,18 @@ def test_tar_no_error_on_close():
     with io.BytesIO() as buffer:
         with icom._BytesTarFile(fileobj=buffer, mode="w"):
             pass
+
+
+@pytest.mark.parametrize("method", ["zip", "tar"])
+def test_archive_name_pathlike(method, tmp_path):
+    # GH#31934
+    path = tmp_path / f"archive.{method}"
+    compression = {"method": method, "archive_name": Path("inner.csv")}
+    pd.DataFrame({"A": [1]}).to_csv(path, compression=compression)
+    if method == "zip":
+        with zipfile.ZipFile(path) as archive:
+            names = archive.namelist()
+    else:
+        with tarfile.open(path) as archive:
+            names = archive.getnames()
+    assert names == ["inner.csv"]

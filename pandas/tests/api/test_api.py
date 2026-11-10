@@ -57,7 +57,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
+    private_lib = ["compat", "core", "util"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -345,6 +345,7 @@ class TestApi(Base):
         "VariableOffsetWindowIndexer",
     ]
     allowed_api_extensions = [
+        "Accessor",
         "no_default",
         "ExtensionDtype",
         "register_extension_dtype",

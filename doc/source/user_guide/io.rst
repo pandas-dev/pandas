@@ -87,12 +87,13 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
-  that are not specified will be skipped (e.g. 2 in this example is
-  skipped). The levels follow the order of the list, so ``[1,0]`` puts
-  row 1 in level 0. Note that this parameter ignores commented lines
-  and empty lines if ``skip_blank_lines=True``, so header=0 denotes the
-  first line of data rather than the first line of the file.
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Rows above
+  ``min(header)``, and unlisted rows in between are skipped
+  (e.g. ``[1,2,4]`` skips rows 0 and 3). The levels follow the order
+  of the list, so ``[1,0]`` puts row 1 in level 0. Note that this
+  parameter ignores commented lines and empty lines if
+  ``skip_blank_lines=True``, so header=0 denotes the first line of
+  data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
@@ -372,6 +373,10 @@ columns:
     df["a"][0]
     df = pd.read_csv(StringIO(data), dtype={"b": object, "c": np.float64, "d": "Int64"})
     df.dtypes
+
+Complex numbers are not inferred and are read as strings by default. To parse
+them, pass a complex dtype, e.g. ``dtype={"a": "complex128"}``; both the ``(1+2j)``
+form written by :meth:`DataFrame.to_csv` and bare ``1+2j`` are accepted.
 
 Fortunately, pandas offers more than one way to ensure that your column(s)
 contain only one ``dtype``. If you're unfamiliar with these concepts, you can
@@ -1208,7 +1213,7 @@ after a delimiter:
 The parsers make every attempt to "do the right thing" and not be fragile. Type
 inference is a pretty big deal. If a column can be coerced to integer dtype
 without altering the contents, the parser will do so. Any non-numeric
-columns will come through as object dtype as with the rest of pandas objects.
+columns will come through as strings.
 
 .. _io.quoting:
 
@@ -2222,6 +2227,7 @@ pandas type     Table Schema type
 =============== =================
 int64           integer
 float64         number
+complex128      object
 bool            boolean
 datetime64[ns]  datetime
 timedelta64[ns] duration
@@ -2343,7 +2349,8 @@ for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table"
 
 The ``extDtype`` key carries the name of the extension, if you have properly registered
 the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
-and re-convert the serialized data into your custom dtype.
+and re-convert the serialized data into your custom dtype. Complex columns also use
+this key, with the name of their NumPy dtype.
 
 .. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
