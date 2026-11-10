@@ -16,6 +16,7 @@ Fixed regressions
 - Fixed a regression in :class:`arrays.SparseArray` arithmetic with a ``timedelta64`` scalar in a unit pandas does not support, such as ``np.timedelta64(1, "D")``, raising ``TypeError`` (:issue:`71872`)
 - Fixed a regression in :func:`read_csv`, :func:`read_json` and :func:`read_xml` raising ``ValueError: I/O operation on closed file`` when reading from a stream that closes itself once exhausted, such as a ``requests`` ``Response.raw`` (:issue:`71983`)
 - Fixed a regression in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ConversionError`` when plotting timezone-aware datetime data containing missing values (:issue:`71879`)
+- Fixed a regression in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and the other assertion functions, where the failure message rounded float values to ``display.precision``, so differing values could look identical (:issue:`71509`)
 - Fixed a regression in :meth:`Timestamp.strftime` raising ``AttributeError`` instead of ``TypeError`` when ``format`` is not a string (:issue:`71914`)
 
 .. ---------------------------------------------------------------------------
