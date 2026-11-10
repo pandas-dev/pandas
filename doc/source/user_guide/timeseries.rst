@@ -271,6 +271,13 @@ This could also potentially speed up the conversion considerably.
 
     pd.to_datetime("12-11-2010 00:00", format="%d-%m-%Y %H:%M")
 
+If ``format`` is not specified, pandas infers the format from the first non-null
+element and applies it to every element. Elements that do not match raise a
+``ValueError``, or become ``NaT`` with ``errors="coerce"``. A common case is a
+mix of ISO 8601 strings with and without fractional seconds; pass
+``format="ISO8601"`` to parse those. See :ref:`Inferring datetime format
+<io.infer_datetime_format>` for more details.
+
 For more information on the choices available when specifying the ``format``
 option, see the Python `datetime documentation`_.
 
