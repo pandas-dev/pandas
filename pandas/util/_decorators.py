@@ -379,7 +379,7 @@ def deprecate_first_arg_keyword(
                     "positionally."
                 )
                 warnings.warn(msg, klass, stacklevel=find_stack_level())
-                return func(kwargs.pop(old_arg_name), *args, **kwargs)
+                args = (kwargs.pop(old_arg_name),)
             return func(*args, **kwargs)
 
         return cast("Callable[P, T]", wrapper)
