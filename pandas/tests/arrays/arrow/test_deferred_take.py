@@ -424,6 +424,31 @@ def test_mask_of_take_composes_positions(data):
     tm.assert_extension_array_equal(result, data[::-1][mask])
 
 
+@pytest.mark.parametrize(
+    "positions", [[1, 2, 3, 8], [0, 1, 7, 8]], ids=["no_nulls", "nulls"]
+)
+@pytest.mark.parametrize("how", ["take", "mask"])
+def test_copy_has_eager_buffers(data, positions, how):
+    # a copy of a deferred selection has the buffers of a copy of the eager
+    # one, which drops the validity bitmap of a chunk without nulls
+    if how == "take":
+        pending = data.take(np.array(positions))
+    else:
+        mask = np.zeros(len(data), dtype=bool)
+        mask[positions] = True
+        pending = data[mask]
+    assert _is_pending(pending)
+    result = pending.copy()
+    expected = _expected(data, positions).copy()
+    tm.assert_extension_array_equal(result, expected)
+    assert result.nbytes == expected.nbytes
+    assert [
+        [buf is None for buf in chunk.buffers()] for chunk in result._pa_array.chunks
+    ] == [
+        [buf is None for buf in chunk.buffers()] for chunk in expected._pa_array.chunks
+    ]
+
+
 def test_copy_of_mask_gathers(data):
     mask = np.arange(len(data)) % 2 == 1
     pending = data[mask]

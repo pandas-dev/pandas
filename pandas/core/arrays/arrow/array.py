@@ -594,6 +594,31 @@ def _select(
     return _gather(parent, np.ascontiguousarray(selection, dtype=np.intp))
 
 
+def _drop_unused_validity(values: pa.ChunkedArray) -> pa.ChunkedArray:
+    """
+    ``values`` of a string or binary type, without the validity bitmap of
+    any chunk that has no nulls.
+
+    ``take`` and ``filter`` allocate a bitmap even when nothing is null,
+    which a copy of an eager array drops, since ``pa.concat_arrays`` does.
+    Dropping it, which copies nothing, gives a copy of a deferred take the
+    same buffers, and so the same ``nbytes``.
+    """
+    chunks = [
+        pa.Array.from_buffers(
+            chunk.type,
+            len(chunk),
+            [None, *chunk.buffers()[1:]],
+            null_count=0,
+            offset=chunk.offset,
+        )
+        if chunk.null_count == 0 and chunk.buffers()[0] is not None
+        else chunk
+        for chunk in values.chunks
+    ]
+    return pa.chunked_array(chunks, type=values.type)
+
+
 class _PendingTake:
     """
     A ``take`` or boolean mask on string or binary data that has not run yet.
@@ -2287,7 +2312,8 @@ class ArrowExtensionArray(
             if base is not None:
                 # gather into new buffers, so the copy does not keep the
                 # parent alive; ``self`` stays deferred
-                return self._from_pyarrow_array(_select(parent, base))
+                result = _drop_unused_validity(_select(parent, base))
+                return self._from_pyarrow_array(result)
         return self._from_pyarrow_array(_copy_pyarrow_buffers(self._pa_array))
 
     def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
