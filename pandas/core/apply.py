@@ -1147,9 +1147,8 @@ class FrameApply(NDFrameApply):
 
         if result is None:
             result = self.obj.apply(self.func, axis, args=self.args, **self.kwargs)
-            # GH#49673; skip empty frames, where apply returns a copy of the
-            # frame whenever func raises on empty input
-            if isinstance(result, ABCDataFrame) and all(self.obj.shape):
+            if isinstance(result, ABCDataFrame):
+                # GH#49673
                 warnings.warn(
                     "DataFrame.agg with a single callable producing a DataFrame "
                     "result is deprecated. In a future version, this will return "

@@ -257,12 +257,14 @@ def test_agg_series_result_no_warning(func, axis):
 @pytest.mark.parametrize("func", [lambda x: x.iloc[0], lambda x: x + 1])
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("shape", [(0, 2), (2, 0), (0, 0)])
-def test_agg_empty_frame_no_warning(func, axis, shape):
-    # GH#49673 empty frames are excluded from the deprecation
+def test_agg_empty_frame_warns(func, axis, shape):
+    # GH#49673
     df = pd.DataFrame(np.empty(shape), columns=list("ab")[: shape[1]])
-    with tm.assert_produces_warning(None):
-        result = df.agg(func, axis=axis)
     expected = df.apply(func, axis=axis)
+    warn = Pandas4Warning if isinstance(expected, pd.DataFrame) else None
+    msg = "DataFrame.agg with a single callable producing a DataFrame result"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.agg(func, axis=axis)
     tm.assert_equal(result, expected)
 
 
