@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_float_dtype,
+    is_hashable,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -1570,6 +1571,48 @@ class _MergeOperation:
         return join_index, left_indexer, right_indexer
 
     @final
+    def _get_merge_key_values(
+        self, side: Literal["left", "right"], key: Hashable, shared: bool = False
+    ) -> ArrayLike:
+        """
+        Get the values of merge key ``key`` from the left or right DataFrame.
+
+        If ``key`` is not found, re-raise the ``KeyError`` with a message
+        saying which DataFrame is missing it and what keys are available.
+
+        Parameters
+        ----------
+        side : {"left", "right"}
+            Which DataFrame to look up ``key`` in.
+        key : Hashable
+            Column label or index level name.
+        shared : bool, default False
+            Whether ``key`` is used on both sides (e.g. ``on=``). If True and
+            ``key`` is missing from both DataFrames, the message says so.
+        """
+        obj = self.left if side == "left" else self.right
+        try:
+            return obj._get_label_or_level_values(key)
+        except KeyError as err:
+            if not is_hashable(key):
+                # e.g. a wrong-length array-like; keep the original error
+                raise
+            if shared:
+                other = self.right if side == "left" else self.left
+                if not other._is_label_or_level_reference(key):
+                    msg = (
+                        f"{key!r} not found in left or right DataFrame. "
+                        f"Left {_describe_merge_key_options(self.left)}. "
+                        f"Right {_describe_merge_key_options(self.right)}"
+                    )
+                    raise KeyError(msg) from err
+            msg = (
+                f"{key!r} not found in {side} DataFrame. "
+                f"Available {_describe_merge_key_options(obj)}"
+            )
+            raise KeyError(msg) from err
+
+    @final
     def _get_merge_keys(
         self,
     ) -> tuple[
@@ -1622,7 +1665,7 @@ class _MergeOperation:
                         #  the latter of which will raise
                         rk = cast("Hashable", rk)
                         if rk is not None:
-                            right_keys.append(right._get_label_or_level_values(rk))
+                            right_keys.append(self._get_merge_key_values("right", rk))
                             join_names.append(rk)
                         else:
                             # work-around for merge_asof(right_index=True)
@@ -1634,7 +1677,12 @@ class _MergeOperation:
                         #  the latter of which will raise
                         rk = cast("Hashable", rk)
                         if rk is not None:
-                            right_keys.append(right._get_label_or_level_values(rk))
+                            # shared: the same key is looked up in left below
+                            #  (e.g. on=), so report if neither side has it
+                            shared = bool(is_hashable(lk) and lk == rk)
+                            right_keys.append(
+                                self._get_merge_key_values("right", rk, shared=shared)
+                            )
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
@@ -1647,7 +1695,7 @@ class _MergeOperation:
                         # Then we're either Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
                         lk = cast("Hashable", lk)
-                        left_keys.append(left._get_label_or_level_values(lk))
+                        left_keys.append(self._get_merge_key_values("left", lk))
                         join_names.append(lk)
                     else:
                         # work-around for merge_asof(left_index=True)
@@ -1664,7 +1712,7 @@ class _MergeOperation:
                     # Then we're either Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
                     k = cast("Hashable", k)
-                    left_keys.append(left._get_label_or_level_values(k))
+                    left_keys.append(self._get_merge_key_values("left", k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
                 right_keys = [
@@ -1684,7 +1732,7 @@ class _MergeOperation:
                     # Then we're either Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
                     k = cast("Hashable", k)
-                    right_keys.append(right._get_label_or_level_values(k))
+                    right_keys.append(self._get_merge_key_values("right", k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [
@@ -3305,6 +3353,18 @@ def _should_fill(lname, rname) -> bool:
 
 def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
+
+
+def _describe_merge_key_options(obj: DataFrame) -> str:
+    """
+    Describe the column labels and named index levels of ``obj`` that can be
+    used as merge keys, for use in error messages.
+    """
+    desc = f"columns: {obj.columns.tolist()}"
+    levels = [name for name in obj.index.names if name is not None]
+    if levels:
+        desc += f", index levels: {levels}"
+    return desc
 
 
 def _validate_operand(obj: DataFrame | Series) -> DataFrame:
