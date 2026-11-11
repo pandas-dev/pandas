@@ -608,6 +608,18 @@ class TestSetitemWithExpansion:
             expected = pd.Series(expected_values, dtype=target_dtype)
             tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize(
+        "dtype, warn", [("Float64", None), ("Int64", Pandas4Warning)]
+    )
+    def test_setitem_enlarge_nan_distinguish_nan_and_na(self, dtype, warn):
+        # GH#71870 NaN was converted to NA
+        with pd.option_context("future.distinguish_nan_and_na", True):
+            ser = pd.Series([1, 2], dtype=dtype)
+            with tm.assert_produces_warning(warn, match="incompatible dtype"):
+                ser.loc[2] = np.nan
+            expected = pd.Series([1.0, 2.0, np.nan], dtype="Float64")
+            tm.assert_series_equal(ser, expected)
+
     def test_setitem_enlargement_object_none(self, nulls_fixture, using_infer_string):
         # GH#48665
         ser = pd.Series(["a", "b"])

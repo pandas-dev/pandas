@@ -1476,7 +1476,7 @@ class TestTSPlot:
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
-        # GH13341, using sharex=True
+        # GH#14322
         idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = pd.Series(range(len(idx1)), idx1)
@@ -2213,6 +2213,43 @@ class TestTSPlot:
         assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
         assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
+    @pytest.mark.parametrize("freq", ["ME", "2ME", "3B"])
+    @pytest.mark.parametrize("extra_line", ["yerr", "axhline"])
+    def test_regular_ts_secondary_y_after_bar_with_lines(self, freq, extra_line):
+        # GH#71436 error caps or axhline on a time-series bar plot must not push
+        # a secondary_y line off the bars
+        ser = pd.Series(
+            np.arange(6.0), index=date_range("2015-01-01", periods=6, freq=freq)
+        )
+        _, ax = mpl.pyplot.subplots()
+        if extra_line == "yerr":
+            ser.plot.bar(ax=ax, yerr=0.5, capsize=3)
+        else:
+            ser.plot.bar(ax=ax)
+            ax.axhline(0)
+        ax2 = ser.plot(ax=ax, secondary_y=True)
+
+        xdata = ax2.get_lines()[0].get_xdata(orig=False)
+        bar_centers = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        tm.assert_numpy_array_equal(xdata, np.array(bar_centers))
+        # axhline's x is in axes coordinates and must not stretch the view
+        left, right = ax.get_xlim()
+        assert bar_centers[0] - 1 < left <= bar_centers[0]
+        assert bar_centers[-1] <= right < bar_centers[-1] + 1
+
+    @pytest.mark.parametrize("secondary_y", [False, True])
+    def test_ts_plot_xlim_ignores_axhline(self, secondary_y):
+        # GH#71436
+        ser = pd.Series(
+            np.arange(6.0), index=date_range("2015-01-31", periods=6, freq="ME")
+        )
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        expected = ax.get_xlim()
+        ax.axhline(0)
+        ser.plot(ax=ax, secondary_y=secondary_y)
+        assert ax.get_xlim() == expected
+
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
         values = [date(1677, 1, 1), date(1677, 1, 2)]
@@ -2850,25 +2887,40 @@ def test_ts_plot_tz_aware_off_grid_onto_regular(freq):
     tm.assert_numpy_array_equal(result, expected.astype(np.float64))
 
 
-@pytest.mark.parametrize("kind", ["line", "scatter"])
-def test_plot_tz_aware_values_with_nat(kind):
+@pytest.mark.parametrize("arrow", [False, True])
+@pytest.mark.parametrize("kind", ["line_y", "line_x", "scatter"])
+def test_plot_tz_aware_values_with_nat(kind, arrow):
     # GH#64613 regression: NaT in tz-aware values made the converter raise
     values = pd.Series(date_range("2020-01-01 05:00", periods=3, tz="US/Eastern"))
     values[1] = pd.NaT
+    tz = values.dt.tz
+    if arrow:
+        pa = pytest.importorskip("pyarrow")
+        values = values.astype(pd.ArrowDtype(pa.timestamp("us", tz="US/Eastern")))
     df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "tz": values})
     df["naive"] = values.dt.tz_convert(None)
 
     _, (ax1, ax2) = mpl.pyplot.subplots(2)
-    if kind == "line":
+    if kind == "line_y":
         df.plot(x="a", y="tz", ax=ax1)
         df.plot(x="a", y="naive", ax=ax2)
         result = ax1.get_lines()[0].get_ydata(orig=False)
         expected = ax2.get_lines()[0].get_ydata(orig=False)
+        axis = ax1.yaxis
+    elif kind == "line_x":
+        df.plot(x="tz", y="a", ax=ax1)
+        df.plot(x="naive", y="a", ax=ax2)
+        result = ax1.get_lines()[0].get_xdata(orig=False)
+        expected = ax2.get_lines()[0].get_xdata(orig=False)
+        axis = ax1.xaxis
     else:
         df.plot.scatter(x="tz", y="a", ax=ax1)
         df.plot.scatter(x="naive", y="a", ax=ax2)
         result = ax1.collections[0].get_offsets()
         expected = ax2.collections[0].get_offsets()
+        axis = ax1.xaxis
     tm.assert_numpy_array_equal(
         np.ma.filled(result, np.nan), np.ma.filled(expected, np.nan)
     )
+    # the tick labels still use the column's timezone
+    assert axis.units == tz

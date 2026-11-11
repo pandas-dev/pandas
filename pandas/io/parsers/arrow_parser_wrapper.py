@@ -92,6 +92,36 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
     return None
 
 
+class _NewlineTerminatedReader:
+    """
+    Read from ``src``, adding a final newline if ``src`` fits in the first
+    read and lacks one.
+
+    GH#62635 pyarrow infers the number of columns from the first complete line
+    in its first block, so a single line without a trailing newline fails.
+    """
+
+    def __init__(self, src: ReadBuffer[bytes]) -> None:
+        self.src = src
+        self.closed = False  # required by pyarrow
+        self._first = True
+
+    def read(self, size: int = -1) -> bytes:
+        data = self.src.read(size)
+        if not self._first or not isinstance(data, bytes):
+            return data
+        self._first = False
+        # a short read need not be EOF, so read until full or EOF
+        while size < 0 or len(data) < size:
+            chunk = self.src.read(-1 if size < 0 else size - len(data))
+            if not chunk:
+                if data and data[-1:] not in b"\r\n":
+                    data += b"\n"
+                break
+            data += chunk
+        return data
+
+
 class ArrowParserWrapper(ParserBase):
     """
     Wrapper for the pyarrow engine for read_csv()
@@ -418,13 +448,19 @@ class ArrowParserWrapper(ParserBase):
                 # after reading, so do the conversion here.
                 parse_as_dates = self._index_col_should_parse_dates(col_name, position)
                 if parse_as_dates:
-                    frame[col_name] = date_converter(
+                    parsed = date_converter(
                         frame[col_name],
                         col=col_name,
                         dayfirst=self.dayfirst,
                         cache_dates=self.cache_dates,
                         date_format=self.date_format,
                     )
+                    # on failure keep pyarrow's dtype like the other engines,
+                    #  except date/time objects, which they leave as text
+                    if parsed.dtype.kind == "M" or lib.infer_dtype(
+                        frame[col_name].to_numpy(), skipna=True
+                    ) in ("date", "time"):
+                        frame[col_name] = parsed
 
                 # Process dtype for index_col and drop from dtypes
                 if isinstance(self.dtype, dict):
@@ -553,6 +589,10 @@ class ArrowParserWrapper(ParserBase):
         if not (using_string_dtype() and isinstance(self.parse_dates, list)):
             return frame
         for col in self.parse_dates:
+            if isinstance(self.index_col, list) and col in self.index_col:
+                # not converted by _do_date_conversions; _finalize_index
+                #  handles these
+                continue
             if col in frame.columns and frame[col].dtype == object:
                 frame[col] = frame[col].astype("str")
         return frame
@@ -588,10 +628,15 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
         convert_options = self._get_convert_options()
+        src: ReadBuffer[bytes] | _NewlineTerminatedReader = self.src
+        if "a\n".encode(self.encoding).endswith(b"a\n"):
+            # the reader appends b"\n", a newline only in ASCII-compatible
+            # encodings
+            src = _NewlineTerminatedReader(self.src)
 
         try:
             table = pyarrow_csv.read_csv(
-                self.src,
+                src,
                 read_options=pyarrow_csv.ReadOptions(**self.read_options),
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
                 convert_options=convert_options,

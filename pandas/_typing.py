@@ -500,6 +500,8 @@ AlignJoin: TypeAlias = Literal["outer", "inner", "left", "right"]
 DtypeBackend: TypeAlias = Literal["pyarrow", "numpy_nullable"]
 
 TimeUnit: TypeAlias = Literal["s", "ms", "us", "ns"]
+
+NaTStrings: TypeAlias = Literal["", "NaT", "nat", "NAT", "nan", "NaN", "NAN"]
 OpenFileErrors: TypeAlias = Literal[
     "strict",
     "ignore",
