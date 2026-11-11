@@ -6,6 +6,7 @@ positions or the mask and gather on first access to ``_pa_array``.
 
 from __future__ import annotations
 
+import copy
 import pickle
 import threading
 
@@ -769,6 +770,21 @@ def test_pickle_pending(data):
     result = pickle.loads(pickle.dumps(pending))
     tm.assert_extension_array_equal(result, data[::-1])
     assert not _is_pending(result)
+
+
+@pytest.mark.parametrize("dump", [pickle.dumps, copy.deepcopy])
+def test_pickle_during_first_read(data, dump):
+    # the state another thread's pickle finds if it runs while the first
+    # read of ``_pa_array`` has stored the values but not yet dropped the
+    # deferred take
+    pending = data.take(np.arange(99, -1, -1))
+    pending.__dict__["_pa_array"] = pending._pending_take.materialize()
+    assert "_pending_take" in pending.__dict__
+    assert "_pending_take" not in pending.__getstate__()
+    result = dump(pending)
+    if dump is pickle.dumps:
+        result = pickle.loads(result)
+    tm.assert_extension_array_equal(result, data[::-1])
 
 
 @pytest.mark.parametrize("share", [True, False], ids=["same-array", "views"])

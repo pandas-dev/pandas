@@ -1709,6 +1709,9 @@ class ArrowExtensionArray(
         pa_array = self._pa_array
         state = self.__dict__.copy()
         state["_pa_array"] = pa_array.combine_chunks()
+        # a concurrent first read may have stored the values but not yet
+        # dropped the deferred take, which holds a lock and the parent
+        state.pop("_pending_take", None)
         # cached properties can be recomputed; don't bloat the pickle
         state["_cache"] = {}
         return state
