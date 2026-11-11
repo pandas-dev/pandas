@@ -103,9 +103,11 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 @set_module("pandas")
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
-    Determine if an object corresponds to a missing value or if the object
-    is array-like, return an array indicating whether each element is a missing
-    value.
+    Detect missing values for an object or array-like object.
+
+    This function determines if an object corresponds to a missing
+    value or if the object is array-like, return an array indicating whether
+    each element is a missing value.
 
     Missing values include ``NaN``, ``None``, ``NA``, or ``NaT``.
 
@@ -322,9 +324,11 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 @set_module("pandas")
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
-    Determine if an object corresponds to a non-missing value or if the object
-    is array-like, return an array indicating whether each element is a non-missing
-    value.
+    Detect non-missing values for an object or array-like object.
+
+    This function determines if an object corresponds to a non-missing
+    value or if the object is array-like, return an array indicating whether
+    each element is a non-missing value.
 
     Missing values include ``NaN``, ``None``, ``NA``, or ``NaT``.
 
