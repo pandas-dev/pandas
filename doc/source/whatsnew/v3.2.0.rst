@@ -24,7 +24,7 @@ Selecting rows of PyArrow-backed string and binary data, including the default
 records the original array and which of its rows are selected, and copies the
 values the first time an operation reads them. Columns that are never
 read are never copied, and a chain of row selections copies the values
-straight from the original data, with no copy in between (:issue:`XXXXX`).
+straight from the original data, with no copy in between (:issue:`72023`).
 
 This applies to :func:`merge` and :meth:`DataFrame.join`, boolean indexing,
 ``iloc`` and ``loc`` with lists, :meth:`DataFrame.take`, :meth:`DataFrame.reindex`,
