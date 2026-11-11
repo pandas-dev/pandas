@@ -906,6 +906,76 @@ def test_parse_dates_multiindex_col_with_dtype(all_parsers, dtype):
     tm.assert_index_equal(result.index.get_level_values(1), expected)
 
 
+@pytest.mark.parametrize("values", [[1, 2], [1.5, 2.5], [True, False]])
+@pytest.mark.parametrize("index_col", [0, "idx"])
+def test_parse_dates_true_non_date_index(all_parsers, values, index_col):
+    # GH#71873 an index column that fails to parse as dates keeps its dtype
+    parser = all_parsers
+    data = f"idx,a\n{values[0]},0\n{values[1]},1"
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(data),
+        index_col=index_col,
+        parse_dates=True,
+    )
+    expected = pd.DataFrame({"a": [0, 1]}, index=pd.Index(values, name="idx"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_true_multiindex_non_date_level(all_parsers):
+    # GH#71873
+    parser = all_parsers
+    data = "d,id,v\n2020-01-01,1,10\n2020-01-02,2,20"
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(data),
+        index_col=[0, 1],
+        parse_dates=True,
+    )
+    expected = pd.MultiIndex.from_arrays(
+        [pd.DatetimeIndex(["2020-01-01", "2020-01-02"], dtype="M8[us]"), [1, 2]],
+        names=["d", "id"],
+    )
+    tm.assert_index_equal(result.index, expected)
+
+
+@pytest.mark.parametrize(
+    "values, date_format",
+    [(["2020-01-01", "2020-01-02"], "%d/%m/%Y"), (["10:00:00", "11:30:00"], "%Y")],
+)
+@pytest.mark.parametrize("parse_dates", [True, ["idx"]])
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_parse_dates_index_format_mismatch(
+    all_parsers, values, date_format, parse_dates, dtype
+):
+    # GH#71873 date/time values that fail to parse stay as text
+    parser = all_parsers
+    data = f"idx,a\n{values[0]},0\n{values[1]},1"
+    result = parser.read_csv(
+        StringIO(data),
+        index_col="idx",
+        parse_dates=parse_dates,
+        date_format=date_format,
+        dtype=None if dtype is None else {"idx": dtype},
+    )
+    expected = pd.DataFrame(
+        {"a": [0, 1]}, index=pd.Index(values, name="idx", dtype=dtype)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("parse_dates", [True, ["idx"]])
+def test_parse_dates_bool_index_with_na(pyarrow_parser_only, parse_dates):
+    # GH#71873
+    parser = pyarrow_parser_only
+    data = "idx,a\ntrue,0\n,1"
+    result = parser.read_csv(StringIO(data), index_col="idx", parse_dates=parse_dates)
+    expected = parser.read_csv(StringIO(data), index_col="idx")
+    tm.assert_frame_equal(result, expected)
+
+
 def test_parse_dot_separated_dates(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/2586
     parser = all_parsers
