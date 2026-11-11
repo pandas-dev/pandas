@@ -18,6 +18,10 @@ import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
 
+# the default ``str`` dtype, spelled out, since ``"str"`` is not backed by
+# Arrow under PANDAS_FUTURE=legacy
+STR = pd.StringDtype("pyarrow", na_value=np.nan)
+
 
 def _is_pending(arr) -> bool:
     return arr._pending_take is not None
@@ -30,7 +34,7 @@ def _is_pending(arr) -> bool:
 def data(request):
     if request.param == "str":
         values = [f"v{i}" if i % 7 else None for i in range(100)]
-        return pd.array(values, dtype=pd.StringDtype("pyarrow", na_value=np.nan))
+        return pd.array(values, dtype=STR)
     return _arrow_array(request.param)
 
 
@@ -93,8 +97,8 @@ def test_take_copies_readonly_indexer(data, how):
 def test_frame_take_shares_indexer_across_columns():
     df = pd.DataFrame(
         {
-            "a": pd.array([f"a{i}" for i in range(100)], dtype="str"),
-            "b": pd.array([f"b{i}" for i in range(100)], dtype="str"),
+            "a": pd.array([f"a{i}" for i in range(100)], dtype=STR),
+            "b": pd.array([f"b{i}" for i in range(100)], dtype=STR),
             "c": np.arange(100),
         }
     )
@@ -151,8 +155,8 @@ def test_frame_row_selection_shares_indexer(select):
     n = 100
     df = pd.DataFrame(
         {
-            "a": pd.array([f"a{i}" for i in range(n)], dtype="str"),
-            "b": pd.array([f"b{i}" for i in range(n)], dtype="str"),
+            "a": pd.array([f"a{i}" for i in range(n)], dtype=STR),
+            "b": pd.array([f"b{i}" for i in range(n)], dtype=STR),
             "c": np.arange(n)[::-1].copy(),
             "d": pd.array(np.arange(n) // 2, dtype="Int64"),
             "e": np.where(np.arange(n) % 3 == 0, np.nan, 1.0),
@@ -164,7 +168,7 @@ def test_frame_row_selection_shares_indexer(select):
     assert a.selection is b.selection
     assert not a.selection.flags.writeable
     expected = select(df.astype({"a": object, "b": object}))
-    tm.assert_frame_equal(result, expected.astype({"a": "str", "b": "str"}))
+    tm.assert_frame_equal(result, expected.astype({"a": STR, "b": STR}))
 
 
 @pytest.mark.parametrize(
@@ -184,7 +188,7 @@ def test_frame_row_selection_shares_indexer(select):
         # a -1 makes every take eager
         (
             pd.DataFrame(
-                {"a": pd.array(list("abcdefghij"), dtype="str"), "c": np.arange(10)}
+                {"a": pd.array(list("abcdefghij"), dtype=STR), "c": np.arange(10)}
             ),
             [3, -1, 2],
         ),
@@ -208,15 +212,15 @@ def test_merge_shares_indexer_per_side():
     left = pd.DataFrame(
         {
             "key": np.arange(100),
-            "a": pd.array([f"a{i}" for i in range(100)], dtype="str"),
-            "b": pd.array([f"b{i}" for i in range(100)], dtype="str"),
+            "a": pd.array([f"a{i}" for i in range(100)], dtype=STR),
+            "b": pd.array([f"b{i}" for i in range(100)], dtype=STR),
         }
     )
     right = pd.DataFrame(
         {
             "key": np.arange(0, 100, 2)[::-1].copy(),
-            "c": pd.array([f"c{i}" for i in range(50)], dtype="str"),
-            "d": pd.array([f"d{i}" for i in range(50)], dtype="str"),
+            "c": pd.array([f"c{i}" for i in range(50)], dtype=STR),
+            "d": pd.array([f"d{i}" for i in range(50)], dtype=STR),
         }
     )
     result = left.merge(right, on="key")
@@ -228,7 +232,7 @@ def test_merge_shares_indexer_per_side():
         left.astype({"a": object, "b": object}),
         right.astype({"c": object, "d": object}),
         on="key",
-    ).astype(dict.fromkeys("abcd", "str"))
+    ).astype(dict.fromkeys("abcd", STR))
     tm.assert_frame_equal(result, expected)
 
 
@@ -236,8 +240,8 @@ def _deferred_frame(n=1000):
     # every string column deferred, by a sort that reorders all rows
     df = pd.DataFrame(
         {
-            "a": pd.array([f"a{i}" for i in range(n)], dtype="str"),
-            "b": pd.array([f"b{i}" for i in range(n)], dtype="str"),
+            "a": pd.array([f"a{i}" for i in range(n)], dtype=STR),
+            "b": pd.array([f"b{i}" for i in range(n)], dtype=STR),
             "c": np.arange(n)[::-1].copy(),
         }
     )
@@ -311,7 +315,7 @@ def test_frame_copy_gathers_into_new_memory():
 def test_frame_selection_with_missing_rows_is_eager(select):
     df = pd.DataFrame(
         {
-            "a": pd.array([f"a{i}" for i in range(10)], dtype="str"),
+            "a": pd.array([f"a{i}" for i in range(10)], dtype=STR),
             "c": np.arange(10),
         }
     )
@@ -791,7 +795,7 @@ def test_pickle_during_first_read(data, dump):
 def test_concurrent_materialize(share):
     # large enough that the gather, which releases the GIL, takes a while
     n = 200_000
-    data = pd.array([f"value{i}" for i in range(n)], dtype="str")
+    data = pd.array([f"value{i}" for i in range(n)], dtype=STR)
     pending = data.take(np.arange(n - 1, -1, -1))
     views = [pending if share else pending.view() for _ in range(8)]
     barrier = threading.Barrier(len(views))
@@ -819,7 +823,7 @@ def test_concurrent_materialize(share):
 
 def test_concurrent_overlapping_slices():
     n = 200_000
-    data = pd.array([f"value{i}" for i in range(n)], dtype="str")
+    data = pd.array([f"value{i}" for i in range(n)], dtype=STR)
     pending = data.take(np.arange(n - 1, -1, -1))
     slices = [pending[i : n - i] for i in range(8)]
     barrier = threading.Barrier(len(slices))
