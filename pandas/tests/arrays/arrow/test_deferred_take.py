@@ -104,6 +104,68 @@ def test_frame_take_shares_indexer_across_columns():
     tm.assert_frame_equal(result, df.iloc[::-1])
 
 
+@pytest.mark.parametrize(
+    "select",
+    [
+        lambda df: df.take([5, 3, 1, 7]),
+        lambda df: df[df["c"] % 3 != 0],
+        lambda df: df.loc[df["c"] % 3 != 0],
+        lambda df: df.iloc[[5, 3, 1, 7]],
+        lambda df: df.reindex([5, 3, 1, 7]),
+        lambda df: df.sort_values("c"),
+        lambda df: df.drop_duplicates("d"),
+    ],
+    ids=["take", "mask", "loc_mask", "iloc", "reindex", "sort_values", "dedup"],
+)
+def test_frame_row_selection_shares_indexer(select):
+    # every row selection of a frame reaches the columns through
+    # BlockManager.reindex_indexer, which hands them one read-only indexer
+    n = 100
+    df = pd.DataFrame(
+        {
+            "a": pd.array([f"a{i}" for i in range(n)], dtype="str"),
+            "b": pd.array([f"b{i}" for i in range(n)], dtype="str"),
+            "c": np.arange(n)[::-1].copy(),
+            "d": pd.array(np.arange(n) // 2, dtype="Int64"),
+        }
+    )
+    result = select(df)
+    a = result["a"].array._pending_take
+    b = result["b"].array._pending_take
+    assert a.selection is b.selection
+    assert not a.selection.flags.writeable
+    expected = select(df.astype({"a": object, "b": object}))
+    tm.assert_frame_equal(result, expected.astype({"a": "str", "b": "str"}))
+
+
+def test_merge_shares_indexer_per_side():
+    left = pd.DataFrame(
+        {
+            "key": np.arange(100),
+            "a": pd.array([f"a{i}" for i in range(100)], dtype="str"),
+            "b": pd.array([f"b{i}" for i in range(100)], dtype="str"),
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "key": np.arange(0, 100, 2)[::-1].copy(),
+            "c": pd.array([f"c{i}" for i in range(50)], dtype="str"),
+            "d": pd.array([f"d{i}" for i in range(50)], dtype="str"),
+        }
+    )
+    result = left.merge(right, on="key")
+    pending = {col: result[col].array._pending_take for col in "abcd"}
+    # one indexer per side, shared by that side's columns
+    assert pending["a"].selection is pending["b"].selection
+    assert pending["c"].selection is pending["d"].selection
+    expected = pd.merge(
+        left.astype({"a": object, "b": object}),
+        right.astype({"c": object, "d": object}),
+        on="key",
+    ).astype(dict.fromkeys("abcd", "str"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_compose_take_slice_mask(data):
     first = data.take(np.arange(99, -1, -1))
     second = first.take(np.arange(0, 100, 2))
