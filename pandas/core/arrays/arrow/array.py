@@ -608,7 +608,7 @@ class _PendingTake:
     and they share its buffers.
 
     A slice of a deferred take that has not run gathers only its own rows,
-    so ``head`` of a large result stays cheap, but it keeps a link to the
+    so displaying a large result stays cheap, but it keeps a link to the
     take it was cut from (``origin``). Overlapping slices would otherwise
     gather the rows they share once each. So once the rows gathered through
     slices of a take would exceed its length, the take is gathered whole,

@@ -191,11 +191,12 @@ mask. This includes:
 
 Selecting rows of a deferred result, by position, mask or slice, is also
 deferred and is combined with the earlier selection, so the values are copied
-once, straight from the original array. A slice, such as :meth:`DataFrame.head`,
-copies only its own rows. Once the slices of one deferred result would copy
-more rows between them than the result has, the result is copied whole
-instead, and that slice and later ones share its memory, as slices of any
-other array do.
+straight from the original array, with no copy in between. A slice, such as
+``df.iloc[:10]``, copies only its own rows. Once the slices of one deferred
+result would copy more rows between them than the result has, the result is
+copied whole instead, and that slice and later ones share its memory, as
+slices of any other array do. :meth:`DataFrame.head` and :meth:`DataFrame.tail`
+return a copy, so they copy their rows right away.
 
 A selection that introduces missing values, such as the unmatched rows of a
 ``"left"``, ``"right"`` or ``"outer"`` merge or :meth:`DataFrame.reindex` to new
@@ -226,7 +227,7 @@ into new memory and leaves the original object deferred.
 **Memory.** Until its values are gathered, a deferred result keeps the original
 array in memory, as a slice does. If you select a few rows of a large frame
 and delete the frame, its string data stays in memory until the selected
-columns are used. Call :meth:`DataFrame.copy` on the selection to release it.
+values are gathered. Call :meth:`DataFrame.copy` on the selection to release it.
 
 **Errors.** An error raised by the gather, such as a ``MemoryError``, is raised
 by the operation that first reads the values, not by the selection.
