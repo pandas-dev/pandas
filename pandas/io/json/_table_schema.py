@@ -38,7 +38,10 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -371,6 +374,9 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     ------
     NotImplementedError
         If the JSON table schema contains either timezone or timedelta data
+    ValueError
+        If distinct field names share a key in the data, or a float field
+        name has no matching key in the data.
 
     Notes
     -----
@@ -388,12 +394,52 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     pandas.read_json
     """
     table = ujson_loads(json, precise_float=precise_float)
-    col_order = [field["name"] for field in table["schema"]["fields"]]
-    df = DataFrame(table["data"], columns=col_order)[col_order]
+    schema = table["schema"]
+    names = [field["name"] for field in schema["fields"]]
+    keys = [str(name) for name in names]
+    data = table["data"]
+    dict_records = bool(data) and isinstance(data[0], dict)
+    if dict_records:
+        # "data" keys a label by its string form (GH#19129), so distinct
+        #  labels sharing one (5 and "5") cannot be told apart
+        seen: dict[str, Any] = {}
+        for name, key in zip(names, keys, strict=True):
+            other = seen.setdefault(key, name)
+            if type(other) is not type(name) or other != name:
+                raise ValueError(
+                    f"Cannot read field names {other!r} and {name!r}: both are "
+                    f'keyed as "{key}" in "data"'
+                )
+    # address the frame by position until the labels are restored at the end
+    df = DataFrame(data, columns=keys)
+    df.columns = range(len(names))
+
+    if dict_records:
+        # a float name can miss its "data" key if the default parser perturbed it
+        #  (0.3 -> 0.30000000000000004) or to_json rounded it to double_precision;
+        #  raise rather than return NaN
+        unmatched = [
+            key
+            for pos, (name, key) in enumerate(zip(names, keys, strict=True))
+            if isinstance(name, float) and df[pos].isna().all()
+        ]
+        if unmatched:
+            present = set().union(*data)
+            missing = [key for key in unmatched if key not in present]
+            if missing:
+                hint = (
+                    "they may have been rounded by to_json's double_precision"
+                    if precise_float
+                    else "try precise_float=True"
+                )
+                raise ValueError(
+                    f'Float field names {missing} have no matching key in "data"; '
+                    f"{hint}"
+                )
 
     dtypes = {
-        field["name"]: convert_json_field_to_pandas_type(field)
-        for field in table["schema"]["fields"]
+        pos: convert_json_field_to_pandas_type(field)
+        for pos, field in enumerate(schema["fields"])
     }
 
     # No ISO constructor for Timedelta as of yet, so need to raise
@@ -402,26 +448,45 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
-    for field in table["schema"]["fields"]:
-        name = field["name"]
-        if field["type"] == "object" and is_complex_dtype(dtypes[name]):
+    for pos, field in enumerate(schema["fields"]):
+        if field["type"] == "object" and is_complex_dtype(dtypes[pos]):
             # astype cannot parse {"imag": ..., "real": ...}; NaN is written as null
             values = np.empty(len(df), dtype=np.complex128)
-            values.real = [val["real"] for val in df[name]]
-            values.imag = [val["imag"] for val in df[name]]
-            df[name] = values
+            values.real = [val["real"] for val in df[pos]]
+            values.imag = [val["imag"] for val in df[pos]]
+            df[pos] = values
+
+    # values of a tz-naive field may still carry an offset, e.g. the "Z" that
+    # pandas<1.5 appended, so parse as UTC and then drop the tz; GH#52595
+    naive = {name for name, dtype in dtypes.items() if dtype == "datetime64[ns]"}
+    dtypes.update(dict.fromkeys(naive, "datetime64[ns, UTC]"))
 
     with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
 
-    if "primaryKey" in table["schema"]:
-        df = df.set_index(table["schema"]["primaryKey"])
+    for pos in naive:
+        df.isetitem(pos, df[pos].dt.tz_convert(None))
+
+    if "primaryKey" in schema:
+        primary_key = schema["primaryKey"]
+        if not isinstance(primary_key, list):
+            # the spec allows a single field name as well as a list of them
+            primary_key = [primary_key]
+        positions = [names.index(key) for key in primary_key]
+        df = df.set_index(positions)
+        df.index.names = [names[pos] for pos in positions]
         if len(df.index.names) == 1:
             if df.index.name == "index":
                 df.index.name = None
         else:
             df.index.names = [
-                None if x.startswith("level_") else x for x in df.index.names
+                None if isinstance(x, str) and x.startswith("level_") else x
+                for x in df.index.names
             ]
 
+    if df.columns.empty:
+        # an empty list would make the columns object dtype
+        df.columns = Index(names)[:0]
+    else:
+        df.columns = [names[pos] for pos in df.columns]
     return df

@@ -278,7 +278,7 @@ class MultiIndex(Index):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`__
+    <https://pandas.pydata.org/docs/user_guide/advanced.html>`__
     for more.
 
     Examples
@@ -2767,14 +2767,14 @@ class MultiIndex(Index):
             levels = []
             names = []
             for i in range(self.nlevels):
-                level_values = self.levels[i]
                 with warnings.catch_warnings():
                     # levels need not be sortable, GH#61477
                     warnings.filterwarnings(
                         "ignore", ".*sort order is undefined", RuntimeWarning
                     )
-                    for mi in other:
-                        level_values = level_values.union(mi.levels[i])
+                    level_values = _union_levels(
+                        [mi.levels[i] for mi in [self, *other]]
+                    )
                 level_codes = [
                     recode_for_categories(
                         mi.codes[i], mi.levels[i], level_values, copy=False
@@ -5197,6 +5197,25 @@ class MultiIndex(Index):
 def _raise_key_length_error(key_length: int, nlevels: int) -> NoReturn:
     """One spelling of the over-long-key message for every site that raises it."""
     raise KeyError(f"Key length ({key_length}) exceeds index depth ({nlevels})")
+
+
+def _union_levels(levels: list[Index]) -> Index:
+    if is_object_dtype(levels[0].dtype) or not lib.dtypes_all_equal(
+        [level.dtype for level in levels]
+    ):
+        # Mixed dtypes can change the result dtype. Object values can be
+        # unorderable, so intermediate unions also depend on the original order.
+        result = levels[0]
+        for level in levels[1:]:
+            result = result.union(level)
+        return result
+
+    while len(levels) > 1:
+        pairs = [levels[i].union(levels[i + 1]) for i in range(0, len(levels) - 1, 2)]
+        if len(levels) % 2:
+            pairs.append(levels[-1])
+        levels = pairs
+    return levels[0]
 
 
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
