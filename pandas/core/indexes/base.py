@@ -1638,9 +1638,7 @@ class Index(IndexOpsMixin, PandasObject):
         float_format: str_t | None = None,
         date_format: str_t | None = None,
         quoting: int | None = None,
-        skip_dates_only_check: (
-            bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
-        ) = False,
+        skip_dates_only_check: bool | list[bool] = False,
     ) -> npt.NDArray[np.object_]:
         return get_values_for_csv(
             self._values,
@@ -8590,9 +8588,7 @@ def get_values_for_csv(
     quoting: int | None = None,
     float_format: str_t | None = None,
     decimal: str = ".",
-    skip_dates_only_check: (
-        bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
-    ) = False,
+    skip_dates_only_check: bool | list[bool] = False,
 ) -> npt.NDArray[np.object_]:
     """
     Convert to types which can be consumed by the standard library's
@@ -8609,9 +8605,9 @@ def get_values_for_csv(
 
     values = ensure_wrapped_if_datetimelike(values)  # type: ignore[no-untyped-call]
 
-    # normalize: allow a per-column sequence of bools (from BlockManager) in
-    # addition to a single bool
-    if isinstance(skip_dates_only_check, (list, tuple, frozenset, set)):
+    # normalize: allow a per-column list of bools (from BlockManager, keyed
+    # by column position) in addition to a single bool
+    if isinstance(skip_dates_only_check, list):
         _skip_seq = list(skip_dates_only_check)
     else:
         _skip_seq = None

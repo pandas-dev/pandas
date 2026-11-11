@@ -1536,3 +1536,34 @@ class TestDataFrameToCSV:
         result_no_chunks_td = df_td.to_csv()
         result_with_chunks_td = df_td.to_csv(chunksize=2)
         assert result_no_chunks_td == result_with_chunks_td
+
+        # Per-column tracking must be positional: a column label may be
+        # duplicated or NaN, and then a label lookup picks the wrong column
+        # (or never matches, since NaN != NaN).
+        df_dup = pd.concat(
+            [
+                pd.DataFrame({"a": pd.to_datetime(["2023-01-01", "2023-01-02"])}),
+                pd.DataFrame(
+                    {"a": pd.to_datetime(["2023-01-01 00:00", "2023-01-01 12:00"])}
+                ),
+            ],
+            axis=1,
+        )
+        assert df_dup.to_csv() == df_dup.to_csv(chunksize=1)
+
+        df_nan_col = pd.DataFrame(
+            {
+                np.nan: pd.to_datetime(
+                    ["2023-01-01 00:00", "2023-01-02 00:00", "2023-01-03 12:00"]
+                )
+            }
+        )
+        assert df_nan_col.to_csv() == df_nan_col.to_csv(chunksize=2)
+
+        df_nan_mixed = pd.DataFrame(
+            {
+                np.nan: pd.to_datetime(["2023-01-01", "2023-01-02"]),
+                "b": [1, 2],
+            }
+        )
+        assert df_nan_mixed.to_csv() == df_nan_mixed.to_csv(chunksize=1)

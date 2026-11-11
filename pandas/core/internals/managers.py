@@ -652,25 +652,26 @@ class BaseBlockManager(PandasObject):
         decimal,
         na_rep: str = "nan",
         quoting=None,
-        skip_dates_only_check: (
-            bool | frozenset[Any] | set[Any] | tuple[Any, ...] | list[Any]
-        ) = False,
+        skip_dates_only_check: bool | list[bool] = False,
     ) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
         in formatting (repr / csv).
 
-        ``skip_dates_only_check`` may be a collection of column labels identifying
-        the columns whose full data is not dates-only; in that case the skip is
-        resolved per block instead of applied uniformly.
+        ``skip_dates_only_check`` may be a list of per-column booleans (in
+        column position order) identifying the columns whose full data is not
+        dates-only; in that case the skip is resolved per block instead of
+        applied uniformly. Positional, not label-based: column labels may be
+        duplicated or NaN, and a label lookup picks the wrong column then.
         """
-        if isinstance(skip_dates_only_check, (frozenset, set, tuple, list)):
-            skip_set = set(skip_dates_only_check)
+        if isinstance(skip_dates_only_check, list):
+            column_skip = list(skip_dates_only_check)
             new_blocks = []
             for blk in self.blocks:
                 # resolve per-column so a dates-only column is not affected
-                # by a non-dates-only sibling living in the same block
-                block_skip = [self.items[i] in skip_set for i in blk.mgr_locs.as_array]
+                # by a non-dates-only sibling living in the same block;
+                # mgr_locs are positions into self.items
+                block_skip = [column_skip[i] for i in blk.mgr_locs.as_array]
                 new_blocks.append(
                     blk.get_values_for_csv(
                         na_rep=na_rep,

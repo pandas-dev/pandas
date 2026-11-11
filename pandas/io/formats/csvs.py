@@ -322,12 +322,15 @@ class CSVFormatter:
         # compact dates-only format while the full column uses the full one
         # (GH#55481). Kept per-column (not a single global flag) so a
         # dates-only column is not affected by a non-dates-only sibling.
-        non_dates_only_cols = frozenset(
-            col
-            for col in self.obj.columns
-            if isinstance(self.obj[col]._values, (DatetimeArray, TimedeltaArray))
-            and not self.obj[col]._values._is_dates_only
-        )
+        # Tracked positionally: a column label may be duplicated or NaN, and
+        # then a label lookup picks the wrong column (or never matches).
+        column_skip_dates_only_check = []
+        for i in range(len(self.obj.columns)):
+            vals = self.obj.iloc[:, i]._values
+            column_skip_dates_only_check.append(
+                isinstance(vals, (DatetimeArray, TimedeltaArray))
+                and not vals._is_dates_only
+            )
 
         index_values = getattr(self.data_index, "_values", None)
         index_skip_dates_only_check = bool(
@@ -337,7 +340,7 @@ class CSVFormatter:
 
         number_format = {
             **self._number_format,
-            "skip_dates_only_check": non_dates_only_cols,
+            "skip_dates_only_check": column_skip_dates_only_check,
         }
 
         for i in range(chunks):
