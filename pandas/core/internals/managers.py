@@ -63,7 +63,10 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    DatetimeArray,
+)
 from pandas.core.base import PandasObject
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -875,9 +878,18 @@ class BaseBlockManager(PandasObject):
                 )
             )
         else:
-            if len(self.blocks) > 1 and any(blk.is_extension for blk in self.blocks):
-                # Extension arrays may keep the indexer instead of taking right
-                # away (ArrowExtensionArray does for strings), copying it since
+            if (
+                len(self.blocks) > 1
+                and len(indexer) > 0
+                and any(
+                    isinstance(blk.values, ArrowExtensionArray)
+                    and blk.values._can_defer_take()
+                    for blk in self.blocks
+                )
+                and indexer.min() >= 0
+            ):
+                # ArrowExtensionArray keeps the indexer of a take of strings
+                # without -1 instead of taking right away, copying it since
                 # the caller could modify it. Hand all blocks one copy instead,
                 # in memory that can never change (an array over ``bytes``
                 # cannot be made writeable), which they can keep as it is.

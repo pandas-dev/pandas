@@ -166,6 +166,43 @@ def test_frame_row_selection_shares_indexer(select):
     tm.assert_frame_equal(result, expected.astype({"a": "str", "b": "str"}))
 
 
+@pytest.mark.parametrize(
+    "df, indexer",
+    [
+        # no column can keep the indexer
+        (
+            pd.DataFrame(
+                {
+                    "a": pd.array(range(10), dtype="Int64"),
+                    "b": pd.Categorical(list("abcdefghij")),
+                    "c": np.arange(10),
+                }
+            ),
+            [3, 1, 2],
+        ),
+        # a -1 makes every take eager
+        (
+            pd.DataFrame(
+                {"a": pd.array(list("abcdefghij"), dtype="str"), "c": np.arange(10)}
+            ),
+            [3, -1, 2],
+        ),
+    ],
+    ids=["no_string_column", "missing_rows"],
+)
+def test_frame_take_copies_indexer_only_if_kept(df, indexer, monkeypatch):
+    copies = []
+    frombuffer = np.frombuffer
+
+    def spy(*args, **kwargs):
+        copies.append(args)
+        return frombuffer(*args, **kwargs)
+
+    monkeypatch.setattr(np, "frombuffer", spy)
+    df._mgr.reindex_indexer(df.index[indexer], np.array(indexer, dtype=np.intp), axis=1)
+    assert not copies
+
+
 def test_merge_shares_indexer_per_side():
     left = pd.DataFrame(
         {
