@@ -86,6 +86,9 @@ def delta_to_nanoseconds(
 def floordiv_object_array(
     left: np.ndarray, right: npt.NDArray[np.object_]
 ) -> np.ndarray: ...
+def floordiv_td64_numeric(
+    i8values: npt.NDArray[np.int64], other: npt.ArrayLike
+) -> npt.NDArray[np.int64]: ...
 def truediv_object_array(
     left: np.ndarray, right: npt.NDArray[np.object_]
 ) -> np.ndarray: ...
