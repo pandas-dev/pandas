@@ -1134,8 +1134,10 @@ def to_datetime(
     fractional seconds fails:
 
     >>> import datetime as dt
-    >>> values = [str(dt.datetime(2025, 1, 1, 17, 45, 5, 123456)),
-    ...           str(dt.datetime(2025, 1, 1, 17, 45, 5))]
+    >>> values = [
+    ...     str(dt.datetime(2025, 1, 1, 17, 45, 5, 123456)),
+    ...     str(dt.datetime(2025, 1, 1, 17, 45, 5)),
+    ... ]
     >>> pd.to_datetime(values)  # doctest: +SKIP
     ValueError: time data "2025-01-01 17:45:05" doesn't match format
     "%Y-%m-%d %H:%M:%S.%f". You might want to try: ...
