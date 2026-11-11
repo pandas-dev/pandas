@@ -14,6 +14,38 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_320.enhancements.deferred_take:
+
+Faster merges and filtering of string data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Selecting rows of PyArrow-backed string and binary data, including the default
+``str`` dtype, no longer copies the selected values right away. The result
+records the original array and which of its rows are selected, and copies the
+values the first time an operation reads them. Columns that are never
+read are never copied, and a chain of row selections copies the values once
+(:issue:`XXXXX`).
+
+This applies to :func:`merge` and :meth:`DataFrame.join`, boolean indexing,
+``iloc`` and ``loc`` with lists, :meth:`DataFrame.take`, :meth:`DataFrame.reindex`,
+and methods that reorder or drop rows such as :meth:`DataFrame.sort_values`.
+These often copy many string columns that are then dropped or never used: in
+the PDS-H (TPC-H) benchmark queries with the default dtypes, the change more
+than halves both the total run time and the peak memory use.
+
+.. code-block:: python
+
+    >>> result = orders.merge(customers, on="customer_id")  # no strings copied
+    >>> result = result[result["amount"] > 100]  # still none
+    >>> result["name"].str.upper()  # copies the selected rows of "name" only
+
+Results are the same as before; only the time at which values are copied
+changes. Until then, a deferred result keeps the original data in memory, as
+a slice does; :meth:`DataFrame.copy` gathers the values and releases it.
+Selections that introduce missing values, such as the unmatched rows of an
+outer merge, still copy right away. See :ref:`pyarrow.deferred_take` for which
+operations defer and which ones gather.
+
 .. _whatsnew_320.enhancements.enhancement1:
 
 enhancement1
@@ -156,7 +188,6 @@ Performance improvements
 - Performance improvement in :func:`infer_freq` and :meth:`DatetimeIndex.union` for values with no regular frequency (:issue:`70884`)
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with PyArrow-backed string data (:issue:`60861`)
-- Performance improvement and reduced memory usage in :func:`merge`, :meth:`DataFrame.merge`, :meth:`DataFrame.join` and boolean-mask indexing with PyArrow-backed string and binary data, including the default ``str`` dtype: gathering the values of a column is deferred until the column is used, so columns that are never used are never copied (:issue:`XXXXX`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
