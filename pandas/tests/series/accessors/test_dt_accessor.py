@@ -3,15 +3,24 @@ from datetime import (
     date,
     datetime,
     time,
+    timedelta,
+    timezone,
 )
 import locale
 import unicodedata
 
+from dateutil.tz import (
+    tzlocal,
+    tzstr,
+)
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    NullFrequencyError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -30,7 +39,7 @@ from pandas.core.arrays import (
 _deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
 
 ok_for_period = PeriodArray._datetimelike_ops + list(_deprecated_dt_attrs)
-ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
+ok_for_period_methods = ["strftime", "to_timestamp", "asfreq", "shift"]
 # ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
 # directly rather than on the underlying array, so add it explicitly.
 ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq", *list(_deprecated_dt_attrs)]
@@ -48,6 +57,7 @@ ok_for_dt_methods = [
     "month_name",
     "isocalendar",
     "as_unit",
+    "shift",
 ]
 ok_for_td = [*TimedeltaArray._datetimelike_ops, "freq"]
 ok_for_td_methods = [
@@ -58,6 +68,7 @@ ok_for_td_methods = [
     "floor",
     "ceil",
     "as_unit",
+    "shift",
 ]
 
 
@@ -624,12 +635,26 @@ class TestSeriesDatetimeValues:
             expected = expected.astype(pd.StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
 
-    def test_strftime_literal_braces(self):
-        # Literal braces in the format string should be preserved
-        ser = pd.Series(pd.date_range("2024-01-01", periods=3))
-        result = ser.dt.strftime("{%Y}")
-        expected = pd.Series(["{2024}", "{2024}", "{2024}"])
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    @pytest.mark.parametrize(
+        "fmt, expected",
+        [
+            ("{%Y}", "{2024}"),
+            ("100%% %Y", "100% 2024"),
+            ("%Y%", "2024%"),
+            ("%d日%H時", "01日05時"),
+            ("%S.%f", "00.123456"),
+            ("100%%", "100%"),
+            ("abc", "abc"),
+        ],
+    )
+    def test_strftime_literals(self, tz, fmt, expected):
+        # Literal text around directives should be preserved
+        ser = pd.Series(
+            pd.date_range("2024-01-01 05:00:00.123456", periods=3, freq="min", tz=tz)
+        )
+        result = ser.dt.strftime(fmt)
+        tm.assert_series_equal(result, pd.Series([expected] * 3))
 
     def test_strftime_dt64_year_lt_1000(self):
         # GH#58179, GH#64609 the directive-map fast path must zero-pad %Y to
@@ -662,6 +687,69 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "unit, fraction, timespec",
+        [
+            ("s", "", "seconds"),
+            ("ms", ".001", "milliseconds"),
+            ("us", ".000001", "microseconds"),
+            ("ns", ".000000001", "nanoseconds"),
+        ],
+    )
+    def test_strftime_default_format_tz(
+        self, unit, fraction, timespec, tz_aware_fixture
+    ):
+        # GH#44764 matches Timestamp.isoformat, across DST and LMT offset changes
+        # tzlocal raises on 1850 on Windows and with a 32-bit time_t
+        early = "1970-01-02" if isinstance(tz_aware_fixture, tzlocal) else "1850-01-01"
+        values = np.array(
+            [
+                f"{early} 00:00:00{fraction}",
+                "2021-11-07 05:30:00",
+                "2021-11-07 06:30:00",
+                "2021-11-07 09:30:00",
+            ],
+            dtype=f"M8[{unit}]",
+        )
+        dti = pd.DatetimeIndex(values, tz="UTC").tz_convert(tz_aware_fixture)
+        ser = pd.Series(dti)
+
+        result = ser.dt.strftime(None)
+        expected = pd.Series([ts.isoformat(sep=" ", timespec=timespec) for ts in dti])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "offset, expected",
+        [
+            (timedelta(hours=1, seconds=7), "2021-01-01 01:00:07+01:00:07"),
+            (-timedelta(seconds=7), "2020-12-31 23:59:53-00:00:07"),
+            (-timedelta(hours=3, minutes=30), "2020-12-31 20:30:00-03:30"),
+            (timedelta(0), "2021-01-01 00:00:00+00:00"),
+            # sub-second part is dropped from both the wall time and the offset
+            (timedelta(seconds=1, microseconds=500), "2021-01-01 00:00:01+00:00:01"),
+        ],
+    )
+    def test_strftime_default_format_tz_utc_offset(self, offset, expected):
+        # GH#44764
+        dti = pd.DatetimeIndex(["2021-01-01", "NaT"], tz="UTC").tz_convert(
+            timezone(offset)
+        )
+        result = pd.Series(dti).dt.strftime(None)
+        tm.assert_series_equal(result, pd.Series([expected, np.nan]))
+
+    def test_strftime_default_format_tz_outside_pydatetime_bounds(self):
+        # GH#44764 used to raise NotImplementedError from Timestamp.isoformat
+        values = np.array(["12000-07-01"], dtype="M8[s]")
+        dti = pd.DatetimeIndex(values, tz="UTC").tz_convert("Asia/Kolkata")
+        result = pd.Series(dti).dt.strftime(None)
+        tm.assert_series_equal(result, pd.Series(["12000-07-01 05:30:00+05:30"]))
+
+    @pytest.mark.parametrize("fmt", [None, "%Y"])
+    def test_strftime_tz_empty(self, fmt):
+        # GH#44764 empty data must not need the UTC offsets of a tz
+        dti = pd.DatetimeIndex([], tz="UTC").tz_convert(tzstr("EST5EDT"))
+        assert len(dti.strftime(fmt)) == 0
+
     def test_strftime_dt64_microsecond_resolution(self):
         ser = pd.Series(
             [datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)]
@@ -686,8 +774,7 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-        # template path: %N in a non-hardcoded format goes through the
-        # str.format-based fmt_template path
+        # %N in a non-hardcoded format goes through the directive-map path
         result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S.%N")
         expected = pd.Series(
             ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
@@ -709,7 +796,7 @@ class TestSeriesDatetimeValues:
 
     def test_strftime_nanosecond_directive_tz(self):
         # GH#29461 - %N directive must work for tz-aware data via the
-        # template path (Localizer is wired up only for the template path)
+        # directive-map path (Localizer is wired up only for that path)
         dti = pd.DatetimeIndex(
             [
                 pd.Timestamp("2019-05-18 15:17:08.132263123", tz="US/Eastern"),
@@ -1064,3 +1151,52 @@ def test_deprecated_aliases(ser):
     with tm.assert_produces_warning(Pandas4Warning, match=msg.format("daysinmonth")):
         result = ser.dt.daysinmonth
     tm.assert_series_equal(result, ser.dt.days_in_month)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2020-01-01", periods=3, freq="D"),
+        pd.date_range("2020-03-07", periods=3, freq="D", tz="US/Eastern"),
+        pd.date_range("2020-01-31", periods=3, freq="ME"),
+        pd.timedelta_range("1 day", periods=3, freq="h"),
+        pd.period_range("2020-01", periods=3, freq="M"),
+    ],
+    ids=["datetime64", "datetime64tz", "month_end", "timedelta64", "period"],
+)
+@pytest.mark.parametrize("periods", [2, -1, 0])
+def test_dt_shift(values, periods):
+    # GH#31705 without freq, shift by the inferred frequency like Index.shift
+    ser = pd.Series(values, index=list("abc"), name="xxx")
+    expected = pd.Series(values.shift(periods), index=ser.index, name="xxx")
+
+    result = ser.dt.shift(periods)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.astype("category").dt.shift(periods)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        pd.Series(pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT])),
+        pd.Series(pd.to_timedelta(["1 day", "3 days", pd.NaT])),
+    ],
+    ids=["datetime64", "timedelta64"],
+)
+def test_dt_shift_freq(ser):
+    # GH#31705 an explicit freq does not require regular values
+    result = ser.dt.shift(-2, freq="h")
+    expected = ser - pd.Timedelta(hours=2)
+    tm.assert_series_equal(result, expected)
+
+    with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
+        ser.dt.shift(1)
+    tm.assert_series_equal(ser.dt.shift(0), ser)
+
+
+def test_dt_shift_period_freq_raises():
+    ser = pd.Series(pd.period_range("2020-01", periods=3, freq="M"))
+    with pytest.raises(TypeError, match="not supported for Series.dt.shift"):
+        ser.dt.shift(1, freq="M")

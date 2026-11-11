@@ -1,3 +1,8 @@
+from datetime import (
+    UTC,
+    datetime,
+    timedelta,
+)
 import decimal
 import re
 
@@ -151,6 +156,31 @@ def test_coerce_unhashable_nested_tuple():
 
     expected = pd.Series([1.0, np.nan])
     tm.assert_series_equal(result, expected)
+
+
+def test_zero_dim_ndarray_elements(errors):
+    # GH#47408 - a 0-dimensional array converts as the scalar it holds instead
+    # of tripping the len() check meant for empty containers.
+    kwargs = {"errors": errors} if errors is not None else {}
+    ser = pd.Series([3, np.array(2.1), np.array(4)], dtype=object)
+
+    result = pd.to_numeric(ser, **kwargs)
+
+    expected = pd.Series([3.0, 2.1, 4.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_zero_dim_ndarray_with_unparsable_string():
+    # GH#47408
+    ser = pd.Series([3, np.array(2.1), "a"], dtype=object)
+
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([3.0, 2.1, np.nan])
+    tm.assert_series_equal(result, expected)
+
+    msg = "Unable to parse string 'a' at position 2"
+    with pytest.raises(ValueError, match=msg):
+        pd.to_numeric(ser, errors="raise")
 
 
 def test_ignore_error():
@@ -420,13 +450,47 @@ def test_timedelta_pyarrow():
         pd.Timedelta(1, "D"),
         pd.Timestamp("2017-01-01T12"),
         pd.Timestamp("2017-01-01T12", tz="US/Pacific"),
+        datetime(2017, 1, 1, 12),
+        datetime(2017, 1, 1, 12, tzinfo=UTC),
+        np.datetime64("2017-01-01"),
+        np.datetime64("2017-01-01T12", "ns"),
+        timedelta(days=1),
+        np.timedelta64(5, "ms"),
     ],
 )
-def test_timedelta_timestamp_scalar(scalar):
-    # GH#59944
-    result = pd.to_numeric(scalar)
-    expected = pd.to_numeric(pd.Series(scalar))[0]
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"errors": "coerce"},
+        {"downcast": "integer"},
+        pytest.param({"dtype_backend": "pyarrow"}, marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_timedelta_timestamp_scalar(scalar, kwargs):
+    # GH#59944, GH#43280
+    result = pd.to_numeric(scalar, **kwargs)
+    expected = pd.to_numeric(pd.Series(scalar), **kwargs)[0]
+    assert type(result) is type(expected)  # np.timedelta64(5, "ms") == 5 is True
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "scalar",
+    [
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        timedelta.max,
+        np.datetime64(10**12, "Y"),
+        np.timedelta64(5, "Y"),
+    ],
+)
+def test_unconvertible_datetimelike_scalar(scalar):
+    # GH#43280 NaT, out of bounds and unsupported units respect errors=
+    with pytest.raises(TypeError, match="Invalid object type"):
+        pd.to_numeric(scalar)
+    assert np.isnan(pd.to_numeric(scalar, errors="coerce"))
 
 
 def test_period(request, transform_assert_equal):
@@ -942,12 +1006,25 @@ def test_invalid_dtype_backend():
         pd.to_numeric(ser, dtype_backend="numpy")
 
 
-def test_coerce_pyarrow_backend():
-    # GH 52588
+@pytest.mark.parametrize(
+    "data, expected, kwargs, dtype",
+    [
+        (list("12x"), [1, 2, None], {"dtype_backend": "pyarrow"}, "int64"),
+        (["1", "x"], [1, None], {}, "int64"),
+        (["1", "NaN"], [1, None], {}, "int64"),
+        (["1", None, "x"], [1, None, None], {}, "int64"),
+        (["1", None, "x"], [1, None, None], {"dtype_backend": "pyarrow"}, "int64"),
+        (["1.5", None, "x"], [1.5, None, None], {}, "float64"),
+    ],
+)
+def test_coerce_pyarrow_string(data, expected, kwargs, dtype):
+    # GH#52588, GH#67949: unparsable strings (including the "NaN" literal)
+    #  must become a real pd.NA that isna() sees, and a parse failure after
+    #  an existing missing value must not duplicate the last parsed value
     pa = pytest.importorskip("pyarrow")
-    ser = pd.Series(list("12x"), dtype=pd.ArrowDtype(pa.string()))
-    result = pd.to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
-    expected = pd.Series([1, 2, None], dtype=pd.ArrowDtype(pa.int64()))
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce", **kwargs)
+    expected = pd.Series(expected, dtype=pd.ArrowDtype(getattr(pa, dtype)()))
     tm.assert_series_equal(result, expected)
 
 
@@ -1006,10 +1083,25 @@ def test_complex_keeps_preceding_values(data, expected):
     ],
 )
 def test_leading_plus_fractional_leading_zeros(value):
-    # GH#68311 a leading "+" routes the token to the same fallback converter
-    # read_csv uses for thousands=, which charged the fractional leading zeros
-    # against its 17 significant-digit budget
+    # GH#68311, GH#44145 a leading "+" must parse like the unsigned value
     result = pd.to_numeric(pd.Series([value]))
     # check_exact: the default atol=1e-8 compares the pre-fix 0.0 equal to the
     # 5e-25 it should be, so without this the test passes either way
     tm.assert_series_equal(result, pd.Series([float(value)]), check_exact=True)
+
+
+@pytest.mark.parametrize("sign", ["", "+", "-"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "0.01234567890123456789",
+        "0.00498124967521367",
+        "1.4833969477515917953304135",
+        "2.5000806360837783533",
+        "2.4703282292062328e-324",
+    ],
+)
+def test_long_mantissa_correctly_rounded(value, sign):
+    # GH#44145 a leading "+" bypassed the correctly rounded parser
+    result = pd.to_numeric(pd.Series([sign + value]))
+    tm.assert_series_equal(result, pd.Series([float(sign + value)]), check_exact=True)

@@ -241,6 +241,31 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
     return substrings
 
 
+def backtick_quoted_assign_target(source: str, assigner: str) -> str:
+    """
+    Return the column label for the left hand side of an assignment.
+
+    Parameters
+    ----------
+    source : str
+        The Python source code string of a single assignment.
+    assigner : str
+        The identifier the left hand side was parsed to.
+
+    Returns
+    -------
+    str
+        The backtick-quoted name as written on the left hand side, or
+        ``assigner`` if the left hand side is not backtick-quoted.
+    """
+    substrings = _split_by_backtick(source.lstrip(" \t("))
+    if substrings and substrings[0][0]:
+        name = substrings[0][1][1:-1]
+        if create_valid_python_identifier(name) == assigner:
+            return name.replace("``", "`")
+    return assigner
+
+
 def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     """
     Tokenize a Python source code string.

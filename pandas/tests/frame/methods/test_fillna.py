@@ -949,3 +949,21 @@ def test_fillna_fill_frame_with_duplicate_labels_raises(axis):
     msg = "Cannot align with an object that has duplicate labels"
     with pytest.raises(InvalidIndexError, match=msg):
         df.fillna(value)
+
+
+@pytest.mark.parametrize("axis", [1, "columns"])
+@pytest.mark.parametrize(
+    "method, expected_values",
+    [
+        ("ffill", [1.0, 1.0, 3.0]),
+        ("bfill", [1.0, 3.0, 3.0]),
+    ],
+)
+def test_pad_backfill_axis_1_inplace(method, expected_values, axis):
+    # GH#71159
+    df = pd.DataFrame([[1.0, np.nan, 3.0]], columns=["A", "B", "C"])
+    result = getattr(df, method)(axis=axis, inplace=True)
+    assert result is df
+    expected = pd.DataFrame([expected_values], columns=["A", "B", "C"])
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, expected)

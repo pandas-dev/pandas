@@ -1250,6 +1250,40 @@ class TestNanvarFixedValues:
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("ddof", range(3))
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_complex_nanvar_partial_nan(self, ddof, axis, method, skipna):
+        real = self.prng.standard_normal((5, 4))
+        imag = self.prng.standard_normal((5, 4))
+
+        real[0, 0] = np.nan
+        imag[1, 1] = np.nan
+        real[2, 2] = imag[2, 2] = np.nan
+
+        arr = np.empty_like(real, dtype=np.complex128)
+        arr.real = real
+        arr.imag = imag
+
+        nanops_method = getattr(nanops, f"nan{method}")
+
+        if method in {"var", "std"}:
+            nan_prefix = "nan" if skipna else ""
+            comparator_method = getattr(np, nan_prefix + method)
+        elif method == "sem":
+            st_sem = pytest.importorskip("scipy.stats").sem
+            nan_policy = "omit" if skipna else "propagate"
+            comparator_method = partial(st_sem, nan_policy=nan_policy)
+
+        result = nanops_method(arr, axis=axis, ddof=ddof, skipna=skipna)
+        expected = comparator_method(arr, axis=axis, ddof=ddof)
+        if not skipna and method == "sem":
+            # scipy returns a complex number,
+            # the correct part is in the real component :-/
+            expected = expected.real
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("ddof", range(3))
     def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
@@ -1633,7 +1667,9 @@ def test_nanvar_family_float16_overflow(use_bottleneck, method, values):
     expected = getattr(ser.astype(np.float64), method)()
     with pd.option_context("compute.use_bottleneck", use_bottleneck):
         result = getattr(ser, method)()
+        result_2d = getattr(ser.to_frame().T, method)(axis=1).iloc[0]
     tm.assert_almost_equal(result, expected)
+    tm.assert_almost_equal(result_2d, expected)
 
 
 @pytest.mark.parametrize("use_bottleneck", [True, False])
@@ -1783,6 +1819,27 @@ def test_idxminmax_float_inf_tie():
     assert df.idxmin().tolist() == [1, 0]
     assert df["a"].idxmax() == 1
     assert df["a"].idxmin() == 1
+
+
+def test_idxminmax_boolean_with_na():
+    # GH#71833 the NA fill must not be cast to True ahead of a real True
+    df = pd.DataFrame(
+        {
+            "a": pd.array([False, pd.NA, True], dtype="boolean"),
+            "b": pd.array([pd.NA, True, False], dtype="boolean"),
+        }
+    )
+    assert df.idxmax().tolist() == [2, 1]
+    assert df.idxmin().tolist() == [0, 2]
+
+
+def test_nanminmax_bool_with_mask():
+    # GH#71833 a masked first slot must not win under either fill
+    mask = np.array([True, False, False])
+    assert nanops.nanargmax(np.array([True, False, True]), mask=mask) == 2
+    assert not nanops.nanmax(np.array([True, False, False]), mask=mask)
+    assert nanops.nanargmin(np.array([False, True, False]), mask=mask) == 2
+    assert nanops.nanmin(np.array([False, True, True]), mask=mask)
 
 
 def _copy_array_with_layout(arr, layout):

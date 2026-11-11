@@ -179,6 +179,17 @@ def test_cummin_max_all_nan_column(method, dtype):
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+def test_cummin_max_nan_with_mask_propagates(method, using_nan_is_na):
+    # GH#59106 an unmasked NaN propagates instead of leaking the inf/-inf seed
+    values = np.array([np.nan, 1.0, 2.0, 3.0])
+    ser = pd.Series(pd.arrays.FloatingArray(values, np.zeros(4, dtype=bool)))
+    result = getattr(ser.groupby([1, 1, 1, 2]), method)()
+    item = pd.NA if using_nan_is_na else np.nan
+    expected = pd.Series([item, item, item, 3.0], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+
 def test_cummax(dtypes_for_minmax):
     dtype = dtypes_for_minmax[0]
 
