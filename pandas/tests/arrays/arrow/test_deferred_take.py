@@ -641,8 +641,11 @@ def test_gather_across_chunks(data, sort):
     gathered = result._pa_array
     tm.assert_extension_array_equal(result, _expected(data, positions))
     if sort:
-        # sorted positions are gathered chunk by chunk, like filter
+        # increasing positions select what a mask does: gathered with
+        # filter, chunk by chunk
         assert gathered.num_chunks == data._pa_array.num_chunks
+    else:
+        assert gathered.num_chunks == 1
 
 
 @pytest.mark.slow
@@ -670,6 +673,9 @@ def test_gather_over_2gib(pa_type):
     mask = np.zeros(len(pending), dtype=bool)
     mask[[1, half + 1, half + 2]] = True
     result = pending[mask]
+    assert result._pa_array.combine_chunks().equals(expected)
+    # ... sorted ones with repeats, gathered chunk by chunk ...
+    result = pending.take(np.array([0, 0, half]))
     assert result._pa_array.combine_chunks().equals(expected)
     # ... and unsorted ones
     result = pending.take(np.array([half + 3, 2, half]))
@@ -766,6 +772,30 @@ def test_getattr_after_another_thread_gathered(data):
         type(data).__getattr__(empty, "_pa_array")
     with pytest.raises(AttributeError, match="no attribute 'missing'"):
         data.missing
+
+
+@pytest.mark.parametrize(
+    "pa_type",
+    [pa.string(), pa.large_string(), pa.binary(), pa.large_binary()],
+    ids=str,
+)
+def test_gather_many_chunks_takes_once(pa_type, monkeypatch):
+    # gathering chunk by chunk loops over the chunks in Python, so it is only
+    # used once the plain take overflows: never for 64-bit offsets, and not
+    # for 32-bit ones below 2 GiB. Increasing positions are filtered.
+    def fail(*args, **kwargs):
+        raise AssertionError("gathered chunk by chunk")
+
+    monkeypatch.setattr("pandas.core.arrays.arrow.array._take_by_chunk", fail)
+    arr = _arrow_array(pa_type)
+    arr = arr._from_pyarrow_array(
+        pa.chunked_array([chunk for chunk in arr._pa_array.chunks for _ in range(50)])
+    )
+    increasing = np.arange(0, len(arr), 3)
+    repeated = np.repeat(increasing, 2)
+    for positions in [increasing, repeated, increasing[::-1]]:
+        result = arr.take(positions)
+        tm.assert_extension_array_equal(result, _expected(arr, positions))
 
 
 def test_gather_reraises_with_64bit_offsets():

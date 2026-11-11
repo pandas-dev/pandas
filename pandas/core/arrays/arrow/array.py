@@ -541,21 +541,34 @@ def _take_by_chunk(
     return pa.chunked_array(chunks, type=parent.type)
 
 
+def _filter(parent: pa.ChunkedArray, mask: npt.NDArray[np.bool_]) -> pa.ChunkedArray:
+    """``parent.filter(mask)``, applied chunk by chunk."""
+    # pa.array(mask) converts one value at a time; packing the bits with
+    # NumPy is over 10x faster
+    bits = pa.py_buffer(np.packbits(mask, bitorder="little"))
+    return parent.filter(pa.Array.from_buffers(pa.bool_(), len(mask), [None, bits]))
+
+
 def _gather(parent: pa.ChunkedArray, indices: npt.NDArray[np.intp]) -> pa.ChunkedArray:
     """
-    ``parent.take(indices)``, safe for ``string`` and ``binary`` data over 2 GiB.
+    ``parent.take(indices)``, without concatenating ``parent`` where possible.
 
-    ``ChunkedArray.take`` concatenates the chunks first, which overflows the
-    32-bit offsets of ``string`` and ``binary`` once ``parent`` holds more
-    than 2 GiB, however few values are taken. Sorted positions, which every
-    boolean mask produces, are gathered chunk by chunk instead: this costs
-    no more than the concatenating take and never overflows. Unsorted
-    positions are only gathered that way if the plain take overflows.
+    ``ChunkedArray.take`` concatenates the chunks first. That copies all of
+    ``parent``, however few values are taken, and overflows the 32-bit
+    offsets of ``string`` and ``binary`` once ``parent`` holds more than
+    2 GiB. Positions that only increase, which every boolean mask of a
+    frame produces, select what a mask does, so they are gathered with
+    ``filter``, which works chunk by chunk. Other positions are taken as
+    they are, and only if that overflows, gathered chunk by chunk, which
+    loops over the chunks in Python. The overflow is found before any
+    values are copied, so trying costs little.
     """
     if parent.num_chunks <= 1:
         return parent.take(pa.array(indices))
-    if bool((indices[1:] >= indices[:-1]).all()):
-        return _take_by_chunk(parent, indices)
+    if bool((indices[1:] > indices[:-1]).all()):
+        mask = np.zeros(len(parent), dtype=bool)
+        mask[indices] = True
+        return _filter(parent, mask)
     try:
         return parent.take(pa.array(indices))
     except pa.ArrowInvalid:
@@ -563,6 +576,8 @@ def _gather(parent: pa.ChunkedArray, indices: npt.NDArray[np.intp]) -> pa.Chunke
             parent.type
         ):
             raise
+    if bool((indices[1:] >= indices[:-1]).all()):
+        return _take_by_chunk(parent, indices)
     # gather in sorted order, then restore the requested order; this only
     # fails if the result itself is over 2 GiB
     order = np.argsort(indices, kind="stable")
@@ -583,11 +598,7 @@ def _select(
     once, which is much faster than ``take`` for a mask that keeps most rows.
     """
     if selection.dtype == np.bool_:
-        # pa.array(selection) converts one value at a time; packing the
-        # bits with NumPy is over 10x faster
-        bits = pa.py_buffer(np.packbits(selection, bitorder="little"))
-        mask = pa.Array.from_buffers(pa.bool_(), len(selection), [None, bits])
-        return parent.filter(mask)
+        return _filter(parent, selection)
     # a step slice of a deferred take leaves a strided view, which pa.array
     # must copy, and copies more slowly than NumPy (for 1.7M positions,
     # 2.9 ms against 1.7 ms); a contiguous array is used without a copy
