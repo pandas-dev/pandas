@@ -68,7 +68,7 @@ class TestEquals:
 
         # different index
         different_index = -index
-        different = df2.set_index(different_index)
+        different = df2.set_axis(different_index)
         assert not df1.equals(different)
 
         # different columns
@@ -78,7 +78,7 @@ class TestEquals:
 
         # DatetimeIndex
         index = pd.date_range("2000-1-1", periods=10, freq="min")
-        df1 = df1.set_index(index)
+        df1 = df1.set_axis(index)
         df2 = df1.copy()
         assert df1.equals(df2)
 
