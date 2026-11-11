@@ -927,6 +927,18 @@ def to_datetime(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
+        If ``format`` is not given, the format is inferred from the
+        first non-null element, if it is a string, and that format is
+        then applied strictly to every element. Elements that do not
+        match raise a ``ValueError``, or become :const:`NaT` with
+        ``errors="coerce"``. For example, ISO 8601 strings with and
+        without fractional seconds, such as those produced by
+        :meth:`datetime.datetime.__str__`, do not share one format;
+        use ``format="ISO8601"`` for those, or ``format="mixed"`` to
+        infer the format for each element individually. If the format
+        cannot be inferred, a ``UserWarning`` is emitted and each
+        element is parsed individually, falling back to ``dateutil``.
+
         .. deprecated:: 3.1.0
 
             Passing integer or float values together with ``format`` is
@@ -1112,6 +1124,28 @@ def to_datetime(
 
     >>> pd.to_datetime("2018-10-26 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f")
     Timestamp('2018-10-26 12:00:00.000000001')
+
+    **Inferring the format**
+
+    If ``format`` is not given, the format is inferred from the first
+    non-null string element and applied strictly to every element.
+    For example, :meth:`datetime.datetime.__str__` omits the fractional
+    part when ``microsecond == 0``, so a mix of strings with and without
+    fractional seconds fails:
+
+    >>> import datetime as dt
+    >>> values = [str(dt.datetime(2025, 1, 1, 17, 45, 5, 123456)),
+    ...           str(dt.datetime(2025, 1, 1, 17, 45, 5))]
+    >>> pd.to_datetime(values)  # doctest: +SKIP
+    ValueError: time data "2025-01-01 17:45:05" doesn't match format
+    "%Y-%m-%d %H:%M:%S.%f". You might want to try: ...
+
+    Use ``format="ISO8601"`` for ISO 8601 strings that are not all in
+    exactly the same format:
+
+    >>> pd.to_datetime(values, format="ISO8601")
+    DatetimeIndex(['2025-01-01 17:45:05.123456', '2025-01-01 17:45:05'],
+                  dtype='datetime64[us]', freq=None)
 
     **Non-convertible date/times**
 
