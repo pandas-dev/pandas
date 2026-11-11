@@ -191,7 +191,11 @@ mask. This includes:
 
 Selecting rows of a deferred result, by position, mask or slice, is also
 deferred and is combined with the earlier selection, so the values are copied
-once, straight from the original array.
+once, straight from the original array. A slice, such as :meth:`DataFrame.head`,
+copies only its own rows. Once the slices of one deferred result would copy
+more rows between them than the result has, the result is copied whole
+instead, and that slice and later ones share its memory, as slices of any
+other array do.
 
 A selection that introduces missing values, such as the unmatched rows of a
 ``"left"``, ``"right"`` or ``"outer"`` merge or :meth:`DataFrame.reindex` to new

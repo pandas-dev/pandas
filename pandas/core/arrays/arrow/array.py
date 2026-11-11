@@ -607,12 +607,31 @@ class _PendingTake:
     gather. Views share one instance, so the gather runs once for all of them
     and they share its buffers.
 
+    A slice of a deferred take that has not run gathers only its own rows,
+    so ``head`` of a large result stays cheap, but it keeps a link to the
+    take it was cut from (``origin``). Overlapping slices would otherwise
+    gather the rows they share once each. So once the rows gathered through
+    slices of a take would exceed its length, the take is gathered whole,
+    and that slice and later ones become views of its result, as slices of
+    an eager result are. Gathering costs about one copy per row, so this
+    never gathers more than twice the rows an eager take would.
+
     Like a slice, which is a view of its parent's buffers, a deferred take
     keeps its parent alive until it is gathered; ``copy`` gathers, and so
     releases the parent.
     """
 
-    __slots__ = ("length", "lock", "parent", "positions", "result", "selection")
+    __slots__ = (
+        "length",
+        "lock",
+        "origin",
+        "origin_start",
+        "parent",
+        "positions",
+        "result",
+        "selection",
+        "sliced_rows",
+    )
 
     def __init__(
         self,
@@ -626,9 +645,28 @@ class _PendingTake:
         self.length = _selection_length(selection)
         self.result: pa.ChunkedArray | None = None
         self.lock = threading.Lock()
+        # the deferred take this is a contiguous slice of, from origin_start
+        self.origin: _PendingTake | None = None
+        self.origin_start = 0
+        # rows gathered so far by slices of this take, on their own
+        self.sliced_rows = 0
 
     def __len__(self) -> int:
         return self.length
+
+    def _slice_gathers_whole(self, length: int) -> bool:
+        """
+        Whether a slice of ``length`` rows should be cut from this take's
+        result, gathering it first if needed, rather than gather its rows on
+        its own. The slice's rows are counted if it gathers on its own.
+        """
+        with self.lock:
+            if self.result is not None:
+                return True
+            if self.sliced_rows + length > self.length:
+                return True
+            self.sliced_rows += length
+            return False
 
     def source(
         self, *, positions: bool = False
@@ -654,9 +692,18 @@ class _PendingTake:
             if self.result is None:
                 assert self.parent is not None
                 assert self.selection is not None
-                self.result = _select(self.parent, self.selection)
-                # release the parent and the selection
+                origin = self.origin
+                # a slice only ever locks the take it was cut from, never
+                # the other way round, so the locks cannot deadlock
+                if origin is not None and origin._slice_gathers_whole(self.length):
+                    self.result = origin.materialize().slice(
+                        self.origin_start, self.length
+                    )
+                else:
+                    self.result = _select(self.parent, self.selection)
+                # release the parent, the selection and the origin
                 self.parent = self.selection = self.positions = None
+                self.origin = None
             return self.result
 
 
@@ -1396,11 +1443,17 @@ class ArrowExtensionArray(
             if pending is not None:
                 n = len(self)
                 deferred: ArrowExtensionArray | None
-                if item.indices(n) == (0, n, 1):
+                start, stop, step = item.indices(n)
+                if (start, stop, step) == (0, n, 1):
                     # a full slice is a view: share the deferred take
                     deferred = self._with_pending_take(pending)
                 else:
                     deferred = self._deferred_take(item)
+                    sliced = None if deferred is None else deferred._pending_take
+                    if sliced is not None and step == 1:
+                        # see _PendingTake: overlapping slices share a gather
+                        sliced.origin = pending
+                        sliced.origin_start = start
                 if deferred is not None:
                     deferred._readonly = self._readonly
                     return deferred

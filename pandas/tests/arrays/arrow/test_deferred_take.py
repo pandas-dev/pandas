@@ -254,6 +254,71 @@ def test_full_slice_shares_pending(data):
     assert result._pending_take is pending._pending_take
 
 
+def _deferred(data, how):
+    # a deferred selection of all 100 rows of ``data``, in reverse order
+    if how == "take":
+        return data.take(np.arange(99, -1, -1)), data[::-1]
+    mask = np.ones(len(data), dtype=bool)
+    mask[::7] = False
+    # copy gathers, so the expected values do not go through the deferral
+    return data[mask], data[mask].copy()
+
+
+@pytest.mark.parametrize("how", ["take", "mask"])
+def test_small_slice_gathers_only_its_rows(data, how):
+    pending, expected = _deferred(data, how)
+    head = pending[:10]
+    tm.assert_extension_array_equal(head, expected[:10])
+    # the slice gathered its own rows and left the selection deferred
+    assert _is_pending(pending)
+    assert pending._pending_take.result is None
+
+
+@pytest.mark.parametrize("how", ["take", "mask"])
+def test_overlapping_slices_share_one_gather(data, how):
+    # once the slices would gather more rows than the selection holds, the
+    # selection is gathered and the remaining slices are views of it
+    pending, expected = _deferred(data, how)
+    slices = [pending[:-i] for i in range(1, 6)]
+    for i, sliced in enumerate(slices, start=1):
+        tm.assert_extension_array_equal(sliced, expected[:-i])
+    assert pending._pending_take.result is not None
+    assert not tm.shares_memory(slices[0], pending)
+    assert all(tm.shares_memory(sliced, pending) for sliced in slices[1:])
+    tm.assert_extension_array_equal(pending, expected)
+
+
+def test_slice_after_gather_is_a_view(data):
+    pending = data.take(np.arange(99, -1, -1))
+    sliced = pending[5:50]
+    assert _is_pending(sliced)
+    pending._pa_array
+    tm.assert_extension_array_equal(sliced, data[::-1][5:50])
+    assert tm.shares_memory(sliced, pending)
+
+
+def test_slices_of_a_slice(data):
+    pending = data.take(np.arange(99, -1, -1))
+    outer = pending[:90]
+    first = outer[:80]
+    second = outer[5:85]
+    tm.assert_extension_array_equal(first, data[::-1][:80])
+    tm.assert_extension_array_equal(second, data[::-1][5:85])
+    # 80 + 80 rows exceed the 90 of ``outer``, which then gathered on its
+    # own: its 90 rows fit within the 100 of ``pending``
+    assert tm.shares_memory(second, outer)
+    assert not tm.shares_memory(first, outer)
+    assert pending._pending_take.result is None
+    tm.assert_extension_array_equal(outer, data[::-1][:90])
+
+
+def test_step_slice_gathers_on_its_own(data):
+    pending = data.take(np.arange(99, -1, -1))
+    sliced = pending[::2]
+    assert sliced._pending_take.origin is None
+    tm.assert_extension_array_equal(sliced, data[::-1][::2])
+
+
 def test_take_with_fill_is_eager(data):
     positions = np.array([0, -1, 5] * 20)
     result = data.take(positions, allow_fill=True)
@@ -438,6 +503,35 @@ def test_concurrent_materialize(share):
     assert not errors
     assert all(result is results[0] for result in results)
     tm.assert_extension_array_equal(pending, data[::-1])
+
+
+def test_concurrent_overlapping_slices():
+    n = 200_000
+    data = pd.array([f"value{i}" for i in range(n)], dtype="str")
+    pending = data.take(np.arange(n - 1, -1, -1))
+    slices = [pending[i : n - i] for i in range(8)]
+    barrier = threading.Barrier(len(slices))
+    errors: list[BaseException] = []
+
+    def run(i):
+        barrier.wait()
+        try:
+            slices[i]._pa_array
+        except BaseException as err:
+            errors.append(err)
+
+    threads = [threading.Thread(target=run, args=(i,)) for i in range(len(slices))]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert not errors
+    expected = data[::-1]
+    for i, sliced in enumerate(slices):
+        tm.assert_extension_array_equal(sliced, expected[i : n - i])
+    # at most one slice gathered on its own before the rest became views
+    assert pending._pending_take.result is not None
+    assert sum(not tm.shares_memory(sliced, pending) for sliced in slices) <= 1
 
 
 def test_series_mask_and_merge():
