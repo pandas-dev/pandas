@@ -621,8 +621,9 @@ class _PendingTake:
     never gathers more than twice the rows an eager take would.
 
     Like a slice, which is a view of its parent's buffers, a deferred take
-    keeps its parent alive until it is gathered; ``copy`` gathers, and so
-    releases the parent.
+    keeps its parent alive until it is gathered. ``copy`` returns an array
+    gathered into new buffers, which does not keep the parent alive, but
+    leaves the array it was called on deferred.
     """
 
     __slots__ = (
