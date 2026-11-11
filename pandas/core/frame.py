@@ -16821,7 +16821,9 @@ class DataFrame(NDFrame, OpsMixin):
                 base_cov = np.cov(mat.T, ddof=ddof)
             base_cov = base_cov.reshape((len(cols), len(cols)))
         else:
-            base_cov = libalgos.nancorr(mat, cov=True, minp=min_periods)
+            base_cov = libalgos.nancorr(
+                mat, cov=True, minp=min_periods, ddof=1 if ddof is None else ddof
+            )
 
         result = self._constructor(base_cov, index=idx, columns=cols, copy=False)
         return result.__finalize__(self, method="cov")

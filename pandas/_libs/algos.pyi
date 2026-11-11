@@ -47,6 +47,7 @@ def nancorr(
     mat: npt.NDArray[np.float64],  # const float64_t[:, :]
     cov: bool = ...,
     minp: int | None = ...,
+    ddof: int = ...,
 ) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
 def nancorr_spearman(
     mat: npt.NDArray[np.float64],  # ndarray[float64_t, ndim=2]
