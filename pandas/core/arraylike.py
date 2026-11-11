@@ -550,15 +550,18 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
         # NumPy's fused minimum/maximum reduction behind np.minmax
         if not hasattr(self, "min") or not hasattr(self, "max"):
             return NotImplemented
-        method_names = ["min", "max"]
-    elif ufunc.__name__ in REDUCTION_ALIASES:
-        method_name = REDUCTION_ALIASES[ufunc.__name__]
-        # NB: we are assuming that min/max represent minimum/maximum methods,
-        #  which would not be accurate for e.g. Timestamp.min
-        if not hasattr(self, method_name):
-            return NotImplemented
-        method_names = [method_name]
-    else:
+        return tuple(
+            getattr(self, name)(skipna=False, **kwargs) for name in ["min", "max"]
+        )
+
+    if ufunc.__name__ not in REDUCTION_ALIASES:
+        return NotImplemented
+
+    method_name = REDUCTION_ALIASES[ufunc.__name__]
+
+    # NB: we are assuming that min/max represent minimum/maximum methods,
+    #  which would not be accurate for e.g. Timestamp.min
+    if not hasattr(self, method_name):
         return NotImplemented
 
     if self.ndim > 1:
@@ -577,7 +580,4 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
-    results = tuple(
-        getattr(self, name)(skipna=False, **kwargs) for name in method_names
-    )
-    return results[0] if len(results) == 1 else results
+    return getattr(self, method_name)(skipna=False, **kwargs)
