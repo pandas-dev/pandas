@@ -88,9 +88,11 @@ from pandas.core import (
     algorithms as algos,
     arraylike,
     missing,
+    nanops,
     ops,
     roperator,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
@@ -2415,6 +2417,18 @@ class ArrowExtensionArray(
 
         return super().fillna(value=value, limit=limit, copy=copy)
 
+    def insert(self, loc: int, item) -> Self:
+        if (
+            lib.is_float(item)
+            and np.isnan(item)
+            and not is_nan_na()
+            and not _is_temporal_pa_type(self._pa_array.type)
+        ):
+            # _from_sequence would store e.g. "nan" or True; raise like setitem
+            #  so Index.insert upcasts. timestamp/duration store NA, like NaT.
+            self._validate_setitem_value(item)
+        return super().insert(loc, item)
+
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
         if not len(values):
@@ -3217,6 +3231,18 @@ class ArrowExtensionArray(
         if name == "count":
             return self.count()
 
+        elif name in ["skew", "kurt"] and (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            # pyarrow's kernels lose precision, giving garbage instead of NaN
+            #  for constant input, so use the same path as the masked arrays
+            values = data_to_reduce.cast(pa.float64(), safe=False).to_numpy()
+            op = getattr(nanops, f"nan{name}")
+            result = op(values, skipna=skipna, mask=self.isna())
+            return pa.scalar(result, type=pa.float64(), from_pandas=True)
+
         elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -3314,8 +3340,6 @@ class ArrowExtensionArray(
         elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
             # pyarrow defaults to ddof=0, pandas behavior is ddof=1
             kwargs["ddof"] = 1
-        elif name in ["skew", "kurt"] and "biased" not in kwargs:
-            kwargs["biased"] = False
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -3680,7 +3704,26 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        if axis != 0:
+        if axis == 0:
+            try:
+                return self._rank_pyarrow(
+                    method=method, na_option=na_option, ascending=ascending, pct=pct
+                )
+            except pa.ArrowNotImplementedError:
+                # pyarrow cannot rank some types, e.g. lists; rank the Python
+                #  objects instead, which for lists compare lexicographically
+                values = construct_1d_object_array_from_listlike(
+                    self._pa_array.to_pylist()
+                )
+                ranked = algos.rank(
+                    values,
+                    method=method,
+                    na_option=na_option,
+                    ascending=ascending,
+                    pct=pct,
+                    mask=self.isna() if self._hasna else None,
+                )
+        else:
             ranked = super()._rank(
                 axis=axis,
                 method=method,
@@ -3688,14 +3731,21 @@ class ArrowExtensionArray(
                 ascending=ascending,
                 pct=pct,
             )
-            # keep dtypes consistent with the implementation below
-            if method == "average" or pct:
-                pa_type = pa.float64()
-            else:
-                pa_type = pa.uint64()
-            result = pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
-            return result
+        # keep dtypes consistent with _rank_pyarrow
+        if method == "average" or pct:
+            pa_type = pa.float64()
+        else:
+            pa_type = pa.uint64()
+        return pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
 
+    def _rank_pyarrow(
+        self,
+        *,
+        method: RankMethod,
+        na_option: RankNaOption,
+        ascending: bool,
+        pct: bool,
+    ):
         data = self._pa_array.combine_chunks()
         order = "ascending" if ascending else "descending"
         null_placement = "at_start" if na_option == "top" else "at_end"
@@ -3797,6 +3847,25 @@ class ArrowExtensionArray(
         pa_dtype = self._pa_array.type
 
         data = self._pa_array
+        mask = self.isna()
+        if (
+            pa.types.is_temporal(pa_dtype)
+            and pa_dtype.bit_width == 64
+            and interpolation in ["linear", "midpoint"]
+            and not mask.all()
+        ):
+            # GH#49110 pc.quantile goes through float64, which loses precision;
+            #  reuse the exact numpy datetime path on the int64 values
+            values = pc.fill_null(data.cast(pa.int64()), 0).to_numpy()
+            res = quantile_with_mask(
+                values.view("M8[ns]"),
+                mask,
+                np.datetime64("NaT", "ns"),
+                qs,
+                interpolation,
+            )
+            return self._from_pyarrow_array(pa.array(res.view("i8")).cast(pa_dtype))
+
         if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back

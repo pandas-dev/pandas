@@ -1,4 +1,9 @@
-from typing import Literal
+from datetime import date
+from typing import (
+    Literal,
+    Self,
+    overload,
+)
 
 import numpy as np
 
@@ -8,6 +13,7 @@ from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
     Frequency,
+    NaTStrings,
     npt,
 )
 
@@ -80,10 +86,17 @@ class Period(PeriodMixin):
     freq: BaseOffset
     _dtype: PeriodDtypeBase
 
-    # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
+    # error: "__new__" must return a class instance (got "NaTType")
+    @overload
     def __new__(  # type: ignore[misc]
         cls,
-        value: object = ...,
+        value: NaTType | NaTStrings | None,
+        freq: int | str | BaseOffset | None = ...,
+    ) -> NaTType: ...
+    @overload
+    def __new__(
+        cls,
+        value: Period | date | int | str | None = ...,
         freq: int | str | BaseOffset | None = ...,
         ordinal: int | None = ...,
         year: int | None = ...,
@@ -93,7 +106,23 @@ class Period(PeriodMixin):
         hour: int | None = ...,
         minute: int | None = ...,
         second: int | None = ...,
-    ) -> Period | NaTType: ...
+    ) -> Self: ...
+    # float NaN can represent NaT
+    # error: "__new__" must return a class instance (got "Period | NaTType")
+    @overload
+    def __new__(  # type: ignore[misc]
+        cls,
+        value: object,
+        freq: int | str | BaseOffset | None = ...,
+        ordinal: int | None = ...,
+        year: int | None = ...,
+        month: int | None = ...,
+        quarter: int | None = ...,
+        day: int | None = ...,
+        hour: int | None = ...,
+        minute: int | None = ...,
+        second: int | None = ...,
+    ) -> Self | NaTType: ...
     @classmethod
     def _maybe_convert_freq(cls, freq: object) -> BaseOffset: ...
     @classmethod

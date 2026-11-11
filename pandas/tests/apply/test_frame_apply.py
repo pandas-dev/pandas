@@ -2207,6 +2207,44 @@ def test_agg_list_like_signed_int_and_float_is_float(funcs, values):
     assert result["a"].dtype == np.float64
 
 
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "uint64[pyarrow]"])
+@pytest.mark.parametrize("funcs", [["max", "mean"], ["sum", "median"]])
+def test_agg_list_like_arrow_int_and_float(dtype, funcs):
+    # GH#71875 rounds like numpy instead of raising ArrowInvalid
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.Series([10**17, 10**17 + 1], dtype=dtype)})
+
+    result = df.agg(funcs)
+
+    expected = df["a"].agg(funcs).astype("double[pyarrow]")
+    tm.assert_series_equal(result["a"], expected)
+
+
+def test_agg_list_like_arrow_float_and_large_int_labels():
+    # GH#71875 idxmax gives numpy int64 labels above 2**53
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {"a": pd.array([1.0, 2.0], dtype="double[pyarrow]")},
+        index=[10**17, 10**17 + 1],
+    )
+
+    result = df.agg(["idxmax", "mean"])
+
+    expected = df["a"].agg(["idxmax", "mean"]).astype("double[pyarrow]")
+    tm.assert_series_equal(result["a"], expected)
+
+
+def test_agg_list_like_arrow_int_and_float_keeps_na():
+    # GH#71875 a missing int result stays NA rather than becoming NaN
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.Series([1, None], dtype="int64[pyarrow]")})
+
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = df.agg(["max", "mean"], skipna=False)
+
+    assert result["a"].isna().all()
+
+
 def test_agg_list_like_unsigned_and_signed_common_int():
     # GH#65031 uint32 and int64 have a common integer dtype, so nothing is lost
     df = pd.DataFrame({"a": pd.Series([5, 1], dtype="uint32")})
@@ -2379,3 +2417,111 @@ def test_apply_expand_single_row_preserves_dict_order():
     df = pd.DataFrame(np.arange(4).reshape(1, 4), columns=["C4", "C3", "C2", "C1"])
     result = df.apply(func, axis=1, result_type="expand")
     assert result.columns.tolist() == ["Z", "Y", "C2", "C1"]
+
+
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [("Int64", "Float64"), ("int64[pyarrow]", "double[pyarrow]")],
+)
+def test_agg_callable_retains_ea_dtype(dtype, expected_dtype):
+    # GH#61812 a callable aggregation retains the frame's extension dtype
+    #  instead of inferring a NumPy dtype from the scalar results
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, dtype=dtype)
+    expected = pd.Series([1.5, 3.5], index=["A", "B"], dtype=expected_dtype)
+    tm.assert_series_equal(df.agg(lambda x: x.mean()), expected)
+    tm.assert_series_equal(df.agg(np.mean), expected)
+    tm.assert_series_equal(df.apply(lambda x: x.mean()), expected)
+    # the string alias already retained the dtype; the callables now agree
+    tm.assert_series_equal(df.agg("mean"), expected)
+
+
+def test_apply_axis1_retains_ea_dtype():
+    # GH#61812 each row has the frame's dtype, so the result does too
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, dtype="Int64")
+    result = df.apply(lambda x: x.mean(), axis=1)
+    expected = pd.Series([2.0, 3.0], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_categorical_not_retained():
+    # GH#61812 retaining category would make the result dtype depend on whether
+    #  the results happen to be categories
+    df = pd.DataFrame(
+        {"A": [1, 2, 3], "B": [1, 1, 5]}, dtype=CategoricalDtype([1, 2, 3, 4, 5])
+    )
+    result = df.apply(lambda x: x.nunique())
+    tm.assert_series_equal(result, pd.Series([3, 2], index=["A", "B"]))
+
+
+def test_apply_ea_dtype_falls_back_for_unholdable_value():
+    # GH#61812 results the dtype cannot hold are inferred as before
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, dtype="Int64")
+    result = df.apply(lambda x: pd.NaT)
+    expected = pd.Series([pd.NaT, pd.NaT], index=["A", "B"], dtype="datetime64[s]")
+    tm.assert_series_equal(result, expected)
+
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, dtype="int64[pyarrow]")
+    result = df.apply(lambda x: 2**70)
+    expected = pd.Series([2**70, 2**70], index=["A", "B"], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_ea_dtype_falls_back_when_cast_raises():
+    # GH#61812 retaining the dtype must not make a working apply raise
+    class RaisingCastArray(pd.arrays.IntegerArray):
+        def _cast_pointwise_result(self, values):
+            raise RuntimeError
+
+    arr = pd.array([1, 2], dtype="Int64")
+    df = pd.DataFrame({"A": RaisingCastArray(arr._data, arr._mask)})
+    result = df.apply(lambda x: 5)
+    tm.assert_series_equal(result, pd.Series([5], index=["A"]))
+
+
+def test_apply_ea_dtype_falls_back_for_non_ea_result():
+    # GH#61812 a cast that declines to produce an extension dtype leaves the
+    #  inference to the constructor, rather than handing over its own array
+    class NdarrayCastArray(pd.arrays.IntegerArray):
+        def _cast_pointwise_result(self, values):
+            return np.asarray(values, dtype="int8")
+
+    arr = pd.array([1, 2], dtype="Int64")
+    df = pd.DataFrame({"A": NdarrayCastArray(arr._data, arr._mask)})
+    result = df.apply(lambda x: 5)
+    tm.assert_series_equal(result, pd.Series([5], index=["A"]))
+
+
+def test_apply_ea_dtype_retains_na_flavor():
+    # GH#61812 the retained dtype brings its own NA with it
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, dtype="Int64")
+    result = df.apply(lambda x: np.nan)
+    expected = pd.Series([pd.NA, pd.NA], index=["A", "B"], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_sparse_not_retained():
+    # GH#61812 sparsity is a storage layout, not a result dtype; retaining it
+    #  would also drop the tz below
+    df = pd.DataFrame(
+        {"A": pd.arrays.SparseArray([1, 2]), "B": pd.arrays.SparseArray([3, 4])}
+    )
+    tm.assert_series_equal(
+        df.apply(lambda x: x.mean()), pd.Series([1.5, 3.5], index=["A", "B"])
+    )
+
+    ts = pd.Timestamp("2020-01-01 05:00", tz="US/Eastern")
+    result = df.apply(lambda x: ts)
+    expected = pd.Series([ts, ts], index=["A", "B"], dtype="datetime64[us, US/Eastern]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_agg_callable_mixed_dtypes_infers():
+    # GH#61812 with no single input dtype there is nothing to retain, so the
+    #  result is inferred from the scalars as before
+    df = pd.DataFrame({"A": pd.array([1, 2], dtype="Int64"), "B": [3.0, 4.0]})
+    result = df.agg(lambda x: x.mean())
+    expected = pd.Series([1.5, 3.5], index=["A", "B"])
+    tm.assert_series_equal(result, expected)
