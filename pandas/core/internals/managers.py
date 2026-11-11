@@ -878,10 +878,10 @@ class BaseBlockManager(PandasObject):
             if len(self.blocks) > 1 and any(blk.is_extension for blk in self.blocks):
                 # Extension arrays may keep the indexer instead of taking right
                 # away (ArrowExtensionArray does for strings), copying it since
-                # the caller could modify it. Hand all blocks one read-only
-                # copy instead, which they can keep without copying.
-                indexer = indexer.copy()
-                indexer.flags.writeable = False
+                # the caller could modify it. Hand all blocks one copy instead,
+                # in memory that can never change (an array over ``bytes``
+                # cannot be made writeable), which they can keep as it is.
+                indexer = np.frombuffer(indexer.tobytes(), dtype=indexer.dtype)
             new_blocks = []
             for blk in self.blocks:
                 if blk.dtype == np.void:

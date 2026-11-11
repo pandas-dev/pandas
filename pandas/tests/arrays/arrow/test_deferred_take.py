@@ -66,18 +66,25 @@ def test_take_does_not_alias_indexer(data):
     tm.assert_extension_array_equal(result, _expected(data, np.arange(50)))
 
 
-def test_take_keeps_owned_readonly_indexer(data):
-    positions = np.arange(50)
-    positions.flags.writeable = False
+def test_take_keeps_immutable_indexer(data):
+    # an array over ``bytes`` can never be made writeable: kept as it is
+    positions = np.frombuffer(np.arange(50, dtype=np.intp).tobytes(), dtype=np.intp)
     result = data.take(positions)
     assert result._pending_take.selection is positions
+    result = data.take(positions[10:])
+    assert result._pending_take.selection.base is positions
 
-    # a read-only view could still change through its base: copied
+
+@pytest.mark.parametrize("how", ["owner", "view"])
+def test_take_copies_readonly_indexer(data, how):
+    # a read-only indexer can still change: its owner can make it writeable
+    # again, and a view of it changes with its base
     base = np.arange(50)
-    view = base[:]
-    view.flags.writeable = False
-    result = data.take(view)
-    assert result._pending_take.selection is not view
+    positions = base if how == "owner" else base[:]
+    positions.flags.writeable = False
+    result = data.take(positions)
+    assert result._pending_take.selection is not positions
+    base.flags.writeable = True
     base[:] = 0
     tm.assert_extension_array_equal(result, _expected(data, np.arange(50)))
 

@@ -722,6 +722,19 @@ class _PendingTake:
             return self.result
 
 
+def _is_immutable(values: np.ndarray) -> bool:
+    """
+    Whether the memory of ``values`` can never change: it belongs to a
+    ``bytes`` object, as that of an indexer frozen with ``np.frombuffer``
+    does. A read-only flag is not enough, since the owner of the memory can
+    make it writeable again.
+    """
+    base: object = values
+    while isinstance(base, np.ndarray):
+        base = base.base
+    return isinstance(base, bytes)
+
+
 def _selection_length(
     selection: npt.NDArray[np.intp] | npt.NDArray[np.bool_],
 ) -> int:
@@ -2809,10 +2822,10 @@ class ArrowExtensionArray(
             and self._can_defer_take()
             and indices_array.min() >= 0
         ):
-            # an indexer that owns its data and is read-only cannot change
-            # under us, so it is kept without a copy
-            owned = indices_array.flags.owndata and not indices_array.flags.writeable
-            result = self._deferred_take(indices_array, copy=not owned)
+            # an indexer whose memory can never change is kept without a copy
+            result = self._deferred_take(
+                indices_array, copy=not _is_immutable(indices_array)
+            )
             if result is not None:
                 return result
 
