@@ -113,9 +113,29 @@ def test_frame_take_shares_indexer_across_columns():
         lambda df: df.iloc[[5, 3, 1, 7]],
         lambda df: df.reindex([5, 3, 1, 7]),
         lambda df: df.sort_values("c"),
+        lambda df: df.sort_index(ascending=False),
         lambda df: df.drop_duplicates("d"),
+        lambda df: df.query("c > 10", engine="python"),
+        lambda df: df.sample(10, random_state=2),
+        lambda df: df.nlargest(10, "c"),
+        lambda df: df.dropna(subset=["e"]),
+        lambda df: df.join(pd.DataFrame({"k": [3, 1]}, index=[5, 1]), how="inner"),
     ],
-    ids=["take", "mask", "loc_mask", "iloc", "reindex", "sort_values", "dedup"],
+    ids=[
+        "take",
+        "mask",
+        "loc_mask",
+        "iloc",
+        "reindex",
+        "sort_values",
+        "sort_index",
+        "dedup",
+        "query",
+        "sample",
+        "nlargest",
+        "dropna",
+        "join",
+    ],
 )
 def test_frame_row_selection_shares_indexer(select):
     # every row selection of a frame reaches the columns through
@@ -127,6 +147,7 @@ def test_frame_row_selection_shares_indexer(select):
             "b": pd.array([f"b{i}" for i in range(n)], dtype="str"),
             "c": np.arange(n)[::-1].copy(),
             "d": pd.array(np.arange(n) // 2, dtype="Int64"),
+            "e": np.where(np.arange(n) % 3 == 0, np.nan, 1.0),
         }
     )
     result = select(df)
@@ -164,6 +185,94 @@ def test_merge_shares_indexer_per_side():
         on="key",
     ).astype(dict.fromkeys("abcd", "str"))
     tm.assert_frame_equal(result, expected)
+
+
+def _deferred_frame(n=1000):
+    # every string column deferred, by a sort that reorders all rows
+    df = pd.DataFrame(
+        {
+            "a": pd.array([f"a{i}" for i in range(n)], dtype="str"),
+            "b": pd.array([f"b{i}" for i in range(n)], dtype="str"),
+            "c": np.arange(n)[::-1].copy(),
+        }
+    )
+    return df.sort_values("c")
+
+
+def _gathered(df, col="a") -> bool:
+    pending = df[col].array._pending_take
+    return pending is None or pending.result is not None
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        lambda df: (len(df), df.shape, df.dtypes),
+        lambda df: df[["a", "c"]],
+        lambda df: df.assign(z=1),
+        lambda df: df.rename(columns={"c": "cc"}),
+        lambda df: df.drop(columns="b"),
+        lambda df: df["a"].iloc[3],
+        lambda df: df.at[df.index[3], "a"],
+        lambda df: df[df["c"] > 5],
+        lambda df: repr(df),
+        lambda df: df.copy(),
+    ],
+    ids=[
+        "shape",
+        "select_columns",
+        "assign",
+        "rename",
+        "drop_column",
+        "iloc_scalar",
+        "at",
+        "select_rows",
+        "repr",
+        "copy",
+    ],
+)
+def test_frame_op_does_not_gather(op):
+    df = _deferred_frame()
+    op(df)
+    assert not _gathered(df)
+
+
+def test_frame_repr_gathers_only_shown_rows():
+    df = _deferred_frame()
+    # copy gathers into new memory and leaves ``df`` deferred
+    expected = repr(df.copy())
+    assert repr(df) == expected
+    assert not _gathered(df)
+
+
+def test_frame_copy_gathers_into_new_memory():
+    df = _deferred_frame()
+    copied = df.copy()
+    assert not _is_pending(copied["a"].array)
+    assert not tm.shares_memory(copied["a"].array, df["a"].array)
+    tm.assert_frame_equal(copied, df)
+
+
+@pytest.mark.parametrize(
+    "select",
+    [
+        lambda df: df.merge(
+            pd.DataFrame({"c": [3, 1, -1], "k": [0, 1, 2]}), on="c", how="right"
+        ),
+        lambda df: df.reindex([5, 3, -1]),
+    ],
+    ids=["merge_with_unmatched", "reindex_new_label"],
+)
+def test_frame_selection_with_missing_rows_is_eager(select):
+    df = pd.DataFrame(
+        {
+            "a": pd.array([f"a{i}" for i in range(10)], dtype="str"),
+            "c": np.arange(10),
+        }
+    )
+    result = select(df)
+    assert not _is_pending(result["a"].array)
+    assert result["a"].isna().iloc[-1]
 
 
 def test_compose_take_slice_mask(data):
@@ -518,6 +627,64 @@ def test_copy_gathers(data):
     assert _is_pending(pending)
     assert not tm.shares_memory(pending, copied)
     tm.assert_extension_array_equal(copied, pending)
+
+
+@pytest.mark.parametrize("how", ["take", "mask"])
+@pytest.mark.parametrize("select", ["copy", "take", "slice"])
+def test_select_after_a_view_gathered(data, how, select):
+    pending, expected = _deferred(data, how)
+    view = pending[:]
+    view._pa_array
+    # ``pending`` still holds the take its view gathered
+    assert pending._pending_take.result is not None
+    if select == "copy":
+        result = pending.copy()
+        assert not tm.shares_memory(result, view)
+        tm.assert_extension_array_equal(result, expected)
+    elif select == "take":
+        # deferred again, from the gathered values
+        result = pending.take([3, 1, 2])
+        assert _is_pending(result)
+        tm.assert_extension_array_equal(result, expected.take([3, 1, 2]))
+    else:
+        # a view of the gathered values, as on an eager array
+        result = pending[10:20]
+        assert not _is_pending(result)
+        assert tm.shares_memory(result, view)
+        tm.assert_extension_array_equal(result, expected[10:20])
+
+
+def test_getattr_after_another_thread_gathered(data):
+    # the state a reader finds if another thread finishes the gather between
+    # the failed lookup of ``_pa_array`` and the call to ``__getattr__``
+    pending = data.take(np.arange(10))
+    gathered = pending._pending_take.materialize()
+    pending.__dict__["_pa_array"] = gathered
+    del pending.__dict__["_pending_take"]
+    assert type(pending).__getattr__(pending, "_pa_array") is gathered
+
+    # neither the values nor a deferred take: a plain AttributeError
+    empty = type(data).__new__(type(data))
+    with pytest.raises(AttributeError, match="no attribute '_pa_array'"):
+        type(data).__getattr__(empty, "_pa_array")
+    with pytest.raises(AttributeError, match="no attribute 'missing'"):
+        data.missing
+
+
+def test_gather_reraises_with_64bit_offsets():
+    # only 32-bit offsets can overflow, so with 64-bit offsets an error of
+    # the take is raised as it is, instead of retrying chunk by chunk
+    from pandas.core.arrays.arrow.array import _gather
+
+    class Parent:
+        num_chunks = 2
+        type = pa.large_string()
+
+        def take(self, indices):
+            raise pa.ArrowInvalid("not an overflow")
+
+    with pytest.raises(pa.ArrowInvalid, match="not an overflow"):
+        _gather(Parent(), np.array([1, 0], dtype=np.intp))
 
 
 def test_setitem_on_pending(data):
