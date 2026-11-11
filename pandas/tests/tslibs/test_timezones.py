@@ -703,20 +703,17 @@ def test_zoneinfo_from_file_shift_onto_nat_sentinel(kwargs):
 
 def test_zoneinfo_from_file_timedelta_shift_onto_nat_sentinel():
     # GH#64379 a no-twin zone has no transition table, so a nonexistent
-    #  shift that lands on the sentinel must stay on the tzinfo-API arm; the
-    #  cached arm would bisect through a NULL pointer.
+    #  shift that lands on the sentinel must not reach the cached arm, which
+    #  would bisect through a NULL pointer. The wall time is below
+    #  Timestamp.min, so it raises (GH#66697).
     tz = _zoneinfo_from_file("US/Eastern")
     val = pd.Timestamp("1918-03-31 02:30").value  # a US/Eastern gap
     # two values: at length one DatetimeIndex boxes the result and raises
     #  before we get to see what the shift returned
     dti = pd.DatetimeIndex(np.array([val, val], dtype="i8").view("M8[ns]"))
-    result = dti.tz_localize(tz, nonexistent=pd.Timedelta(-(2**63) - val))
-
-    # the sentinel is 1677-09-21 00:12:43.145224192 as a wall time, before
-    #  US/Eastern's first transition, so the stdlib gives it the LMT offset
-    offset = datetime(1677, 9, 21, 0, 12, 43, 145224).replace(tzinfo=tz).utcoffset()
-    expected = -(2**63) - int(offset.total_seconds()) * 10**9
-    assert result.asi8.tolist() == [expected, expected]
+    msg = "Converting 1918-03-31 02:30:00 underflows past"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        dti.tz_localize(tz, nonexistent=pd.Timedelta(-(2**63) - val))
 
 
 def _write_big_bang_tzif(path):
