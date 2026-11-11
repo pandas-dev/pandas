@@ -586,7 +586,10 @@ def _select(
         bits = pa.py_buffer(np.packbits(selection, bitorder="little"))
         mask = pa.Array.from_buffers(pa.bool_(), len(selection), [None, bits])
         return parent.filter(mask)
-    return _gather(parent, np.asarray(selection, dtype=np.intp))
+    # a step slice of a deferred take leaves a strided view, which pa.array
+    # must copy, and copies more slowly than NumPy (for 1.7M positions,
+    # 2.9 ms against 1.7 ms); a contiguous array is used without a copy
+    return _gather(parent, np.ascontiguousarray(selection, dtype=np.intp))
 
 
 class _PendingTake:
