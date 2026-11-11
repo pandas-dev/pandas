@@ -1779,6 +1779,7 @@ Set an index
 
 DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name
 (for a regular ``Index``) or a list of column names (for a ``MultiIndex``).
+To set the index from an array instead, use :meth:`~DataFrame.set_axis`.
 To create a new, re-indexed DataFrame:
 
 .. ipython:: python

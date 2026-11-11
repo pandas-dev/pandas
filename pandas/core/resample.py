@@ -2072,9 +2072,11 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
             and len(result) == 0
             and not isinstance(result.index, PeriodIndex)
         ):
-            result = result.set_index(
-                _asfreq_compat(self.obj.index[:0], freq=self.freq), append=True
-            )
+            levels = [
+                result.index.get_level_values(i) for i in range(result.index.nlevels)
+            ]
+            levels.append(_asfreq_compat(self.obj.index[:0], freq=self.freq))
+            result = result.set_axis(MultiIndex.from_arrays(levels))
 
         return self._wrap_result(result)
 

@@ -1838,7 +1838,7 @@ the string values returned are correct."""
                 data = DataFrame.from_dict(dict(retyped_data))
 
         if index_col is not None:
-            data = data.set_index(data.pop(index_col))
+            data = data.set_index(index_col)
 
         return data
 

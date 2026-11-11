@@ -1423,7 +1423,7 @@ class TestMerge:
             ],
             columns=["a", "key", "b"],
         )
-        expected = expected.set_index(expected_index)
+        expected = expected.set_axis(expected_index)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("how", ["right", "outer"])

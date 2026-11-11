@@ -1859,7 +1859,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Freq: D, Name: week, dtype: UInt32
         """
         df = self._data.isocalendar()
-        return df.set_index(self)
+        return df.set_axis(self)
 
     # --------------------------------------------------------------------
     # Constructors
