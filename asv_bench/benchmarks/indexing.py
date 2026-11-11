@@ -271,27 +271,31 @@ class Take:
 
 
 class BooleanMaskStringColumns:
-    # The string columns selected by a boolean mask are gathered when first
-    # used: use_columns=True includes that cost.
-    params = [["str", "string[pyarrow]"], [False, True]]
-    param_names = ["dtype", "use_columns"]
+    # The string values selected by a boolean mask are gathered when first
+    # used: use_columns=True uses every string column, so includes that cost.
+    params = [["str", "string[pyarrow]"], [0.01, 0.5, 0.99], [False, True]]
+    param_names = ["dtype", "selectivity", "use_columns"]
 
-    def setup(self, dtype, use_columns):
+    def setup(self, dtype, selectivity, use_columns):
         N = 1_000_000
-        ncols = 5
-        values = Series([f"value-{i}" for i in range(N)], dtype=dtype)
-        self.columns = [f"s{i}" for i in range(ncols)]
-        self.df = DataFrame({"i": np.arange(N), **dict.fromkeys(self.columns, values)})
-        self.series = values
-        self.mask = (self.df["i"] % 2 == 0).to_numpy()
+        self.columns = [f"s{i}" for i in range(5)]
+        data = {
+            col: ("value-" + Series(np.arange(i * N, (i + 1) * N)).astype(str)).astype(
+                dtype
+            )
+            for i, col in enumerate(self.columns)
+        }
+        self.df = DataFrame({"i": np.arange(N), **data})
+        self.series = data["s0"]
+        self.mask = np.random.random(N) < selectivity
 
-    def time_frame_mask(self, dtype, use_columns):
+    def time_frame_mask(self, dtype, selectivity, use_columns):
         result = self.df[self.mask]
         if use_columns:
             for col in self.columns:
                 result[col].isna()
 
-    def time_series_mask(self, dtype, use_columns):
+    def time_series_mask(self, dtype, selectivity, use_columns):
         result = self.series[self.mask]
         if use_columns:
             result.isna()

@@ -275,26 +275,26 @@ class Merge:
 
 class MergeStringColumns:
     # The string columns of a merge result are gathered when first used:
-    # use_columns=True includes that cost.
-    params = [["str", "string[pyarrow]"], [False, True]]
-    param_names = ["dtype", "use_columns"]
+    # use_columns=True uses every one, so includes that cost. Half the left
+    # rows match; the left side's values are gathered in order, the right
+    # side's in the (unsorted, repeated) order of the matches.
+    params = [["str", "string[pyarrow]"], ["left", "right"], [False, True]]
+    param_names = ["dtype", "strings_on", "use_columns"]
 
-    def setup(self, dtype, use_columns):
+    def setup(self, dtype, strings_on, use_columns):
         N = 1_000_000
-        ncols = 5
-        values = [f"value-{i}" for i in range(N)]
-        self.columns = [f"s{i}" for i in range(ncols)]
+        self.columns = [f"s{i}" for i in range(5)]
         self.left = DataFrame(
-            {
-                "key": np.tile(np.arange(N // 10), 10),
-                **{col: Series(values, dtype=dtype) for col in self.columns},
-            }
+            {"key": np.random.randint(0, N // 10, N), "value": np.random.randn(N)}
         )
-        self.right = DataFrame(
-            {"key": np.arange(0, N // 10, 2), "value": np.random.randn(N // 20)}
-        )
+        self.right = DataFrame({"key": np.arange(0, N // 10, 2)})
+        target = self.left if strings_on == "left" else self.right
+        n = len(target)
+        for i, col in enumerate(self.columns):
+            values = "value-" + Series(np.arange(i * n, (i + 1) * n)).astype(str)
+            target[col] = values.astype(dtype)
 
-    def time_merge(self, dtype, use_columns):
+    def time_merge(self, dtype, strings_on, use_columns):
         result = merge(self.left, self.right, on="key")
         if use_columns:
             for col in self.columns:
