@@ -375,3 +375,35 @@ def test_multi_columns_same_total_different_lengths(storage):
     df = pd.DataFrame({"left": left, "right": right})
     with pytest.raises(ValueError, match="columns must have matching element counts"):
         df.explode(["left", "right"])
+
+
+@pytest.mark.parametrize("ignore_index", [True, False])
+@pytest.mark.parametrize(
+    "column",
+    [("B", "C"), [("B", "C")], [("B", "C"), ("E", "F")]],
+)
+def test_explode_tuple_label_flat_columns(column, ignore_index):
+    # GH#55142 a tuple label in flat (non-MultiIndex) columns is a single label
+    df = pd.DataFrame(
+        {"A": [1, 2], ("B", "C"): [[3, 4], [5]], ("E", "F"): [[6, 7], [8]]},
+        index=list("ab"),
+    )
+    result = df.explode(column, ignore_index=ignore_index)
+
+    exploded = [column] if isinstance(column, tuple) else column
+    expected = pd.DataFrame(
+        {
+            "A": [1, 1, 2],
+            ("B", "C"): np.array([3, 4, 5], dtype=object)
+            if ("B", "C") in exploded
+            else [[3, 4], [3, 4], [5]],
+            ("E", "F"): np.array([6, 7, 8], dtype=object)
+            if ("E", "F") in exploded
+            else [[6, 7], [6, 7], [8]],
+        },
+        index=list("aab"),
+    )
+    if ignore_index:
+        expected = expected.reset_index(drop=True)
+    tm.assert_frame_equal(result, expected)
+    assert not isinstance(result.columns, pd.MultiIndex)
