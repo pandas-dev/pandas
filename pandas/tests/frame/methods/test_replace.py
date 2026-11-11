@@ -1375,6 +1375,16 @@ class TestDataFrameReplace:
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.parametrize(
+        "kwargs",
+        [{"to_replace": {5: 0}}, {"to_replace": 5, "value": 0}],
+    )
+    def test_replace_no_match_keeps_object_dtype(self, kwargs):
+        # GH#53539 dict and scalar to_replace both keep object dtype on no match
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, dtype=object)
+        result = df.replace(**kwargs)
+        tm.assert_frame_equal(result, df)
+
     @pytest.mark.parametrize("replacement", [np.nan, 5])
     def test_replace_with_duplicate_columns(self, replacement):
         # GH 24798

@@ -174,6 +174,14 @@ def test_shift_freq_excludes_grouping_column(periods):
     tm.assert_frame_equal(result, expected)
 
 
+def test_shift_freq_no_group_keys_in_index(frame_or_series):
+    # GH#23918
+    obj = frame_or_series(range(4), index=pd.date_range("2018-01-01", periods=4))
+    result = obj.groupby([1, 1, 2, 2]).shift(freq="D")
+    expected = obj.shift(freq="D")
+    tm.assert_equal(result, expected)
+
+
 def test_shift_disallow_freq_and_fill_value():
     # GH 53832
     data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}

@@ -87,9 +87,11 @@ from pandas.core import (
     algorithms as algos,
     arraylike,
     missing,
+    nanops,
     ops,
     roperator,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
@@ -108,6 +110,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.nanops import check_below_min_count
+from pandas.core.sorting import get_group_index_sorter
 
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
@@ -502,6 +505,18 @@ def _has_dictionary_or_view_child(pa_type: pa.DataType) -> bool:
         ):
             return True
     return False
+
+
+def _unwrap_storage_type(pa_type: pa.DataType) -> pa.DataType:
+    """
+    The storage type of an extension type, and the value type of a run-end-encoded
+    type; any other type unchanged.
+    """
+    if isinstance(pa_type, pa.BaseExtensionType):
+        pa_type = pa_type.storage_type
+    if pa.types.is_run_end_encoded(pa_type):
+        pa_type = pa_type.value_type
+    return pa_type
 
 
 @set_module("pandas.arrays")
@@ -1015,12 +1030,12 @@ class ArrowExtensionArray(
                         value, copy=copy, dtype=pass_dtype
                     )
                 dta_mask = dta.isna()
-                value_i8 = cast("npt.NDArray[np.int64]", dta.view("i8"))
-                if not value_i8.flags["WRITEABLE"]:
-                    # e.g. test_setitem_frame_2d_values
-                    value_i8 = value_i8.copy()
+                if dta_mask.any():
+                    # GH#61776 avoid __sub__ overflow. Work on a copy because
+                    # dta can share memory with the caller's data
+                    value_i8 = cast("npt.NDArray[np.int64]", dta.view("i8")).copy()
+                    value_i8[dta_mask] = 0
                     dta = DatetimeArray._from_sequence(value_i8, dtype=dta.dtype)
-                value_i8[dta_mask] = 0  # GH#61776 avoid __sub__ overflow
                 pa_array = pa.array(dta._ndarray, type=pa_type, mask=dta_mask)
                 return pa_array
 
@@ -1045,11 +1060,22 @@ class ArrowExtensionArray(
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
                 mask = is_pdna_or_none(arr_value)
 
-            try:
-                pa_array = pa.array(value, type=pa_type, mask=mask)
-            except (pa.ArrowInvalid, pa.ArrowTypeError):
-                # GH50430: let pyarrow infer type, then cast
+            if (
+                isinstance(value, np.ndarray)
+                and value.dtype.kind in "US"
+                and pa_type is not None
+                and pa.types.is_primitive(_unwrap_storage_type(pa_type))
+            ):
+                # pyarrow can segfault converting a numpy str array with a mask
+                #  to a primitive type, also as extension storage or run-end
+                #  encoded values (GH#71827); infer string/binary, then cast below
                 pa_array = pa.array(value, mask=mask)
+            else:
+                try:
+                    pa_array = pa.array(value, type=pa_type, mask=mask)
+                except (pa.ArrowInvalid, pa.ArrowTypeError):
+                    # GH50430: let pyarrow infer type, then cast
+                    pa_array = pa.array(value, mask=mask)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
@@ -1934,7 +1960,9 @@ class ArrowExtensionArray(
         copy: bool = True,
     ) -> Self:
         if not self._hasna:
-            return self
+            if not copy:
+                return self
+            return self._from_pyarrow_array(self._pa_array)
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
@@ -2037,6 +2065,18 @@ class ArrowExtensionArray(
             pass
 
         return super().fillna(value=value, limit=limit, copy=copy)
+
+    def insert(self, loc: int, item) -> Self:
+        if (
+            lib.is_float(item)
+            and np.isnan(item)
+            and not is_nan_na()
+            and not _is_temporal_pa_type(self._pa_array.type)
+        ):
+            # _from_sequence would store e.g. "nan" or True; raise like setitem
+            #  so Index.insert upcasts. timestamp/duration store NA, like NaT.
+            self._validate_setitem_value(item)
+        return super().insert(loc, item)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
@@ -2647,18 +2687,22 @@ class ArrowExtensionArray(
         return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
-    def _concat_same_type(cls, to_concat) -> Self:
+    def _concat_same_type(cls, to_concat, axis: AxisInt = 0) -> Self:
         """
         Concatenate multiple ArrowExtensionArrays.
 
         Parameters
         ----------
         to_concat : sequence of ArrowExtensionArrays
+        axis : int, default 0
+            Must be 0 or -1; ArrowExtensionArray is 1D-only.
 
         Returns
         -------
         ArrowExtensionArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype
@@ -2821,6 +2865,18 @@ class ArrowExtensionArray(
         if name == "count":
             return self.count()
 
+        elif name in ["skew", "kurt"] and (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            # pyarrow's kernels lose precision, giving garbage instead of NaN
+            #  for constant input, so use the same path as the masked arrays
+            values = data_to_reduce.cast(pa.float64(), safe=False).to_numpy()
+            op = getattr(nanops, f"nan{name}")
+            result = op(values, skipna=skipna, mask=self.isna())
+            return pa.scalar(result, type=pa.float64(), from_pandas=True)
+
         elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -2918,8 +2974,6 @@ class ArrowExtensionArray(
         elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
             # pyarrow defaults to ddof=0, pandas behavior is ddof=1
             kwargs["ddof"] = 1
-        elif name in ["skew", "kurt"] and "biased" not in kwargs:
-            kwargs["biased"] = False
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -3284,7 +3338,26 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        if axis != 0:
+        if axis == 0:
+            try:
+                return self._rank_pyarrow(
+                    method=method, na_option=na_option, ascending=ascending, pct=pct
+                )
+            except pa.ArrowNotImplementedError:
+                # pyarrow cannot rank some types, e.g. lists; rank the Python
+                #  objects instead, which for lists compare lexicographically
+                values = construct_1d_object_array_from_listlike(
+                    self._pa_array.to_pylist()
+                )
+                ranked = algos.rank(
+                    values,
+                    method=method,
+                    na_option=na_option,
+                    ascending=ascending,
+                    pct=pct,
+                    mask=self.isna() if self._hasna else None,
+                )
+        else:
             ranked = super()._rank(
                 axis=axis,
                 method=method,
@@ -3292,14 +3365,21 @@ class ArrowExtensionArray(
                 ascending=ascending,
                 pct=pct,
             )
-            # keep dtypes consistent with the implementation below
-            if method == "average" or pct:
-                pa_type = pa.float64()
-            else:
-                pa_type = pa.uint64()
-            result = pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
-            return result
+        # keep dtypes consistent with _rank_pyarrow
+        if method == "average" or pct:
+            pa_type = pa.float64()
+        else:
+            pa_type = pa.uint64()
+        return pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
 
+    def _rank_pyarrow(
+        self,
+        *,
+        method: RankMethod,
+        na_option: RankNaOption,
+        ascending: bool,
+        pct: bool,
+    ):
         data = self._pa_array.combine_chunks()
         order = "ascending" if ascending else "descending"
         null_placement = "at_start" if na_option == "top" else "at_end"
@@ -3401,6 +3481,25 @@ class ArrowExtensionArray(
         pa_dtype = self._pa_array.type
 
         data = self._pa_array
+        mask = self.isna()
+        if (
+            pa.types.is_temporal(pa_dtype)
+            and pa_dtype.bit_width == 64
+            and interpolation in ["linear", "midpoint"]
+            and not mask.all()
+        ):
+            # GH#49110 pc.quantile goes through float64, which loses precision;
+            #  reuse the exact numpy datetime path on the int64 values
+            values = pc.fill_null(data.cast(pa.int64()), 0).to_numpy()
+            res = quantile_with_mask(
+                values.view("M8[ns]"),
+                mask,
+                np.datetime64("NaT", "ns"),
+                qs,
+                interpolation,
+            )
+            return self._from_pyarrow_array(pa.array(res.view("i8")).cast(pa_dtype))
+
         if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back
@@ -3713,10 +3812,17 @@ class ArrowExtensionArray(
             return None
 
         # See _groupby_op for the types routed here.
-        # PyArrow doesn't support sum/prod/mean/std/var/sem on strings.
         pa_type = self._pa_array.type
         is_str = pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
-        if is_str and how in ["sum", "prod", "mean", "std", "var", "sem"]:
+        if is_str and how == "sum":
+            return self._groupby_string_sum(
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+        # PyArrow doesn't support prod/mean/std/var/sem on strings.
+        if is_str and how in ["prod", "mean", "std", "var", "sem"]:
             return None
 
         # Filter out NA group (ids == -1)
@@ -3828,6 +3934,44 @@ class ArrowExtensionArray(
                 # keep the skipna=False nulls, fill only the empty groups
                 pa_result = pc.if_else(pc.is_null(indices), default_value, pa_result)
         return self._from_pyarrow_array(pa_result)
+
+    def _groupby_string_sum(
+        self,
+        *,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        skipna: bool,
+    ) -> Self | None:
+        """
+        Concatenate the strings of each group, in row order.
+
+        Linear in the size of each group, unlike repeated concatenation. Returns
+        None if the result may not fit in a single string (not large_string) array.
+        """
+        pa_type = self._pa_array.type
+        if pa.types.is_string(pa_type) and self._pa_array.nbytes >= 2**31:
+            return None
+
+        keep = ids >= 0
+        if skipna:
+            keep &= ~self.isna()
+        kept_ids = ids[keep]
+        indices = np.flatnonzero(keep)[get_group_index_sorter(kept_ids, ngroups)]
+        values = pc.take(self._pa_array, indices).combine_chunks()
+
+        counts = np.bincount(kept_ids, minlength=ngroups)
+        offsets = np.concatenate([[0], counts.cumsum()], dtype=np.int64)
+        lists = pa.LargeListArray.from_arrays(offsets, values)
+        # binary_join gives null for a group containing a null, "" for an empty one;
+        # the separator's type must match the values'
+        result = pc.binary_join(lists, pa.scalar("", type=pa_type))
+
+        if min_count > 0:
+            result = pc.if_else(
+                counts < min_count, pa.scalar(None, type=pa_type), result
+            )
+        return self._from_pyarrow_array(result)
 
     def _to_groupby_compatible(self) -> ExtensionArray:
         """Convert to a type compatible with groupby cython ops."""
@@ -4042,10 +4186,9 @@ class ArrowExtensionArray(
         self,
         pat: str | re.Pattern[str],
         case: bool = True,
-        flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        pat, case, flags = self._unwrap_re_pattern(pat, case)
 
         if flags:
             compiled = self._compile_re_fallback(pat, case, flags)
@@ -4053,7 +4196,7 @@ class ArrowExtensionArray(
             result = self._apply_re_fallback(func, pa.bool_())
             return self._convert_bool_result(result, na=na, method_name="match")
 
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+        return ArrowStringArrayMixin._str_match(self, pat, case, na)
 
     def _str_fullmatch(
         self,
@@ -4707,7 +4850,20 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(result)
 
     def _dt_strftime(self, format: str) -> Self:
-        result = pc.strftime(self._pa_array, format=format)
+        arr = self
+        if pa.types.is_date(self._pa_array.type):
+            arr = type(self)(self._pa_array.cast(pa.timestamp("s")))
+        if not pa.types.is_timestamp(arr._pa_array.type):
+            # e.g. duration; let pyarrow raise
+            result = pc.strftime(self._pa_array, format=format)
+        elif "%f" in format or "%N" in format:
+            # not supported by pyarrow; use the DatetimeArray implementation
+            values = np.asarray(arr._to_datetimearray().strftime(format), dtype=object)
+            result = pa.array(values, type=pa.string(), from_pandas=True)
+        else:
+            # pyarrow's %S includes fractional seconds for sub-second units,
+            #  GH#55001
+            result = pc.strftime(arr._dt_as_unit("s")._pa_array, format=format)
         return self._from_pyarrow_array(result)
 
     def _round_temporally(

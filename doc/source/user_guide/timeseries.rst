@@ -593,7 +593,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
-* Regularization functions like ``snap`` and very fast ``asof`` logic.
+* Very fast ``asof`` logic.
 
 ``DatetimeIndex`` objects have all the basic functionality of regular ``Index``
 objects, and a smorgasbord of advanced time series specific methods for easy
@@ -1305,6 +1305,20 @@ results in ``ValueError``.
     pd.Timestamp("2014-08-01 09:00") + bh
     pd.Timestamp("2014-08-01 18:00") + bh
 
+Each business hour is 60 minutes of business time; any part of an hour that
+does not fit before closing continues from the next opening. If the business
+hours are not a whole number of hours long, a ``date_range`` therefore no
+longer lines up with the opening time after the first day.
+
+.. ipython:: python
+
+    bh = pd.offsets.BusinessHour(start="09:30", end="16:00")
+    pd.date_range("2014-08-01 09:30", periods=9, freq=bh)
+
+A 24-hour business day cannot be expressed with ``BusinessHour``. For hourly
+timestamps around the clock on weekdays only, filter an hourly range instead,
+e.g. ``dti[dti.day_of_week < 5]``.
+
 Passing ``start`` time later than ``end`` represents midnight business hour.
 In this case, business hour exceeds midnight and overlap to the next day.
 Valid business hours are distinguished by whether it started from valid ``BusinessDay``.
@@ -1856,6 +1870,18 @@ end of the interval is closed:
    ts.resample("5Min", closed="right").mean()
 
    ts.resample("5Min", closed="left").mean()
+
+For the end-anchored offsets 'ME', 'YE', 'QE', 'BME', 'BYE', 'BQE', and 'W',
+``closed="right"`` puts the whole last day of each period in its bin, while
+with ``closed="left"`` the bin edge is midnight at the start of that day, so
+timestamps on that day fall in the next bin:
+
+.. ipython:: python
+
+   idx = pd.date_range("2011-01-30", "2011-02-01", freq="12h")
+   ser = pd.Series(range(len(idx)), index=idx)
+   ser.resample("ME", closed="right").count()
+   ser.resample("ME", closed="left").count()
 
 Parameters like ``label`` are used to manipulate the resulting labels.
 ``label`` specifies whether the result is labeled with the beginning or

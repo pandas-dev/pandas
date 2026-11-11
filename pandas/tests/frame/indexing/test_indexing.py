@@ -11,6 +11,7 @@ import pytest
 
 from pandas._libs import iNaT
 from pandas.compat import PY315
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_integer
 
@@ -1624,7 +1625,8 @@ def test_mixed_dtype_row_python_scalars(indexer):
     )
     with pd.option_context("future.python_scalars", True):
         row = indexer(df)
-        _, expected = next(df.iterrows())
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            _, expected = next(df.iterrows())
     assert row.dtype == object
     assert [type(x) for x in row.array] == [int, float, bool, int, np.int8]
     # NumPy scalars stored in object dtype are user data, not unboxed
@@ -2004,3 +2006,27 @@ class TestSetitemValidation:
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
         df = pd.DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)
         self._check_setitem_invalid(df, invalid, indexer)
+
+
+def test_error_raised_from_custom_hash_method():
+    # GH 57052
+    class testkey:
+        def __init__(self, value):
+            self.value = value
+
+        def __hash__(self):
+            raise RuntimeError(f"exception in {self!r}.__hash__")
+
+        def __eq__(self, other):
+            return self.value == other.value
+
+        def __repr__(self):
+            return f"testkey({self.value})"
+
+    df = pd.DataFrame({"i": map(testkey, range(10))}).set_index("i")
+    for i in range(len(df.index)):
+        key = testkey(i)
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key!r}.__hash__")
+        ):
+            df.loc[key]

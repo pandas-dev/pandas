@@ -549,6 +549,12 @@ class Apply:
     def time_apply_str_mean(self):
         self.df.apply("mean")
 
+    def time_apply_raw(self):
+        self.df.apply(lambda x: x.sum(), raw=True)
+
+    def time_apply_axis_1_raw(self):
+        self.df.apply(lambda x: x.sum(), axis=1, raw=True)
+
     def time_apply_pass_thru(self):
         self.df.apply(lambda x: x)
 

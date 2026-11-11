@@ -2048,7 +2048,6 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
         DatetimeIndex.time : Returns numpy array of datetime.time objects.
             The time part of the Timestamps.
 
@@ -3169,21 +3168,11 @@ def _generate_range(
     """
     offset = to_offset(offset)
 
-    start = Timestamp(start)
-    # error: Non-overlapping identity check (left operand type: "Timestamp",
-    # right operand type: "NaTType")
-    if start is not NaT:  # type: ignore[comparison-overlap]
-        start = start.as_unit(unit)
-    else:
-        start = None
+    start_ts = Timestamp(start)
+    start = start_ts.as_unit(unit) if isinstance(start_ts, Timestamp) else None
 
-    end = Timestamp(end)
-    # error: Non-overlapping identity check (left operand type: "Timestamp",
-    # right operand type: "NaTType")
-    if end is not NaT:  # type: ignore[comparison-overlap]
-        end = end.as_unit(unit)
-    else:
-        end = None
+    end_ts = Timestamp(end)
+    end = end_ts.as_unit(unit) if isinstance(end_ts, Timestamp) else None
 
     # GH#64834/GH#65011 When deriving start from (end, periods), roll end onto
     # the offset first so we don't lose a period. For B/bh this is handled by
