@@ -24,6 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Fixed :func:`merge_asof` raising :class:`~pandas.errors.MergeError` when the datetime keys have different resolutions, e.g. ``datetime64[us]`` and ``datetime64[s]`` (:issue:`72010`)
 - Fixed :meth:`arrays.SparseArray.from_indices` raising on ``datetime64`` or ``timedelta64`` data in a unit pandas does not support, and silently accepting unsorted, duplicate or negative ``indices`` with ``kind="block"`` (:issue:`71872`)
 
 .. ---------------------------------------------------------------------------
