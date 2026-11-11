@@ -989,27 +989,31 @@ class ArrowExtensionArray(
         obj._cache = {}
         return obj
 
-    def __getattr__(self, name: str) -> pa.ChunkedArray:
-        # Only reached when normal lookup fails. An array produced by a
-        # deferred take has no ``_pa_array`` until first use: run the gather.
-        # Note that Python also calls this when a property getter raises
-        # AttributeError, so such an error surfaces as the generic one below.
-        if name == "_pa_array":
-            pending = self._pending_take
-            if pending is not None:
-                pa_array = pending.materialize()
-                # store the result before dropping the pending take, so a
-                # concurrent reader always finds one of them
-                self.__dict__["_pa_array"] = pa_array
-                self.__dict__.pop("_pending_take", None)
-                return pa_array
-            # another thread finished the gather after our lookup failed
-            pa_array = self.__dict__.get("_pa_array")
-            if pa_array is not None:
-                return pa_array
-        raise AttributeError(
-            f"{type(self).__name__!r} object has no attribute {name!r}"
-        )
+    if not TYPE_CHECKING:
+        # hidden from type checkers, which would otherwise accept any
+        # attribute name on this class and its subclasses
+        def __getattr__(self, name: str) -> pa.ChunkedArray:
+            # Only reached when normal lookup fails. An array produced by a
+            # deferred take has no ``_pa_array`` until first use: run the
+            # gather. Note that Python also calls this when a property getter
+            # raises AttributeError, so such an error surfaces as the generic
+            # one below.
+            if name == "_pa_array":
+                pending = self._pending_take
+                if pending is not None:
+                    pa_array = pending.materialize()
+                    # store the result before dropping the pending take, so a
+                    # concurrent reader always finds one of them
+                    self.__dict__["_pa_array"] = pa_array
+                    self.__dict__.pop("_pending_take", None)
+                    return pa_array
+                # another thread finished the gather after our lookup failed
+                pa_array = self.__dict__.get("_pa_array")
+                if pa_array is not None:
+                    return pa_array
+            raise AttributeError(
+                f"{type(self).__name__!r} object has no attribute {name!r}"
+            )
 
     def _with_pending_take(self, pending: _PendingTake) -> Self:
         """A new array of this dtype whose values are ``pending``."""
