@@ -73,6 +73,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
+    MultiIndex,
     RangeIndex,
     ensure_index,
 )
@@ -83,6 +84,7 @@ from pandas.io.common import (
     IOHandles,
     get_handle,
     infer_compression,
+    is_potential_multi_index,
     stringify_path,
     validate_header_arg,
 )
@@ -1214,6 +1216,14 @@ def _read_csv_chunks(
         with contextlib.suppress(BufferError):
             mm.close()
 
+    # Rebuild the MultiIndex that the flattened worker labels lost, as the
+    # serial read does for all-tuple names.
+    column_index = (
+        MultiIndex.from_tuples(cast("list[tuple[Hashable, ...]]", columns))
+        if is_potential_multi_index(columns)
+        else ensure_index(columns)
+    )
+
     index = RangeIndex(total)
 
     if needs_series_wrap:
@@ -1236,7 +1246,7 @@ def _read_csv_chunks(
             )
             for k, v in data.items()
         }
-        return DataFrame(new_col_dict, columns=columns, index=index, copy=False)
+        return DataFrame(new_col_dict, columns=column_index, index=index, copy=False)
 
     if leftover_pos:
         leftover_names = [col_list[pos] for pos in leftover_pos]
@@ -1257,7 +1267,7 @@ def _read_csv_chunks(
             block_specs.append((values, np.array([pos], dtype=np.intp)))
 
     block_objs = [_make_block(values, placement) for values, placement in block_specs]
-    mgr = BlockManager(block_objs, [ensure_index(columns), index])
+    mgr = BlockManager(block_objs, [column_index, index])
     return DataFrame._from_mgr(mgr, mgr.axes)
 
 
