@@ -763,6 +763,8 @@ def _adjust_to_origin(arg, origin, unit, errors: DateTimeErrorChoices = "raise")
             if isinstance(tda, Timedelta):
                 arg = NaT
             else:
+                # adding to NaT cannot overflow
+                assert isinstance(offset, Timestamp)
                 arg = _coerce_origin_overflow(offset, tda)
     return arg
 

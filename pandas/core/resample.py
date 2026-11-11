@@ -2445,6 +2445,7 @@ class TimeGrouper(Grouper):
     )
 
     origin: TimeGrouperOrigin
+    offset: Timedelta | None
 
     def __init__(
         self,
@@ -2543,7 +2544,9 @@ class TimeGrouper(Grouper):
             self.origin = origin  # type: ignore[assignment]
         else:
             try:
-                self.origin = Timestamp(origin)
+                # error: Incompatible types in assignment (expression has type
+                # "Timestamp | NaTType", variable has type "TimeGrouperOrigin")
+                self.origin = Timestamp(origin)  # type: ignore[assignment]
             except (ValueError, TypeError) as err:
                 raise ValueError(
                     "'origin' should be equal to 'epoch', 'start', 'start_day', "
@@ -2552,7 +2555,9 @@ class TimeGrouper(Grouper):
                 ) from err
 
         try:
-            self.offset = Timedelta(offset) if offset is not None else None
+            # error: Incompatible types in assignment (expression has type
+            # "Timedelta | NaTType | None", variable has type "Timedelta | None")
+            self.offset = Timedelta(offset) if offset is not None else None  # type: ignore[assignment]
         except (ValueError, TypeError) as err:
             raise ValueError(
                 "'offset' should be a Timedelta convertible type. "
@@ -2889,8 +2894,7 @@ class TimeGrouper(Grouper):
 
             # Get offset for bin edge (not label edge) adjustment
             start_offset = Period(start, self.freq) - Period(p_start, self.freq)
-            # error: Item "Period" of "Union[Period, Any]" has no attribute "n"
-            bin_shift = start_offset.n % freq_mult  # type: ignore[union-attr]
+            bin_shift = start_offset.n % freq_mult
             start = p_start
 
         labels = binner = period_range(
