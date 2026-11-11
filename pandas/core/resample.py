@@ -2122,7 +2122,33 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
         return new_rs
 
 
+@set_module("pandas.api.typing")
 class DatetimeIndexResampler(Resampler):
+    """
+    Resampler for data with a DatetimeIndex.
+
+    Returned by :meth:`Series.resample <pandas.Series.resample>` and
+    :meth:`DataFrame.resample <pandas.DataFrame.resample>` when the object has a
+    :class:`DatetimeIndex`. This is not meant to be instantiated directly.
+
+    See :ref:`api.resampling` for the available methods and :ref:`timeseries`
+    for the user guide.
+
+    See Also
+    --------
+    pandas.Series.resample : Resample time-series data.
+    pandas.api.typing.Resampler : Base class for resampling.
+
+    Examples
+    --------
+    >>> idx = pd.date_range("2024-01-01", periods=4, freq="h")
+    >>> ser = pd.Series([1, 2, 3, 4], index=idx)
+    >>> ser.resample("2h").sum()
+    2024-01-01 00:00:00    3
+    2024-01-01 02:00:00    7
+    Freq: 2h, dtype: int64
+    """
+
     ax: DatetimeIndex
 
     @property
@@ -2245,7 +2271,33 @@ class DatetimeIndexResamplerGroupBy(  # type: ignore[misc]
         return DatetimeIndexResampler
 
 
+@set_module("pandas.api.typing")
 class PeriodIndexResampler(DatetimeIndexResampler):
+    """
+    Resampler for data with a PeriodIndex.
+
+    Returned by :meth:`Series.resample <pandas.Series.resample>` and
+    :meth:`DataFrame.resample <pandas.DataFrame.resample>` when the object has a
+    :class:`PeriodIndex`. This is not meant to be instantiated directly.
+
+    See :ref:`api.resampling` for the available methods and :ref:`timeseries`
+    for the user guide.
+
+    See Also
+    --------
+    pandas.Series.resample : Resample time-series data.
+    pandas.api.typing.Resampler : Base class for resampling.
+
+    Examples
+    --------
+    >>> idx = pd.period_range("2024-01", periods=4, freq="M")
+    >>> ser = pd.Series([1, 2, 3, 4], index=idx)
+    >>> ser.resample("Q").sum()
+    2024Q1    6
+    2024Q2    4
+    Freq: Q-DEC, dtype: int64
+    """
+
     # error: Incompatible types in assignment (expression has type "PeriodIndex", base
     # class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
     ax: PeriodIndex  # type: ignore[assignment]
@@ -2345,7 +2397,33 @@ class PeriodIndexResamplerGroupBy(  # type: ignore[misc]
         return PeriodIndexResampler
 
 
+@set_module("pandas.api.typing")
 class TimedeltaIndexResampler(DatetimeIndexResampler):
+    """
+    Resampler for data with a TimedeltaIndex.
+
+    Returned by :meth:`Series.resample <pandas.Series.resample>` and
+    :meth:`DataFrame.resample <pandas.DataFrame.resample>` when the object has a
+    :class:`TimedeltaIndex`. This is not meant to be instantiated directly.
+
+    See :ref:`api.resampling` for the available methods and :ref:`timeseries`
+    for the user guide.
+
+    See Also
+    --------
+    pandas.Series.resample : Resample time-series data.
+    pandas.api.typing.Resampler : Base class for resampling.
+
+    Examples
+    --------
+    >>> idx = pd.timedelta_range("0s", periods=4, freq="s")
+    >>> ser = pd.Series([1, 2, 3, 4], index=idx)
+    >>> ser.resample("2s").sum()
+    0 days 00:00:00    3
+    0 days 00:00:02    7
+    Freq: 2s, dtype: int64
+    """
+
     # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
     # base class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
     ax: TimedeltaIndex  # type: ignore[assignment]

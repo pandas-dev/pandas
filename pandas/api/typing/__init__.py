@@ -21,9 +21,12 @@ from pandas.core.groupby import (
 )
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.resample import (
+    DatetimeIndexResampler,
     DatetimeIndexResamplerGroupBy,
+    PeriodIndexResampler,
     PeriodIndexResamplerGroupBy,
     Resampler,
+    TimedeltaIndexResampler,
     TimedeltaIndexResamplerGroupBy,
     TimeGrouper,
 )
@@ -45,6 +48,7 @@ from pandas.io.stata import StataReader
 
 __all__ = [
     "DataFrameGroupBy",
+    "DatetimeIndexResampler",
     "DatetimeIndexResamplerGroupBy",
     "Expanding",
     "ExpandingGroupBy",
@@ -56,6 +60,7 @@ __all__ = [
     "NAType",
     "NaTType",
     "NoDefault",
+    "PeriodIndexResampler",
     "PeriodIndexResamplerGroupBy",
     "Resampler",
     "Rolling",
@@ -64,6 +69,7 @@ __all__ = [
     "SeriesGroupBy",
     "StataReader",
     "TimeGrouper",
+    "TimedeltaIndexResampler",
     "TimedeltaIndexResamplerGroupBy",
     "Window",
 ]

@@ -418,6 +418,9 @@ numpydoc_validation_exclude = {
     r"pandas\.api\.typing\.Expression$",
     r"pandas\.api\.typing\.DataFrameGroupBy$",
     r"pandas\.api\.typing\.SeriesGroupBy$",
+    r"pandas\.api\.typing\.DatetimeIndexResampler$",
+    r"pandas\.api\.typing\.PeriodIndexResampler$",
+    r"pandas\.api\.typing\.TimedeltaIndexResampler$",
 }
 
 # matplotlib plot directive
