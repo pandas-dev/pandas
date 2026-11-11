@@ -3187,7 +3187,24 @@ class _iLocIndexer(_LocationIndexer):
                     if len(value) != len(self.obj.columns):
                         raise ValueError("cannot set a row with mismatched columns")
 
-                value = Series(value, index=self.obj.columns, name=indexer)
+                # GH#12499 inferring one dtype for the whole row can change a
+                #  value to suit another column, e.g. NaN -> NaT, so fall back
+                #  to object and let _append_internal infer each column.  An
+                #  empty frame ignores column dtypes below, so is left as is.
+                row = Series(value, index=self.obj.columns, name=indexer)
+                if (
+                    len(self.obj)
+                    and row.dtype != object
+                    and is_object_dtype(getattr(value, "dtype", object))
+                    and not all(
+                        _can_hold_row_dtype(dtype, row.dtype)
+                        for dtype in set(self.obj._mgr.get_dtypes())
+                    )
+                ):
+                    row = Series(
+                        value, index=self.obj.columns, name=indexer, dtype=object
+                    )
+                value = row
 
             if not len(self.obj):
                 # We will ignore the existing dtypes instead of using
@@ -3946,6 +3963,23 @@ def check_dict_or_set_indexers(key) -> None:
         raise TypeError(
             "Passing a dict as an indexer is not supported. Use a list instead."
         )
+
+
+def _can_hold_row_dtype(dtype: DtypeObj, row_dtype: DtypeObj) -> bool:
+    """
+    Does a value inferred as row_dtype land in a dtype column as it would
+    have if inferred on its own?
+    """
+    if dtype == row_dtype:
+        return True
+    # np.can_cast to object is always True, but an object column keeps the
+    #  converted value, see test_12499_object_column
+    return (
+        isinstance(dtype, np.dtype)
+        and dtype != object
+        and isinstance(row_dtype, np.dtype)
+        and np.can_cast(row_dtype, dtype)
+    )
 
 
 def _expansion_can_hold(orig: ExtensionArray, new_arr) -> bool:

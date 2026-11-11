@@ -15697,6 +15697,8 @@ class DataFrame(NDFrame, OpsMixin):
         # infer_objects is needed for
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
+        # infer_objects splits an object row into one block per column
+        row_df._consolidate_inplace()
 
         if row_df.columns.equals(self.columns):
             # Pre-cast the row's value to the original column dtype where the
