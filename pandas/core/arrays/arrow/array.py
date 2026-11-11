@@ -615,7 +615,9 @@ class _PendingTake:
     gather the rows they share once each. So once the rows gathered through
     slices of a take would exceed its length, the take is gathered whole,
     and that slice and later ones become views of its result, as slices of
-    an eager result are. Gathering costs about one copy per row, so this
+    an eager result are. A slice of such a slice links to the same take,
+    so the links are never more than one deep and every slice counts
+    against the same rows. Gathering costs about one copy per row, so this
     never gathers more than twice the rows an eager take would.
 
     Like a slice, which is a view of its parent's buffers, a deferred take
@@ -655,6 +657,17 @@ class _PendingTake:
 
     def __len__(self) -> int:
         return self.length
+
+    def slice_origin(self) -> tuple[_PendingTake, int]:
+        """
+        The take a contiguous slice of this one is cut from, and where this
+        one starts in it: its own origin if it is a slice of a take that has
+        not been gathered, else itself.
+        """
+        with self.lock:
+            if self.origin is not None:
+                return self.origin, self.origin_start
+            return self, 0
 
     def _slice_gathers_whole(self, length: int) -> bool:
         """
@@ -1454,8 +1467,8 @@ class ArrowExtensionArray(
                     sliced = None if deferred is None else deferred._pending_take
                     if sliced is not None and step == 1:
                         # see _PendingTake: overlapping slices share a gather
-                        sliced.origin = pending
-                        sliced.origin_start = start
+                        sliced.origin, offset = pending.slice_origin()
+                        sliced.origin_start = offset + start
                 if deferred is not None:
                     deferred._readonly = self._readonly
                     return deferred

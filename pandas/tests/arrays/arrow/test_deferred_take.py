@@ -473,14 +473,37 @@ def test_slices_of_a_slice(data):
     outer = pending[:90]
     first = outer[:80]
     second = outer[5:85]
+    # slices of ``outer`` are cut from ``pending``, not from ``outer``
+    assert first._pending_take.origin is pending._pending_take
+    assert second._pending_take.origin_start == 5
     tm.assert_extension_array_equal(first, data[::-1][:80])
     tm.assert_extension_array_equal(second, data[::-1][5:85])
-    # 80 + 80 rows exceed the 90 of ``outer``, which then gathered on its
-    # own: its 90 rows fit within the 100 of ``pending``
-    assert tm.shares_memory(second, outer)
-    assert not tm.shares_memory(first, outer)
-    assert pending._pending_take.result is None
+    # 80 + 80 rows exceed the 100 of ``pending``, which then gathered whole;
+    # ``second`` and ``outer`` are views of it
+    assert pending._pending_take.result is not None
+    assert tm.shares_memory(second, pending)
+    assert not tm.shares_memory(first, pending)
     tm.assert_extension_array_equal(outer, data[::-1][:90])
+    assert tm.shares_memory(outer, pending)
+
+
+def test_long_chain_of_slices():
+    # a sliding window: each step slices the previous slice, and reads a
+    # window that overlaps the next one
+    data = _arrow_array(pa.string(), n=5000)
+    rest = data.take(np.arange(len(data))[::-1])
+    root = rest._pending_take
+    for _ in range(2000):
+        window = rest[:3]
+        window._pa_array
+        rest = rest[1:]
+        # the links stay one deep, so reading ``rest`` does not recurse
+        assert rest._pending_take.origin in (root, None)
+    tm.assert_extension_array_equal(rest, data[::-1][2000:])
+    # the windows count against the rows of ``root``, so once they would
+    # gather more than it holds, ``root`` is gathered whole
+    assert root.result is not None
+    assert tm.shares_memory(rest, window)
 
 
 def test_step_slice_gathers_on_its_own(data):
