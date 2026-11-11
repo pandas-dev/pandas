@@ -302,8 +302,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-15    4
         dtype: int64
         >>> ser.resample("MS").groups
-        {Timestamp('2023-01-01 00:00:00'): np.int64(2),
-         Timestamp('2023-02-01 00:00:00'): np.int64(4)}
+        {Timestamp('2023-01-01 00:00:00'): DatetimeIndex(['2023-01-01', '2023-01-15'],
+         dtype='datetime64[us]', freq=None),
+         Timestamp('2023-02-01 00:00:00'): DatetimeIndex(['2023-02-01', '2023-02-15'],
+         dtype='datetime64[us]', freq=None)}
         """
         if isinstance(self.keys, list) and len(self.keys) == 1:
             warnings.warn(

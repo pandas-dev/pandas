@@ -1290,6 +1290,8 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
+    axis : Index
+        index of the grouped object, sorted by the time key
     indexer : np.ndarray[np.intp], optional
         the indexer created by Grouper
         some groupers (TimeGrouper) will sort its axis and its
@@ -1320,10 +1322,13 @@ class BinGrouper(BaseGrouper):
         self,
         bins,
         binlabels,
+        axis: Index,
         indexer=None,
     ) -> None:
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
+        # private: GroupBy.nth reads ``_grouper.axis`` assuming original row order
+        self._axis = axis
         self.indexer = indexer
 
         # These lengths must match, otherwise we could call agg_series
@@ -1331,15 +1336,14 @@ class BinGrouper(BaseGrouper):
         assert len(self.binlabels) == len(self.bins)
 
     @cache_readonly
-    def groups(self):
+    def groups(self) -> dict[Hashable, Index]:
         """dict {group name -> group labels}"""
-        # this is mainly for compat
-        # GH 3881
-        result = {
-            key: value
-            for key, value in zip(self.binlabels, self.bins, strict=True)
-            if key is not NaT
-        }
+        result = {}
+        start: np.int64 | int = 0
+        for label, end in zip(self.binlabels, self.bins, strict=True):
+            if not isna(label):
+                result[label] = self._axis[start:end]
+            start = end
         return result
 
     @property

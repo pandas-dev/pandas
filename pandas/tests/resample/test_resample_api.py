@@ -236,6 +236,39 @@ def test_api_compat_before_use(attr):
     getattr(rs, attr)
 
 
+@pytest.mark.parametrize("how", ["resample", "grouper"])
+def test_groups_maps_to_row_labels(how):
+    # GH#13152 values are row labels; unsorted keys, an empty bin and NaT
+    dti = pd.DatetimeIndex(
+        ["2000-01-03", "2000-01-01", "NaT", "2000-01-07", "2000-01-02"]
+    )
+    df = pd.DataFrame({"ts": dti, "v": range(5)}, index=list("abcde"))
+    if how == "resample":
+        gb = df.resample("2D", on="ts")
+    else:
+        gb = df.groupby(pd.Grouper(key="ts", freq="2D"))
+
+    result = gb.groups
+    expected = {
+        pd.Timestamp("2000-01-01"): pd.Index(["b", "e"]),
+        pd.Timestamp("2000-01-03"): pd.Index(["a"]),
+        pd.Timestamp("2000-01-05"): pd.Index([], dtype=df.index.dtype),
+        pd.Timestamp("2000-01-07"): pd.Index(["d"]),
+    }
+    assert result.keys() == expected.keys()
+    for key, value in expected.items():
+        tm.assert_index_equal(result[key], value)
+
+
+def test_groups_excludes_nat_arrow():
+    # GH#13152 the NaT bin label is NA after casting to the arrow dtype
+    pytest.importorskip("pyarrow")
+    dti = pd.DatetimeIndex(["2000-01-03", "NaT", "2000-01-01"])
+    idx = dti.astype("timestamp[ns][pyarrow]")
+    result = pd.Series([1, 2, 3], index=idx).resample("2D").groups
+    assert list(result) == [pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-03")]
+
+
 def tests_raises_on_nuisance(test_frame, using_infer_string):
     df = test_frame
     df["D"] = "foo"
