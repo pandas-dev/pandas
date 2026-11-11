@@ -486,6 +486,17 @@ def test_mismatched_na_assert_almost_equal(left, right):
             )
 
 
+def test_assert_series_equal_nested_mismatched_na():
+    # GH#55492
+    left = np.empty(1, dtype=object)
+    left[0] = np.array([np.nan], dtype=object)
+    right = np.empty(1, dtype=object)
+    right[0] = np.array([None], dtype=object)
+
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(pd.Series(left), pd.Series(right))
+
+
 def test_assert_not_almost_equal_inf():
     _assert_not_almost_equal_both(np.inf, 0)
 
