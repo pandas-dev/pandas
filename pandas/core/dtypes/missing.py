@@ -103,16 +103,15 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 @set_module("pandas")
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
-    Detect missing values for an array-like object.
+    Detect missing values in an object.
 
-    This function takes a scalar or array-like object and indicates
-    whether values are missing (``NaN`` in numeric arrays, ``None`` or ``NaN``
-    in object arrays, ``NaT`` in datetimelike).
+    Missing values include ``NaN`` in numeric arrays, ``None`` or ``NaN``
+    in object arrays, and ``NaT`` in datetimelike arrays.
 
     Parameters
     ----------
-    obj : scalar or array-like
-        Object to check for null or missing values.
+    obj : object
+        Object to check for missing values.
 
     Returns
     -------
@@ -140,6 +139,11 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> pd.isna(np.nan)
     True
+
+    A plain Python object is treated as a single non-missing value.
+
+    >>> pd.isna(object())
+    False
 
     ndarrays result in an ndarray of booleans.
 
@@ -317,16 +321,15 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 @set_module("pandas")
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
-    Detect non-missing values for an array-like object.
+    Detect non-missing values in an object.
 
-    This function takes a scalar or array-like object and indicates
-    whether values are valid (not missing, which is ``NaN`` in numeric
-    arrays, ``None`` or ``NaN`` in object arrays, ``NaT`` in datetimelike).
+    Missing values include ``NaN`` in numeric arrays, ``None`` or ``NaN``
+    in object arrays, and ``NaT`` in datetimelike arrays.
 
     Parameters
     ----------
-    obj : array-like or object value
-        Object to check for *not* null or *non*-missing values.
+    obj : object
+        Object to check for non-missing values.
 
     Returns
     -------
@@ -354,6 +357,11 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> pd.notna(np.nan)
     False
+
+    A plain Python object is treated as a single non-missing value.
+
+    >>> pd.notna(object())
+    True
 
     ndarrays result in an ndarray of booleans.
 
