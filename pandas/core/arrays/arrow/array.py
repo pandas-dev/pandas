@@ -569,62 +569,100 @@ def _gather(parent: pa.ChunkedArray, indices: npt.NDArray[np.intp]) -> pa.Chunke
     return _take_by_chunk(parent, indices[order]).take(pa.array(inverse))
 
 
+def _select(
+    parent: pa.ChunkedArray,
+    selection: npt.NDArray[np.intp] | npt.NDArray[np.bool_],
+) -> pa.ChunkedArray:
+    """
+    The rows of ``parent`` at ``selection``: positions, or a boolean mask.
+
+    A mask is applied with ``filter`` and positions with ``take``, as an
+    eager selection would: ``filter`` copies runs of selected values at
+    once, which is much faster than ``take`` for a mask that keeps most rows.
+    """
+    if selection.dtype == np.bool_:
+        # pa.array(selection) converts one value at a time; packing the
+        # bits with NumPy is over 10x faster
+        bits = pa.py_buffer(np.packbits(selection, bitorder="little"))
+        mask = pa.Array.from_buffers(pa.bool_(), len(selection), [None, bits])
+        return parent.filter(mask)
+    return _gather(parent, np.asarray(selection, dtype=np.intp))
+
+
 class _PendingTake:
     """
-    A ``take`` on string or binary data that has not run yet.
+    A ``take`` or boolean mask on string or binary data that has not run yet.
 
     Gathering string and binary values copies every byte of every selected
     value, which dominates merges and boolean-mask filtering of wide frames,
     while many of the gathered columns are never used afterwards. An
-    ``ArrowExtensionArray`` built by ``take`` therefore stores the parent
-    array and the positions instead of ``_pa_array``, and gathers on first
-    access to ``_pa_array`` (see ``ArrowExtensionArray.__getattr__``).
-    Further takes, slices and masks compose their positions with these, so
-    a chain of them runs as a single gather. Views share one instance, so
-    the gather runs once for all of them and they share its buffers.
+    ``ArrowExtensionArray`` built by ``take`` or a boolean mask therefore
+    stores the parent array and the selection (the positions, or the mask)
+    instead of ``_pa_array``, and gathers on first access to ``_pa_array``
+    (see ``ArrowExtensionArray.__getattr__``). Further takes, slices and
+    masks compose with the selection, so a chain of them runs as a single
+    gather. Views share one instance, so the gather runs once for all of them
+    and they share its buffers.
 
     Like a slice, which is a view of its parent's buffers, a deferred take
     keeps its parent alive until it is gathered; ``copy`` gathers, and so
     releases the parent.
     """
 
-    __slots__ = ("indices", "lock", "parent", "result")
+    __slots__ = ("length", "lock", "parent", "positions", "result", "selection")
 
-    def __init__(self, parent: pa.ChunkedArray, indices: npt.NDArray[np.intp]) -> None:
+    def __init__(
+        self,
+        parent: pa.ChunkedArray,
+        selection: npt.NDArray[np.intp] | npt.NDArray[np.bool_],
+    ) -> None:
         self.parent: pa.ChunkedArray | None = parent
-        self.indices: npt.NDArray[np.intp] | None = indices
+        self.selection: npt.NDArray[np.intp] | npt.NDArray[np.bool_] | None = selection
+        # the positions of a mask's selected rows, computed when needed
+        self.positions: npt.NDArray[np.intp] | None = None
+        self.length = _selection_length(selection)
         self.result: pa.ChunkedArray | None = None
         self.lock = threading.Lock()
 
     def __len__(self) -> int:
-        with self.lock:
-            if self.result is not None:
-                return len(self.result)
-            assert self.indices is not None
-            return len(self.indices)
+        return self.length
 
     def source(
-        self,
-    ) -> tuple[pa.ChunkedArray, npt.NDArray[np.intp] | None]:
+        self, *, positions: bool = False
+    ) -> tuple[pa.ChunkedArray, npt.NDArray[np.intp] | npt.NDArray[np.bool_] | None]:
         """
-        The parent and positions if the gather has not run, else the result
-        and None.
+        The parent and the selection if the gather has not run, else the
+        result and None. With ``positions``, a mask is returned as the
+        positions it selects.
         """
         with self.lock:
             if self.result is not None:
                 return self.result, None
             assert self.parent is not None
-            return self.parent, self.indices
+            assert self.selection is not None
+            if positions and self.selection.dtype == np.bool_:
+                if self.positions is None:
+                    self.positions = np.flatnonzero(self.selection)
+                return self.parent, self.positions
+            return self.parent, self.selection
 
     def materialize(self) -> pa.ChunkedArray:
         with self.lock:
             if self.result is None:
                 assert self.parent is not None
-                assert self.indices is not None
-                self.result = _gather(self.parent, self.indices)
-                # release the parent and the positions
-                self.parent = self.indices = None
+                assert self.selection is not None
+                self.result = _select(self.parent, self.selection)
+                # release the parent and the selection
+                self.parent = self.selection = self.positions = None
             return self.result
+
+
+def _selection_length(
+    selection: npt.NDArray[np.intp] | npt.NDArray[np.bool_],
+) -> int:
+    if selection.dtype == np.bool_:
+        return int(np.count_nonzero(selection))
+    return len(selection)
 
 
 @set_module("pandas.arrays")
@@ -902,14 +940,17 @@ class ArrowExtensionArray(
         obj._cache = {}
         return obj
 
-    def _take_source(self) -> tuple[pa.ChunkedArray, npt.NDArray[np.intp] | None]:
+    def _take_source(
+        self, *, positions: bool = False
+    ) -> tuple[pa.ChunkedArray, npt.NDArray[np.intp] | npt.NDArray[np.bool_] | None]:
         """
-        The array to gather from, and the positions to compose with: those of
-        a deferred take that has not run, else None.
+        The array to gather from, and the selection to compose with: that of
+        a deferred take that has not run, else None. With ``positions``, a
+        mask is returned as the positions it selects.
         """
         pending = self._pending_take
         if pending is not None:
-            return pending.source()
+            return pending.source(positions=positions)
         return self._pa_array, None
 
     def _can_defer_take(self) -> bool:
@@ -927,31 +968,44 @@ class ArrowExtensionArray(
         ``self[positions]``, deferred if the values can be (see
         ``_PendingTake``).
 
-        Integer ``positions`` must be in bounds and non-negative. Unless
-        ``copy`` is False, they are copied before being stored, since the
-        caller may modify its indexer afterwards. A boolean mask or a slice
-        is only composed with the positions of a deferred take that has not
-        run. Returns None if the caller should gather eagerly.
+        Integer ``positions`` must be in bounds and non-negative, and a
+        boolean mask must have the length of ``self``. Unless ``copy`` is
+        False, either is copied before being stored, since the caller may
+        modify its indexer afterwards. A slice is only composed with the
+        selection of a deferred take that has not run. Returns None if the
+        caller should gather eagerly.
+
+        A mask is kept as a mask, to be gathered with ``filter``, while only
+        masks are applied to it; a take or a slice of it composes with the
+        positions it selects.
         """
-        parent, base = self._take_source()
+        is_mask = isinstance(positions, np.ndarray) and positions.dtype == np.bool_
+        parent, base = self._take_source(positions=not is_mask)
+        composed: npt.NDArray[np.intp] | npt.NDArray[np.bool_]
         if base is None:
             if (
                 not isinstance(positions, np.ndarray)
-                or positions.dtype.kind not in "iu"
+                or positions.dtype.kind not in "iub"
                 or not _is_varbinary_type(parent.type)
             ):
                 return None
+            dtype = np.bool_ if is_mask else np.intp
             if copy:
-                composed = np.array(positions, dtype=np.intp)
+                composed = np.array(positions, dtype=dtype)
             else:
-                composed = np.asarray(positions, dtype=np.intp)
+                composed = np.asarray(positions, dtype=dtype)
+        elif base.dtype == np.bool_:
+            # a mask of a mask: select among the rows ``base`` keeps
+            assert isinstance(positions, np.ndarray)
+            composed = base.copy()
+            composed[base] = positions
         else:
             # indexing a NumPy array with an array or a slice: a new array
             # or a view of ``base``, which is never modified
             composed = base[positions]
-        if not len(composed):
+        if not _selection_length(composed):
             # nothing to defer, and no reason to keep the parent alive
-            return self._from_pyarrow_array(_gather(parent, composed))
+            return self._from_pyarrow_array(_select(parent, composed))
         return self._with_pending_take(_PendingTake(parent, composed))
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
@@ -1383,10 +1437,8 @@ class ArrowExtensionArray(
                 return self.take(item)
             elif item.dtype.kind == "b":
                 deferred = None
-                if self._pending_take is not None:
+                if self._can_defer_take():
                     deferred = self._deferred_take(item)
-                elif _is_varbinary_type(self._pa_array.type):
-                    deferred = self._deferred_take(np.flatnonzero(item), copy=False)
                 if deferred is not None:
                     return deferred
                 return self._from_pyarrow_array(self._pa_array.filter(item))
@@ -1414,7 +1466,7 @@ class ArrowExtensionArray(
         value = None
         pending = self._pending_take
         if pending is not None and is_integer(item):
-            parent, base = pending.source()
+            parent, base = pending.source(positions=True)
             if base is not None and -len(base) <= item < len(base):
                 # read one value of a deferred take without gathering
                 value = parent[int(base[item])]
@@ -2143,7 +2195,7 @@ class ArrowExtensionArray(
             if base is not None:
                 # gather into new buffers, so the copy does not keep the
                 # parent alive; ``self`` stays deferred
-                return self._from_pyarrow_array(_gather(parent, base))
+                return self._from_pyarrow_array(_select(parent, base))
         return self._from_pyarrow_array(_copy_pyarrow_buffers(self._pa_array))
 
     def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:

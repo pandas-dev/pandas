@@ -1,7 +1,7 @@
 """
 Tests for the deferred gather of string and binary Arrow arrays: ``take``,
 slices and boolean masks of such an ``ArrowExtensionArray`` record the
-positions and gather on first access to ``_pa_array``.
+positions or the mask and gather on first access to ``_pa_array``.
 """
 
 from __future__ import annotations
@@ -70,14 +70,14 @@ def test_take_keeps_owned_readonly_indexer(data):
     positions = np.arange(50)
     positions.flags.writeable = False
     result = data.take(positions)
-    assert result._pending_take.indices is positions
+    assert result._pending_take.selection is positions
 
     # a read-only view could still change through its base: copied
     base = np.arange(50)
     view = base[:]
     view.flags.writeable = False
     result = data.take(view)
-    assert result._pending_take.indices is not view
+    assert result._pending_take.selection is not view
     base[:] = 0
     tm.assert_extension_array_equal(result, _expected(data, np.arange(50)))
 
@@ -95,8 +95,8 @@ def test_frame_take_shares_indexer_across_columns():
     a = result["a"].array._pending_take
     b = result["b"].array._pending_take
     # one copy of the indexer for the whole frame, not one per column
-    assert a.indices is b.indices
-    assert a.indices is not indexer
+    assert a.selection is b.selection
+    assert a.selection is not indexer
     # the caller's indexer is left writeable, and changing it does not
     # change the result
     assert indexer.flags.writeable
@@ -130,6 +130,87 @@ def test_mask_is_deferred(data):
     result = data[mask]
     assert _is_pending(result)
     tm.assert_extension_array_equal(result, _expected(data, np.flatnonzero(mask)))
+
+
+def test_mask_is_kept_as_mask(data):
+    # gathered with filter, like an eager mask, which keeps the chunking
+    mask = np.arange(len(data)) % 3 != 0
+    result = data[mask]
+    selection = result._pending_take.selection
+    assert selection.dtype == np.bool_
+    assert selection is not mask
+    assert len(result) == mask.sum()
+    gathered = result._pa_array
+    assert gathered.num_chunks == data._pa_array.num_chunks
+    tm.assert_extension_array_equal(result, _expected(data, np.flatnonzero(mask)))
+
+
+def test_mask_does_not_alias_indexer(data):
+    mask = np.arange(len(data)) % 2 == 0
+    result = data[mask]
+    mask[:] = True
+    tm.assert_extension_array_equal(result, data[::2])
+
+
+def test_mask_of_mask_stays_mask(data):
+    first = data[np.arange(len(data)) % 2 == 0]
+    second_mask = np.arange(len(first)) % 5 != 0
+    second = first[second_mask]
+    assert second._pending_take.selection.dtype == np.bool_
+    parent, _ = second._take_source()
+    assert parent is data._pa_array
+    tm.assert_extension_array_equal(second, data[::2][second_mask])
+    assert _is_pending(first)
+
+
+@pytest.mark.parametrize(
+    "select",
+    [
+        lambda arr: arr.take(np.arange(len(arr) - 1, -1, -1)),
+        lambda arr: arr[3:30],
+        lambda arr: arr[::-2],
+    ],
+    ids=["take", "slice", "step-slice"],
+)
+def test_take_or_slice_of_mask_composes_positions(data, select):
+    mask = np.arange(len(data)) % 3 != 1
+    pending = data[mask]
+    result = select(pending)
+    assert _is_pending(result)
+    assert result._pending_take.selection.dtype == np.intp
+    tm.assert_extension_array_equal(result, select(data[mask].copy()))
+    # the mask itself is still gathered with filter
+    assert pending._pending_take.selection.dtype == np.bool_
+
+
+@pytest.mark.parametrize("i", [0, 7, -1, -66])
+def test_scalar_getitem_of_mask_does_not_gather(data, i):
+    mask = np.arange(len(data)) % 3 != 1
+    pending = data[mask]
+    expected = data[mask].copy()[i]
+    result = pending[i]
+    if pd.isna(expected):
+        assert result is data.dtype.na_value
+    else:
+        assert result == expected
+    assert _is_pending(pending)
+
+
+def test_mask_of_take_composes_positions(data):
+    pending = data.take(np.arange(99, -1, -1))
+    mask = np.arange(len(pending)) % 4 == 0
+    result = pending[mask]
+    assert result._pending_take.selection.dtype == np.intp
+    tm.assert_extension_array_equal(result, data[::-1][mask])
+
+
+def test_copy_of_mask_gathers(data):
+    mask = np.arange(len(data)) % 2 == 1
+    pending = data[mask]
+    result = pending.copy()
+    assert not _is_pending(result)
+    assert _is_pending(pending)
+    tm.assert_extension_array_equal(result, data[1::2])
 
 
 def test_small_result_is_deferred(data):
@@ -260,6 +341,12 @@ def test_gather_over_2gib(pa_type):
     # ... and unsorted ones
     result = pending.take(np.array([half + 3, 2, half]))
     assert result._pa_array.combine_chunks().equals(expected)
+    # a mask of the parent itself is gathered with filter, per chunk
+    mask = np.zeros(2 * n, dtype=bool)
+    mask[[0, n - 1, n]] = True
+    result = arr[mask]
+    assert result._pending_take.selection.dtype == np.bool_
+    assert result._pa_array.combine_chunks().equals(expected)
 
 
 @pytest.mark.parametrize("i", [0, 7, 42, -1, -100])
@@ -285,7 +372,7 @@ def test_materialize_releases_parent(data):
     pending = result._pending_take
     result._pa_array
     assert pending.parent is None
-    assert pending.indices is None
+    assert pending.selection is None
 
 
 def test_view_shares_buffers(data):
