@@ -7310,10 +7310,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(limit, str) and limit.strip(" +-").replace(".", "", 1).isdigit():
             raise ValueError(msg)
         try:
-            limit = Timedelta(limit)
+            td_limit = Timedelta(limit)
         except ValueError as err:
             raise ValueError(msg) from err
-        if isna(limit) or limit <= Timedelta(0):
+        if isna(td_limit) or td_limit <= Timedelta(0):
             raise ValueError("Limit must be greater than 0")
 
         index = self._get_axis(axis)
@@ -7343,9 +7343,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # floor to the index's unit, where distances are integral; a Python int
         # since it can exceed that unit's int64 range
         limit_int = (
-            limit._value
+            td_limit._value
             * periods_per_second(abbrev_to_npy_unit(index.unit))
-            // periods_per_second(abbrev_to_npy_unit(limit.unit))
+            // periods_per_second(abbrev_to_npy_unit(td_limit.unit))
         )
         limit_u8 = np.uint64(min(limit_int, np.iinfo(np.uint64).max))
 
