@@ -1598,7 +1598,7 @@ def test_select_dtypes_numpy_name_string_deprecated_include_and_exclude():
         {
             "i": pd.array([1, 2], "Int64"),
             "b": pd.array([True, False]),
-            "n": np.array([1, 2]),
+            "n": np.array([1, 2], dtype="int64"),
         }
     )
     with tm.assert_produces_warning(Pandas4Warning, match="'int64', 'bool'"):
