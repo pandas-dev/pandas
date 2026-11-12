@@ -893,14 +893,14 @@ class TestIndex:
             index[1:].drop(obj)
 
     def test_drop_enum_label(self):
-        # GH#11740 an Enum class drops its members; a member is one label
+        # GH#11740 an Enum class is a single label, not a list of its members
         class Color(enum.Enum):
             RED = 1
             BLUE = 2
 
         index = Index([Color.RED, Color.BLUE, "c"], dtype=object)
-        result = index.drop(Color)
-        tm.assert_index_equal(result, Index(["c"], dtype=object))
+        with pytest.raises(KeyError, match="not found in axis"):
+            index.drop(Color)
 
         result = index.drop(Color.RED)
         tm.assert_index_equal(result, Index([Color.BLUE, "c"], dtype=object))
