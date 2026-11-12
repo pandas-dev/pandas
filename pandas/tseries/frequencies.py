@@ -456,7 +456,10 @@ class _FrequencyInferer:
 
         if np.all(np.isin(days, [1, 15])) and np.any(days == 1):
             rule = "SMS"
-        elif np.all((days == 15) | self.index.is_month_end) and np.any(days == 15):
+        # the array's is_month_end ignores the index's freq, GH#58920
+        elif np.all((days == 15) | self.index._data.is_month_end) and np.any(
+            days == 15
+        ):
             rule = "SME"
         else:
             return None

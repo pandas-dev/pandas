@@ -194,6 +194,13 @@ def test_business_daily():
     assert frequencies.infer_freq(index) == "B"
 
 
+def test_business_daily_index_with_freq():
+    # an index carrying freq="B" must not hit the is_month_end deprecation
+    #  warning, GH#58920
+    index = pd.date_range("2020-01-10", periods=40, freq="B")
+    assert frequencies.infer_freq(index) == "B"
+
+
 def test_business_daily_look_alike():
     # see gh-16624
     #

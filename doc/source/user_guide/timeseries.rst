@@ -941,12 +941,12 @@ There are several time/date properties that one can access from ``Timestamp`` or
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
-    is_month_start,"Logical indicating if first day of month (defined by frequency)"
-    is_month_end,"Logical indicating if last day of month (defined by frequency)"
-    is_quarter_start,"Logical indicating if first day of quarter (defined by frequency)"
-    is_quarter_end,"Logical indicating if last day of quarter (defined by frequency)"
-    is_year_start,"Logical indicating if first day of year (defined by frequency)"
-    is_year_end,"Logical indicating if last day of year (defined by frequency)"
+    is_month_start,"Logical indicating if first day of month"
+    is_month_end,"Logical indicating if last day of month"
+    is_quarter_start,"Logical indicating if first day of quarter"
+    is_quarter_end,"Logical indicating if last day of quarter"
+    is_year_start,"Logical indicating if first day of year"
+    is_year_end,"Logical indicating if last day of year"
     is_leap_year,"Logical indicating if the date belongs to a leap year"
 
 .. note::
