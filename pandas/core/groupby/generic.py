@@ -796,6 +796,7 @@ class SeriesGroupBy(GroupBy[Series]):
         try:
             result = self._grouper._cython_operation(obj._values, how, 0, **kwargs)
         except NotImplementedError as err:
+            # rank's kwargs (e.g. ties_method) don't map onto Series.rank
             if how == "rank":
                 raise TypeError(
                     f"{how} is not supported for {obj.dtype} dtype"
@@ -2514,6 +2515,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             try:
                 return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
             except NotImplementedError as err:
+                # rank's kwargs (e.g. ties_method) don't map onto Series.rank
                 if how == "rank":
                     raise TypeError(
                         f"{how} is not supported for {bvalues.dtype} dtype"
