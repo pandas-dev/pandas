@@ -784,7 +784,15 @@ class MultiIndex(Index):
                 vals = vals.astype(object)
 
             array_vals = np.asarray(vals)
-            array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
+            if array_vals.dtype.kind in "iu" and (mask := codes == -1).any():
+                # filling NaN via take_nd would cast to float64, GH#24375
+                filled = np.full(len(codes), index._na_value, dtype=object)
+                filled[~mask] = array_vals.take(codes[~mask])
+                array_vals = filled
+            else:
+                array_vals = algos.take_nd(
+                    array_vals, codes, fill_value=index._na_value
+                )
             values.append(array_vals)
 
         arr = lib.fast_zip(values)
