@@ -2477,7 +2477,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     "apply with a function returning a Series indexed like its "
                     "group returns a DataFrame with one row per group when several "
                     "groups all have the same index. In a future version, these will "
-                    "be stacked into a Series, as when the groups' indexes differ.",
+                    "be stacked into a Series, as when the groups' indexes differ. "
+                    "If the function uses only one column, select that column before "
+                    "calling apply to get the stacked result now.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
