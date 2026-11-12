@@ -4334,6 +4334,44 @@ def test_to_datetime_unit_dayfirst_yearfirst_mixed_numeric(kwargs, parsed, cache
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, msg",
+    [
+        (["2025-01-01T00:00:00.000000", "2025-01-01T01:00:00"], "2025-01-01T01:00:00"),
+        (["01/02/2025", None, "13/02/2025"], "13/02/2025"),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    [
+        list,
+        np.array,
+        lambda x: np.array(x, dtype=object),
+        deque,
+        pd.Series,
+        pd.array,
+        pd.Categorical,
+    ],
+)
+def test_to_datetime_unit_strings_infer_format(values, msg, box, cache):
+    # GH#63472 inconsistent string formats raised without 'unit' but were
+    #  parsed element-by-element with it
+    arg = box(values)
+    with pytest.raises(ValueError, match=f'time data "{msg}" doesn\'t match format'):
+        pd.to_datetime(arg, unit="s", cache=cache)
+
+    result = pd.to_datetime(arg, unit="s", errors="coerce", cache=cache)
+    expected = pd.to_datetime(arg, errors="coerce", cache=cache)
+    tm.assert_equal(result, expected)
+    assert pd.isna(np.asarray(result)[-1])
+
+
+def test_to_datetime_unit_strings_invalid_unit():
+    # GH#63472 strings ignore the unit, but it is still validated
+    with pytest.raises(ValueError, match="Unrecognized unit xx"):
+        pd.to_datetime(["2020-01-01"], unit="xx")
+
+
 def test_to_datetime_monotonic_increasing_index(cache):
     # GH28238
     cstart = start_caching_at

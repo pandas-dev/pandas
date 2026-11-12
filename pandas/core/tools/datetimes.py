@@ -57,6 +57,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_all_strings,
     is_bool_dtype,
     is_float,
     is_float_dtype,
@@ -455,12 +456,15 @@ def _convert_listlike_datetimes(
 
         return arg
 
-    elif unit is not None:
-        if format is not None:
-            raise ValueError("cannot specify both format and unit")
+    elif unit is not None and format is not None:
+        raise ValueError("cannot specify both format and unit")
+    elif unit is not None and not _is_string_input(arg):
         return _to_datetime_with_unit(
             arg, unit, name, utc, errors, dayfirst=dayfirst, yearfirst=yearfirst
         )
+    elif unit is not None:
+        # strings ignore the unit, but an invalid one still raises
+        get_default_reso(unit)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, datetime, list, tuple, 1-d array, or Series"
@@ -514,6 +518,27 @@ def _convert_listlike_datetimes(
         return DatetimeIndex._simple_new(dta, name=name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
+
+
+def _is_string_input(arg) -> bool:
+    """
+    Whether every entry of 1D ``arg`` is a string or None/NaN/NA.
+
+    ``unit`` applies only to numerics, so such input is parsed exactly as it
+    would be without ``unit``, including format inference (GH#63472).
+    """
+    if not hasattr(arg, "dtype"):
+        # e.g. range or deque
+        arg = np.asarray(arg, dtype=object)
+    if arg.ndim != 1:
+        return False
+    dtype = arg.dtype
+    if isinstance(dtype, np.dtype):
+        if dtype.kind in "UT":
+            return True
+        # unlike is_all_strings, allow missing values
+        return dtype == object and lib.is_string_array(np.asarray(arg), skipna=True)
+    return is_all_strings(arg)
 
 
 def _array_strptime_with_fallback(
