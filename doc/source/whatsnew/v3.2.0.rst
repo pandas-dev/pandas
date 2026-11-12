@@ -228,7 +228,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`Timedelta` and :func:`to_timedelta` ignoring a decimal comma in a string, so ``"00:00:01,500"`` parsed as 25 minutes instead of 1.5 seconds (:issue:`71877`)
-- Bug in :func:`timedelta_range` with ``closed="left"`` dropping the last value even when it was before ``end``, e.g. when ``end`` was not a multiple of ``freq`` from ``start`` (:issue:`40245`)
+- Bug in :func:`timedelta_range` with ``closed`` trimming endpoints differently from :func:`date_range`, e.g. ``closed="left"`` dropping the last value when ``end`` was not a multiple of ``freq`` from ``start``, or dropping only one value when ``start`` equals ``end`` (:issue:`40245`)
 -
 
 Timezones
