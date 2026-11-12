@@ -788,3 +788,19 @@ def test_groupby_resample_agg_dict_as_index_false():
     result = gb.agg({"b": "min"})
     expected = gb.min()
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["10D", "1D"])
+def test_groupby_resample_apply_series_indexed_like_bin(freq):
+    # GH#20665
+    df = pd.DataFrame(
+        {"g": [1, 1, 2, 2], "v": [1, 2, 3, 4]},
+        index=date_range("2020-01-01", periods=4),
+    )
+    result = df.groupby("g").resample(freq).apply(lambda x: x["v"] * 2)
+    expected = pd.Series(
+        [2, 4, 6, 8],
+        index=pd.MultiIndex.from_arrays([df["g"], df.index]),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)
