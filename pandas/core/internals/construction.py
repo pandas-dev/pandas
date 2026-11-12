@@ -638,10 +638,13 @@ def dict_to_mgr(
     if copy:
         # We only need to copy arrays that will not get consolidated, i.e.
         #  only EA arrays and arrays an EA would view
+        arr_dtypes = _resolve_dtypes(dtype, columns)
+        if not isinstance(arr_dtypes, list):
+            arr_dtypes = [arr_dtypes] * len(arrays)
         arrays = [
             (
                 x.copy()
-                if isinstance(x, ExtensionArray) or _views_as_ea(x, dtype)
+                if isinstance(x, ExtensionArray) or _views_as_ea(x, arr_dtype)
                 else (
                     x.copy(deep=True)
                     if (
@@ -651,7 +654,7 @@ def dict_to_mgr(
                     else x
                 )
             )
-            for x in arrays
+            for x, arr_dtype in zip(arrays, arr_dtypes, strict=True)
         ]
 
     return arrays_to_mgr(arrays, columns, index, dtype=dtype, consolidate=copy)
