@@ -3113,6 +3113,12 @@ class ExtensionArray:
             _IN_ARRAY_FUNCTION.reset(token)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # the fallback at the end of this method np.asarray()s the values: M8/m8
         #  survive to be truth-tested, the rest flatten to object
         ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
