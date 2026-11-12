@@ -4424,19 +4424,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 notna = notna.all(axis=1)
             else:
                 notna = notna.any(axis=1)
-        dropped = self._selected_obj[notna.to_numpy()]
+        mask = notna.to_numpy()
+        dropped = self._selected_obj[mask]
 
         # get a new grouper for our dropped obj
         grouper: np.ndarray | Index | ops.BaseGrouper
-        if len(dropped) == len(self._selected_obj):
+        if mask.all():
             # Nothing was dropped, can use the same grouper
             grouper = self._grouper
         else:
             # we don't have the grouper info available
             # (e.g. we have selected out
             # a column that is not in the current object)
-            axis = self._grouper.axis
-            grouper = self._grouper.codes_info[axis.isin(dropped.index)]
+            grouper = self._grouper.codes_info[mask]
             if self._grouper.has_dropped_na:
                 # Null groups need to still be encoded as -1 when passed to groupby
                 nulls = grouper == -1
