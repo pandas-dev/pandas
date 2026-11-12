@@ -100,21 +100,44 @@ def test_concatenate_same_type_different_dtype_falls_back(left, right):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_2d_falls_back():
-    arr = pd.date_range("2000", periods=4)._data.reshape(2, 2)
-    expected = np.asarray(arr)
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2000", periods=9)._data,
+        pd.date_range("2000", periods=9, tz="UTC")._data,
+        pd.period_range("2000", periods=9, freq="D")._data,
+        pd.array([1, None, 3, 4, 5, 6, 7, 8, 9], dtype="Int64"),
+    ],
+    ids=["datetime", "datetimetz", "period", "Int64"],
+)
+@pytest.mark.parametrize(
+    "func",
+    [
+        pytest.param(lambda left, col, row: np.delete(left, 0), id="delete"),
+        pytest.param(lambda left, col, row: np.delete(left, 0, axis=1), id="delete1"),
+        pytest.param(lambda left, col, row: np.concatenate([left, row]), id="concat"),
+        pytest.param(
+            lambda left, col, row: np.concatenate([left, col], axis=1), id="concat1"
+        ),
+        pytest.param(
+            lambda left, col, row: np.concatenate([left, col], axis=None),
+            id="concatNone",
+        ),
+        pytest.param(lambda left, col, row: np.append(left, col), id="append"),
+        pytest.param(lambda left, col, row: np.append(left, row, axis=0), id="append0"),
+        pytest.param(lambda left, col, row: np.append(left, col, axis=1), id="append1"),
+        pytest.param(lambda left, col, row: np.hstack([left, col]), id="hstack"),
+    ],
+)
+def test_2d_falls_back(values, func):
+    # GH#26380 shapes differ so joining along the wrong axis raises
+    left = values[:6].reshape(2, 3)
+    col = values[6:8].reshape(2, 1)
+    row = values[6:9].reshape(1, 3)
 
-    result = np.delete(arr, 0, axis=0)
-    tm.assert_numpy_array_equal(result, np.delete(expected, 0, axis=0))
-
-    result = np.concatenate([arr, arr])
-    tm.assert_numpy_array_equal(result, np.concatenate([expected, expected]))
-
-    result = np.append(arr, arr)
-    tm.assert_numpy_array_equal(result, np.append(expected, expected))
-
-    result = np.hstack([arr, arr])
-    tm.assert_numpy_array_equal(result, np.hstack([expected, expected]))
+    result = func(left, col, row)
+    expected = func(np.asarray(left), np.asarray(col), np.asarray(row))
+    tm.assert_numpy_array_equal(result, expected)
 
 
 class ArrayFunctionOverride:
