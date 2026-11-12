@@ -335,7 +335,7 @@ def test_compose_take_slice_mask(data):
     for arr in [first, second, third, fourth]:
         assert _is_pending(arr)
     # the chain is one deferred take from the original data
-    parent, _ = fourth._take_source()
+    parent, _ = fourth._pending_take.source()
     assert parent is data._pa_array
 
     expected = data[::-1][::2][5:45][mask]
@@ -377,7 +377,7 @@ def test_mask_of_mask_stays_mask(data):
     second_mask = np.arange(len(first)) % 5 != 0
     second = first[second_mask]
     assert second._pending_take.selection.dtype == np.bool_
-    parent, _ = second._take_source()
+    parent, _ = second._pending_take.source()
     assert parent is data._pa_array
     tm.assert_extension_array_equal(second, data[::2][second_mask])
     assert _is_pending(first)
@@ -786,7 +786,7 @@ def test_gather_many_chunks_takes_once(pa_type, monkeypatch):
     def fail(*args, **kwargs):
         raise AssertionError("gathered chunk by chunk")
 
-    monkeypatch.setattr("pandas.core.arrays.arrow.array._take_by_chunk", fail)
+    monkeypatch.setattr("pandas.core.arrays.arrow.deferred._take_by_chunk", fail)
     arr = _arrow_array(pa_type)
     arr = arr._from_pyarrow_array(
         pa.chunked_array([chunk for chunk in arr._pa_array.chunks for _ in range(50)])
@@ -801,7 +801,7 @@ def test_gather_many_chunks_takes_once(pa_type, monkeypatch):
 def test_gather_reraises_with_64bit_offsets():
     # only 32-bit offsets can overflow, so with 64-bit offsets an error of
     # the take is raised as it is, instead of retrying chunk by chunk
-    from pandas.core.arrays.arrow.array import _gather
+    from pandas.core.arrays.arrow.deferred import _gather
 
     class Parent:
         num_chunks = 2
