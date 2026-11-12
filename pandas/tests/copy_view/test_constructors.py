@@ -340,12 +340,15 @@ def test_dataframe_from_numpy_array_ea_dtype(copy, shape):
         assert result.flags.c_contiguous
 
 
+@pytest.mark.parametrize("as_mapping", [False, True])
 @pytest.mark.parametrize("dtype", ["Int64", "datetime64[ns, UTC]"])
 @pytest.mark.parametrize("copy", [False, None, True])
-def test_dataframe_from_dict_of_numpy_array_ea_dtype(copy, dtype):
-    # GH#52338
+def test_dataframe_from_dict_of_numpy_array_ea_dtype(copy, dtype, as_mapping):
+    # GH#52338, GH#71142
     arr = np.ones(4, dtype="int64")
-    df = pd.DataFrame({"a": arr}, dtype=dtype, copy=copy)
+    df = pd.DataFrame(
+        {"a": arr}, dtype={"a": dtype} if as_mapping else dtype, copy=copy
+    )
 
     assert np.shares_memory(get_array(df, "a"), arr) is (copy is False)
 
