@@ -1,3 +1,4 @@
+import enum
 import re
 
 import numpy as np
@@ -56,6 +57,20 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
 
     with pytest.raises(KeyError, match="not found in axis"):
         df.drop(["a", "b"])  # Dropping with labels not exist in the index
+
+
+def test_drop_strenum_class_is_single_label():
+    # GH#11740 like any other class, a StrEnum class is one label
+    class Cols(enum.StrEnum):
+        A = "a"
+        B = "b"
+
+    df = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+    with pytest.raises(KeyError, match="not found in axis"):
+        df.drop(columns=Cols)
+
+    result = df.drop(columns=list(Cols))
+    tm.assert_frame_equal(result, df[["c"]])
 
 
 class TestDataFrameDrop:
