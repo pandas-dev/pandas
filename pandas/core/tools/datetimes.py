@@ -74,6 +74,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.arrays import (
     DatetimeArray,
@@ -456,13 +457,13 @@ def _convert_listlike_datetimes(
 
         return arg
 
-    elif unit is not None and format is not None:
-        raise ValueError("cannot specify both format and unit")
-    elif unit is not None and not _is_string_input(arg):
-        return _to_datetime_with_unit(
-            arg, unit, name, utc, errors, dayfirst=dayfirst, yearfirst=yearfirst
-        )
     elif unit is not None:
+        if format is not None:
+            raise ValueError("cannot specify both format and unit")
+        if not _is_string_input(arg):
+            return _to_datetime_with_unit(
+                arg, unit, name, utc, errors, dayfirst=dayfirst, yearfirst=yearfirst
+            )
         # strings ignore the unit, but an invalid one still raises
         get_default_reso(unit)
     elif getattr(arg, "ndim", 1) > 1:
@@ -522,7 +523,7 @@ def _convert_listlike_datetimes(
 
 def _is_string_input(arg) -> bool:
     """
-    Whether every entry of 1D ``arg`` is a string or None/NaN/NA.
+    Whether every entry of 1D ``arg`` is a string or missing.
 
     ``unit`` applies only to numerics, so such input is parsed exactly as it
     would be without ``unit``, including format inference (GH#63472).
@@ -536,8 +537,11 @@ def _is_string_input(arg) -> bool:
     if isinstance(dtype, np.dtype):
         if dtype.kind in "UT":
             return True
-        # unlike is_all_strings, allow missing values
-        return dtype == object and lib.is_string_array(np.asarray(arg), skipna=True)
+        if dtype != object:
+            return False
+        # unlike is_all_strings, allow missing values; skipna would miss NaT
+        values = np.asarray(arg)
+        return lib.is_string_array(values[~isna(values)])
     return is_all_strings(arg)
 
 

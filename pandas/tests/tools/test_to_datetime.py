@@ -4338,7 +4338,7 @@ def test_to_datetime_unit_dayfirst_yearfirst_mixed_numeric(kwargs, parsed, cache
     "values, msg",
     [
         (["2025-01-01T00:00:00.000000", "2025-01-01T01:00:00"], "2025-01-01T01:00:00"),
-        (["01/02/2025", None, "13/02/2025"], "13/02/2025"),
+        (["01/02/2025", None, pd.NaT, "13/02/2025"], "13/02/2025"),
     ],
 )
 @pytest.mark.parametrize(
@@ -4353,15 +4353,15 @@ def test_to_datetime_unit_dayfirst_yearfirst_mixed_numeric(kwargs, parsed, cache
         pd.Categorical,
     ],
 )
-def test_to_datetime_unit_strings_infer_format(values, msg, box, cache):
+def test_to_datetime_unit_strings_infer_format(values, msg, box):
     # GH#63472 inconsistent string formats raised without 'unit' but were
     #  parsed element-by-element with it
     arg = box(values)
     with pytest.raises(ValueError, match=f'time data "{msg}" doesn\'t match format'):
-        pd.to_datetime(arg, unit="s", cache=cache)
+        pd.to_datetime(arg, unit="s")
 
-    result = pd.to_datetime(arg, unit="s", errors="coerce", cache=cache)
-    expected = pd.to_datetime(arg, errors="coerce", cache=cache)
+    result = pd.to_datetime(arg, unit="s", errors="coerce")
+    expected = pd.to_datetime(arg, errors="coerce")
     tm.assert_equal(result, expected)
     assert pd.isna(np.asarray(result)[-1])
 
