@@ -849,16 +849,10 @@ rely on the default.
 Performance
 -----------
 
-The ``pyarrow`` storage keeps the strings in a compact contiguous buffer and
-implements most string methods with vectorized kernels, so it typically
-uses less memory and is faster than the ``python`` storage, which holds one
-Python object per string.
-
-The PyArrow data is immutable, however, so setting values in an existing
-array copies the data. Assigning values one at a time in a loop can therefore
-be much slower than with the ``python`` storage. Prefer building the values
-first and constructing the Series once, or setting many values in a single
-assignment.
+The ``pyarrow`` storage is immutable, so setting values in an existing array
+copies the data. Assigning values one at a time in a loop can therefore be much
+slower than with the ``python`` storage. Prefer building the values first and
+constructing the Series once, or setting many values in a single assignment.
 
 Known behavior differences
 --------------------------
@@ -888,10 +882,10 @@ Known behavior differences
 
 * **Regular expressions**: pandas aims to match the behavior of Python's
   :mod:`re` module for both storages, falling back to it for many patterns
-  the ``pyarrow`` engine does not support, but some patterns still give a
+  PyArrow's regex engine does not support, but some patterns still give a
   different result or raise depending on the storage. For example, with the
-  ``python`` storage ``\pL`` raises and ``[[:alpha:]]`` silently matches
-  different strings. See :issue:`63683`.
+  ``python`` storage ``\pL`` raises and ``[[:alpha:]]`` matches different
+  strings. See :issue:`63683`.
 
 Method summary
 ==============
