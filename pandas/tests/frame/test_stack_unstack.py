@@ -1575,7 +1575,7 @@ def test_unstack_sort_false_does_not_collapse_rows():
 
 
 def test_unstack_multiple_sort_false_multiple_remaining_levels():
-    # GH#62816 _unstack_multiple routes through the same _Unstacker, so
+    # GH#62816 unstack_multiple routes through the same _Unstacker, so
     #  unstacking several levels at once and leaving two or more behind hit
     #  the same misplacement.
     index = pd.MultiIndex.from_tuples(
@@ -1648,6 +1648,26 @@ def test_unstack_multiple_sort_nan_first():
         columns=pd.MultiIndex.from_tuples(
             [(np.nan, "p"), (np.nan, "q"), ("x", "p"), ("y", "q")], names=["a", "b"]
         ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_multiple_sort_overflowing_shape():
+    # GH#9514 the product of the column level sizes overflows int64
+    lev = np.arange(60_000)
+    index = pd.MultiIndex(
+        levels=[[0], lev, lev, lev, lev],
+        codes=[[0, 0, 0], [2, 0, 1], [2, 0, 1], [2, 0, 1], [2, 0, 1]],
+        names=["r", "a", "b", "c", "d"],
+    )
+    ser = pd.Series([1.0, 2.0, 3.0], index=index)
+
+    result = ser.unstack(["a", "b", "c", "d"])
+
+    expected = pd.DataFrame(
+        [[2.0, 3.0, 1.0]],
+        index=pd.Index([0], name="r"),
+        columns=pd.MultiIndex.from_arrays([[0, 1, 2]] * 4, names=list("abcd")),
     )
     tm.assert_frame_equal(result, expected)
 

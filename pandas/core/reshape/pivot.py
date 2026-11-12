@@ -33,11 +33,8 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
 )
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.reshape import unstack_multiple
 from pandas.core.series import Series
-from pandas.core.sorting import (
-    compress_group_index,
-    get_group_index,
-)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -380,19 +377,10 @@ def __internal_pivot_table(
             else:
                 to_unstack.append(name)
         if not sort and len(to_unstack) > 1:
-            # GH#9514 sort=True would also sort the new columns, so unstack
-            #  unsorted and put the rows back in the order sort=True gives them
-            table = agged.unstack(to_unstack, fill_value=fill_value, sort=False)
-            # unstack orders the rows by the codes of the pruned index
-            rows = cast("MultiIndex", agged.index).remove_unused_levels()
-            ids = get_group_index(
-                rows.codes[: len(index)],
-                tuple(len(lev) for lev in rows.levels[: len(index)]),
-                sort=True,
-                xnull=False,
+            # GH#9514 keep the new columns in order of appearance
+            table = unstack_multiple(
+                agged, to_unstack, fill_value=fill_value, sort_columns=False
             )
-            obs_ids = compress_group_index(ids, sort=False)[1]
-            table = table.iloc[np.argsort(obs_ids)]
         else:
             table = agged.unstack(to_unstack, fill_value=fill_value)
 
