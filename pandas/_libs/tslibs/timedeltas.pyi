@@ -9,12 +9,14 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs import (
     NaTType,
     Tick,
 )
 from pandas._typing import (
     Frequency,
+    NaTStrings,
     TimeUnit,
     npt,
 )
@@ -95,10 +97,27 @@ class Timedelta(timedelta):
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
     _value: int  # np.int64
-    # error: "__new__" must return a class instance (got "Timedelta | NaTType")
+    # error: "__new__" must return a class instance (got "NaTType")
+    @overload
     def __new__(  # type: ignore[misc]
-        cls: type[Self],
-        value: object = ...,
+        cls,
+        value: NaTType | NAType | NaTStrings | None,
+        unit: str | None = ...,
+        **kwargs: float | np.integer | np.floating,
+    ) -> NaTType: ...
+    @overload
+    def __new__(
+        cls,
+        value: int | np.integer | str | timedelta | Tick = ...,
+        unit: str | None = ...,
+        **kwargs: float | np.integer | np.floating,
+    ) -> Self: ...
+    # float NaN and np.timedelta64 can represent NaT
+    # error: "__new__" must return a class instance (got "Timedelta | NaTType")
+    @overload
+    def __new__(  # type: ignore[misc]
+        cls,
+        value: object,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
     ) -> Self | NaTType: ...

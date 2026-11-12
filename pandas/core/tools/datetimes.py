@@ -764,6 +764,8 @@ def _adjust_to_origin(arg, origin, unit, errors: DateTimeErrorChoices = "raise")
             if isinstance(tda, Timedelta):
                 arg = NaT
             else:
+                # adding to NaT cannot overflow
+                assert isinstance(offset, Timestamp)
                 arg = _coerce_origin_overflow(offset, tda)
     return arg
 
@@ -927,7 +929,7 @@ def to_datetime(
 
         See also: pandas general documentation about `timezone conversion and
         localization
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html
         #time-zone-handling>`_.
 
     format : str, default None
@@ -1082,7 +1084,7 @@ def to_datetime(
 
     - when any input element is before :const:`Timestamp.min` or after
       :const:`Timestamp.max`, see `timestamp limitations
-      <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+      <https://pandas.pydata.org/docs/user_guide/timeseries.html
       #timeseries-timestamp-limits>`_.
 
     - when ``utc=False`` (default) and the input is an array-like or

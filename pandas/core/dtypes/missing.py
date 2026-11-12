@@ -16,6 +16,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
@@ -30,6 +32,8 @@ from pandas.core.dtypes.common import (
     is_string_or_object_np_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -99,16 +103,18 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 @set_module("pandas")
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
-    Detect missing values for an array-like object.
+    Detect missing values for an object or array-like object.
 
-    This function takes a scalar or array-like object and indicates
-    whether values are missing (``NaN`` in numeric arrays, ``None`` or ``NaN``
-    in object arrays, ``NaT`` in datetimelike).
+    This function determines if an object corresponds to a missing
+    value or if the object is array-like, return an array indicating whether
+    each element is a missing value.
+
+    Missing values include ``NaN``, ``None``, ``NA``, or ``NaT``.
 
     Parameters
     ----------
-    obj : scalar or array-like
-        Object to check for null or missing values.
+    obj : object
+        Object to check for missing values.
 
     Returns
     -------
@@ -136,6 +142,11 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> pd.isna(np.nan)
     True
+
+    A plain Python object is treated as a single non-missing value.
+
+    >>> pd.isna(object())
+    False
 
     ndarrays result in an ndarray of booleans.
 
@@ -313,16 +324,18 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 @set_module("pandas")
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
-    Detect non-missing values for an array-like object.
+    Detect non-missing values for an object or array-like object.
 
-    This function takes a scalar or array-like object and indicates
-    whether values are valid (not missing, which is ``NaN`` in numeric
-    arrays, ``None`` or ``NaN`` in object arrays, ``NaT`` in datetimelike).
+    This function determines if an object corresponds to a non-missing
+    value or if the object is array-like, return an array indicating whether
+    each element is a non-missing value.
+
+    Missing values include ``NaN``, ``None``, ``NA``, or ``NaT``.
 
     Parameters
     ----------
-    obj : array-like or object value
-        Object to check for *not* null or *non*-missing values.
+    obj : object
+        Object to check for non-missing values.
 
     Returns
     -------
@@ -350,6 +363,11 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> pd.notna(np.nan)
     False
+
+    A plain Python object is treated as a single non-missing value.
+
+    >>> pd.notna(object())
+    True
 
     ndarrays result in an ndarray of booleans.
 
@@ -524,8 +542,8 @@ def _array_equivalent_object(
 
     try:
         if mask is None:
-            return lib.array_equivalent_object(left, right)
-        if not lib.array_equivalent_object(left[~mask], right[~mask]):
+            return lib.array_equivalent_object(left, right, strict_nan)
+        if not lib.array_equivalent_object(left[~mask], right[~mask], strict_nan):
             return False
         left_remaining = left[mask]
         right_remaining = right[mask]
@@ -542,8 +560,11 @@ def _array_equivalent_object(
         elif left_value is libmissing.NA and right_value is not libmissing.NA:
             return False
 
-        elif isinstance(left_value, float) and np.isnan(left_value):
-            if not isinstance(right_value, float) or not np.isnan(right_value):
+        elif (lib.is_float(left_value) or lib.is_complex(left_value)) and np.isnan(
+            left_value
+        ):
+            # includes numpy float32 and complex NaNs, GH#55492
+            if not libmissing.is_matching_na(left_value, right_value):
                 return False
         else:
             with warnings.catch_warnings():
@@ -670,6 +691,13 @@ def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):  # pyright: ignore[reportGeneralTypeIssues]
         return False
+    elif (
+        lib.is_float(obj)
+        and isinstance(dtype, (BaseMaskedDtype, ArrowDtype))
+        and not is_nan_na()
+    ):
+        # under future.distinguish_nan_and_na a float NaN is a value, not NA
+        return False
     elif dtype.kind == "M":
         if isinstance(dtype, np.dtype):
             # i.e. not tzaware
@@ -700,7 +728,8 @@ def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
         return lib.is_float(obj) or obj is None or obj is libmissing.NA
 
     elif isinstance(dtype, CategoricalDtype):
-        return is_valid_na_for_dtype(obj, dtype.categories.dtype)
+        # NaN marks a missing entry whatever the dtype of the categories
+        return lib.is_float(obj) or is_valid_na_for_dtype(obj, dtype.categories.dtype)
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))

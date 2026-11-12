@@ -161,6 +161,10 @@ cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
 
 
+cdef bint is_day_object(object obj):
+    return isinstance(obj, Day)
+
+
 cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -3089,6 +3093,13 @@ cdef class BusinessHour(BusinessMixin):
     >>> from datetime import time as dt_time
     >>> ts = pd.Timestamp(2022, 8, 5, 22)
     >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
+    Timestamp('2022-08-08 10:00:00')
+
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.BusinessHour(start="09:30", end="16:00")
     Timestamp('2022-08-08 10:00:00')
 
     Passing the parameter ``normalize`` equal to True, you shift the start
@@ -7285,6 +7296,13 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.CustomBusinessHour(start="09:30", end="16:00")
+    Timestamp('2022-08-08 10:00:00')
+
     You can divide your business day hours into several parts.
 
     >>> import datetime as dt
@@ -8081,6 +8099,42 @@ cpdef to_offset(freq, bint is_period=False):
             raise ValueError(f"{freq} is not supported as period frequency")
 
     return result
+
+
+cpdef validate_floor_ceil_offset(BaseOffset offset):
+    """
+    Raise if floor/ceil cannot snap to the midnights that ``offset`` is on.
+
+    That is well-defined only for a single step of a date-anchored offset.
+    """
+    if isinstance(offset, (BusinessDay, _CustomBusinessMonth)):
+        if offset.offset:
+            raise ValueError(
+                f"floor and ceil do not support {offset} with a nonzero 'offset'"
+            )
+        supported = True
+    elif isinstance(offset, Week):
+        # without a weekday every day is on-offset
+        supported = offset.weekday is not None
+    else:
+        supported = isinstance(
+            offset,
+            (
+                YearOffset,
+                HalfYearOffset,
+                QuarterOffset,
+                MonthOffset,
+                SemiMonthOffset,
+                WeekOfMonthMixin,
+                FY5253Mixin,
+                Easter,
+            ),
+        )
+    if offset.n != 1 or not supported:
+        raise ValueError(
+            f"{offset} is a non-fixed frequency; floor and ceil support only "
+            "a single step of a date-anchored frequency, e.g. 'MS' or 'W-SUN'"
+        )
 
 
 def period_dtype_to_offset(PeriodDtypeBase dtype):
