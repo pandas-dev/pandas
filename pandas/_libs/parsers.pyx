@@ -433,6 +433,7 @@ cdef class TextReader:
         parser_t *parser
         object na_fvalues
         list true_values, false_values
+        set user_true_set, user_false_set
         object handle
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
@@ -642,6 +643,9 @@ cdef class TextReader:
         self.na_values = na_values
         self.na_fvalues = na_fvalues
 
+        self.user_true_set = set(true_values or ())
+        # like BooleanDtype, a default true spelling beats a user false one
+        self.user_false_set = set(false_values or ()) - BooleanArray._TRUE_VALUES
         self.true_values = _maybe_encode(true_values) + _true_values
         self.false_values = _maybe_encode(false_values) + _false_values
 
@@ -1747,6 +1751,8 @@ cdef class TextReader:
             return cat, na_count, None
 
         elif isinstance(dtype, ExtensionDtype):
+            user_bool = (dtype._is_boolean and not isinstance(dtype, BooleanDtype)
+                         and (self.user_true_set or self.user_false_set))
             if isinstance(dtype, BaseMaskedDtype) and dtype.kind in "iuf":
                 # Fast path for nullable Integer/Floating dtypes: parse straight
                 # from the C buffers via the nogil numeric converters, instead
@@ -1771,6 +1777,7 @@ cdef class TextReader:
                 # path (which raises the canonical error, or applies
                 # user-supplied none_values).
             elif (isinstance(dtype, ArrowDtype)
+                    and not user_bool
                     and HAS_PYARROW
                     and self.encoding_errors == b"strict"):
                 # Fast path for pyarrow-backed dtypes: build a pyarrow
@@ -1786,6 +1793,15 @@ cdef class TextReader:
 
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
+            if user_bool:
+                # GH#47534 other boolean dtypes do not take true_values/false_values,
+                #  so set those positions after parsing the rest
+                is_true = np.array([val in self.user_true_set for val in result],
+                                   dtype=bool)
+                is_false = np.array([val in self.user_false_set for val in result],
+                                    dtype=bool)
+                is_false &= ~is_true
+                result = np.where(is_true | is_false, np.nan, result)
 
             array_type = dtype.construct_array_type()
             try:
@@ -1806,6 +1822,13 @@ cdef class TextReader:
                     f"_from_sequence_of_strings in order "
                     f"to be used in parser methods")
 
+            if user_bool and (is_true.any() or is_false.any()):
+                # _from_sequence rather than __setitem__, which an EA need not
+                #  implement
+                scalars = result.astype(object)
+                scalars[is_true] = True
+                scalars[is_false] = False
+                result = array_type._from_sequence(scalars, dtype=dtype)
             return result, na_count, None
 
         elif dtype.kind in "iu":

@@ -41,6 +41,7 @@ from pandas.core.dtypes.dtypes import (
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
+    BooleanArray,
     Categorical,
     ExtensionArray,
 )
@@ -540,6 +541,32 @@ class PythonParser(ParserBase):
                         false_values=self.false_values,  # pyright: ignore[reportCallIssue]
                         none_values=self.na_values,  # pyright: ignore[reportCallIssue]
                     )
+                elif cast_type._is_boolean and (self.true_values or self.false_values):
+                    # GH#47534 these dtypes do not take true_values/false_values,
+                    #  so set those positions after parsing the rest
+                    true_set = set(self.true_values or ())
+                    # like BooleanDtype, a default true spelling beats a user false one
+                    false_set = set(self.false_values or ()) - BooleanArray._TRUE_VALUES
+                    is_true = np.array(
+                        [str(val) in true_set for val in values], dtype=bool
+                    )
+                    is_false = np.array(
+                        [str(val) in false_set for val in values], dtype=bool
+                    )
+                    is_false &= ~is_true
+                    strings = np.array(values, dtype=object)
+                    strings[is_true | is_false] = np.nan
+                    result = array_type._from_sequence_of_strings(
+                        strings, dtype=cast_type
+                    )
+                    if is_true.any() or is_false.any():
+                        # _from_sequence rather than __setitem__, which an EA
+                        #  need not implement
+                        scalars = result.astype(object)
+                        scalars[is_true] = True
+                        scalars[is_false] = False
+                        result = array_type._from_sequence(scalars, dtype=cast_type)
+                    return result
                 else:
                     return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
