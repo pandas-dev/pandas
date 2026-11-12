@@ -87,7 +87,7 @@ class HTMLFormatter:
             if is_multi_index and isinstance(column, tuple):
                 for column_index in column:
                     self.col_space[str(column_index)] = col_space_value
-        if not is_multi_index:
+        if self.col_space and not is_multi_index:
             # write_th looks up col_space by the written (formatted) label
             formatted = self._get_columns_formatted_values()
             for label, fmt_label in zip(self.columns, formatted, strict=True):
