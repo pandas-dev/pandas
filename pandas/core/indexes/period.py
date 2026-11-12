@@ -255,12 +255,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq='MS')
 
-        The frequency will not be inferred if the index contains less than
-        three elements, or if the values of index are not strictly monotonic:
-
-        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
-        >>> idx.to_timestamp()
-        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[us]', freq=None)
+        The frequency will not be inferred if the values of index are not
+        strictly monotonic:
 
         >>> idx = pd.PeriodIndex(
         ...     ["2023-01", "2023-02", "2023-02", "2023-03"], freq="2M"
