@@ -120,6 +120,13 @@ class TestConfig:
         cf.set_option("l", "bar")
         assert "bar" in cf.describe_option("l", _print_desc=False)
 
+    def test_describe_option_deprecated_without_replacement(self):
+        cf.register_option("a", 1, "doc")
+        cf.deprecate_option("a", FutureWarning)
+        desc = cf.describe_option("a", _print_desc=False)
+        assert "(Deprecated)" in desc
+        assert "instead" not in desc
+
     @pytest.mark.parametrize("category", [DeprecationWarning, FutureWarning])
     def test_case_insensitive(self, category):
         cf.register_option("KanBAN", 1, "doc")
