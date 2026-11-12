@@ -933,18 +933,18 @@ class TestGroupBy:
         assert gb.ngroups == 1
         assert gb._selected_obj.index.nlevels == 1
 
-        # function that returns a Series
+        # function that returns a Series indexed like the group, GH#20665
         res = gb.apply(lambda x: x["Quantity"] * 2)
 
         dti = pd.Index(
-            [pd.Timestamp("2013-12-31")], dtype=df["Date"].dtype, name="Date"
+            [pd.Timestamp("2013-12-31")] * 5, dtype=df["Date"].dtype, name="Date"
         )
-        expected = pd.DataFrame(
-            [[36, 6, 6, 10, 2]],
-            index=dti,
-            columns=pd.Index([0, 1, 5, 2, 3], name="Quantity"),
+        expected = pd.Series(
+            [36, 6, 6, 10, 2],
+            index=pd.MultiIndex.from_arrays([dti, [0, 1, 5, 2, 3]]),
+            name="Quantity",
         )
-        tm.assert_frame_equal(res, expected)
+        tm.assert_series_equal(res, expected)
 
     @pytest.mark.single_cpu
     def test_groupby_agg_numba_timegrouper_with_nat(
