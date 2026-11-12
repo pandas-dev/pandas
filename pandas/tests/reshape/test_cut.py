@@ -845,17 +845,9 @@ def test_cut_nullable_integer_large_values_include_lowest():
 
 @pytest.mark.parametrize("dtype", ["UInt64", "uint64[pyarrow]"])
 def test_cut_nullable_integer_mixed_signedness(dtype):
-    # GH#31389 a uint64 value above int64 max makes the comparison with int64
-    #  bins float64, include_lowest included
+    # GH#31389 values that don't fit the bins' dtype must not wrap around
     if "pyarrow" in dtype:
         pytest.importorskip("pyarrow")
-    val = 2**60
-    ser = pd.Series([val + 1, val + 5, 2**63 + 5], dtype=dtype)
-    result = pd.cut(ser, [val + 1, val + 5, val + 6], include_lowest=True, labels=False)
-    expected = pd.Series([0, 0, np.nan])
-    tm.assert_series_equal(result, expected)
-
-    # 2**64 - 1 must not wrap around to -1
     ser = pd.Series([5, 2**64 - 1], dtype=dtype)
     result = pd.cut(ser, [-2, 0, 10], labels=False)
     expected = pd.Series([1, np.nan])
