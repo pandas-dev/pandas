@@ -236,7 +236,10 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
                 stacking_id = kwds.get("stacking_id")
                 if stacking_id not in stacks:
                     stacks.add(stacking_id)
-                    plot_cls._initialize_stacker(ax, stacking_id, len(series))
+                    # only the line/area plot classes define _initialize_stacker
+                    plot_cls._initialize_stacker(  # type: ignore[attr-defined]
+                        ax, stacking_id, len(series)
+                    )
 
             values = np.asarray(series._values)
             line = plotf(ax, index._mpl_repr(), values, **kwds)[0]
