@@ -2368,7 +2368,7 @@ Reading HTML content
    We **highly encourage** you to read the :ref:`HTML Table Parsing gotchas <io.html.gotchas>`
    below regarding the issues surrounding the BeautifulSoup4/html5lib/lxml parsers.
 
-The top-level :func:`~pandas.io.html.read_html` function can accept an HTML
+The top-level :func:`~pandas.read_html` function can accept an HTML
 string/file/URL and will parse HTML tables into list of pandas ``DataFrames``.
 Let's look at a few examples.
 
@@ -2806,7 +2806,7 @@ XML
 Reading XML
 '''''''''''
 
-The top-level :func:`~pandas.io.xml.read_xml` function can accept an XML
+The top-level :func:`~pandas.read_xml` function can accept an XML
 string/file/URL and will parse nodes and attributes into a pandas ``DataFrame``.
 
 .. note::
@@ -3706,7 +3706,7 @@ row instead of the first. You can place it in the first row by setting the
    df.to_excel("path_to_file.xlsx", index_label="label", merge_cells=False)
 
 In order to write separate ``DataFrames`` to separate sheets in a single Excel file,
-one can pass an :class:`~pandas.io.excel.ExcelWriter`.
+one can pass an :class:`~pandas.ExcelWriter`.
 
 .. code-block:: python
 
@@ -3729,7 +3729,7 @@ Writing Excel files to memory
 +++++++++++++++++++++++++++++
 
 pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
-``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
+``BytesIO`` using :class:`~pandas.ExcelWriter`.
 
 .. code-block:: python
 
@@ -5680,7 +5680,7 @@ Read only certain columns of an orc file.
 SQL queries
 -----------
 
-The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
+pandas provides a collection of SQL query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API.
 
 Where available, users may first want to opt for `Apache Arrow ADBC
@@ -6346,7 +6346,7 @@ object can be used as an iterator.
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
-:func:`~pandas.io.stata.StataReader.read`.
+:meth:`~pandas.api.typing.StataReader.read`.
 
 .. ipython:: python
 
@@ -6358,7 +6358,7 @@ Currently the ``index`` is retrieved as a column.
 
 The parameter ``convert_categoricals`` indicates whether value labels should be
 read and used to create a ``Categorical`` variable from them. Value labels can
-also be retrieved by the function ``value_labels``, which requires :func:`~pandas.io.stata.StataReader.read`
+also be retrieved by the function ``value_labels``, which requires :meth:`~pandas.api.typing.StataReader.read`
 to be called before use.
 
 The parameter ``convert_missing`` indicates whether missing value
@@ -6370,7 +6370,7 @@ values will have ``object`` data type.
 .. note::
 
    :func:`~pandas.read_stata` and
-   :class:`~pandas.io.stata.StataReader` support .dta formats 113-115
+   :class:`~pandas.api.typing.StataReader` support .dta formats 113-115
    (Stata 10-12), 117 (Stata 13), and 118 (Stata 14).
 
 .. note::
@@ -6381,11 +6381,9 @@ values will have ``object`` data type.
 
 .. note::
 
-   All :class:`~pandas.io.stata.StataReader` objects, whether created by :func:`~pandas.read_stata`
+   All :class:`~pandas.api.typing.StataReader` objects, whether created by :func:`~pandas.read_stata`
    (when using ``iterator=True`` or ``chunksize``) or instantiated by hand, must be used as context
    managers (e.g. the ``with`` statement).
-   While the :meth:`~pandas.io.stata.StataReader.close` method is available, its use is unsupported.
-   It is not part of the public API and will be removed in with future without warning.
 
 .. ipython:: python
    :suppress:

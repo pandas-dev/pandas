@@ -1032,11 +1032,14 @@ class StataReader(StataParser, abc.Iterator[DataFrame]):
     """
     Class for reading Stata dta files.
 
+    Returned by :func:`~pandas.read_stata` when ``iterator=True`` or ``chunksize`` is
+    given. Must be used as a context manager.
+
     Parameters
     ----------
-    path_or_buf : path (string), buffer or path object
-        string, pathlib.Path or object
-        implementing a binary read() functions.
+    path_or_buf : str, path object or file-like object
+        String, pathlib.Path or object implementing a binary ``read()``
+        function.
     convert_dates : bool, default True
         Convert date variables to DataFrame time values.
     convert_categoricals : bool, default True
@@ -1087,12 +1090,29 @@ class StataReader(StataParser, abc.Iterator[DataFrame]):
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
+    See Also
+    --------
+    read_stata : Read Stata file into DataFrame.
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
     Notes
     -----
     Categorical variables read through an iterator may not have the same
     categories and dtype. This occurs when  a variable stored in a DTA
     file is associated to an incomplete set of value labels that only
     label a strict subset of the values.
+
+    Examples
+    --------
+    >>> from io import BytesIO
+    >>> buf = BytesIO()
+    >>> pd.DataFrame({"a": [1, 2, 3, 4]}).to_stata(buf, write_index=False)
+    >>> _ = buf.seek(0)
+    >>> with pd.read_stata(buf, chunksize=2) as reader:
+    ...     for chunk in reader:
+    ...         print(chunk.shape)
+    (2, 1)
+    (2, 1)
     """
 
     _path_or_buf: IO[bytes]  # Will be assigned by `_open_file`.
@@ -1644,16 +1664,36 @@ the string values returned are correct."""
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
         """
-        Reads lines from Stata file and returns as dataframe
+        Read the next chunk of lines from the Stata file into a DataFrame.
+
+        Each call continues from where the previous read stopped.
 
         Parameters
         ----------
-        size : int, defaults to None
-            Number of lines to read.  If None, reads whole file.
+        size : int, optional
+            Number of lines to read. If None, uses the ``chunksize`` the reader
+            was created with (1 if not given).
 
         Returns
         -------
         DataFrame
+            The lines read.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+
+        Examples
+        --------
+        >>> from io import BytesIO
+        >>> buf = BytesIO()
+        >>> pd.DataFrame({"a": [1, 2, 3]}).to_stata(buf, write_index=False)
+        >>> _ = buf.seek(0)
+        >>> with pd.read_stata(buf, iterator=True) as reader:
+        ...     reader.get_chunk(2)
+           a
+        0  1
+        1  2
         """
         if size is None:
             size = self._chunksize
@@ -1671,36 +1711,56 @@ the string values returned are correct."""
         order_categoricals: bool | None = None,
     ) -> DataFrame:
         """
-        Reads observations from Stata file, converting them into a dataframe
+        Read observations from the Stata file into a DataFrame.
+
+        Options other than ``nrows`` left as None fall back to the values given
+        when the reader was created.
 
         Parameters
         ----------
-        nrows : int
-            Number of lines to read from data file, if None read whole file.
-        convert_dates : bool, default True
+        nrows : int, optional
+            Number of lines to read from data file, if None read the rest of
+            the file.
+        convert_dates : bool, optional
             Convert date variables to DataFrame time values.
-        convert_categoricals : bool, default True
+        convert_categoricals : bool, optional
             Read value labels and convert columns to Categorical/Factor variables.
         index_col : str, optional
             Column to set as index.
-        convert_missing : bool, default False
+        convert_missing : bool, optional
             Flag indicating whether to convert missing values to their Stata
             representations.  If False, missing values are replaced with nan.
             If True, columns containing missing values are returned with
             object data types and missing values are represented by
             StataMissingValue objects.
-        preserve_dtypes : bool, default True
+        preserve_dtypes : bool, optional
             Preserve Stata datatypes. If False, numeric data are upcast to pandas
             default types for foreign data (float64 or int64).
-        columns : list or None
-            Columns to retain.  Columns will be returned in the given order.  None
-            returns all columns.
-        order_categoricals : bool, default True
+        columns : list, optional
+            Columns to retain.  Columns will be returned in the given order.
+        order_categoricals : bool, optional
             Flag indicating whether converted categorical data are ordered.
 
         Returns
         -------
         DataFrame
+            The observations read.
+
+        See Also
+        --------
+        read_stata : Read Stata file into DataFrame.
+
+        Examples
+        --------
+        >>> from io import BytesIO
+        >>> buf = BytesIO()
+        >>> pd.DataFrame({"a": [1, 2, 3]}).to_stata(buf, write_index=False)
+        >>> _ = buf.seek(0)
+        >>> with pd.read_stata(buf, iterator=True) as reader:
+        ...     reader.read(2)
+           a
+        0  1
+        1  2
         """
         self._ensure_open()
 
@@ -2064,6 +2124,24 @@ The repeated labels are:
     def time_stamp(self) -> str:
         """
         Return time stamp of Stata file.
+
+        This is the file creation time recorded in the file header, as a string.
+
+        See Also
+        --------
+        DataFrame.to_stata : Export DataFrame object to Stata dta format.
+
+        Examples
+        --------
+        >>> from io import BytesIO
+        >>> buf = BytesIO()
+        >>> pd.DataFrame({"a": [1]}).to_stata(
+        ...     buf, time_stamp=pd.Timestamp(2000, 1, 2, 13, 45)
+        ... )
+        >>> _ = buf.seek(0)
+        >>> with pd.read_stata(buf, iterator=True) as reader:
+        ...     reader.time_stamp
+        '02 Jan 2000 13:45'
         """
         self._ensure_open()
         return self._time_stamp
@@ -2251,7 +2329,7 @@ def read_stata(
 
     See Also
     --------
-    io.stata.StataReader : Low-level reader for Stata data files.
+    api.typing.StataReader : Low-level reader for Stata data files.
     DataFrame.to_stata: Export Stata data files.
 
     Notes
@@ -2454,30 +2532,32 @@ def _dtype_to_default_stata_fmt(
 
 class StataWriter(StataParser):
     """
-    A class for writing Stata binary dta files
+    A class for writing Stata binary dta files.
+
+    Writes dta format 114. :meth:`~pandas.DataFrame.to_stata` is the usual entry point
+    and also supports newer formats.
 
     Parameters
     ----------
-    fname : path (string), buffer or path object
-        string, pathlib.Path or
-        object implementing a binary write() functions. If using a buffer
-        then the buffer will not be automatically closed after the file
-        is written.
+    fname : str, path object or file-like object
+        String, pathlib.Path or object implementing a binary ``write()``
+        function. If using a buffer then the buffer will not be automatically
+        closed after the file is written.
     data : DataFrame
-        Input to save
+        Input to save.
     convert_dates : dict
         Dictionary mapping columns containing datetime types to stata internal
         format to use when writing the dates. Options are 'tc', 'td', 'tm',
         'tw', 'th', 'tq', 'ty'. Column can be either an integer or a name.
         Datetime columns that do not have a conversion type specified will be
         converted to 'tc'. Raises NotImplementedError if a datetime column has
-        timezone information
+        timezone information.
     write_index : bool
         Write the index to Stata dataset.
     byteorder : str
-        Can be ">", "<", "little", or "big". default is `sys.byteorder`
+        Can be ">", "<", "little", or "big". default is `sys.byteorder`.
     time_stamp : datetime
-        A datetime to use as file creation date.  Default is the current time
+        A datetime to use as file creation date.  Default is the current time.
     data_label : str
         A label for the data set.  Must be 80 characters or smaller.
     variable_labels : dict
@@ -2529,6 +2609,11 @@ class StataWriter(StataParser):
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
         * Categorical label contains more than 32,000 characters
+
+    See Also
+    --------
+    DataFrame.to_stata : Export DataFrame object to Stata dta format.
+    read_stata : Read Stata file into DataFrame.
 
     Examples
     --------
