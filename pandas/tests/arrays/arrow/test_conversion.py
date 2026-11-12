@@ -346,6 +346,30 @@ def test_from_numpy_str_array_to_int_invalid():
         pd.array(np.array(["abc"]), dtype="int64[pyarrow]")
 
 
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string(), pa.binary()])
+@pytest.mark.parametrize("box", [list, tuple])
+def test_from_sequence_str_with_nan(pa_type, box):
+    # GH#64578
+    dtype = ArrowDtype(pa_type)
+    result = pd.array(box(["a", "nan", np.nan]), dtype=dtype)
+    expected = pd.array(["a", "nan", None], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, pa_type, expected",
+    [
+        ([b"a", b"nan", np.nan], pa.binary(), [b"a", b"nan", None]),
+        (["1", np.nan], pa.int64(), [1, None]),
+    ],
+)
+def test_from_sequence_with_nan_other_types(values, pa_type, expected):
+    # GH#64578
+    dtype = ArrowDtype(pa_type)
+    result = pd.array(values, dtype=dtype)
+    tm.assert_extension_array_equal(result, pd.array(expected, dtype=dtype))
+
+
 def test_astype_from_non_pyarrow(data):
     # GH49795
     np_arr = data.to_numpy()
