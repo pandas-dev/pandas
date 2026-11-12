@@ -762,13 +762,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Indicates whether the date is the first day of the month.
 
-        This boolean attribute evaluates to True if the date falls on the
-        first day of a calendar month, and False otherwise.
-
         .. deprecated:: 3.2.0
             Using a business ``freq`` (e.g. ``"B"`` or ``"BMS"``) to find
             month boundaries is deprecated. In a future version the result will
             ignore ``freq``, matching :attr:`Series.dt.is_month_start`.
+
+        This boolean attribute evaluates to True if the date falls on the
+        first day of a calendar month, and False otherwise.
 
         See Also
         --------
@@ -788,13 +788,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Indicates whether the date is the last day of the month.
 
-        This boolean attribute evaluates to True if the date falls on the
-        last day of a calendar month, and False otherwise.
-
         .. deprecated:: 3.2.0
             Using a business ``freq`` (e.g. ``"B"`` or ``"BME"``) to find
             month boundaries is deprecated. In a future version the result will
             ignore ``freq``, matching :attr:`Series.dt.is_month_end`.
+
+        This boolean attribute evaluates to True if the date falls on the
+        last day of a calendar month, and False otherwise.
 
         See Also
         --------
@@ -814,15 +814,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Indicator for whether the date is the first day of a quarter.
 
-        This boolean attribute evaluates to True if the date falls on the
-        first day of a calendar quarter (January 1, April 1, July 1, or
-        October 1), and False otherwise.
-
         .. deprecated:: 3.2.0
             Using a business or anchored ``freq`` (e.g. ``"BQS"`` or
             ``"QS-FEB"``) to find quarter boundaries is deprecated. In a future
             version the result will ignore ``freq``, matching
             :attr:`Series.dt.is_quarter_start`.
+
+        This boolean attribute evaluates to True if the date falls on the
+        first day of a calendar quarter (January 1, April 1, July 1, or
+        October 1), and False otherwise.
 
         See Also
         --------
@@ -843,15 +843,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Indicator for whether the date is the last day of a quarter.
 
-        This boolean attribute evaluates to True if the date falls on the
-        last day of a calendar quarter (March 31, June 30, September 30, or
-        December 31), and False otherwise.
-
         .. deprecated:: 3.2.0
             Using a business or anchored ``freq`` (e.g. ``"BQE"`` or
             ``"QE-NOV"``) to find quarter boundaries is deprecated. In a future
             version the result will ignore ``freq``, matching
             :attr:`Series.dt.is_quarter_end`.
+
+        This boolean attribute evaluates to True if the date falls on the
+        last day of a calendar quarter (March 31, June 30, September 30, or
+        December 31), and False otherwise.
 
         See Also
         --------
@@ -872,14 +872,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Indicate whether the date is the first day of a year.
 
-        This boolean attribute evaluates to True if the date is January 1st,
-        and False otherwise.
-
         .. deprecated:: 3.2.0
             Using a business or anchored ``freq`` (e.g. ``"BYS"`` or
             ``"YS-APR"``) to find year boundaries is deprecated. In a future
             version the result will ignore ``freq``, matching
             :attr:`Series.dt.is_year_start`.
+
+        This boolean attribute evaluates to True if the date is January 1st,
+        and False otherwise.
 
         See Also
         --------
@@ -899,14 +899,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Indicate whether the date is the last day of the year.
 
-        This boolean attribute evaluates to True if the date is December
-        31st, and False otherwise.
-
         .. deprecated:: 3.2.0
             Using a business or anchored ``freq`` (e.g. ``"BYE"`` or
             ``"YE-MAR"``) to find year boundaries is deprecated. In a future
             version the result will ignore ``freq``, matching
             :attr:`Series.dt.is_year_end`.
+
+        This boolean attribute evaluates to True if the date is December
+        31st, and False otherwise.
 
         See Also
         --------
