@@ -1198,8 +1198,15 @@ def test_select_dtypes_naive_spec_skips_tz_aware_arrow(spec):
         }
     )
     expected = df[["arrow_naive", "np_naive"]]
-    tm.assert_frame_equal(df.select_dtypes(include=[spec]), expected)
-    tm.assert_frame_equal(df.select_dtypes(exclude=[spec]), df[["arrow_tz", "np_tz"]])
+    # GH#52576: a unit-qualified string matching the Arrow column is deprecated
+    warn = Pandas4Warning if spec == "datetime64[s]" else None
+    msg = "a numpy dtype name will match"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.select_dtypes(include=[spec])
+    tm.assert_frame_equal(result, expected)
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.select_dtypes(exclude=[spec])
+    tm.assert_frame_equal(result, df[["arrow_tz", "np_tz"]])
 
 
 def test_select_dtypes_tz_aware_arrow_still_matched_by_arrow_spec():
@@ -1244,7 +1251,10 @@ def test_select_dtypes_arrow_date_skipped_by_unit_spec(pa_type):
         }
     )
     for spec in ["datetime64[s]", "datetime64[ms]", "datetime64[us]", "datetime64[ns]"]:
-        result = df.select_dtypes(include=spec)
+        # GH#52576: selecting the Arrow timestamp column this way is deprecated
+        warn = Pandas4Warning if spec == "datetime64[ms]" else None
+        with tm.assert_produces_warning(warn, match="a numpy dtype name will match"):
+            result = df.select_dtypes(include=spec)
         expected = df[["ts"]] if spec == "datetime64[ms]" else df[[]]
         tm.assert_frame_equal(result, expected)
 
@@ -1479,3 +1489,212 @@ def test_select_dtypes_sparse_na_fill_value():
     )
     tm.assert_frame_equal(df.select_dtypes(include="Sparse[float64]"), df[["a"]])
     tm.assert_frame_equal(df.select_dtypes(exclude="Sparse[float64]"), df[["b"]])
+
+
+@pytest.mark.parametrize("spec", ["int64", "i8", ">i8"])
+def test_select_dtypes_numpy_name_string_matching_ea_deprecated(spec):
+    # GH#52576
+    df = pd.DataFrame(
+        {
+            "np": pd.Series([1, 2], dtype="int64"),
+            "masked": pd.Series([1, 2], dtype="Int64"),
+            "sparse": pd.arrays.SparseArray([1, 2]),
+            "float": [1.0, 2.0],
+        }
+    )
+    msg = (
+        f"numpy dtype name\\(s\\) '{re.escape(spec)}' to every dtype.*"
+        r"columns with dtype Int64, Sparse\[int64, 0\]\. To adopt the future behavior, "
+        f"pass np\\.dtype\\('int64'\\) instead of '{re.escape(spec)}'"
+        f".*pass np\\.int64 instead of '{re.escape(spec)}'"
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df[["np", "masked", "sparse"]])
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(exclude=spec)
+    tm.assert_frame_equal(result, df[["float"]])
+
+    # the future behavior, and the spellings that keep the current one
+    tm.assert_frame_equal(df.select_dtypes(include=np.dtype("int64")), df[["np"]])
+    for keep in [np.int64, [spec, "Int64", "Sparse[int64, 0]"]]:
+        result = df.select_dtypes(include=keep)
+        tm.assert_frame_equal(result, df[["np", "masked", "sparse"]])
+
+
+def test_select_dtypes_numpy_name_string_deprecated_only_if_result_changes():
+    # GH#52576: no warning when the result would not change
+    df = pd.DataFrame(
+        {
+            "np": pd.Series([1, 2], dtype="int64"),
+            "masked": pd.Series([1, 2], dtype="Int64"),
+            "float": pd.Series([1.0, 2.0], dtype="Float64"),
+        }
+    )
+    tm.assert_frame_equal(
+        df.select_dtypes(include="int64", exclude="Int64"), df[["np"]]
+    )
+    tm.assert_frame_equal(df[["np"]].select_dtypes(include="int64"), df[["np"]])
+    msg = r"name\(s\) 'float64' to every.*columns with dtype Float64\."
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=["float64", "Int64"])
+    tm.assert_frame_equal(result, df[["masked", "float"]])
+
+
+def test_select_dtypes_numpy_name_string_bool_deprecated():
+    # GH#52576
+    df = pd.DataFrame({"np": [True, False], "masked": pd.array([True, False])})
+    with tm.assert_produces_warning(Pandas4Warning, match="dtype boolean"):
+        result = df.select_dtypes(include="bool")
+    tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(df.select_dtypes(include=bool), df)
+
+
+def test_select_dtypes_numpy_name_string_arrow_deprecated():
+    # GH#52576
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {
+            "np": pd.Series([1, 2], dtype="int64"),
+            "arrow": pd.Series([1, 2], dtype="int64[pyarrow]"),
+        }
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match=r"int64\[pyarrow\]"):
+        result = df.select_dtypes(include="int64")
+    tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(df.select_dtypes(include=np.int64), df)
+
+
+@pytest.mark.parametrize(
+    "spec, dtype",
+    [
+        ("uint8", "UInt8"),
+        ("float32", "Float32"),
+        ("bool", pd.SparseDtype(bool)),
+        ("float64", pd.SparseDtype("float64", 0.0)),
+        ("int64", pd.SparseDtype("int64", 5)),
+    ],
+)
+def test_select_dtypes_numpy_name_string_deprecated_families(spec, dtype):
+    # GH#52576: the suggested numpy type keeps the current result on either side
+    df = pd.DataFrame(
+        {"np": np.array([1, 0], dtype=spec), "ea": pd.array([1, 0], dtype)}
+    )
+    np_type = np.dtype(spec).type
+    for side, expected in [("include", df), ("exclude", df[[]])]:
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=f"pass np.{np_type.__name__} instead of '{spec}'"
+        ):
+            result = df.select_dtypes(**{side: spec})
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df.select_dtypes(**{side: np_type}), expected)
+        expected = df[["np"]] if side == "include" else df[["ea"]]
+        tm.assert_frame_equal(df.select_dtypes(**{side: np.dtype(spec)}), expected)
+
+
+def test_select_dtypes_numpy_name_string_deprecated_include_and_exclude():
+    # GH#52576: strings on both sides each get replaced by their numpy type
+    df = pd.DataFrame(
+        {
+            "i": pd.array([1, 2], "Int64"),
+            "b": pd.array([True, False]),
+            "n": np.array([1, 2]),
+        }
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match="'int64', 'bool'"):
+        result = df.select_dtypes(include=["int64", "boolean"], exclude=["bool"])
+    tm.assert_frame_equal(result, df[["i", "n"]])
+    result = df.select_dtypes(include=[np.int64, "boolean"], exclude=[np.bool_])
+    tm.assert_frame_equal(result, df[["i", "n"]])
+
+
+def test_select_dtypes_numpy_name_string_deprecated_numpy_alias():
+    # GH#52576: "longlong" names a type distinct from np.int64 but compares
+    # equal to int64, so it selects the int64 column only in the future
+    df = pd.DataFrame({"i8": np.array([1, 2], dtype=np.int64), "f8": [1.0, 2.0]})
+    if np.dtype("longlong") != np.dtype("int64") or np.longlong is np.int64:
+        pytest.skip("longlong is not a distinct int64 type on this platform")
+    with tm.assert_produces_warning(Pandas4Warning, match="'longlong'"):
+        result = df.select_dtypes(include="longlong")
+    tm.assert_frame_equal(result, df[[]])
+    tm.assert_frame_equal(df.select_dtypes(include=np.dtype("longlong")), df[["i8"]])
+
+
+def test_select_dtypes_numpy_name_string_deprecated_datetime_unit():
+    # GH#52576
+    pa = pytest.importorskip("pyarrow")
+    tdi = pd.to_timedelta([1, 2], unit="s").as_unit("us")
+    df = pd.DataFrame(
+        {"np": tdi, "arrow": pd.array(tdi, dtype=pd.ArrowDtype(pa.duration("us")))}
+    )
+    msg = r"pass \['duration\[us\]\[pyarrow\]'\] alongside 'timedelta64\[us\]'"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(exclude="timedelta64[us]")
+    tm.assert_frame_equal(result, df[[]])
+    result = df.select_dtypes(exclude=["timedelta64[us]", "duration[us][pyarrow]"])
+    tm.assert_frame_equal(result, df[[]])
+    tm.assert_frame_equal(
+        df.select_dtypes(exclude=np.dtype("timedelta64[us]")), df[["arrow"]]
+    )
+
+
+def test_select_dtypes_numpy_name_string_deprecated_ndarray_spec():
+    # GH#52576: the message shows the spec as a plain string
+    df = pd.DataFrame({"a": pd.array([1, 2], "Int64")})
+    with tm.assert_produces_warning(Pandas4Warning, match=r"name\(s\) 'int64' to"):
+        df.select_dtypes(include=np.array(["int64"]))
+
+
+def test_select_dtypes_numpy_name_string_deprecated_advice_per_spec():
+    # GH#52576: the warning's advice covers every deprecated string it names
+    pa = pytest.importorskip("pyarrow")
+    dti = pd.date_range("2020", periods=2, unit="us")
+    df = pd.DataFrame(
+        {
+            "i": pd.array([1, 2], "Int64"),
+            "b": pd.array([True, False]),
+            "ts": pd.array(dti, dtype=pd.ArrowDtype(pa.timestamp("us"))),
+            "n": [1, 2],
+        }
+    )
+    spec = ["int64", "bool", "datetime64[us]"]
+    msg = (
+        r"pass np\.dtype\('int64'\) instead of 'int64', np\.dtype\('bool'\) "
+        r"instead of 'bool', np\.dtype\('datetime64\[us\]'\) "
+        r"instead of 'datetime64\[us\]'; "
+        r"to keep the current one, pass np\.int64 instead of 'int64', np\.bool_? "
+        r"instead of 'bool', \['timestamp\[us\]\[pyarrow\]'\] alongside "
+        r"'datetime64\[us\]'\.$"
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df)
+    keep = [np.int64, np.bool_, "datetime64[us]", "timestamp[us][pyarrow]"]
+    tm.assert_frame_equal(df.select_dtypes(include=keep), df)
+    adopt = [np.dtype("int64"), np.dtype("bool"), np.dtype("datetime64[us]")]
+    tm.assert_frame_equal(df.select_dtypes(include=adopt), df[["n"]])
+
+
+def test_select_dtypes_bytes_datetime_unit_spec():
+    # GH#52576: a bytes spec is not deprecated and must not break the check
+    pa = pytest.importorskip("pyarrow")
+    dti = pd.date_range("2020", periods=2, unit="us")
+    df = pd.DataFrame(
+        {"np": dti, "ts": pd.array(dti, dtype=pd.ArrowDtype(pa.timestamp("us")))}
+    )
+    tm.assert_frame_equal(df.select_dtypes(include=[b"M8[us]"]), df)
+
+
+def test_select_dtypes_numpy_name_string_deprecated_names_changed_specs_only():
+    # GH#52576: 'float64' changes nothing here, so the warning omits it, and
+    # the None entry's own warning is not repeated
+    df = pd.DataFrame({"i": pd.array([1, 2], "Int64"), "f": [1.0, 2.0]})
+    msg = r"name\(s\) 'int64' to every"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=["int64", "float64"])
+    tm.assert_frame_equal(result, df)
+    with tm.assert_produces_warning(Pandas4Warning, match=None) as record:
+        df.select_dtypes(include=[None, "int64"])
+    messages = [str(w.message) for w in record]
+    assert sum("Passing None" in m for m in messages) == 1
+    assert sum("numpy dtype name will match" in m for m in messages) == 1

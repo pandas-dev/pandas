@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -491,3 +493,15 @@ class TestDataFrameDescribe:
         )
 
         tm.assert_frame_equal(result, expected)
+
+
+def test_describe_include_numpy_name_string_matching_masked_deprecated():
+    # GH#52576
+    df = pd.DataFrame(
+        {"A": pd.Series([1, 2, 3], dtype="Int64"), "B": pd.Series([1, 2, 3])}
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match="dtype Int64"):
+        result = df.describe(include="int64")
+    assert list(result.columns) == ["A", "B"]
+    result = df.describe(include=np.dtype("int64"))
+    assert list(result.columns) == ["B"]
