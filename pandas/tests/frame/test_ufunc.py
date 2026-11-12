@@ -126,7 +126,7 @@ def test_ufunc_where_pandas_object(dtype):
     expected = pd.DataFrame({"a": [-1.0, -1.0, 3.0], "b": [4.0, 5.0, 6.0]})
     tm.assert_frame_equal(result, expected)
 
-    msg = "The ufunc 'where' argument must have the same axes as the inputs"
+    msg = "The ufunc 'where' argument must have the same axes as the aligned inputs"
     with pytest.raises(ValueError, match=msg):
         np.maximum(df, 0, where=df[["b", "a"]] > 0)
     with pytest.raises(ValueError, match=msg):

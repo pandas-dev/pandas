@@ -494,7 +494,7 @@ def _unbox_where(where, axes: dict[str, Any]) -> np.ndarray:
     )
     if not same_axes:
         raise ValueError(
-            "The ufunc 'where' argument must have the same axes as the inputs"
+            "The ufunc 'where' argument must have the same axes as the aligned inputs"
         )
     return _where_to_ndarray(where)
 

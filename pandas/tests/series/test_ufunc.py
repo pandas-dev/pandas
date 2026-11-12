@@ -348,7 +348,7 @@ def test_ufunc_where_misaligned_raises():
     # GH#60611 we don't guess whether to match `where` by label or position
     ser = pd.Series([1.0, 2.0, 3.0])
     mask = pd.Series([True, False, False], index=[2, 1, 0])
-    msg = "The ufunc 'where' argument must have the same axes as the inputs"
+    msg = "The ufunc 'where' argument must have the same axes as the aligned inputs"
     with pytest.raises(ValueError, match=msg):
         np.maximum(ser, 10.0, where=mask, out=np.zeros(3))
     with pytest.raises(ValueError, match=msg):
