@@ -2223,6 +2223,21 @@ frequency such as ``"24h"``; to group timestamps into days starting at 08:00, us
    period = pd.Period("2012-1-1 08:00", freq="24h")
    period.start_time, period.end_time
 
+A multiplied frequency sets only the length of the span, not a grid the span
+aligns to: a ``"2Q"`` period can start in any quarter. Converting a timestamp
+with a multiplied frequency starts the span at the base unit containing that
+timestamp, so ``to_period("2h")`` does not group timestamps into
+2-hour bins. To get aligned bins, floor the timestamps first or use
+:meth:`~Series.resample`.
+
+.. ipython:: python
+
+   pd.Period("2017-05-01", freq="2Q")
+
+   dti = pd.date_range("2016-01-01", periods=4, freq="h")
+   dti.to_period("2h")
+   dti.floor("2h").to_period("2h")
+
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).
 

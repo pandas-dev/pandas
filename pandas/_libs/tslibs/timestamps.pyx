@@ -1971,6 +1971,12 @@ cdef class _Timestamp(ABCTimestamp):
         Period : Represents a span of time.
         to_period : Converts an object to a Period.
 
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, the
+        result is the 2-hour period starting at this timestamp's hour. For an
+        aligned 2-hour bin, use ``ts.floor("2h").to_period("2h")``.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')

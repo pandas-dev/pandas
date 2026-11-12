@@ -1240,6 +1240,12 @@ default 'raise'
         PeriodIndex: Immutable ndarray holding ordinal values.
         DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
 
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, each
+        timestamp maps to the 2-hour period starting at its own hour. For
+        aligned 2-hour bins, use ``floor("2h").to_period("2h")``.
+
         Examples
         --------
         >>> df = pd.DataFrame(
