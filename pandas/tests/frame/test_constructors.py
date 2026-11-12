@@ -67,16 +67,8 @@ MIXED_INT_DTYPES = [
 ]
 
 
-@pytest.fixture(params=["mappingproxy", "custom", "userdict", "chainmap", "frozendict"])
-def mapping_type(request, non_dict_mapping_subclass):
-    if request.param == "mappingproxy":
-        return MappingProxyType
-    if request.param == "custom":
-        return non_dict_mapping_subclass
-    if request.param == "userdict":
-        return UserDict
-    if request.param == "chainmap":
-        return ChainMap
+@pytest.fixture
+def frozendict_type():
     if not hasattr(builtins, "frozendict"):
         pytest.skip("builtin frozendict is not available")
     return builtins.frozendict
@@ -828,6 +820,16 @@ class TestDataFrameConstructors:
         df = pd.DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
+    @pytest.mark.parametrize("mapping_cls", [MappingProxyType, UserDict, ChainMap])
+    def test_constructor_non_dict_mapping_preserved(self, mapping_cls):
+        # GH#71853: non-dict mappings continue to follow the list-like path
+        # iterating over keys, preserving existing behavior until a deprecation cycle.
+        data = {"a": [1, 2], "b": [3, 4]}
+        mapping = mapping_cls(data)
+        result = pd.DataFrame(mapping)
+        expected = pd.DataFrame(list(data.keys()))
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "data, kwargs",
         [
@@ -842,9 +844,9 @@ class TestDataFrameConstructors:
             ({("b", 1): [3, 4], ("a", 2): [1, 2]}, {}),
         ],
     )
-    def test_constructor_mapping(self, mapping_type, data, kwargs):
+    def test_constructor_frozendict(self, frozendict_type, data, kwargs):
         # GH#71853
-        mapping = mapping_type(data)
+        mapping = frozendict_type(data)
         result = pd.DataFrame(mapping, **kwargs)
         expected = pd.DataFrame(data, **kwargs)
         tm.assert_frame_equal(result, expected)
@@ -852,20 +854,22 @@ class TestDataFrameConstructors:
         for key in data:
             assert mapping[key] is data[key]
 
-    @pytest.mark.parametrize("values_type", ["dict", "series", "mapping"])
+    @pytest.mark.parametrize("values_type", ["dict", "series", "frozendict"])
     @pytest.mark.parametrize("outer_mapping", [False, True])
     @pytest.mark.parametrize("index", [None, ["z", "x", "missing"]])
-    def test_constructor_mapping_alignment(
-        self, mapping_type, values_type, outer_mapping, index
+    def test_constructor_frozendict_alignment(
+        self, frozendict_type, values_type, outer_mapping, index
     ):
         # GH#71853
         data = {"b": {"y": 3, "x": 4}, "a": {"z": 1, "y": 2}}
-        constructor = {"dict": dict, "series": pd.Series, "mapping": mapping_type}[
-            values_type
-        ]
+        constructor = {
+            "dict": dict,
+            "series": pd.Series,
+            "frozendict": frozendict_type,
+        }[values_type]
         mappings = {key: constructor(value) for key, value in data.items()}
         if outer_mapping:
-            mappings = mapping_type(mappings)
+            mappings = frozendict_type(mappings)
         result = pd.DataFrame(mappings, index=index)
         if values_type == "series":
             data = {key: pd.Series(value) for key, value in data.items()}
@@ -881,36 +885,36 @@ class TestDataFrameConstructors:
             pd.MultiIndex.from_tuples([("a", 1), ("b", 2)]),
         ],
     )
-    def test_constructor_mapping_index(self, mapping_type, index):
+    def test_constructor_frozendict_index(self, frozendict_type, index):
         # GH#71853: keep dict key conversion and missing-key alignment.
         values = dict(zip(index, [1, 2], strict=True))
-        result = pd.DataFrame({"a": mapping_type(values)}, index=index[::-1])
+        result = pd.DataFrame({"a": frozendict_type(values)}, index=index[::-1])
         expected = pd.DataFrame({"a": values}, index=index[::-1])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_mapping_mixed_array(self, mapping_type):
+    def test_constructor_frozendict_mixed_array(self, frozendict_type):
         # GH#71853: preserve the error for ambiguous mapping/array ordering.
-        data = {"a": mapping_type({"x": 1}), "b": [2]}
+        data = {"a": frozendict_type({"x": 1}), "b": [2]}
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering"
         with pytest.raises(ValueError, match=msg):
             pd.DataFrame(data)
 
     @pytest.mark.parametrize("dtype", [None, "float64", "Int64"])
-    def test_constructor_mapping_dtype(self, mapping_type, dtype):
+    def test_constructor_frozendict_dtype(self, frozendict_type, dtype):
         # GH#71853
         data = {"b": pd.Series([3, None], dtype="Int64"), "a": [1, 2]}
-        result = pd.DataFrame(mapping_type(data), dtype=dtype)
+        result = pd.DataFrame(frozendict_type(data), dtype=dtype)
         expected = pd.DataFrame(data, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [None, True, False])
-    def test_constructor_mapping_copy(self, mapping_type, copy):
+    def test_constructor_frozendict_copy(self, frozendict_type, copy):
         # GH#71853
         array = np.array([1, 2])
         series = pd.Series([3, 4])
         extension = pd.array([5, None], dtype="Int64")
         data = {"array": array, "series": series, "extension": extension}
-        result = pd.DataFrame(mapping_type(data), copy=copy)
+        result = pd.DataFrame(frozendict_type(data), copy=copy)
         expected = pd.DataFrame(data, copy=copy)
         tm.assert_frame_equal(result, expected)
         assert np.shares_memory(result["array"].to_numpy(), array) is (copy is False)
@@ -928,10 +932,10 @@ class TestDataFrameConstructors:
             ({"a": [1], "b": [2, 3]}, "All arrays must be of the same length"),
         ],
     )
-    def test_constructor_mapping_invalid(self, mapping_type, data, msg):
+    def test_constructor_frozendict_invalid(self, frozendict_type, data, msg):
         # GH#71853
         with pytest.raises(ValueError, match=msg):
-            pd.DataFrame(mapping_type(data))
+            pd.DataFrame(frozendict_type(data))
 
     def test_constructor_defaultdict(self, float_frame):
         # try with defaultdict

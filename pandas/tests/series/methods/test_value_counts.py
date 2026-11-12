@@ -251,3 +251,13 @@ class TestSeriesValueCounts:
             [2, 1, 1], index=pd.Index([2, 1, 3], dtype=dtype), dtype=dtype, name="count"
         )
         tm.assert_series_equal(result, expected)
+
+    def test_value_counts_masked_na_tie(self, any_numeric_ea_dtype):
+        # GH#23074 NA tied with another count keeps its first-appearance position
+        dtype = any_numeric_ea_dtype
+        ser = pd.Series([None, 1, 1, None], dtype=dtype)
+        result = ser.value_counts(dropna=False)
+        expected = pd.Series(
+            [2, 2], index=pd.Index([None, 1], dtype=dtype), dtype="Int64", name="count"
+        )
+        tm.assert_series_equal(result, expected)

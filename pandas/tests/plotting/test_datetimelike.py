@@ -1476,7 +1476,7 @@ class TestTSPlot:
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
-        # GH13341, using sharex=True
+        # GH#14322
         idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = pd.Series(range(len(idx1)), idx1)
@@ -2139,6 +2139,8 @@ class TestTSPlot:
         # GH#14074 a cleared sibling has no data to keep in view
         idx = date_range("2020-01-01", periods=5, freq="D")
         _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        # ax2 has its own freq, so ax1's is not reset when picking ax2's
+        pd.Series(range(2), index=idx[:2]).plot(ax=ax2)
         pd.Series(range(5), index=idx).plot(ax=ax1)
         ax1.clear()
         pd.Series(range(2), index=idx[:2]).plot(ax=ax2)
@@ -2212,6 +2214,43 @@ class TestTSPlot:
         left, right = ax.get_xlim()
         assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
         assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
+
+    @pytest.mark.parametrize("freq", ["ME", "2ME", "3B"])
+    @pytest.mark.parametrize("extra_line", ["yerr", "axhline"])
+    def test_regular_ts_secondary_y_after_bar_with_lines(self, freq, extra_line):
+        # GH#71436 error caps or axhline on a time-series bar plot must not push
+        # a secondary_y line off the bars
+        ser = pd.Series(
+            np.arange(6.0), index=date_range("2015-01-01", periods=6, freq=freq)
+        )
+        _, ax = mpl.pyplot.subplots()
+        if extra_line == "yerr":
+            ser.plot.bar(ax=ax, yerr=0.5, capsize=3)
+        else:
+            ser.plot.bar(ax=ax)
+            ax.axhline(0)
+        ax2 = ser.plot(ax=ax, secondary_y=True)
+
+        xdata = ax2.get_lines()[0].get_xdata(orig=False)
+        bar_centers = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        tm.assert_numpy_array_equal(xdata, np.array(bar_centers))
+        # axhline's x is in axes coordinates and must not stretch the view
+        left, right = ax.get_xlim()
+        assert bar_centers[0] - 1 < left <= bar_centers[0]
+        assert bar_centers[-1] <= right < bar_centers[-1] + 1
+
+    @pytest.mark.parametrize("secondary_y", [False, True])
+    def test_ts_plot_xlim_ignores_axhline(self, secondary_y):
+        # GH#71436
+        ser = pd.Series(
+            np.arange(6.0), index=date_range("2015-01-31", periods=6, freq="ME")
+        )
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        expected = ax.get_xlim()
+        ax.axhline(0)
+        ser.plot(ax=ax, secondary_y=secondary_y)
+        assert ax.get_xlim() == expected
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
@@ -2887,3 +2926,105 @@ def test_plot_tz_aware_values_with_nat(kind, arrow):
     )
     # the tick labels still use the column's timezone
     assert axis.units == tz
+
+
+@pytest.mark.parametrize("removal", ["clear", "remove"])
+def test_removed_ts_line_not_replotted(removal):
+    # GH#54485 a finer-freq plot replots the axes' earlier series, but not ones
+    # the user already removed
+    monthly = pd.Series(np.arange(5.0), date_range("2000-01-31", periods=5, freq="ME"))
+    daily = pd.Series(np.arange(60.0), date_range("2000-01-01", periods=60, freq="D"))
+    _, ax = mpl.pyplot.subplots()
+    for start in range(3):
+        # e.g. redrawing an animation frame
+        monthly.iloc[start:].plot(ax=ax)
+        if removal == "clear":
+            ax.clear()
+        else:
+            ax.get_lines()[0].remove()
+    daily.plot(ax=ax)
+    assert len(ax.get_lines()) == 1
+
+
+@pytest.mark.parametrize("layout", ["single", "sharex", "secondary_y"])
+def test_cleared_ts_axes_plots_like_new(layout):
+    # GH#54485 the cleared plot's freq no longer decides the new plot's units,
+    # also when it is read from a cleared sibling or twin
+    daily = pd.Series(np.arange(60.0), date_range("2000-01-01", periods=60, freq="D"))
+    monthly = pd.Series([1.0, 2.0, 3.0], date_range("2000-01-31", periods=3, freq="ME"))
+    _, fresh = mpl.pyplot.subplots()
+    monthly.plot(ax=fresh)
+    if layout == "sharex":
+        _, (ax, other) = mpl.pyplot.subplots(2, sharex=True)
+        daily.plot(ax=other)
+    else:
+        _, ax = mpl.pyplot.subplots()
+    daily.plot(ax=ax)
+    if layout == "secondary_y":
+        daily.plot(ax=ax, secondary_y=True)
+        other = ax.right_ax
+    ax.clear()
+    if layout != "single":
+        other.clear()
+    monthly.plot(ax=ax)
+    tm.assert_numpy_array_equal(
+        ax.get_lines()[0].get_xdata(orig=False),
+        fresh.get_lines()[0].get_xdata(orig=False),
+    )
+
+
+@pytest.mark.parametrize("kind", ["line", "area"])
+def test_removed_first_stacked_ts_column_restacked(kind):
+    # GH#54485 the surviving columns are restacked without the removed one
+    df = pd.DataFrame(
+        {"a": [1.0] * 3, "b": [2.0] * 3},
+        index=date_range("2000-01-31", periods=3, freq="ME"),
+    )
+    daily = pd.Series([0.5] * 3, date_range("2000-01-01", periods=3, freq="D"))
+    _, ax = mpl.pyplot.subplots()
+    df.plot(kind=kind, stacked=True, ax=ax)
+    ax.get_lines()[0].remove()
+    if kind == "area":
+        ax.collections[0].remove()
+    daily.plot(ax=ax)
+    assert len(ax.get_lines()) == 2
+    tm.assert_numpy_array_equal(ax.get_lines()[0].get_ydata(), np.array([2.0] * 3))
+
+
+def test_bar_on_cleared_ts_axes_uses_its_own_freq():
+    # GH#54485 a cleared line plot's freq does not convert values on a new bar plot
+    daily = pd.Series(np.arange(60.0), date_range("2000-01-01", periods=60, freq="D"))
+    monthly = pd.Series([1.0, 2.0, 3.0], date_range("2000-01-31", periods=3, freq="ME"))
+    _, (ax, fresh) = mpl.pyplot.subplots(2)
+    daily.plot(ax=ax)
+    ax.clear()
+    for axes in (ax, fresh):
+        monthly.plot.bar(ax=axes)
+    result = ax.axvline(pd.Timestamp("2000-02-15")).get_xdata(orig=False)
+    expected = fresh.axvline(pd.Timestamp("2000-02-15")).get_xdata(orig=False)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_stacked_secondary_ts_column_restacked_on_replot():
+    # the secondary column starts its own stack when replotted at a finer freq
+    df = pd.DataFrame(
+        {"a": [1.0] * 3, "b": [2.0] * 3},
+        index=date_range("2000-01-31", periods=3, freq="ME"),
+    )
+    daily = pd.Series([0.5] * 3, date_range("2000-01-01", periods=3, freq="D"))
+    _, ax = mpl.pyplot.subplots()
+    ax = df.plot(stacked=True, secondary_y=["b"], ax=ax)
+    daily.plot(ax=ax)
+    tm.assert_numpy_array_equal(
+        ax.right_ax.get_lines()[0].get_ydata(), np.array([2.0] * 3)
+    )
+
+
+def test_ts_errorbar_without_data_line_then_replot():
+    # GH#54485 errorbar(fmt="none") caches no data line
+    daily = pd.Series(np.arange(10.0), date_range("2000-01-01", periods=10, freq="D"))
+    _, ax = mpl.pyplot.subplots()
+    daily.plot(ax=ax)
+    daily.plot(ax=ax, yerr=0.1, fmt="none")
+    daily.plot(ax=ax)
+    assert len(ax.get_lines()) == 2

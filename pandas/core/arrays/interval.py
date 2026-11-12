@@ -179,7 +179,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__
+    <https://pandas.pydata.org/docs/user_guide/advanced.html#intervalindex>`__
     for more.
 
     Examples
@@ -1008,18 +1008,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[IntervalArray]) -> Self:
+    def _concat_same_type(
+        cls, to_concat: Sequence[IntervalArray], axis: AxisInt = 0
+    ) -> Self:
         """
         Concatenate multiple IntervalArray
 
         Parameters
         ----------
         to_concat : sequence of IntervalArray
+        axis : int, default 0
+            Must be 0 or -1; IntervalArray is 1D-only.
 
         Returns
         -------
         IntervalArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         closed_set = {interval.closed for interval in to_concat}
         if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
@@ -1164,6 +1170,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left_take, right_take)
 
     def _validate_listlike(self, value):
+        value_left: Index | ExtensionArray
+        value_right: Index | ExtensionArray
         # list-like of intervals
         try:
             array = IntervalArray(value)
@@ -1173,6 +1181,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # wrong type: not interval or NA
             msg = f"'value' should be an interval type, got {type(value)} instead."
             raise TypeError(msg) from err
+
+        mask = array.isna()
+        if mask.any() and not is_valid_na_for_dtype(np.nan, self.left.dtype):
+            # missing entries have NaN endpoints, which e.g. a Float64 subtype
+            #  would store as values under future.distinguish_nan_and_na
+            value_left = pd_array(np.asarray(value_left))
+            value_right = pd_array(np.asarray(value_right))
+            value_left[mask] = NA
+            value_right[mask] = NA
 
         try:
             self.left._validate_fill_value(value_left)

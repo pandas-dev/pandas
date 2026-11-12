@@ -1,7 +1,7 @@
 - [ ] closes #xxxx (Replace xxxx with the GitHub issue number)
-- [ ] [Tests added and passed](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#writing-tests) if fixing a bug or adding a new feature
-- [ ] All [code checks passed](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#pre-commit).
-- [ ] Added [type annotations](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#type-hints) to new arguments/methods/functions.
+- [ ] [Tests added and passed](https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#writing-tests) if fixing a bug or adding a new feature
+- [ ] All [code checks passed](https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#pre-commit).
+- [ ] Added [type annotations](https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#type-hints) to new arguments/methods/functions.
 - [ ] Added an entry in the latest `doc/source/whatsnew/vX.X.X.rst` file if fixing a bug or adding a new feature.
 - [ ] I have reviewed and followed all the [contribution guidelines](https://pandas.pydata.org/docs/dev/development/contributing.html)
 Check exactly one of the following, per the [automated contributions policy](https://pandas.pydata.org/docs/dev/development/contributing.html#automated-contributions-policy):

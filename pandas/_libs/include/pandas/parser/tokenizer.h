@@ -154,6 +154,9 @@ typedef struct parser_t {
   PyObject *skipfunc;
   int64_t skip_first_N_rows;
   int64_t skip_footer;
+  // Boolean: 1 until the first row not in skiprows. Rows skipped before then
+  // are physical lines, so quotes in them do not open a field (GH#34732).
+  int in_leading_skip;
   double (*double_converter)(const char *, char **, char, char, char, int,
                              int *, int *, const char *);
 

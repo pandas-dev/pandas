@@ -18,6 +18,7 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.compat import is_dict_or_frozendict
 from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
@@ -201,6 +202,17 @@ def rec_array_to_mgr(
 # DataFrame Constructor Interface
 
 
+def _views_as_ea(arr, dtype: DtypeObj | None) -> bool:
+    """
+    Would casting ``arr`` to the extension ``dtype`` view its data?
+    """
+    return (
+        isinstance(dtype, ExtensionDtype)
+        and isinstance(arr, (np.ndarray, ABCSeries, ExtensionArray))
+        and astype_is_view(arr.dtype, dtype)
+    )
+
+
 def ndarray_to_mgr(
     values, index, columns, dtype: DtypeObj | None, copy: bool
 ) -> Manager:
@@ -238,13 +250,15 @@ def ndarray_to_mgr(
         else:
             values = [values]
 
-        # Handle copy semantics: already copy 1d-only EA. Other arrays will
-        # be copied when consolidating the blocks
+        # Copy 1d-only EAs and arrays the cast would view
         if copy:
             values = [
                 (x.copy(deep=True) if isinstance(x, Index) else x.copy())
-                if isinstance(x, (ExtensionArray, Index, ABCSeries))
-                and is_1d_only_ea_dtype(x.dtype)
+                if (
+                    isinstance(x, (ExtensionArray, Index, ABCSeries))
+                    and is_1d_only_ea_dtype(x.dtype)
+                )
+                or _views_as_ea(x, dtype)
                 else x
                 for x in values
             ]
@@ -454,11 +468,11 @@ def dict_to_mgr(
 
     if copy:
         # We only need to copy arrays that will not get consolidated, i.e.
-        #  only EA arrays
+        #  only EA arrays and arrays an EA would view
         arrays = [
             (
                 x.copy()
-                if isinstance(x, ExtensionArray)
+                if isinstance(x, ExtensionArray) or _views_as_ea(x, dtype)
                 else (
                     x.copy(deep=True)
                     if (
@@ -586,7 +600,7 @@ def _homogenize(
             refs.append(val._references)
             val = val._values
         else:
-            if isinstance(val, abc.Mapping):
+            if is_dict_or_frozendict(val):
                 # GH#41785 this _should_ be equivalent to (but faster than)
                 #  val = Series(val, index=index)._values
                 if oindex is None:
@@ -638,7 +652,7 @@ def _extract_index(data) -> Index:
         if isinstance(val, ABCSeries):
             have_series = True
             indexes.append(val.index)
-        elif isinstance(val, abc.Mapping):
+        elif is_dict_or_frozendict(val):
             have_dicts = True
             indexes.append(list(val.keys()))
         elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
