@@ -2435,8 +2435,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             else:
                 # GH#36306 label like .reset_index(), keeping None if a key is
                 #  named 0 so the key is not dropped
-                names = Index(self._grouper.names, dtype=object, tupleize_cols=False)
-                label = None if 0 in names else 0
+                collides = any(name in Index([0]) for name in self._grouper.names)
+                label = None if collides else 0
                 result = self.obj._constructor({label: values})
                 result = self._insert_inaxis_grouper(result)
                 return result

@@ -466,10 +466,11 @@ def test_apply_frame_not_as_index_scalar_key_named_zero(keys, columns, expected)
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_frame_not_as_index_scalar_key_named_na():
-    # GH#36306
+@pytest.mark.parametrize("name", [pd.NA, False])
+def test_apply_frame_not_as_index_scalar_key_named_not_zero(name):
+    # GH#36306 keys that do not collide with the 0 label
     df = pd.DataFrame({"A": [1, 2, 1], "B": [3, 4, 5]})
-    key = pd.Series([1, 2, 1], name=pd.NA)
+    key = pd.Series([1, 2, 1], name=name)
     result = df.groupby(key, as_index=False).apply(len)
     expected = df.groupby(key).apply(len).reset_index()
     tm.assert_frame_equal(result, expected)
