@@ -238,6 +238,17 @@ class TestSeriesSortValues:
         expected = pd.Series(np.array([1, 2, 3], dtype=dtype), index=[1, 2, 0])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).eps >= np.finfo(np.float64).eps,
+        reason="longdouble is no wider than float64",
+    )
+    def test_sort_values_longdouble_equal_as_float64(self):
+        # GH#59092 values that differ only beyond float64 precision
+        one = np.longdouble(1)
+        ser = pd.Series([one + np.finfo(np.longdouble).eps, one], dtype=np.longdouble)
+        result = ser.sort_values()
+        tm.assert_series_equal(result, ser.iloc[[1, 0]])
+
     def test_sort_values_validate_ascending_for_value_error(self):
         # GH41634
         ser = pd.Series([23, 7, 21])

@@ -470,11 +470,15 @@ def nargsort(
     non_nan_idx = idx[~mask]
 
     nan_idx = np.nonzero(mask)[0]
-    try:
-        inc, dec, _ = is_monotonic(non_nans)
-    except (TypeError, ValueError):
-        # e.g. complex, mixed-type object or non-native byte order; let argsort decide
+    if non_nans.dtype.kind == "f" and non_nans.dtype.itemsize > 8:
+        # is_monotonic casts longdouble to float64, which can create false ties
         inc = dec = False
+    else:
+        try:
+            inc, dec, _ = is_monotonic(non_nans)
+        except (TypeError, ValueError):
+            # e.g. complex, mixed-type object or non-native byte order
+            inc = dec = False
     if (ascending and inc) or (not ascending and dec):
         # Already sorted: keep ties in order for every kind, as
         #  Index.sort_values does, GH#59092
