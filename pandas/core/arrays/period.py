@@ -1096,7 +1096,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             step = self.dtype._n
             first, last = self.asi8[0], self.asi8[-1]
             if len(self) == 1 or last - first == step:
-                # extend toward the epoch to avoid overflow
+                # extend toward the epoch to stay in bounds
                 if last >= 0:
                     ordinals = last - step * np.arange(2, -1, -1)
                 else:
