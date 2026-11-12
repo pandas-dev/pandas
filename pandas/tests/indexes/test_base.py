@@ -874,7 +874,7 @@ class TestIndex:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
 
-    def test_drop_non_iterable_sequence_label(self):
+    def test_drop_getitem_only_or_bytes_label(self):
         # GH#11740 single labels that list() would iterate
         class GetItemOnly:
             def __getitem__(self, key):
