@@ -280,7 +280,7 @@ class HTMLFormatter:
         row: list[Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
-            template = 'colspan="{span:d}" halign="left"'
+            template = 'colspan="{span:d}"'
 
             sentinel: lib.NoDefault | bool
             if self.fmt.sparsify:
