@@ -1136,7 +1136,8 @@ def test_value_counts_time_grouper_with_nat(box, frame_or_series):
     # all-NaT
     result = obj.iloc[[0, 3]].groupby(pd.Grouper(freq="D")).value_counts()
     expected = obj.iloc[:0].groupby(pd.Grouper(freq="D")).value_counts()
-    tm.assert_series_equal(result, expected)
+    # object-dtype level of an empty result may keep unused values
+    tm.assert_series_equal(result, expected, check_index_type=False)
 
 
 def test_value_counts_integer_columns():
