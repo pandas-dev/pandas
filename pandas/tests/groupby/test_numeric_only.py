@@ -129,9 +129,6 @@ class TestNumericOnly:
         expected_columns = pd.Index(
             ["int", "float", "string", "category_int", "timedelta"]
         )
-        if method == "cumsum":
-            # cumsum loses string
-            expected_columns = pd.Index(["int", "float", "category_int", "timedelta"])
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
@@ -144,7 +141,7 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["cummin", "cummax"])
     def test_cummin_cummax(self, df, method):
-        # like min, max, but don't include strings
+        # like min, max
         expected_columns = pd.Index(
             ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
         )
@@ -163,8 +160,9 @@ class TestNumericOnly:
                 [
                     "Categorical is not ordered",
                     f"Cannot perform {method} with non-ordered Categorical",
+                    f"category type does not support {method} operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
-                    # cumsum/cummin/cummax/cumprod
+                    # cumprod
                     f"{method} is not supported for (str|object) dtype",
                     f"dtype 'str' does not support operation '{method}'",
                 ]
@@ -345,14 +343,14 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     fails_on_numeric_object = (
         "corr",
         "cov",
-        "cummax",
-        "cummin",
-        "cumprod",
-        "cumsum",
         "quantile",
     )
     # ops that give an object result on object input
     obj_result = (
+        "cummax",
+        "cummin",
+        "cumprod",
+        "cumsum",
         "first",
         "last",
         "nth",
@@ -417,7 +415,6 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         msg = "|".join(
             [
                 "SeriesGroupBy.sem called with numeric_only=True and dtype object",
-                "cum(sum|prod|min|max) is not supported for object dtype",
                 r"Cannot use numeric_only=True with SeriesGroupBy\..* and non-numeric",
             ]
         )

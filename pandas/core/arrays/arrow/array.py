@@ -4066,7 +4066,6 @@ class ArrowExtensionArray(
                 "prod",
                 "mean",
                 "median",
-                "cumsum",
                 "cumprod",
                 "std",
                 "sem",
