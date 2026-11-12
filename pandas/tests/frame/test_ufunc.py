@@ -112,6 +112,27 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_frame_equal(out, expected)
 
 
+# np.asarray makes "boolean" columns object dtype, which numpy rejects
+@pytest.mark.filterwarnings("ignore:'where' used without 'out':UserWarning")
+@pytest.mark.parametrize("dtype", ["bool", "boolean"])
+def test_ufunc_where_pandas_object(dtype):
+    # GH#60611 a DataFrame as `where` used to recurse infinitely
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    result = np.maximum(df, 0, where=(df > 0).astype(dtype))
+    tm.assert_frame_equal(result, df)
+
+    out = np.full((3, 2), -1.0)
+    result = np.maximum(df, 2.5, where=(df > 2).astype(dtype), out=out)
+    expected = pd.DataFrame({"a": [-1.0, -1.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    tm.assert_frame_equal(result, expected)
+
+    msg = "The ufunc 'where' argument must have the same axes as the inputs"
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(df, 0, where=df[["b", "a"]] > 0)
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(df, 0, where=tm.SubclassedDataFrame(df.iloc[::-1] > 0), out=out)
+
+
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
 def test_binary_input_aligns_columns(request, dtype_a, dtype_b):

@@ -292,6 +292,15 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     cls = type(self)
 
+    if kwargs.get("where") is self and not any(x is self for x in inputs):
+        # numpy tries a subclass first; defer so a pandas input checks the labels
+        if any(isinstance(x, NDFrame) for x in inputs):
+            return NotImplemented
+
+    result = dispatch_where_only_ufunc(self, ufunc, method, *inputs, **kwargs)
+    if result is not NotImplemented:
+        return result
+
     disallow_datetimelike_logical_ufunc(ufunc, inputs)
 
     kwargs = _standardize_out_kwarg(**kwargs)
@@ -407,6 +416,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             result = result.__finalize__(self)
         return result
 
+    if isinstance(kwargs.get("where"), ABCNDFrame):
+        kwargs["where"] = _unbox_where(kwargs["where"], reconstruct_axes)
+
     if "out" in kwargs:
         # e.g. test_multiindex_get_loc
         result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
@@ -468,6 +480,45 @@ def _standardize_out_kwarg(**kwargs) -> dict[str, Any]:
         out = (out1, out2)
         kwargs["out"] = out
     return kwargs
+
+
+def _unbox_where(where, axes: dict[str, Any]) -> np.ndarray:
+    """
+    Convert a Series or DataFrame passed as a ufunc's `where` to an ndarray.
+
+    It must be labeled identically to the (aligned) inputs; we raise rather
+    than guess between label-based and positional matching.
+    """
+    same_axes = where.ndim == len(axes) and all(
+        ax.equals(other) for ax, other in zip(where.axes, axes.values(), strict=True)
+    )
+    if not same_axes:
+        raise ValueError(
+            "The ufunc 'where' argument must have the same axes as the inputs"
+        )
+    return _where_to_ndarray(where)
+
+
+def _where_to_ndarray(where) -> np.ndarray:
+    arr = np.asarray(where)
+    if arr.dtype == object and lib.is_bool_array(arr.ravel()):
+        # e.g. a DataFrame of "boolean" columns, which numpy would reject
+        arr = arr.astype(bool)
+    return arr
+
+
+def dispatch_where_only_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Handle a ufunc that reached `self` only through its `where` argument.
+
+    numpy defers to a `where` that defines __array_ufunc__, so passing `self`
+    on unchanged would recurse (GH#60611). As a mask, `self` has no say in the
+    result type.
+    """
+    if kwargs.get("where") is not self or any(x is self for x in inputs):
+        return NotImplemented
+    kwargs["where"] = _where_to_ndarray(self)
+    return getattr(ufunc, method)(*inputs, **kwargs)
 
 
 def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
