@@ -96,6 +96,52 @@ def test_groupby_resample_on_api():
     tm.assert_frame_equal(result, expected)
 
 
+def test_resample_on_index_level_name():
+    # GH#19542 on= accepts an index level name, like level=
+    index = pd.MultiIndex.from_arrays(
+        [list("xxyyzz"), date_range("2020-01-01", periods=6, name="dt")],
+        names=["k", "dt"],
+    )
+    df = pd.DataFrame({"v": range(6)}, index=index)
+    result = df.resample("2D", on="dt").sum()
+    expected = df.resample("2D", level="dt").sum()
+    tm.assert_frame_equal(result, expected)
+
+    result = df["v"].resample("2D", on="dt").sum()
+    expected = df["v"].resample("2D", level="dt").sum()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("selection", ["v", ["v"]])
+def test_groupby_resample_on_index_level_name(selection):
+    # GH#19542
+    df = pd.DataFrame(
+        {"k": list("aabbcc"), "v": range(6)},
+        index=date_range("2020-01-01", periods=6, name="dt"),
+    )
+    result = df.groupby("k").resample("2D", on="dt")[selection].sum()
+    expected = df.groupby("k").resample("2D", level="dt")[selection].sum()
+    tm.assert_equal(result, expected)
+
+
+def test_groupby_resample_on_column_and_index_level_name():
+    # GH#19542 a column takes precedence over an index level of the same name,
+    # including after selecting from the resampler
+    df = pd.DataFrame(
+        {"k": list("aabbcc"), "dt": date_range("2021-03-01", periods=6), "v": range(6)}
+    )
+    df.index.name = "dt"
+    result = df.groupby("k").resample("2D", on="dt")["v"].sum()
+    expected = df.rename_axis(None).groupby("k").resample("2D", on="dt")["v"].sum()
+    tm.assert_series_equal(result, expected)
+
+    # selecting before resampling drops the column; the groups must not fall back
+    # to the index level
+    df.index = date_range("2000-01-01", periods=6, name="dt")
+    with pytest.raises(KeyError, match="The grouper name dt is not found"):
+        df.groupby("k")[["v"]].resample("2D", on="dt").sum()
+
+
 def test_resample_group_keys():
     df = pd.DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10, unit="ns"))
     expected = df.copy()

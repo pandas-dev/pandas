@@ -9495,8 +9495,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
         on : str, optional
-            For a DataFrame, column to use instead of index for resampling.
-            Column must be datetime-like. The ``on`` column is excluded from
+            For a DataFrame, column or index level to use instead of index for
+            resampling. Must be datetime-like. The ``on`` column is excluded from
             the result; to keep it, resample ``df.set_index(on, drop=False)``
             instead.
         level : str or int, optional

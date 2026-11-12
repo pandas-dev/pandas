@@ -3582,8 +3582,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         convention : {'start', 'end', 's', 'e'}, optional
             For ``PeriodIndex`` only. See :meth:`Series.resample`.
         on : str, optional
-            For a DataFrame, column to use instead of index for resampling.
-            Column must be datetime-like.
+            For a DataFrame, column or index level to use instead of index for
+            resampling. Must be datetime-like.
         origin : Timestamp or str, default 'start_day'
             The timestamp on which to adjust the grouping. See
             :meth:`Series.resample` for accepted string values.
