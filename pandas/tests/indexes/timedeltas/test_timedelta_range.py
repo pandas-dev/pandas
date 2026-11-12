@@ -130,6 +130,105 @@ class TestTimedeltas:
         assert pd.Timedelta(end) >= res[-1]
         assert len(res) == expected_periods
 
+    @pytest.mark.parametrize(
+        "inclusive, expected",
+        [
+            ("both", [1, 2, 3, 4]),
+            ("neither", [2, 3]),
+            ("left", [1, 2, 3]),
+            ("right", [2, 3, 4]),
+        ],
+    )
+    def test_timedelta_range_inclusive(self, inclusive, expected):
+        # GH#40245
+        result = pd.timedelta_range("1D", "4D", freq="D", inclusive=inclusive)
+        expected = pd.TimedeltaIndex(
+            pd.to_timedelta(expected, unit="D").as_unit("us"), freq="D"
+        )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("end", ["4D 12h", "1D"])
+    @pytest.mark.parametrize("periods", [None, 1, 4])
+    def test_timedelta_range_inclusive_matches_date_range(
+        self, inclusive_endpoints_fixture, end, periods
+    ):
+        # GH#40245 "4D 12h" is off the daily grid, so inclusive="left" must
+        #  keep "4D"; with periods the values are linearly spaced instead.
+        freq = "D" if periods is None else None
+        result = pd.timedelta_range(
+            "1D", end, periods, freq, inclusive=inclusive_endpoints_fixture
+        )
+        ts = pd.Timestamp("2000-01-01")
+        expected = pd.date_range(
+            ts + pd.Timedelta("1D"),
+            ts + pd.Timedelta(end),
+            periods,
+            freq,
+            inclusive=inclusive_endpoints_fixture,
+        )
+        tm.assert_index_equal(result + ts, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected",
+        [
+            ("both", ["1D"] * 3),
+            ("left", ["1D"]),
+            ("right", ["1D"]),
+            ("neither", ["1D"]),
+        ],
+    )
+    def test_timedelta_range_start_equal_end_periods(self, inclusive, expected):
+        # GH#40245 with start == end both ends are dropped unless inclusive="both",
+        #  as in date_range
+        result = pd.timedelta_range("1D", "1D", periods=3, inclusive=inclusive)
+        expected = pd.to_timedelta(expected).as_unit("us")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "start, end, inclusive, expected_len",
+        [
+            ("1D", "300D 7ns", "left", 1),
+            ("1D", "300D 7ns", "neither", 0),
+            ("300D 7ns", "301D", "right", 1),
+        ],
+    )
+    def test_timedelta_range_inclusive_linspace_rounding(
+        self, start, end, inclusive, expected_len
+    ):
+        # GH#40245 float64 rounding moves the first or last linspace value off
+        #  start/end, which must still be excluded
+        result = pd.timedelta_range(
+            start, end, periods=2, inclusive=inclusive, unit="ns"
+        )
+        assert len(result) == expected_len
+
+    @pytest.mark.parametrize(
+        "closed, inclusive", [(None, "both"), ("left", "left"), ("right", "right")]
+    )
+    def test_timedelta_range_closed_deprecated(self, closed, inclusive):
+        # GH#40245
+        expected = pd.timedelta_range("1D", "4D", inclusive=inclusive)
+        msg = "The 'closed' keyword in timedelta_range is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.timedelta_range("1D", "4D", closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # closed can still be passed positionally
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.timedelta_range("1D", "4D", None, None, None, closed)
+        tm.assert_index_equal(result, expected)
+
+    def test_timedelta_range_closed_and_inclusive_raises(self):
+        # GH#40245
+        msg = "Cannot pass both 'closed' and 'inclusive'"
+        with pytest.raises(TypeError, match=msg):
+            pd.timedelta_range("1D", "4D", closed="left", inclusive="left")
+
+    def test_timedelta_range_invalid_closed_raises(self):
+        msg = "Closed has to be either 'left', 'right' or None"
+        with pytest.raises(ValueError, match=msg):
+            pd.timedelta_range("1D", "4D", closed="both")
+
     def test_timedelta_range_infer_freq(self):
         # https://github.com/pandas-dev/pandas/issues/35897
         result = pd.timedelta_range("0s", "1s", periods=31)
