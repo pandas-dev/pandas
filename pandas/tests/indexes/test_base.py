@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
+import enum
 from functools import partial
 import math
 import operator
@@ -872,6 +873,37 @@ class TestIndex:
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
+
+    def test_drop_non_iterable_sequence_label(self):
+        # GH#11740 single labels that list() would iterate
+        class GetItemOnly:
+            def __getitem__(self, key):
+                raise IndexError
+
+        obj = GetItemOnly()
+        index = Index([obj, b"ab", 97, 98], dtype=object)
+
+        result = index.drop(obj)
+        tm.assert_index_equal(result, Index([b"ab", 97, 98], dtype=object))
+
+        result = index.drop(b"ab")
+        tm.assert_index_equal(result, Index([obj, 97, 98], dtype=object))
+
+        with pytest.raises(KeyError, match="not found in axis"):
+            index[1:].drop(obj)
+
+    def test_drop_enum_label(self):
+        # GH#11740 an Enum class drops its members; a member is one label
+        class Color(enum.Enum):
+            RED = 1
+            BLUE = 2
+
+        index = Index([Color.RED, Color.BLUE, "c"], dtype=object)
+        result = index.drop(Color)
+        tm.assert_index_equal(result, Index(["c"], dtype=object))
+
+        result = index.drop(Color.RED)
+        tm.assert_index_equal(result, Index([Color.BLUE, "c"], dtype=object))
 
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051

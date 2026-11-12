@@ -299,14 +299,19 @@ def index_labels_to_array(
     -------
     array
     """
-    if isinstance(labels, (str, tuple)):
+    if isinstance(labels, (str, bytes, tuple)):
         labels = [labels]
 
     if not isinstance(labels, (list, np.ndarray)):
-        try:
-            labels = list(labels)
-        except TypeError:  # non-iterable
+        if not hasattr(type(labels), "__iter__"):
+            # list() would iterate an object that only defines __getitem__,
+            #  GH#11740
             labels = [labels]
+        else:
+            try:
+                labels = list(labels)
+            except TypeError:  # non-iterable
+                labels = [labels]
 
     rlabels = asarray_tuplesafe(labels, dtype=dtype)
 
