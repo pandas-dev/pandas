@@ -402,7 +402,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         Nanosecond UTC offsets corresponding to DST transitions.
     is_fixed : bint
         True if this is a fixed-offset timezone with no transitions.
-    has_tz_tule : bint
+    has_tz_rule : bint
         Bool indicating if the tz has a "rule" attached describing transitions
         after the array of trans/deltas.
     """
@@ -629,7 +629,7 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
     start : tzinfo
     end : tzinfo
 
-    Returns:
+    Returns
     -------
     bool
     """
