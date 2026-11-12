@@ -7637,9 +7637,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             will only be partially filled. Must be greater than 0 if not None.
 
             A timedelta-like such as ``"2D"`` instead fills only the NaNs at
-            most this far from the observation they are filled from. This
-            requires a monotonic :class:`DatetimeIndex` or :class:`TimedeltaIndex`
-            along ``axis``.
+            most this far from the observation they are filled from. The
+            distance is absolute time, so ``"1D"`` is 24 hours even across a
+            DST transition. This requires a monotonic :class:`DatetimeIndex` or
+            :class:`TimedeltaIndex` along ``axis``.
 
             .. versionchanged:: 3.2.0
                 Accepts a timedelta-like.
@@ -7759,9 +7760,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             will only be partially filled. Must be greater than 0 if not None.
 
             A timedelta-like such as ``"2D"`` instead fills only the NaNs at
-            most this far from the observation they are filled from. This
-            requires a monotonic :class:`DatetimeIndex` or :class:`TimedeltaIndex`
-            along ``axis``.
+            most this far from the observation they are filled from. The
+            distance is absolute time, so ``"1D"`` is 24 hours even across a
+            DST transition. This requires a monotonic :class:`DatetimeIndex` or
+            :class:`TimedeltaIndex` along ``axis``.
 
             .. versionchanged:: 3.2.0
                 Accepts a timedelta-like.
