@@ -39,6 +39,30 @@ def test_reindex_level(idx):
         idx.reindex(idx, method="pad", level="second")
 
 
+@pytest.mark.parametrize(
+    "level, keys, expected_indexer",
+    [
+        (0, [82, 81], [2, 1, 3]),
+        (0, [81, 82], [1, 3, 2]),
+        (1, [82, 81], [2, 1, 3]),
+        (1, [81, 82], [1, 2, 3]),
+    ],
+)
+def test_reindex_level_with_nan(level, keys, expected_indexer):
+    # GH#60908
+    arrays = [[np.nan, 81, 82, 81], list("aaab")]
+    midx = pd.MultiIndex.from_arrays(arrays[::-1] if level else arrays)
+    keys = pd.Index(keys, dtype=np.float64)
+    result, indexer = midx.reindex(keys, level=level)
+
+    expected_indexer = np.array(expected_indexer, dtype=np.intp)
+    tm.assert_numpy_array_equal(indexer, expected_indexer)
+    tm.assert_index_equal(result, midx[expected_indexer], exact=False)
+    # same level dtype as without the NaN entry
+    expected_dtype = midx[1:].reindex(keys, level=level)[0].levels[level].dtype
+    assert result.levels[level].dtype == expected_dtype
+
+
 def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
     # GH6552
     idx = idx.copy()

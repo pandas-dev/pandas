@@ -5012,6 +5012,16 @@ class Index(IndexOpsMixin, PandasObject):
             right, how=how, return_indexers=True
         )
 
+        drop_missing = how in ("inner", "right")
+        if (
+            left_lev_indexer is None
+            and drop_missing
+            and (left.codes[level] == -1).any()
+        ):
+            # use the general path below, which drops the NaN entries
+            new_level = old_level
+            left_lev_indexer = np.arange(len(old_level), dtype=np.intp)
+
         if left_lev_indexer is None:
             if keep_order or len(left) == 0:
                 left_indexer = None
@@ -5025,8 +5035,8 @@ class Index(IndexOpsMixin, PandasObject):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
             old_codes = left.codes[level]
 
-            taker = old_codes[old_codes != -1]
-            new_lev_codes = rev_indexer.take(taker)
+            # NaN entries keep code -1, see GH#60908
+            new_lev_codes = algos.take_nd(rev_indexer, old_codes, fill_value=-1)
 
             new_codes = list(left.codes)
             new_codes[level] = new_lev_codes
@@ -5034,11 +5044,12 @@ class Index(IndexOpsMixin, PandasObject):
             new_levels = list(left.levels)
             new_levels[level] = new_level
 
-            if keep_order:  # just drop missing values. o.w. keep order
+            if keep_order:  # drop missing values for inner/right, keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
                 left_indexer = cast("np.ndarray", left_indexer)
+                # for left/outer, -1 can only be a NaN entry, which is kept
                 mask = new_lev_codes != -1
-                if not mask.all():
+                if drop_missing and not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
                     left_indexer = left_indexer[mask]
 
@@ -5075,7 +5086,10 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            right_indexer = right_lev_indexer.take(join_index.codes[level])
+            # fill_value so NaN entries don't wrap around to the last position
+            right_indexer = algos.take_nd(
+                right_lev_indexer, join_index.codes[level], fill_value=-1
+            )
         else:
             right_indexer = join_index.codes[level]
 

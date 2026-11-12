@@ -1277,3 +1277,15 @@ def test_arithmetic_mismatched_datetime_units(index):
     result2 = ser2 + ser
     expected2 = pd.Series([2, 4, 6], index=right)
     tm.assert_series_equal(result2, expected2)
+
+
+def test_series_arith_multiindex_nan_level_alignment():
+    # GH#60908
+    midx = pd.MultiIndex.from_arrays(
+        [[np.nan, 81, 81, 82], [np.nan, 1, 2, 1]], names=["foo", "bar"]
+    )
+    ser1 = pd.Series([1.0, 2.0, 3.0, 4.0], index=midx)
+    ser2 = pd.Series([10.0, 20.0, 30.0], index=pd.Index([82, 81, 83], name="foo"))
+    result = ser1 - ser2
+    expected = pd.Series([np.nan, -18.0, -17.0, -6.0], index=midx)
+    tm.assert_series_equal(result, expected)
