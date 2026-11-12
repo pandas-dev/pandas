@@ -380,12 +380,13 @@ def defer(
     either is copied before being stored, since the caller may modify its
     indexer afterwards.
     """
-    dtype = np.bool_ if positions.dtype == np.bool_ else np.intp
+    # without ``copy``, copy only to convert the dtype
+    copy_if = True if copy else None
     composed: npt.NDArray[np.intp] | npt.NDArray[np.bool_]
-    if copy:
-        composed = np.array(positions, dtype=dtype)
+    if positions.dtype == np.bool_:
+        composed = np.array(positions, dtype=np.bool_, copy=copy_if)
     else:
-        composed = np.asarray(positions, dtype=dtype)
+        composed = np.array(positions, dtype=np.intp, copy=copy_if)
     return _pending_or_empty(parent, composed)
 
 
