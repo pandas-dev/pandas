@@ -836,12 +836,12 @@ cdef class BaseMultiIndexCodesEngine:
         self.offsets = offsets
 
         # Transform labels in a single array, and add 2 so that we are working
-        # with positive integers. This enables us to
-        # differentiate between values that are missing in other and matching
-        # NaNs. We will set values that are not found to 0 later:
+        # with positive integers. This enables us to differentiate between
+        # values that are missing in other and matching NaNs. We will set
+        # values that are not found to 0 later:
         codes = np.array(labels).T
         # NA can be coded -1 or by an NA level entry (groupby with dropna=False);
-        # map both to that entry so the ints sort like the codes, see GH#60642
+        # map both to that entry, keeping groupby-coded NA in code order, see GH#60642
         self.level_na_codes = []
         for i, lev in enumerate(levels):
             if lev.hasnans:
