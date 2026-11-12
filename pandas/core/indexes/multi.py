@@ -3325,11 +3325,7 @@ class MultiIndex(Index):
         # raise for incomparable object levels rather than sort by position (GH#21136)
         for lev_num in level:
             lev_values = mi.levels[lev_num]
-            if (
-                lev_values.dtype == object
-                and not lev_values.is_monotonic_increasing
-                and not lev_values.is_monotonic_decreasing
-            ):
+            if lev_values.dtype == object and not lev_values.is_monotonic_increasing:
                 lev_values.argsort()
 
         codes = [mi.codes[lev] for lev in level]
