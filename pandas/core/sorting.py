@@ -28,6 +28,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.algorithms import is_monotonic
 from pandas.core.construction import extract_array
 from pandas.core.nanops import warn_complex_unordered
 
@@ -469,12 +470,22 @@ def nargsort(
     non_nan_idx = idx[~mask]
 
     nan_idx = np.nonzero(mask)[0]
-    if not ascending:
-        non_nans = non_nans[::-1]
-        non_nan_idx = non_nan_idx[::-1]
-    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
-    if not ascending:
-        indexer = indexer[::-1]
+    try:
+        inc, dec, _ = is_monotonic(non_nans)
+    except (TypeError, ValueError):
+        # e.g. complex, mixed-type object or non-native byte order; let argsort decide
+        inc = dec = False
+    if (ascending and inc) or (not ascending and dec):
+        # Already sorted: keep ties in order for every kind, as
+        #  Index.sort_values does, GH#59092
+        indexer = non_nan_idx
+    else:
+        if not ascending:
+            non_nans = non_nans[::-1]
+            non_nan_idx = non_nan_idx[::-1]
+        indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+        if not ascending:
+            indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to
     # na_position
     if na_position == "last":

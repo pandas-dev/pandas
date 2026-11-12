@@ -231,11 +231,11 @@ class TestDataFrameSortValues:
     def test_sort_values_stable_descending_sort(self):
         # GH#6399
         df = pd.DataFrame(
-            [[2, "first"], [2, "second"], [1, "a"], [1, "b"]],
+            [[1, "a"], [2, "first"], [1, "b"], [2, "second"]],
             columns=["sort_col", "order"],
         )
         sorted_df = df.sort_values(by="sort_col", kind="mergesort", ascending=False)
-        tm.assert_frame_equal(df, sorted_df)
+        tm.assert_frame_equal(sorted_df, df.iloc[[1, 3, 0, 2]])
 
     @pytest.mark.parametrize(
         "expected_idx_non_na, ascending",
@@ -284,10 +284,9 @@ class TestDataFrameSortValues:
 
     def test_sort_values_stable_categorical(self):
         # GH#16793
-        df = pd.DataFrame(
-            {"x": pd.Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)}
-        )
-        expected = df.copy()
+        codes = np.tile([4, 3, 2, 1], 5)
+        df = pd.DataFrame({"x": pd.Categorical(codes, ordered=True)})
+        expected = df.iloc[np.argsort(codes, kind="stable")]
         sorted_df = df.sort_values("x", kind="mergesort")
         tm.assert_frame_equal(sorted_df, expected)
 
