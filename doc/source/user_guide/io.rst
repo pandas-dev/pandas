@@ -6358,8 +6358,7 @@ Currently the ``index`` is retrieved as a column.
 
 The parameter ``convert_categoricals`` indicates whether value labels should be
 read and used to create a ``Categorical`` variable from them. Value labels can
-also be retrieved by the function ``value_labels``, which requires :meth:`~pandas.api.typing.StataReader.read`
-to be called before use.
+also be retrieved by the :meth:`~pandas.io.stata.StataReader.value_labels` method.
 
 The parameter ``convert_missing`` indicates whether missing value
 representations in Stata should be preserved.  If ``False`` (the default),
