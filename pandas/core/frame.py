@@ -7783,8 +7783,8 @@ class DataFrame(NDFrame, OpsMixin):
             .. deprecated:: 3.2.0
 
                 Passing arrays (:class:`Series`, :class:`Index`, ``np.ndarray``,
-                ``list``, or :class:`~collections.abc.Iterator`) as or within
-                ``keys`` is deprecated. Use :meth:`DataFrame.set_axis` instead,
+                nested ``list``, or :class:`~collections.abc.Iterator`) as or
+                within ``keys`` is deprecated. Use :meth:`DataFrame.set_axis` instead,
                 or add the array as a column with :meth:`DataFrame.assign` and
                 pass its label.
         drop : bool, default True
@@ -7939,11 +7939,11 @@ class DataFrame(NDFrame, OpsMixin):
         if has_arrays:
             # GH#58631
             warnings.warn(
-                "Passing arrays (Series, Index, np.ndarray, list, or iterator) as "
-                "'keys' to DataFrame.set_index is deprecated and will raise in a "
-                "future version. Use DataFrame.set_axis to set the index from an "
-                "array, or add the array as a column with DataFrame.assign and "
-                "pass its label.",
+                "Passing arrays (Series, Index, np.ndarray, nested list, or "
+                "iterator) as 'keys' to DataFrame.set_index is deprecated and will "
+                "raise in a future version. Use DataFrame.set_axis to set the index "
+                "from an array, or add the array as a column with DataFrame.assign "
+                "and pass its label.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )

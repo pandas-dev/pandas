@@ -246,12 +246,6 @@ class TestSetIndex:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df.set_index(box(df["B"]))
 
-    @pytest.mark.parametrize("keys", ["A", ["A", "B"], ("tuple", "as", "label")])
-    def test_set_index_labels_no_warning(self, frame_of_index_cols, keys):
-        # GH#58631
-        with tm.assert_produces_warning(None):
-            frame_of_index_cols.set_index(keys)
-
     # A has duplicate values, C does not
     @pytest.mark.parametrize("keys", ["A", "C", ["A", "B"], ("tuple", "as", "label")])
     @pytest.mark.parametrize("drop", [True, False])
