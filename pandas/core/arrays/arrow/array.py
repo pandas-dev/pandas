@@ -598,7 +598,7 @@ def _select(
     once, which is much faster than ``take`` for a mask that keeps most rows.
     """
     if selection.dtype == np.bool_:
-        return _filter(parent, selection)
+        return _filter(parent, cast("npt.NDArray[np.bool_]", selection))
     # a step slice of a deferred take leaves a strided view, which pa.array
     # must copy, and copies more slowly than NumPy (for 1.7M positions,
     # 2.9 ms against 1.7 ms); a contiguous array is used without a copy
