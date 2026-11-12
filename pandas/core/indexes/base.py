@@ -7874,7 +7874,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _unary_method(self, op: Callable[..., Any]) -> Index:
-        result = op(self._values)
+        result = ops.unary_op(self._values, op)
         return Index(result, name=self.name, copy=False)
 
     def __abs__(self) -> Index:
@@ -7888,7 +7888,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __invert__(self) -> Index:
         # GH#8875
-        return self._unary_method(operator.inv)
+        # error: Unsupported operand type for ~ ("ExtensionArray | ndarray[...]")
+        result = ~self._values  # type: ignore[operator]
+        return Index(result, name=self.name, copy=False)
 
     # --------------------------------------------------------------------
     # Reductions
