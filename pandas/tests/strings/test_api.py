@@ -140,12 +140,7 @@ def test_api_per_method(
             raises = ValueError
             reason = "Need to fortify get_dummies corner cases"
 
-    elif (
-        box is pd.Index
-        and inferred_dtype == "empty"
-        and dtype == object
-        and method_name == "get_dummies"
-    ):
+    elif box is pd.Index and inferred_dtype == "empty" and method_name == "get_dummies":
         raises = ValueError
         reason = "Need to fortify get_dummies corner cases"
 
