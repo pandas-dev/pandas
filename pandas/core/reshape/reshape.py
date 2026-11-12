@@ -512,10 +512,19 @@ def _unstack_multiple(
     rcodes = [index.codes[i] for i in rlocs]
     rnames = [index.names[i] for i in rlocs]
 
+    # GH#9514 order the new columns by value. Not done when unstacking every
+    #  level: the dummy Index below must then stay in row order.
+    sort_columns = sort and bool(rlocs)
+    if sort_columns:
+        cindex = MultiIndex(
+            levels=clevels, codes=ccodes, verify_integrity=False
+        )._sort_levels_monotonic()
+        clevels, ccodes = list(cindex.levels), list(cindex.codes)
+
     shape = tuple(len(x) for x in clevels)
     group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
 
-    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
+    comp_ids, obs_ids = compress_group_index(group_index, sort=sort_columns)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
     if not rlocs:

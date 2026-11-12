@@ -152,13 +152,13 @@ def test_pivot_list_like_index(
             ["lev3", "lev4"],
             "values",
             [
-                [0.0, 1.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-                [np.nan, np.nan, 2.0, 3.0, np.nan, np.nan, np.nan, np.nan],
-                [np.nan, np.nan, np.nan, np.nan, 4.0, 5.0, np.nan, np.nan],
-                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 6.0, 7.0],
+                [0.0, np.nan, np.nan, np.nan, 1.0, np.nan, np.nan, np.nan],
+                [np.nan, 2.0, np.nan, np.nan, np.nan, 3.0, np.nan, np.nan],
+                [np.nan, np.nan, 4.0, np.nan, np.nan, np.nan, 5.0, np.nan],
+                [np.nan, np.nan, np.nan, 6.0, np.nan, np.nan, np.nan, 7.0],
             ],
             pd.MultiIndex.from_tuples(
-                [(1, 1), (2, 2), (1, 3), (2, 4), (1, 5), (2, 6), (1, 7), (2, 8)],
+                [(1, 1), (1, 3), (1, 5), (1, 7), (2, 2), (2, 4), (2, 6), (2, 8)],
                 names=["lev3", "lev4"],
             ),
             pd.MultiIndex.from_tuples(

@@ -2524,6 +2524,50 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dropna, columns, values",
+        [
+            (
+                True,
+                [("y", "q"), ("x", "p"), ("y", "p"), ("x", "q")],
+                [[1, 0, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4], [0, 2, 0, 0]],
+            ),
+            (
+                False,
+                [("y", "q"), ("y", "p"), ("x", "q"), ("x", "p")],
+                [[1, 0, 0, 0], [0, 3, 0, 0], [0, 0, 4, 0], [0, 0, 0, 2]],
+            ),
+        ],
+    )
+    def test_pivot_table_sort_false_multiple_columns(self, dropna, columns, values):
+        # GH#9514 sorting the columns of unstack must not leak into sort=False
+        df = pd.DataFrame(
+            {
+                "r1": [2, 1, 2, 1],
+                "r2": ["m", "j", "j", "m"],
+                "a": ["y", "x", "y", "x"],
+                "b": ["q", "p", "p", "q"],
+                "v": [1, 2, 3, 4],
+            }
+        )
+        result = df.pivot_table(
+            index=["r1", "r2"],
+            columns=["a", "b"],
+            values="v",
+            aggfunc="sum",
+            sort=False,
+            dropna=dropna,
+            fill_value=0,
+        )
+        expected = pd.DataFrame(
+            values,
+            index=pd.MultiIndex.from_tuples(
+                [(2, "m"), (2, "j"), (1, "m"), (1, "j")], names=["r1", "r2"]
+            ),
+            columns=pd.MultiIndex.from_tuples(columns, names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_nullable_margins(self):
         # GH#48681
         df = pd.DataFrame(
