@@ -1541,13 +1541,28 @@ def test_select_dtypes_numpy_name_string_deprecated_only_if_result_changes():
     tm.assert_frame_equal(result, df[["masked", "float"]])
 
 
-def test_select_dtypes_numpy_name_string_bool_deprecated():
-    # GH#52576
-    df = pd.DataFrame({"np": [True, False], "masked": pd.array([True, False])})
-    with tm.assert_produces_warning(Pandas4Warning, match="dtype boolean"):
-        result = df.select_dtypes(include="bool")
-    tm.assert_frame_equal(result, df)
-    tm.assert_frame_equal(df.select_dtypes(include=bool), df)
+@pytest.mark.parametrize(
+    "spec, values, ea_dtype",
+    [
+        ("bool", [True, False], "boolean"),
+        (b"bool", [True, False], "boolean"),
+        ("complex", [1j, 2j], pd.SparseDtype(complex)),
+        ("int", [1, 2], "Int64"),
+        (b"float", [1.0, 2.0], "Float64"),
+    ],
+)
+def test_select_dtypes_builtin_name_string_not_deprecated(spec, values, ea_dtype):
+    # GH#52576: builtin type names keep selecting the whole family
+    df = pd.DataFrame(
+        {
+            "np": np.array(values),
+            "ea": pd.array(values, dtype=ea_dtype),
+            "other": pd.Series(["a", "b"], dtype=object),
+        }
+    )
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df[["np", "ea"]])
 
 
 def test_select_dtypes_numpy_name_string_arrow_deprecated():
@@ -1570,7 +1585,7 @@ def test_select_dtypes_numpy_name_string_arrow_deprecated():
     [
         ("uint8", "UInt8"),
         ("float32", "Float32"),
-        ("bool", pd.SparseDtype(bool)),
+        ("complex128", pd.SparseDtype("complex128")),
         ("float64", pd.SparseDtype("float64", 0.0)),
         ("int64", pd.SparseDtype("int64", 5)),
     ],
@@ -1597,24 +1612,26 @@ def test_select_dtypes_numpy_name_string_deprecated_include_and_exclude():
     df = pd.DataFrame(
         {
             "i": pd.array([1, 2], "Int64"),
-            "b": pd.array([True, False]),
+            "f": pd.array([1.0, 2.0], "Float32"),
             "n": np.array([1, 2], dtype="int64"),
         }
     )
-    with tm.assert_produces_warning(Pandas4Warning, match="'int64', 'bool'"):
-        result = df.select_dtypes(include=["int64", "boolean"], exclude=["bool"])
+    with tm.assert_produces_warning(Pandas4Warning, match="'int64', 'float32'"):
+        result = df.select_dtypes(include=["int64", "Float32"], exclude=["float32"])
     tm.assert_frame_equal(result, df[["i", "n"]])
-    result = df.select_dtypes(include=[np.int64, "boolean"], exclude=[np.bool_])
+    result = df.select_dtypes(include=[np.int64, "Float32"], exclude=[np.float32])
     tm.assert_frame_equal(result, df[["i", "n"]])
 
 
 def test_select_dtypes_numpy_name_string_deprecated_numpy_alias():
     # GH#52576: "longlong" names a type distinct from np.int64 but compares
-    # equal to int64, so it selects the int64 column only in the future
+    # equal to int64, so it selects the int64 column only in the future; the
+    # warning offers no way to keep the current, empty selection
     df = pd.DataFrame({"i8": np.array([1, 2], dtype=np.int64), "f8": [1.0, 2.0]})
     if np.dtype("longlong") != np.dtype("int64") or np.longlong is np.int64:
         pytest.skip("longlong is not a distinct int64 type on this platform")
-    with tm.assert_produces_warning(Pandas4Warning, match="'longlong'"):
+    msg = r"pass np\.dtype\('int64'\) instead of 'longlong'\.$"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = df.select_dtypes(include="longlong")
     tm.assert_frame_equal(result, df[[]])
     tm.assert_frame_equal(df.select_dtypes(include=np.dtype("longlong")), df[["i8"]])
@@ -1652,37 +1669,42 @@ def test_select_dtypes_numpy_name_string_deprecated_advice_per_spec():
     df = pd.DataFrame(
         {
             "i": pd.array([1, 2], "Int64"),
-            "b": pd.array([True, False]),
+            "f": pd.array([1.0, 2.0], "Float32"),
             "ts": pd.array(dti, dtype=pd.ArrowDtype(pa.timestamp("us"))),
             "n": [1, 2],
         }
     )
-    spec = ["int64", "bool", "datetime64[us]"]
+    spec = ["int64", "float32", "datetime64[us]"]
     msg = (
-        r"pass np\.dtype\('int64'\) instead of 'int64', np\.dtype\('bool'\) "
-        r"instead of 'bool', np\.dtype\('datetime64\[us\]'\) "
+        r"pass np\.dtype\('int64'\) instead of 'int64', np\.dtype\('float32'\) "
+        r"instead of 'float32', np\.dtype\('datetime64\[us\]'\) "
         r"instead of 'datetime64\[us\]'; "
-        r"to keep the current one, pass np\.int64 instead of 'int64', np\.bool_? "
-        r"instead of 'bool', \['timestamp\[us\]\[pyarrow\]'\] alongside "
+        r"to keep the current one, pass np\.int64 instead of 'int64', np\.float32 "
+        r"instead of 'float32', \['timestamp\[us\]\[pyarrow\]'\] alongside "
         r"'datetime64\[us\]'\.$"
     )
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = df.select_dtypes(include=spec)
     tm.assert_frame_equal(result, df)
-    keep = [np.int64, np.bool_, "datetime64[us]", "timestamp[us][pyarrow]"]
+    keep = [np.int64, np.float32, "datetime64[us]", "timestamp[us][pyarrow]"]
     tm.assert_frame_equal(df.select_dtypes(include=keep), df)
-    adopt = [np.dtype("int64"), np.dtype("bool"), np.dtype("datetime64[us]")]
+    adopt = [np.dtype("int64"), np.dtype("float32"), np.dtype("datetime64[us]")]
     tm.assert_frame_equal(df.select_dtypes(include=adopt), df[["n"]])
 
 
-def test_select_dtypes_bytes_datetime_unit_spec():
-    # GH#52576: a bytes spec is not deprecated and must not break the check
-    pa = pytest.importorskip("pyarrow")
-    dti = pd.date_range("2020", periods=2, unit="us")
-    df = pd.DataFrame(
-        {"np": dti, "ts": pd.array(dti, dtype=pd.ArrowDtype(pa.timestamp("us")))}
-    )
-    tm.assert_frame_equal(df.select_dtypes(include=[b"M8[us]"]), df)
+@pytest.mark.parametrize(
+    "spec, ea_dtype", [(b"int64", "Int64"), (b"M8[us]", "timestamp[us][pyarrow]")]
+)
+def test_select_dtypes_numpy_name_bytes_deprecated(spec, ea_dtype):
+    # GH#52576: bytes specs are deprecated like their str spellings
+    if ea_dtype.endswith("[pyarrow]"):
+        pytest.importorskip("pyarrow")
+    values = np.array([1, 2], dtype=spec.decode())
+    df = pd.DataFrame({"np": values, "ea": pd.array(values, dtype=ea_dtype)})
+    msg = f"instead of '{re.escape(spec.decode())}'"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=[spec])
+    tm.assert_frame_equal(result, df)
 
 
 def test_select_dtypes_numpy_name_string_deprecated_names_changed_specs_only():

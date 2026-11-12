@@ -5555,7 +5555,9 @@ class DataFrame(NDFrame, OpsMixin):
           nullable, pyarrow-backed, and sparse columns of that type. This is
           deprecated: in a future version it will select only that numpy
           dtype, as ``np.dtype('int64')`` does now. Pass the numpy type
-          ``np.int64`` to keep selecting every ``int64`` column
+          ``np.int64`` to keep selecting every ``int64`` column. The builtin
+          type names ``'int'``, ``'float'``, ``'bool'``, and ``'complex'``
+          keep selecting every column of their type
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5929,6 +5931,16 @@ class DataFrame(NDFrame, OpsMixin):
                                     resolved.add(type(pdtype))
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
                                 continue
+                            # the string or bytes spec whose match is
+                            # deprecated below (GH#52576)
+                            spec_name = None
+                            if isinstance(dtype, bytes):
+                                spec_name = dtype.decode()
+                            elif isinstance(dtype, str):
+                                spec_name = str(dtype)
+                            if spec_name in ("int", "float", "bool", "complex"):
+                                # builtin type names keep matching the family
+                                spec_name = None
                             if lib.is_np_dtype(pdtype, "mM"):
                                 # a unitless datetime64/timedelta64 falls
                                 # through to a family match on pdtype.type
@@ -5947,20 +5959,20 @@ class DataFrame(NDFrame, OpsMixin):
                                     resolved.add(pdtype)
                                     # GH#52576: ArrowDtype columns match a
                                     # string spec too, deprecated
-                                    exact = future and isinstance(dtype, str)
-                                    if isinstance(dtype, str):
-                                        legacy_specs.append(str(dtype))
+                                    exact = future and spec_name is not None
+                                    if spec_name is not None:
+                                        legacy_specs.append(spec_name)
                                     (ea_funcs if exact else funcs).append(
                                         matches_np_dtype(pdtype)
                                     )
                                     continue
-                            if isinstance(dtype, str) and lib.is_np_dtype(
+                            if spec_name is not None and lib.is_np_dtype(
                                 pdtype, "biufc"
                             ):
                                 # GH#52576: deprecated, a string naming a numpy
                                 # dtype matches every dtype with its
                                 # ``dtype.type`` (e.g. "int64" matches Int64)
-                                legacy_specs.append(str(dtype))
+                                legacy_specs.append(spec_name)
                                 if future:
                                     resolved.add(pdtype.type)
                                     ea_funcs.append(
@@ -6114,7 +6126,7 @@ class DataFrame(NDFrame, OpsMixin):
                     for spec in dict.fromkeys(include_legacy + exclude_legacy)
                 }
                 flips = {
-                    spec: [str(dt) for dt in changed if now(dt) != future(dt)]
+                    spec: [dt for dt in changed if now(dt) != future(dt)]
                     for spec, (now, future) in matchers.items()
                 }
                 specs = [spec for spec, dts in flips.items() if dts]
@@ -6122,13 +6134,21 @@ class DataFrame(NDFrame, OpsMixin):
                 for spec in specs:
                     np_dtype = pandas_dtype(spec)
                     adopt.append(f"np.dtype({np_dtype.name!r}) instead of {spec!r}")
+                    if all(isinstance(dt, np.dtype) for dt in flips[spec]):
+                        # e.g. "longlong" selects no int64 column today; that is
+                        # a bug, not a behavior to keep
+                        continue
                     if np_dtype.kind in "mM":
                         # only ArrowDtype columns change here, and their names
                         # are valid specs
-                        keep.append(f"{flips[spec]} alongside {spec!r}")
+                        flipped = [str(dt) for dt in flips[spec]]
+                        keep.append(f"{flipped} alongside {spec!r}")
                     else:
                         # a numpy type spec keeps matching by ``dtype.type``
                         keep.append(f"np.{np_dtype.type.__name__} instead of {spec!r}")
+                advice = f"To adopt the future behavior, pass {', '.join(adopt)}"
+                if keep:
+                    advice += f"; to keep the current one, pass {', '.join(keep)}"
                 dtypes = ", ".join(dict.fromkeys(str(dt) for dt in changed))
                 warnings.warn(
                     "select_dtypes matches the numpy dtype name(s) "
@@ -6136,8 +6156,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "type. In a future version a numpy dtype name will match "
                     "only that exact dtype, as a dtype instance does now, "
                     f"changing the selection of columns with dtype {dtypes}. "
-                    f"To adopt the future behavior, pass {', '.join(adopt)}; "
-                    f"to keep the current one, pass {', '.join(keep)}.",
+                    f"{advice}.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
