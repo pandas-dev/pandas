@@ -7888,6 +7888,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __invert__(self) -> Index:
         # GH#8875
+        # bypass _unary_method so ~ still raises on object values with None
         # error: Unsupported operand type for ~ ("ExtensionArray | ndarray[...]")
         result = ~self._values  # type: ignore[operator]
         return Index(result, name=self.name, copy=False)
