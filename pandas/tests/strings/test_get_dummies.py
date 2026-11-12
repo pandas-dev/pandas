@@ -118,3 +118,14 @@ def test_get_dummies_literal_separator_index():
         [(1, 1), (0, 1), (1, 0)], names=["On site", "Remote"]
     )
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("categorical", [False, True])
+def test_get_dummies_empty_separator(any_string_dtype, categorical):
+    # GH#70811
+    s = pd.Series(["ab", "a"], dtype=any_string_dtype)
+    if categorical:
+        s = s.astype("category")
+
+    with pytest.raises(ValueError, match="[Ee]mpty separator"):
+        s.str.get_dummies(sep="")
