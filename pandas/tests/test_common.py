@@ -4,6 +4,7 @@ import operator
 import string
 import subprocess
 import sys
+import textwrap
 
 import numpy as np
 import pytest
@@ -196,11 +197,49 @@ def test_version_tag():
         ) from err
 
 
-@pytest.mark.parametrize("obj", [obj for obj in pd.__dict__.values() if callable(obj)])
+# getattr, not pd.__dict__.values(): PEP 810 lazy imports leave non-callable proxies
+@pytest.mark.parametrize(
+    "obj", [obj for obj in (getattr(pd, name) for name in dir(pd)) if callable(obj)]
+)
 def test_serializable(obj, temp_file):
     # GH 35611
     unpickled = tm.round_trip_pickle(obj, temp_file)
     assert type(obj) == type(unpickled)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [(("a1", "a2"), ("b1", "b2"))],
+        [((1, 2), (3, 4)), ((5, 6), (7, 8))],
+        [(((1, 2), (3, 4)), ((5, 6), (7, 8)))],
+        (((1, 2), (3, 4)),),
+    ],
+)
+@pytest.mark.parametrize("dtype", [None, "object"])
+def test_asarray_tuplesafe_nested_tuples(values, dtype):
+    # GH#43780
+    result = com.asarray_tuplesafe(values, dtype=dtype)
+    expected = np.empty(len(values), dtype=object)
+    for i, val in enumerate(values):
+        expected[i] = val
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        (np.zeros((1, 2, 2)), None),
+        (np.zeros((0, 2, 2)), None),
+        ([np.zeros((2, 2))], None),
+        ([[[1, 2], [3, 4]]], None),
+        ([((1, 2), (3, 4))], "float64"),
+    ],
+)
+def test_asarray_tuplesafe_nd_not_nested_tuples(values, dtype):
+    # GH#43780 other >2D inputs, and a non-object dtype, keep the N-D result
+    result = com.asarray_tuplesafe(values, dtype=dtype)
+    tm.assert_numpy_array_equal(result, np.asarray(values, dtype=dtype))
 
 
 class TestIsBoolIndexer:
@@ -280,6 +319,36 @@ def test_str_size():
     ]
     result = subprocess.check_output(call).decode()[-4:-1].strip("\n")
     assert int(result) == int(expected)
+
+
+@pytest.mark.skipif(WASM, reason="Can't start subprocesses in WASM")
+@pytest.mark.parametrize("lazy_imports", ["normal", "all"])
+def test_import_initializes_c_apis_and_options(lazy_imports):
+    # GH#71173
+    if lazy_imports == "all" and not hasattr(sys, "set_lazy_imports"):
+        pytest.skip("Python does not support lazy imports")
+
+    code = textwrap.dedent(
+        """
+        import importlib
+        import pandas as pd
+
+        importlib.import_module("pandas._libs")
+        assert "pandas" not in vars(pd)
+        assert "pandas" not in vars(pd._libs)
+        assert type(pd._pandas_datetime_CAPI).__name__ == "PyCapsule"
+        assert type(pd._pandas_parser_CAPI).__name__ == "PyCapsule"
+        assert isinstance(pd.get_option("display.max_rows"), int)
+        """
+    )
+    result = subprocess.run(
+        [sys.executable, "-X", f"lazy_imports={lazy_imports}", "-c", code],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_is_setitem_syntax_in_caller_frame():

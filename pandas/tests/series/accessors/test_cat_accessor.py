@@ -21,6 +21,7 @@ class TestCatAccessor:
             lambda x: x.cat.add_categories([4]),
             lambda x: x.cat.as_ordered(),
             lambda x: x.cat.as_unordered(),
+            lambda x: x.cat.to_dense(),
         ],
     )
     def test_getname_categorical_accessor(self, method):
@@ -29,6 +30,23 @@ class TestCatAccessor:
         expected = "A"
         result = method(ser).name
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "categories",
+        [pd.Index([1, 2], dtype="Int64"), pd.Index(["a", "b"], dtype=object)],
+    )
+    def test_cat_accessor_to_dense(self, categories):
+        # GH#26410
+        cat = pd.Categorical.from_codes([0, 1, -1, 0], categories=categories)
+        ser = pd.Series(cat, index=list("abcd"), name="A")
+        result = ser.cat.to_dense()
+        expected = pd.Series(
+            [categories[0], categories[1], np.nan, categories[0]],
+            index=list("abcd"),
+            name="A",
+            dtype=categories.dtype,
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_cat_accessor(self):
         ser = pd.Series(pd.Categorical(["a", "b", np.nan, "a"]))

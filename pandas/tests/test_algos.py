@@ -1031,6 +1031,29 @@ class TestIsin:
         exp = np.array([True, False, False], dtype=bool)
         tm.assert_numpy_array_equal(res, exp)
 
+    @pytest.mark.parametrize(
+        "cls",
+        [
+            pd.Timestamp,
+            pd.Timedelta,
+            pd.Period,
+            pd.Interval,
+            type(pd.NaT),
+            pd.offsets.Day,
+            pd.DateOffset,
+        ],
+    )
+    def test_isin_scalar_classes(self, cls):
+        # GH#31080 the classes themselves, not instances
+        comps = np.array([cls, object], dtype=object)
+        expected = np.array([True, False])
+
+        result = np.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])
@@ -1241,9 +1264,8 @@ class TestIsin:
 
     @pytest.mark.parametrize("dtype", ["float32", "complex128"])
     def test_isin_mixed_int_float_targets_no_precision_loss(self, dtype):
-        # GH#46485: a mixed int/float targets list is cast to float64 by
-        # _ensure_arraylike, rounding 2**53 + 1 before the exact-range check
-        # can see it; we must still object-cast and compare exactly.
+        # GH#46485: 2**53 + 1 in a mixed int/float targets list must not be
+        # rounded to 2**53 by a float64 cast.
         ser = pd.Series([2**53], dtype="int64").astype(dtype)
         result = ser.isin([2**53 + 1, 1.5])
         expected = pd.Series([False])

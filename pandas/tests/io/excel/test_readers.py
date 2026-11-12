@@ -223,9 +223,9 @@ class TestReaders:
 
         tm.assert_frame_equal(df1, df2)
 
-        for idx, row in df2.iterrows():
+        for idx in range(len(df2)):
             for col in df2.columns:
-                val = row[col]
+                val = df2.iloc[idx][col]
                 exp_val = df1.iloc[idx][col]
                 # Check if values match
                 assert val == exp_val, (
@@ -754,6 +754,72 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.parametrize("values", [[741528, "IPECL3"], ["IPECL3", 741528]])
+    def test_dtype_backend_pyarrow_mixed_types(self, read_ext, tmp_excel, values):
+        # GH#63830
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        pytest.importorskip("pyarrow")
+
+        df = pd.DataFrame({"a": [1, 2], "b": values})
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(tmp_excel, sheet_name="test", dtype_backend="pyarrow")
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="int64[pyarrow]"),
+                "b": pd.Series(values, dtype=object),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_dtype_backend_numpy_nullable_mixed_types(self, read_ext, tmp_excel):
+        # GH#63830
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df = pd.DataFrame(
+            {
+                "m1": [1, "a"],
+                "m2": ["a", 1],
+            }
+        )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
+        )
+        expected = pd.DataFrame(
+            {
+                "m1": pd.Series([1, "a"], dtype=object),
+                "m2": pd.Series(["a", 1], dtype=object),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_dtype_backend_numpy_nullable_time(self, read_ext, tmp_excel):
+        # GH#63830
+        # A to_excel round-trip cannot test time preservation: the Excel
+        #  writer stringifies datetime.time, so the file would contain
+        #  strings, not time cells. Write real time cells instead.
+        if read_ext != ".xlsx":
+            pytest.skip("Real time cells only tested for .xlsx")
+        openpyxl = pytest.importorskip("openpyxl")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "test"
+        ws.append(["t"])
+        ws.append([time(1, 2)])
+        ws.append([time(3, 4)])
+        wb.save(tmp_excel)
+
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
+        )
+        expected = pd.DataFrame(
+            {"t": pd.Series([time(1, 2), time(3, 4)], dtype=object)}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -1216,6 +1282,29 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
     @pytest.mark.parametrize(
+        "sheet_name,index_col,skiprows",
+        [
+            ("mi_column", 0, None),
+            ("both", [0, 1], None),
+            ("both_name", [0, 1], None),
+            ("both_name_skiprows", [0, 1], 2),
+        ],
+    )
+    def test_read_excel_multiindex_header_not_increasing(
+        self, read_ext, sheet_name, index_col, skiprows
+    ):
+        # GH#47011
+        kwargs = {
+            "sheet_name": sheet_name,
+            "index_col": index_col,
+            "skiprows": skiprows,
+        }
+        mi_file = "testmultiindex" + read_ext
+        result = pd.read_excel(mi_file, header=[1, 0], **kwargs)
+        expected = pd.read_excel(mi_file, header=[0, 1], **kwargs).swaplevel(axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "sheet_name,idx_lvl2",
         [
             ("both_name_blank_after_mi_name", [np.nan, "b", "a", "b"]),
@@ -1265,6 +1354,20 @@ class TestReaders:
 
         exp_columns = pd.MultiIndex.from_product([("A", "B"), ("key", "val")])
         expected = pd.DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_excel_multiindex_header_index_col_consumes_all_columns(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#66372
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        pd.DataFrame({"A": ["A1", "A2"]}).to_excel(tmp_excel, index=False, header=False)
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0, engine=engine)
+        expected = pd.DataFrame(
+            index=pd.Index([], dtype=object), columns=pd.Index([], dtype=object)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_excel_old_index_format(self, read_ext):
@@ -1459,6 +1562,7 @@ class TestReaders:
         "filename,sheet_name,header,index_col,skiprows",
         [
             ("testmultiindex", "mi_column", [0, 1], 0, None),
+            ("testmultiindex", "mi_column", [1, 0], 0, None),
             ("testmultiindex", "mi_index", None, [0, 1], None),
             ("testmultiindex", "both", [0, 1], [0, 1], None),
             ("testmultiindex", "mi_column_name", [0, 1], 0, None),

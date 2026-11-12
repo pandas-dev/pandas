@@ -35,7 +35,9 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    get_supported_dtype,
     is_supported_dtype,
+    is_unitless,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -49,6 +51,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
+    validate_min_count,
 )
 
 from pandas.core.dtypes.astype import astype_array
@@ -107,6 +110,7 @@ from pandas.core.nanops import (
     check_below_min_count,
     dt64_any_all_msg,
     na_accum_func,
+    warn_complex_unordered,
 )
 from pandas.core.ops.array_ops import (
     arithmetic_op,
@@ -900,6 +904,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sanitize_array(data, index=None),  # type: ignore[arg-type]
             dtype=dtype,  # type: ignore[arg-type]
         )
+        if (
+            dtype is None
+            and lib.is_np_dtype(sparse_values.dtype, "mM")
+            and not is_supported_dtype(sparse_values.dtype)
+        ):
+            # GH#68522 cast as the constructor does; an unsupported dtype= still raises
+            sparse_values = np.asarray(ensure_wrapped_if_datetimelike(sparse_values))
         indices = np.asarray(indices, dtype=np.int32)
 
         if len(sparse_values) != len(indices):
@@ -908,6 +919,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 f"length of indices ({len(indices)})."
             )
 
+        if kind == "block":
+            # validate the indices, which get_blocks does not
+            IntIndex(length, indices)
         sparse_index = make_sparse_index(length, indices, kind)
 
         if fill_value is None:
@@ -1696,7 +1710,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         fill_value = to_concat[0].fill_value
 
         values = []
@@ -2269,6 +2285,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_sum(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+        min_count = validate_min_count(min_count)
 
         if self.dtype.subtype.kind == "O" and not self._null_fill_value:
             # the fill_value * nsparse adjustment below assumes a commutative +,
@@ -2361,6 +2378,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_prod((), kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+        min_count = validate_min_count(min_count)
         return self._dense_reduce("prod", skipna=skipna, min_count=min_count)
 
     def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
@@ -2732,6 +2750,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         -------
         scalar
         """
+        if self.dtype.subtype.kind == "c":
+            warn_complex_unordered()
         valid_vals = self._valid_sp_values
         has_nonnull_fill_vals = not self._null_fill_value and self.sp_index.ngaps > 0
 
@@ -2758,6 +2778,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return maybe_box_datetimelike(result, self.dtype.subtype)
 
     def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
+        if self.dtype.subtype.kind == "c":
+            warn_complex_unordered()
         values = self._sparse_values
         index = self._sparse_index.indices
         mask = np.asarray(isna(values))
@@ -2901,6 +2923,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _sparse_array_op(self, other, op, op_name)
 
         elif is_scalar(other):
+            if isinstance(other, (np.datetime64, np.timedelta64)):
+                # GH#64808 cast first; numpy's m8[D] arithmetic truncates 1.5 days
+                if is_unitless(other.dtype) and isna(other):
+                    # match the dense ops, see maybe_prepare_scalar_for_op
+                    other = other.astype(f"{other.dtype.kind}8[s]")
+                elif not is_supported_dtype(other.dtype):
+                    other = other.astype(get_supported_dtype(other.dtype))
             with np.errstate(all="ignore"):
                 fill = op(_get_fill(self), np.asarray(other))
                 result = op(self.sp_values, other)
@@ -2944,6 +2973,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # GH#68579 defer to the masked operand's reflected comparison, which
             #  keeps its NA semantics; densifying here loses them.
             return NotImplemented
+
+        if isinstance(other, list):
+            other = np.asarray(other)
+        other_kind = getattr(getattr(other, "dtype", None), "kind", None)
+        # object operands already raise TypeError on complex
+        if (
+            op not in {operator.eq, operator.ne}
+            and other_kind != "O"
+            and (self.dtype.kind == "c" or other_kind == "c" or lib.is_complex(other))
+        ):
+            # GH#43770 complex has no natural ordering
+            warn_complex_unordered()
 
         return self._cmp_or_logical_op(other, op)
 

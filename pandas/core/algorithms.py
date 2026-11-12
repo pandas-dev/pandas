@@ -243,15 +243,38 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
                 f"got {type(values).__name__}."
             )
 
-        inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "mixed-integer"]:
-            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
-            if isinstance(values, tuple):
-                values = list(values)
+        arr: np.ndarray | None = None
+        if not (len(values) and isinstance(values[0], (str, bytes, tuple))):
+            # np.asarray would give a str/bytes, 2D or object array here
+            try:
+                arr = np.asarray(values)
+            except ValueError:
+                # ragged nested sequences
+                pass
+        if arr is None or arr.ndim != 1 or _asarray_is_lossy(arr, values):
             values = construct_1d_object_array_from_listlike(values)
         else:
-            values = np.asarray(values)
+            values = arr
     return values
+
+
+def _asarray_is_lossy(arr: np.ndarray, values) -> bool:
+    """
+    Whether ``arr = np.asarray(values)`` may have changed some element.
+    """
+    kind = arr.dtype.kind
+    if kind in "US":
+        # stringified non-strings (GH#22160) or stripped trailing NULs
+        return True
+    if kind in "fc":
+        # ints cast to float64 are inexact above 2**53
+        inexact = np.flatnonzero(np.abs(arr) >= _FLOAT64_INT_EXACT_MAX)
+        return any(lib.is_integer(values[i]) for i in inexact)
+    if kind in "mM":
+        # e.g. ints cast to timedelta64, timedelta64 cast to datetime64
+        scalar_type = np.datetime64 if kind == "M" else np.timedelta64
+        return not all(isinstance(val, scalar_type) for val in values)
+    return False
 
 
 _hashtables = {
@@ -636,12 +659,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                     values_arr = cast("np.ndarray", values)
                     needs_object = _may_lose_precision_as_float64(values_arr)
                 else:
-                    # float/complex values_dtype means _ensure_arraylike may
-                    # already have rounded large ints in a mixed int/float
-                    # list, so exactness cannot be checked from the array;
-                    # recover it from orig_values via the object cast. Smaller
-                    # ints/bools cast to float64 exactly.
-                    needs_object = values_dtype.kind in "fc"
+                    # comps is not a 64-bit int and _ensure_arraylike kept any
+                    # ints float64 cannot hold as objects, so the cast is exact
+                    needs_object = False
             if needs_object:
                 values = construct_1d_object_array_from_listlike(orig_values)
 
@@ -1134,11 +1154,13 @@ def value_counts_arraylike(
     -------
     uniques : np.ndarray
     counts : np.ndarray[np.int64]
+    na_pos : int
+        Position of the masked NA entry in uniques, -1 if there is none.
     """
     original = values
     values = _ensure_data(values)
 
-    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_pos = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -1148,7 +1170,7 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts, na_counter
+    return res_keys, counts, na_pos
 
 
 def duplicated(
@@ -1260,6 +1282,10 @@ def rank(
     mask : bool ndarray, optional
         Boolean array indicating which elements to exclude from ranking.
     """
+    if values.dtype.kind == "c":
+        # GH#43770 complex has no natural ordering
+        raise TypeError(f"dtype '{values.dtype}' does not support operation 'rank'")
+
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)
 
@@ -1752,14 +1778,24 @@ def safe_sort(
 
     if use_counting:
         ordered = np.sort(cast("np.ndarray", values))
-    elif (
-        not isinstance(values.dtype, ExtensionDtype)
-        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
-    ):
-        ordered = _sort_mixed(values)
     else:
+        null_mask = (
+            isna(values)
+            if values.dtype == object and not isinstance(values, ABCMultiIndex)
+            else None
+        )
         try:
-            if (
+            if null_mask is not None and null_mask.any():
+                # argsort does not raise on NaN/NaT but misplaces them, since
+                #  every comparison with them is False; _sort_mixed puts nulls last
+                non_null = values[~null_mask]
+                if len(non_null) and isinstance(non_null[0], tuple):
+                    # _sort_mixed would argsort the tuples, misplacing NaN
+                    #  elements inside them
+                    ordered = _sort_tuples(values)  # type: ignore[arg-type]
+                else:
+                    ordered = _sort_mixed(values)
+            elif (
                 codes is None
                 and isinstance(values, np.ndarray)
                 and values.dtype.kind in "iufb"
@@ -1874,7 +1910,10 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     from pandas.core.internals.construction import to_arrays
     from pandas.core.sorting import lexsort_indexer
 
-    arrays, _ = to_arrays(values, None)
+    # a str or bytes element is ordered as the tuple of its elements
+    arrays, _ = to_arrays(
+        [tuple(x) if isinstance(x, (str, bytes)) else x for x in values], None
+    )
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
 
@@ -1930,6 +1969,7 @@ def map_array(
     arr: ArrayLike,
     mapper,
     na_action: Literal["ignore"] | None = None,
+    convert: bool = True,
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1941,6 +1981,9 @@ def map_array(
     na_action : {None, 'ignore'}, default None
         If 'ignore', propagate NA values, without passing them to the
         mapping correspondence.
+    convert : bool, default True
+        If False, skip dtype inference on the result so that None is not
+        turned into NaN; keys absent from a dict or Series mapper become None.
 
     Returns
     -------
@@ -1979,13 +2022,15 @@ def map_array(
             from pandas import Series
 
             if len(mapper) == 0:
-                mapper = Series(mapper, dtype=np.float64)
+                mapper = Series(mapper, dtype=np.float64 if convert else object)
             elif isinstance(mapper, dict):
                 mapper = Series(
-                    mapper.values(), index=Index(mapper.keys(), tupleize_cols=False)
+                    mapper.values(),
+                    index=Index(mapper.keys(), tupleize_cols=False),
+                    dtype=None if convert else object,
                 )
-            else:
-                mapper = Series(mapper)
+            elif not isinstance(mapper, ABCSeries):
+                mapper = Series(mapper, dtype=None if convert else object)
 
     if isinstance(mapper, ABCSeries):
         if na_action == "ignore":
@@ -1994,9 +2039,12 @@ def map_array(
         # Since values were input this means we came from either
         # a dict or a series and mapper should be an index
         indexer = mapper.index.get_indexer(arr)
-        new_values = take_nd(mapper._values, indexer)
-
-        return new_values
+        mapper_values = mapper._values
+        if not convert and isinstance(mapper_values, np.ndarray):
+            new_values = take_nd(mapper_values.astype(object), indexer)
+            new_values[indexer == -1] = None
+            return new_values
+        return take_nd(mapper_values, indexer)
 
     if not len(arr):
         return arr.copy()
@@ -2004,6 +2052,8 @@ def map_array(
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper)
+        return lib.map_infer(values, mapper, convert=convert)
     else:
-        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))
+        return lib.map_infer_mask(
+            values, mapper, mask=isna(values).view(np.uint8), convert=convert
+        )

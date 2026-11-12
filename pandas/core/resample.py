@@ -32,6 +32,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -318,7 +319,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         Notes
         -----
         See more `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+        <https://pandas.pydata.org/docs/user_guide/groupby.html#piping-function-calls>`_
 
         Examples
         --------
@@ -559,7 +560,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = grouped.apply(how, *args, **kwargs)
+            pass
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -569,10 +570,12 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             else:
                 raise
 
-            # we have a non-reducing function
-            # try to evaluate
-            result = grouped.apply(how, *args, **kwargs)
+        else:
+            return self._wrap_result(result)
 
+        # fall back to apply outside the except blocks so its errors are not
+        #  chained onto the aggregate error, GH#50980
+        result = grouped.apply(how, *args, **kwargs)
         return self._wrap_result(result)
 
     @final
@@ -878,7 +881,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             * 'index', 'values': use the actual numerical values of the index.
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial': Passed to
+              'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
               values of the index.  Both 'polynomial' and 'spline' require that
@@ -886,9 +889,9 @@ class Resampler(BaseGroupBy[Any], PandasObject):
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
               instead of Pandas first order `spline`.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
-              'cubicspline': Wrappers around the SciPy interpolation methods of
-              similar names. See `Notes`.
+            * 'barycentric', 'krogh', 'piecewise_polynomial', 'spline',
+              'pchip', 'akima', 'cubicspline': Wrappers around the SciPy
+              interpolation methods of similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
@@ -1161,6 +1164,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    7
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1219,6 +1223,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01   12
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1276,6 +1281,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1333,6 +1339,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1387,6 +1394,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1443,6 +1451,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        min_count = validate_min_count(min_count)
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -2034,6 +2043,8 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
 
         self._groupby = groupby
         self._timegrouper = copy.copy(parent._timegrouper)
+        # exclude the grouping and `on` columns, GH#32162
+        self.exclusions = parent.exclusions | groupby.exclusions
 
         self.ax = parent.ax
         self.obj = parent.obj
@@ -2371,6 +2382,15 @@ class TimedeltaIndexResamplerGroupBy(  # type: ignore[misc]
         return TimedeltaIndexResampler
 
 
+def _rule_code(freq: BaseOffset) -> str:
+    try:
+        return freq.rule_code
+    except NotImplementedError:
+        # GH#31697: e.g. a generic DateOffset or Easter has no rule_code,
+        #  and neither is an end-anchored freq
+        return ""
+
+
 def get_resampler(obj: Series | DataFrame, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
@@ -2425,6 +2445,7 @@ class TimeGrouper(Grouper):
     )
 
     origin: TimeGrouperOrigin
+    offset: Timedelta | None
 
     def __init__(
         self,
@@ -2482,7 +2503,7 @@ class TimeGrouper(Grouper):
                 )
 
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
-        rule = freq.rule_code
+        rule = _rule_code(freq)
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
                 closed = "right"
@@ -2523,7 +2544,9 @@ class TimeGrouper(Grouper):
             self.origin = origin  # type: ignore[assignment]
         else:
             try:
-                self.origin = Timestamp(origin)
+                # error: Incompatible types in assignment (expression has type
+                # "Timestamp | NaTType", variable has type "TimeGrouperOrigin")
+                self.origin = Timestamp(origin)  # type: ignore[assignment]
             except (ValueError, TypeError) as err:
                 raise ValueError(
                     "'origin' should be equal to 'epoch', 'start', 'start_day', "
@@ -2532,7 +2555,9 @@ class TimeGrouper(Grouper):
                 ) from err
 
         try:
-            self.offset = Timedelta(offset) if offset is not None else None
+            # error: Incompatible types in assignment (expression has type
+            # "Timedelta | NaTType | None", variable has type "Timedelta | None")
+            self.offset = Timedelta(offset) if offset is not None else None  # type: ignore[assignment]
         except (ValueError, TypeError) as err:
             raise ValueError(
                 "'offset' should be a Timedelta convertible type. "
@@ -2724,9 +2749,8 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
-            0
-        ] in (
+        rule = _rule_code(self.freq)
+        if rule in ("BME", "ME", "W") or rule.split("-")[0] in (
             "BQE",
             "BYE",
             "QE",
@@ -2740,6 +2764,9 @@ class TimeGrouper(Grouper):
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
+                # GH#62601: a label on a nonexistent midnight was shifted forward
+                # (e.g. to 01:00); the bin still ends at the end of that day
+                edges_dti = edges_dti.normalize()
                 edges_dti = (
                     edges_dti
                     + Timedelta(days=1).as_unit(edges_dti.unit)
@@ -2867,8 +2894,7 @@ class TimeGrouper(Grouper):
 
             # Get offset for bin edge (not label edge) adjustment
             start_offset = Period(start, self.freq) - Period(p_start, self.freq)
-            # error: Item "Period" of "Union[Period, Any]" has no attribute "n"
-            bin_shift = start_offset.n % freq_mult  # type: ignore[union-attr]
+            bin_shift = start_offset.n % freq_mult
             start = p_start
 
         labels = binner = period_range(
@@ -2973,7 +2999,9 @@ def _get_timestamp_range_edges(
 
     Returns
     -------
-    A tuple of length 2, containing the adjusted pd.Timestamp objects.
+    A tuple of length 2, containing the adjusted pd.Timestamp objects. For a
+    non-Tick ``freq`` and timezone-aware inputs, the edges are returned as
+    timezone-naive wall-clock times (GH#62601).
     """
     if isinstance(freq, Tick) or (isinstance(freq, Day) and first.tz is None):
         index_tz = first.tz
@@ -2999,6 +3027,17 @@ def _get_timestamp_range_edges(
             unit=unit,
         )
     else:
+        if first.tz is not None:
+            # GH#62601: an anchored edge is a wall-clock time (e.g. midnight)
+            # that may not exist, or exist twice, in the index timezone around
+            # a DST transition.  Do the arithmetic on tz-naive wall times and
+            # leave the edges naive; the caller localizes them along with the
+            # bins (see the ``ambiguous``/``nonexistent`` handling in
+            # ``TimeGrouper._get_time_bins``).  Localizing here would shift a
+            # nonexistent midnight to 01:00 and move every later bin with it.
+            first = first.tz_localize(None)
+            last = last.tz_localize(None)
+
         first = first.normalize()
         last = last.normalize()
 

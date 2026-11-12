@@ -147,6 +147,15 @@ def test_append_index():
     tm.assert_index_equal(result, expected)
 
 
+def test_append_tuples_of_different_lengths():
+    # GH#50293
+    mi = pd.MultiIndex.from_tuples([("a", "b")])
+    other = pd.Index([("x", "y", "z")], tupleize_cols=False)
+    result = mi.append(other)
+    expected = pd.Index([("a", "b"), ("x", "y", "z")], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("name, exp", [("b", "b"), ("c", None)])
 def test_append_names_match(name, exp):
     # GH#48288
@@ -164,6 +173,89 @@ def test_append_names_dont_match():
     result = midx.append(midx2)
     expected = pd.MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("n", [1, 2, 3, 4, 5, 8, 9])
+def test_append_many(n):
+    # GH#70884
+    pieces = [
+        pd.MultiIndex.from_product([[i + 1, i], [f"x{i}", "a"]], names=["k", "v"])
+        for i in range(n)
+    ]
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_tuples(
+        [tup for piece in pieces for tup in piece], names=["k", "v"]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], pd.Index(list(range(n + 1)), name="k"))
+    tm.assert_index_equal(
+        result.levels[1], pd.Index(["a", *(f"x{i}" for i in range(n))], name="v")
+    )
+
+
+@pytest.mark.parametrize("n", [3, 4, 5])
+@pytest.mark.parametrize(
+    "level",
+    [
+        pd.date_range("2020-03-08", periods=10, freq="h", tz="America/New_York"),
+        pd.timedelta_range("0s", periods=10),
+        pd.period_range("2020-01", periods=10, freq="M"),
+        pd.CategoricalIndex(list("abcdefghij"), categories=list("abcdefghijk")),
+        pd.Index(range(10), dtype="Int64"),
+        pd.interval_range(0, 10),
+    ],
+)
+def test_append_many_specialized_levels(n, level):
+    # GH#70884
+    pieces = [
+        pd.MultiIndex.from_product([level[positions], ["a", "b"]], names=["k", "v"])
+        for positions in np.array_split(np.arange(len(level)), n)
+    ]
+
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_product([level, ["a", "b"]], names=["k", "v"])
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], expected.levels[0])
+
+
+def test_append_many_mixed_dtypes():
+    # GH#70884
+    values = [
+        np.array([1], dtype="int64"),
+        np.array([2], dtype="int64"),
+        np.array([3], dtype="uint64"),
+        np.array([4.5]),
+    ]
+    pieces = [pd.MultiIndex.from_arrays([value, ["a"]]) for value in values]
+    result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2, 3, 4.5], dtype=object), ["a"] * 4]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], expected.levels[0])
+
+
+def test_append_many_unorderable_object_levels():
+    # GH#70884 a pairwise union of the last two levels tries to sort tuples
+    # and strings together, which emits a warning about unequal tuple lengths.
+    values = [[0], [1], [("x", "y")], ["b", ("z",)]]
+    pieces = [
+        pd.MultiIndex(
+            levels=[pd.Index(value, dtype=object, tupleize_cols=False), ["a"]],
+            codes=[list(range(len(value))), [0] * len(value)],
+        )
+        for value in values
+    ]
+
+    with tm.assert_produces_warning(False):
+        result = pieces[0].append(pieces[1:])
+
+    expected = pd.MultiIndex.from_tuples([tup for piece in pieces for tup in piece])
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], expected.levels[0])
 
 
 def test_append_mixed_date_tzaware_timestamp():
@@ -184,6 +276,22 @@ def test_append_mixed_date_tzaware_timestamp():
         ]
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_append_unorderable_levels_no_warning():
+    # GH#61477
+    mi1 = pd.MultiIndex.from_tuples([("a", "A"), ("a", "B"), ("b", ("x", "y"))])
+    mi2 = pd.MultiIndex.from_tuples([("c", 1), ("c", 2)])
+    with tm.assert_produces_warning(False):
+        result = mi1.append(mi2)
+    expected = pd.MultiIndex.from_tuples([*mi1, *mi2])
+    tm.assert_index_equal(result, expected)
+
+    df1 = pd.DataFrame([[0, 0, 0]], columns=mi1)
+    df2 = pd.DataFrame([[1, 1]], columns=mi2)
+    with tm.assert_produces_warning(False):
+        result = pd.concat([df1, df2], axis=1)
+    tm.assert_index_equal(result.columns, expected)
 
 
 def test_append_overlapping_interval_levels():

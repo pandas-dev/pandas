@@ -125,7 +125,7 @@ def test_unsortedindex():
 
 
 def test_unsortedindex_doc_examples():
-    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
+    # https://pandas.pydata.org/docs/user_guide/advanced.html#sorting-a-multiindex
     dfm = pd.DataFrame(
         {
             "jim": [0, 0, 1, 1],
@@ -294,6 +294,23 @@ def test_sort_values_nan():
         levels=[["A", "B", "C"], ["D"]], codes=[[0, 1, 2], [-1, -1, 0]]
     )
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_sort_index_missing_code_in_unsorted_level(na_position):
+    # GH#26210 the -1 code must survive reordering of an unsorted level
+    mi = pd.MultiIndex(levels=[["B", "A"], ["x"]], codes=[[-1, 0, 1], [0, 0, 0]])
+    ser = pd.Series([1, 2, 3], index=mi)
+    result = ser.sort_index(na_position=na_position)
+    expected_values = [1, 3, 2] if na_position == "first" else [3, 2, 1]
+    expected_labels = (
+        [np.nan, "A", "B"] if na_position == "first" else ["A", "B", np.nan]
+    )
+    expected = pd.Series(
+        expected_values,
+        index=pd.MultiIndex.from_arrays([expected_labels, ["x", "x", "x"]]),
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_sort_values_incomparable():

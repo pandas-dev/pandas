@@ -4,6 +4,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.formats.info",)
+
 from collections.abc import (
     Callable,
     Hashable,
@@ -26,6 +28,8 @@ from typing import (
 import warnings
 
 import numpy as np
+
+from pandas._config import get_option
 
 from pandas._libs import (
     lib,
@@ -1618,6 +1622,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
+    def _repr_html_(self) -> str | None:
+        """
+        Return a html representation for a particular Series.
+
+        Mainly for IPython notebook.
+        """
+        # circular import
+        from pandas.io.formats.html import SeriesNotebookFormatter
+
+        if not get_option("display.notebook_repr_html"):
+            return None
+
+        formatter = fmt.DataFrameFormatter(
+            self.to_frame(),
+            header=False,
+            index_names=True,
+            bold_rows=True,
+            escape=True,
+            float_format=get_option("display.float_format"),
+            max_rows=get_option("display.max_rows"),
+            min_rows=get_option("display.min_rows"),
+            show_dimensions=False,
+        )
+        # truncate as the table does, so the footer agrees with it
+        footer = fmt.SeriesFormatter(
+            self,
+            name=True,
+            dtype=True,
+            length=get_option("display.show_dimensions"),
+            max_rows=formatter.max_rows_fitted,
+        )._get_footer()
+        return SeriesNotebookFormatter(formatter, footer=footer).to_string()
+
     @overload
     def to_string(
         self,
@@ -1650,9 +1687,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         min_rows: int | None = ...,
     ) -> None: ...
 
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "buf"], name="to_string"
-    )
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self", "buf"])
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1781,9 +1816,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         **kwargs,
     ) -> str | None: ...
 
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "buf"], name="to_markdown"
-    )
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self", "buf"])
     def to_markdown(
         self,
         buf: IO[str] | None = None,
@@ -2121,7 +2154,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return ser
 
     @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+        Pandas4Warning, allowed_args=["self", "by", "level"]
     )
     def groupby(
         self,
@@ -2150,7 +2183,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of the
             same length as the Series is passed (see the `groupby user guide
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#splitting-an-object-into-groups>`_),
             the values are used as-is to determine the groups. An index level
             name may also be passed to group by a level of the Series' index.
             Notice that a tuple is interpreted as a (single) key.
@@ -2158,11 +2191,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels. Do not specify both ``by`` and ``level``.
         as_index : bool, default True
-            Return object with group labels as the index. This argument is
-            retained for compatibility with :meth:`DataFrame.groupby` and has
-            no effect on Series.
+            Return object with group labels as the index. If False, aggregations
+            return a DataFrame with the group labels as columns, similar to
+            calling ``reset_index`` on the result.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
+            Raises if the group keys cannot be sorted; use ``sort=False`` for
+            such keys.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
             the groups will appear in the same order as they did in the original
@@ -2206,7 +2241,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        pandas.api.typing.SeriesGroupBy
+        :class:`pandas.api.typing.SeriesGroupBy`
             Returns a groupby object that contains information about the groups.
 
         See Also
@@ -2336,13 +2371,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         b    350.0
         NaN   20.0
         Name: Max Speed, dtype: float64
+
+        Use ``as_index=False`` to return the group labels as a column:
+
+        >>> ser.groupby(["a", "b", "a", np.nan], as_index=False).mean()
+          index  Max Speed
+        0     a      210.0
+        1     b      350.0
         """
         from pandas.core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
-        if not as_index:
-            raise TypeError("as_index=False only valid with DataFrame")
 
         return SeriesGroupBy(
             obj=self,
@@ -2478,15 +2518,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         :class:`~api.extensions.ExtensionArray` of that type with just
         the unique values is returned. This includes
 
-            * Categorical
-            * Period
-            * Datetime with Timezone
-            * Datetime without Timezone
-            * Timedelta
-            * Interval
-            * Sparse
-            * IntegerNA
-            * String
+        * Categorical
+        * Period
+        * Datetime with Timezone
+        * Datetime without Timezone
+        * Timedelta
+        * Interval
+        * Sparse
+        * IntegerNA
+        * String
 
         See Examples section.
 
@@ -2969,12 +3009,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
-                  the fractional part of the index surrounded by `i > j`.
-                * lower: `i`.
-                * higher: `j`.
-                * nearest: `i` or `j` whichever is nearest.
-                * midpoint: (`i` + `j`) / 2.
+            * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
+              the fractional part of the index surrounded by `i > j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
 
         Returns
         -------
@@ -3381,18 +3421,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         DataFrame.corr : Compute pairwise correlation of columns.
         DataFrame.corrwith : Compute pairwise correlation between rows or
             columns of two DataFrame objects.
+        plotting.autocorrelation_plot : Autocorrelation plot for time series.
 
         Notes
         -----
         If the Pearson correlation is not well defined return 'NaN'.
+
+        Values can differ from :func:`pandas.plotting.autocorrelation_plot`,
+        which uses the mean and variance of the whole Series rather than of the
+        overlapping portions.
 
         Examples
         --------
         >>> s = pd.Series([0.25, 0.5, 0.2, -0.05])
         >>> s.autocorr()  # doctest: +ELLIPSIS
         0.10355...
-        >>> s.autocorr(lag=2)  # doctest: +ELLIPSIS
-        -0.99999...
+        >>> s.autocorr(lag=2)
+        -1.0
 
         If the Pearson correlation is not well defined, then 'NaN' is returned.
 
@@ -5029,9 +5074,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Map values of Series according to an input mapping or function.
 
-        Used for substituting each value in a Series with another value,
-        that may be derived from a function, a ``dict`` or
-        a :class:`Series`.
+        The mapping is applied elementwise, substituting each value with
+        another value derived from a function, a ``dict`` or a
+        :class:`Series`.
 
         Parameters
         ----------
@@ -5152,6 +5197,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    None
         4    None
         dtype: object
+
+        Functions without a vectorized equivalent can be applied to each
+        value:
+
+        >>> s = pd.Series([1, 2.5, "abc"])
+        >>> s.map(lambda x: type(x).__name__)
+        0      int
+        1    float
+        2      str
+        dtype: str
         """
         if func is None:
             if "arg" in kwargs:
@@ -5294,6 +5349,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # if func is None, will switch to user-provided "named aggregation" kwargs
         if func is None:
             func = dict(kwargs.items())
+            kwargs = {}
 
         op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
@@ -6236,7 +6292,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
         columns : single label or list-like
-            No change is made to the Series; use 'index' or 'labels' instead.
+            Ignored; use 'index' or 'labels' instead.
+
+            .. deprecated:: 3.2.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
@@ -6314,7 +6372,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         inplace = self._check_inplace_deprecation(inplace, "drop")
 
-        return super().drop(
+        result = super().drop(
             labels=labels,
             axis=axis,
             index=index,
@@ -6323,6 +6381,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             inplace=inplace,
             errors=errors,
         )
+        if columns is not None:
+            # GH#39509; warn after super().drop so calls it rejects don't warn
+            warnings.warn(
+                "Series.drop ignores the 'columns' keyword. Passing it is "
+                "deprecated and will raise in a future version. Use 'index' "
+                "or 'labels' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     def pop(self, item: Hashable) -> Any:
         """
@@ -7442,6 +7510,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             this, other = self.align(other, level=level, join="outer")
 
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
+        # GH#43770 func is the bare operator, so comparison_op does not warn
+        ops.maybe_warn_complex_ordering(this_vals, other_vals, func)
 
         with np.errstate(all="ignore"):
             result = func(this_vals, other_vals)
@@ -9200,7 +9270,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def all(
         self,
         axis: Axis = 0,
@@ -9306,7 +9376,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def min(
         self,
         axis: Axis | None = 0,
@@ -9378,7 +9448,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def max(
         self,
         axis: Axis | None = 0,
@@ -9450,7 +9520,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def sum(
         self,
         axis: Axis | None = None,
@@ -9552,7 +9622,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def prod(
         self,
         axis: Axis | None = None,
@@ -9638,7 +9708,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def mean(
         self,
         axis: Axis | None = 0,
@@ -9696,9 +9766,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self"], name="median"
-    )
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def median(
         self,
         axis: Axis | None = 0,
@@ -9783,7 +9851,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def sem(
         self,
         axis: Axis | None = None,
@@ -9842,7 +9910,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def var(
         self,
         axis: Axis | None = None,
@@ -9929,7 +9997,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def std(
         self,
         axis: Axis | None = None,
@@ -9998,7 +10066,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def skew(
         self,
         axis: Axis | None = 0,
@@ -10044,7 +10112,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"])
     def kurt(
         self,
         axis: Axis | None = 0,

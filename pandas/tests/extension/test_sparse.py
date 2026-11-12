@@ -118,6 +118,14 @@ class TestSparseArray(base.ExtensionTests):
         if data.dtype == pd.SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")
 
+    @pytest.mark.xfail(
+        reason="SparseArray.value_counts returns a dense index and puts the "
+        "fill_value first"
+    )
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts_no_sort(self, data_for_grouping, dropna):
+        super().test_value_counts_no_sort(data_for_grouping, dropna)
+
     def test_concat_mixed_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/20762
         # This should be the same, aside from concat([sparse, float])
@@ -279,6 +287,10 @@ class TestSparseArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="Not Applicable")
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
+
+    @pytest.mark.xfail(reason="SparseArray does not support item assignment")
+    def test_mask_listlike_other_inplace(self, data):
+        super().test_mask_listlike_other_inplace(data)
 
     def test_where_series(self, data, na_value):
         assert data[0] != data[1]

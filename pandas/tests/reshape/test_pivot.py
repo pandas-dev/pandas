@@ -275,6 +275,30 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_sum_unobserved_categories(self, dropna):
+        # GH#28372 sum fills unobserved categories with 0, so dropna keeps them
+        df = pd.DataFrame(
+            {
+                "letters": pd.Categorical(["a", "b"], categories=["a", "b", "c"]),
+                "nums": pd.Categorical([0, 1], categories=[0, 1, 2]),
+                "count": 1,
+            }
+        )
+        result = df.pivot_table(
+            index="letters",
+            columns="nums",
+            values="count",
+            aggfunc="sum",
+            observed=False,
+            dropna=dropna,
+        )
+        expected = pd.DataFrame(
+            [[1, 0, 0], [0, 1, 0], [0, 0, 0]],
+            index=pd.CategoricalIndex(["a", "b", "c"], name="letters"),
+            columns=pd.CategoricalIndex([0, 1, 2], name="nums"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_with_non_observable_dropna(self, dropna):
         # gh-21133
         df = pd.DataFrame(
@@ -595,8 +619,8 @@ class TestPivotTable:
             pv = pd.pivot(df, index="a", columns="b", values="c")
         assert pv.notna().values.sum() == len(df)
 
-        for _, row in df.iterrows():
-            assert pv.loc[row["a"], row["b"]] == row["c"]
+        for row in df.itertuples():
+            assert pv.loc[row.a, row.b] == row.c
 
         if method:
             result = df.pivot(index="b", columns="a", values="c")
@@ -822,7 +846,6 @@ class TestPivotTable:
             names=[None, "bar"],
         )
         expected = pd.DataFrame(data=data, index=index, columns=columns)
-        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -866,7 +889,6 @@ class TestPivotTable:
             names=[None, "foo"],
         )
         expected = pd.DataFrame(data=data, index=index, columns=columns)
-        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_columns_none_raise_error(self):
@@ -2967,6 +2989,45 @@ class TestPivot:
         with pytest.raises(ValueError, match="duplicate entries"):
             data.pivot(index="a", columns="b", values="c")
 
+    def test_pivot_list_values_preserves_dtypes(self):
+        # GH#43547
+        df = pd.DataFrame(
+            {
+                "idx": [0, 1, 0, 1],
+                "col": ["a", "a", "b", "b"],
+                "ints": [10, 20, 30, 40],
+                "nullable": pd.array([1, 2, 3, None], dtype="Int64"),
+                "floats": [0.1, 0.2, 0.3, 0.4],
+                "strs": ["A", "B", "C", "D"],
+                "dts": pd.date_range("2021-01-01", periods=4),
+            }
+        )
+        values = ["ints", "nullable", "floats", "strs", "dts"]
+        result = df.pivot(index="idx", columns="col", values=values)
+        expected = pd.concat(
+            {
+                "ints": pd.DataFrame({"a": [10, 20], "b": [30, 40]}),
+                "nullable": pd.DataFrame(
+                    {
+                        "a": pd.array([1, 2], dtype="Int64"),
+                        "b": pd.array([3, None], dtype="Int64"),
+                    }
+                ),
+                "floats": pd.DataFrame({"a": [0.1, 0.2], "b": [0.3, 0.4]}),
+                "strs": pd.DataFrame({"a": ["A", "B"], "b": ["C", "D"]}),
+                "dts": pd.DataFrame(
+                    {
+                        "a": df["dts"].iloc[[0, 1]].reset_index(drop=True),
+                        "b": df["dts"].iloc[[2, 3]].reset_index(drop=True),
+                    }
+                ),
+            },
+            axis=1,
+        )
+        expected.index.name = "idx"
+        expected.columns.names = [None, "col"]
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_empty(self):
         df = pd.DataFrame(columns=["a", "b", "c"])
         result = df.pivot(index="a", columns="b", values="c")
@@ -3244,10 +3305,9 @@ class TestPivot:
         df_expected = pd.DataFrame(
             [[1.0, np.nan, np.nan], [np.nan, 2.0, np.nan], [np.nan, np.nan, 3.0]],
             columns=multi_index,
+            dtype="float[pyarrow]",
         )
-        tm.assert_frame_equal(
-            df, df_expected, check_dtype=False, check_column_type=False
-        )
+        tm.assert_frame_equal(df, df_expected, check_column_type=False)
 
     @pytest.mark.parametrize("freq", ["D", "M", "Q", "Y"])
     def test_pivot_empty_dataframe_period_dtype(self, freq):
@@ -3313,4 +3373,17 @@ def test_pivot_non_column_label_raises_gh35785():
         index=pd.Index(["one", "two"], name="foo"),
     )
     expected.columns.name = "bar"
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["pivot", "pivot_table"])
+def test_pivot_complex_missing_cells(method):
+    # GH#25221
+    df = pd.DataFrame({"a": [0, 0, 1], "b": [0, 1, 0], "c": [1 + 2j, 3 + 4j, 5 + 6j]})
+    result = getattr(df, method)(index="a", columns="b", values="c")
+    expected = pd.DataFrame(
+        {0: [1 + 2j, 5 + 6j], 1: [3 + 4j, complex("nan")]},
+        index=pd.Index([0, 1], name="a"),
+        columns=pd.Index([0, 1], name="b"),
+    )
     tm.assert_frame_equal(result, expected)

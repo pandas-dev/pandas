@@ -73,6 +73,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PandasExtensionDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -156,9 +157,13 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     if dtype == _dtype_obj:
         pass
     elif isinstance(value, (np.datetime64, dt.datetime)):
-        value = Timestamp(value)
+        # error: Incompatible types in assignment (expression has type
+        # "Timestamp | NaTType", variable has type "Scalar")
+        value = Timestamp(value)  # type: ignore[assignment]
     elif isinstance(value, (np.timedelta64, dt.timedelta)):
-        value = Timedelta(value)
+        # error: Incompatible types in assignment (expression has type
+        # "Timedelta | NaTType", variable has type "Scalar")
+        value = Timedelta(value)  # type: ignore[assignment]
 
     return value
 
@@ -181,6 +186,8 @@ def maybe_box_native(value: Scalar | NAType | None) -> Scalar | NAType | None:
         value = int(value)
     elif is_bool(value):
         value = bool(value)
+    elif is_complex(value):
+        value = complex(value)
     elif isinstance(value, (np.datetime64, np.timedelta64)):
         value = maybe_box_datetimelike(value)
     elif value is NA:
@@ -729,9 +736,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        # error: Non-overlapping identity check (left operand type: "Timestamp",
-        # right operand type: "NaTType")
-        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
+        if val is NaT or val.tz is None:
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -744,9 +749,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            # error: Non-overlapping identity check (left operand type: "Timedelta",
-            # right operand type: "NaTType")
-            if val is NaT:  # type: ignore[comparison-overlap]
+            if val is NaT:
                 val = np.timedelta64("NaT", "ns")
             else:
                 val = val.asm8
@@ -1258,7 +1261,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if lib.is_np_dtype(dtype, "iu"):
+    if lib.is_np_dtype(dtype, "iub"):
         for obj in objs:
             # We don't want to accidentally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1272,7 +1275,10 @@ def common_dtype_categorical_compat(
 
                 if hasnas:
                     # see test_union_int_categorical_with_nan
-                    dtype = np.dtype(np.float64)
+                    if dtype.kind == "b":
+                        dtype = np.dtype(object)
+                    else:
+                        dtype = np.dtype(np.float64)
                     break
     return dtype
 
@@ -1471,10 +1477,11 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
     object_with_dtype : object with a ``dtype`` attribute, optional
         The data (e.g. a Series or array) that ``value`` came from. Pass this
         whenever ``value`` is an element of the data or is derived from its
-        elements: object dtype stores arbitrary user objects, so a NumPy
-        scalar coming from object-dtype data is a stored value rather than a
-        boxing artifact, and is returned unchanged. Omit for values whose
-        type does not follow the data's dtype, e.g. positions, counts, and
+        elements: data whose dtype has kind ``"O"`` (e.g. object dtype, or a
+        Categorical or Sparse dtype backed by object values) stores arbitrary
+        user objects, so a NumPy scalar coming from such data is a stored
+        value rather than a boxing artifact, and is returned unchanged. Omit for values
+        whose type does not follow the data's dtype, e.g. positions, counts, and
         the results of any/all. The ``.dtype`` attribute is only accessed if
         unboxing is actually going to happen, so passing the object rather
         than its dtype avoids that cost on hot paths.
@@ -1486,7 +1493,7 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
     """
     result = value
     if using_python_scalars() and isinstance(value, np.generic):
-        if object_with_dtype is not None and object_with_dtype.dtype == object:
+        if object_with_dtype is not None and object_with_dtype.dtype.kind == "O":
             return result
         if isinstance(result, np.longdouble):
             result = float(result)
@@ -1783,11 +1790,18 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            if dtype.itemsize < tipo.itemsize:  # type: ignore[union-attr]
+            # A SparseDtype has the same missing itemsize as GH#68421, so
+            #  compare against its subtype rather than the SparseDtype itself.
+            if isinstance(tipo, SparseDtype):
+                tipo_itemsize = tipo.subtype.itemsize
+            else:
+                tipo_itemsize = tipo.itemsize  # type: ignore[union-attr]
+            if dtype.itemsize < tipo_itemsize:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
-                # i.e. nullable IntegerDtype; we can put this into an ndarray
-                #  losslessly iff it has no NAs and the values themselves fit
+                # i.e. an ExtensionDtype such as a nullable IntegerDtype or a
+                #  SparseDtype; we can put this into an ndarray losslessly iff it
+                #  has no NAs and the NA-free values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1797,7 +1811,16 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     raise LossySetitemError
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
-                np_can_hold_element(dtype, np.asarray(arr))
+                if isinstance(arr.dtype, SparseDtype):
+                    # np.asarray widens a SparseArray to the fill_value's dtype
+                    #  (e.g. Sparse[int8] to int64), so the check below would
+                    #  reject a set that fits; _densify keeps the subtype's dtype
+                    #  instead, and the values are already NA-free per the guard
+                    #  above.
+                    values = arr._densify()  # type: ignore[union-attr]
+                else:
+                    values = np.asarray(arr)
+                np_can_hold_element(dtype, values)
                 return element
 
             return element

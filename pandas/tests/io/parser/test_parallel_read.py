@@ -195,8 +195,8 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(encoding="utf-8-sig"))
 
     def test_rejects_python_engine_seps(self, tmp_path, monkeypatch):
-        # Multi-char/regex seps (other than r"\s+") and sep=None force the
-        # python engine inside TextFileReader (GH#64347).
+        # Multi-char/regex seps (other than r"\s+") force the python engine
+        # and sep=None is sniffed inside TextFileReader (GH#64347).
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
@@ -1031,6 +1031,19 @@ def test_parallel_dup_names_dict_dtype_matches_serial(tmp_path, monkeypatch):
     assert result.dtypes["a"] == result.dtypes["a.1"]
 
 
+def test_parallel_object_dtype_dict_matches_serial(tmp_path, monkeypatch):
+    # an object dtype must survive DataFrame construction, see GH#56047
+    raw = b"a,b,c\n" + b"".join(f"x{i},y{i},{i}\n".encode() for i in range(500))
+    path = tmp_path / "obj.csv"
+    path.write_bytes(raw)
+
+    dtype = {"a": object, "c": "float32"}
+    result = _read_forced_parallel(path, monkeypatch, dtype=dtype)
+    expected = pd.read_csv(io.BytesIO(raw), dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+    assert result.dtypes["a"] == object
+
+
 def test_parallel_comment_before_header_matches_serial(tmp_path, monkeypatch):
     # A full-line comment above the header shifts the preamble byte offset;
     # the header row must not be ingested as data (GH#64347).
@@ -1438,6 +1451,27 @@ def test_parallel_usecols_matches_serial(tmp_path, monkeypatch, kwargs):
     result = _read_forced_parallel(path, monkeypatch, **kwargs)
     expected = pd.read_csv(io.BytesIO(raw), **kwargs)
     tm.assert_frame_equal(result, expected)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+@pytest.mark.parametrize(
+    "kwargs", [{}, {"usecols": [0, 2]}, {"dtype": str}, {"index_col": False}]
+)
+def test_parallel_tuple_names_matches_serial(tmp_path, monkeypatch, kwargs):
+    # all-tuple names make MultiIndex columns, not a flat Index of tuples
+    raw = b"a,b,c\n" + b"".join(
+        f"{i},{i * 0.5},s{i % 7}\n".encode() for i in range(2000)
+    )
+    path = tmp_path / "tuple_names.csv"
+    path.write_bytes(raw)
+    names = [("x", "1"), ("x", "2"), ("y", "1")]
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, header=0, names=names, **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), header=0, names=names, **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert isinstance(result.columns, pd.MultiIndex)
     assert outcomes == ["used"]
 
 
@@ -2073,9 +2107,12 @@ def test_parallel_fallback_does_not_repeat_python_layer_warning(tmp_path, monkey
     ]
 
 
-@pytest.mark.parametrize("kwargs", [{"quotechar": "»"}, {"sep": "§"}])
-def test_multibyte_sep_or_quotechar_warns_once(tmp_path, monkeypatch, kwargs):
-    # Both force TextFileReader onto the python engine, which warns while
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"quotechar": "»"}, {"sep": "§"}, {"thousands": "\u202f"}, {"decimal": "\u066b"}],
+)
+def test_multibyte_parser_options_warn_once(tmp_path, monkeypatch, kwargs):
+    # These force TextFileReader onto the python engine, which warns while
     # falling back.  The parallel path has to decline them up front: its
     # name-inference read would raise that warning before it can notice the
     # engine it got, and the serial read then raises it again (GH#66259).
@@ -2215,6 +2252,20 @@ def test_parallel_chunk_count_follows_file_size(tmp_path, monkeypatch):
     fat_n = _planned_chunk_count(fat, monkeypatch, chunk_bytes=4096, min_chunk_rows=1)
 
     assert fat_n > lean_n
+
+
+@pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
+def test_parallel_read_many_chunks_per_worker(tmp_path, monkeypatch):
+    # Workers slicing one shared memoryview raised "released memoryview" on
+    # free-threaded builds (GH#71418).  The race is narrow, so split a single
+    # column (which gets the whole piece budget) into tiny chunks and repeat.
+    path = tmp_path / "data.csv"
+    _write_grid(path, 20_000, 1)
+    for _ in range(20):
+        n_chunks = _planned_chunk_count(
+            path, monkeypatch, chunk_bytes=16, n_workers=8, min_chunk_rows=1
+        )
+        assert n_chunks >= 1000
 
 
 @pytest.mark.skipif(WASM, reason="WASM cannot spawn threads, so no split happens")
@@ -2370,7 +2421,7 @@ def test_parallel_chunk_count_respects_the_row_floor(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def _blocked_frame(n_rows: int = 30_000) -> pd.DataFrame:
+def _blocked_frame(n_rows: int = 10_000) -> pd.DataFrame:
     # >= 16 columns, so numeric columns qualify for row-blocked conversion at
     # any worker count; the string columns qualify on their own
     rng = np.random.default_rng(0)
@@ -2448,12 +2499,12 @@ def test_row_blocked_conversion_late_dtype_miss(tmp_path, monkeypatch, threads):
     # A column whose leading block infers one kind but whose later rows do
     # not must fall back to the whole-column inference cascade.
     df = _blocked_frame().astype(object)
-    df.loc[25_000, "i0"] = 1.5  # int -> float
-    df.loc[25_000, "i1"] = 2**63 + 5  # int -> uint64
-    df.loc[25_000, "i2"] = "abc"  # int -> str
-    df.loc[25_000, "f0"] = "oops"  # float -> str
-    df.loc[25_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
-    df.loc[25_100, "i3"] = np.nan  # NA past the leading block
+    df.loc[9_000, "i0"] = 1.5  # int -> float
+    df.loc[9_000, "i1"] = 2**63 + 5  # int -> uint64
+    df.loc[9_000, "i2"] = "abc"  # int -> str
+    df.loc[9_000, "f0"] = "oops"  # float -> str
+    df.loc[9_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
+    df.loc[9_100, "i3"] = np.nan  # NA past the leading block
     path = tmp_path / "late.csv"
     df.to_csv(path, index=False)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)

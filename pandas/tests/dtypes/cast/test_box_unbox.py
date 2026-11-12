@@ -26,6 +26,8 @@ import pandas as pd
         (np.float16(0.4), float),
         (np.float64(1.4), float),
         (np.bool_(False), bool),
+        (np.complex64(1 + 2j), complex),
+        (np.complex128(1 + 2j), complex),
         (datetime(2005, 2, 25), datetime),
         (np.datetime64("2005-02-25"), pd.Timestamp),
         (pd.Timestamp("2005-02-25"), pd.Timestamp),

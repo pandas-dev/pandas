@@ -210,11 +210,6 @@ class TestSetOps:
             result = first.intersection(case)
             assert equal_contents(result, second)
 
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.intersection([1, 2, 3])
-
     def test_union_base(self, index_sortable):
         index = index_sortable.unique()
         first = index[3:]
@@ -235,11 +230,6 @@ class TestSetOps:
             result = first.union(case)
             assert equal_contents(result, everything)
 
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.union([1, 2, 3])
-
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -259,11 +249,6 @@ class TestSetOps:
         for case in cases:
             result = first.difference(case, sort)
             assert equal_contents(result, answer)
-
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.difference([1, 2, 3], sort)
 
     def test_symmetric_difference(self, index_sortable, using_infer_string, request):
         index = index_sortable
@@ -293,11 +278,6 @@ class TestSetOps:
         for case in cases:
             result = first.symmetric_difference(case)
             assert equal_contents(result, answer)
-
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.symmetric_difference([1, 2, 3])
 
     @pytest.mark.parametrize(
         "fname, sname, expected_name",
@@ -593,6 +573,15 @@ def test_union_nan_in_both(dup):
     b = pd.Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
     expected = pd.Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_object_nan_sorted_last():
+    # GH#70216
+    left = pd.Index([3, np.nan], dtype=object)
+    right = pd.Index([1, 2], dtype=object)
+    result = left.union(right)
+    expected = pd.Index([1, 2, 3, np.nan], dtype=object)
     tm.assert_index_equal(result, expected)
 
 

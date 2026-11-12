@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
@@ -278,6 +280,14 @@ class TestDataFrameSetItem:
         result[ea_name] = [1]
         expected = pd.DataFrame({0: [0], ea_name: [1]})
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_structured_ndarray_deprecated(self):
+        # GH#49388
+        arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
+        df = pd.DataFrame({"a": [1, 2]})
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"] = arr
 
     def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
         # GH#7492
@@ -1553,3 +1563,160 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
     )
     with pytest.raises(ValueError, match=msg):
         df[select_df] = [3, 3]
+
+
+@pytest.mark.parametrize(
+    "value, ncols",
+    [
+        (np.arange(3).reshape(3, 1), 1),
+        (np.arange(9).reshape(3, 3), 3),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_mismatched_value(value, ncols, columns):
+    # GH#68445 the broadcast in _set_item_mgr skips these, so they used to leave a
+    #  block narrower than its placement, or drop columns of value, rather than raise
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    expected = df.copy()
+    msg = f"Got 2 positions but value has {ncols} columns"
+    with pytest.raises(ValueError, match=msg):
+        df["a"] = value
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [["a", "a", "b"], ["a", "b", "a"]],
+)
+def test_setitem_key_matching_several_columns_matching_width(columns):
+    # GH#68445 positive control for the check above; the boolean-mask loc is the
+    #  one where the value's columns could be placed out of order
+    df = pd.DataFrame(np.zeros((3, 3), dtype=int), columns=columns)
+    value = np.arange(6).reshape(3, 2)
+
+    df["a"] = value
+
+    expected_arr = np.zeros((3, 3), dtype=int)
+    positions = [i for i, col in enumerate(columns) if col == "a"]
+    expected_arr[:, positions] = value
+    expected = pd.DataFrame(expected_arr, columns=columns)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series(pd.date_range("2030", periods=3, tz="UTC")),
+        pd.Series(pd.period_range("2030", periods=3, freq="D")),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_2d_capable_ea(value, columns):
+    # GH#71078 these two dtypes fell between _set_item's broadcast and the
+    #  manager's 1-D EA path, so they used to corrupt the frame; they now
+    #  broadcast like every other dtype
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    before = df.copy()
+    source = value.copy()
+
+    df["a"] = source
+
+    source.iloc[0] = source.iloc[2]  # the broadcast copies; this must not reach df
+    positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
+    for pos in range(len(df.columns)):
+        if pos in positions:
+            assert df.dtypes.iloc[pos] == value.dtype
+            tm.assert_series_equal(df.iloc[:, pos], value, check_names=False)
+        else:
+            tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Timestamp("2030", tz="UTC"),
+        pd.Period("2030", freq="D"),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_2d_capable_ea_scalar(value, columns):
+    # GH#71078 a scalar hits the same broadcast path as a Series of the same
+    #  dtype, via _sanitize_column turning it into a 1-D array first
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    before = df.copy()
+    expected_col = pd.Series([value] * len(df))
+
+    df["a"] = value
+
+    positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
+    for pos in range(len(df.columns)):
+        if pos in positions:
+            tm.assert_series_equal(df.iloc[:, pos], expected_col, check_names=False)
+        else:
+            tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
+
+
+@pytest.mark.parametrize(
+    "columns, key",
+    [
+        (["a", "a", "b"], "a"),
+        (["a", "b", "a"], "a"),
+        (pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]), "a"),
+        (pd.DatetimeIndex(["2020-01-01", "2020-01-02", "2021-01-01"]), "2020"),
+        (pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (5, 6)]), 1.5),
+    ],
+)
+def test_setitem_key_matching_several_columns_1d_only_ea(columns, key):
+    # GH#71098 the matched columns used to share one array
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    value = pd.array([10, 20, 30], dtype="Int64")
+
+    df[key] = value
+
+    positions = np.arange(len(df.columns))[df.columns.get_loc(key)]
+    expected = pd.Series(value)
+    for pos in positions:
+        tm.assert_series_equal(df.iloc[:, pos], expected, check_names=False)
+    df.iloc[0, positions[0]] = 99
+    tm.assert_series_equal(df.iloc[:, positions[1]], expected, check_names=False)
+
+
+@pytest.mark.parametrize("value", [5, np.array([10, 20, 30], dtype=np.int64)])
+@pytest.mark.parametrize(
+    "columns, key",
+    [
+        (pd.DatetimeIndex(["2020-01-01", "2020-01-02", "2021-01-01"]), "2020"),
+        (pd.PeriodIndex(["2020-01-01", "2020-01-02", "2021-01-01"], freq="D"), "2020"),
+        (pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (5, 6)]), 1.5),
+    ],
+)
+def test_setitem_key_matching_several_unique_columns(columns, key, value):
+    # GH#71098 a key matching several unique columns used to corrupt the frame
+    df = pd.DataFrame(np.arange(9, dtype=np.int64).reshape(3, 3), columns=columns)
+
+    df[key] = value
+
+    expected = np.arange(9, dtype=np.int64).reshape(3, 3)
+    expected[:, :2] = np.asarray(value).reshape(-1, 1)
+    tm.assert_frame_equal(df, pd.DataFrame(expected, columns=columns))

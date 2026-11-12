@@ -86,6 +86,23 @@ class TestTSPlot:
         ydata = ax.get_lines()[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.asarray(values))
 
+    def test_irregular_tz_aware_year_tick_labels(self, tz_aware_fixture):
+        # GH#15754 year ticks were labeled one year early with pytz zones
+        tz = tz_aware_fixture
+        index = DatetimeIndex(["2011-10-01 09:00", "2016-10-01 09:00"], tz="UTC")
+        index = index.tz_convert(tz)
+        values = [-0.26, -0.01]
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(2)
+        pd.Series(values, index=index).plot(ax=ax1)
+        pd.Series(values, index=index.tz_localize(None)).plot(ax=ax2)
+        ax1.get_figure().canvas.draw()
+
+        result = [label.get_text() for label in ax1.get_xticklabels()]
+        expected = [label.get_text() for label in ax2.get_xticklabels()]
+        assert "2016" in result
+        assert result == expected
+
     def test_fontsize_set_correctly(self):
         # For issue #8765
         df = pd.DataFrame(
@@ -220,6 +237,131 @@ class TestTSPlot:
         first_x = first_line.get_xdata()[0]
         first_y = first_line.get_ydata()[0]
         assert ax.format_coord(first_x, first_y) == "t = 2014-01-01  y = 1.000000"
+
+    @pytest.mark.parametrize(
+        "freq, expected",
+        [
+            ("MS", ["2015-01", "2015-04", "2015-07", "2015-10"]),
+            ("QE", ["2015Q1", "2015Q4", "2016Q3", "2017Q2"]),
+            ("B", ["2015-01-01", "2015-01-06", "2015-01-09", "2015-01-14"]),
+            ("W", ["2015-01-04", "2015-01-25", "2015-02-15", "2015-03-08"]),
+            (
+                "h",
+                [
+                    "2015-01-01 00:00",
+                    "2015-01-01 03:00",
+                    "2015-01-01 06:00",
+                    "2015-01-01 09:00",
+                ],
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("via_kwarg", [True, False])
+    def test_user_set_xticks_labeled(self, freq, expected, via_kwarg):
+        # GH#18881 - ticks set by the user were labeled "" except where they
+        # happened to coincide with one of pandas' own major ticks
+        idx = date_range("2015-01-01", periods=10, freq=freq)
+        ser = pd.Series(range(10), index=idx)
+        if via_kwarg:
+            ax = ser.plot(xticks=idx[::3])
+        else:
+            ax = ser.plot()
+            ax.set_xticks(idx[::3])
+        ax.get_figure().canvas.draw()
+
+        assert [label.get_text() for label in ax.get_xticklabels()] == expected
+        # pandas' minor labels ("Feb", "Mar", ...) no longer show between them
+        assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
+
+    def test_user_set_xticks_labeled_period_index(self):
+        # GH#18881
+        ser = pd.Series(range(10), index=period_range("2015-01", periods=10, freq="M"))
+        ax = ser.plot()
+        ax.set_xticks(ser.index[::3])
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["2015-01", "2015-04", "2015-07", "2015-10"]
+
+    def test_user_set_xticks_labeled_bar(self):
+        # GH#18881
+        idx = date_range("2015-01-01", periods=10, freq="MS")
+        ax = pd.Series(range(10), index=idx).plot(kind="bar", xticks=idx[::3])
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["2015-01", "2015-04", "2015-07", "2015-10"]
+
+    def test_user_set_major_locator_labeled(self):
+        # GH#18881
+        idx = date_range("2015-01-01", periods=10, freq="MS")
+        ax = pd.Series(range(10), index=idx).plot()
+        ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(3))
+        ax.get_figure().canvas.draw()
+
+        lo, hi = ax.get_xlim()
+        labels = [
+            label.get_text()
+            for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=True)
+            if lo <= tick <= hi
+        ]
+        assert labels == ["2015-01", "2015-04", "2015-07", "2015-10"]
+        assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
+
+    def test_user_set_major_locator_between_periods_unlabeled(self):
+        # GH#18881 - a generic locator can put ticks between two periods
+        idx = date_range("2015-01-01", periods=10, freq="MS")
+        ax = pd.Series(range(10), index=idx).plot()
+        ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(0.5))
+        ax.set_xlim(541, 543)
+        ax.get_figure().canvas.draw()
+
+        labels = {
+            float(tick): label.get_text()
+            for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=True)
+            if 541 <= tick <= 543
+        }
+        assert labels == {
+            541.0: "2015-02",
+            541.5: "",
+            542.0: "2015-03",
+            542.5: "",
+            543.0: "2015-04",
+        }
+
+        # float noise in a locator's arithmetic still names the period
+        ax.set_xticks([542.0000000000001])
+        ax.get_figure().canvas.draw()
+        assert [label.get_text() for label in ax.get_xticklabels()] == ["2015-03"]
+
+    @pytest.mark.parametrize("route", ["minorticks_on", "set_xticks"])
+    def test_user_set_minor_ticks_unlabeled(self, route):
+        # GH#18881 - replacing only the minor ticks leaves them unlabeled, as
+        # matplotlib does, rather than crowding pandas' major labels
+        idx = date_range("2015-01-01", periods=30, freq="ME")
+        ax = pd.Series(range(30), index=idx).plot()
+        if route == "minorticks_on":
+            ax.minorticks_on()
+        else:
+            ax.set_xticks(idx[1::2], minor=True)
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["Jan\n2015", "Jan\n2016", "Jan\n2017"]
+        assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
+
+    def test_daily_mpl_dates_locator_formatter(self):
+        # GH#21860 daily period ordinals and matplotlib date numbers share the
+        #  1970 epoch, so matplotlib.dates tickers label daily data correctly
+        idx = date_range("2018-01-01", periods=4, freq="D")
+        ax = pd.Series(range(4), index=idx).plot()
+        ax.set_xlim(datetime(2018, 1, 1), datetime(2018, 4, 1))
+        ax.xaxis.set_major_locator(mpl.dates.MonthLocator())
+        ax.xaxis.set_major_formatter(mpl.dates.DateFormatter("%b %Y"))
+        ax.get_figure().canvas.draw()
+
+        labels = [label.get_text() for label in ax.get_xticklabels()]
+        assert labels == ["Jan 2018", "Feb 2018", "Mar 2018", "Apr 2018"]
 
     def test_bday_set_xlim_with_strings_or_datetimes(self):
         # GH#64244 - After a BDay plot, ax.set_xlim() with string or datetime
@@ -870,6 +1012,27 @@ class TestTSPlot:
         assert left <= expected1[0]
         assert right >= expected1[-1]
 
+    @pytest.mark.parametrize("freq", ["h", "D"])
+    def test_mixed_freq_regular_first_irregular_off_grid(self, freq, frame_or_series):
+        # GH#29705 irregular timestamps off the regular series' grid were
+        # plotted as matplotlib date numbers on an axis of period ordinals
+        idx = date_range("2016-03-01", "2016-03-31", freq=freq)
+        s1 = pd.Series(np.arange(len(idx), dtype=np.float64), index=idx)
+        irreg_idx = DatetimeIndex(
+            ["2016-03-09 09:15", "2016-03-11 13:15", "2016-03-15 12:45"]
+        )
+        s2 = frame_or_series([1.0, 2.0, 3.0], index=irreg_idx)
+
+        _, ax = mpl.pyplot.subplots()
+        s1.plot(ax=ax)
+        s2.plot(ax=ax, style="o")
+        ax.plot(irreg_idx.to_pydatetime(), [1.0, 2.0, 3.0])
+
+        expected = irreg_idx.to_period(freq).asi8.astype(np.float64)
+        lines = ax.get_lines()
+        tm.assert_numpy_array_equal(lines[1].get_xdata(orig=False), expected)
+        tm.assert_numpy_array_equal(lines[2].get_xdata(orig=False), expected)
+
     def test_mixed_freq_irregular_first(self):
         s1 = pd.Series(
             np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
@@ -939,7 +1102,8 @@ class TestTSPlot:
             assert ax.freq == "B"
             tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), expected)
 
-    def test_mixed_freq_bday_then_higher(self):
+    @pytest.mark.parametrize("period_index", [False, True])
+    def test_mixed_freq_bday_then_higher(self, period_index):
         # GH#64311 plotting a higher-frequency (hourly) series onto an existing
         # business-day axis previously raised AttributeError: the stored BDay
         # series has a plain int64 index with no .asfreq method.
@@ -947,6 +1111,11 @@ class TestTSPlot:
             np.arange(10, dtype=np.float64),
             index=bdate_range("2020-01-01", periods=10),
         )
+        if period_index:
+            # only Period[B] input is still cached as business-day ordinals
+            msg = r"PeriodDtype\[B\] is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                bser.index = bser.index.to_period("B")
         hser = pd.Series(
             np.arange(48, dtype=np.float64),
             index=date_range("2020-01-01", periods=48, freq="h"),
@@ -966,7 +1135,8 @@ class TestTSPlot:
         # aligned starts -> shared first x-coordinate
         assert line_b.get_xdata()[0] == line_h.get_xdata()[0]
 
-    def test_mixed_freq_bday_onto_lower(self):
+    @pytest.mark.parametrize("period_index", [False, True])
+    def test_mixed_freq_bday_onto_lower(self, period_index):
         # GH#64311 plotting BDay data onto an axis that already holds a
         # lower-frequency (monthly) series previously left ax.freq clobbered to
         # "B" before resampling, so the monthly line kept its month ordinals
@@ -975,6 +1145,16 @@ class TestTSPlot:
             np.arange(12, dtype=np.float64),
             index=date_range("2020-01-01", periods=12, freq="ME"),
         )
+        # month-end timestamps stay in their month, so a weekend month-end
+        # goes on the last business day (GH#11574); Periods have no date and
+        # are placed at their start
+        bme = date_range("2020-01-01", periods=12, freq="BME")
+        expected_m = np.array([conv.bday_count(ts) for ts in bme])
+        if period_index:
+            mser.index = mser.index.to_period("M")
+            expected_m = np.array(
+                [conv.bday_count(per.to_timestamp()) for per in mser.index]
+            )
         bser = pd.Series(
             np.arange(10, dtype=np.float64),
             index=bdate_range("2020-06-01", periods=10),
@@ -985,14 +1165,29 @@ class TestTSPlot:
         # both lines share a common business-day ordinal scale
         assert ax.freq == "B"
         line_m, line_b = ax.get_lines()
-        # the monthly line is upsampled to the business-day ordinals of its
-        # (month-start) timestamps
-        expected_m = np.array(
-            [conv.bday_count(per.to_timestamp()) for per in mser.index.to_period("M")]
-        )
         tm.assert_numpy_array_equal(line_m.get_xdata(), expected_m)
         expected_b = np.array([conv.bday_count(ts) for ts in bser.index])
         tm.assert_numpy_array_equal(line_b.get_xdata(), expected_b)
+
+    def test_mixed_freq_weekly_on_bday_axis(self):
+        # GH#11574 Sunday-ending weeks go on that week's Friday, not the
+        # following Monday
+        weekly_ser = pd.Series(
+            np.arange(4, dtype=np.float64),
+            index=date_range("2020-01-05", periods=4, freq="W-SUN"),
+        )
+        bser = pd.Series(
+            np.arange(30, dtype=np.float64),
+            index=bdate_range("2020-01-01", periods=30),
+        )
+        _, ax = mpl.pyplot.subplots()
+        bser.plot(ax=ax)
+        weekly_ser.plot(ax=ax)
+        assert ax.freq == "B"
+        line_w = ax.get_lines()[1]
+        fridays = date_range("2020-01-03", periods=4, freq="W-FRI")
+        expected = np.array([conv.bday_count(ts) for ts in fridays])
+        tm.assert_numpy_array_equal(line_w.get_xdata(), expected)
 
     @pytest.mark.parametrize("freq", ["D", "h", "min", "s"])
     def test_mixed_freq_bday_onto_finer_axis(self, freq):
@@ -1035,7 +1230,8 @@ class TestTSPlot:
         for line in ax.get_lines()[1:]:
             tm.assert_numpy_array_equal(line.get_xdata(), expected)
 
-    def test_mixed_freq_bday_onto_weekly_axis(self):
+    @pytest.mark.parametrize("period_index", [False, True])
+    def test_mixed_freq_bday_onto_weekly_axis(self, period_index):
         # GH#66222 business-day data plotted onto a weekly axis raised
         # TypeError from resampling the int64 business-day ordinal index.
         weekly_ser = pd.Series(
@@ -1046,12 +1242,17 @@ class TestTSPlot:
             np.arange(30, dtype=np.float64),
             index=bdate_range("2020-01-01", periods=30),
         )
+        # the business-day data is aggregated onto the weekly axis
+        expected = bser.resample("W-SUN").last().dropna()
+        if period_index:
+            # only Period[B] input is still converted to business-day ordinals
+            msg = r"PeriodDtype\[B\] is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                bser.index = bser.index.to_period("B")
         _, ax = mpl.pyplot.subplots()
         weekly_ser.plot(ax=ax)
         bser.plot(ax=ax)
         assert ax.freq == "W-SUN"
-        # the business-day data is aggregated onto the weekly axis
-        expected = bser.resample("W-SUN").last().dropna()
         line_b = ax.get_lines()[1]
         tm.assert_numpy_array_equal(
             line_b.get_xdata(), PeriodIndex(expected.index, freq="W-SUN").asi8
@@ -1169,6 +1370,97 @@ class TestTSPlot:
         assert ax2.freq == "M"
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
+    @pytest.mark.parametrize("case", ["coarse_first", "coarse_second", "sharex"])
+    def test_mixed_freq_month_end_on_daily_axis(self, case):
+        # GH#11574 month-end data re-expressed on a daily axis was drawn at
+        # the start of each month
+        daily = pd.Series(np.arange(100.0), index=date_range("2000-01-01", periods=100))
+        monthly = daily.resample("ME").mean()
+
+        if case == "sharex":
+            _, (ax1, ax) = mpl.pyplot.subplots(nrows=2, sharex=True)
+            daily.plot(ax=ax1)
+            monthly.plot(ax=ax)
+            line = ax.get_lines()[0]
+        else:
+            _, ax = mpl.pyplot.subplots()
+            first, second = (
+                (monthly, daily) if case == "coarse_first" else (daily, monthly)
+            )
+            first.plot(ax=ax)
+            second.plot(ax=ax)
+            line = ax.get_lines()[0 if case == "coarse_first" else 1]
+
+        assert ax.freq == "D"
+        expected = monthly.index.to_period("D").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(line.get_xdata(orig=False), expected)
+
+    @pytest.mark.parametrize("coarse_first", [True, False])
+    def test_mixed_freq_period_index_on_daily_axis(self, coarse_first):
+        # PeriodIndex data has no position within its periods, so unlike
+        # month-end timestamps it is drawn at the start of each (GH#11574)
+        daily = pd.Series(np.arange(100.0), index=date_range("2000-01-01", periods=100))
+        monthly = pd.Series(
+            [1.0, 2.0, 3.0], index=period_range("2000-01", periods=3, freq="M")
+        )
+        _, ax = mpl.pyplot.subplots()
+        first, second = (monthly, daily) if coarse_first else (daily, monthly)
+        first.plot(ax=ax)
+        second.plot(ax=ax)
+
+        assert ax.freq == "D"
+        line = ax.get_lines()[0 if coarse_first else 1]
+        expected = monthly.index.asfreq("D", how="S").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(line.get_xdata(orig=False), expected)
+
+    def test_mixed_freq_month_end_replotted_twice(self):
+        # GH#11574 each replot converts from the original timestamps
+        idx = date_range("2000-01-31", periods=4, freq="ME")
+        _, ax = mpl.pyplot.subplots()
+        pd.Series(np.arange(4.0), index=idx).plot(ax=ax)
+        pd.Series(
+            np.arange(20.0), index=date_range("2000-01-02", periods=20, freq="W")
+        ).plot(ax=ax)
+        pd.Series(
+            np.arange(48.0), index=date_range("2000-01-01", periods=48, freq="h")
+        ).plot(ax=ax)
+
+        assert ax.freq == "h"
+        expected = idx.to_period("h").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(orig=False), expected)
+
+    def test_mixed_freq_resampled_to_weekly_stays_resampled_on_replot(self):
+        # daily data resampled onto a weekly axis keeps its weekly bins, aligned
+        # with the weekly series, when a finer series replots the axes
+        weekly = pd.Series(
+            np.arange(5.0), index=date_range("2000-01-02", periods=5, freq="W")
+        )
+        daily = pd.Series(np.arange(30.0), index=date_range("2000-01-01", periods=30))
+        hourly = pd.Series(
+            np.arange(48.0), index=date_range("2000-01-01", periods=48, freq="h")
+        )
+        _, ax = mpl.pyplot.subplots()
+        weekly.plot(ax=ax)
+        daily.plot(ax=ax)
+        hourly.plot(ax=ax)
+        lines = ax.get_lines()
+        assert [len(line.get_xdata()) for line in lines] == [5, 5, 48]
+        expected = weekly.index.to_period("h").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(lines[0].get_xdata(orig=False), expected)
+        tm.assert_numpy_array_equal(lines[1].get_xdata(orig=False), expected)
+
+    def test_scatter_month_end_on_daily_axis(self):
+        # GH#11574
+        daily = pd.Series(np.arange(100.0), index=date_range("2000-01-01", periods=100))
+        dti = date_range("2000-01-31", periods=3, freq="ME")
+        df = pd.DataFrame({"t": dti, "y": [1.0, 2.0, 3.0]})
+        _, ax = mpl.pyplot.subplots()
+        daily.plot(ax=ax)
+        df.plot.scatter(x="t", y="y", ax=ax)
+        expected = dti.to_period("D").asi8.astype(np.float64)
+        offsets = np.asarray(ax.collections[0].get_offsets())
+        tm.assert_numpy_array_equal(offsets[:, 0], expected)
+
     def test_mixed_freq_shared_ax_twin_x(self):
         # GH13341, using sharex=True
         idx1 = date_range("2015-01-01", periods=3, freq="ME")
@@ -1183,9 +1475,8 @@ class TestTSPlot:
 
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
-    @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
     def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
-        # GH13341, using sharex=True
+        # GH#14322
         idx1 = date_range("2015-01-01", periods=3, freq="ME")
         idx2 = idx1[:1].union(idx1[2:])
         s1 = pd.Series(range(len(idx1)), idx1)
@@ -1195,6 +1486,100 @@ class TestTSPlot:
         s2.plot(ax=ax1)
         s1.plot(ax=ax2)
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
+    def test_shared_ax_misaligned_freq_second(self, layout, tz):
+        # GH#40470 timestamps off the daily grid are plotted as datetimes, which
+        # must land at the hourly ordinals already on the shared x-axis
+        s1 = pd.Series(
+            range(48), date_range("2020-11-08 09:00", periods=48, freq="h", tz=tz)
+        )
+        s2 = pd.Series(
+            range(2), date_range("2020-11-08 09:32", periods=2, freq="D", tz=tz)
+        )
+        if layout == "sharex":
+            _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        else:
+            _, ax1 = mpl.pyplot.subplots()
+            ax2 = ax1.twinx() if layout == "twinx" else ax1
+        s1.plot(ax=ax1)
+        if layout == "secondary_y":
+            s2.plot(ax=ax2, secondary_y=True)
+            ax2 = ax1.right_ax
+        else:
+            s2.plot(ax=ax2)
+
+        expected = s2.index.tz_localize(None).to_period("h").asi8.astype(np.float64)
+        tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
+
+    @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
+    def test_shared_ax_misaligned_freq_first(self, layout):
+        # GH#40470 with the off-grid series plotted first, both are plotted as
+        # datetimes
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        s2 = pd.Series(range(2), date_range("2020-11-08 09:32", periods=2, freq="D"))
+        if layout == "sharex":
+            _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        else:
+            _, ax1 = mpl.pyplot.subplots()
+            ax2 = ax1.twinx() if layout == "twinx" else ax1
+        s2.plot(ax=ax1)
+        if layout == "secondary_y":
+            s1.plot(ax=ax2, secondary_y=True)
+            ax2 = ax1.right_ax
+        else:
+            s1.plot(ax=ax2)
+
+        expected = mpl.dates.date2num(s2.index.to_pydatetime())
+        tm.assert_numpy_array_equal(ax1.lines[0].get_xdata(orig=False), expected)
+        expected = mpl.dates.date2num(s1.index.to_pydatetime())
+        tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
+
+    def test_shared_ax_misaligned_freq_second_scatter(self):
+        # GH#40470
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        dti = date_range("2020-11-08 09:32", periods=2, freq="D")
+        df = pd.DataFrame({"x": dti, "y": [1, 2]})
+        _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        s1.plot(ax=ax1)
+        df.plot.scatter(x="x", y="y", ax=ax2)
+
+        expected = dti.to_period("h").asi8.astype(np.float64)
+        offsets = np.asarray(ax2.collections[0].get_offsets())
+        tm.assert_numpy_array_equal(offsets[:, 0], expected)
+
+    @pytest.mark.parametrize("layout", ["single", "sharex"])
+    def test_shared_ax_misaligned_with_nat(self, layout):
+        # GH#40470 NaT in a series drawn through the period converter is a gap
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        dti = DatetimeIndex(["2020-11-08 09:32", pd.NaT, "2020-11-09 09:32"])
+        s2 = pd.Series([1.0, 2.0, 3.0], dti)
+        if layout == "single":
+            _, ax1 = mpl.pyplot.subplots()
+            ax2 = ax1
+        else:
+            _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        s1.plot(ax=ax1)
+        s2.plot(ax=ax2)
+
+        expected = dti.to_period("h").asi8.astype(np.float64)
+        expected[1] = np.nan
+        tm.assert_numpy_array_equal(ax2.lines[-1].get_xdata(orig=False), expected)
+
+    @pytest.mark.parametrize("cleared", ["source", "target"])
+    def test_shared_ax_cleared_sibling(self, cleared):
+        # GH#40470 once either axes is cleared the time-series setup is gone
+        # and the sibling plots at matplotlib date-numbers, as without it
+        s1 = pd.Series(range(48), date_range("2020-11-08 09:00", periods=48, freq="h"))
+        s2 = pd.Series(range(2), date_range("2020-11-08 09:32", periods=2, freq="D"))
+        _, (ax1, ax2) = mpl.pyplot.subplots(nrows=2, sharex=True)
+        s1.plot(ax=ax1)
+        (ax1 if cleared == "source" else ax2).clear()
+        s2.plot(ax=ax2)
+
+        expected = mpl.dates.date2num(s2.index.to_pydatetime())
+        tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
 
     def test_nat_handling(self):
         _, ax = mpl.pyplot.subplots()
@@ -1246,10 +1631,8 @@ class TestTSPlot:
         high.plot(ax=ax)
 
         expected_h = idxh.to_period().asi8.astype(np.float64)
-        expected_l = np.array(
-            [1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549, 1553, 1558, 1562],
-            dtype=np.float64,
-        )
+        # month-end timestamps land in the week containing them, GH#11574
+        expected_l = idxl.to_period("W").asi8.astype(np.float64)
         for line in ax.get_lines():
             assert (
                 PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
@@ -1281,23 +1664,7 @@ class TestTSPlot:
         high.plot(kind=kind2, stacked=True, ax=ax)
 
         # check low dataframe result
-        expected_x = np.array(
-            [
-                1514,
-                1519,
-                1523,
-                1527,
-                1531,
-                1536,
-                1540,
-                1544,
-                1549,
-                1553,
-                1558,
-                1562,
-            ],
-            dtype=np.float64,
-        )
+        expected_x = idxl.to_period("W").asi8.astype(np.float64)
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             line = ax.lines[i]
@@ -1355,23 +1722,7 @@ class TestTSPlot:
             tm.assert_numpy_array_equal(line.get_ydata(orig=False), expected_y)
 
         # check low dataframe result
-        expected_x = np.array(
-            [
-                1514,
-                1519,
-                1523,
-                1527,
-                1531,
-                1536,
-                1540,
-                1544,
-                1549,
-                1553,
-                1558,
-                1562,
-            ],
-            dtype=np.float64,
-        )
+        expected_x = idxl.to_period("W").asi8.astype(np.float64)
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             lines = ax.lines[3 + i]
@@ -1416,6 +1767,15 @@ class TestTSPlot:
                 PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
                 == "100ms"
             )
+
+    def test_plot_multiplied_nano_freq(self):
+        # GH#20575 128Hz data; dropping the multiplier made the date locator
+        # enumerate every nanosecond in view
+        idx = date_range(0, periods=2, freq="7812500ns")
+        ser = pd.Series([1.0, 2.0], index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        assert ax.freq == "7812500ns"
 
     def test_irreg_dtypes(self):
         # date
@@ -1744,6 +2104,50 @@ class TestTSPlot:
         assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
         assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
+    @pytest.mark.parametrize("index_func", [date_range, period_range])
+    def test_regular_ts_sharex_xlim(self, index_func):
+        # GH#14074 plotting a shorter series on a sharex sibling should not
+        # truncate the longer one
+        idx = index_func("2020-01-01", periods=5, freq="D")
+        ser_long = pd.Series(range(5), index=idx)
+        ser_short = pd.Series(range(2), index=idx[:2])
+
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        ser_long.plot(ax=ax1)
+        # x-data in axes coordinates, must not count toward the limits
+        ax1.axhline(0)
+        ser_short.plot(ax=ax2)
+
+        expected = (ax1.lines[0].get_xdata()[0], ax1.lines[0].get_xdata()[-1])
+        assert ax1.get_xlim() == expected
+        assert ax2.get_xlim() == expected
+
+    def test_regular_ts_sharex_xlim_other_freq(self):
+        # GH#14074 a sibling plotted at another freq holds x-values in other
+        # units, so it does not widen the limits
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series(range(3), index=period_range("2020-01", periods=3, freq="M")).plot(
+            ax=ax1
+        )
+        ser = pd.Series(range(5), index=period_range("2020-01-01", periods=5, freq="D"))
+        ser.plot(ax=ax2)
+
+        assert ax2.freq == "D"
+        assert ax2.get_xlim() == (ser.index[0].ordinal, ser.index[-1].ordinal)
+
+    def test_regular_ts_sharex_xlim_cleared_sibling(self):
+        # GH#14074 a cleared sibling has no data to keep in view
+        idx = date_range("2020-01-01", periods=5, freq="D")
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series(range(5), index=idx).plot(ax=ax1)
+        ax1.clear()
+        pd.Series(range(2), index=idx[:2]).plot(ax=ax2)
+
+        assert ax2.get_xlim() == (
+            ax2.lines[0].get_xdata()[0],
+            ax2.lines[0].get_xdata()[-1],
+        )
+
     def test_secondary_y_non_ts_xlim(self):
         # GH 3490 - non-timeseries with secondary y
         index_1 = [1, 2, 3, 4]
@@ -1809,6 +2213,43 @@ class TestTSPlot:
         assert left <= conv.DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
         assert right >= conv.DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
+    @pytest.mark.parametrize("freq", ["ME", "2ME", "3B"])
+    @pytest.mark.parametrize("extra_line", ["yerr", "axhline"])
+    def test_regular_ts_secondary_y_after_bar_with_lines(self, freq, extra_line):
+        # GH#71436 error caps or axhline on a time-series bar plot must not push
+        # a secondary_y line off the bars
+        ser = pd.Series(
+            np.arange(6.0), index=date_range("2015-01-01", periods=6, freq=freq)
+        )
+        _, ax = mpl.pyplot.subplots()
+        if extra_line == "yerr":
+            ser.plot.bar(ax=ax, yerr=0.5, capsize=3)
+        else:
+            ser.plot.bar(ax=ax)
+            ax.axhline(0)
+        ax2 = ser.plot(ax=ax, secondary_y=True)
+
+        xdata = ax2.get_lines()[0].get_xdata(orig=False)
+        bar_centers = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        tm.assert_numpy_array_equal(xdata, np.array(bar_centers))
+        # axhline's x is in axes coordinates and must not stretch the view
+        left, right = ax.get_xlim()
+        assert bar_centers[0] - 1 < left <= bar_centers[0]
+        assert bar_centers[-1] <= right < bar_centers[-1] + 1
+
+    @pytest.mark.parametrize("secondary_y", [False, True])
+    def test_ts_plot_xlim_ignores_axhline(self, secondary_y):
+        # GH#71436
+        ser = pd.Series(
+            np.arange(6.0), index=date_range("2015-01-31", periods=6, freq="ME")
+        )
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax)
+        expected = ax.get_xlim()
+        ax.axhline(0)
+        ser.plot(ax=ax, secondary_y=secondary_y)
+        assert ax.get_xlim() == expected
+
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
         values = [date(1677, 1, 1), date(1677, 1, 2)]
@@ -1867,8 +2308,60 @@ class TestTSPlot:
 
         labels = [x.get_text() for x in ax.get_xticklabels() if x.get_text().strip()]
         assert labels
-        # every label shown corresponds to an actual index entry
-        assert set(labels) <= {str(td) for td in rng}
+        formatter = ax.xaxis.get_major_formatter()
+        assert isinstance(formatter, conv.TimeSeries_TimedeltaFormatter)
+
+    def test_timedelta_index_use_index_false(self):
+        # GH#19965 positional x keeps matplotlib's formatter
+        idx = pd.TimedeltaIndex(["0.38s", "1.34s", "2.34s"])
+        ser = pd.Series([1.0, 2.0, 3.0], index=idx)
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(ax=ax, use_index=False)
+
+        formatter = ax.xaxis.get_major_formatter()
+        assert not isinstance(formatter, conv.TimeSeries_TimedeltaFormatter)
+
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    @pytest.mark.parametrize(
+        "idx, kwargs, expected",
+        [
+            (
+                pd.TimedeltaIndex(["0.38s", "1.34s", "NaT", "2.34s"]),
+                {},
+                [380.0, 1340.0, np.nan, 2340.0],
+            ),
+            (
+                timedelta_range("0s", periods=4, freq="s"),
+                {"x_compat": True},
+                [0.0, 1000.0, 2000.0, 3000.0],
+            ),
+        ],
+    )
+    def test_timedelta_index_spacing(self, kind, idx, kwargs, expected):
+        # GH#19965 plotted at the index values rather than positionally, with
+        # every tick labeled
+        ser = pd.Series([1.0, 2.0, 3.0, 4.0], index=idx.as_unit("ms"))
+        _, ax = mpl.pyplot.subplots()
+        ser.plot(kind=kind, ax=ax, **kwargs)
+        mpl.pyplot.draw()
+
+        result = np.asarray(ax.get_lines()[0].get_xdata(), dtype=np.float64)
+        tm.assert_numpy_array_equal(result, np.array(expected))
+        formatter = ax.xaxis.get_major_formatter()
+        assert isinstance(formatter, conv.TimeSeries_TimedeltaFormatter)
+        assert formatter.unit == "ms"
+        labels = [x.get_text() for x in ax.get_xticklabels()]
+        assert labels
+        assert all(labels)
+
+    def test_bar_timedelta_index_positional(self):
+        # GH#19965 bars stay one slot per row, not at the index values
+        ser = pd.Series([1, 2, 3], index=timedelta_range("0s", periods=3, freq="s"))
+        _, ax = mpl.pyplot.subplots()
+        ser.plot.bar(ax=ax)
+
+        result = [p.get_x() + p.get_width() / 2 for p in ax.patches]
+        assert result == [0.0, 1.0, 2.0]
 
     def test_timedelta_plot(self):
         # test issue #8711
@@ -2182,6 +2675,30 @@ class TestTSPlot:
         # must not blow up while locating ticks
         ax.get_figure().canvas.draw()
 
+    @pytest.mark.parametrize("bar_first", [True, False])
+    def test_bar_and_line_plot_same_index_aligned(self, bar_first):
+        # GH#10761 - bars and a line over the same DatetimeIndex share the
+        # x-axis instead of landing on unrelated scales
+        df = pd.DataFrame(
+            np.arange(30.0).reshape(10, 3),
+            index=date_range("2015-07-01", periods=10, freq="D"),
+            columns=["col1", "col2", "col3"],
+        )
+        _, ax = plt.subplots()
+        if bar_first:
+            df[["col1", "col2"]].plot(kind="bar", stacked=True, ax=ax)
+            df["col3"].plot(ax=ax)
+        else:
+            df["col3"].plot(ax=ax)
+            df[["col1", "col2"]].plot(kind="bar", stacked=True, ax=ax)
+
+        assert len(ax.patches) == 20
+        bar_centers = np.array(
+            [patch.get_x() + patch.get_width() / 2 for patch in ax.patches[:10]]
+        )
+        line_x = ax.get_lines()[0].get_xydata()[:, 0]
+        tm.assert_numpy_array_equal(bar_centers, line_x)
+
     @pytest.mark.parametrize(
         "bar_freq, line_freq", [("W", "D"), ("ME", "D"), ("D", "h")]
     )
@@ -2315,3 +2832,95 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     kwargs["ax"] = ax
     ret = f(*args, **kwargs)
     assert ret is not None  # TODO: do something more intelligent
+
+
+@pytest.mark.parametrize("start", ["2025-10-26T00:00", "2025-10-26T01:00"])
+def test_ts_plot_tz_aware_dst_fall_back(start):
+    # GH#62936 the index starts at the first or the repeated 02:00 of the
+    #  fall-back day; localizing its tz-naive period back to the timezone raised
+    index = date_range(start, "2025-10-26T03:00", freq="5min", tz="UTC").tz_convert(
+        "MET"
+    )
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.tz_localize(None).to_period("5min").asi8
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ts_plot_tz_aware_period_start_nonexistent():
+    # GH#62936 Lord Howe Island springs forward 02:00 -> 02:30, so the hourly
+    #  period of the first timestamp (02:30) starts at a nonexistent 02:00
+    utc = date_range("2025-10-04T15:30", periods=5, freq="h", tz="UTC")
+    index = utc.tz_convert("Australia/Lord_Howe")
+    assert index[0] == pd.Timestamp("2025-10-05 02:30+11:00", tz="Australia/Lord_Howe")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    result = ax.get_lines()[0].get_xdata()
+    expected = index.astype(object).to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["h", "B"])
+def test_ts_plot_tz_aware_off_grid_onto_regular(freq):
+    # GH#12047 the off-grid series goes through PeriodConverter, which warned
+    #  about dropping the tz and put "B" points on their UTC day, not wall day
+    index = date_range("2015-02-23", periods=10, freq=freq)
+    off_grid = index + pd.Timedelta(hours=22, minutes=30)
+    _, ax = mpl.pyplot.subplots()
+    pd.DataFrame(np.arange(10), index=index.tz_localize("US/Eastern")).plot(ax=ax)
+
+    with tm.assert_produces_warning(None):
+        pd.DataFrame(np.arange(10), index=off_grid.tz_localize("US/Eastern")).plot(
+            ax=ax
+        )
+
+    result = ax.get_lines()[1].get_xdata(orig=False)
+    if freq == "B":
+        expected = conv.bday_count_array(off_grid.values)
+    else:
+        expected = off_grid.to_period(freq).asi8
+    tm.assert_numpy_array_equal(result, expected.astype(np.float64))
+
+
+@pytest.mark.parametrize("arrow", [False, True])
+@pytest.mark.parametrize("kind", ["line_y", "line_x", "scatter"])
+def test_plot_tz_aware_values_with_nat(kind, arrow):
+    # GH#64613 regression: NaT in tz-aware values made the converter raise
+    values = pd.Series(date_range("2020-01-01 05:00", periods=3, tz="US/Eastern"))
+    values[1] = pd.NaT
+    tz = values.dt.tz
+    if arrow:
+        pa = pytest.importorskip("pyarrow")
+        values = values.astype(pd.ArrowDtype(pa.timestamp("us", tz="US/Eastern")))
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "tz": values})
+    df["naive"] = values.dt.tz_convert(None)
+
+    _, (ax1, ax2) = mpl.pyplot.subplots(2)
+    if kind == "line_y":
+        df.plot(x="a", y="tz", ax=ax1)
+        df.plot(x="a", y="naive", ax=ax2)
+        result = ax1.get_lines()[0].get_ydata(orig=False)
+        expected = ax2.get_lines()[0].get_ydata(orig=False)
+        axis = ax1.yaxis
+    elif kind == "line_x":
+        df.plot(x="tz", y="a", ax=ax1)
+        df.plot(x="naive", y="a", ax=ax2)
+        result = ax1.get_lines()[0].get_xdata(orig=False)
+        expected = ax2.get_lines()[0].get_xdata(orig=False)
+        axis = ax1.xaxis
+    else:
+        df.plot.scatter(x="tz", y="a", ax=ax1)
+        df.plot.scatter(x="naive", y="a", ax=ax2)
+        result = ax1.collections[0].get_offsets()
+        expected = ax2.collections[0].get_offsets()
+        axis = ax1.xaxis
+    tm.assert_numpy_array_equal(
+        np.ma.filled(result, np.nan), np.ma.filled(expected, np.nan)
+    )
+    # the tick labels still use the column's timezone
+    assert axis.units == tz

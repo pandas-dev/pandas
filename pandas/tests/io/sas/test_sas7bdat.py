@@ -370,11 +370,14 @@ def test_inconsistent_number_of_rows(datapath):
 
 
 @pytest.mark.parametrize("last_on_page", [False, True])
-@pytest.mark.parametrize("chunksize", [None, 1, 69, 278, 2087])
+@pytest.mark.parametrize("chunksize", [None, 4, 7, 69, 278, 2087])
 def test_deleted_rows(datapath, tmp_path, chunksize, last_on_page):
     # GH#15963 load_log marks rows deleted on a mix page (page 0) and on a data
     # page (page 4). Clearing those pages' flag gives the same file with every
-    # row kept.
+    # row kept. chunksize=4 starts chunks on deleted rows of both pages, and on
+    # the deleted last row of page 0 when last_on_page. When last_on_page,
+    # chunksize=7 starts chunks on the deleted rows of page 4, including its
+    # deleted last row.
     fname = datapath("io", "sas", "data", "load_log.sas7bdat")
     with contextlib.closing(SAS7BDATReader(fname, encoding="latin-1")) as rdr:
         header_length = rdr.header_length

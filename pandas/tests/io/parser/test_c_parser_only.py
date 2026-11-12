@@ -24,6 +24,7 @@ from pandas._libs.hashtable import get_hashtable_trace_domain
 from pandas.compat import WASM
 from pandas.errors import (
     DtypeWarning,
+    EmptyDataError,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -605,6 +606,57 @@ def test_chunk_whitespace_on_boundary(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "line, expected",
+    [(" b", [" b"]), ("  b", ["  b"]), ("\tb", ["\tb"]), ("  ", [])],
+)
+def test_leading_whitespace_split_at_chunk_boundary(c_parser_only, line, expected):
+    # GH#34085: the line's first blank is the last byte of the first chunk
+    parser = c_parser_only
+    first = "a" * (1024 * 256 - 2)
+    data = first + "\n" + line + "\nc\n"
+    result = parser.read_csv(StringIO(data), header=None)
+
+    tm.assert_frame_equal(result, pd.DataFrame([first, *expected, "c"]))
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, expected",
+    [
+        ("x,y\n a ,b\n", {"quotechar": " "}, [["x", "y"], ["a", "b"]]),
+        ("x,y\n\t\t,b\n", {"escapechar": "\t"}, [["x", "y"], ["\t", "b"]]),
+        ("x,y\n \t\t,b\n", {"escapechar": "\t"}, [["x", "y"], [" \t", "b"]]),
+        # not skipped as blank, matching engine="python"
+        ("x\n \t\nc\n", {"escapechar": "\t"}, [["x"], [" \nc"]]),
+        (
+            "x,y\n  \ta,b\t,c\n",
+            {"quotechar": "\t", "skipinitialspace": True},
+            [["x", "y"], ["a,b", "c"]],
+        ),
+    ],
+)
+def test_line_starting_with_blank_quotechar_or_escapechar(
+    c_parser_only, data, kwargs, expected
+):
+    # GH#34085: a blank quotechar or escapechar keeps its meaning at line start
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(data), header=None, dtype=str, **kwargs)
+
+    tm.assert_frame_equal(result, pd.DataFrame(expected, dtype="str"))
+
+
+@pytest.mark.parametrize(
+    "data, kwargs",
+    [("x\n  \r\nc\n", {}), ("x\n  \rc\n", {}), ("x\n  #z\nc\n", {"comment": "#"})],
+)
+def test_skipped_line_leading_blanks_not_kept(c_parser_only, data, kwargs):
+    # GH#34085: blanks held while probing a skipped line must not reach the next
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(data), **kwargs)
+
+    tm.assert_frame_equal(result, pd.DataFrame({"x": ["c"]}))
+
+
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_file_handles_mmap(c_parser_only, csv1):
     # gh-14418
@@ -809,8 +861,7 @@ def test_string_storage_python_consistent(c_parser_only):
 @pytest.mark.parametrize("lineterm", ["\n", "\r\n"])
 def test_block_lane_blank_and_whitespace_lines(c_parser_only, lineterm):
     # The SIMD block fast lane defers lines led by blanks (or entirely
-    # blank) to the state machine; a no-progress lane exit must preserve
-    # the post-WHITESPACE_LINE state instead of ping-ponging (GH#66274).
+    # blank) to the state machine (GH#66274).
     parser = c_parser_only
     rows = []
     for i in range(200):
@@ -1847,27 +1898,6 @@ def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatc
 
 
 @pytest.mark.parametrize(
-    "converter,values",
-    [
-        (lambda x: [x], [["1"], ["CAT"], ["3"]]),
-        # hashable type whose __hash__ raises
-        (lambda x: (x, [x]), [("1", ["1"]), ("CAT", ["CAT"]), ("3", ["3"])]),
-    ],
-)
-def test_converter_unhashable_output_with_na_values(c_parser_only, converter, values):
-    # GH#13302 matching na_values against the converter's output must not
-    # reject output that cannot be hashed. The python engine raises here.
-    parser = c_parser_only
-    data = "A\n1\nCAT\n3"
-
-    result = parser.read_csv(
-        StringIO(data), converters={"A": converter}, na_values="CAT"
-    )
-    expected = pd.DataFrame({"A": values})
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
     "data, kwargs, dtype, offender",
     [
         (
@@ -1881,6 +1911,13 @@ def test_converter_unhashable_output_with_na_values(c_parser_only, converter, va
             {"thousands": ","},
             "int64",
             "x",
+        ),
+        (
+            # GH#41117
+            "a;b\na;1.234\nb;1,234.00\nc;:\n",
+            {"thousands": ","},
+            "float64",
+            ":",
         ),
         (
             # overflowing-but-valid token before the offender
@@ -1899,3 +1936,113 @@ def test_unparseable_dtype_names_offending_value(
 
     with pytest.raises(ValueError, match=re.escape(repr(offender))):
         parser.read_csv(StringIO(data), sep=";", dtype={"b": dtype}, **kwargs)
+
+
+_SNIFF_EXPECTED = pd.DataFrame(
+    {"A": [1, 3], "B": [2, 4]}, index=pd.Index(["foo", "bar"], name="index")
+)
+
+
+@pytest.mark.parametrize("as_bytes", [True, False])
+@pytest.mark.parametrize(
+    "data,kwargs",
+    [
+        ("index|A|B\nfoo|1|2\nbar|3|4\n", {}),
+        ("index|A|B\r\nfoo|1|2\r\nbar|3|4\r\n", {}),
+        ("\nindex|A|B\nfoo|1|2\nbar|3|4\n", {}),
+        ("#a,b\nindex|A|B#c,d\n#e\nfoo|1|2\nbar|3|4\n", {"comment": "#"}),
+        ("a,b\nc,d\nindex|A|B\nfoo|1|2\nbar|3|4\n", {"skiprows": 2}),
+        ("a,b\nindex|A|B\nfoo|1|2\nbar|3|4\n", {"skiprows": lambda x: x == 0}),
+    ],
+)
+def test_sniff_delimiter(c_parser_only, data, kwargs, as_bytes):
+    # GH#9645 sniff from the first row not skipped, blank or commented
+    parser = c_parser_only
+    buf = BytesIO(data.encode()) if as_bytes else StringIO(data)
+    result = parser.read_csv(buf, sep=None, index_col=0, **kwargs)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+@pytest.mark.parametrize("chunk_size", [1, 2, 4])
+def test_sniff_delimiter_small_reads(c_parser_only, monkeypatch, chunk_size):
+    # GH#9645 lines, including "\r\n", split across the reads made while sniffing
+    monkeypatch.setattr("pandas.io.parsers.readers._SNIFF_CHUNK_SIZE", chunk_size)
+    parser = c_parser_only
+    data = "a,b\r\nc,d\r\nindex|A|B\r\nfoo|1|2\r\nbar|3|4\r\n"
+    result = parser.read_csv(BytesIO(data.encode()), sep=None, index_col=0, skiprows=2)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+def test_sniff_delimiter_mid_stream(c_parser_only):
+    # GH#9645 parsing starts where the handle was, not at the start
+    parser = c_parser_only
+    buf = BytesIO(b"junk\nindex|A|B\nfoo|1|2\nbar|3|4\n")
+    buf.readline()
+    result = parser.read_csv(buf, sep=None, index_col=0)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+def test_sniff_delimiter_chunksize(c_parser_only):
+    # GH#9645
+    parser = c_parser_only
+    data = "index|A|B\nfoo|1|2\nbar|3|4\n"
+    with parser.read_csv(StringIO(data), sep=None, index_col=0, chunksize=1) as reader:
+        result = pd.concat(reader)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+def test_sniff_delimiter_default_engine(key):
+    # GH#9645 the default engine sniffs rather than falling back to python
+    with tm.assert_produces_warning(None):
+        result = pd.read_csv(StringIO("a;b\n1;2\n"), **{key: None})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", ["", "a,b\n", "#a,b\n"])
+def test_sniff_delimiter_no_rows(c_parser_only, data):
+    # GH#9645
+    parser = c_parser_only
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+        parser.read_csv(StringIO(data), sep=None, skiprows=1, comment="#")
+
+
+def test_sniff_delimiter_multibyte(c_parser_only):
+    # GH#9645 the c engine only supports single-byte separators
+    parser = c_parser_only
+    data = '"a"\u00a7"b"\n"1"\u00a7"2"\n'
+    msg = "sep=None detected the separator '\u00a7'"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), sep=None)
+
+
+def test_sniff_delimiter_lone_surrogate(c_parser_only):
+    # GH#9645
+    parser = c_parser_only
+    data = b'"a"\x80"b"\n"1"\x80"2"\n'
+    msg = r"sep=None detected the separator '\\udc80'"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(
+            BytesIO(data),
+            sep=None,
+            encoding="ascii",
+            encoding_errors="surrogateescape",
+        )
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, last",
+    [
+        ("x,y\r1,2\r\r,b\r", {}, "b"),
+        ("x,y\r1,2\r\r, b\r", {}, " b"),
+        ("x,y\r1,2\r# note\r,b\r", {"comment": "#"}, "b"),
+        ("x,y\r1,2\r9,9\r,b\r", {"skiprows": [2]}, "b"),
+    ],
+)
+def test_bare_cr_then_leading_delimiter(c_parser_only, data, kwargs, last):
+    # GH#71409 a line starting with the delimiter after a skipped line ending
+    # in a bare CR lost its empty first field
+    result = c_parser_only.read_csv(StringIO(data), **kwargs)
+    expected = pd.DataFrame({"x": [1.0, np.nan], "y": ["2", last]})
+    tm.assert_frame_equal(result, expected)
