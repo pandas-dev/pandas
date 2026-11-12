@@ -1570,7 +1570,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if values.ndim == 2:
             # object block in DataFrameGroupBy, one row per column
             return np.vstack(
-                [self._transform_py_fallback(how, row, **kwargs) for row in values]
+                [
+                    np.asarray(self._transform_py_fallback(how, row, **kwargs))
+                    for row in values
+                ]
             )
 
         ser = Series(values, dtype=values.dtype, copy=False)
