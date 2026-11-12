@@ -349,6 +349,7 @@ I/O
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
 - Bug in :func:`read_excel` raising ``ValueError`` when ``header`` is a list and ``index_col`` consumes all columns (:issue:`66372`)
 - Bug in :func:`read_html` raising ``ImportError`` when ``lxml`` is not installed instead of falling back to ``bs4`` + ``html5lib`` with the default ``flavor=None`` (:issue:`30281`)
+- Bug in :func:`read_html` with ``index_col`` reading the index-names row written by :meth:`DataFrame.to_html` as an extra column level instead of as the index names (:issue:`8897`)
 - Bug in :func:`read_html` with the ``bs4`` or ``html5lib`` parser dropping tables that have identical content, so only the first was returned (:issue:`49934`)
 - Bug in :func:`read_json` raising ``ValueError`` on numbers whose integer part does not fit in ``int64`` or ``uint64`` (e.g. ``100000000000000000000.5``), and silently returning a wrong value for some of them (:issue:`20599`)
 - Bug in :func:`read_orc` raising whenever ``filesystem`` was passed (:issue:`58746`)
