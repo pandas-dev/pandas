@@ -336,6 +336,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.symmetric_difference` raising ``ValueError`` when ``other`` holds non-tuple entries (:issue:`39699`)
 - Bug in :meth:`Series.map`, :meth:`Index.get_indexer`, :meth:`DataFrame.reindex` and :attr:`DataFrame.loc` with a :class:`MultiIndex` raising ``IndexError`` or matching on a prefix when looking up tuples whose length differs from the number of levels (:issue:`50293`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with a partial :class:`MultiIndex` key (e.g. ``df.loc[:, "a"] = df.loc[:, "a"] * 2``) setting ``NaN`` (or raising) instead of the value (:issue:`10440`, :issue:`15310`, :issue:`40186`, :issue:`43719`, :issue:`45751`, :issue:`46837`)
+- Bug in :class:`MultiIndex` repr, iteration, :meth:`MultiIndex.tolist` and :attr:`MultiIndex.values` casting integer level values to float when that level has missing values, losing precision for large integers (:issue:`24375`)
 -
 
 I/O
