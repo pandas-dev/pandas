@@ -7,7 +7,12 @@ Getting started
 ===============
 
 To quickly try pandas in your browser without installing anything, you can use
-the `Try pandas online <https://pandas.pydata.org/try.html>`__ page.
+the experimental interactive shell.
+
+.. button-link:: https://pandas.pydata.org/try.html
+    :color: primary
+
+    Try pandas in your browser
 
 Installation
 ------------
@@ -655,8 +660,7 @@ For a quick overview of pandas functionality, see :ref:`10 Minutes to pandas<10m
 You can also reference the pandas `cheat sheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_
 for a succinct guide for manipulating data with pandas.
 
-The community produces a wide variety of tutorials available online. Some of the
-material is enlisted in the community contributed :ref:`communitytutorials`.
+For books, videos, and tutorials from the community, see :ref:`communitytutorials`.
 
 
 .. If you update this toctree, also update the manual toctree in the
