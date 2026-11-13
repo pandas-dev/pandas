@@ -695,24 +695,45 @@ def to_sql(
 
 def has_table(table_name: str, con, schema: str | None = None) -> bool:
     """
-    Check if DataBase has named table.
+    Check if a table exists in a SQL database.
+
+    Accepts the same connection types as :func:`~pandas.read_sql`.
 
     Parameters
     ----------
-    table_name: string
+    table_name : str
         Name of SQL table.
-    con: ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
+    con : ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
         ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    schema : string, default None
-        Name of SQL schema in database to write to (if database flavor supports
-        this). If None, use default schema (default).
+    schema : str, optional
+        Name of SQL schema in database to look in (if database flavor supports
+        this). If None, use the default schema.
 
     Returns
     -------
-    boolean
+    bool
+        Whether the table exists.
+
+    See Also
+    --------
+    read_sql_table : Read SQL database table into a DataFrame.
+    DataFrame.to_sql : Write records stored in a DataFrame to a SQL database.
+
+    Examples
+    --------
+    >>> import sqlite3
+    >>> from pandas.io.sql import has_table
+    >>> conn = sqlite3.connect(":memory:")
+    >>> has_table("data", conn)
+    False
+    >>> pd.DataFrame({"a": [1, 2]}).to_sql("data", conn)
+    2
+    >>> has_table("data", conn)
+    True
+    >>> conn.close()
     """
     with pandasSQL_builder(con, schema=schema) as pandas_sql:
         return pandas_sql.has_table(table_name)
