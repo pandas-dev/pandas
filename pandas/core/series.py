@@ -1134,7 +1134,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # Do slice check before somewhat-costly is_bool_indexer
             return self._getitem_slice(key)
 
-        if com.is_bool_indexer(key):
+        if com.is_bool_indexer(key) and not com.bool_list_selects_labels(
+            self.index, key
+        ):
             key = check_bool_indexer(self.index, key)
             key = np.asarray(key, dtype=bool)
             return self._get_rows_with_mask(key)
@@ -1265,7 +1267,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
 
-            if com.is_bool_indexer(key):
+            if com.is_bool_indexer(key) and not com.bool_list_selects_labels(
+                self.index, key
+            ):
                 key = check_bool_indexer(self.index, key)
                 key = np.asarray(key, dtype=bool)
 
