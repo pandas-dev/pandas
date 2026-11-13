@@ -1575,7 +1575,7 @@ def test_unstack_sort_false_does_not_collapse_rows():
 
 
 def test_unstack_multiple_sort_false_multiple_remaining_levels():
-    # GH#62816 _unstack_multiple routes through the same _Unstacker, so
+    # GH#62816 unstack_multiple routes through the same _Unstacker, so
     #  unstacking several levels at once and leaving two or more behind hit
     #  the same misplacement.
     index = pd.MultiIndex.from_tuples(
@@ -1594,6 +1594,95 @@ def test_unstack_multiple_sort_false_multiple_remaining_levels():
         columns=pd.MultiIndex.from_tuples([(9, "p")], names=["z", "w"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "sort, columns, values",
+    [
+        (True, [("A", "x"), ("A", "y"), ("B", "x"), ("B", "y")], [1, 0, 2, 3]),
+        (False, [("A", "y"), ("A", "x"), ("B", "x"), ("B", "y")], [0, 1, 2, 3]),
+    ],
+)
+@pytest.mark.parametrize("lower", [["x", "y"], ["y", "x"]])
+@pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+def test_unstack_multiple_sort(box, lower, sort, columns, values):
+    # GH#9514 "lower" covers a level whose values are stored unsorted
+    index = pd.MultiIndex(
+        levels=[[100, 200], ["A", "B"], lower],
+        codes=[[0, 0, 0, 1], [0, 0, 1, 1], [lower.index(v) for v in "yxxy"]],
+        names=["Nums", "Upper", "Lower"],
+    )
+    obj = box([0.0, 1.0, 2.0, 3.0], index=index)
+
+    result = obj.unstack(["Upper", "Lower"], sort=sort)
+
+    data = np.full((2, 4), np.nan)
+    data[[0, 0, 0, 1], [0, 1, 2, 3]] = values
+    expected = pd.DataFrame(
+        data,
+        index=pd.Index([100, 200], name="Nums"),
+        columns=pd.MultiIndex.from_tuples(columns, names=["Upper", "Lower"]),
+    )
+    if box is pd.DataFrame:
+        expected = pd.concat({0: expected}, axis=1)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_multiple_sort_nan_first():
+    # GH#9514 NaN sorts first, as when unstacking a single level
+    index = pd.MultiIndex.from_arrays(
+        [list("mjmjk"), ["y", np.nan, "x", "y", np.nan], list("qppqq")],
+        names=["r", "a", "b"],
+    )
+    ser = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], index=index)
+
+    result = ser.unstack(["a", "b"])
+
+    expected = pd.DataFrame(
+        [
+            [2.0, np.nan, np.nan, 4.0],
+            [np.nan, 5.0, np.nan, np.nan],
+            [np.nan] * 2 + [3.0, 1.0],
+        ],
+        index=pd.Index(["j", "k", "m"], name="r"),
+        columns=pd.MultiIndex.from_tuples(
+            [(np.nan, "p"), (np.nan, "q"), ("x", "p"), ("y", "q")], names=["a", "b"]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_multiple_sort_overflowing_shape():
+    # GH#9514 the product of the column level sizes overflows int64
+    lev = np.arange(60_000)
+    index = pd.MultiIndex(
+        levels=[[0], lev, lev, lev, lev],
+        codes=[[0, 0, 0], [2, 0, 1], [2, 0, 1], [2, 0, 1], [2, 0, 1]],
+        names=["r", "a", "b", "c", "d"],
+    )
+    ser = pd.Series([1.0, 2.0, 3.0], index=index)
+
+    result = ser.unstack(["a", "b", "c", "d"])
+
+    expected = pd.DataFrame(
+        [[2.0, 3.0, 1.0]],
+        index=pd.Index([0], name="r"),
+        columns=pd.MultiIndex.from_arrays([[0, 1, 2]] * 4, names=list("abcd")),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_all_levels_unsorted_rows():
+    # GH#9514 values must stay with their labels when every level is unstacked
+    index = pd.MultiIndex.from_tuples(
+        [(10, "y", 2), (10, "x", 1), (20, "x", 2)], names=["r", "a", "b"]
+    )
+    df = pd.DataFrame({"v": [0.0, 1.0, 2.0], "w": [5.0, 6.0, 7.0]}, index=index)
+
+    result = df.unstack(["r", "a", "b"])
+
+    expected = df.stack(future_stack=True).reorder_levels([3, 0, 1, 2])
+    tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
 
 def test_unstack_monotonic_values_unsorted_codes():

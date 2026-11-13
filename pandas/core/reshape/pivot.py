@@ -33,6 +33,7 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
 )
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.reshape import unstack_multiple
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
@@ -375,7 +376,13 @@ def __internal_pivot_table(
                 to_unstack.append(i)
             else:
                 to_unstack.append(name)
-        table = agged.unstack(to_unstack, fill_value=fill_value)
+        if not sort and len(to_unstack) > 1:
+            # GH#9514 keep the new columns in order of appearance
+            table = unstack_multiple(
+                agged, to_unstack, fill_value=fill_value, sort_columns=False
+            )
+        else:
+            table = agged.unstack(to_unstack, fill_value=fill_value)
 
     if not dropna:
         if isinstance(table.index, MultiIndex):

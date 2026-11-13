@@ -486,8 +486,12 @@ class _Unstacker:
         )
 
 
-def _unstack_multiple(
-    data: Series | DataFrame, clocs, fill_value=None, sort: bool = True
+def unstack_multiple(
+    data: Series | DataFrame,
+    clocs,
+    fill_value=None,
+    sort: bool = True,
+    sort_columns: bool = True,
 ):
     if len(clocs) == 0:
         return data
@@ -512,10 +516,19 @@ def _unstack_multiple(
     rcodes = [index.codes[i] for i in rlocs]
     rnames = [index.names[i] for i in rlocs]
 
-    shape = tuple(len(x) for x in clevels)
-    group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
+    # GH#9514 order the new columns by value. Not done when unstacking every
+    #  level: the dummy Index below must then stay in row order.
+    sort_columns = sort and sort_columns and bool(rlocs)
+    if sort_columns:
+        cindex = MultiIndex(
+            levels=clevels, codes=ccodes, verify_integrity=False
+        )._sort_levels_monotonic()
+        clevels, ccodes = list(cindex.levels), list(cindex.codes)
 
-    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
+    shape = tuple(len(x) for x in clevels)
+    group_index = get_group_index(ccodes, shape, sort=sort_columns, xnull=False)
+
+    comp_ids, obs_ids = compress_group_index(group_index, sort=sort_columns)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
     if not rlocs:
@@ -598,9 +611,9 @@ def unstack(
 ) -> Series | DataFrame:
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
-            # _unstack_multiple only handles MultiIndexes,
+            # unstack_multiple only handles MultiIndexes,
             # and isn't needed for a single level
-            return _unstack_multiple(obj, level, fill_value=fill_value, sort=sort)
+            return unstack_multiple(obj, level, fill_value=fill_value, sort=sort)
         else:
             level = level[0]
 
