@@ -2342,7 +2342,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return self._aggregate_with_numba(
                     func, *args, engine_kwargs=engine_kwargs, **kwargs
                 )
-            result = self._python_agg_general(func, *args, **kwargs)
+            # _python_agg_general has already inserted any grouping columns.
+            return self._python_agg_general(func, *args, **kwargs)
 
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
