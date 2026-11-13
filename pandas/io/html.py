@@ -53,6 +53,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         BaseBuffer,
+        DtypeArg,
         DtypeBackend,
         FilePath,
         HTMLFlavors,
@@ -1074,6 +1075,7 @@ def read_html(
     thousands: str | None = ",",
     encoding: str | None = None,
     decimal: str = ".",
+    dtype: DtypeArg | None = None,
     converters: Mapping[Hashable, Callable[..., Any]] | None = None,
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
@@ -1167,6 +1169,14 @@ def read_html(
     decimal : str, default '.'
         Character to recognize as decimal point (e.g. use ',' for European
         data).
+
+    dtype : dtype or dict of {Hashable : dtype}, optional
+        Data type(s) to apply to either the whole table or individual columns,
+        e.g. ``{"a": np.float64, "b": np.int32, "c": "Int64"}``. Use ``str``
+        to preserve values such as leading zeros. If ``converters`` are
+        specified, they will be applied INSTEAD of ``dtype`` conversion.
+
+        .. versionadded:: 3.2.0
 
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
@@ -1285,6 +1295,7 @@ def read_html(
         attrs=attrs,
         encoding=encoding,
         decimal=decimal,
+        dtype=dtype,
         converters=converters,
         na_values=na_values,
         keep_default_na=keep_default_na,
