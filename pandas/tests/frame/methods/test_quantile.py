@@ -976,3 +976,26 @@ def test_quantile_dt64_exact_nat_per_column():
         index=[0.0, 0.5, 1.0],
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_quantile_categorical():
+    # GH#52099
+    dtype = pd.CategoricalDtype(list("abcd"), ordered=True)
+    df = pd.DataFrame(
+        {
+            "A": pd.Categorical(list("abcdd"), dtype=dtype),
+            "B": pd.Categorical([np.nan, "a", "b", "d", "d"], dtype=dtype),
+        }
+    )
+    result = df.quantile([0, 0.5, 1], numeric_only=False)
+    expected = pd.DataFrame(
+        {
+            "A": pd.Categorical(["a", "c", "d"], dtype=dtype),
+            "B": pd.Categorical(["a", "c", "d"], dtype=dtype),
+        },
+        index=[0, 0.5, 1],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    with pytest.raises(TypeError, match="Cannot interpolate between categories"):
+        df.quantile(0.25, numeric_only=False)
