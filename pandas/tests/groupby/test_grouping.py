@@ -782,9 +782,8 @@ class TestGrouping:
             result = gb.groups
         tm.assert_dict_equal(result, expected)
 
-        # Test case without a list
+        # Test case without a list, GH#13152
         result = df.groupby(grouper)
-        expected = {pd.Timestamp("2011-01-01"): 365}
         tm.assert_dict_equal(result.groups, expected)
 
     @pytest.mark.parametrize(
