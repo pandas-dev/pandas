@@ -599,3 +599,38 @@ def test_rank_complex_raises(frame_or_series):
     msg = "dtype 'complex128' does not support operation 'rank'"
     with pytest.raises(TypeError, match=msg):
         obj.rank()
+
+
+@pytest.mark.parametrize("method", ["average", "min", "max", "dense"])
+def test_rank_object_raises_in_comparison(frame_or_series, method):
+    # GH#71768: an exception raised while comparing two object-dtype elements
+    # (here: from Truth.__bool__ inside Item.__ne__) used to be swallowed by
+    # the noexcept rank kernel, silently returning wrong ranks; it must
+    # propagate to the caller instead.
+    class Truth:
+        def __bool__(self):
+            raise RuntimeError("Truth.__bool__")
+
+    class Item:
+        def __init__(self, v):
+            self.v = v
+
+        def __lt__(self, other):
+            return self.v < other.v
+
+        def __ne__(self, other):
+            return Truth()
+
+    obj = frame_or_series([Item(1), Item(2), Item(2)], index=range(3))
+    with pytest.raises(RuntimeError, match="Truth.__bool__"):
+        obj.rank(method=method)
+
+
+def test_rank_object_unsorted_neq_table(frame_or_series):
+    # GH#71768: the precomputed pairwise-inequality table must follow the
+    # lexsort order, not the original order; check a case with duplicates,
+    # where the sort order differs from the input order.
+    obj = frame_or_series([3.0, 1.0, 2.0, 2.0, 5.0], dtype=object)
+    result = obj.rank()
+    expected = frame_or_series([4.0, 1.0, 2.5, 2.5, 5.0])
+    tm.assert_equal(result, expected)
