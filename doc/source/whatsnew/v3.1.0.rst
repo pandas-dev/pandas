@@ -158,6 +158,21 @@ I/O:
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
 - :func:`read_csv` now supports ``dtype="complex64"`` and ``dtype="complex128"`` with the C engine, enabling round-tripping of complex-number columns written by :meth:`DataFrame.to_csv` (:issue:`9379`)
 - :func:`read_excel` and :class:`ExcelFile` now infer ``engine`` from a workbook object created by a supported engine's library, such as an ``openpyxl.Workbook``, instead of raising (:issue:`46352`)
+- :func:`to_datetime` and ``strptime`` parsing now support the ``%N`` directive for matching exactly 9 digits representing nanoseconds, providing symmetry with ``strftime`` formatting (:issue:`65863`)
+- :meth:`DataFrame.info` now respects the ``display.unicode.east_asian_width`` option when aligning column names (:issue:`46082`)
+- :meth:`DataFrame.select_dtypes` can now select ``datetime64`` and ``timedelta64`` columns by a specific resolution (e.g. ``"datetime64[us]"``, ``np.dtype("timedelta64[ms]")``), which previously raised; a unit-specific spec matches only columns with exactly that resolution, while a unitless ``"datetime64"``/``"timedelta64"`` still matches every resolution (:issue:`40234`)
+- :meth:`Series.round` now works on third-party numeric :class:`ExtensionArray` types via a default :meth:`ExtensionArray.round` (:issue:`49387`)
+- :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
+- Added :meth:`.Rolling.prod` to calculate the product over rolling windows (:issue:`48030`)
+- Added :meth:`ExtensionArray.count` (:issue:`64450`)
+- Added :meth:`ExtensionArray.sort` for in-place sorting of :class:`ExtensionArray` (:issue:`64977`)
+- Added :meth:`ExtensionDtype._get_plot_converter` allowing :class:`ExtensionDtype` to register their own :class:`matplotlib.units.ConversionInterface` to support plotting for non-numeric :class:`ExtensionArray` (:issue:`64300`)
+- Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
+- Added :meth:`arrays.SparseArray.from_indices` to construct a :class:`arrays.SparseArray` from sparse values and their indices without materializing a dense array (:issue:`43628`)
+- Added ``union_categories`` parameter to :func:`concat` to preserve categorical dtype by unioning categories when concatenating categoricals with different categories (:issue:`14177`)
+- Added reduction methods as public API on pandas-implemented extension arrays where applicable (:issue:`63512`)
+- Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
+- Improved the error message raised when constructing an :class:`IntervalIndex` or :class:`arrays.IntervalArray` with a left side greater than the right side, which now shows the offending intervals and their positions (:issue:`66807`)
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 
 Groupby/resample/rolling:
