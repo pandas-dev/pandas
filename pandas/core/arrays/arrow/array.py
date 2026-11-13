@@ -1043,6 +1043,13 @@ class ArrowExtensionArray(
             if is_nan_na():
                 try:
                     arr_value = np.asarray(value)
+                    if (
+                        arr_value.dtype.kind in "US"
+                        and not isinstance(value, np.ndarray)
+                        and (arr_value == arr_value.dtype.type("nan")).any()
+                    ):
+                        # numpy casts NaN to "nan" in e.g. ["a", np.nan] (GH#64578)
+                        arr_value = np.asarray(value, dtype=object)
                     if arr_value.ndim > 1:
                         # e.g. test_fixed_size_list we have list data.  ndim > 1
                         #  means there were no scalar (NA) entries.
