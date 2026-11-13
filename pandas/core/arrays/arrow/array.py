@@ -4447,8 +4447,16 @@ class ArrowExtensionArray(
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
         dummies[indices] = True
         dummies = dummies.reshape((n_rows, n_cols))
+        labels = uniques_sorted.to_pylist()
+        if "" in labels:
+            # GH#71887: the object-dtype implementation does not produce a
+            #  dummy column for empty strings (or empty tokens from
+            #  adjacent separators); drop the corresponding column
+            empty_idx = labels.index("")
+            dummies = np.delete(dummies, empty_idx, axis=1)
+            del labels[empty_idx]
         result = self._from_pyarrow_array(pa.array(list(dummies)))
-        return result, uniques_sorted.to_pylist()
+        return result, labels
 
     def _str_index(self, sub: str, start: int = 0, end: int | None = None) -> Self:
         predicate = lambda val: val.index(sub, start, end)

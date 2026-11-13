@@ -19,6 +19,32 @@ def test_get_dummies(any_string_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+def test_get_dummies_empty_string(any_string_dtype):
+    # GH#71887: empty strings and empty tokens (e.g. from adjacent
+    #  separators) do not produce a dummy column
+    s = pd.Series(["a|b", "a", None, ""], dtype=any_string_dtype)
+    result = s.str.get_dummies("|")
+    expected = pd.DataFrame([[1, 1], [1, 0], [0, 0], [0, 0]], columns=["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    s = pd.Series(["a||b", "a|", "|b", ""], dtype=any_string_dtype)
+    result = s.str.get_dummies("|")
+    expected = pd.DataFrame([[1, 1], [1, 0], [0, 1], [0, 0]], columns=["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_get_dummies_no_labels(any_string_dtype):
+    # GH#71887: when no labels remain, the result has no columns but
+    #  still has one row per element
+    for data in ([None, None], ["", ""]):
+        s = pd.Series(data, dtype=any_string_dtype)
+        result = s.str.get_dummies("|")
+        expected = pd.DataFrame(
+            np.empty((2, 0), dtype="int64"), columns=pd.Index([])
+        )
+        tm.assert_frame_equal(result, expected)
+
+
 def test_get_dummies_index():
     # GH9980, GH8028
     idx = pd.Index(["a|b", "a|c", "b|c"])
