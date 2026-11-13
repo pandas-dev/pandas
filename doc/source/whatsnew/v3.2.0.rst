@@ -336,6 +336,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``IndexError`` when a ``dtype`` dictionary omits a named ``index_col`` (:issue:`68041`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``encoding_errors`` with bytes or file input instead of silently ignoring it (:issue:`71298`)
 - Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
 - Bug in :func:`json_normalize` where a ``meta`` path not following ``record_path`` raised ``KeyError`` or silently returned a same-named field from the wrong object (:issue:`60254`)
