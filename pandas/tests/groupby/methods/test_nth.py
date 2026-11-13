@@ -612,6 +612,33 @@ def test_nth_nan_in_grouper(dropna):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dropna", ["any", "all"])
+@pytest.mark.parametrize("gb_dropna", [True, False])
+@pytest.mark.parametrize("index", [[0, 1, 2], [0, 0, 1]])
+def test_nth_dropna_excludes_grouping_columns(dropna, gb_dropna, index):
+    # GH#46944 dropna ignores the grouping column
+    df = pd.DataFrame({"a": [1, 1, np.nan], "b": [np.nan, 2.0, 3.0]}, index=index)
+    result = df.groupby("a", dropna=gb_dropna).nth(0, dropna=dropna)
+    expected = df.iloc[[1]] if gb_dropna else df.iloc[[1, 2]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", ["any", "all"])
+def test_nth_dropna_only_grouping_columns(dropna):
+    # GH#46944 with no other columns to check, no rows are dropped
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    result = df.groupby(["a", "b"]).nth(0, dropna=dropna)
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("dropna", ["any", "all"])
+def test_nth_dropna_duplicate_index_series(dropna):
+    # GH#46944
+    ser = pd.Series([np.nan, 2.0, 3.0], index=[0, 0, 1])
+    result = ser.groupby([1, 1, 2]).nth(0, dropna=dropna)
+    tm.assert_series_equal(result, ser.iloc[[1, 2]])
+
+
 @pytest.mark.parametrize("dropna", [None, "any", "all"])
 def test_nth_nan_in_grouper_series(dropna):
     # GH 26454

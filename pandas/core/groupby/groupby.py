@@ -4337,8 +4337,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ``g.nth(n)`` and will be removed in a future version of pandas.
 
         If dropna, will take the nth non-null row, dropna is either
-        'all' or 'any'; this is equivalent to calling dropna(how=dropna)
-        before the groupby.
+        'all' or 'any'; grouping columns are not checked for missing values
+        unless they are selected.
 
         Returns
         -------
@@ -4429,19 +4429,28 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
         n = cast("int", n)
-        dropped = self._selected_obj.dropna(how=dropna, axis=0)
+        # check NAs only in the columns an aggregation would use, but keep the
+        #  grouping columns in the result
+        notna = self._obj_with_exclusions.notna()
+        if notna.ndim == 2:
+            # with no columns to check, all() keeps every row
+            if dropna == "any" or notna.shape[1] == 0:
+                notna = notna.all(axis=1)
+            else:
+                notna = notna.any(axis=1)
+        mask = notna.to_numpy()
+        dropped = self._selected_obj[mask]
 
         # get a new grouper for our dropped obj
         grouper: np.ndarray | Index | ops.BaseGrouper
-        if len(dropped) == len(self._selected_obj):
+        if mask.all():
             # Nothing was dropped, can use the same grouper
             grouper = self._grouper
         else:
             # we don't have the grouper info available
             # (e.g. we have selected out
             # a column that is not in the current object)
-            axis = self._grouper.axis
-            grouper = self._grouper.codes_info[axis.isin(dropped.index)]
+            grouper = self._grouper.codes_info[mask]
             if self._grouper.has_dropped_na:
                 # Null groups need to still be encoded as -1 when passed to groupby
                 nulls = grouper == -1
