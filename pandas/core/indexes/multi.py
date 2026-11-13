@@ -3319,30 +3319,23 @@ class MultiIndex(Index):
         ]
         sortorder = None
 
-        # Validate that levels being sorted have comparable types (GH#21136).
-        # Since we sort by integer codes rather than actual values, we need
-        # to ensure the level values are sortable; otherwise the code-based
-        # sort silently produces a meaningless ordering.
-        # After _sort_levels_monotonic (called before sortlevel in the
-        # standard path), a level that is still non-monotonic with object
-        # dtype must contain incomparable types.
+        # We sort by codes, so the levels must be sorted first (GH#52683).
+        mi = self._sort_levels_monotonic()
+
+        # raise for incomparable object levels rather than sort by position (GH#21136)
         for lev_num in level:
-            lev_values = self.levels[lev_num]
-            if (
-                lev_values.dtype == object
-                and not lev_values.is_monotonic_increasing
-                and not lev_values.is_monotonic_decreasing
-            ):
+            lev_values = mi.levels[lev_num]
+            if lev_values.dtype == object and not lev_values.is_monotonic_increasing:
                 lev_values.argsort()
 
-        codes = [self.codes[lev] for lev in level]
+        codes = [mi.codes[lev] for lev in level]
         # we have a directed ordering via ascending
         if isinstance(ascending, list):
             if not len(level) == len(ascending):
                 raise ValueError("level must have same length as ascending")
         elif sort_remaining:
             codes.extend(
-                [self.codes[lev] for lev in range(len(self.levels)) if lev not in level]
+                [mi.codes[lev] for lev in range(mi.nlevels) if lev not in level]
             )
         else:
             sortorder = level[0]
@@ -3352,12 +3345,12 @@ class MultiIndex(Index):
         )
 
         indexer = ensure_platform_int(indexer)
-        new_codes = [level_codes.take(indexer) for level_codes in self.codes]
+        new_codes = [level_codes.take(indexer) for level_codes in mi.codes]
 
         new_index = MultiIndex(
             codes=new_codes,
-            levels=self.levels,
-            names=self.names,
+            levels=mi.levels,
+            names=mi.names,
             sortorder=sortorder,
             verify_integrity=False,
         )

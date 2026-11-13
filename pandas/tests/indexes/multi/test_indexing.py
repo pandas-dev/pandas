@@ -21,16 +21,16 @@ class TestSliceLocs:
         sorted_idx, _ = idx.sortlevel(0)
 
         result = sorted_idx.slice_locs(("foo", "two"), ("qux", "one"))
-        assert result == (1, 5)
+        assert result == (3, 5)
 
         result = sorted_idx.slice_locs(None, ("qux", "one"))
         assert result == (0, 5)
 
         result = sorted_idx.slice_locs(("foo", "two"), None)
-        assert result == (1, len(sorted_idx))
+        assert result == (3, len(sorted_idx))
 
         result = sorted_idx.slice_locs("bar", "baz")
-        assert result == (2, 4)
+        assert result == (0, 2)
 
     def test_slice_locs(self):
         df = pd.DataFrame(
@@ -584,8 +584,8 @@ def test_getitem_scalar_result_type(using_python_scalars):
 
 def test_getitem_group_select(idx):
     sorted_idx, _ = idx.sortlevel(0)
-    assert sorted_idx.get_loc("baz") == slice(3, 4)
-    assert sorted_idx.get_loc("foo") == slice(0, 2)
+    assert sorted_idx.get_loc("baz") == slice(1, 2)
+    assert sorted_idx.get_loc("foo") == slice(2, 4)
 
 
 @pytest.mark.parametrize("box", [list, pd.Index])
