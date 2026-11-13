@@ -20,6 +20,7 @@ from pandas._config import option_context
 
 from pandas._libs import lib
 from pandas._libs._ujson import ujson_loads
+from pandas._libs.interval import Interval
 from pandas._libs.tslibs import timezones
 from pandas.util._exceptions import find_stack_level
 
@@ -35,6 +36,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     PeriodDtype,
 )
 
@@ -140,6 +142,9 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
     name: JSONSerializable
     if arr.name is None:
         name = "values"
+    elif isinstance(arr.name, Interval):
+        # GH#55544 same string form as the serialized values
+        name = str(arr.name)
     else:
         name = arr.name
     field: dict[str, JSONSerializable] = {
@@ -151,7 +156,11 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
         cats = dtype.categories
         ordered = dtype.ordered
 
-        field["constraints"] = {"enum": list(cats)}
+        if isinstance(cats.dtype, IntervalDtype):
+            # GH#55544 same string form as the serialized values
+            field["constraints"] = {"enum": [str(x) for x in cats]}
+        else:
+            field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
     elif isinstance(dtype, PeriodDtype):
         field["freq"] = dtype.freq.freqstr
