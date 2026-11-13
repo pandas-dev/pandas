@@ -440,7 +440,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     @classmethod
     def _preprocess_re_pattern(
-        cls, pat: str | re.Pattern[str], case: bool, flags: int
+        cls, pat: str | re.Pattern[str], case: bool, flags: int = 0
     ) -> tuple[str, bool, int]:
         pattern, case, flags = cls._unwrap_re_pattern(pat, case, flags)
 
@@ -476,18 +476,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         self,
         pat: str | re.Pattern[str],
         case: bool = True,
-        flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if (
-            flags
-            or self._is_re_pattern_with_flags(pat)
-            or self._needs_python_regex(pat)
-        ):
-            return super()._str_match(pat, case, flags, na)
+        if self._is_re_pattern_with_flags(pat) or self._needs_python_regex(pat):
+            return super()._str_match(pat, case, na)
 
-        pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+        pat, case, _ = self._preprocess_re_pattern(pat, case)
+        return ArrowStringArrayMixin._str_match(self, pat, case, na)
 
     def _str_fullmatch(
         self,

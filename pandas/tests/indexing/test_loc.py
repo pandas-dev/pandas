@@ -2063,7 +2063,9 @@ class TestLocWithMultiIndex:
         expected = pd.Series(["a", "b", "c", "a"], dtype="category")
         tm.assert_series_equal(result, expected)
 
-    def test_loc_set_nan_in_categorical_series(self, any_numeric_ea_dtype):
+    def test_loc_set_nan_in_categorical_series(
+        self, any_numeric_ea_dtype, using_nan_is_na
+    ):
         # GH#47677
         srs = pd.Series(
             [1, 2, 3],
@@ -4295,6 +4297,22 @@ class TestLocSetitemDataFrameAlignment:
         expected = pd.DataFrame(
             [[100.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
         )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("key", ["var", ["var"]])
+    @pytest.mark.parametrize("dtype", ["float64", object])
+    @pytest.mark.parametrize("multi_block", [True, False])
+    def test_loc_setitem_column_dataframe_aligns_column_labels(
+        self, key, dtype, multi_block
+    ):
+        # GH#47582 a scalar column key aligns the value's columns like a list key
+        df = pd.DataFrame({"var": pd.Series([1.0, 2.0], dtype=dtype)}, index=[1, 2])
+        if multi_block:
+            df["other"] = ["x", "y"]
+        expected = df.copy()
+        expected["var"] = pd.Series([np.nan, np.nan], index=[1, 2], dtype=dtype)
+
+        df.loc[:, key] = pd.DataFrame({"a": [10.0, 11.0]}, index=[2, 3])
         tm.assert_frame_equal(df, expected)
 
 

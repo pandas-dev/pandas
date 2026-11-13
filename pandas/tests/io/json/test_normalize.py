@@ -567,6 +567,126 @@ class TestJSONNormalize:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data, record_path, meta_path, expected",
+        [
+            # leaves record_path at the top level
+            (
+                {"a": {"rows": [{"v": 1}]}, "z": {"m": "right"}},
+                ["a", "rows"],
+                ["z", "m"],
+                ["right"],
+            ),
+            # same-named fields on the objects record_path passes through
+            (
+                {"a": {"rows": [{"v": 1}], "m": "wrong"}, "z": {"m": "right"}},
+                ["a", "rows"],
+                ["z", "m"],
+                ["right"],
+            ),
+            (
+                {"a": {"b": {"rows": [{"v": 1}]}, "m": "wrong"}, "z": {"m": "right"}},
+                ["a", "b", "rows"],
+                ["z", "m"],
+                ["right"],
+            ),
+            (
+                {
+                    "a": {"rows": [{"v": 1}], "y": {"m": "wrong"}},
+                    "z": {"y": {"m": "right"}},
+                },
+                ["a", "rows"],
+                ["z", "y", "m"],
+                ["right"],
+            ),
+            # leaves record_path below the top level
+            (
+                {"a": {"b": {"rows": [{"v": 1}], "m": "wrong"}, "c": {"m": "right"}}},
+                ["a", "b", "rows"],
+                ["a", "c", "m"],
+                ["right"],
+            ),
+            # read once per object at the level where the path leaves record_path
+            (
+                [
+                    {
+                        "a": [
+                            {"rows": [{"v": 1}, {"v": 2}], "x": {"m": "first"}},
+                            {"rows": [{"v": 3}], "x": {"m": "second"}},
+                        ],
+                    },
+                    {"a": {"rows": [{"v": 4}], "x": {"m": "third"}}},
+                ],
+                ["a", "rows"],
+                ["a", "x", "m"],
+                ["first", "first", "second", "third"],
+            ),
+            (
+                [
+                    {
+                        "a": [{"rows": [{"v": 1}]}, {"rows": [{"v": 2}]}],
+                        "z": {"m": "one"},
+                    },
+                    {"a": {"rows": [{"v": 3}]}, "z": {"m": "two"}},
+                ],
+                ["a", "rows"],
+                ["z", "m"],
+                ["one", "one", "two"],
+            ),
+            # non-str record_path keys
+            (
+                {1: {"rows": [{"v": 1}], "m": "right"}, "m": "wrong"},
+                [1, "rows"],
+                ["1", "m"],
+                ["right"],
+            ),
+            (
+                {pd.NA: {"rows": [{"v": 1}]}, "m": "right"},
+                [pd.NA, "rows"],
+                ["m"],
+                ["right"],
+            ),
+            # following record_path to a non-final level returns that whole object
+            (
+                {"a": {"b": {"rows": [{"v": 1}]}}},
+                ["a", "b", "rows"],
+                ["a", "b"],
+                [{"rows": [{"v": 1}]}],
+            ),
+        ],
+    )
+    def test_meta_path_leaves_record_path(self, data, record_path, meta_path, expected):
+        # GH#60254
+        result = pd.json_normalize(data, record_path, [meta_path])
+        expected = pd.DataFrame(
+            {"v": list(range(1, len(expected) + 1)), ".".join(meta_path): expected}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("meta_path", [["z", "n"], ["y", "m"]])
+    def test_meta_path_leaves_record_path_missing(self, meta_path):
+        # GH#60254
+        data = {"a": {"rows": [{"v": 1}], "m": 1, "n": 2}, "z": {"m": 3}}
+        with pytest.raises(KeyError, match="not found"):
+            pd.json_normalize(data, ["a", "rows"], [meta_path])
+
+        result = pd.json_normalize(data, ["a", "rows"], [meta_path], errors="ignore")
+        expected = pd.DataFrame(
+            {"v": [1], ".".join(meta_path): np.array([np.nan], dtype=object)}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_meta_path_leaves_record_path_missing_no_records(self):
+        # GH#60254 raises even when no records are reached
+        with pytest.raises(KeyError, match="not found"):
+            pd.json_normalize({"a": []}, ["a", "rows"], [["z", "m"]])
+
+    def test_meta_empty_path_raises(self):
+        # GH#60254
+        data = {"a": {"rows": [{"v": 1}]}}
+        with pytest.raises(KeyError, match="''"):
+            pd.json_normalize(data, ["a", "rows"], [[]])
+
     def test_generator(self, state_data):
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input

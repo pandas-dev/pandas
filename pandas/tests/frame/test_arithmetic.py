@@ -2509,3 +2509,22 @@ def test_frame_with_period_series():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_arithmetic_mismatched_datetime_units(axis):
+    # GH#63417 equal values skip the join, so the left operand's unit is kept
+    dti = pd.date_range("2016-01-01", periods=2)
+    left = dti.as_unit("us")
+    right = dti.as_unit("ns")
+    values = pd.DataFrame([[1, 2], [3, 4]])
+    df = values.set_axis(left, axis=axis)
+    df2 = values.set_axis(right, axis=axis)
+
+    result = df + df2
+    expected = (values * 2).set_axis(left, axis=axis)
+    tm.assert_frame_equal(result, expected)
+
+    result2 = df2 + df
+    expected2 = (values * 2).set_axis(right, axis=axis)
+    tm.assert_frame_equal(result2, expected2)

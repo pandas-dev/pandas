@@ -869,7 +869,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if isinstance(other, Timestamp):
             tz = other.tz
         else:
-            tz = Timestamp(other).tz  # type: ignore[arg-type]
+            tz = Timestamp(other).tz  # type: ignore[call-overload]
         if tz is None or timezones.is_utc(tz):
             return -freq  # type: ignore[return-value]
         return None
@@ -952,10 +952,12 @@ def timedelta_range(
 
     Parameters
     ----------
-    start : str or timedelta-like, default None
-        Left bound for generating timedeltas.
-    end : str or timedelta-like, default None
-        Right bound for generating timedeltas.
+    start : str, int, or timedelta-like, default None
+        Left bound for generating timedeltas. Integers are interpreted as
+        nanoseconds, regardless of ``unit``.
+    end : str, int, or timedelta-like, default None
+        Right bound for generating timedeltas. Integers are interpreted as
+        nanoseconds, regardless of ``unit``.
     periods : int, default None
         Number of periods to generate.
     freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'

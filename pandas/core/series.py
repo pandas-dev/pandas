@@ -4,6 +4,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.formats.info",)
+
 from collections.abc import (
     Callable,
     Hashable,
@@ -118,6 +120,7 @@ from pandas.core.arrays.arrow import (
     StructAccessor,
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
+from pandas.core.arrays.interval import IntervalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.construction import (
     array as pd_array,
@@ -2181,7 +2184,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of the
             same length as the Series is passed (see the `groupby user guide
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#splitting-an-object-into-groups>`_),
             the values are used as-is to determine the groups. An index level
             name may also be passed to group by a level of the Series' index.
             Notice that a tuple is interpreted as a (single) key.
@@ -7415,6 +7418,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     cat = Accessor("cat", CategoricalAccessor)
     plot = Accessor("plot", pandas.plotting.PlotAccessor)
     sparse = Accessor("sparse", SparseAccessor)
+    # not in _accessors, so a label "interval" on a non-interval Series stays
+    #  reachable as an attribute
+    interval = Accessor("interval", IntervalAccessor)
     struct = Accessor("struct", StructAccessor)
     list = Accessor("list", ListAccessor)
 

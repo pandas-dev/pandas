@@ -485,6 +485,16 @@ def get_all_lines(ax: Axes) -> list[Line2D]:
 def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
     left, right = np.inf, -np.inf
     for line in lines:
+        line_ax = line.axes
+        assert line_ax is not None  # lines come from Axes.get_lines()
+        # matplotlib < 3.11 only has the misspelled name; 3.11 keeps it as an alias
+        transform = line.get_transform()
+        x_is_data, _ = transform.contains_branch_seperately(  # codespell:ignore
+            line_ax.transData
+        )
+        if not x_is_data:
+            # e.g. axhline, whose x is in axes coordinates
+            continue
         x = line.get_xdata(orig=False)
         left = min(np.nanmin(x), left)  # type: ignore[arg-type]
         right = max(np.nanmax(x), right)  # type: ignore[arg-type]

@@ -336,7 +336,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`__
+    <https://pandas.pydata.org/docs/user_guide/categorical.html>`__
     for more.
 
     Examples
@@ -1870,7 +1870,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         TypeError
         """
 
-        if is_valid_na_for_dtype(fill_value, self.categories.dtype):
+        if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = -1
         elif fill_value in self.categories:
             fill_value = self._unbox_scalar(fill_value)
@@ -2489,7 +2489,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Returns True if `key` is in this Categorical.
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_valid_na_for_dtype(key, self.categories.dtype):
+        if is_valid_na_for_dtype(key, self.dtype):
             return bool(self.isna().any())
 
         return contains(self, key, container=self._codes)

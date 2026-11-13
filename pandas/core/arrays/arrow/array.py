@@ -87,9 +87,11 @@ from pandas.core import (
     algorithms as algos,
     arraylike,
     missing,
+    nanops,
     ops,
     roperator,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
@@ -108,6 +110,7 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.nanops import check_below_min_count
+from pandas.core.sorting import get_group_index_sorter
 
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
@@ -502,6 +505,18 @@ def _has_dictionary_or_view_child(pa_type: pa.DataType) -> bool:
         ):
             return True
     return False
+
+
+def _unwrap_storage_type(pa_type: pa.DataType) -> pa.DataType:
+    """
+    The storage type of an extension type, and the value type of a run-end-encoded
+    type; any other type unchanged.
+    """
+    if isinstance(pa_type, pa.BaseExtensionType):
+        pa_type = pa_type.storage_type
+    if pa.types.is_run_end_encoded(pa_type):
+        pa_type = pa_type.value_type
+    return pa_type
 
 
 @set_module("pandas.arrays")
@@ -1045,11 +1060,22 @@ class ArrowExtensionArray(
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
                 mask = is_pdna_or_none(arr_value)
 
-            try:
-                pa_array = pa.array(value, type=pa_type, mask=mask)
-            except (pa.ArrowInvalid, pa.ArrowTypeError):
-                # GH50430: let pyarrow infer type, then cast
+            if (
+                isinstance(value, np.ndarray)
+                and value.dtype.kind in "US"
+                and pa_type is not None
+                and pa.types.is_primitive(_unwrap_storage_type(pa_type))
+            ):
+                # pyarrow can segfault converting a numpy str array with a mask
+                #  to a primitive type, also as extension storage or run-end
+                #  encoded values (GH#71827); infer string/binary, then cast below
                 pa_array = pa.array(value, mask=mask)
+            else:
+                try:
+                    pa_array = pa.array(value, type=pa_type, mask=mask)
+                except (pa.ArrowInvalid, pa.ArrowTypeError):
+                    # GH50430: let pyarrow infer type, then cast
+                    pa_array = pa.array(value, mask=mask)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # Workaround https://github.com/apache/arrow/issues/37291
@@ -2040,6 +2066,18 @@ class ArrowExtensionArray(
 
         return super().fillna(value=value, limit=limit, copy=copy)
 
+    def insert(self, loc: int, item) -> Self:
+        if (
+            lib.is_float(item)
+            and np.isnan(item)
+            and not is_nan_na()
+            and not _is_temporal_pa_type(self._pa_array.type)
+        ):
+            # _from_sequence would store e.g. "nan" or True; raise like setitem
+            #  so Index.insert upcasts. timestamp/duration store NA, like NaT.
+            self._validate_setitem_value(item)
+        return super().insert(loc, item)
+
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
         if not len(values):
@@ -2137,6 +2175,60 @@ class ArrowExtensionArray(
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
 
+    def _factorize_dictionary(
+        self, use_na_sentinel: bool
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        """
+        Factorize a dictionary-typed array.
+
+        A stored dictionary can hold unreferenced, duplicate or null entries
+        (GH#71828), so factorize the dictionaries' values, map the indices
+        through those codes, then renumber by first appearance.
+        """
+        data = self._pa_array
+        value_type = data.type.value_type
+        if sum(len(chunk.dictionary) for chunk in data.chunks) > len(data):
+            # e.g. one chunk per parquet row group, each storing every category:
+            # decoding hashes fewer values than factorizing the dictionaries
+            return type(self)(data.cast(value_type)).factorize(use_na_sentinel)
+        dictionaries = pa.chunked_array(
+            [chunk.dictionary for chunk in data.chunks], type=value_type
+        )
+        dict_codes, dict_uniques = type(self)(dictionaries).factorize()
+        # -1 (a null dictionary entry) passes through take unchanged
+        dict_codes_pa = pa.array(dict_codes, type=pa.int64())
+        mapped = []
+        offset = 0
+        for chunk in data.chunks:
+            size = len(chunk.dictionary)
+            mapped.append(dict_codes_pa.slice(offset, size).take(chunk.indices))
+            offset += size
+        codes = (
+            _safe_fill_null(pa.chunked_array(mapped, type=pa.int64()), -1)
+            .to_numpy()
+            .astype(np.intp, copy=False)
+        )
+
+        num_dict = len(dict_uniques)
+        if not use_na_sentinel:
+            # nulls take the code num_dict, so they are numbered like any value
+            codes = np.where(codes == -1, num_dict, codes)
+        # position of each code's first appearance; the extra last slot absorbs -1
+        first = np.full(num_dict + 2, len(codes), dtype=np.intp)
+        np.minimum.at(first, codes, np.arange(len(codes), dtype=np.intp))
+        is_first = np.zeros(len(codes) + 1, dtype=bool)
+        is_first[first[:-1]] = True
+        # the referenced codes, in order of first appearance
+        order = codes[is_first[:-1]]
+        lookup = np.full(num_dict + 2, -1, dtype=np.intp)
+        lookup[order] = np.arange(len(order), dtype=np.intp)
+
+        # code num_dict, if referenced, is the null
+        positions = pa.array(order, mask=order == num_dict)
+        dict_values = cast("ArrowExtensionArray", dict_uniques)._pa_array
+        uniques = dict_values.combine_chunks().take(positions)
+        return lookup[codes], self._from_pyarrow_array(uniques)
+
     def factorize(
         self,
         use_na_sentinel: bool = True,
@@ -2200,14 +2292,16 @@ class ArrowExtensionArray(
             return indices, uniques
 
         if pa.types.is_dictionary(data.type):
-            # dictionary_encode is a no-op on already-encoded input, so cast back
-            # to the value type and re-encode when nulls must be encoded, or when
-            # a chunk stores the null as a dictionary value (GH#66490)
-            dict_has_null = any(c.dictionary.null_count > 0 for c in data.chunks)
-            if null_encoding == "encode" or dict_has_null:
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            else:
+            try:
+                return self._factorize_dictionary(use_na_sentinel)
+            except pa.ArrowNotImplementedError:
+                # no hash or take kernel for the value type (e.g. list,
+                # string_view): keep the stored dictionary, unless it holds
+                # a null or use_na_sentinel is False (GH#66490)
+                if not use_na_sentinel or any(
+                    chunk.dictionary.null_count for chunk in data.chunks
+                ):
+                    raise
                 encoded = data
         else:
             encoded = data.dictionary_encode(null_encoding=null_encoding)
@@ -2649,18 +2743,22 @@ class ArrowExtensionArray(
         return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
-    def _concat_same_type(cls, to_concat) -> Self:
+    def _concat_same_type(cls, to_concat, axis: AxisInt = 0) -> Self:
         """
         Concatenate multiple ArrowExtensionArrays.
 
         Parameters
         ----------
         to_concat : sequence of ArrowExtensionArrays
+        axis : int, default 0
+            Must be 0 or -1; ArrowExtensionArray is 1D-only.
 
         Returns
         -------
         ArrowExtensionArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype
@@ -2823,6 +2921,18 @@ class ArrowExtensionArray(
         if name == "count":
             return self.count()
 
+        elif name in ["skew", "kurt"] and (
+            pa.types.is_integer(pa_type)
+            or pa.types.is_floating(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            # pyarrow's kernels lose precision, giving garbage instead of NaN
+            #  for constant input, so use the same path as the masked arrays
+            values = data_to_reduce.cast(pa.float64(), safe=False).to_numpy()
+            op = getattr(nanops, f"nan{name}")
+            result = op(values, skipna=skipna, mask=self.isna())
+            return pa.scalar(result, type=pa.float64(), from_pandas=True)
+
         elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -2920,8 +3030,6 @@ class ArrowExtensionArray(
         elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
             # pyarrow defaults to ddof=0, pandas behavior is ddof=1
             kwargs["ddof"] = 1
-        elif name in ["skew", "kurt"] and "biased" not in kwargs:
-            kwargs["biased"] = False
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -3286,7 +3394,26 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        if axis != 0:
+        if axis == 0:
+            try:
+                return self._rank_pyarrow(
+                    method=method, na_option=na_option, ascending=ascending, pct=pct
+                )
+            except pa.ArrowNotImplementedError:
+                # pyarrow cannot rank some types, e.g. lists; rank the Python
+                #  objects instead, which for lists compare lexicographically
+                values = construct_1d_object_array_from_listlike(
+                    self._pa_array.to_pylist()
+                )
+                ranked = algos.rank(
+                    values,
+                    method=method,
+                    na_option=na_option,
+                    ascending=ascending,
+                    pct=pct,
+                    mask=self.isna() if self._hasna else None,
+                )
+        else:
             ranked = super()._rank(
                 axis=axis,
                 method=method,
@@ -3294,14 +3421,21 @@ class ArrowExtensionArray(
                 ascending=ascending,
                 pct=pct,
             )
-            # keep dtypes consistent with the implementation below
-            if method == "average" or pct:
-                pa_type = pa.float64()
-            else:
-                pa_type = pa.uint64()
-            result = pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
-            return result
+        # keep dtypes consistent with _rank_pyarrow
+        if method == "average" or pct:
+            pa_type = pa.float64()
+        else:
+            pa_type = pa.uint64()
+        return pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
 
+    def _rank_pyarrow(
+        self,
+        *,
+        method: RankMethod,
+        na_option: RankNaOption,
+        ascending: bool,
+        pct: bool,
+    ):
         data = self._pa_array.combine_chunks()
         order = "ascending" if ascending else "descending"
         null_placement = "at_start" if na_option == "top" else "at_end"
@@ -3403,6 +3537,25 @@ class ArrowExtensionArray(
         pa_dtype = self._pa_array.type
 
         data = self._pa_array
+        mask = self.isna()
+        if (
+            pa.types.is_temporal(pa_dtype)
+            and pa_dtype.bit_width == 64
+            and interpolation in ["linear", "midpoint"]
+            and not mask.all()
+        ):
+            # GH#49110 pc.quantile goes through float64, which loses precision;
+            #  reuse the exact numpy datetime path on the int64 values
+            values = pc.fill_null(data.cast(pa.int64()), 0).to_numpy()
+            res = quantile_with_mask(
+                values.view("M8[ns]"),
+                mask,
+                np.datetime64("NaT", "ns"),
+                qs,
+                interpolation,
+            )
+            return self._from_pyarrow_array(pa.array(res.view("i8")).cast(pa_dtype))
+
         if pa.types.is_temporal(pa_dtype):
             # https://github.com/apache/arrow/issues/33769 in these cases
             #  we can cast to ints and back
@@ -3715,10 +3868,17 @@ class ArrowExtensionArray(
             return None
 
         # See _groupby_op for the types routed here.
-        # PyArrow doesn't support sum/prod/mean/std/var/sem on strings.
         pa_type = self._pa_array.type
         is_str = pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
-        if is_str and how in ["sum", "prod", "mean", "std", "var", "sem"]:
+        if is_str and how == "sum":
+            return self._groupby_string_sum(
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+        # PyArrow doesn't support prod/mean/std/var/sem on strings.
+        if is_str and how in ["prod", "mean", "std", "var", "sem"]:
             return None
 
         # Filter out NA group (ids == -1)
@@ -3830,6 +3990,44 @@ class ArrowExtensionArray(
                 # keep the skipna=False nulls, fill only the empty groups
                 pa_result = pc.if_else(pc.is_null(indices), default_value, pa_result)
         return self._from_pyarrow_array(pa_result)
+
+    def _groupby_string_sum(
+        self,
+        *,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        skipna: bool,
+    ) -> Self | None:
+        """
+        Concatenate the strings of each group, in row order.
+
+        Linear in the size of each group, unlike repeated concatenation. Returns
+        None if the result may not fit in a single string (not large_string) array.
+        """
+        pa_type = self._pa_array.type
+        if pa.types.is_string(pa_type) and self._pa_array.nbytes >= 2**31:
+            return None
+
+        keep = ids >= 0
+        if skipna:
+            keep &= ~self.isna()
+        kept_ids = ids[keep]
+        indices = np.flatnonzero(keep)[get_group_index_sorter(kept_ids, ngroups)]
+        values = pc.take(self._pa_array, indices).combine_chunks()
+
+        counts = np.bincount(kept_ids, minlength=ngroups)
+        offsets = np.concatenate([[0], counts.cumsum()], dtype=np.int64)
+        lists = pa.LargeListArray.from_arrays(offsets, values)
+        # binary_join gives null for a group containing a null, "" for an empty one;
+        # the separator's type must match the values'
+        result = pc.binary_join(lists, pa.scalar("", type=pa_type))
+
+        if min_count > 0:
+            result = pc.if_else(
+                counts < min_count, pa.scalar(None, type=pa_type), result
+            )
+        return self._from_pyarrow_array(result)
 
     def _to_groupby_compatible(self) -> ExtensionArray:
         """Convert to a type compatible with groupby cython ops."""
@@ -4044,10 +4242,9 @@ class ArrowExtensionArray(
         self,
         pat: str | re.Pattern[str],
         case: bool = True,
-        flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        pat, case, flags = self._unwrap_re_pattern(pat, case, flags)
+        pat, case, flags = self._unwrap_re_pattern(pat, case)
 
         if flags:
             compiled = self._compile_re_fallback(pat, case, flags)
@@ -4055,7 +4252,7 @@ class ArrowExtensionArray(
             result = self._apply_re_fallback(func, pa.bool_())
             return self._convert_bool_result(result, na=na, method_name="match")
 
-        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+        return ArrowStringArrayMixin._str_match(self, pat, case, na)
 
     def _str_fullmatch(
         self,
