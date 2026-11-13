@@ -338,6 +338,12 @@ class TestTimedeltas:
         result2 = pd.to_timedelta(arr2, unit="s")
         tm.assert_index_equal(result2, expected)
 
+        # GH#71444 - NaN in a NumPy float array
+        arr3 = np.array([45.0, np.nan], dtype=np.float64)
+        result3 = pd.to_timedelta(arr3, unit="s")
+        expected3 = pd.to_timedelta([45, pd.NaT], unit="s")
+        tm.assert_index_equal(result3, expected3)
+
     def test_to_timedelta_unit_non_round_floats(self):
         # With non-round floats, we have to give nanosecond
         arr = np.array([45.5], dtype=object)
