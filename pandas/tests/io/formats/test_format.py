@@ -11,6 +11,8 @@ from shutil import get_terminal_size
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 
 from pandas.io.formats import printing
@@ -2073,6 +2075,105 @@ class TestFloatArrayFormatter:
         result = obj.get_result()
         assert result[0] == " 12.0"
         assert result[1] == "  0.0"
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float32",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    @pytest.mark.parametrize("precision", [2, 6, 8])
+    def test_float32_display_precision(self, dtype, precision):
+        # GH#71916
+        ser = pd.Series([100.1, None], dtype=dtype)
+        frame = ser.to_frame("value")
+
+        with pd.option_context("display.precision", precision):
+            string_results = [
+                repr(ser),
+                ser.to_string(),
+                repr(frame),
+                frame.to_string(),
+            ]
+            series_html = ser._repr_html_()
+            frame_html = frame._repr_html_()
+
+        assert series_html is not None
+        assert frame_html is not None
+        results = [*string_results, series_html, frame_html]
+
+        for result in results:
+            assert "100.1" in result
+            assert "100.099998" not in result
+
+        expected_na = "NaN" if dtype == "float32" else "<NA>"
+        for result in string_results:
+            assert expected_na in result
+        assert expected_na.replace("<", "&lt;").replace(">", "&gt;") in series_html
+        assert expected_na.replace("<", "&lt;").replace(">", "&gt;") in frame_html
+
+    @pytest.mark.parametrize(
+        "dtype,expected_na",
+        [
+            ("Float32", ["<NA>", "<NA>", "<NA>"]),
+            pytest.param(
+                "float32[pyarrow]",
+                ["<NA>", "NaN", "<NA>"],
+                marks=td.skip_if_no("pyarrow"),
+            ),
+        ],
+    )
+    def test_float32_display_missing_values(self, dtype, expected_na):
+        # GH#71916
+        ser = pd.Series([100.1, None, np.nan, pd.NA], dtype=dtype)
+
+        result = ser.to_string().splitlines()
+
+        assert "100.1" in result[0]
+        assert [line.split()[-1] for line in result[1:]] == expected_na
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float32",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_float32_display_scientific_notation(self, dtype):
+        # GH#71916
+        ser = pd.Series([1e-8, 1e8], dtype=dtype)
+
+        with pd.option_context("display.precision", 6):
+            result = ser.to_string()
+
+        assert "1.000000e-08" in result
+        assert "1.000000e+08" in result
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float32",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_float32_display_float_format(self, dtype):
+        # GH#71916
+        ser = pd.Series([100.1], dtype=dtype)
+
+        with pd.option_context("display.float_format", "{:.2f}".format):
+            result = ser.to_string()
+
+        assert result == "0    100.10"
+
+    def test_float64_display_precision(self):
+        # GH#71916
+        ser = pd.Series([100.1], dtype="float64")
+
+        assert repr(ser) == "0    100.1\ndtype: float64"
 
     def test_output_display_precision_trailing_zeroes(self):
         # Issue #20359: trimming zeros while there is no decimal point
