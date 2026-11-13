@@ -4294,9 +4294,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 return None
             return result
 
-        result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index], copy=False
+        new_mgr = self._mgr.take(
+            sorted_index, axis=self._get_block_manager_axis(0), verify=True
         )
+        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
 
         if ignore_index:
             result.index = default_index(len(sorted_index))
