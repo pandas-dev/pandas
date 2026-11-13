@@ -47,7 +47,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import is_supported_dtype
-from pandas.compat import CHAINED_WARNING_DISABLED
+from pandas.compat import (
+    CHAINED_WARNING_DISABLED,
+    is_dict_or_frozendict,
+)
 from pandas.compat._constants import (
     REF_COUNT,
     REF_COUNT_METHOD,
@@ -515,7 +518,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
-            if isinstance(data, dict):
+            if is_dict_or_frozendict(data):
                 # retain pre-GH#38939 default behavior
                 copy = True
             elif not isinstance(data, (Index, DataFrame, Series)):
@@ -534,7 +537,7 @@ class DataFrame(NDFrame, OpsMixin):
                 data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
-        elif isinstance(data, dict):
+        elif is_dict_or_frozendict(data):
             # GH#38939 de facto copy defaults to False only in non-dict cases
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):

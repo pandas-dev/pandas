@@ -10,9 +10,17 @@ Other items:
 
 from __future__ import annotations
 
+import builtins
 import platform
 import sys
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    TypeGuard,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 from pandas.compat._constants import (
     CHAINED_WARNING_DISABLED,
@@ -25,6 +33,20 @@ from pandas.compat._constants import (
     PYPY,
     WASM,
 )
+
+# built-in frozendict in Python 3.15+ (GH#71853)
+DICT_TYPES: tuple[type, ...]
+frozendict_type = getattr(builtins, "frozendict", None)
+if frozendict_type is not None:
+    DICT_TYPES = (dict, frozendict_type)
+else:
+    DICT_TYPES = (dict,)
+
+
+def is_dict_or_frozendict(val: object) -> TypeGuard[Mapping[Any, Any]]:
+    return isinstance(val, DICT_TYPES)
+
+
 from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
     HAS_PYARROW,
@@ -143,6 +165,7 @@ def is_platform_riscv64() -> bool:
 
 __all__ = [
     "CHAINED_WARNING_DISABLED",
+    "DICT_TYPES",
     "HAS_PYARROW",
     "IS64",
     "ISMUSL",
@@ -154,6 +177,7 @@ __all__ = [
     "PYARROW_MIN_VERSION",
     "PYPY",
     "WASM",
+    "is_dict_or_frozendict",
     "is_numpy_dev",
     "pa_version_under17p0",
     "pa_version_under18p0",

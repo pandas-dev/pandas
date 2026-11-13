@@ -251,6 +251,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Added support for Python 3.15's built-in ``frozendict`` in :class:`DataFrame` constructor (:issue:`71853`)
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
 - Bug in :func:`to_numeric` raising ``TypeError`` for object values containing 0-dimensional :class:`numpy.ndarray` elements instead of converting them (:issue:`47408`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
