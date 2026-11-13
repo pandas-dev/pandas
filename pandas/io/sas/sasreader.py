@@ -18,15 +18,21 @@ from typing import (
 from pandas._libs import lib
 from pandas.util._decorators import set_module
 
+from pandas.core.dtypes.inference import is_list_like
+
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     from types import TracebackType
 
     from pandas._typing import (
         CompressionOptions,
         FilePath,
+        ListLike,
         ReadBuffer,
     )
 
@@ -44,6 +50,32 @@ class SASReader(Iterator["DataFrame"], ABC):
 
     @abstractmethod
     def close(self) -> None: ...
+
+    @staticmethod
+    def _column_positions(
+        columns: ListLike | None, names: Sequence[str | bytes], index: Hashable | None
+    ) -> list[int]:
+        """
+        Return the positions in ``names`` of ``columns``, in the order given.
+        """
+        if columns is None:
+            return list(range(len(names)))
+        if not is_list_like(columns):
+            raise TypeError("columns must be list-like")
+        if isinstance(columns, (set, frozenset)):
+            raise TypeError("columns must be ordered, not a set; use a list")
+        columns = list(columns)
+        if len(set(columns)) != len(columns):
+            raise ValueError("columns contains duplicate entries")
+        positions = {name: pos for pos, name in enumerate(names)}
+        missing = [col for col in columns if col not in positions]
+        if missing:
+            raise ValueError(
+                f"The following columns were not found in the SAS file: {missing}"
+            )
+        if index is not None and index not in columns:
+            raise ValueError(f"columns must include the index column {index!r}")
+        return [positions[col] for col in columns]
 
     def __enter__(self) -> Self:
         return self
@@ -63,6 +95,7 @@ def read_sas(
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
+    columns: ListLike | None = ...,
     encoding: str | lib.NoDefault | None = ...,
     chunksize: int = ...,
     iterator: bool = ...,
@@ -76,6 +109,7 @@ def read_sas(
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
+    columns: ListLike | None = ...,
     encoding: str | lib.NoDefault | None = ...,
     chunksize: None = ...,
     iterator: bool = ...,
@@ -89,6 +123,7 @@ def read_sas(
     *,
     format: str | None = None,
     index: Hashable | None = None,
+    columns: ListLike | None = None,
     encoding: str | lib.NoDefault | None = lib.no_default,
     chunksize: int | None = None,
     iterator: bool = False,
@@ -117,6 +152,12 @@ def read_sas(
         'sas7bdat', uses the corresponding format.
     index : identifier of index column, defaults to None
         Identifier of column that should be used as index of the DataFrame.
+    columns : list-like of str, optional
+        Names of the columns to read, returned in the given order. The other
+        columns are skipped during parsing, which saves time and memory on
+        wide files. Must include ``index`` if it is given.
+
+        .. versionadded:: 3.2.0
     encoding : str, 'infer' or None, default is None
         Encoding for text data.  If None, text data are stored as raw bytes.
         ``'infer'`` decodes SAS7BDAT files using the encoding recorded in the
@@ -190,6 +231,7 @@ def read_sas(
         reader = XportReader(
             filepath_or_buffer,
             index=index,
+            columns=columns,
             encoding=encoding,
             chunksize=chunksize,
             compression=compression,
@@ -200,6 +242,7 @@ def read_sas(
         reader = SAS7BDATReader(
             filepath_or_buffer,
             index=index,
+            columns=columns,
             encoding=encoding,
             chunksize=chunksize,
             compression=compression,
