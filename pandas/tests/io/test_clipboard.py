@@ -1,5 +1,6 @@
 import importlib
 import locale
+import os
 from textwrap import dedent
 
 import numpy as np
@@ -164,6 +165,15 @@ def test_stringify_text(text):
         )
         with pytest.raises(PyperclipException, match=msg):
             _stringifyText(text)
+
+
+def test_to_clipboard_excel_windows_line_terminator(monkeypatch):
+    # GH#11720 Excel pastes an extra empty row from "\n"-terminated text
+    copied = []
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", copied.append)
+    monkeypatch.setattr(os, "linesep", "\r\n")
+    pd.DataFrame(["Hello world"]).to_clipboard()
+    assert copied == ["\t0\r\n0\tHello world\r\n"]
 
 
 @pytest.fixture

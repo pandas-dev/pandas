@@ -3135,10 +3135,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
         return self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
 
-    def _apply_to_column_groupbys(self, func) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, numeric_only: bool = False) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         obj = self._obj_with_exclusions
+        if numeric_only:
+            obj = obj._get_numeric_data()
         columns = obj.columns
         sgbs = (
             SeriesGroupBy(
