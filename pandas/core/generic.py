@@ -1,6 +1,12 @@
 # pyright: reportPropertyTypeMismatch=false
 from __future__ import annotations
 
+__lazy_modules__ = (
+    "json",
+    "pandas.core.window",
+    "pandas.core.methods.describe",
+)
+
 import collections
 from copy import deepcopy
 import datetime as dt
@@ -106,6 +112,7 @@ from pandas.core import (
     indexing,
     missing,
     nanops,
+    ops,
     sample,
 )
 from pandas.core.array_algos.replace import should_use_regex
@@ -1394,10 +1401,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # "_SupportsInversion[ndarray[Any, dtype[bool_]]]"
                 return operator.inv(values)  # type: ignore[arg-type]
             else:
-                # error: Argument 1 to "neg" has incompatible type "Union
-                # [ExtensionArray, ndarray[Any, Any]]"; expected
-                # "_SupportsNeg[ndarray[Any, dtype[Any]]]"
-                return operator.neg(values)  # type: ignore[arg-type]
+                return ops.unary_op(values, operator.neg)
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -1409,10 +1413,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_bool_dtype(values.dtype):
                 return values.copy()
             else:
-                # error: Argument 1 to "pos" has incompatible type "Union
-                # [ExtensionArray, ndarray[Any, Any]]"; expected
-                # "_SupportsPos[ndarray[Any, dtype[Any]]]"
-                return operator.pos(values)  # type: ignore[arg-type]
+                return ops.unary_op(values, operator.pos)
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -1548,7 +1549,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        res_mgr = self._mgr.apply(np.abs)
+        res_mgr = self._mgr.apply(ops.unary_op, op=np.abs)
         return self._constructor_from_mgr(res_mgr, axes=res_mgr.axes).__finalize__(
             self, name="abs"
         )
@@ -9539,11 +9540,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#resampling>`__
         for more.
 
         To learn more about the offset strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
@@ -9957,34 +9958,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
-            else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
-
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
-                    axis=axis_int,
+        def rank_values(values: ArrayLike, values_axis: AxisInt) -> ArrayLike:
+            if isinstance(values, ExtensionArray) and values.ndim == 1:
+                return values._rank(
+                    axis=values_axis,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
                 )
-            else:
-                ranks = algos.rank(
-                    values,
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
-
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
+            return algos.rank(
+                values,
+                axis=values_axis,
+                method=method,
+                ascending=ascending,
+                na_option=na_option,
+                pct=pct,
+            )
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
@@ -9997,7 +9987,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        return ranker(data)
+        if data.ndim == 2 and axis_int == 0:
+            # GH#52829 ranking block by block retains extension dtypes; blocks
+            #  are transposed, so frame axis 0 is the block's last axis
+            res_mgr = data._mgr.apply(
+                lambda values: rank_values(values, values.ndim - 1)
+            )
+            ranks_obj = data._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
+        else:
+            # axis=1 needs all of a row's entries in one dtype, so it cannot go
+            #  block by block
+            values = data.values if data.ndim == 2 else data._values
+            ranks_obj = self._constructor(
+                rank_values(values, axis_int), **data._construct_axes_dict()
+            )
+        return ranks_obj.__finalize__(self, method="rank")
 
     def compare(
         self,

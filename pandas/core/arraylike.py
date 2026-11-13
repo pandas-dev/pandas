@@ -486,14 +486,19 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
         return NotImplemented
 
     if isinstance(result, tuple):
-        # i.e. np.divmod, np.modf, np.frexp
+        # i.e. np.divmod, np.modf, np.frexp, np.minmax
         if not isinstance(out, tuple) or len(out) != len(result):
             raise NotImplementedError
 
         for arr, res in zip(out, result, strict=True):
-            _assign_where(arr, res, where)
+            if arr is not None:
+                _assign_where(arr, res, where)
 
-        return out
+        # numpy allocates the outputs whose out entry is None,
+        #  e.g. np.minmax(df, axis=0, out=(None, arr))
+        return tuple(
+            res if arr is None else arr for arr, res in zip(out, result, strict=True)
+        )
 
     if isinstance(out, tuple):
         if len(out) == 1:
@@ -540,6 +545,14 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     if len(inputs) != 1 or inputs[0] is not self:
         return NotImplemented
+
+    if ufunc.__name__ == "minimummaximum":
+        # NumPy's fused minimum/maximum reduction behind np.minmax
+        if not hasattr(self, "min") or not hasattr(self, "max"):
+            return NotImplemented
+        return tuple(
+            getattr(self, name)(skipna=False, **kwargs) for name in ["min", "max"]
+        )
 
     if ufunc.__name__ not in REDUCTION_ALIASES:
         return NotImplemented

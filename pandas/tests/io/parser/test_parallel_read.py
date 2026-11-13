@@ -1455,6 +1455,27 @@ def test_parallel_usecols_matches_serial(tmp_path, monkeypatch, kwargs):
 
 
 @pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+@pytest.mark.parametrize(
+    "kwargs", [{}, {"usecols": [0, 2]}, {"dtype": str}, {"index_col": False}]
+)
+def test_parallel_tuple_names_matches_serial(tmp_path, monkeypatch, kwargs):
+    # all-tuple names make MultiIndex columns, not a flat Index of tuples
+    raw = b"a,b,c\n" + b"".join(
+        f"{i},{i * 0.5},s{i % 7}\n".encode() for i in range(2000)
+    )
+    path = tmp_path / "tuple_names.csv"
+    path.write_bytes(raw)
+    names = [("x", "1"), ("x", "2"), ("y", "1")]
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, header=0, names=names, **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), header=0, names=names, **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert isinstance(result.columns, pd.MultiIndex)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 @pytest.mark.parametrize("index_col", [0, "b", -1, [0, 2], ["c", 0]])
 def test_parallel_index_col_matches_serial(tmp_path, monkeypatch, index_col):
     raw = b"a,b,c\n" + b"".join(

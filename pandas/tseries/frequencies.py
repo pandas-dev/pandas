@@ -266,18 +266,13 @@ class _FrequencyInferer:
         return unique_deltas(self.i8values)
 
     @cache_readonly
-    def deltas_asi8(self) -> npt.NDArray[np.int64]:
-        # NB: we cannot use self.i8values here because we may have converted
-        #  the tz in __init__
-        return unique_deltas(self.index.asi8)
-
-    @cache_readonly
     def is_unique(self) -> bool:
         return len(self.deltas) == 1
 
     @cache_readonly
     def is_unique_asi8(self) -> bool:
-        return len(self.deltas_asi8) == 1
+        deltas = np.diff(self.index.asi8)
+        return bool((deltas == deltas[0]).all())
 
     def get_freq(self) -> str | None:
         """
@@ -291,13 +286,13 @@ class _FrequencyInferer:
         if not self.is_monotonic or not self.index._is_unique:
             return None
 
-        delta = self.deltas[0]
+        delta = np.diff(self.i8values).min()
         ppd = periods_per_day(self._creso)
         if delta and _is_multiple(delta, ppd):
             return self._infer_daily_rule()
 
         # Business hourly, maybe. 17: one day / 65: one weekend
-        if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
+        if delta == ppd // 24 and self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
             return "bh"
 
         # Possibly intraday frequency.  Here we use the
@@ -306,7 +301,7 @@ class _FrequencyInferer:
         if not self.is_unique_asi8:
             return None
 
-        delta = self.deltas_asi8[0]
+        delta = self.index.asi8[1] - self.index.asi8[0]
         pph = ppd // 24
         ppm = pph // 60
         pps = ppm // 60

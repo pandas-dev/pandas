@@ -821,6 +821,29 @@ def test_to_html_round_column_headers():
     assert "0.556" in notebook
 
 
+@pytest.mark.parametrize(
+    "columns, expected",
+    [
+        (pd.date_range("2015-01-01", periods=2), ["2015-01-01", "2015-01-02"]),
+        (pd.timedelta_range("1D", periods=2), ["1 days", "2 days"]),
+    ],
+)
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_datetimelike_column_headers(columns, expected, notebook):
+    # GH#10640 column headers are formatted like the row labels
+    df = pd.DataFrame([[1, 2]], columns=columns)
+    result = df.to_html(notebook=notebook, col_space=50)
+    for label in expected:
+        assert f'<th style="min-width: 50px;">{label}</th>' in result
+    assert f"<th>{expected[0]}</th>" in df.T.to_html(notebook=notebook)
+
+
+def test_to_html_notebook_col_space_int_columns():
+    # GH#10640 header cells are written formatted, col_space must still apply
+    result = pd.DataFrame([[1, 2]]).to_html(notebook=True, col_space=50)
+    assert '<th style="min-width: 50px;">0</th>' in result
+
+
 @pytest.mark.parametrize("unit", ["100px", "10%", "5em", 150])
 def test_to_html_with_col_space_units(unit):
     # GH 25941
