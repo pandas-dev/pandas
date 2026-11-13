@@ -1598,16 +1598,6 @@ class _MergeOperation:
 
         left, right = self.left, self.right
 
-        def is_key(key: Hashable | AnyArrayLike, frame: DataFrame, side: str) -> bool:
-            if not isinstance(key, _known):
-                return False
-            if len(key) != len(frame):
-                raise ValueError(
-                    f"Array-like {side}_on must have the same length as the "
-                    f"{side} DataFrame ({len(frame)}), got {len(key)}"
-                )
-            return True
-
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
         # regular pd.merge(), users cannot specify both 'left_index' and
@@ -1623,10 +1613,10 @@ class _MergeOperation:
             for lk, rk in zip(self.left_on, self.right_on, strict=True):
                 lk = extract_array(lk, extract_numpy=True)
                 rk = extract_array(rk, extract_numpy=True)
-                if is_key(lk, left, "left"):
+                if isinstance(lk, _known):
                     lk = cast("ArrayLike", lk)
                     left_keys.append(lk)
-                    if is_key(rk, right, "right"):
+                    if isinstance(rk, _known):
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
@@ -1640,7 +1630,7 @@ class _MergeOperation:
                             right_keys.append(right.index._values)
                             join_names.append(right.index.name)
                 else:
-                    if not is_key(rk, right, "right"):
+                    if not isinstance(rk, _known):
                         rk = cast("Hashable", rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
@@ -1662,7 +1652,7 @@ class _MergeOperation:
                         join_names.append(left.index.name)
         elif _any(self.left_on):
             for k in self.left_on:
-                if is_key(k, left, "left"):
+                if isinstance(k, _known):
                     k = extract_array(k, extract_numpy=True)
                     k = cast("ArrayLike", k)
                     left_keys.append(k)
@@ -1681,7 +1671,7 @@ class _MergeOperation:
         elif _any(self.right_on):
             for k in self.right_on:
                 k = extract_array(k, extract_numpy=True)
-                if is_key(k, right, "right"):
+                if isinstance(k, _known):
                     k = cast("ArrayLike", k)
                     right_keys.append(k)
                     join_names.append(None)
@@ -1969,6 +1959,17 @@ class _MergeOperation:
                 left_on = [None] * n
         if len(right_on) != len(left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
+
+        for side, keys, obj in (
+            ("left", left_on, self.left),
+            ("right", right_on, self.right),
+        ):
+            for key in keys:
+                if isinstance(key, _known) and len(key) != len(obj):
+                    raise ValueError(
+                        "Array-like join key must have the same length as the "
+                        f"{side} DataFrame ({len(obj)}), got {len(key)}"
+                    )
 
         return left_on, right_on
 
