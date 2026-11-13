@@ -64,6 +64,7 @@ Other enhancements
 - :func:`numpy.delete` on an :class:`ExtensionArray`, and :func:`numpy.concatenate` on :class:`ExtensionArray` objects of the same dtype, now return an :class:`ExtensionArray` of that dtype instead of a NumPy array (:issue:`26380`)
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
+- :meth:`.DataFrameGroupBy.ohlc`, :meth:`.SeriesGroupBy.ohlc` and :meth:`.Resampler.ohlc` now accept a ``numeric_only`` argument (:issue:`56946`)
 - :meth:`.DataFrameGroupBy.plot` now titles each group's figure with its group key, unless ``title`` or ``ax`` is passed (:issue:`12452`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` now accept keyword arguments that only the lines or only the filled areas support, such as ``hatch``, ``edgecolor`` and ``marker``, instead of raising ``AttributeError``; ``hatch`` also accepts a list with one hatch per column (:issue:`12354`)
@@ -163,6 +164,7 @@ Other API changes
 - :class:`ExtensionArray` now implements ``__array_function__``. Code expecting :func:`numpy.concatenate` or :func:`numpy.delete` to return a NumPy array for :class:`ExtensionArray` input, including ``_concat_same_type`` and ``delete`` implementations in :class:`ExtensionArray` subclasses, may need updating, as may code mixing an :class:`ExtensionArray` with another library's ``__array_function__`` arrays (:issue:`26380`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
 - :class:`Timedelta` and :func:`to_timedelta` now raise ``ValueError`` for a string with a comma between digits outside the seconds field, such as ``"1,5 days"`` or ``"1,234 days"``, instead of ignoring the comma (:issue:`71877`)
+- :func:`read_fwf` now raises a ``TypeError`` for a keyword argument that :func:`read_csv` does not accept, such as a misspelled ``width``, instead of silently ignoring it (:issue:`34953`)
 - :meth:`.ExtensionArray._concat_same_type` now has an ``axis`` keyword (default ``0``); pandas only passes it for dtypes that support 2D, so existing implementations without it keep working (:issue:`47514`)
 - :meth:`.Styler.to_excel` now omits the rows, columns, index and header levels, and names hidden with :meth:`.Styler.hide`, matching the other :class:`.Styler` output methods; hiding the whole index with :class:`MultiIndex` columns now raises ``NotImplementedError``, as ``index=False`` does (:issue:`42276`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
@@ -270,6 +272,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.idxmax` with a nullable ``boolean`` column containing missing values returning the first ``False`` row instead of the first ``True`` row (:issue:`71833`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
+- Bug in :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin` and :meth:`Series.cummax` (and their :class:`DataFrame` counterparts) on ``object`` data not skipping missing values with ``skipna=True``, which raised for elements such as strings and turned integer or ``Fraction`` cumulative results into floats (:issue:`59764`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in arithmetic and comparison operations between integer and ``float32`` data on large inputs computing in ``float32`` instead of ``float64`` when numexpr is installed, losing precision (:issue:`71272`)
 - Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)
@@ -295,9 +298,11 @@ Conversion
 
 Strings
 ^^^^^^^
+- :meth:`Series.str.get_dummies` now raises a ``ValueError`` for an empty separator with ``object``, Python-backed string, or categorical data, matching Python's :meth:`str.split` behavior (:issue:`70811`)
 - Bug in :class:`StringDtype` with PyArrow storage rejecting a PyArrow string scalar in item assignment and :meth:`Series.fillna`, and :meth:`Series.where` with one storing a character code (:issue:`71075`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` silently ignoring a compiled ``re.Pattern`` for :class:`ArrowDtype` ``string`` and ``large_string`` dtypes, including a :class:`Categorical` of them (:issue:`69026`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``regex=True`` on :class:`ArrowDtype` ``string`` and ``large_string`` dtypes raising or silently coercing a replacement the column cannot hold instead of casting to ``object`` (:issue:`70458`)
+- Bug in :meth:`Series.str.get_dummies` returning incorrect columns and indicator values for separators containing regular expression metacharacters with ``object``, Python-backed string, or categorical data (:issue:`70811`)
 -
 
 Interval
@@ -381,6 +386,7 @@ I/O
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
 - Bug in :func:`read_excel` raising ``ValueError`` when ``header`` is a list and ``index_col`` consumes all columns (:issue:`66372`)
 - Bug in :func:`read_html` raising ``ImportError`` when ``lxml`` is not installed instead of falling back to ``bs4`` + ``html5lib`` with the default ``flavor=None`` (:issue:`30281`)
+- Bug in :func:`read_html` with ``index_col`` reading the index-names row written by :meth:`DataFrame.to_html` as an extra column level instead of as the index names (:issue:`8897`)
 - Bug in :func:`read_html` with the ``bs4`` or ``html5lib`` parser dropping tables that have identical content, so only the first was returned (:issue:`49934`)
 - Bug in :func:`read_json` raising ``ValueError`` on numbers whose integer part does not fit in ``int64`` or ``uint64`` (e.g. ``100000000000000000000.5``), and silently returning a wrong value for some of them (:issue:`20599`)
 - Bug in :func:`read_orc` raising whenever ``filesystem`` was passed (:issue:`58746`)
@@ -391,6 +397,7 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` with :class:`MultiIndex` columns and an unnamed index or ``index_label=False`` where a first row of missing values was read back by :func:`read_csv` as the index names and dropped; an empty index-names line is now written in this case (:issue:`21995`)
 - Bug in :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle` and similar writers where writing to a ``file://`` URL raised for a new file and silently left an existing file unchanged; writing to other URLs such as ``http://`` now raises instead of silently discarding the data (:issue:`55828`)
 - Bug in :meth:`DataFrame.to_excel` where a ``NaN`` label in :class:`MultiIndex` columns was written as the last value of that level instead of an empty cell (:issue:`62340`)
+- Bug in :meth:`DataFrame.to_html` where datetime and timedelta column labels were not formatted like the row labels, e.g. showing ``00:00:00`` times, and where ``notebook=True`` ignored ``col_space`` for non-string column labels (:issue:`10640`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` dropping the nanoseconds of tz-aware datetime columns and :class:`Timestamp` objects, and with ``date_format="epoch"`` mis-rounding pre-1970 ``datetime`` objects or raising ``OverflowError`` for ones outside the nanosecond bounds at a coarser ``date_unit`` (:issue:`53473`)
 - Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
 - Bug in :meth:`DataFrame.to_sql` creating MySQL and MariaDB datetime and time columns that silently dropped fractional seconds (:issue:`48435`)
@@ -444,11 +451,13 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring ``style`` when ``xerr`` or ``yerr`` is passed (:issue:`7023`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring the ``axes.grid.axis`` and ``axes.grid.which`` rcParams, e.g. from a style file, and drawing major gridlines on both axes (:issue:`17725`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ValueError`` when plotting a single series or column with ``color`` as a tuple of three or four colors, instead of treating it like the equivalent list (:issue:`18449`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` redrawing time series that were removed with ``ax.clear()`` or ``line.remove()`` when a higher-frequency time series is later plotted on the same axes (:issue:`54485`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``style`` as a tuple, ``np.ndarray`` or :class:`Series` plotting the styles as data instead of applying them like the equivalent list (:issue:`46289`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` cutting off data already plotted on axes sharing the x-axis (``sharex=True``) (:issue:`14074`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` mislabeling ticks set with ``xticks=`` or ``ax.set_xticks`` (:issue:`18881`)
+- Bug in :meth:`DataFrame.plot` with ``stacked=True`` and ``secondary_y`` drawing the secondary columns at the wrong height once a higher-frequency time series is plotted on the same axes (:issue:`72052`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` drawing datetimes outside the visible range when they share the x-axis (``sharex=True``, ``twinx``, or ``secondary_y=True``) with a time-series plot (:issue:`14322`, :issue:`40470`)
 - Bug in :meth:`Series.plot.hist` and :meth:`DataFrame.plot.hist` with ``datetime64`` data drawing only empty bars (:issue:`17372`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` raising when a datetime index containing ``NaT`` is drawn on a time-series axes (:issue:`40470`)
@@ -526,6 +535,7 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`api.interchange.from_dataframe` with ``allow_copy=False`` always raising ``RuntimeError`` for objects supporting the Arrow PyCapsule Interface, even when a zero-copy conversion is possible (:issue:`71189`)
+- Bug in :func:`describe_option` suggesting an empty replacement option for deprecated options that have no replacement (:issue:`72035`)
 - Bug in :func:`eval` with a multi-line expression and a ``target`` raising ``UndefinedVariableError`` when a line after the first referenced a variable (:issue:`31952`)
 - Bug in :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where ``not`` performed a bitwise inversion instead of a logical negation, e.g. ``pd.eval("not True")`` returned ``-2`` and ``df.query("a > 1 and not True")`` could return rows (:issue:`11367`)
 - Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with ``check_dtype=False`` and ``check_exact=True`` comparing missing values against an object column differently from ``check_exact=False``; ``pd.NA`` and ``NaT`` no longer match ``np.nan`` or ``None`` (:issue:`61473`)

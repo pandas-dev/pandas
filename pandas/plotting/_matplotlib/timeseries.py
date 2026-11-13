@@ -208,6 +208,7 @@ def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None
 
 
 def _replot_ax(ax: Axes, freq: BaseOffset):
+    _drop_removed_lines(ax)
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
@@ -220,24 +221,57 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     lines = []
     labels = []
     if data is not None:
-        for series, plotf, kwds in data:
-            # keep the cached index as-is so a later replot also converts from
-            # the original timestamps
-            # TODO #54485
-            ax._plot_data.append((series, plotf, kwds))  # type: ignore[attr-defined]
+        stacks = set()
+        for series, kind, kwds, _ in data:
             index = _asfreq_plotting(series.index, freq)
 
             # for tsplot
+            plotf = kind
             if isinstance(plotf, str):
                 from pandas.plotting._matplotlib import PLOT_CLASSES
 
-                plotf = PLOT_CLASSES[plotf]._plot
+                plot_cls = PLOT_CLASSES[plotf]
+                plotf = plot_cls._plot
+                # the stack's first column may have been removed
+                stacking_id = kwds.get("stacking_id")
+                if stacking_id not in stacks:
+                    stacks.add(stacking_id)
+                    # only the line/area plot classes define _initialize_stacker
+                    plot_cls._initialize_stacker(  # type: ignore[attr-defined]
+                        ax, stacking_id, len(series)
+                    )
 
             values = np.asarray(series._values)
-            lines.append(plotf(ax, index._mpl_repr(), values, **kwds)[0])
+            line = plotf(ax, index._mpl_repr(), values, **kwds)[0]
+            # keep the cached index as-is so a later replot also converts from
+            # the original timestamps
+            # TODO #54485
+            ax._plot_data.append((series, kind, kwds, line))  # type: ignore[attr-defined]
+            lines.append(line)
             labels.append(pprint_thing(series.name))
 
     return lines, labels
+
+
+def _drop_removed_lines(ax: Axes) -> None:
+    """
+    Forget cached series whose line (or area fill) is no longer on ``ax``.
+
+    Once ``ax.clear()`` has removed every one of them, the axes freq is reset
+    as well, so the cleared axes plots like a new one (GH#54485).
+    """
+    data = getattr(ax, "_plot_data", None)
+    if not data:
+        return
+    # errorbar(fmt="none") draws no data line; such entries are never dropped
+    live = [entry for entry in data if entry[-1] is None or entry[-1].axes is ax]
+    # TODO #54485
+    ax._plot_data = live  # type: ignore[attr-defined]
+    # True after clear() (or relim() with nothing left); after line.remove()
+    # other artists may still be drawn in this freq's units
+    if not live and ax.ignore_existing_data_limits:
+        ax.freq = None  # type: ignore[attr-defined]
+        ax.xaxis.freq = None  # type: ignore[attr-defined]
 
 
 def decorate_axes(ax: Axes, freq: BaseOffset) -> None:
@@ -259,22 +293,27 @@ def _get_ax_freq(ax: Axes):
     Also checks shared axes (eg when using secondary yaxis, sharex=True
     or twinx)
     """
-    ax_freq = getattr(ax, "freq", None)
+    ax_freq = _live_ax_freq(ax)
     if ax_freq is None:
         # check for left/right ax in case of secondary yaxis
         if hasattr(ax, "left_ax"):
-            ax_freq = getattr(ax.left_ax, "freq", None)
+            ax_freq = _live_ax_freq(ax.left_ax)
         elif hasattr(ax, "right_ax"):
-            ax_freq = getattr(ax.right_ax, "freq", None)
+            ax_freq = _live_ax_freq(ax.right_ax)
     if ax_freq is None:
         # check if a shared ax (sharex/twinx) has already freq set
         shared_axes = ax.get_shared_x_axes().get_siblings(ax)
         if len(shared_axes) > 1:
             for shared_ax in shared_axes:
-                ax_freq = getattr(shared_ax, "freq", None)
+                ax_freq = _live_ax_freq(shared_ax)
                 if ax_freq is not None:
                     break
     return ax_freq
+
+
+def _live_ax_freq(ax: Axes):
+    _drop_removed_lines(ax)
+    return getattr(ax, "freq", None)
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
