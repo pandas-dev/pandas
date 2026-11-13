@@ -176,12 +176,14 @@ from pandas.core.indexing import (
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
+    astype_columns,
     dataclasses_to_dicts,
     dict_to_mgr,
     ndarray_to_mgr,
     nested_data_to_arrays,
     rec_array_to_mgr,
     reorder_arrays,
+    scalar_to_mgr,
     to_arrays,
     treat_as_nested,
 )
@@ -233,6 +235,7 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
+        DtypeArg,
         DtypeObj,
         FilePath,
         FloatFormatType,
@@ -312,9 +315,11 @@ class DataFrame(NDFrame, OpsMixin):
         Column labels to use for resulting frame when data does not have them,
         defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels,
         will perform column selection instead.
-    dtype : dtype, default None
-        Data type to force. Only a single dtype is allowed. If None, infer.
-        If ``data`` is DataFrame then is ignored. Missing values in ``data``
+    dtype : dtype or dict of {Hashable: dtype}, default None
+        Data type to force. If None, infer. A dict maps column labels to
+        dtypes; keys that do not match a column are ignored, and a
+        ``defaultdict``'s default applies to unlisted columns, which are
+        otherwise inferred. Missing values in ``data``
         are not cast: for example, with ``dtype=str`` a ``NaN`` entry stays
         missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
@@ -469,16 +474,36 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Constructors
 
+    @classmethod
+    def _validate_dtype_mapping(
+        cls, dtype: Mapping[Hashable, Dtype]
+    ) -> dict[Hashable, DtypeObj]:
+        """validate each dtype in a dict of column labels to dtypes"""
+        validated = {
+            key: validated_val
+            for key, val in dtype.items()
+            if (validated_val := cls._validate_dtype(val)) is not None
+        }
+        if (
+            isinstance(dtype, collections.defaultdict)
+            and dtype.default_factory
+            and (default := cls._validate_dtype(dtype.default_factory())) is not None
+        ):
+            return collections.defaultdict(lambda: default, validated)
+        return validated
+
     def __init__(
         self,
         data=None,
         index: Axes | None = None,
         columns: Axes | None = None,
-        dtype: Dtype | None = None,
+        dtype: DtypeArg | None = None,
         copy: bool | None = None,
     ) -> None:
         allow_mgr = False
-        if dtype is not None:
+        if isinstance(dtype, abc.Mapping):
+            dtype = self._validate_dtype_mapping(dtype)
+        elif dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
@@ -530,9 +555,18 @@ class DataFrame(NDFrame, OpsMixin):
             data = []
 
         if isinstance(data, BlockManager):
-            mgr = self._init_mgr(
-                data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
-            )
+            if isinstance(dtype, dict):
+                mgr = self._init_mgr(
+                    data, axes={"index": index, "columns": columns}, copy=copy
+                )
+                mgr = astype_columns(cast("BlockManager", mgr), dtype)
+            else:
+                mgr = self._init_mgr(
+                    data,
+                    axes={"index": index, "columns": columns},
+                    dtype=dtype,
+                    copy=copy,
+                )
 
         elif isinstance(data, dict):
             # GH#38939 de facto copy defaults to False only in non-dict cases
@@ -642,6 +676,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             index = ensure_index(index)
             columns = ensure_index(columns)
+
+            if isinstance(dtype, dict):
+                mgr = scalar_to_mgr(data, index, columns, dtype, copy)
+                NDFrame.__init__(self, mgr)
+                return
 
             if not dtype:
                 dtype, _ = infer_dtype_from_scalar(data)
