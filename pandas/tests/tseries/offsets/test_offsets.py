@@ -95,6 +95,8 @@ def _create_offset(klass, value=1, normalize=False):
         klass = klass(n=value, weekday=5, normalize=normalize)
     elif klass is DateOffset:
         klass = klass(days=value, normalize=normalize)
+    elif klass in (offsets.QuarterBegin, offsets.BQuarterBegin):
+        klass = klass(value, normalize=normalize, startingMonth=3)
     else:
         klass = klass(value, normalize=normalize)
     return klass
@@ -1039,7 +1041,12 @@ def test_valid_default_arguments(offset_types):
     # GH#19142 check that the calling the constructors without passing
     # any keyword arguments produce valid offsets
     cls = offset_types
-    cls()
+    warn = None
+    if cls in (offsets.QuarterBegin, offsets.BQuarterBegin):
+        # GH#8435
+        warn = Pandas4Warning
+    with tm.assert_produces_warning(warn, match="default startingMonth"):
+        cls()
 
 
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
@@ -1404,7 +1411,7 @@ def test_dateoffset_n_vectorized_near_dst_transition(box, n):
         offsets.SemiMonthEnd(2**32),
         offsets.SemiMonthBegin(2**32),
         offsets.QuarterEnd(2**32),
-        offsets.QuarterBegin(2**32),
+        offsets.QuarterBegin(2**32, startingMonth=3),
         offsets.HalfYearEnd(2**32),
         offsets.YearEnd(2**32),
         offsets.YearBegin(2**32),
