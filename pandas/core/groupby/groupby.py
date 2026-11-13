@@ -5327,18 +5327,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 if fill_value is lib.no_default:
                     fill_value = None
-                ids = self._grouper.ids
-                ngroups = self._grouper.ngroups
-                res_indexer = np.zeros(len(ids), dtype=np.int64)
-
-                libgroupby.group_shift_indexer(res_indexer, ids, ngroups, period)
-
-                obj = self._obj_with_exclusions
-
-                shifted = obj._reindex_with_indexers(
-                    {0: (obj.index, res_indexer)},
-                    fill_value=fill_value,
-                    allow_dups=True,
+                shifted = self._shift_obj(
+                    self._obj_with_exclusions, period, fill_value=fill_value
                 )
 
             if add_suffix:
@@ -5356,9 +5346,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
+    def _shift_obj(self, obj: NDFrameT, period: int, fill_value=None) -> NDFrameT:
+        """
+        Shift ``obj``, whose rows align with ``self._obj_with_exclusions``,
+        by ``period`` rows within each group.
+        """
+        ids = self._grouper.ids
+        res_indexer = np.zeros(len(ids), dtype=np.int64)
+        libgroupby.group_shift_indexer(res_indexer, ids, self._grouper.ngroups, period)
+        return obj._reindex_with_indexers(
+            {0: (obj.index, res_indexer)},
+            fill_value=fill_value,
+            allow_dups=True,
+        )
+
+    @final
     def diff(
         self,
         periods: int = 1,
+        numeric_only: bool = False,
     ) -> NDFrameT:
         """
         First discrete difference of element.
@@ -5370,6 +5376,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         periods : int, default 1
             Periods to shift for calculating difference, accepts negative values.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -5429,8 +5439,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mouse  1.0 -2.0
         mouse -5.0 -1.0
         """
+        if not is_integer(periods):
+            raise TypeError(
+                f"Periods must be integer, but {periods} is {type(periods)}."
+            )
         obj = self._obj_with_exclusions
-        shifted = self.shift(periods=periods)
+        if numeric_only:
+            mgr = self._get_data_to_aggregate(numeric_only=True, name="diff")
+            obj = self._wrap_agged_manager(mgr)
+        shifted = self._shift_obj(obj, periods)
 
         # GH45562 - to retain existing behavior and match behavior of Series.diff(),
         # int8 and int16 are coerced to float32 rather than float64.
@@ -5451,6 +5468,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         periods: int = 1,
         fill_method: None = None,
         freq=None,
+        numeric_only: bool = False,
     ):
         """
         Calculate pct_change of each value to previous entry in group.
@@ -5472,6 +5490,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The frequency increment for time series data (e.g., 'M' for month-end).
             If None, the frequency is inferred from the index. Relevant for time
             series data only.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -5528,6 +5551,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # GH#53491
         if fill_method is not None:
             raise ValueError(f"fill_method must be None; got {fill_method=}.")
+        if not is_integer(periods):
+            raise TypeError(
+                f"Periods must be integer, but {periods} is {type(periods)}."
+            )
+
+        obj = self._obj_with_exclusions
+        if numeric_only:
+            mgr = self._get_data_to_aggregate(numeric_only=True, name="pct_change")
+            obj = self._wrap_agged_manager(mgr)
 
         # with freq, dividing by self.shift(freq=freq) would align labels
         #  across groups, so compute per group
@@ -5537,12 +5569,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 freq=freq,
                 axis=0,
             )
-            return self._python_apply_general(
-                f, self._obj_with_exclusions, is_transform=True
-            )
+            return self._python_apply_general(f, obj, is_transform=True)
 
-        shifted = self.shift(periods=periods)
-        return (self._obj_with_exclusions / shifted) - 1
+        shifted = self._shift_obj(obj, periods)
+        return (obj / shifted) - 1
 
     @final
     def head(self, n: int = 5) -> NDFrameT:

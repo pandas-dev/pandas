@@ -321,3 +321,15 @@ def test_shift_na_key_periods_zero_fill_value():
     result = df.groupby("key").shift(periods=0, fill_value=-1.0)
     expected = pd.DataFrame({"val": [1.0, -1.0, 4.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, kwargs",
+    [("diff", {}), ("pct_change", {}), ("pct_change", {"freq": "D"})],
+)
+@pytest.mark.parametrize("periods", [1.5, "1", [1, 2]])
+def test_diff_pct_change_non_integer_periods_raises(method, kwargs, periods):
+    ser = pd.Series([1.0, 2.0, 3.0], index=pd.date_range("2020", periods=3))
+    gb = ser.groupby([1, 1, 2])
+    with pytest.raises(TypeError, match="Periods must be integer"):
+        getattr(gb, method)(periods=periods, **kwargs)

@@ -1,5 +1,6 @@
 import re
 
+import numpy as np
 import pytest
 
 from pandas._libs import lib
@@ -218,7 +219,7 @@ class TestNumericOnly:
         ("cummin", True),
         ("cumprod", True),
         ("cumsum", True),
-        ("diff", False),
+        ("diff", True),
         ("ffill", False),
         ("first", True),
         ("idxmax", True),
@@ -230,7 +231,7 @@ class TestNumericOnly:
         ("min", True),
         ("nth", False),
         ("nunique", False),
-        ("pct_change", False),
+        ("pct_change", True),
         ("prod", True),
         ("quantile", True),
         ("rank", True),
@@ -312,12 +313,6 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         with pytest.raises(
             TypeError, match="got an unexpected keyword argument 'numeric_only'"
         ):
-            method(*args, **kwargs)
-    else:
-        assert kernel in ("diff", "pct_change")
-        assert numeric_only is lib.no_default
-        # Doesn't have numeric_only argument and fails on nuisance columns
-        with pytest.raises(TypeError, match=r"unsupported operand type"):
             method(*args, **kwargs)
 
 
@@ -408,6 +403,8 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "cummin",
         "cumprod",
         "cumsum",
+        "diff",
+        "pct_change",
     )
     if groupby_func not in has_numeric_only:
         msg = "got an unexpected keyword argument 'numeric_only'"
@@ -463,3 +460,32 @@ def test_ohlc_numeric_only_series_raises():
     msg = "Cannot use numeric_only=True with SeriesGroupBy.ohlc and non-numeric dtypes"
     with pytest.raises(TypeError, match=msg):
         gb.ohlc(numeric_only=True)
+
+
+@pytest.mark.parametrize(
+    "kernel, kwargs",
+    [("diff", {}), ("pct_change", {}), ("pct_change", {"freq": "D"})],
+)
+def test_diff_pct_change_numeric_only(kernel, kwargs):
+    # GH#56946
+    df = pd.DataFrame(
+        {
+            "str": list("abcd"),
+            "num": [1.0, 3.0, 2.0, 5.0],
+            "dt": pd.date_range("2020", periods=4),
+            "small": np.array([1, 2, 4, 8], dtype="int8"),
+        },
+        index=pd.date_range("2021", periods=4),
+    )
+    # a label shared by a numeric and a non-numeric column
+    df.columns = ["x", "x", "dt", "small"]
+    key = [1, 1, 2, 2]
+    gb = df.groupby(key)
+
+    msg = "|".join(["unsupported operand type", "not supported for dtype"])
+    with pytest.raises(TypeError, match=msg):
+        getattr(gb, kernel)(**kwargs)
+
+    result = getattr(gb, kernel)(numeric_only=True, **kwargs)
+    expected = getattr(df.iloc[:, [1, 3]].groupby(key), kernel)(**kwargs)
+    tm.assert_frame_equal(result, expected)
