@@ -202,6 +202,53 @@ class TestSeriesSortValues:
         expected = pd.Series([3, 2, 1, 1], ["c", "b", "first", "second"])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["float64", "Float64", "category"])
+    @pytest.mark.parametrize("kind", ["quicksort", "heapsort"])
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_values_already_sorted_keeps_ties_in_order(
+        self, dtype, kind, ascending, na_position
+    ):
+        # GH#59092 unstable kinds reordered ties, dropping freq on some platforms
+        values = np.repeat([1.0, 2.0], 50)
+        if not ascending:
+            values = values[::-1]
+        if na_position == "first":
+            values = np.concatenate([[np.nan], values])
+        else:
+            values = np.concatenate([values, [np.nan]])
+        dti = pd.date_range("2020-12-31", periods=len(values), freq="D")
+        ser = pd.Series(values, index=dti, name="a", dtype=dtype)
+
+        result = ser.sort_values(
+            kind=kind, ascending=ascending, na_position=na_position
+        )
+        tm.assert_series_equal(result, ser)
+
+        df = ser.to_frame()
+        result = df.sort_values(
+            "a", kind=kind, ascending=ascending, na_position=na_position
+        )
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("dtype", [">f8", "complex128"])
+    def test_sort_values_monotonic_check_unsupported_dtype(self, dtype):
+        # GH#59092 dtypes the already-sorted check rejects fall back to argsort
+        ser = pd.Series(np.array([3, 1, 2], dtype=dtype))
+        result = ser.sort_values()
+        expected = pd.Series(np.array([1, 2, 3], dtype=dtype), index=[1, 2, 0])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).eps >= np.finfo(np.float64).eps,
+        reason="longdouble is no wider than float64",
+    )
+    def test_sort_values_longdouble_equal_as_float64(self):
+        # GH#59092 values that differ only beyond float64 precision
+        one = np.longdouble(1)
+        ser = pd.Series([one + np.finfo(np.longdouble).eps, one], dtype=np.longdouble)
+        result = ser.sort_values()
+        tm.assert_series_equal(result, ser.iloc[[1, 0]])
+
     def test_sort_values_validate_ascending_for_value_error(self):
         # GH41634
         ser = pd.Series([23, 7, 21])
