@@ -3237,6 +3237,10 @@ class TestLocBooleanLabelsAndSlices:
             result = indexer_sl(ser)[np.array(key)]
         tm.assert_series_equal(result, ser.iloc[[1]])
 
+        with tm.assert_produces_warning(None):
+            ser.iloc[key] = 7
+        tm.assert_series_equal(ser, pd.Series([1, 7], index=bool_index))
+
     def test_bool_list_mask_on_bool_frame_labels_deprecated(self):
         # GH#43194
         df = pd.DataFrame([[1, 2], [3, 4]], index=[True, False], columns=[True, False])

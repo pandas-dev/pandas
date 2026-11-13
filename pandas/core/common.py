@@ -200,7 +200,8 @@ def bool_list_selects_labels(
         warnings.warn(
             "Using a list of bools as a mask on an axis with boolean labels is "
             "deprecated. In a future version, the list will select labels "
-            "instead. Pass a numpy array to keep the current behavior.",
+            "instead. Pass a numpy array (or use .iloc) to keep the current "
+            "behavior.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
