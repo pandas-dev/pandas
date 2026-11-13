@@ -18,7 +18,13 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
-from pandas.core.dtypes.generic import ABCNDFrame
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCNDFrame,
+)
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
 from pandas.core.construction import extract_array
@@ -500,11 +506,14 @@ def _unbox_where(where, axes: dict[str, Any]) -> np.ndarray:
 
 
 def _where_to_ndarray(where) -> np.ndarray:
-    arr = np.asarray(where)
-    if arr.dtype == object and lib.is_bool_array(arr.ravel()):
-        # e.g. a DataFrame of "boolean" columns, which numpy would reject
-        arr = arr.astype(bool)
-    return arr
+    dtypes = where.dtypes if where.ndim == 2 else [where.dtype]
+    if not all(is_bool_dtype(dtype) for dtype in dtypes):
+        # numpy accepts or rejects it as it would the equivalent ndarray
+        return np.asarray(where)
+    # checked explicitly: to_numpy(dtype=bool) makes a Categorical's NaN True
+    if isna(where).any(axis=None):
+        raise ValueError("The ufunc 'where' argument cannot contain missing values")
+    return where.to_numpy(dtype=bool)
 
 
 def dispatch_where_only_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -530,6 +539,8 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
     # Note: we assume _standardize_out_kwarg has already been called.
     out = kwargs.pop("out")
     where = kwargs.pop("where", None)
+    if isinstance(where, (ABCNDFrame, ABCIndex, ABCExtensionArray)):
+        where = _where_to_ndarray(where)
 
     result = getattr(ufunc, method)(*inputs, **kwargs)
 
