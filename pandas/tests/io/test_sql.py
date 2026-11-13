@@ -1267,6 +1267,84 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.parametrize("conn", [*sqlite_connectable, "sqlite_buildin"])
+@pytest.mark.parametrize(
+    "chunksize, counts, expected",
+    [
+        (None, [-1], None),
+        (2, [-1, -1, -1], None),
+        (2, [2, -1, 1], None),
+        (2, [2, 2, 1], 5),
+        (None, ["done"], "done"),
+    ],
+)
+def test_to_sql_unknown_rowcount(conn, chunksize, counts, expected, request):
+    # PEP 249 drivers (e.g. duckdb) report a rowcount of -1 when they can't
+    # tell how many rows were written; that must not be summed into the total
+    conn = request.getfixturevalue(conn)
+    reported = iter(counts)
+
+    def insert(pd_table, conn, keys, data_iter):
+        list(data_iter)
+        return next(reported)
+
+    df = pd.DataFrame({"a": range(5)})
+    result = df.to_sql(
+        "test_frame", conn, index=False, chunksize=chunksize, method=insert
+    )
+    assert result == expected
+    assert next(reported, None) is None
+
+
+@pytest.mark.parametrize("method", [None, "multi"])
+@pytest.mark.parametrize("chunksize", [None, 2])
+def test_to_sql_driver_unknown_rowcount(method, chunksize):
+    # duckdb's cursors always report rowcount == -1
+    class Cursor(sqlite3.Cursor):
+        @property
+        def rowcount(self) -> int:
+            return -1
+
+    class Connection(sqlite3.Connection):
+        def cursor(self, factory=Cursor):
+            return super().cursor(factory)
+
+    df = pd.DataFrame({"a": range(5)})
+    with contextlib.closing(sqlite3.connect(":memory:", factory=Connection)) as conn:
+        result = df.to_sql("t", conn, index=False, method=method, chunksize=chunksize)
+        assert result is None
+        assert conn.execute("SELECT count(*) FROM t").fetchone() == (5,)
+
+
+@pytest.mark.parametrize("conn", ["sqlite_engine", "sqlite_conn"])
+@pytest.mark.parametrize("method", [None, "multi"])
+def test_to_sql_sqlalchemy_unknown_rowcount(conn, method, request, monkeypatch):
+    # SQLAlchemy reports -1 when the DBAPI driver can't count the rows
+    from sqlalchemy.engine import CursorResult
+
+    conn = request.getfixturevalue(conn)
+    monkeypatch.setattr(CursorResult, "rowcount", property(lambda self: -1))
+    df = pd.DataFrame({"a": range(5)})
+    assert df.to_sql("t", conn, index=False, method=method, chunksize=2) is None
+    assert count_rows(conn, "t") == 5
+
+
+def test_to_sql_adbc_unknown_rowcount(sqlite_adbc_conn, monkeypatch):
+    # adbc_ingest returns -1 when the driver can't count the rows
+    from adbc_driver_manager import dbapi
+
+    ingest = dbapi.Cursor.adbc_ingest
+
+    def adbc_ingest(self, *args, **kwargs):
+        ingest(self, *args, **kwargs)
+        return -1
+
+    monkeypatch.setattr(dbapi.Cursor, "adbc_ingest", adbc_ingest)
+    df = pd.DataFrame({"a": range(5)})
+    assert df.to_sql("t", sqlite_adbc_conn, index=False) is None
+    assert count_rows(sqlite_adbc_conn, "t") == 5
+
+
 @pytest.mark.parametrize("conn", all_connectable_types)
 def test_default_type_conversion(conn, request):
     conn_name = conn

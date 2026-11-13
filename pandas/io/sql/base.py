@@ -432,6 +432,7 @@ class SQLTable(PandasObject):
 
         chunks = (nrows // chunksize) + 1
         total_inserted = None
+        count_unknown = False
         with self.pd_sql.run_transaction() as conn:
             for i in range(chunks):
                 start_i = i * chunksize
@@ -445,11 +446,14 @@ class SQLTable(PandasObject):
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
                 if num_inserted is not None:
-                    if total_inserted is None:
+                    if lib.is_integer(num_inserted) and num_inserted < 0:
+                        # PEP 249: a rowcount of -1 means the driver can't tell
+                        count_unknown = True
+                    elif total_inserted is None:
                         total_inserted = num_inserted
                     else:
                         total_inserted += num_inserted
-        return total_inserted
+        return None if count_unknown else total_inserted
 
     def _query_iterator(
         self,
