@@ -1020,6 +1020,26 @@ with cf.config_prefix("future"):
     )
 
     _register_future_option(
+        "pivot_table_dropna",
+        legacy=False,
+        default=False,
+        upcoming=True,
+        # the test suite does not yet pass with the upcoming value
+        enrolled=False,
+        doc="Whether DataFrame.pivot_table omits the rows with an NA value in "
+        "any column before computing the margins, and drops the rows of the "
+        "result that are all NA. If False (the default), the rows with an NA "
+        "value in any column are omitted before computing the margins and the "
+        "rows of the result that are all NA are dropped. If True, only the "
+        "rows with an NA value in an index or column key are omitted before "
+        "computing the margins, so that the margins are computed from the "
+        "same rows as the table, and the rows of the result that are all NA "
+        "are kept. The future behavior will become the default in a future "
+        "version of pandas.",
+        validator=is_one_of_factory([True, False]),
+    )
+
+    _register_future_option(
         "python_scalars",
         legacy=False,
         default=False,

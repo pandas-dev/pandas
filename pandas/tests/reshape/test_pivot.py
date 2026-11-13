@@ -11,6 +11,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
@@ -233,9 +235,11 @@ class TestPivotTable:
             ["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True
         )
         df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        result = pivot_table(
-            df, values="values", index=["A", "B"], dropna=True, observed=False
-        )
+        msg = "future.pivot_table_dropna"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pivot_table(
+                df, values="values", index=["A", "B"], dropna=True, observed=False
+            )
 
         exp_index = pd.MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = pd.DataFrame({"values": [1.0, 2.0, 3.0, 4.0]}, index=exp_index)
@@ -254,9 +258,11 @@ class TestPivotTable:
         )
 
         df["A"] = df["A"].astype(CategoricalDtype(categories, ordered=False))
-        result = df.pivot_table(
-            index="B", columns="A", values="C", dropna=dropna, observed=False
-        )
+        msg = "future.pivot_table_dropna"
+        with tm.maybe_produces_warning(Pandas4Warning, dropna, match=msg):
+            result = df.pivot_table(
+                index="B", columns="A", values="C", dropna=dropna, observed=False
+            )
         expected_columns = pd.Series(["a", "b", "c"], name="A")
         expected_columns = expected_columns.astype(
             CategoricalDtype(categories, ordered=False)
@@ -548,29 +554,31 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_multi_functions(self, data):
-        f = lambda func: pivot_table(
-            data, values=["D", "E"], index=["A", "B"], columns="C", aggfunc=func
-        )
-        result = f(["mean", "std"])
-        means = f("mean")
-        stds = f("std")
-        expected = pd.concat([means, stds], keys=["mean", "std"], axis=1)
-        tm.assert_frame_equal(result, expected)
+        msg = "future.pivot_table_dropna"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            f = lambda func: pivot_table(
+                data, values=["D", "E"], index=["A", "B"], columns="C", aggfunc=func
+            )
+            result = f(["mean", "std"])
+            means = f("mean")
+            stds = f("std")
+            expected = pd.concat([means, stds], keys=["mean", "std"], axis=1)
+            tm.assert_frame_equal(result, expected)
 
-        # margins not supported??
-        f = lambda func: pivot_table(
-            data,
-            values=["D", "E"],
-            index=["A", "B"],
-            columns="C",
-            aggfunc=func,
-            margins=True,
-        )
-        result = f(["mean", "std"])
-        means = f("mean")
-        stds = f("std")
-        expected = pd.concat([means, stds], keys=["mean", "std"], axis=1)
-        tm.assert_frame_equal(result, expected)
+            # margins not supported??
+            f = lambda func: pivot_table(
+                data,
+                values=["D", "E"],
+                index=["A", "B"],
+                columns="C",
+                aggfunc=func,
+                margins=True,
+            )
+            result = f(["mean", "std"])
+            means = f("mean")
+            stds = f("std")
+            expected = pd.concat([means, stds], keys=["mean", "std"], axis=1)
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_index_with_nan(self, method):
@@ -2064,9 +2072,11 @@ class TestPivotTable:
             }
         )
         # case with index/columns/value
-        result = df.pivot_table(
-            index="In", columns="Col", values="Val", observed=observed
-        )
+        msg = "future.pivot_table_dropna"
+        with tm.maybe_produces_warning(Pandas4Warning, not observed, match=msg):
+            result = df.pivot_table(
+                index="In", columns="Col", values="Val", observed=observed
+            )
 
         expected_cols = pd.CategoricalIndex(["A", "B"], ordered=ordered, name="Col")
 
@@ -2388,9 +2398,11 @@ class TestPivotTable:
         def ret_none(x):
             return np.nan
 
-        result = pivot_table(
-            df, columns="fruit", aggfunc=[ret_sum, ret_none, ret_one], dropna=dropna
-        )
+        msg = "future.pivot_table_dropna"
+        with tm.maybe_produces_warning(Pandas4Warning, dropna, match=msg):
+            result = pivot_table(
+                df, columns="fruit", aggfunc=[ret_sum, ret_none, ret_one], dropna=dropna
+            )
 
         data = [[3, 1, np.nan, np.nan, 1, 1], [13, 6, np.nan, np.nan, 1, 1]]
         col = pd.MultiIndex.from_product(
@@ -2410,7 +2422,9 @@ class TestPivotTable:
             {"A": ["one", "two", "one"], "x": [3, np.nan, 2], "y": [1, np.nan, np.nan]}
         )
 
-        result = pivot_table(df, columns="A", aggfunc="mean", dropna=dropna)
+        msg = "future.pivot_table_dropna"
+        with tm.maybe_produces_warning(Pandas4Warning, dropna, match=msg):
+            result = pivot_table(df, columns="A", aggfunc="mean", dropna=dropna)
 
         data = [[2.5, np.nan], [1, np.nan]]
         col = pd.Index(["one", "two"], name="A")
@@ -2946,6 +2960,140 @@ class TestPivotTable:
         expected.index.name = "g1"
         expected.columns.name = "g2"
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_pivot_table_margins_dropna_deprecation(self):
+        # GH#65765 the margins were computed from a different set of rows than
+        #  the table, so that the "All" margins did not add up to the cells
+        df = pd.DataFrame(
+            {
+                "key": ["a", "a", "b"],
+                "x": [1.0, 2.0, 4.0],
+                "y": [10.0, np.nan, 30.0],
+            }
+        )
+        msg = "future.pivot_table_dropna"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.pivot_table(
+                index="key", values=["x", "y"], aggfunc="sum", margins=True
+            )
+        # the row with y=NaN is omitted before computing the margins, even
+        #  though the value of x is not NA
+        expected = pd.DataFrame(
+            [[3.0, 10.0], [4.0, 30.0], [5.0, 40.0]],
+            index=pd.Index(["a", "b", "All"], name="key"),
+            columns=pd.Index(["x", "y"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_dropna_future_option(self):
+        # GH#65765 with the future option the margins are computed from the
+        #  same rows as the table, so that they add up
+        df = pd.DataFrame(
+            {
+                "key": ["a", "a", "b"],
+                "x": [1.0, 2.0, 4.0],
+                "y": [10.0, np.nan, 30.0],
+            }
+        )
+        with pd.option_context("future.pivot_table_dropna", True):
+            result = df.pivot_table(
+                index="key", values=["x", "y"], aggfunc="sum", margins=True
+            )
+        expected = pd.DataFrame(
+            [[3.0, 10.0], [4.0, 30.0], [7.0, 40.0]],
+            index=pd.Index(["a", "b", "All"], name="key"),
+            columns=pd.Index(["x", "y"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_dropna_dict_aggfunc(self):
+        # GH#65765 the same must hold for a dict of aggfuncs
+        df = pd.DataFrame(
+            {"A": [1, 1], "B": [1, 2], "C": [10.0, np.nan], "D": [100.0, 200.0]}
+        )
+        msg = "future.pivot_table_dropna"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pivot_table(
+                df,
+                index="A",
+                columns="B",
+                values=["C", "D"],
+                aggfunc={"C": "mean", "D": "sum"},
+                margins=True,
+            )
+        expected = pd.DataFrame(
+            [
+                [10.0, 10.0, 100.0, 200.0, 100.0],
+                [10.0, 10.0, 100.0, np.nan, 100.0],
+            ],
+            index=pd.Index([1, "All"], name="A"),
+            columns=pd.MultiIndex.from_tuples(
+                [("C", 1), ("C", "All"), ("D", 1), ("D", 2), ("D", "All")],
+                names=[None, "B"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_dropna_dict_aggfunc_future_option(self):
+        # GH#65765 with the future option the margins are computed from the
+        #  same rows as the table, so that they add up
+        df = pd.DataFrame(
+            {"A": [1, 1], "B": [1, 2], "C": [10.0, np.nan], "D": [100.0, 200.0]}
+        )
+        with pd.option_context("future.pivot_table_dropna", True):
+            result = pivot_table(
+                df,
+                index="A",
+                columns="B",
+                values=["C", "D"],
+                aggfunc={"C": "mean", "D": "sum"},
+                margins=True,
+            )
+        expected = pd.DataFrame(
+            [
+                [10.0, 10.0, 100.0, 200.0, 300.0],
+                [10.0, 10.0, 100.0, 200.0, 300.0],
+            ],
+            index=pd.Index([1, "All"], name="A"),
+            columns=pd.MultiIndex.from_tuples(
+                [("C", 1), ("C", "All"), ("D", 1), ("D", 2), ("D", "All")],
+                names=[None, "B"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_dropna_no_deprecation(self):
+        # GH#65765 the margins do not change if the omitted rows do not
+        #  contribute to them, so nothing is deprecated
+        df = pd.DataFrame({"A": [1, 2, 2], "B": [3, 3, 4], "C": [1.0, 1.0, np.nan]})
+        with tm.assert_produces_warning(None):
+            result = df.pivot_table(index="A", values="C", aggfunc="sum", margins=True)
+        expected = pd.DataFrame(
+            [[1.0], [1.0], [2.0]],
+            index=pd.Index([1, 2, "All"], name="A"),
+            columns=pd.Index(["C"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_dropna_all_na_rows_deprecation(self):
+        # GH#53521 the rows of the result that are all NA are dropped
+        df = pd.DataFrame({"A": ["a", "b"], "B": [1.0, np.nan]})
+        msg = "future.pivot_table_dropna"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.pivot_table(index="A", values="B", aggfunc="mean")
+        expected = pd.DataFrame({"B": [1.0]}, index=pd.Index(["a"], name="A"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_dropna_all_na_rows_future_option(self):
+        # GH#53521 with the future option the rows of the result that are all
+        #  NA are kept
+        df = pd.DataFrame({"A": ["a", "b"], "B": [1.0, np.nan]})
+        with pd.option_context("future.pivot_table_dropna", True):
+            result = df.pivot_table(index="A", values="B", aggfunc="mean")
+        expected = pd.DataFrame(
+            {"B": [1.0, np.nan]}, index=pd.Index(["a", "b"], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestPivot:
