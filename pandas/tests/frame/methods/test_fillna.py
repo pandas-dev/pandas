@@ -967,33 +967,3 @@ def test_pad_backfill_axis_1_inplace(method, expected_values, axis):
     expected = pd.DataFrame([expected_values], columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
     tm.assert_frame_equal(df, expected)
-
-
-@pytest.mark.parametrize("axis", [0, 1])
-@pytest.mark.parametrize("inplace", [True, False])
-def test_ffill_limit_timedelta(axis, inplace):
-    # GH#16069
-    index = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-05", "2020-01-06"])
-    df = pd.DataFrame(
-        {
-            "A": [1.0, np.nan, np.nan, np.nan],
-            "B": pd.array([np.nan, 2, np.nan, 4], dtype="Int64"),
-            "C": ["a", None, None, "d"],
-        },
-        index=index,
-    )
-    expected = pd.DataFrame(
-        {
-            "A": [1.0, 1.0, np.nan, np.nan],
-            "B": pd.array([np.nan, 2, np.nan, 4], dtype="Int64"),
-            "C": ["a", "a", None, "d"],
-        },
-        index=index,
-    )
-    if axis == 1:
-        df = df.T
-        expected = expected.T
-    result = df.ffill(axis=axis, limit="1D", inplace=inplace)
-    if inplace:
-        assert result is df
-    tm.assert_frame_equal(result, expected)

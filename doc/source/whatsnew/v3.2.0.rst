@@ -34,7 +34,6 @@ Other enhancements
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
 - :meth:`.DataFrameGroupBy.plot` now titles each group's figure with its group key, unless ``title`` or ``ax`` is passed (:issue:`12452`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
-- :meth:`DataFrame.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.ffill`, and :meth:`Series.bfill` now accept a timedelta-like ``limit`` such as ``"2D"``, filling only missing values within that distance of the observation they are filled from (:issue:`16069`)
 - :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` now accept keyword arguments that only the lines or only the filled areas support, such as ``hatch``, ``edgecolor`` and ``marker``, instead of raising ``AttributeError``; ``hatch`` also accepts a list with one hatch per column (:issue:`12354`)
 - :meth:`DataFrame.to_csv` and other writers now accept an ``os.PathLike`` such as :class:`pathlib.Path` for the ``archive_name`` entry of a zip or tar ``compression`` dict (:issue:`31934`)
 - :meth:`DataFrame.to_json`, :meth:`Series.to_json` and :meth:`DataFrame.to_xml` now warn when a compression method is requested but no path is given, since the returned string is not compressed, and raise for an unrecognized ``compression`` as they do with a path (:issue:`32326`)

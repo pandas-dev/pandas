@@ -39,15 +39,9 @@ from pandas._config.config import _global_config as config
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
-    BaseOffset,
     Period,
-    Timedelta,
     Timestamp,
     to_offset,
-)
-from pandas._libs.tslibs.dtypes import (
-    abbrev_to_npy_unit,
-    periods_per_second,
 )
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
@@ -131,7 +125,6 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     PeriodIndex,
-    TimedeltaIndex,
     default_index,
     ensure_index,
 )
@@ -170,6 +163,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         AlignJoin,
         AnyArrayLike,
@@ -7250,23 +7244,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         axis: Axis | None = None,
         inplace: bool = False,
-        limit: int | str | dt.timedelta | np.timedelta64 | BaseOffset | None = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
         method = clean_fill_method(method)
-
-        if isinstance(limit, (str, dt.timedelta, np.timedelta64, BaseOffset)):
-            # time-based limit, GH#16069
-            exceeded = self._time_limit_exceeded(method, axis, limit)
-            result = self._pad_or_backfill(method, axis=axis, limit_area=limit_area)
-            result = result.where(~exceeded, self)
-            if inplace:
-                self._update_inplace(result)
-                return self
-            return result
 
         if axis == 1:
             if not self._mgr.is_single_block and inplace:
@@ -7293,75 +7277,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self
         else:
             return result.__finalize__(self, method="fillna")
-
-    @final
-    def _time_limit_exceeded(
-        self,
-        method: Literal["pad", "backfill"],
-        axis: AxisInt,
-        limit: str | dt.timedelta | np.timedelta64 | BaseOffset,
-    ) -> npt.NDArray[np.bool_]:
-        """
-        Mask of the NA entries a pad/backfill along ``axis`` would fill from an
-        observation more than ``limit`` away on that axis.
-        """
-        msg = "Limit must be an integer or timedelta-like"
-        # Timedelta would read a unitless "2" as nanoseconds
-        if isinstance(limit, str) and limit.strip(" +-").replace(".", "", 1).isdigit():
-            raise ValueError(msg)
-        try:
-            td_limit = Timedelta(limit)
-        except ValueError as err:
-            raise ValueError(msg) from err
-        if isna(td_limit) or td_limit <= Timedelta(0):
-            raise ValueError("Limit must be greater than 0")
-
-        index = self._get_axis(axis)
-        if not isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-            raise ValueError(
-                "A timedelta-like limit requires a DatetimeIndex or TimedeltaIndex "
-                f"along the fill axis, got {type(index).__name__}"
-            )
-        if not (index.is_monotonic_increasing or index.is_monotonic_decreasing):
-            raise ValueError("A timedelta-like limit requires a monotonic index")
-
-        mask = np.asarray(self.isna(), dtype=bool)
-        if axis == 1:
-            mask = mask.T
-        mask2d = mask[:, None] if mask.ndim == 1 else mask
-
-        # position of the observation each entry would be filled from
-        nobs = len(index)
-        positions = np.arange(nobs)[:, None]
-        if method == "pad":
-            src = np.maximum.accumulate(np.where(mask2d, -1, positions), axis=0)
-        else:
-            src = np.where(mask2d, nobs, positions)
-            src = np.minimum.accumulate(src[::-1], axis=0)[::-1]
-        has_src = (src >= 0) & (src < nobs)
-
-        # floor to the index's unit, where distances are integral; a Python int
-        # since it can exceed that unit's int64 range
-        limit_int = (
-            td_limit._value
-            * periods_per_second(abbrev_to_npy_unit(index.unit))
-            // periods_per_second(abbrev_to_npy_unit(td_limit.unit))
-        )
-        limit_u8 = np.uint64(min(limit_int, np.iinfo(np.uint64).max))
-
-        # subtract as uint64: a span can exceed the int64 range
-        stamps = index.asi8
-        here = stamps[:, None]
-        there = stamps[src.clip(0, max(nobs - 1, 0))]
-        here_u8, there_u8 = here.view("u8"), there.view("u8")
-        dist = np.where(here >= there, here_u8 - there_u8, there_u8 - here_u8)
-        exceeded = mask2d & has_src & (dist > limit_u8)
-
-        if mask.ndim == 1:
-            exceeded = exceeded[:, 0]
-        elif axis == 1:
-            exceeded = exceeded.T
-        return exceeded
 
     @final
     def fillna(
@@ -7613,7 +7528,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         axis: Axis | None = None,
         inplace: bool = False,
-        limit: int | str | dt.timedelta | np.timedelta64 | BaseOffset | None = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -7631,19 +7546,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If True, fill in-place. Note: this will modify any
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
-        limit : int or timedelta-like, default None
+        limit : int, default None
             Maximum number of consecutive NaN values to fill. In other words, if
             there is a gap with more than this number of consecutive NaNs, it
             will only be partially filled. Must be greater than 0 if not None.
-
-            A timedelta-like such as ``"2D"`` instead fills only the NaNs at
-            most this far from the observation they are filled from. The
-            distance is absolute time, so ``"1D"`` is 24 hours even across a
-            DST transition. This requires a monotonic :class:`DatetimeIndex` or
-            :class:`TimedeltaIndex` along ``axis``.
-
-            .. versionchanged:: 3.2.0
-                Accepts a timedelta-like.
         limit_area : {`None`, 'inside', 'outside'}, default None
             Restrict which NaNs are filled based on their position relative to
             the valid values.
@@ -7698,12 +7604,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   3.0
         dtype: float64
 
-        A timedelta-like ``limit`` fills only NaNs close enough in time to the
-        last valid observation:
+        To fill only values within a time distance of the last valid
+        observation, use :meth:`Series.reindex` with ``tolerance``:
 
         >>> index = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-05"])
         >>> ser = pd.Series([1, np.nan, np.nan], index=index)
-        >>> ser.ffill(limit="2D")
+        >>> ser.dropna().reindex(ser.index, method="ffill", tolerance="2D")
         2024-01-01    1.0
         2024-01-02    1.0
         2024-01-05    NaN
@@ -7735,7 +7641,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         axis: Axis | None = None,
         inplace: bool = False,
-        limit: int | str | dt.timedelta | np.timedelta64 | BaseOffset | None = None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
     ) -> Self:
         """
@@ -7754,19 +7660,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If True, fill in-place. Note: this will modify any
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
-        limit : int or timedelta-like, default None
+        limit : int, default None
             Maximum number of consecutive NaN values to fill. In other words, if
             there is a gap with more than this number of consecutive NaNs, it
             will only be partially filled. Must be greater than 0 if not None.
-
-            A timedelta-like such as ``"2D"`` instead fills only the NaNs at
-            most this far from the observation they are filled from. The
-            distance is absolute time, so ``"1D"`` is 24 hours even across a
-            DST transition. This requires a monotonic :class:`DatetimeIndex` or
-            :class:`TimedeltaIndex` along ``axis``.
-
-            .. versionchanged:: 3.2.0
-                Accepts a timedelta-like.
         limit_area : {`None`, 'inside', 'outside'}, default None
             Restrict which NaNs are filled based on their position relative to
             the valid values.
@@ -7827,6 +7724,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   NaN   5.0
         2   4.0   7.0
         3   4.0   7.0
+
+        To fill only values within a time distance of the next valid
+        observation, use :meth:`Series.reindex` with ``tolerance``:
+
+        >>> index = pd.to_datetime(["2024-01-01", "2024-01-04", "2024-01-05"])
+        >>> s = pd.Series([np.nan, np.nan, 2], index=index)
+        >>> s.dropna().reindex(s.index, method="bfill", tolerance="2D")
+        2024-01-01    NaN
+        2024-01-04    2.0
+        2024-01-05    2.0
+        dtype: float64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
