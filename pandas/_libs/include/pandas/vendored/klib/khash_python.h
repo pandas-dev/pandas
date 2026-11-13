@@ -21,7 +21,27 @@ typedef struct {
 } khcomplex128_t;
 
 static const int KHASH_TRACE_DOMAIN = 424242;
+
+// For tests only: while positive, each malloc/realloc decrements this and the
+// one that takes it to 0 fails. Each extension module gets its own copy. calloc
+// is exempt because callers of kh_init_* do not check for NULL yet.
+static int khash_alloc_fail_countdown = 0;
+
+// Returns the previous countdown, which is still positive if no failure fired.
+static inline int khash_set_alloc_fail_countdown(int countdown) {
+  int prev = khash_alloc_fail_countdown;
+  khash_alloc_fail_countdown = countdown;
+  return prev;
+}
+
+static inline int khash_alloc_should_fail(void) {
+  return khash_alloc_fail_countdown > 0 && --khash_alloc_fail_countdown == 0;
+}
+
 static void *traced_malloc(size_t size) {
+  if (khash_alloc_should_fail()) {
+    return NULL;
+  }
   void *ptr = malloc(size);
   if (ptr != NULL) {
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
@@ -38,9 +58,15 @@ static void *traced_calloc(size_t num, size_t size) {
 }
 
 static void *traced_realloc(void *old_ptr, size_t size) {
-  PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
+  if (khash_alloc_should_fail()) {
+    return NULL;
+  }
+  // taken before the call: gcc warns on any use of old_ptr after realloc
+  uintptr_t old_addr = (uintptr_t)old_ptr;
   void *ptr = realloc(old_ptr, size);
   if (ptr != NULL) {
+    // a failed realloc leaves old_ptr allocated, so it stays tracked
+    PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, old_addr);
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
   }
   return ptr;
@@ -610,7 +636,7 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
                                               const char *key, size_t len,
                                               int *ret) {
   khuint_t result = kh_put_str(table->table, kh_strview(key, len), ret);
-  if (*ret != 0) {
+  if (*ret > 0) {
     // The empty key gets its own flag rather than a slot in starts[]. Sharing
     // starts['\0'] with it would make every token that merely *begins* with an
     // embedded NUL look like a candidate.
@@ -681,8 +707,8 @@ static inline void kh_destroy_str_starts(kh_str_starts_t *table) {
   KHASH_FREE(table);
 }
 
-static inline void kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
-  kh_resize_str(table->table, val);
+static inline int kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
+  return kh_resize_str(table->table, val);
 }
 
 // utility function: given the number of elements

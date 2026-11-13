@@ -29,6 +29,7 @@ from pandas._libs.khash cimport (
     kh_python_hash_equal,
     kh_python_hash_func,
     kh_strview,
+    khash_set_alloc_fail_countdown,
     khiter_t,
 )
 from pandas._libs.missing cimport (
@@ -47,6 +48,11 @@ def object_hash(obj):
 
 def objects_are_equal(a, b):
     return kh_python_hash_equal(a, b)
+
+
+def _set_khash_alloc_fail_countdown(int countdown) -> int:
+    # for tests: fail the khash allocation in this module that takes this to 0
+    return khash_set_alloc_fail_countdown(countdown)
 
 
 SIZE_HINT_LIMIT = (1 << 20) + 7

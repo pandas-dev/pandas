@@ -42,6 +42,8 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     bint are_equivalent_float32_t \
         "kh_floats_hash_equal" (float32_t a, float32_t b) nogil
 
+    int khash_set_alloc_fail_countdown(int countdown)
+
     uint32_t kh_python_hash_func(object key) except *
     bint kh_python_hash_equal(object a, object b) except *
 
@@ -61,7 +63,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     void kh_destroy_pymap(kh_pymap_t*)
     void kh_clear_pymap(kh_pymap_t*)
     khuint_t kh_get_pymap(kh_pymap_t*, PyObject*) except *
-    void kh_resize_pymap(kh_pymap_t*, khuint_t) except *
+    int kh_resize_pymap(kh_pymap_t*, khuint_t) except *
     khuint_t kh_put_pymap(kh_pymap_t*, PyObject*, int*) except *
     khuint_t kh_put_pymap_noexcept "kh_put_pymap" (kh_pymap_t*, PyObject*, int*)
     void kh_del_pymap(kh_pymap_t*, khuint_t)
@@ -79,7 +81,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     void kh_destroy_pyset(kh_pyset_t*)
     void kh_clear_pyset(kh_pyset_t*)
     khuint_t kh_get_pyset(kh_pyset_t*, PyObject*) except *
-    void kh_resize_pyset(kh_pyset_t*, khuint_t) except *
+    int kh_resize_pyset(kh_pyset_t*, khuint_t) except *
     khuint_t kh_put_pyset(kh_pyset_t*, PyObject*, int*) except *
     void kh_del_pyset(kh_pyset_t*, khuint_t)
 
@@ -103,7 +105,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     void kh_destroy_str(kh_str_t*) nogil
     void kh_clear_str(kh_str_t*) nogil
     khuint_t kh_get_str(kh_str_t*, kh_strview_t) nogil
-    void kh_resize_str(kh_str_t*, khuint_t) nogil
+    int kh_resize_str(kh_str_t*, khuint_t) nogil
     khuint_t kh_put_str(kh_str_t*, kh_strview_t, int*) nogil
     void kh_del_str(kh_str_t*, khuint_t) nogil
 
@@ -120,7 +122,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     khuint_t kh_get_str_starts_item(const kh_str_starts_t* table,
                                     const char* key, size_t length) nogil
     void kh_destroy_str_starts(kh_str_starts_t*) nogil
-    void kh_resize_str_starts(kh_str_starts_t*, khuint_t) nogil
+    int kh_resize_str_starts(kh_str_starts_t*, khuint_t) nogil
 
     # sweep factorize
 
@@ -134,7 +136,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     void kh_destroy_strbox(kh_strbox_t*) nogil
     void kh_clear_strbox(kh_strbox_t*) nogil
     khuint_t kh_get_strbox(kh_strbox_t*, kh_strview_t) nogil
-    void kh_resize_strbox(kh_strbox_t*, khuint_t) nogil
+    int kh_resize_strbox(kh_strbox_t*, khuint_t) nogil
     khuint_t kh_put_strbox(kh_strbox_t*, kh_strview_t, int*) nogil
     void kh_del_strbox(kh_strbox_t*, khuint_t) nogil
 

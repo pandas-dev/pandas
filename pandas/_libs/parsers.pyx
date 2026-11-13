@@ -122,6 +122,7 @@ from pandas._libs.khash cimport (
     kh_strbox_t,
     kh_strview,
     kh_strview_t,
+    khash_set_alloc_fail_countdown,
     khiter_t,
 )
 
@@ -2466,6 +2467,8 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # The key carries its length, so two fields that differ only past an
             # embedded NUL no longer intern to the same object.
             k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+            if ret < 0:
+                raise MemoryError()
 
             # in the hash table
             if ret == 0:
@@ -2864,6 +2867,8 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
                 # `_string_box_utf8`, where the decode is reachable.
                 pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
                 k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+                if ret < 0:
+                    raise MemoryError()
                 table.vals[k] = <PyObject *>pyval
 
             result[i] = pyval
@@ -3626,6 +3631,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
                 # not in the hash table
                 if k == table.n_buckets:
                     k = kh_put_str(table, key, &ret)
+                    if ret < 0:
+                        raise MemoryError()
                     table.vals[k] = current_category
                     current_category += 1
 
@@ -4398,12 +4405,16 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
         # contain an embedded NUL, and its length is what makes it comparable.
         PyBytes_AsStringAndSize(val, &buf, &buflen)
         kh_put_str_starts_item(table, buf, <size_t>buflen, &ret)
+        if ret < 0:
+            kh_destroy_str_starts(table)
+            raise MemoryError()
 
     if table.table.n_buckets <= 128:
         # Resize the hash table to make it almost empty, this
         # reduces amount of hash collisions on lookup thus
         # "key not in table" case is faster.
         # Note that this trades table memory footprint for lookup speed.
+        # If the allocation fails the table is left unchanged, which is fine.
         kh_resize_str_starts(table, table.table.n_buckets * 8)
 
     return table
@@ -4423,6 +4434,9 @@ cdef kh_float64_t* kset_float64_from_set(set values) except NULL:
         val = float(value)
 
         kh_put_float64(table, val, &ret)
+        if ret < 0:
+            kh_destroy_float64(table)
+            raise MemoryError()
 
     if table.n_buckets <= 128:
         # See reasoning in kset_from_list
@@ -4613,3 +4627,8 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
             pass
 
     return na_count
+
+
+def _set_khash_alloc_fail_countdown(int countdown) -> int:
+    # for tests: fail the khash allocation in this module that takes this to 0
+    return khash_set_alloc_fail_countdown(countdown)
