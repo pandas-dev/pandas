@@ -5557,7 +5557,7 @@ class DataFrame(NDFrame, OpsMixin):
           dtype, as ``np.dtype('int64')`` does now. Pass the numpy type
           ``np.int64`` to keep selecting every ``int64`` column. The builtin
           type names ``'int'``, ``'float'``, ``'bool'``, and ``'complex'``
-          keep selecting every column of their type
+          are unaffected
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
