@@ -348,9 +348,12 @@ class Index(IndexOpsMixin, PandasObject):
         know the input data won't be modified elsewhere).
         Set to True to force copying Series/Index input up front.
     name : object
-        Name to be stored in the index.
-    tupleize_cols : bool (default: True)
-        When True, attempt to create a MultiIndex if possible.
+        Name to be stored in the index. If a MultiIndex is created, a tuple
+        with one name per level.
+    tupleize_cols : bool, default True
+        When True, a non-empty list (or other non-array iterable) of tuples
+        becomes a MultiIndex, unless ``dtype`` is an extension or datetime-like
+        dtype.
 
     See Also
     --------
@@ -383,6 +386,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
     Index([1, 2, 3], dtype='uint8')
+
+    >>> pd.Index([("a", 1), ("b", 2)], name=("letter", "number"))
+    MultiIndex([('a', 1),
+                ('b', 2)],
+               names=['letter', 'number'])
     """
 
     # similar to __array_priority__, positions Index after Series and DataFrame
