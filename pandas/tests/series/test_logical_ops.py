@@ -618,8 +618,10 @@ def test_logical_op_object_dtype_still_truthy():
     result = pd.Series([True, True, True]) & right
     tm.assert_series_equal(result, pd.Series([True, False, True]))
 
+    # GH#71478 the nullable boolean dtype treats missing values (NaT included)
+    #  as NA, following Kleene logic
     result = pd.Series([True, True, True], dtype="boolean") & right
-    tm.assert_series_equal(result, pd.Series([True, True, True], dtype="boolean"))
+    tm.assert_series_equal(result, pd.Series([True, pd.NA, True], dtype="boolean"))
 
 
 @pytest.mark.skipif(not HAS_PYARROW, reason="pyarrow not installed")
