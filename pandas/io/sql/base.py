@@ -860,3 +860,18 @@ class PandasSQL(PandasObject, ABC):
         schema: str | None = None,
     ) -> str:
         pass
+
+
+def begin_sqlite3_transaction(con) -> None:
+    # sqlite3 runs DDL outside a transaction unless one is open, so the DROP
+    # from if_exists="replace" would be committed on its own, GH#32933.
+    # Autocommit and non-sqlite3 DBAPI connections are left alone.
+    import sqlite3
+
+    if (
+        isinstance(con, sqlite3.Connection)
+        and not con.in_transaction
+        and con.isolation_level is not None
+        and getattr(con, "autocommit", None) is not True
+    ):
+        con.execute(f"BEGIN {con.isolation_level}")

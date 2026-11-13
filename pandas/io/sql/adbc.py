@@ -385,15 +385,24 @@ class ADBCDatabase(PandasSQL):
         else:
             quoted_table_name = quoted_name
 
+        table_exists = self.has_table(name, schema)
+        if table_exists and if_exists == "fail":
+            raise ValueError(f"Table '{name}' already exists.")
+
+        # convert before dropping/deleting so a failure leaves the table intact
+        try:
+            with suppress_pyarrow_values_warning():
+                tbl = pa.Table.from_pandas(frame, preserve_index=index)
+        except pa.ArrowNotImplementedError as exc:
+            raise ValueError("datatypes not supported") from exc
+
         # pandas if_exists="append" will still create the
         # table if it does not exist; ADBC is more explicit with append/create
         # as applicable modes, so the semantics get blurred across
         # the libraries
         mode = "create"
-        if self.has_table(name, schema):
-            if if_exists == "fail":
-                raise ValueError(f"Table '{name}' already exists.")
-            elif if_exists == "replace":
+        if table_exists:
+            if if_exists == "replace":
                 sql_statement = f"DROP TABLE {quoted_table_name}"
                 self.execute(sql_statement).close()
             elif if_exists == "append":
@@ -402,13 +411,8 @@ class ADBCDatabase(PandasSQL):
                 mode = "append"
                 self.delete_rows(name, schema)
 
-        try:
-            with suppress_pyarrow_values_warning():
-                tbl = pa.Table.from_pandas(frame, preserve_index=index)
-        except pa.ArrowNotImplementedError as exc:
-            raise ValueError("datatypes not supported") from exc
-
-        with self.con.cursor() as cur:
+        # on failure, rolls back the uncommitted DROP/DELETE too, GH#32933
+        with self.run_transaction() as cur:
             try:
                 total_inserted = cur.adbc_ingest(
                     table_name=name, data=tbl, mode=mode, db_schema_name=schema
@@ -418,7 +422,6 @@ class ADBCDatabase(PandasSQL):
                     f"Failed to insert records on table={name} with {mode=}"
                 ) from exc
 
-        self.con.commit()
         return total_inserted
 
     def has_table(self, name: str, schema: str | None = None) -> bool:

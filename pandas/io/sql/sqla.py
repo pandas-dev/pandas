@@ -35,6 +35,7 @@ from pandas.core.dtypes.common import (
 from pandas.io.sql.base import (
     PandasSQL,
     SQLTable,
+    begin_sqlite3_transaction,
     wrap_result,
 )
 
@@ -173,8 +174,9 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.engine import Engine
         from sqlalchemy.schema import MetaData
 
-        # self.exit_stack cleans up the Engine and Connection and commits the
-        # transaction if any of those objects was created below.
+        # self.exit_stack cleans up the Engine and Connection and commits (or, on
+        # an exception, rolls back) the transaction if any of those objects was
+        # created below.
         # Cleanup happens either in self.__exit__ or at the end of the iterator
         # returned by read_sql when chunksize is not None.
         self.exit_stack = ExitStack()
@@ -185,13 +187,15 @@ class SQLDatabase(PandasSQL):
             con = self.exit_stack.enter_context(con.connect())
         if need_transaction and not con.in_transaction():
             self.exit_stack.enter_context(con.begin())
+            if con.dialect.driver == "pysqlite":
+                begin_sqlite3_transaction(con.connection.dbapi_connection)
         self.con = con
         self.meta = MetaData(schema=schema)
         self.returns_generator = False
 
     def __exit__(self, *args) -> None:
         if not self.returns_generator:
-            self.exit_stack.close()
+            self.exit_stack.__exit__(*args)
 
     @contextmanager
     def run_transaction(self):
