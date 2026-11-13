@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    OutOfBoundsDatetime,
     Resolution,
     Timedelta,
     add_overflowsafe,
@@ -1002,12 +1003,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq='MS')
 
-        The frequency will not be inferred if the index contains less than
-        three elements, or if the values of index are not strictly monotonic:
-
-        >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
-        >>> idx.to_timestamp()
-        DatetimeIndex(['2023-01-01', '2023-02-01'], dtype='datetime64[us]', freq=None)
+        The frequency will not be inferred if the values of index are not
+        strictly monotonic:
 
         >>> idx = pd.PeriodIndex(
         ...     ["2023-01", "2023-02", "2023-02", "2023-03"], freq="2M"
@@ -1071,9 +1068,18 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # does not preserve freq; match that behavior here.
             return None
 
+        if target_freq is not None:
+            # match the normalization applied in to_timestamp
+            target_freq = Period._maybe_convert_freq(target_freq)
+        # anchored targets like "W" or "B" can be unevenly spaced, so a short
+        #  index of those cannot imply a freq a longer index would get
+        fixed_target = target_freq is None or isinstance(target_freq, (Tick, Day))
+
         if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
             #  len(self) is too small for infer_freq to distinguish between them
+            if len(self) == 1 and not self._hasna and fixed_target:
+                return self.freq
             diffs = libalgos.unique_deltas(self.asi8)
             if len(diffs) == 1:
                 diff = diffs[0]
@@ -1084,10 +1090,25 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 # TODO: other cases?
             return None
 
+        if 0 < len(self) < 3 and not self._hasna and fixed_target:
+            # infer_freq needs 3 values, so extend consecutive periods by the
+            #  dtype's step, GH#56213
+            step = self.dtype._n
+            first, last = self.asi8[0], self.asi8[-1]
+            if len(self) == 1 or last - first == step:
+                # extend toward the epoch to stay in bounds
+                if last >= 0:
+                    ordinals = last - step * np.arange(2, -1, -1)
+                else:
+                    ordinals = first + step * np.arange(3)
+                ext = type(self)(ordinals, dtype=self.dtype)
+                try:
+                    dta = ext.to_timestamp(target_freq, how)
+                except OutOfBoundsDatetime:
+                    return None
+
         result_freq = to_offset(dta._inferred_freq_str)
         if target_freq is not None:
-            # match the normalization applied in to_timestamp
-            target_freq = Period._maybe_convert_freq(target_freq)
             if (
                 isinstance(result_freq, Day)
                 and not isinstance(target_freq, Day)
