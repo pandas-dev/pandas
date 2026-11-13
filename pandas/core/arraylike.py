@@ -506,13 +506,14 @@ def _unbox_where(where, axes: dict[str, Any]) -> np.ndarray:
 
 
 def _where_to_ndarray(where) -> np.ndarray:
-    dtypes = where.dtypes if where.ndim == 2 else [where.dtype]
-    if not all(is_bool_dtype(dtype) for dtype in dtypes):
-        # numpy accepts or rejects it as it would the equivalent ndarray
-        return np.asarray(where)
-    # checked explicitly: to_numpy(dtype=bool) makes a Categorical's NaN True
+    # checked for every dtype: np.putmask (the `out=` path) and a Categorical's
+    #  to_numpy(dtype=bool) would both treat a missing value as True
     if isna(where).any(axis=None):
         raise ValueError("The ufunc 'where' argument cannot contain missing values")
+    dtypes = where.dtypes if where.ndim == 2 else [where.dtype]
+    if not all(is_bool_dtype(dtype) for dtype in dtypes):
+        # left for numpy to validate; np.putmask, used with `out=`, is laxer
+        return np.asarray(where)
     return where.to_numpy(dtype=bool)
 
 
