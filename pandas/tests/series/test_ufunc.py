@@ -358,6 +358,38 @@ def test_ufunc_where_misaligned_raises():
         np.maximum(ser, 10.0, where=tm.SubclassedSeries(mask), out=np.zeros(3))
 
 
+@pytest.mark.parametrize(
+    "where",
+    [
+        pd.Series(pd.array([True, None, False])),
+        pd.Index(pd.array([True, None, False])),
+        pd.array([True, None, False]),
+        pd.Categorical([True, None, False]),
+        pytest.param(
+            pd.array([True, None, False], dtype="bool[pyarrow]"),
+            marks=td.skip_if_no("pyarrow"),
+            id="arrow",
+        ),
+    ],
+    ids=type,
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([1.0, 2.0, 3.0]),
+        pd.Series([1.0, 2.0, 3.0]),
+        pd.Index([1.0, 2.0, 3.0]),
+        pd.array([1.0, 2.0, 3.0], dtype="Float64"),
+    ],
+    ids=type,
+)
+def test_ufunc_where_missing_raises(values, where):
+    # GH#60611 a pandas input with `out=` used to treat a Categorical's NaN as True
+    msg = "The ufunc 'where' argument cannot contain missing values"
+    with pytest.raises(ValueError, match=msg):
+        np.negative(values, where=where, out=np.zeros(3))
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:

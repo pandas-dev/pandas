@@ -112,7 +112,7 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_frame_equal(out, expected)
 
 
-# np.asarray makes "boolean" columns object dtype, which numpy rejects
+# np.asarray would make "boolean" columns object dtype, which numpy rejects
 @pytest.mark.filterwarnings("ignore:'where' used without 'out':UserWarning")
 @pytest.mark.parametrize("dtype", ["bool", "boolean"])
 def test_ufunc_where_pandas_object(dtype):
@@ -131,6 +131,12 @@ def test_ufunc_where_pandas_object(dtype):
         np.maximum(df, 0, where=df[["b", "a"]] > 0)
     with pytest.raises(ValueError, match=msg):
         np.maximum(df, 0, where=tm.SubclassedDataFrame(df.iloc[::-1] > 0), out=out)
+
+    where = (df > 2).astype("boolean")
+    where.iloc[0, 1] = pd.NA
+    msg = "The ufunc 'where' argument cannot contain missing values"
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(df, 2.5, where=where, out=out)
 
 
 @pytest.mark.parametrize("dtype_a", dtypes)
