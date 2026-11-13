@@ -128,6 +128,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` now keep the sorted copy of the data used by group-by-group operations, such as user-defined functions and :meth:`.DataFrameGroupBy.quantile`, until the groupby object is released. Later calls can see writes a user-defined function made through ``group.array`` and can miss writes through ``Series.array``, ``Series.values`` or a NumPy array passed with ``copy=False``, and a write to the original object may no longer reach that NumPy array (:issue:`51077`)
 - :class:`.Styler` now displays missing float values as ``NaN`` rather than ``nan`` by default, matching :class:`DataFrame` (:issue:`12710`)
 - :class:`ExtensionArray` now implements ``__array_function__``. Code expecting :func:`numpy.concatenate` or :func:`numpy.delete` to return a NumPy array for :class:`ExtensionArray` input, including ``_concat_same_type`` and ``delete`` implementations in :class:`ExtensionArray` subclasses, may need updating, as may code mixing an :class:`ExtensionArray` with another library's ``__array_function__`` arrays (:issue:`26380`)
 - :class:`Index` now displays missing float values as ``NaN`` rather than ``nan`` in its repr, matching :class:`Series` and :class:`DataFrame` (:issue:`64733`)
@@ -195,6 +196,7 @@ Performance improvements
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
 - Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
+- Performance improvement in repeated :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` operations with user-defined functions on the same object, e.g. :meth:`.DataFrameGroupBy.agg` with a list of functions (:issue:`51077`)
 - Reduced ``import pandas`` time on Python 3.15+ by deferring rarely used subsystems with :pep:`810` lazy imports (:issue:`65885`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
 - Reduced memory usage of :meth:`Series.duplicated`, non-unique :meth:`Index.duplicated`, and the corresponding ``drop_duplicates`` methods with ``keep="first"`` or ``keep="last"`` on data with many distinct values (:issue:`39799`)
