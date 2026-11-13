@@ -8905,11 +8905,6 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.value_counts: Count unique combinations of columns.
         Index.duplicated : Indicate duplicate index values.
 
-        Notes
-        -----
-        This method requires columns specified by ``subset`` to be of hashable type.
-        Passing unhashable columns will raise a ``TypeError``.
-
         Examples
         --------
         Consider dataset containing ramen rating.
@@ -9084,10 +9079,6 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty:
             return self._constructor_sliced(False, dtype=bool, index=self.index)
 
-        def f(vals) -> tuple[np.ndarray, int]:
-            labels, shape = algorithms.factorize(vals, size_hint=len(self))
-            return labels.astype("i8"), len(shape)
-
         if subset is None:
             subset = self.columns
         elif (
@@ -9115,10 +9106,29 @@ class DataFrame(NDFrame, OpsMixin):
             result = self[next(iter(subset))].duplicated(keep)
             result.name = None
         else:
-            vals = (col._values for name, col in self.items() if name in subset)
-            labels, shape = map(list, zip(*map(f, vals), strict=True))
+            labels: list[np.ndarray] = []
+            shape: list[int] = []
+            has_unhashable = False
+            for name, col in self.items():
+                if name not in subset:
+                    continue
+                try:
+                    codes, uniques = algorithms.factorize(
+                        col._values, size_hint=len(self)
+                    )
+                except TypeError:
+                    # GH#12693 unhashable values, e.g. lists
+                    labels.append(np.asarray(col._values, dtype=object))
+                    has_unhashable = True
+                else:
+                    labels.append(codes.astype("i8"))
+                    shape.append(len(uniques))
 
-            ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
+            if has_unhashable:
+                # compare rows by equality, as Series.duplicated does
+                ids: np.ndarray = lib.fast_zip(labels)
+            else:
+                ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
