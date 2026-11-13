@@ -305,6 +305,35 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False) == expected
 
+    def test_to_csv_formatted_datetime_index_with_nat_and_timezone(self):
+        index = pd.to_datetime(
+            ["2023-11-05T05:30:00Z", "2023-11-05T06:30:00Z", None], utc=True
+        ).tz_convert("America/New_York")
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+        expected_rows = [
+            ",a",
+            "2023-11-05 01:30:00,1",
+            "2023-11-05 01:30:00,2",
+            ",3",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y-%m-%d %H:%M:%S") == expected
+
+    def test_to_csv_formatted_datetime_index_seconds_unit(self):
+        index = pd.date_range("2023-01-02", periods=2, freq="D").as_unit("s")
+        df = pd.DataFrame({"a": [1, 2]}, index=index)
+        expected_rows = [",a", "02/01/2023,1", "03/01/2023,2"]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%d/%m/%Y") == expected
+
+    def test_to_csv_formatted_datetime_index_early_year(self):
+        dates = np.array(["0001-02-03T04:05:06", "NaT"], dtype="datetime64[s]")
+        index = pd.DatetimeIndex(dates)
+        df = pd.DataFrame({"a": [1, 2]}, index=index)
+        expected_rows = [",a", f"{index[0].strftime('%Y%m%d')},1", ",2"]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y%m%d") == expected
+
     def test_to_csv_period_columns(self):
         # GH#55426 - exercise the column path for PeriodArray
         df = pd.DataFrame(
