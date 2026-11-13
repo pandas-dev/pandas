@@ -7604,8 +7604,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   3.0
         dtype: float64
 
-        To fill only values within a time distance of the last valid
-        observation, use :meth:`Series.reindex` with ``tolerance``:
+        For a Series, to fill only values within a time distance of the last
+        valid observation, use :meth:`Series.reindex` with ``tolerance``:
 
         >>> index = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-05"])
         >>> ser = pd.Series([1, np.nan, np.nan], index=index)
@@ -7725,8 +7725,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   4.0   7.0
         3   4.0   7.0
 
-        To fill only values within a time distance of the next valid
-        observation, use :meth:`Series.reindex` with ``tolerance``:
+        For a Series, to fill only values within a time distance of the next
+        valid observation, use :meth:`Series.reindex` with ``tolerance``:
 
         >>> index = pd.to_datetime(["2024-01-01", "2024-01-04", "2024-01-05"])
         >>> s = pd.Series([np.nan, np.nan, 2], index=index)
