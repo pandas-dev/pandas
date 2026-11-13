@@ -23,6 +23,7 @@ class TestTimedeltaIndexRendering:
         idx3 = pd.TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = pd.TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
         idx5 = pd.TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
+        idx6 = pd.TimedeltaIndex(["-1 days 00:00:01", "2 days", "3 days"])
 
         exp1 = "TimedeltaIndex([], dtype='timedelta64[ns]', freq='D')"
 
@@ -40,10 +41,15 @@ class TestTimedeltaIndexRendering:
             "'3 days 00:00:00'], dtype='timedelta64[us]', freq=None)"
         )
 
+        exp6 = (
+            "TimedeltaIndex(['-1 days 00:00:01', '2 days 00:00:00', "
+            "'3 days 00:00:00'], dtype='timedelta64[us]', freq=None)"
+        )
+
         with pd.option_context("display.width", 300):
             for idx, expected in zip(
-                [idx1, idx2, idx3, idx4, idx5],
-                [exp1, exp2, exp3, exp4, exp5],
+                [idx1, idx2, idx3, idx4, idx5, idx6],
+                [exp1, exp2, exp3, exp4, exp5, exp6],
                 strict=True,
             ):
                 result = getattr(idx, method)()
@@ -56,6 +62,7 @@ class TestTimedeltaIndexRendering:
         idx3 = pd.TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = pd.TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
         idx5 = pd.TimedeltaIndex(["1 days 00:00:01", "2 days", "3 days"])
+        idx6 = pd.TimedeltaIndex(["-1 days 00:00:01", "2 days", "3 days"])
 
         exp1 = """Series([], dtype: timedelta64[ns])"""
 
@@ -72,10 +79,17 @@ class TestTimedeltaIndexRendering:
             "dtype: timedelta64[us]"
         )
 
+        exp6 = (
+            "0   -1 days 00:00:01\n"
+            "1    2 days 00:00:00\n"
+            "2    3 days 00:00:00\n"
+            "dtype: timedelta64[us]"
+        )
+
         with pd.option_context("display.width", 300):
             for idx, expected in zip(
-                [idx1, idx2, idx3, idx4, idx5],
-                [exp1, exp2, exp3, exp4, exp5],
+                [idx1, idx2, idx3, idx4, idx5, idx6],
+                [exp1, exp2, exp3, exp4, exp5, exp6],
                 strict=True,
             ):
                 result = repr(pd.Series(idx))
