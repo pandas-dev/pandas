@@ -553,7 +553,11 @@ def _array_equivalent_object(
         left_remaining = left
         right_remaining = right
 
-    for left_value, right_value in zip(left_remaining, right_remaining, strict=True):
+    # left_remaining/right_remaining can be 2D (DataFrame block values), so
+    # compare element by element rather than row by row (GH#43008)
+    for left_value, right_value in zip(
+        left_remaining.ravel(), right_remaining.ravel(), strict=True
+    ):
         if left_value is NaT and right_value is not NaT:
             return False
 
@@ -565,6 +569,11 @@ def _array_equivalent_object(
         ):
             # includes numpy float32 and complex NaNs, GH#55492
             if not libmissing.is_matching_na(left_value, right_value):
+                return False
+        elif isinstance(left_value, (ABCSeries, ABCDataFrame)):
+            # GH#43008 nested pandas objects: use equals so that NaNs in the
+            # same location compare equal
+            if not left_value.equals(right_value):
                 return False
         else:
             with warnings.catch_warnings():
