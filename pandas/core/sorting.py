@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
 )
 from pandas.core.dtypes.generic import (
+    ABCCategorical,
     ABCMultiIndex,
     ABCRangeIndex,
 )
@@ -598,6 +599,49 @@ def _ensure_key_mapped_multiindex(
     return type(index).from_arrays(mapped, names=index.names)
 
 
+def _sort_relabeled_categories(values: ArrayLike | Index | Series, result: Any) -> Any:
+    """
+    Sort the categories of an unordered Categorical that a sort key relabeled.
+
+    A key such as ``lambda x: x.map(mapping)`` changes the labels but leaves the
+    codes alone, and a Categorical sorts by its codes, so the new labels would
+    have no effect (GH#58153). A key that only sets the category order changes
+    the codes or keeps the values, and that order is left as it is.
+
+    Parameters
+    ----------
+    values : Series, Index subclass, or ndarray
+        The values that were passed to the key.
+    result : Any
+        The object returned by the key.
+
+    Returns
+    -------
+    Any
+        A Categorical with sorted categories if the key relabeled ``values``,
+        otherwise ``result`` unchanged.
+    """
+    original = extract_array(values)
+    mapped = extract_array(result)
+    if (
+        not isinstance(original, ABCCategorical)
+        or not isinstance(mapped, ABCCategorical)
+        or mapped.ordered
+        or not np.array_equal(original.codes, mapped.codes)
+    ):
+        return result
+
+    used = np.unique(mapped.codes[mapped.codes != -1])
+    if original.categories.take(used).equals(mapped.categories.take(used)):
+        return result
+
+    try:
+        return mapped.reorder_categories(mapped.categories.sort_values())
+    except TypeError:
+        # labels of mixed types can't be compared, keep the existing order
+        return result
+
+
 def ensure_key_mapped(
     values: ArrayLike | Index | Series,
     key: Callable[..., Any] | None,
@@ -628,6 +672,8 @@ def ensure_key_mapped(
         raise ValueError(
             "User-provided `key` function must not change the shape of the array."
         )
+
+    result = _sort_relabeled_categories(values, result)
 
     try:
         if isinstance(
