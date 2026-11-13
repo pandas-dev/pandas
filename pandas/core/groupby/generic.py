@@ -2439,6 +2439,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # values are Series
             return self._wrap_applied_output_series(
+                data,
                 values,
                 not_indexed_same,
                 first_not_none,
@@ -2448,6 +2449,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_applied_output_series(
         self,
+        data: DataFrame,
         values: list[Series],
         not_indexed_same: bool,
         first_not_none,
@@ -2459,6 +2461,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         values = [x if (x is not None) else backup for x in values]
 
         all_indexed_same = all_indexes_same(x.index for x in values)
+
+        if (
+            all_indexed_same
+            # an index equal to the columns could be a reducer's output,
+            #  see test_regression_allowlist_methods
+            and not first_not_none.index.equals(data.columns)
+            and self._results_indexed_like_groups(data, first_not_none.index)
+        ):
+            if len(values) == 1:
+                # a single group trivially shares its index, so stack it, GH#20665
+                all_indexed_same = False
+            else:
+                warnings.warn(
+                    "apply with a function returning a Series indexed like its "
+                    "group returns a DataFrame with one row per group when several "
+                    "groups all have the same index. In a future version, these will "
+                    "be stacked into a Series, as when the groups' indexes differ. "
+                    "If the function uses only one column, select that column before "
+                    "calling apply to get the stacked result now.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
         if not all_indexed_same:
             # GH 8467
@@ -2489,6 +2513,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self._insert_inaxis_grouper(result)
 
         return result.__finalize__(self.obj, method="groupby")
+
+    def _results_indexed_like_groups(self, data: DataFrame, index: Index) -> bool:
+        """
+        Check whether each group's row labels equal ``index``.
+        """
+        nrows = len(index)
+        if not (self._grouper.size()._values == nrows).all():
+            return False
+        labels = data.index.take(self._grouper.result_ilocs)
+        expected = index.take(np.tile(np.arange(nrows), self._grouper.ngroups))
+        return labels.equals(expected)
 
     def _cython_transform(
         self,

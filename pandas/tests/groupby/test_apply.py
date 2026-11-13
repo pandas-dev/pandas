@@ -1644,3 +1644,32 @@ def test_apply_as_index_false_empty_index_name(test_empty):
 
     expected.index.name = None
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", [[1, 1, 2, 2], [1, 1, 1, 1], [1, np.nan, 1, 1]])
+@pytest.mark.parametrize("kwargs", [{}, {"group_keys": False}, {"as_index": False}])
+def test_apply_series_indexed_like_group(keys, kwargs):
+    # GH#20665
+    df = pd.DataFrame({"key": keys, "value": [20, 19, 27, 12]})
+    gb = df.groupby("key", **kwargs)
+    result = gb.apply(lambda x: x["value"] - x["value"].mean())
+    pieces = {key: x["value"] - x["value"].mean() for key, x in gb}
+    if kwargs:
+        expected = pd.concat(pieces.values())
+    else:
+        expected = pd.concat(pieces, names=["key", None])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_series_indexed_like_group_same_index_deprecated():
+    # GH#20665
+    df = pd.DataFrame({"key": [1, 1, 2, 2], "value": [1, 2, 3, 4]}, index=[0, 1, 0, 1])
+    msg = "apply with a function returning a Series indexed like its group"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("key").apply(lambda x: x["value"])
+    expected = pd.DataFrame(
+        [[1, 2], [3, 4]],
+        index=pd.Index([1, 2], name="key"),
+        columns=pd.Index([0, 1], name="value"),
+    )
+    tm.assert_frame_equal(result, expected)

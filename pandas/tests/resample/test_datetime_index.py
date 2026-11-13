@@ -2537,3 +2537,27 @@ def test_resample_easter():
         ),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_apply_series_indexed_like_bin_single_bin():
+    # GH#20665
+    df = pd.DataFrame({"v": [1, 2, 3]}, index=date_range("2020-01-01", periods=3))
+    result = df.resample("10D").apply(lambda x: x["v"] * 2)
+    tm.assert_series_equal(result, df["v"] * 2)
+
+
+def test_resample_apply_series_indexed_like_bin_same_index_deprecated():
+    # GH#20665
+    df = pd.DataFrame(
+        {"date": date_range("2020-01-01", periods=4), "v": [1, 2, 3, 4]},
+        index=[0, 1, 0, 1],
+    )
+    msg = "apply with a function returning a Series indexed like its group"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.resample("2D", on="date").apply(lambda x: x["v"])
+    expected = pd.DataFrame(
+        [[1, 2], [3, 4]],
+        index=DatetimeIndex(["2020-01-01", "2020-01-03"], freq="2D", name="date"),
+        columns=pd.Index([0, 1], name="v"),
+    )
+    tm.assert_frame_equal(result, expected)
