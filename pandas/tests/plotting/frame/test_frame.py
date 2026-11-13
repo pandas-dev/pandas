@@ -523,7 +523,7 @@ class TestDataFramePlots:
         )
         # Use an index with strictly positive values, preventing
         #  matplotlib from warning about ignoring xlim
-        df2 = df.set_index(df.index + 1)
+        df2 = df.set_axis(df.index + 1)
         _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
     @pytest.mark.parametrize(
@@ -2116,8 +2116,8 @@ class TestDataFramePlots:
             np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
         )
         ix = pd.date_range("1/1/2000", periods=10, freq="ME")
-        df = df.set_index(ix)
-        df_err = df_err.set_index(ix)
+        df = df.set_axis(ix)
+        df_err = df_err.set_axis(ix)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
         _check_has_errorbars(ax, xerr=0, yerr=2)
 

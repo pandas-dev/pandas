@@ -7773,17 +7773,20 @@ class DataFrame(NDFrame, OpsMixin):
         Set the DataFrame index using existing columns.
 
         Set the DataFrame index (row labels) using one or more existing
-        columns or arrays (of the correct length). The index can replace the
-        existing index or expand on it.
+        columns. The index can replace the existing index or expand on it.
 
         Parameters
         ----------
-        keys : label or array-like or list of labels/arrays
-            This parameter can be either a single column key, a single array of
-            the same length as the calling DataFrame, or a list containing an
-            arbitrary combination of column keys and arrays. Here, "array"
-            encompasses :class:`Series`, :class:`Index`, ``np.ndarray``, and
-            instances of :class:`~collections.abc.Iterator`.
+        keys : label or list of labels
+            A single column key or a list of column keys.
+
+            .. deprecated:: 3.2.0
+
+                Passing arrays (:class:`Series`, :class:`Index`, ``np.ndarray``,
+                nested ``list``, or :class:`~collections.abc.Iterator`) as or
+                within ``keys`` is deprecated. Use :meth:`DataFrame.set_axis` instead,
+                or add the array as a column with :meth:`DataFrame.assign` and
+                pass its label.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -7819,6 +7822,7 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.reset_index : Opposite of set_index.
+        DataFrame.set_axis : Set the index from an array.
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
 
@@ -7826,8 +7830,7 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         Columns and Series do not store a ``freq``, so a :class:`DatetimeIndex`
         or :class:`TimedeltaIndex` created from a column has ``freq=None``; set
-        ``.index.freq`` on the result to restore it. Passing the index directly
-        as ``keys`` keeps its ``freq``.
+        ``.index.freq`` on the result to restore it.
 
         Examples
         --------
@@ -7864,26 +7867,6 @@ class DataFrame(NDFrame, OpsMixin):
         2014  4     40
         2013  7     84
         2014  10    31
-
-        Create a MultiIndex using an Index and a column:
-
-        >>> df.set_index([pd.Index([1, 2, 3, 4]), "year"])
-                 month  sale
-           year
-        1  2012  1      55
-        2  2014  4      40
-        3  2013  7      84
-        4  2014  10     31
-
-        Create a MultiIndex using two Series:
-
-        >>> s = pd.Series([1, 2, 3, 4])
-        >>> df.set_index([s, s**2])
-              month  year  sale
-        1 1       1  2012    55
-        2 4       4  2014    40
-        3 9       7  2013    84
-        4 16     10  2014    31
 
         Append a column to the existing index:
 
@@ -7930,8 +7913,10 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         missing: list[Hashable] = []
+        has_arrays = False
         for col in keys:
             if isinstance(col, (Index, Series, np.ndarray, list, abc.Iterator)):
+                has_arrays = True
                 # arrays are fine as long as they are one-dimensional
                 # iterators get converted to list below
                 if getattr(col, "ndim", 1) != 1:
@@ -7950,6 +7935,18 @@ class DataFrame(NDFrame, OpsMixin):
 
         if missing:
             raise KeyError(f"None of {missing} are in the columns")
+
+        if has_arrays:
+            # GH#58631
+            warnings.warn(
+                "Passing arrays (Series, Index, np.ndarray, nested list, or "
+                "iterator) as 'keys' to DataFrame.set_index is deprecated and will "
+                "raise in a future version. Use DataFrame.set_axis to set the index "
+                "from an array, or add the array as a column with DataFrame.assign "
+                "and pass its label.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         if inplace:
             frame = self

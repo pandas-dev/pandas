@@ -28,7 +28,7 @@ class TestResetIndex:
             columns=["brand"], dtype=np.int64, index=pd.RangeIndex(0, 0, 1, name="foo")
         )
 
-        df2 = df.set_index([df.index, "brand"])
+        df2 = df.set_index("brand", append=True)
 
         result = df2.reset_index([1], drop=True)
         tm.assert_frame_equal(result, df[[]], check_index_type=True)

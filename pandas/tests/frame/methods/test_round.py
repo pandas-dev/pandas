@@ -208,7 +208,7 @@ class TestDataFrameRound:
         expected = df.round(3)
         expected.index = idx
 
-        df_categorical = df.copy().set_index(idx)
+        df_categorical = df.set_axis(idx)
         assert df_categorical.shape == (6, 3)
         result = df_categorical.round(3)
         assert result.shape == (6, 3)

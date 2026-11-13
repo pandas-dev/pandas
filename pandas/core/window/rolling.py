@@ -866,7 +866,7 @@ class BaseWindowGroupBy(BaseWindow):
         # when we do the splitting for the groupby
         if self.on is not None:
             # GH 43355
-            subset = self.obj.set_index(self._on)
+            subset = self.obj.set_axis(self._on)
         return super()._gotitem(key, ndim, subset=subset)
 
 

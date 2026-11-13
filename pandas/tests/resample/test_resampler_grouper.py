@@ -533,11 +533,11 @@ def test_empty(keys):
     df = pd.DataFrame([], columns=["a", "b"], index=pd.TimedeltaIndex([]))
     result = df.groupby(keys).resample(rule=pd.to_timedelta("00:00:01")).mean()
     expected_columns = ["b"] if keys == ["a"] else []
-    expected = (
-        pd.DataFrame(columns=["a", "b"])
-        .set_index(keys, drop=False)
-        .set_index(pd.TimedeltaIndex([], freq="s"), append=True)[expected_columns]
+    expected = pd.DataFrame(columns=["a", "b"]).set_index(keys, drop=False)
+    index = pd.MultiIndex.from_arrays(
+        [expected[key] for key in keys] + [pd.TimedeltaIndex([], freq="s")]
     )
+    expected = expected.set_axis(index)[expected_columns]
     if len(keys) == 1:
         expected.index.name = keys[0]
 
