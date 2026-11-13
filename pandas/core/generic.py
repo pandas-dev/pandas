@@ -3827,7 +3827,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: None = ...,
         *,
         sep: str = ...,
-        na_rep: str = ...,
+        na_rep: str | None = ...,
         float_format: str | Callable[..., Any] | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool | list[str] = ...,
@@ -3854,7 +3854,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str],
         *,
         sep: str = ...,
-        na_rep: str = ...,
+        na_rep: str | None = ...,
         float_format: str | Callable[..., Any] | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool | list[str] = ...,
@@ -3881,7 +3881,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         *,
         sep: str = ",",
-        na_rep: str = "",
+        na_rep: str | None = "",
         float_format: str | Callable[..., Any] | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool | list[str] = True,
@@ -3919,8 +3919,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             file object is passed, `mode` might need to contain a `'b'`.
         sep : str, default ','
             String of length 1. Field delimiter for the output file.
-        na_rep : str, default ''
-            Missing data representation.
+        na_rep : str or None, default ''
+            Missing data representation. If None, missing values are written as
+            empty fields, which ``csv.QUOTE_NOTNULL`` and ``csv.QUOTE_STRINGS``
+            leave unquoted.
         float_format : str, Callable, default None
             Format string for floating point numbers. If a Callable is given, it takes
             precedence over other numeric formatting parameters, like decimal.

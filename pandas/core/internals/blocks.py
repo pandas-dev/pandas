@@ -640,7 +640,13 @@ class Block(PandasObject, libinternals.Block):
 
     @final
     def get_values_for_csv(
-        self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
+        self,
+        *,
+        float_format,
+        date_format,
+        decimal,
+        na_rep: str | None = "nan",
+        quoting=None,
     ) -> Block:
         """convert to our native types format"""
         result = get_values_for_csv(
