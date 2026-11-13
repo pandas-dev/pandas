@@ -1376,6 +1376,33 @@ def test_agg_multiple_mixed():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_list_udf_and_string_mixed_dtypes():
+    # GH 45800
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([1000, 2000], dtype=int),
+            "B": pd.Series([1000, 2000], dtype=np.int64),
+            "C": ["a", "b"],
+        }
+    )
+
+    def mean_or_na(s):
+        try:
+            return s.mean()
+        except TypeError:
+            return pd.NA
+
+    result = df.agg([mean_or_na, "sum"])
+
+    expected = pd.DataFrame(
+        {"A": [1500.0, 3000.0], "B": [1500.0, 3000.0]},
+        index=["mean_or_na", "sum"],
+    )
+    tm.assert_frame_equal(result[["A", "B"]], expected)
+    assert pd.isna(result.loc["mean_or_na", "C"])
+    assert result.loc["sum", "C"] == "ab"
+
+
 def test_agg_multiple_mixed_numeric_only_column_order():
     # GH#65218
     mdf = pd.DataFrame(
