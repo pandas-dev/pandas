@@ -67,6 +67,18 @@ class TestDataFrameCov:
         expected = pd.DataFrame(expected_np)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
+    def test_cov_ddof_with_missing_values(self, test_ddof):
+        # GH#45814
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 3)))
+        df.iloc[0, 0] = np.nan
+        df.iloc[[1, 2], 1] = np.nan
+        result = df.cov(ddof=test_ddof)
+        expected = pd.DataFrame(
+            [[df[x].cov(df[y], ddof=test_ddof) for y in df.columns] for x in df.columns]
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "other_column", [pd.array([1, 2, 3]), np.array([1.0, 2.0, 3.0])]
     )

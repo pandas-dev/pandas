@@ -238,6 +238,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.cov` ignoring the ``ddof`` argument when the data contains missing values (:issue:`45814`)
 - Bug in :meth:`DataFrame.idxmax` with a nullable ``boolean`` column containing missing values returning the first ``False`` row instead of the first ``True`` row (:issue:`71833`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin` and :meth:`Series.cummax` (and their :class:`DataFrame` counterparts) on ``object`` data not skipping missing values with ``skipna=True``, which raised for elements such as strings and turned integer or ``Fraction`` cumulative results into floats (:issue:`59764`)
