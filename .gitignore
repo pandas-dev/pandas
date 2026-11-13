@@ -26,6 +26,17 @@ tags
 .vscode/
 .pixi/
 
+# Coding agent files #
+######################
+.aider*
+.claude/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.opencode/
+.windsurf/
+
 # Compiled source #
 ###################
 *.a
