@@ -622,6 +622,7 @@ def _to_datetime_with_unit(
         if (mask | (in_int64_range & (arg == int_values))).all():
             # With all-round-or-NaN entries, we give the requested unit
             #  back like with integers
+            int_values[mask] = 0
             result = _to_datetime_with_unit(
                 int_values,
                 unit=unit,
