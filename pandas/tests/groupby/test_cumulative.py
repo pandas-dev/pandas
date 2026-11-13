@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -480,6 +482,75 @@ def test_datetime_cummax_no_precision_loss_with_na_group_key():
     result = gb.cummax()
     expected = pd.Series([dti[0], pd.NaT], name="val")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, expected_values",
+    [
+        ("cumsum", ["b", "ba", "c", np.nan, "ce"]),
+        ("cummin", ["b", "a", "c", np.nan, "c"]),
+        ("cummax", ["b", "b", "c", np.nan, "e"]),
+    ],
+)
+def test_cumulative_strings(any_string_dtype, method, expected_values):
+    # GH#49758
+    ser = pd.Series(["b", "a", "c", "d", "e"], dtype=any_string_dtype)
+    result = getattr(ser.groupby([0, 0, 1, np.nan, 1]), method)()
+    expected = pd.Series(expected_values, dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, skipna, expected_values",
+    [
+        ("cumsum", True, ["b", None, "ba"]),
+        ("cumsum", False, ["b", None, None]),
+        ("cummin", True, ["b", None, "a"]),
+        ("cummin", False, ["b", None, None]),
+        ("cummax", True, ["b", None, "b"]),
+        ("cummax", False, ["b", None, None]),
+    ],
+)
+def test_cumulative_strings_skipna(
+    string_dtype_no_object, method, skipna, expected_values
+):
+    # GH#49758
+    df = pd.DataFrame({"a": pd.Series(["b", None, "a"], dtype=string_dtype_no_object)})
+    result = getattr(df.groupby([0, 0, 0]), method)(skipna=skipna)
+    expected = pd.DataFrame(
+        {"a": pd.Series(expected_values, dtype=string_dtype_no_object)}
+    )
+    tm.assert_frame_equal(result, expected)
+    result = getattr(df["a"].groupby([0, 0, 0]), method)(skipna=skipna)
+    tm.assert_series_equal(result, expected["a"])
+
+
+@pytest.mark.parametrize("method", ["cumsum", "cummin", "cummax"])
+def test_cumulative_strings_all_na_keys(any_string_dtype, method):
+    # GH#49758 no group is observed, so every row is NA
+    ser = pd.Series(["b", "a"], dtype=any_string_dtype)
+    result = getattr(ser.groupby([np.nan, np.nan]), method)()
+    expected = pd.Series([np.nan, np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, expected_values",
+    [
+        ("cumsum", [2, 3, 6, 4]),
+        ("cumprod", [2, 3, 8, 3]),
+        ("cummin", [2, 3, 2, 1]),
+        ("cummax", [2, 3, 4, 3]),
+    ],
+)
+def test_cumulative_object_frame(method, expected_values):
+    # GH#49758 the two object columns share a block
+    values = [Decimal(x) for x in [2, 3, 4, 1]]
+    df = pd.DataFrame({"key": [0, 1, 0, 1], "a": values, "b": values})
+    result = getattr(df.groupby("key"), method)()
+    expected_col = [Decimal(x) for x in expected_values]
+    expected = pd.DataFrame({"a": expected_col, "b": expected_col})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_cython_api2(as_index):
