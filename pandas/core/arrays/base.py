@@ -3456,9 +3456,23 @@ def _concatenate(arrays, axis=0, out=None, dtype=None, casting="same_kind"):
     return cls._concat_same_type(arrays)
 
 
+def _append(arr, values, axis=None):
+    return _concatenate((arr, values), axis=axis)
+
+
+def _hstack(tup, *, dtype=None, casting="same_kind"):
+    # np.hstack joins along axis 1 unless the inputs are 1D
+    axis = 0
+    if isinstance(tup, (list, tuple)) and tup and getattr(tup[0], "ndim", 1) > 1:
+        axis = 1
+    return _concatenate(tup, axis=axis, dtype=dtype, casting=casting)
+
+
 _ARRAY_FUNCTION_OVERRIDES: dict[Callable[..., Any], Callable[..., Any]] = {
     np.delete: _delete,
     np.concatenate: _concatenate,
+    np.append: _append,
+    np.hstack: _hstack,
 }
 
 
