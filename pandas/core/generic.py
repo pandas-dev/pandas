@@ -7448,7 +7448,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
                 # Use the first column, which we have already validated has the
                 # same dtypes as the other columns.
-                if not can_hold_element(result.iloc[:, 0], value):
+                # GH#71197 can_hold_element needs the underlying array rather
+                # than a Series, and the fill values rather than the
+                # dict/Series container.
+                first_col = result.iloc[:, 0]._values
+                fill_values = (
+                    value._values if isinstance(value, ABCSeries) else value.values()
+                )
+                if not all(
+                    can_hold_element(first_col, fill_value)
+                    for fill_value in fill_values
+                ):
                     frame_dtype = unique_dtypes.item()
                     raise ValueError(
                         f"{value} not a suitable type to fill into {frame_dtype}"
