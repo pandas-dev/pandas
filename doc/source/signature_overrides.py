@@ -113,6 +113,10 @@ _OFFSET_PARAMETERS = {
 }
 
 _OFFSET_SIGNATURES = {
+    pd.tseries.offsets.BaseOffset: (
+        "n",
+        "normalize",
+    ),
     pd.tseries.offsets.BusinessDay: (
         "n",
         "normalize",
