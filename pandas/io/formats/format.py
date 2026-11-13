@@ -1401,10 +1401,19 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             and np.finfo(np.longdouble).precision > np.finfo(np.float64).precision
         ):
             return partial(
-                _format_longdouble,
+                _format_float_with_numpy,
                 kind=kind,
                 digits=self.digits,
                 leading_space=self.leading_space,
+            )
+
+        if self.values.dtype == np.float32:
+            return partial(
+                _format_float_with_numpy,
+                kind=kind,
+                digits=self.digits,
+                leading_space=self.leading_space,
+                unique=kind == "f",
             )
 
         if self.leading_space is True:
@@ -1587,12 +1596,16 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
 
         formatter = self.formatter
         fallback_formatter = None
+        na_mask = None
         if formatter is None:
             fallback_formatter = values._formatter(boxed=True)
 
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
+        elif getattr(values.dtype, "numpy_dtype", None) == np.dtype(np.float32):
+            array = values.to_numpy(dtype=np.float32, na_value=np.nan)
+            na_mask = values.isna()
         else:
             array = np.asarray(values, dtype=object)
 
@@ -1609,6 +1622,12 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             quoting=self.quoting,
             fallback_formatter=fallback_formatter,
         )
+        if self._na_rep_is_default and na_mask is not None:
+            na_rep = str(values.dtype.na_value)
+            fmt_values = [
+                na_rep if is_na else value
+                for value, is_na in zip(fmt_values, na_mask, strict=True)
+            ]
         return fmt_values
 
 
@@ -1899,8 +1918,12 @@ def _make_fixed_width(
     return result, max_len
 
 
-def _format_longdouble(
-    value, kind: Literal["f", "e"], digits: int, leading_space: bool | None
+def _format_float_with_numpy(
+    value,
+    kind: Literal["f", "e"],
+    digits: int,
+    leading_space: bool | None,
+    unique: bool = False,
 ) -> str:
     np_format = (
         np.format_float_scientific if kind == "e" else np.format_float_positional
@@ -1908,7 +1931,7 @@ def _format_longdouble(
     # at precision 0, numpy keeps the trailing decimal point
     # (e.g. "2.") where str.format drops it; strip it to match
     trim: Literal["-", "k"] = "-" if digits == 0 else "k"
-    result = np_format(value, precision=digits, unique=False, trim=trim)
+    result = np_format(value, precision=digits, unique=unique, trim=trim)
     if leading_space is True and not result.startswith("-"):
         result = " " + result
     return result
