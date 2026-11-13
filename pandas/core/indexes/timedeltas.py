@@ -25,7 +25,9 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.timedeltas import parse_timedelta_string_reso
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -57,6 +59,8 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         DtypeObj,
+        IntervalClosedType,
+        IntervalLeftRight,
         NpDtype,
         TimeAmbiguous,
         TimeNonexistent,
@@ -940,9 +944,10 @@ def timedelta_range(
     periods: int | None = None,
     freq=None,
     name=None,
-    closed=None,
+    closed: IntervalLeftRight | lib.NoDefault | None = lib.no_default,
     *,
     unit: TimeUnit | None = None,
+    inclusive: IntervalClosedType | lib.NoDefault = lib.no_default,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
@@ -964,9 +969,12 @@ def timedelta_range(
         Frequency strings can have multiples, e.g. '5h'.
     name : Hashable, default None
         Name of the resulting TimedeltaIndex.
-    closed : str, default None
+    closed : {None, 'left', 'right'}, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
+
+        .. deprecated:: 3.2.0
+           Use ``inclusive`` instead.
     unit : {'s', 'ms', 'us', 'ns', None}, default None
         Specify the desired resolution of the result.
         If not specified, this is inferred from the 'start', 'end', and 'freq'
@@ -974,6 +982,10 @@ def timedelta_range(
         resolution of the three that are provided.
 
         .. versionadded:: 2.0.0
+    inclusive : {"both", "neither", "left", "right"}, default "both"
+        Include boundaries; whether to set each bound as closed or open.
+
+        .. versionadded:: 3.2.0
 
     Returns
     -------
@@ -1003,10 +1015,10 @@ def timedelta_range(
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[us]', freq='D')
 
-    The ``closed`` parameter specifies which endpoint is included.  The default
-    behavior is to include both endpoints.
+    The ``inclusive`` parameter specifies which endpoints are included.  The
+    default behavior is to include both endpoints.
 
-    >>> pd.timedelta_range(start="1 day", periods=4, closed="right")
+    >>> pd.timedelta_range(start="1 day", periods=4, inclusive="right")
     TimedeltaIndex(['2 days', '3 days', '4 days'],
                    dtype='timedelta64[us]', freq='D')
 
@@ -1033,6 +1045,24 @@ def timedelta_range(
     TimedeltaIndex(['1 days', '100001 days', '200001 days'],
                    dtype='timedelta64[s]', freq='100000D')
     """
+    if closed is not lib.no_default:
+        if inclusive is not lib.no_default:
+            raise TypeError("Cannot pass both 'closed' and 'inclusive'.")
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError("Closed has to be either 'left', 'right' or None")
+        warnings.warn(
+            "The 'closed' keyword in timedelta_range is deprecated and will be "
+            f"removed in a future version. Use inclusive='{inclusive}' instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    elif inclusive is lib.no_default:
+        inclusive = "both"
+
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
     freq = to_offset(freq)
@@ -1074,7 +1104,7 @@ def timedelta_range(
                 unit = cast("TimeUnit", freq.base.freqstr)
 
     tdarr = TimedeltaArray._generate_range(
-        start, end, periods, freq, closed=closed, unit=unit
+        start, end, periods, freq, inclusive=inclusive, unit=unit
     )
     result = TimedeltaIndex._simple_new(tdarr, name=name)
     result._freq = freq

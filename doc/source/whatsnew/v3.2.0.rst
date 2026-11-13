@@ -170,6 +170,7 @@ Other deprecations
 - Deprecated setting an out-of-bounds numpy scalar into an array of a numpy-nullable integer dtype. The value is currently stored altered to fit (``np.int64(-1)`` becomes ``255`` in ``UInt8``); in a future version this will raise, as it already does for a Python integer. Cast the array to a dtype that can hold the value first (:issue:`48867`)
 - Deprecated the :class:`DataFrame` constructor, :meth:`DataFrame.from_dict` with ``orient="index"``, and :meth:`DataFrame.from_records` splitting a ``str`` or ``bytes`` row into its elements when the first row is list-like; in a future version this will raise ``TypeError``. Pass ``list(row)`` instead (:issue:`50461`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
+- Deprecated the ``closed`` keyword in :func:`timedelta_range`; use ``inclusive`` instead, which also accepts ``"neither"``, as in :func:`date_range` (:issue:`40245`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
 
@@ -229,6 +230,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`Timedelta` and :func:`to_timedelta` ignoring a decimal comma in a string, so ``"00:00:01,500"`` parsed as 25 minutes instead of 1.5 seconds (:issue:`71877`)
+- Bug in :func:`timedelta_range` with ``closed`` trimming endpoints differently from :func:`date_range`, e.g. ``closed="left"`` dropping the last value when ``end`` was not a multiple of ``freq`` from ``start``, or dropping only one value when ``start`` equals ``end`` (:issue:`40245`)
 -
 
 Timezones
