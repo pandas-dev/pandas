@@ -2782,6 +2782,83 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "frame, key, value, err, msg",
+        [
+            (
+                pd.DataFrame({"a": [1, 2], "b": [3, 4]}),
+                (5, "a"),
+                [1, 2, 3],
+                ValueError,
+                "setting an array element with a sequence",
+            ),
+            (
+                pd.DataFrame({"a": [1, 2], "b": ["x", "y"]}),
+                (5, "a"),
+                [1, 2, 3],
+                ValueError,
+                "Must have equal len keys and value",
+            ),
+            (
+                pd.DataFrame({"a": [1, 2], "b": [3, 4]}),
+                (5, ["a", "b"]),
+                np.ones((3, 3)),
+                ValueError,
+                "setting an array element with a sequence",
+            ),
+            (
+                pd.DataFrame({"a": pd.Categorical(["x", "y"]), "b": [1, 2]}),
+                (5, "a"),
+                "z",
+                TypeError,
+                "Cannot setitem on a Categorical with a new category",
+            ),
+            (
+                pd.DataFrame(
+                    {"a": [1, 2]}, index=pd.MultiIndex.from_tuples([(1, 1), (1, 2)])
+                ),
+                ((2, 2), "a"),
+                [1, 2, 3],
+                ValueError,
+                "Must have equal len keys and value",
+            ),
+            (
+                pd.DataFrame(),
+                (4, 3),
+                [1, 2, 3],
+                IndexError,
+                "only integers, slices",
+            ),
+        ],
+    )
+    def test_loc_setitem_with_expansion_failure_leaves_frame_unchanged(
+        self, frame, key, value, err, msg
+    ):
+        # GH#15490
+        df = frame.copy()
+        with pytest.raises(err, match=msg):
+            df.loc[key] = value
+        tm.assert_frame_equal(df, frame)
+
+    def test_at_setitem_with_expansion_failure_leaves_frame_unchanged(self):
+        # GH#15490
+        df = pd.DataFrame()
+        with tm.assert_produces_warning(Pandas4Warning, match="via .at"):
+            with pytest.raises(IndexError, match="only integers, slices"):
+                df.at[0, "c"] = [1, 2, 4]
+        tm.assert_frame_equal(df, pd.DataFrame())
+
+    @pytest.mark.filterwarnings("error::pandas.errors.Pandas4Warning")
+    @pytest.mark.parametrize(
+        "obj", [pd.DataFrame({"a": [1.5, 2.5], "b": [1.5, 2.5]}), pd.Series([1.5, 2.5])]
+    )
+    def test_loc_setitem_with_expansion_warning_as_error_unchanged(self, obj):
+        # GH#15490 the incompatible-dtype warning is raised after the row is added
+        result = obj.copy()
+        with pytest.raises(Pandas4Warning, match="incompatible dtype"):
+            result.loc[5] = "zz"
+        tm.assert_equal(result, obj)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
