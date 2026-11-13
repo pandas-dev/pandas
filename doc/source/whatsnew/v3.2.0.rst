@@ -32,6 +32,7 @@ Other enhancements
 - :func:`numpy.delete` on an :class:`ExtensionArray`, and :func:`numpy.concatenate` on :class:`ExtensionArray` objects of the same dtype, now return an :class:`ExtensionArray` of that dtype instead of a NumPy array (:issue:`26380`)
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
+- :meth:`.DataFrameGroupBy.ohlc`, :meth:`.SeriesGroupBy.ohlc` and :meth:`.Resampler.ohlc` now accept a ``numeric_only`` argument (:issue:`56946`)
 - :meth:`.DataFrameGroupBy.plot` now titles each group's figure with its group key, unless ``title`` or ``ax`` is passed (:issue:`12452`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` now accept keyword arguments that only the lines or only the filled areas support, such as ``hatch``, ``edgecolor`` and ``marker``, instead of raising ``AttributeError``; ``hatch`` also accepts a list with one hatch per column (:issue:`12354`)
@@ -136,6 +137,7 @@ Other API changes
 - :meth:`.Styler.to_excel` now omits the rows, columns, index and header levels, and names hidden with :meth:`.Styler.hide`, matching the other :class:`.Styler` output methods; hiding the whole index with :class:`MultiIndex` columns now raises ``NotImplementedError``, as ``index=False`` does (:issue:`42276`)
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
+- :meth:`DataFrame.to_html` no longer emits the invalid HTML attribute ``halign="left"`` on :class:`MultiIndex` column headers; browsers ignored it, so rendering is unchanged (:issue:`39951`)
 - ``range`` values are now displayed as ``range(0, 3)`` rather than as the tuple ``(0, 1, 2)``, matching :class:`.Styler` (:issue:`44799`)
 
 .. ---------------------------------------------------------------------------
@@ -239,6 +241,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.idxmax` with a nullable ``boolean`` column containing missing values returning the first ``False`` row instead of the first ``True`` row (:issue:`71833`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
+- Bug in :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin` and :meth:`Series.cummax` (and their :class:`DataFrame` counterparts) on ``object`` data not skipping missing values with ``skipna=True``, which raised for elements such as strings and turned integer or ``Fraction`` cumulative results into floats (:issue:`59764`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in arithmetic and comparison operations between integer and ``float32`` data on large inputs computing in ``float32`` instead of ``float64`` when numexpr is installed, losing precision (:issue:`71272`)
 - Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)
@@ -264,9 +267,11 @@ Conversion
 
 Strings
 ^^^^^^^
+- :meth:`Series.str.get_dummies` now raises a ``ValueError`` for an empty separator with ``object``, Python-backed string, or categorical data, matching Python's :meth:`str.split` behavior (:issue:`70811`)
 - Bug in :class:`StringDtype` with PyArrow storage rejecting a PyArrow string scalar in item assignment and :meth:`Series.fillna`, and :meth:`Series.where` with one storing a character code (:issue:`71075`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` silently ignoring a compiled ``re.Pattern`` for :class:`ArrowDtype` ``string`` and ``large_string`` dtypes, including a :class:`Categorical` of them (:issue:`69026`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``regex=True`` on :class:`ArrowDtype` ``string`` and ``large_string`` dtypes raising or silently coercing a replacement the column cannot hold instead of casting to ``object`` (:issue:`70458`)
+- Bug in :meth:`Series.str.get_dummies` returning incorrect columns and indicator values for separators containing regular expression metacharacters with ``object``, Python-backed string, or categorical data (:issue:`70811`)
 -
 
 Interval
@@ -472,6 +477,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
+- Bug in :meth:`.ArrowExtensionArray.factorize` and :meth:`DataFrame.groupby` with a PyArrow ``dictionary`` dtype producing a group for a value no longer present (e.g. after filtering) or splitting one value across two groups; ``uniques`` are now in order of appearance, as for other dtypes (:issue:`71828`)
 - Bug in :meth:`.ArrowExtensionArray.factorize` ignoring ``use_na_sentinel=True`` for dictionary-encoded PyArrow data that stores nulls as dictionary values, keeping the null in the returned ``uniques`` or raising ``ArrowInvalid`` for chunked data (:issue:`66490`)
 - Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.aggregate` where a single callable reducing each column (or row) of a nullable- or PyArrow-backed frame to a scalar gave a NumPy-dtyped result, e.g. ``float64`` rather than ``double[pyarrow]`` (:issue:`61812`)
 - Bug in :meth:`Series.dt.strftime` on PyArrow-backed timestamp and date data where ``%S`` included fractional seconds and ``%f`` and ``%N`` were not supported (:issue:`55001`)
