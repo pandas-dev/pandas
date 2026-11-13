@@ -2388,13 +2388,13 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
        index=pd.period_range("2013-01-01 9:00", periods=600, freq="min"),
    )
    dfp
-   dfp.loc["2013-01-01 10h"]
+   dfp.loc["2013-01-01 10"]
 
 As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 
 .. ipython:: python
 
-   dfp["2013-01-01 10h":"2013-01-01 11h"]
+   dfp["2013-01-01 10":"2013-01-01 11"]
 
 
 Frequency conversion and resampling with PeriodIndex

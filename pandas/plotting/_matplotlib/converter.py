@@ -58,6 +58,7 @@ from pandas.core.indexes.period import (
     period_range,
 )
 import pandas.core.tools.datetimes as tools
+from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -184,8 +185,11 @@ def _to_ordinalf(tm: pydt.time) -> float:
 
 def time2num(d):
     if isinstance(d, str):
-        parsed = Timestamp(d)
-        return _to_ordinalf(parsed.time())
+        try:
+            parsed = to_time(d)
+        except ValueError:
+            parsed = Timestamp(d).time()
+        return _to_ordinalf(parsed)
     if isinstance(d, pydt.time):
         return _to_ordinalf(d)
     return d

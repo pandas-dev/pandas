@@ -40,7 +40,7 @@ from pandas._libs.tslibs.conversion import (
 from pandas._libs.tslibs.dtypes import get_default_reso
 from pandas._libs.tslibs.parsing import (
     DateParseError,
-    guess_datetime_format,
+    guess_datetime_format_for_parsing,
 )
 from pandas._libs.tslibs.strptime import (
     array_strptime,
@@ -151,8 +151,8 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
     if (first_non_null := tslib.first_non_null(arr)) != -1:
         if type(first_non_nan_element := arr[first_non_null]) is str:
             # GH#32264 np.str_ object
-            guessed_format = guess_datetime_format(
-                first_non_nan_element, dayfirst=dayfirst
+            guessed_format = guess_datetime_format_for_parsing(
+                first_non_nan_element, dayfirst=bool(dayfirst)
             )
             if guessed_format is not None:
                 return guessed_format

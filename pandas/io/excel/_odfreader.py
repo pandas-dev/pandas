@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import time
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -221,9 +222,15 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.Timestamp(cell_value)
         elif cell_type == "time":
-            stamp = pd.Timestamp(str(cell))
+            try:
+                # the displayed text keeps fractional seconds, which time-value
+                #  can drop
+                value = time.fromisoformat(str(cell))
+            except ValueError:
+                time_value = cell.attributes.get((OFFICENS, "time-value"))
+                value = (pd.Timestamp(0) + pd.Timedelta(time_value)).time()
             # cast needed here because Scalar doesn't include datetime.time
-            return cast("Scalar", stamp.time())
+            return cast("Scalar", value)
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

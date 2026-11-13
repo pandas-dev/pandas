@@ -172,7 +172,7 @@ class TestGetItem:
                 "2014",
                 "2013/02",
                 "2013/01/02",
-                "2013/02/01 9h",
+                "2013-02-01 09",
                 "2013/02/01 09:00",
             ]
             for val in values:
@@ -184,7 +184,7 @@ class TestGetItem:
 
             ser = pd.Series(np.random.default_rng(2).random(len(idx)), index=idx)
             tm.assert_series_equal(ser["2013/01/01 10:00"], ser[3600:3660])
-            tm.assert_series_equal(ser["2013/01/01 9h"], ser[:3600])
+            tm.assert_series_equal(ser["2013-01-01 09"], ser[:3600])
             for d in ["2013/01/01", "2013/01", "2013"]:
                 tm.assert_series_equal(ser[d], ser)
 
@@ -204,7 +204,7 @@ class TestGetItem:
             "2014",
             "2013/02",
             "2013/01/02",
-            "2013/02/01 9h",
+            "2013-02-01 09",
             "2013/02/01 09:00",
         ]
         for val in values:
@@ -219,7 +219,7 @@ class TestGetItem:
         tm.assert_series_equal(ser["2013/02"], ser[31:59])
         tm.assert_series_equal(ser["2014"], ser[365:])
 
-        invalid = ["2013/02/01 9h", "2013/02/01 09:00"]
+        invalid = ["2013-02-01 09", "2013/02/01 09:00"]
         for val in invalid:
             with pytest.raises(KeyError, match=val):
                 ser[val]

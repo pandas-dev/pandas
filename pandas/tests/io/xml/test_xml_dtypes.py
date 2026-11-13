@@ -4,7 +4,10 @@ from io import StringIO
 
 import pytest
 
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    Pandas4Warning,
+    ParserWarning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -416,9 +419,7 @@ def test_day_first_parse_dates(parser, temp_file):
         }
     )
 
-    with tm.assert_produces_warning(
-        UserWarning, match="Parsing dates in %d/%m/%Y format"
-    ):
+    with tm.assert_produces_warning(Pandas4Warning, match="as day-first"):
         df_result = read_xml(StringIO(xml), parse_dates=["date"], parser=parser)
         df_iter = read_xml_iterparse(
             xml,

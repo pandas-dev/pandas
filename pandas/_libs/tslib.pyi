@@ -21,6 +21,7 @@ def array_to_datetime(
     creso: int = ...,
     unit_for_numerics: str | None = ...,
     warned_quarter: bool = ...,
+    warned_format: bool = ...,
 ) -> tuple[npt.NDArray[np.datetime64], tzinfo | None]: ...
 def array_to_datetime_with_tz(
     values: npt.NDArray[np.object_],
@@ -29,4 +30,5 @@ def array_to_datetime_with_tz(
     yearfirst: bool,
     creso: int,
     warned_quarter: bool = ...,
+    warned_format: bool = ...,
 ) -> npt.NDArray[np.datetime64]: ...

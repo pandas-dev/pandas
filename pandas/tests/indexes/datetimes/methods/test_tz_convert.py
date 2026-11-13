@@ -220,7 +220,7 @@ class TestTZConvert:
         tm.assert_index_equal(idx.hour, pd.Index([20, 20], dtype=np.int32))
 
         idx = pd.date_range(
-            "2014-11-01 00:00", "2014-11-02 000:00", freq="D", tz="US/Eastern"
+            "2014-11-01 00:00", "2014-11-02 00:00", freq="D", tz="US/Eastern"
         )
         idx = idx.tz_convert("UTC")
         tm.assert_index_equal(idx.hour, pd.Index([4, 4], dtype=np.int32))

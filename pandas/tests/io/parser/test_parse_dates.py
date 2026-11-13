@@ -538,12 +538,10 @@ def test_parse_delimited_date_swap_with_warning(
 ):
     parser = all_parsers
     expected = pd.DataFrame({0: [expected]}, dtype="datetime64[us]")
-    warning_msg = (
-        "Parsing dates in .* format when dayfirst=.* was specified. "
-        "Pass `dayfirst=.*` or specify a format to silence this warning."
-    )
+    # GH#65381
+    warning_msg = r"as (day|month)-first when dayfirst="
     result = parser.read_csv_check_warnings(
-        UserWarning,
+        Pandas4Warning,
         warning_msg,
         StringIO(date_string),
         header=None,
@@ -651,16 +649,17 @@ def test_date_parser_usecols_thousands(all_parsers):
             )
         return
 
+    # GH#65381 only dateutil parses "20-09-01-01"
     result = parser.read_csv_check_warnings(
-        UserWarning,
-        "Could not infer format",
+        (UserWarning, Pandas4Warning),
+        "Could not infer format|relies on dateutil",
         StringIO(data),
         parse_dates=[1],
         usecols=[1, 2],
         thousands="-",
     )
     expected = pd.DataFrame(
-        {"B": [3, 4], "C": [pd.Timestamp("20-09-2001 01:00:00")] * 2}
+        {"B": [3, 4], "C": [pd.Timestamp("2001-09-20 01:00:00")] * 2}
     )
     tm.assert_frame_equal(result, expected)
 
@@ -673,10 +672,8 @@ def test_dayfirst_warnings():
     expected = pd.DatetimeIndex(
         ["2014-12-31", "2011-03-10"], dtype="datetime64[us]", freq=None, name="date"
     )
-    warning_msg = (
-        "Parsing dates in .* format when dayfirst=.* was specified. "
-        "Pass `dayfirst=.*` or specify a format to silence this warning."
-    )
+    # GH#65381
+    warning_msg = "as day-first when dayfirst=False"
 
     # A. dayfirst arg correct, no warning
     res1 = read_csv(
@@ -685,7 +682,7 @@ def test_dayfirst_warnings():
     tm.assert_index_equal(expected, res1)
 
     # B. dayfirst arg incorrect, warning
-    with tm.assert_produces_warning(UserWarning, match=warning_msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=warning_msg):
         res2 = read_csv(
             StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
         ).index
@@ -706,7 +703,7 @@ def test_dayfirst_warnings():
     tm.assert_index_equal(expected, res5)
 
     # B. use dayfirst=False
-    with tm.assert_produces_warning(UserWarning, match=warning_msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=warning_msg):
         res6 = read_csv(
             StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
         ).index
@@ -734,11 +731,9 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
     expected = pd.DatetimeIndex(
         ["2014-01-31"], dtype="datetime64[us]", freq=None, name="date"
     )
-    warning_msg = (
-        "Parsing dates in .* format when dayfirst=.* was specified. "
-        "Pass `dayfirst=.*` or specify a format to silence this warning."
-    )
-    with tm.assert_produces_warning(UserWarning, match=warning_msg):
+    # GH#65381
+    warning_msg = r"as (day|month)-first when dayfirst="
+    with tm.assert_produces_warning(Pandas4Warning, match=warning_msg):
         res = read_csv(
             StringIO(initial_value),
             parse_dates=["date"],
@@ -987,9 +982,10 @@ def test_parse_dot_separated_dates(all_parsers):
         dtype="datetime64[us]",
         name="a",
     )
-    msg = r"when dayfirst=False \(the default\) was specified"
+    # GH#65381
+    msg = "as day-first when dayfirst=False"
     result = parser.read_csv_check_warnings(
-        UserWarning,
+        Pandas4Warning,
         msg,
         StringIO(data),
         parse_dates=True,
