@@ -19,6 +19,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
@@ -180,11 +181,56 @@ class PythonParser(ParserBase):
 
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
+        # these can disagree (callable usecols with too few names); keep the
+        # orig_names lookup there rather than guess
+        if len(self._col_indices) == len(self.orig_names):
+            offset = len(self.index_col) if self._implicit_index else 0
+            position_names = {
+                offset + i: name
+                for i, name in zip(self._col_indices, self.orig_names, strict=True)
+            }
+            self._num_file_columns = offset + self.num_original_columns
+            if not self._warn_integer_keys_change(position_names):
+                self._position_names = position_names
 
         self._no_thousands_columns = self._set_no_thousand_columns()
 
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
+
+    def _warn_integer_keys_change(self, position_names: dict[int, Hashable]) -> bool:
+        """
+        Warn if integer keys of converters, dtype or na_values resolve to
+        different columns as positions in the file than as positions in
+        orig_names. Returns whether it warned. see GH#18566
+        """
+        keys = [
+            key
+            for mapping in (self.converters, self.dtype, self.na_values)
+            if isinstance(mapping, dict)
+            for key in mapping
+            if isinstance(key, int) and key not in self.orig_names
+        ]
+        if any(key >= len(self.orig_names) for key in keys):
+            # the deprecated rule raises IndexError here whenever there are data rows
+            return False
+        changed = {
+            key
+            for key in keys
+            if key >= 0 and self.orig_names[key] != position_names.get(key)
+        }
+        if not changed:
+            return False
+        warnings.warn(
+            f"Integer keys {sorted(changed)} in 'converters', 'dtype' or "
+            "'na_values' refer to positions among the columns read. In a future "
+            "version, they will refer to positions among all columns in the "
+            "file, as with engine='c'. Use column labels to keep the current "
+            "behavior.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return True
 
     @cache_readonly
     def num(self) -> re.Pattern[str]:
@@ -375,7 +421,9 @@ class PythonParser(ParserBase):
                     na_fvalue = self.na_fvalues[col]
 
                     if isinstance(col, int) and col not in self.orig_names:
-                        col = self.orig_names[col]
+                        col = self._position_to_name(col)
+                        if col is None:
+                            continue
 
                     clean_na_values[col] = na_value
                     clean_na_fvalues[col] = na_fvalue
