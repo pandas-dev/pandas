@@ -5351,8 +5351,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Shift ``obj``, whose rows align with ``self._obj_with_exclusions``,
         by ``period`` rows within each group.
         """
-        if not is_integer(period):
-            raise TypeError(f"Periods must be integer, but {period} is {type(period)}.")
         ids = self._grouper.ids
         res_indexer = np.zeros(len(ids), dtype=np.int64)
         libgroupby.group_shift_indexer(res_indexer, ids, self._grouper.ngroups, period)
@@ -5441,6 +5439,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mouse  1.0 -2.0
         mouse -5.0 -1.0
         """
+        if not is_integer(periods):
+            raise TypeError(
+                f"Periods must be integer, but {periods} is {type(periods)}."
+            )
         obj = self._obj_with_exclusions
         if numeric_only:
             mgr = self._get_data_to_aggregate(numeric_only=True, name="diff")
@@ -5549,6 +5551,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # GH#53491
         if fill_method is not None:
             raise ValueError(f"fill_method must be None; got {fill_method=}.")
+        if not is_integer(periods):
+            raise TypeError(
+                f"Periods must be integer, but {periods} is {type(periods)}."
+            )
 
         obj = self._obj_with_exclusions
         if numeric_only:
