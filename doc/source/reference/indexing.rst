@@ -294,6 +294,7 @@ MultiIndex components
    MultiIndex.set_codes
    MultiIndex.to_flat_index
    MultiIndex.to_frame
+   MultiIndex.to_list
    MultiIndex.sortlevel
    MultiIndex.droplevel
    MultiIndex.swaplevel
