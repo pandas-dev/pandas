@@ -757,6 +757,9 @@ If index resolution is second, then the minute-accurate timestamp gives a
     series_second.index.resolution
     series_second["2011-12-31 23:59"]
 
+If no entry falls within the period of a string treated as a slice, a
+``KeyError`` is raised, as for an exact match that is not found.
+
 If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``.loc[]`` as well.
 
 .. ipython:: python
