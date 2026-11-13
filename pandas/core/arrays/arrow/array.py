@@ -95,6 +95,11 @@ from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
+from pandas.core.arrays.arrow.deferred import (
+    PendingTake,
+    defer,
+    is_immutable,
+)
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArrayNaResult,
@@ -579,6 +584,10 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
     # results from calls to methods decorated with cache_readonly get added here
     _cache: dict[str, pa.ChunkedArray]
+    # set on the instance instead of _pa_array until a deferred take runs
+    # (see pandas.core.arrays.arrow.deferred); the class default keeps
+    # lookups on other arrays from reaching __getattr__
+    _pending_take: PendingTake | None = None
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if not HAS_PYARROW:
@@ -759,6 +768,75 @@ class ArrowExtensionArray(
         )
         obj._cache = {}
         return obj
+
+    if not TYPE_CHECKING:
+        # hidden from type checkers, which would otherwise accept any
+        # attribute name on this class and its subclasses
+        def __getattr__(self, name: str) -> pa.ChunkedArray:
+            # Only reached when normal lookup fails. An array produced by a
+            # deferred take has no ``_pa_array`` until first use: run the
+            # gather. Note that Python also calls this when a property getter
+            # raises AttributeError, so such an error surfaces as the generic
+            # one below.
+            if name == "_pa_array":
+                pending = self._pending_take
+                if pending is not None:
+                    pa_array = pending.materialize()
+                    # store the result before dropping the pending take, so a
+                    # concurrent reader always finds one of them
+                    self.__dict__["_pa_array"] = pa_array
+                    self.__dict__.pop("_pending_take", None)
+                    return pa_array
+                # another thread finished the gather after our lookup failed
+                pa_array = self.__dict__.get("_pa_array")
+                if pa_array is not None:
+                    return pa_array
+            raise AttributeError(
+                f"{type(self).__name__!r} object has no attribute {name!r}"
+            )
+
+    def _with_pending_take(self, pending: PendingTake) -> Self:
+        """A new array of this dtype whose values are ``pending``."""
+        obj = type(self).__new__(type(self))
+        obj._pending_take = pending
+        obj._dtype = self._dtype
+        obj._cache = {}
+        return obj
+
+    def _from_selection(self, result: PendingTake | pa.ChunkedArray) -> Self:
+        if isinstance(result, PendingTake):
+            return self._with_pending_take(result)
+        return self._from_pyarrow_array(result)
+
+    def _can_defer_take(self) -> bool:
+        if self._pending_take is not None:
+            return True
+        return _is_varbinary_type(self._pa_array.type)
+
+    def _take_deferred(
+        self,
+        positions: npt.NDArray[np.integer] | npt.NDArray[np.bool_],
+        *,
+        copy: bool = True,
+    ) -> Self | None:
+        """
+        ``self[positions]``, deferred if the values can be (see
+        ``pandas.core.arrays.arrow.deferred``), else None, and the caller
+        should gather eagerly.
+
+        Integer ``positions`` must be in bounds and non-negative, and a
+        boolean mask must have the length of ``self``. Unless ``copy`` is
+        False, either is copied before being stored.
+        """
+        pending = self._pending_take
+        if pending is not None:
+            result = pending.select(positions)
+            if result is not None:
+                return self._from_selection(result)
+            # another thread has gathered it since: defer from its result
+        if not _is_varbinary_type(self._pa_array.type):
+            return None
+        return self._from_selection(defer(self._pa_array, positions, copy=copy))
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if len(values) == 0:
@@ -1141,6 +1219,13 @@ class ArrowExtensionArray(
         to the values where ``item`` is True.
         """
         if isinstance(item, slice):
+            pending = self._pending_take
+            if pending is not None:
+                sliced = pending.select_slice(item)
+                if sliced is not None:
+                    deferred = self._from_selection(sliced)
+                    deferred._readonly = self._readonly
+                    return deferred
             # Fast path for slices: avoid check_array_indexer (no-op for
             # slices) and getitem_returns_view (always True for slices).
             # Arrow bug https://github.com/apache/arrow/issues/38768
@@ -1176,6 +1261,10 @@ class ArrowExtensionArray(
             elif item.dtype.kind in "iu":
                 return self.take(item)
             elif item.dtype.kind == "b":
+                if self._can_defer_take():
+                    masked = self._take_deferred(item)
+                    if masked is not None:
+                        return masked
                 return self._from_pyarrow_array(self._pa_array.filter(item))
             else:
                 raise IndexError(
@@ -1198,14 +1287,20 @@ class ArrowExtensionArray(
             )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
-        value = self._pa_array[item]
+        value = None
+        pending = self._pending_take
+        if pending is not None and is_integer(item):
+            # read one value of a deferred take without gathering
+            value = pending.value_at(item)
+        if value is None:
+            value = self._pa_array[item]
         if isinstance(value, pa.ChunkedArray):
             result = self._from_pyarrow_array(value)
             if getitem_returns_view(self, item):
                 result._readonly = self._readonly
             return result
         else:
-            pa_type = self._pa_array.type
+            pa_type = value.type
             scalar = value.as_py()
             if scalar is None:
                 return self._dtype.na_value
@@ -1348,8 +1443,13 @@ class ArrowExtensionArray(
     # GH 42600: __getstate__/__setstate__ not necessary once
     # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
     def __getstate__(self):
+        # run a deferred take first, so its parent is not pickled
+        pa_array = self._pa_array
         state = self.__dict__.copy()
-        state["_pa_array"] = self._pa_array.combine_chunks()
+        state["_pa_array"] = pa_array.combine_chunks()
+        # a concurrent first read may have stored the values but not yet
+        # dropped the deferred take, which holds a lock and the parent
+        state.pop("_pending_take", None)
         # cached properties can be recomputed; don't bloat the pickle
         state["_cache"] = {}
         return state
@@ -1677,6 +1777,10 @@ class ArrowExtensionArray(
         -------
         length : int
         """
+        pending = self._pending_take
+        if pending is not None:
+            # a deferred take: its length is known without gathering
+            return len(pending)
         return len(self._pa_array)
 
     def __contains__(self, key) -> bool:
@@ -1910,6 +2014,13 @@ class ArrowExtensionArray(
         -------
         type(self)
         """
+        pending = self._pending_take
+        if pending is not None:
+            # gather into new buffers, so the copy does not keep the parent
+            # alive; ``self`` stays deferred
+            result = pending.gather_copy()
+            if result is not None:
+                return self._from_pyarrow_array(result)
         return self._from_pyarrow_array(_copy_pyarrow_buffers(self._pa_array))
 
     def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
@@ -1931,6 +2042,13 @@ class ArrowExtensionArray(
         # Override since the ExtensionArray.view create a new pa_array.
         if dtype is not None:
             return super().view(dtype)
+        pending = self._pending_take
+        if pending is not None:
+            # share the deferred take, so all views gather once and share
+            # the buffers
+            result = self._with_pending_take(pending)
+            result._readonly = self._readonly
+            return result
         result = type(self).__new__(type(self))
         result._pa_array = self._pa_array
         result._dtype = self._dtype
@@ -2488,10 +2606,25 @@ class ArrowExtensionArray(
         """
         indices_array = np.asanyarray(indices)
 
-        if len(self._pa_array) == 0 and (indices_array >= 0).any():
+        n = len(self)
+        if n == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
-        if indices_array.size > 0 and indices_array.max() >= len(self._pa_array):
+        if indices_array.size > 0 and indices_array.max() >= n:
             raise IndexError("out of bounds value in 'indices'.")
+
+        if (
+            indices_array.ndim == 1
+            and indices_array.dtype.kind in "iu"
+            and indices_array.size > 0
+            and self._can_defer_take()
+            and indices_array.min() >= 0
+        ):
+            # an indexer whose memory can never change is kept without a copy
+            result = self._take_deferred(
+                indices_array, copy=not is_immutable(indices_array)
+            )
+            if result is not None:
+                return result
 
         if allow_fill:
             fill_mask = indices_array < 0

@@ -273,6 +273,34 @@ class Merge:
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
 
+class MergeStringColumns:
+    # The string columns of a merge result are gathered when first used:
+    # use_columns=True uses every one, so includes that cost. Half the left
+    # rows match; the left side's values are gathered in order, the right
+    # side's in the (unsorted, repeated) order of the matches.
+    params = [["str", "string[pyarrow]"], ["left", "right"], [False, True]]
+    param_names = ["dtype", "strings_on", "use_columns"]
+
+    def setup(self, dtype, strings_on, use_columns):
+        N = 1_000_000
+        self.columns = [f"s{i}" for i in range(5)]
+        self.left = DataFrame(
+            {"key": np.random.randint(0, N // 10, N), "value": np.random.randn(N)}
+        )
+        self.right = DataFrame({"key": np.arange(0, N // 10, 2)})
+        target = self.left if strings_on == "left" else self.right
+        n = len(target)
+        for i, col in enumerate(self.columns):
+            values = "value-" + Series(np.arange(i * n, (i + 1) * n)).astype(str)
+            target[col] = values.astype(dtype)
+
+    def time_merge(self, dtype, strings_on, use_columns):
+        result = merge(self.left, self.right, on="key")
+        if use_columns:
+            for col in self.columns:
+                result[col].isna()
+
+
 class MergeEA:
     params = [
         [

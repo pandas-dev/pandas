@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -63,7 +64,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    DatetimeArray,
+)
+from pandas.core.arrays.arrow.deferred import (
+    freeze,
+    shared_selections,
+)
 from pandas.core.base import PandasObject
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -875,24 +883,48 @@ class BaseBlockManager(PandasObject):
                 )
             )
         else:
+            share = (
+                len(self.blocks) > 1
+                and len(indexer) > 0
+                and any(
+                    isinstance(blk.values, ArrowExtensionArray)
+                    and blk.values._can_defer_take()
+                    for blk in self.blocks
+                )
+                and indexer.min() >= 0
+            )
+            if share:
+                # ArrowExtensionArray keeps the indexer of a take of strings
+                # without -1 instead of taking right away, copying it since
+                # the caller could modify it. Hand all blocks one copy instead,
+                # in memory that can never change (an array over ``bytes``
+                # cannot be made writeable), which they can keep as it is.
+                indexer = freeze(indexer)
             new_blocks = []
-            for blk in self.blocks:
-                if blk.dtype == np.void:
-                    # GH#58316: np.void placeholders cast to b'' when
-                    # reindexed; preserve np.void so _setitem_single_column
-                    # can later infer the correct dtype
-                    vals = np.empty((blk.values.shape[0], len(indexer)), dtype=np.void)
-                    new_blocks.append(NumpyBlock(vals, blk.mgr_locs, ndim=2))
-                else:
-                    new_blocks.append(
-                        blk.take_nd(
-                            indexer,
-                            axis=1,
-                            fill_value=(
-                                fill_value if fill_value is not None else blk.fill_value
-                            ),
+            # blocks whose deferred takes hold the same selection compose it
+            # with ``indexer`` once between them
+            with shared_selections() if share else nullcontext():
+                for blk in self.blocks:
+                    if blk.dtype == np.void:
+                        # GH#58316: np.void placeholders cast to b'' when
+                        # reindexed; preserve np.void so _setitem_single_column
+                        # can later infer the correct dtype
+                        vals = np.empty(
+                            (blk.values.shape[0], len(indexer)), dtype=np.void
                         )
-                    )
+                        new_blocks.append(NumpyBlock(vals, blk.mgr_locs, ndim=2))
+                    else:
+                        new_blocks.append(
+                            blk.take_nd(
+                                indexer,
+                                axis=1,
+                                fill_value=(
+                                    fill_value
+                                    if fill_value is not None
+                                    else blk.fill_value
+                                ),
+                            )
+                        )
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
