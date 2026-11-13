@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     algos,
     hashtable as htable,
@@ -2006,9 +2008,25 @@ def map_array(
             # If a dictionary subclass defines a default value method,
             # convert mapper to a lookup function (GH #15999).
             dict_with_default = mapper
-            mapper = lambda x: dict_with_default[
-                np.nan if isinstance(x, float) and np.isnan(x) else x
-            ]
+            # Plain dicts go through an Index lookup, which matches NA to a
+            # nan key for numeric dtypes when NaN and NA are interchangeable.
+            # Mirror that here so dict and defaultdict agree (GH #XXXXX).
+            is_numeric = arr.dtype.kind in "iuf"
+            na_matches_nan = is_nan_na() and is_numeric
+
+            def lookup(x):
+                if isinstance(x, float) and np.isnan(x):
+                    x = np.nan
+                elif (
+                    x is NA
+                    and na_matches_nan
+                    and NA not in dict_with_default
+                    and np.nan in dict_with_default
+                ):
+                    x = np.nan
+                return dict_with_default[x]
+
+            mapper = lookup
         else:
             # Dictionary does not have a default. Thus it's safe to
             # convert to a Series for efficiency.
