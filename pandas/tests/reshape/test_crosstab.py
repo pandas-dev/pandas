@@ -148,6 +148,20 @@ class TestCrosstab:
         exp_rows = exp_rows.fillna(0).astype(np.int64)
         tm.assert_series_equal(all_rows, exp_rows)
 
+    def test_crosstab_margins_aggfunc_size(self):
+        # GH#27799 crosstab forwards values to pivot_table, so size with
+        #  margins used to raise there as well
+        df = pd.DataFrame({"A": ["a", "a", "b"], "B": ["x", "y", "x"], "C": range(3)})
+        result = pd.crosstab(
+            df["A"], df["B"], values=df["C"], aggfunc="size", margins=True
+        )
+        expected = pd.DataFrame(
+            {"x": [1.0, 1.0, 2.0], "y": [1.0, np.nan, 1.0], "All": [2, 1, 3]},
+            index=pd.Index(["a", "b", "All"], name="A"),
+        )
+        expected.columns.name = "B"
+        tm.assert_frame_equal(result, expected)
+
     def test_crosstab_margins_set_margin_name(self):
         # GH 15972
         a = np.random.default_rng(2).integers(0, 7, size=100)
