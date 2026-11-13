@@ -286,6 +286,15 @@ def test_dataframe_from_series_or_index_different_dtype(index_or_series):
     assert df._mgr._has_no_reference(0)
 
 
+@pytest.mark.parametrize("dtype", ["int32", "Float64", "Int64", "M8[ns]"])
+def test_dataframe_from_series_or_index_dtype_dict(index_or_series, dtype):
+    # GH#71142 keep the input's refs only if the cast result views it
+    obj = index_or_series([1, 2], dtype="int64")
+    df = pd.DataFrame(obj, dtype={0: dtype})
+    shares = np.shares_memory(get_array(obj), get_array(df, 0))
+    assert df._mgr._has_no_reference(0) is not shares
+
+
 def test_dataframe_from_series_dont_infer_datetime():
     ser = pd.Series(
         [pd.Timestamp("2019-12-31"), pd.Timestamp("2020-12-31")], dtype=object

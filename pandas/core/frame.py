@@ -235,6 +235,7 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
+        DtypeArg,
         DtypeObj,
         FilePath,
         FloatFormatType,
@@ -475,12 +476,19 @@ class DataFrame(NDFrame, OpsMixin):
 
     @classmethod
     def _validate_dtype_mapping(
-        cls, dtype: Mapping[Hashable, Dtype | None]
-    ) -> dict[Hashable, DtypeObj | None]:
+        cls, dtype: Mapping[Hashable, Dtype]
+    ) -> dict[Hashable, DtypeObj]:
         """validate each dtype in a dict of column labels to dtypes"""
-        validated = {key: cls._validate_dtype(val) for key, val in dtype.items()}
-        if isinstance(dtype, collections.defaultdict) and dtype.default_factory:
-            default = cls._validate_dtype(dtype.default_factory())
+        validated = {
+            key: validated_val
+            for key, val in dtype.items()
+            if (validated_val := cls._validate_dtype(val)) is not None
+        }
+        if (
+            isinstance(dtype, collections.defaultdict)
+            and dtype.default_factory
+            and (default := cls._validate_dtype(dtype.default_factory())) is not None
+        ):
             return collections.defaultdict(lambda: default, validated)
         return validated
 
@@ -489,7 +497,7 @@ class DataFrame(NDFrame, OpsMixin):
         data=None,
         index: Axes | None = None,
         columns: Axes | None = None,
-        dtype: Dtype | Mapping[Hashable, Dtype | None] | None = None,
+        dtype: DtypeArg | None = None,
         copy: bool | None = None,
     ) -> None:
         allow_mgr = False

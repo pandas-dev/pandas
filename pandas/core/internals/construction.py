@@ -61,7 +61,11 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    BaseMaskedArray,
+    ExtensionArray,
+)
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     array as pd_array,
@@ -428,15 +432,16 @@ def _cast_from_values(
             if col_dtype is None or values.dtype == col_dtype == sub.dtype:
                 new_blocks.append(sub)
             elif is_1d_only_ea_dtype(col_dtype):
-                new_blocks.extend(
-                    new_block(
-                        sanitize_array(values[loc], None, dtype=col_dtype, copy=copy),
-                        BlockPlacement(slice(loc, loc + 1)),
-                        ndim=2,
-                        refs=refs,
+                for loc in sub.mgr_locs:
+                    arr = sanitize_array(values[loc], None, dtype=col_dtype, copy=copy)
+                    new_blocks.append(
+                        new_block(
+                            arr,
+                            BlockPlacement(slice(loc, loc + 1)),
+                            ndim=2,
+                            refs=refs if _may_share_memory(arr, values) else None,
+                        )
                     )
-                    for loc in sub.mgr_locs
-                )
             else:
                 arr = sanitize_array(
                     values[sub.mgr_locs.indexer],
@@ -445,8 +450,33 @@ def _cast_from_values(
                     copy=copy,
                     allow_2d=True,
                 )
-                new_blocks.append(new_block_2d(arr, sub.mgr_locs, refs=refs))
+                new_blocks.append(
+                    new_block_2d(
+                        arr,
+                        sub.mgr_locs,
+                        refs=refs if _may_share_memory(arr, values) else None,
+                    )
+                )
     return new_blocks
+
+
+def _may_share_memory(arr: ArrayLike, values: ArrayLike) -> bool:
+    """
+    Could ``arr`` view ``values``? True when this cannot be determined.
+    """
+    # not astype_is_view: sanitize_array views int64 as datetime64, astype copies
+    left, right = map(_backing_ndarray, (arr, values))
+    if not isinstance(left, np.ndarray) or not isinstance(right, np.ndarray):
+        return True
+    return np.may_share_memory(left, right)
+
+
+def _backing_ndarray(obj: ArrayLike) -> ArrayLike:
+    if isinstance(obj, NDArrayBackedExtensionArray):
+        return obj._ndarray
+    elif isinstance(obj, BaseMaskedArray):
+        return obj._data
+    return obj
 
 
 def astype_columns(
