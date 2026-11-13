@@ -2010,7 +2010,7 @@ def map_array(
             dict_with_default = mapper
             # Plain dicts go through an Index lookup, which matches NA to a
             # nan key for numeric dtypes when NaN and NA are interchangeable.
-            # Mirror that here so dict and defaultdict agree (GH #XXXXX).
+            # Mirror that here so dict and defaultdict agree (GH #72094).
             is_numeric = arr.dtype.kind in "iuf"
             na_matches_nan = is_nan_na() and is_numeric
 

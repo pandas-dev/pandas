@@ -318,7 +318,7 @@ Missing
 - Bug in :func:`array`, :meth:`Series.map`, :meth:`Index.insert`, the :class:`DataFrame` constructor and setting with enlargement with the ``future.distinguish_nan_and_na`` option enabled converting ``NaN`` to ``NA`` for nullable and PyArrow dtypes, or raising for :meth:`Series.map` on nullable integer data when every result is ``NaN`` (:issue:`71870`)
 - Bug in :meth:`Series.drop_duplicates`, :meth:`Series.unique`, :meth:`Series.value_counts`, :meth:`Series.isin` and related methods on ``object`` dtype treating NumPy NaN scalars such as ``np.float64("nan")`` as distinct values (:issue:`16632`)
 - Bug in :meth:`Series.map` and :meth:`Index.map` with the ``future.distinguish_nan_and_na`` option enabled turning ``None`` results and values missing from a dict or :class:`Series` mapper into ``NaN`` instead of ``NA`` for nullable and PyArrow dtypes (:issue:`71949`)
-- Bug in :meth:`Series.map` with a ``dict`` subclass defining ``__missing__``, such as :class:`collections.defaultdict`, not matching ``NA`` in nullable and PyArrow numeric dtypes to a ``np.nan`` key, unlike a plain ``dict`` (regression in 3.1.0) (:issue:`XXXXX`)
+- Bug in :meth:`Series.map` with a ``dict`` subclass defining ``__missing__``, such as :class:`collections.defaultdict`, not matching ``NA`` in nullable and PyArrow numeric dtypes to a ``np.nan`` key, unlike a plain ``dict`` (regression in 3.1.0) (:issue:`72094`)
 
 MultiIndex
 ^^^^^^^^^^

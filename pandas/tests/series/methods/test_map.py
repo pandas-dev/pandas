@@ -373,7 +373,7 @@ def test_map_defaultdict_unmutated(na_action):
     ],
 )
 def test_map_defaultdict_na_matches_nan_key(dtype, expected_dtype):
-    # GH#XXXXX
+    # GH#72094
     ser = pd.Series([1, None], dtype=dtype)
     result = ser.map(defaultdict(lambda: 0, {1: 10, np.nan: -1}))
     expected = pd.Series([10, -1], dtype=expected_dtype)
