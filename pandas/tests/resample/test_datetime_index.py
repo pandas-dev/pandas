@@ -2537,3 +2537,129 @@ def test_resample_easter():
         ),
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed, counts",
+    [
+        ("left", [9] + [1] * 7 + [17] + [1] * 7 + [8]),
+        ("right", [10] + [1] * 7 + [17] + [1] * 7 + [7]),
+    ],
+)
+def test_resample_business_hour(closed, counts, unit):
+    # GH#12351 time of day was dropped from the bin edges, raising
+    #  "Values falls after last bin"; out-of-hours values go in the
+    #  preceding bin
+    index = date_range("2016-02-11", "2016-02-12 23:00", freq="h", unit=unit)
+    ser = pd.Series(1, index=index)
+
+    result = ser.resample("bh", closed=closed).count()
+    expected = pd.Series(
+        counts, index=date_range("2016-02-10 16:00", periods=17, freq="bh", unit=unit)
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "freq", [offsets.BusinessHour(2), offsets.CustomBusinessHour(2)]
+)
+def test_resample_business_hour_partial_day(freq, unit):
+    # GH#12351 no empty bins before the first value or after a value at
+    #  closing time
+    index = date_range("2016-02-11 12:30", "2016-02-12 17:00", freq="30min", unit=unit)
+    ser = pd.Series(1, index=index)
+
+    result = ser.resample(freq).count()
+    expected = pd.Series(
+        [1, 4, 36, 4, 4, 4, 5],
+        index=date_range("2016-02-11 11:00", periods=7, freq=freq, unit=unit),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "freq, index, expected_index, counts",
+    [
+        (
+            "bh",
+            date_range(
+                "2016-02-12 15:00", "2016-02-15 10:00", freq="h", tz="US/Eastern"
+            ),
+            [
+                "2016-02-12 15:00",
+                "2016-02-12 16:00",
+                "2016-02-15 09:00",
+                "2016-02-15 10:00",
+            ],
+            [1, 65, 1, 1],
+        ),
+        (
+            # the first bin starts at a session boundary, labelled by its opening
+            "8bh",
+            DatetimeIndex(["2016-02-13 12:00", "2016-02-15 10:00"]),
+            ["2016-02-12 09:00", "2016-02-15 09:00"],
+            [1, 1],
+        ),
+        (
+            offsets.CustomBusinessHour(
+                start="10:00", end="13:00", holidays=["2016-02-12"]
+            ),
+            date_range("2016-02-11 11:00", "2016-02-15 11:00", freq="h"),
+            [
+                "2016-02-11 11:00",
+                "2016-02-11 12:00",
+                "2016-02-15 10:00",
+                "2016-02-15 11:00",
+            ],
+            [1, 94, 1, 1],
+        ),
+    ],
+)
+def test_resample_business_hour_non_business_days(freq, index, expected_index, counts):
+    # GH#12351 weekends and holidays go in the preceding bin
+    ser = pd.Series(1, index=index)
+
+    result = ser.resample(freq).count()
+    expected = pd.Series(
+        counts,
+        index=DatetimeIndex(expected_index, tz=index.tz, freq=freq).as_unit(index.unit),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("last", ["08:59:59.999999", "08:59:59.999999999"])
+def test_resample_business_hour_last_just_before_opening(last):
+    # GH#12351 a value just before opening belongs to the previous day's last bin
+    index = DatetimeIndex(["2016-02-11 08:00", f"2016-02-11 {last}"]).as_unit("ns")
+    ser = pd.Series(1, index=index)
+
+    result = ser.resample("bh").count()
+    expected = pd.Series(
+        [2], index=DatetimeIndex(["2016-02-10 16:00"], freq="bh").as_unit("ns")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_business_hour_closed_right_on_grid(unit):
+    # GH#12351 values on the grid close their bin: no empty bin at either end
+    index = date_range("2016-02-11 09:00", "2016-02-11 16:00", freq="h", unit=unit)
+    ser = pd.Series(1, index=index)
+
+    result = ser.resample("bh", closed="right").count()
+    expected = pd.Series(
+        1, index=date_range("2016-02-10 16:00", periods=8, freq="bh", unit=unit)
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_business_hour_closed_right_sub_microsecond():
+    # GH#12351 a value just past a grid point falls in the next right-closed bin
+    index = DatetimeIndex(["2016-02-11 10:30", "2016-02-11 16:00:00.000000001"])
+    ser = pd.Series(1, index=index)
+
+    result = ser.resample("bh", closed="right").count()
+    expected = pd.Series(
+        [1, 0, 0, 0, 0, 0, 1],
+        index=date_range("2016-02-11 10:00", periods=7, freq="bh", unit="ns"),
+    )
+    tm.assert_series_equal(result, expected)
