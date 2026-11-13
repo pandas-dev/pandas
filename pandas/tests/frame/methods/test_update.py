@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -96,6 +98,15 @@ class TestDataFrameUpdate:
         df = pd.DataFrame([[1.5, 1, 3.0]])
         with pytest.raises(exception, match=msg):
             df.update(df, **bad_kwarg)
+
+    def test_update_join_deprecated(self):
+        # GH#21855
+        df = pd.DataFrame({"A": [1.0, np.nan]})
+        other = pd.DataFrame({"A": [np.nan, 2.0]})
+        msg = "The 'join' keyword in DataFrame.update is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.update(other, join="left")
+        tm.assert_frame_equal(df, pd.DataFrame({"A": [1.0, 2.0]}))
 
     def test_update_raise_on_overlap(self):
         df = pd.DataFrame(
