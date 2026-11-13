@@ -437,7 +437,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     raise ValueError(msg) from err
 
             converters = (get_converter(s) for s in index_sample)
-            name = tuple(f(n) for f, n in zip(converters, name, strict=True))
+            # GH#44517 leave NA components as np.nan to match the keys in indices
+            name = tuple(
+                n if isna(n) else f(n) for f, n in zip(converters, name, strict=True)
+            )
         else:
             converter = get_converter(index_sample)
             name = converter(name)
