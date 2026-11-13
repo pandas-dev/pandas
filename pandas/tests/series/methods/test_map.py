@@ -362,6 +362,24 @@ def test_map_defaultdict_unmutated(na_action):
     assert default_map == expected_default_map
 
 
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Int64", "Int64"),
+        ("Float64", "Int64"),
+        pytest.param(
+            "int64[pyarrow]", "int64[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+def test_map_defaultdict_na_matches_nan_key(dtype, expected_dtype):
+    # GH#XXXXX
+    ser = pd.Series([1, None], dtype=dtype)
+    result = ser.map(defaultdict(lambda: 0, {1: 10, np.nan: -1}))
+    expected = pd.Series([10, -1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("arg_func", [dict, pd.Series])
 def test_map_dict_ignore_na(arg_func):
     # GH#47527
