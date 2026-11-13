@@ -68,6 +68,7 @@ from pandas.core.base import PandasObject
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
@@ -2479,6 +2480,8 @@ def _form_blocks(
             values, placement = _stack_arrays(tup_block, dtype)
             if is_dtlike:
                 values = ensure_wrapped_if_datetimelike(values)
+            else:
+                warn_non_native_byteorder(values)
             blk = block_type(values, placement=BlockPlacement(placement), ndim=2)
             nbs.append(blk)
 

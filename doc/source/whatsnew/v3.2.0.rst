@@ -164,6 +164,7 @@ Other deprecations
 - Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, ``cummax``, ``clip``, and the comparisons ``<``, ``<=``, ``>``, ``>=`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`, :issue:`70087`)
 - Deprecated :meth:`DataFrame.iterrows`. Use :meth:`DataFrame.itertuples` instead (:issue:`43874`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated constructing :class:`DataFrame`, :class:`Index` and :class:`Series` (including via ``astype``) from numeric data with non-native byte order (e.g. ``">f4"`` on a little-endian machine); this will raise in a future version. Convert with ``arr.astype(arr.dtype.newbyteorder("="))`` first (:issue:`53234`)
 - Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a list-like ``name`` to :meth:`Index.copy`; pass the label itself instead (:issue:`19171`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
@@ -252,6 +253,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
+- Bug in :func:`array`, :func:`factorize` and :func:`unique` with NumPy arrays of non-native byte order raising an unclear error, or for ``datetime64`` and ``timedelta64`` in :func:`factorize` and :func:`unique` returning incorrect values; these now raise a clear ``ValueError`` (:issue:`53234`)
 - Bug in :func:`to_numeric` raising ``TypeError`` for object values containing 0-dimensional :class:`numpy.ndarray` elements instead of converting them (:issue:`47408`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
 - Bug in :func:`to_numeric` with ``errors="coerce"`` on :class:`ArrowDtype` string data storing a float ``NaN`` for unparsable values instead of a missing value, and duplicating a parsed value into the position of a failed parse when the input already contained missing values (:issue:`67949`)
