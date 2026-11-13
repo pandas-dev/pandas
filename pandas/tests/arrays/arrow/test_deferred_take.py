@@ -208,6 +208,103 @@ def test_frame_take_copies_indexer_only_if_kept(df, indexer, monkeypatch):
     assert not copies
 
 
+def _string_frame(n=100):
+    return pd.DataFrame(
+        {
+            "i": np.arange(n),
+            "a": pd.array([f"a{i}" for i in range(n)], dtype=STR),
+            "b": pd.array([f"b{i}" for i in range(n)], dtype=STR),
+            "c": pd.array([f"c{i}" for i in range(n)], dtype=STR),
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "select",
+    [
+        lambda df: df.take(np.arange(0, 50, 3)),
+        lambda df: df[df["i"] % 3 == 0],
+        lambda df: df.iloc[[5, 1, 1, 30]],
+    ],
+    ids=["take", "mask", "iloc-repeats"],
+)
+def test_frame_selections_share_one_composed_selection(select):
+    df = _string_frame()
+    first = df.take(np.arange(99, -1, -2))
+    result = select(first)
+    selections = [result[col].array._pending_take.selection for col in "abc"]
+    # composed once, for all the deferred columns, and read-only since they
+    # share it
+    assert selections[0] is selections[1] is selections[2]
+    assert not selections[0].flags.writeable
+    eager = df.astype(dict.fromkeys("abc", object))
+    expected = select(eager.take(np.arange(99, -1, -2)))
+    tm.assert_frame_equal(result, expected.astype(dict.fromkeys("abc", STR)))
+
+
+def test_shared_selections_scope_ends_with_the_operation():
+    from pandas.core.arrays.arrow import deferred
+
+    df = _string_frame()
+    first = df.take(np.arange(99, -1, -2))
+    first.take(np.arange(10))
+    assert deferred._shared.get() is None
+    # columns selected on their own do not share
+    positions = np.arange(10)
+    a = first["a"].array.take(positions)
+    b = first["b"].array.take(positions)
+    assert a._pending_take.selection is not b._pending_take.selection
+
+
+def test_shared_selections_scope_ends_when_a_take_raises(monkeypatch):
+    from pandas.core.arrays.arrow import deferred
+
+    df = _string_frame()
+    first = df.take(np.arange(99, -1, -2))
+    calls = []
+    select = deferred.PendingTake.select
+
+    def fail_second(self, positions):
+        calls.append(deferred._shared.get())
+        if len(calls) == 2:
+            raise RuntimeError("take failed")
+        return select(self, positions)
+
+    monkeypatch.setattr(deferred.PendingTake, "select", fail_second)
+    with pytest.raises(RuntimeError, match="take failed"):
+        first.take(np.arange(10))
+    # the take ran inside the scope, which the error still closed
+    assert calls[0] is not None
+    assert deferred._shared.get() is None
+
+
+def test_columns_with_different_selections_do_not_share():
+    df = _string_frame()
+    a = df["a"].take(np.arange(0, 100, 2)).reset_index(drop=True)
+    b = df["b"].take(np.arange(99, -1, -2)).reset_index(drop=True)
+    frame = pd.concat([a, b], axis=1)
+    assert _is_pending(frame["a"].array)
+    assert _is_pending(frame["b"].array)
+    result = frame.take(np.arange(0, 50, 5))
+    selections = [result[col].array._pending_take.selection for col in "ab"]
+    assert selections[0] is not selections[1]
+    assert result["a"].tolist() == [f"a{i}" for i in range(0, 100, 10)]
+    assert result["b"].tolist() == [f"b{i}" for i in range(99, -1, -10)]
+
+
+def test_shared_selection_survives_gathering_one_column():
+    df = _string_frame()
+    first = df.take(np.arange(99, -1, -2))
+    second = first.take(np.arange(0, 50, 2))
+    # gathering one column leaves the shared selection to the others
+    gathered = second["a"].array._pa_array
+    assert gathered.to_pylist() == [f"a{i}" for i in range(99, -1, -4)]
+    assert second["b"].tolist() == [f"b{i}" for i in range(99, -1, -4)]
+    third = second.take(np.arange(5))
+    assert third["c"].tolist() == [f"c{i}" for i in range(99, 79, -4)]
+    assert third["a"].tolist() == [f"a{i}" for i in range(99, 79, -4)]
+
+
 def test_merge_shares_indexer_per_side():
     left = pd.DataFrame(
         {

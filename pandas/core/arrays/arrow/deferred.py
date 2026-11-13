@@ -20,13 +20,23 @@ and, to avoid gathering where it is not needed:
 * ``__getitem__`` with a slice calls ``PendingTake.select_slice``, and with an
   integer ``PendingTake.value_at``;
 * ``copy`` calls ``PendingTake.gather_copy``.
+
+A frame applies a selection to each of its columns separately, but after the
+first selection the deferred columns all hold the same selection array (see
+``BlockManager.reindex_indexer``). Inside ``shared_selections``, the columns
+compose it with the next selection's positions once between them, and keep
+one array for the result, so a chain of selections costs about the same
+whatever the number of deferred columns.
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 import threading
 from typing import (
     TYPE_CHECKING,
+    TypeVar,
     cast,
 )
 
@@ -38,7 +48,40 @@ if HAS_PYARROW:
     import pyarrow as pa
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import npt
+
+    _Selection = npt.NDArray[np.intp] | npt.NDArray[np.bool_]
+    # the two arrays composed, held so their ids cannot be reused while the
+    # entry exists, and the composed selection
+    _SharedEntry = tuple[object, object, _Selection]
+
+_ScalarT = TypeVar("_ScalarT", bound=np.generic)
+
+# the selections composed in the innermost ``shared_selections`` block, by
+# the ids of the two arrays composed; None outside one
+_shared: ContextVar[dict[tuple[int, int], _SharedEntry] | None] = ContextVar(
+    "_shared_selections", default=None
+)
+
+
+@contextmanager
+def shared_selections() -> Iterator[None]:
+    """
+    Within this block, deferred takes that compose the same selection array
+    with the same positions array share the result, if the positions can
+    never change (see ``freeze``).
+
+    For a frame operation that selects the same rows from each column. The
+    composed selections are kept only until the block exits, along with the
+    arrays they were composed from, so an id cannot be reused meanwhile.
+    """
+    token = _shared.set({})
+    try:
+        yield
+    finally:
+        _shared.reset(token)
 
 
 def _take_by_chunk(
@@ -296,6 +339,16 @@ class PendingTake:
         parent, base = self.source(positions=not is_mask)
         if base is None:
             return None
+        shared = None
+        if isinstance(positions, np.ndarray) and is_immutable(positions):
+            # positions that can never change: equal arrays compose equally
+            shared = _shared.get()
+        key = (id(base), id(positions))
+        if shared is not None:
+            entry = shared.get(key)
+            if entry is not None:
+                # another column composed this pair already: share its result
+                return _pending_or_empty(parent, entry[2])
         composed: npt.NDArray[np.intp] | npt.NDArray[np.bool_]
         if base.dtype == np.bool_:
             # a mask of a mask: select among the rows ``base`` keeps
@@ -306,6 +359,12 @@ class PendingTake:
             # indexing a NumPy array with an array or a slice: a new array
             # or a view of ``base``, which is never modified
             composed = base[positions]
+        if shared is not None:
+            # columns share it from now on. Nothing writes to a selection,
+            # and only the deferred takes hold this new array, so the flag
+            # keeps it unchanged without copying it into ``bytes``.
+            composed.flags.writeable = False
+            shared[key] = (base, positions, composed)
         return _pending_or_empty(parent, composed)
 
     def select_slice(self, item: slice) -> PendingTake | pa.ChunkedArray | None:
@@ -344,12 +403,20 @@ class PendingTake:
         return _drop_unused_validity(_select(parent, base))
 
 
+def freeze(values: npt.NDArray[_ScalarT]) -> npt.NDArray[_ScalarT]:
+    """
+    A copy of ``values`` in memory that can never change, so that deferred
+    takes can keep it as it is (see ``is_immutable``).
+    """
+    return np.frombuffer(values.tobytes(), dtype=values.dtype)
+
+
 def is_immutable(values: np.ndarray) -> bool:
     """
     Whether the memory of ``values`` can never change: it belongs to a
-    ``bytes`` object, as that of an indexer frozen with ``np.frombuffer``
-    does. A read-only flag is not enough, since the owner of the memory can
-    make it writeable again.
+    ``bytes`` object, as that of an array made by ``freeze`` does. A
+    read-only flag is not enough, since the owner of the memory can make it
+    writeable again.
     """
     base: object = values
     while isinstance(base, np.ndarray):
