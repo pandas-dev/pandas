@@ -70,6 +70,7 @@ if TYPE_CHECKING:
         TimeUnit,
         npt,
     )
+
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -1214,7 +1215,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.ceil : Perform ceil operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -1265,7 +1265,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to floor the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1306,7 +1307,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.ceil : Perform ceil operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -1357,7 +1357,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to ceil the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1398,7 +1399,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.floor : Perform floor operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2065,6 +2065,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Snap time stamps to nearest occurring frequency.
 
+        .. deprecated:: 3.2.0
+            For fixed frequencies ``snap`` returns the values unchanged; use
+            :meth:`DatetimeIndex.round` if rounding was intended. For other
+            offsets, use::
+
+                offset = pd.tseries.frequencies.to_offset(freq)
+                back, fwd = idx.map(offset.rollback), idx.map(offset.rollforward)
+                fwd.where(fwd - idx <= idx - back, back)
+
         Each timestamp in the index is adjusted to the nearest occurrence of
         the specified frequency, snapping backward or forward as appropriate.
 
@@ -2096,10 +2105,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx
         DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
         dtype='datetime64[ns]', freq=None)
-        >>> idx.snap("MS")
+        >>> idx.snap("MS")  # doctest: +SKIP
         DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
         dtype='datetime64[ns]', freq=None)
         """
+        warnings.warn(
+            "DatetimeIndex.snap is deprecated and will be removed in a future "
+            "version. For non-fixed offsets, use the offset's rollback and "
+            "rollforward methods. For fixed frequencies snap returns the values "
+            "unchanged; use DatetimeIndex.round if rounding was intended.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 

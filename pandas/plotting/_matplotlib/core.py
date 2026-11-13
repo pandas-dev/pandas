@@ -8,8 +8,10 @@ from collections.abc import (
     Hashable,
     Iterable,
     Iterator,
+    Mapping,
     Sequence,
 )
+from datetime import timedelta
 from decimal import Decimal
 from functools import partial
 from typing import (
@@ -266,6 +268,9 @@ class MPLPlot(ABC):
         self.logy = type(self)._validate_log_kwd("logy", logy)
         self.loglog = type(self)._validate_log_kwd("loglog", loglog)
         self.label = label
+        if is_list_like(style, allow_sets=False) and not isinstance(style, Mapping):
+            # e.g. tuple or ndarray, used positionally like a list GH#46289
+            style = list(style)
         self.style = style
         self.mark_right = mark_right
         self.stacked = stacked
@@ -737,11 +742,14 @@ class MPLPlot(ABC):
             include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = []
+        exclude_type: list[type] = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
             exclude_type = [np.timedelta64]
+        elif self._kind == "hist":
+            # GH#43941 match the frame path, which skips timedelta columns
+            exclude_type = [np.timedelta64, timedelta]
 
         # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":
@@ -1411,8 +1419,9 @@ class ScatterPlot(PlanePlot):
         x_data = data[x]
         s = Series(index=x_data)
         if use_dynamic_x(ax, s.index):
+            timestamps = s.index if isinstance(s.index, ABCDatetimeIndex) else None
             s, index_freq = maybe_convert_index(ax, s)
-            freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
+            freq, s, _ = prepare_ts_data(s, ax, self.kwds, index_freq, timestamps)
             x_data = s.index
         elif isinstance(s.index, (ABCDatetimeIndex, ABCPeriodIndex)):
             # GH#40470
@@ -1633,7 +1642,7 @@ class LinePlot(MPLPlot):
             ax0 = self._get_ax(0)
             data, index_freq = maybe_convert_index(ax0, self.data)
 
-            x = data.index  # dummy, not used
+            x = self.data.index
             plotf = partial(self._ts_plot, index_freq=index_freq)
             it = data.items()
         else:
@@ -1711,6 +1720,18 @@ class LinePlot(MPLPlot):
                 format_dateaxis(ax, ax.freq, index)  # type: ignore[attr-defined]
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
+                # don't cut off data on sharex siblings; siblings at another
+                # freq hold x-values in other units, GH#14074
+                for sibling in ax.get_shared_x_axes().get_siblings(ax):
+                    sibling_freq = getattr(sibling, "freq", None)
+                    if (
+                        sibling is not ax
+                        and sibling_freq == ax.freq  # type: ignore[attr-defined]
+                        # set by ax.clear(), which leaves a stale dataLim
+                        and not sibling.ignore_existing_data_limits
+                    ):
+                        sib_left, sib_right = sibling.dataLim.intervalx
+                        left, right = min(left, sib_left), max(right, sib_right)
                 ax.set_xlim(left, right)
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
@@ -1744,22 +1765,28 @@ class LinePlot(MPLPlot):
         index_freq: str | None = None,
         **kwds,
     ):
-        # accept x to be consistent with normal plot func,
-        # x is not passed to tsplot as it uses data.index as x coordinate
+        # x is the unconverted index of data; data.index is used as x coordinate
         # column_num must be in kwds for stacking purpose
-        _freq, data = prepare_ts_data(data, ax, kwds, index_freq)
+        timestamps: Index | None = x if isinstance(x, ABCDatetimeIndex) else None
+        _freq, data, timestamps = prepare_ts_data(
+            data, ax, kwds, index_freq, timestamps
+        )
 
         # prepare_ts_data set ax.freq and returned data re-expressed at that
         # freq, so these two agree even when the series was re-expressed at
         # the axes frequency.  The frame-level index would not (GH#64311).
         self._ts_index[id(ax)] = data.index
 
-        # TODO #54485
-        ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
+        # cache the original timestamps so a replot at a finer freq places
+        # them correctly (GH#11574)
+        cached = data if timestamps is None else data.set_axis(timestamps)
 
         lines = self._plot(
             ax, data.index, np.asarray(data._values), style=style, **kwds
         )
+        # keep the artist so the entry can be dropped once it leaves the axes
+        # TODO #54485
+        ax._plot_data.append((cached, self._kind, kwds, lines[0]))  # type: ignore[attr-defined]
         # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 
@@ -1892,6 +1919,8 @@ class AreaPlot(LinePlot):
 
         if self.logy or self.loglog:
             raise ValueError("Log-y scales are not supported in area plot")
+        if isinstance(self.kwds.get("hatch"), dict):
+            raise TypeError("hatch must be a string or a list of strings, not a dict")
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
@@ -1910,8 +1939,8 @@ class AreaPlot(LinePlot):
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds["label"])
 
+        line_kwds, fill_kwds = cls._split_line_fill_kwds(kwds)
         # need to remove label, because subplots uses mpl legend as it is
-        line_kwds = kwds.copy()
         line_kwds.pop("label")
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
@@ -1930,15 +1959,54 @@ class AreaPlot(LinePlot):
         else:
             start = np.zeros(len(y))
 
-        if "color" not in kwds:
-            kwds["color"] = lines[0].get_color()
+        fill_kwds = mpl.cbook.normalize_kwargs(
+            fill_kwds, mpl.collections.PolyCollection
+        )
+        # one hatch per column, as in matplotlib's stackplot
+        if is_list_like(fill_kwds.get("hatch")):
+            hatches = list(fill_kwds["hatch"])
+            fill_kwds["hatch"] = hatches[(column_num or 0) % len(hatches)]
+        # Set face and edge separately so that a passed facecolor/edgecolor wins,
+        # and leave the edge unset under a hatch, which is drawn in the edge color.
+        color = fill_kwds.pop("color", lines[0].get_color())
+        fill_kwds.setdefault("facecolor", color)
+        if not fill_kwds.get("hatch"):
+            fill_kwds.setdefault("edgecolor", color)
 
-        rect = ax.fill_between(xdata, start, y_values, **kwds)
+        rect = ax.fill_between(xdata, start, y_values, **fill_kwds)
         cls._update_stacker(ax, stacking_id, y)
 
         # LinePlot expects list of artists
         res = [rect]
         return res
+
+    @staticmethod
+    def _split_line_fill_kwds(
+        kwds: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """
+        Split kwds between the line and the fill, so that e.g. ``hatch`` or
+        ``marker`` do not raise on the artist that lacks them (GH#12354).
+        """
+        line_kwds: dict[str, Any] = {}
+        fill_kwds: dict[str, Any] = {}
+        for key, value in kwds.items():
+            on_line = hasattr(mpl.lines.Line2D, f"set_{key}")
+            on_fill = hasattr(mpl.collections.PolyCollection, f"set_{key}") or key in {
+                "where",
+                "interpolate",
+            }
+            # A kwarg both artists know, or neither (so matplotlib raises), goes to
+            # both. drawstyle goes to both too so that, like step, it keeps raising:
+            # the fill would not step with it, see GH#29451.
+            if on_line == on_fill or key in {"drawstyle", "ds"}:
+                line_kwds[key] = value
+                fill_kwds[key] = value
+            elif on_line:
+                line_kwds[key] = value
+            else:
+                fill_kwds[key] = value
+        return line_kwds, fill_kwds
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
@@ -2406,12 +2474,20 @@ class PiePlot(MPLPlot):
             )
         return False
 
-    def _validate_color_args(self, color, colormap) -> None:
-        # TODO: warn if color is passed and ignored?
-        return None
+    def _validate_color_args(self, color, colormap):
+        # GH#11228 honor "color" like other plot kinds
+        if color is lib.no_default or color is None:
+            return None
+        if "colors" in self.kwds:
+            raise TypeError("Only specify one of `color` and `colors`.")
+        if isinstance(color, dict):
+            # matplotlib would read the keys as colors
+            raise TypeError("pie plots do not support a dict for `color`.")
+        return color
 
     def _make_plot(self, fig: Figure) -> None:
-        colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
+        color_kwds = "colors" if self.color is None else "color"
+        colors = self._get_colors(num_colors=len(self.data), color_kwds=color_kwds)
         self.kwds.setdefault("colors", colors)
 
         for i, (label, y) in enumerate(self._iter_data(data=self.data)):

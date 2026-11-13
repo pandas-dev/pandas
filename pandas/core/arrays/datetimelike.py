@@ -493,10 +493,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            # error: Argument 1 to "Timestamp" has incompatible type "object";
-            # expected "integer[Any] | float | str | date | datetime |
-            # datetime64[date | int | None]"  [arg-type]
-            other = self._scalar_type(other)  # type: ignore[arg-type]
+            # error: No overload variant of "Timestamp" matches argument type
+            # "object"  [call-overload]
+            other = self._scalar_type(other)  # type: ignore[call-overload]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -568,9 +567,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(msg)
 
         elif isinstance(value, self._recognized_scalars):
-            # error: Argument 1 to "Timestamp" has incompatible type "object"; expected
-            # "integer[Any] | float | str | date | datetime | datetime64"
-            value = self._scalar_type(value)  # type: ignore[arg-type]
+            # error: No overload variant of "Timestamp" matches argument type
+            # "object"  [call-overload]
+            value = self._scalar_type(value)  # type: ignore[call-overload]
 
         else:
             msg = self._validation_error_message(value, allow_listlike)
@@ -615,6 +614,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return msg
 
     def _validate_listlike(self, value, allow_object: bool = False):
+        if isinstance(value, np.ndarray) and value.ndim == 2:
+            # the 1-D path below parses strings, which pd_array cannot do in 2-D
+            result = self._validate_listlike(value.ravel(), allow_object)
+            return result.reshape(value.shape)
+
         if isinstance(value, type(self)):
             if self.dtype.kind in "mM" and not allow_object and self.unit != value.unit:  # type: ignore[attr-defined]
                 # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
@@ -758,12 +762,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         from pandas import Index
 
         result = map_array(self, mapper, na_action=na_action)
-        result = Index(result)
+        result = Index(result, copy=False)
 
         if isinstance(result, ABCMultiIndex):
             return result.to_numpy()
         else:
-            return result.array
+            return result._data
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
@@ -2102,8 +2106,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2166,7 +2168,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         ----------
         freq : str or Offset
             The frequency level to floor the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or for datetimes a single step of
+            a date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -2209,8 +2212,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -2273,7 +2274,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         ----------
         freq : str or Offset
             The frequency level to ceil the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or for datetimes a single step of
+            a date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -2316,8 +2318,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.floor :
             Perform floor operation on the data to the specified `freq`.
-        DatetimeIndex.snap :
-            Snap time stamps to nearest occurring frequency.
 
         Notes
         -----

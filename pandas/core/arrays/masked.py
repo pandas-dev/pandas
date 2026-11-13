@@ -100,24 +100,24 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
-    from pandas import Series
-    from pandas.core.arrays import BooleanArray
+
+    from pandas._libs.missing import NAType
     from pandas._typing import (
-        Dtype,
-        NumpySorter,
-        NumpyValueArrayLike,
         ArrayLike,
         AstypeArg,
         AxisInt,
+        Dtype,
         DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NpDtype,
+        NumpySorter,
+        NumpyValueArrayLike,
         PositionalIndexer,
         RankMethod,
         RankNaOption,
@@ -127,8 +127,12 @@ if TYPE_CHECKING:
         Shape,
         npt,
     )
-    from pandas._libs.missing import NAType
-    from pandas.core.arrays import FloatingArray
+
+    from pandas import Series
+    from pandas.core.arrays import (
+        BooleanArray,
+        FloatingArray,
+    )
 
 from pandas.compat.numpy import function as nv
 
@@ -214,11 +218,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if isna(values).all():
-            try:
+            # NA-ness depends only on type, so check one value per type;
+            #  others (e.g. NaT) go through inference below, GH#70233
+            by_type = {type(x): x for x in values}
+            if all(is_valid_na_for_dtype(x, self.dtype) for x in by_type.values()):
                 return type(self)._from_sequence(values, dtype=self.dtype)
-            except TypeError:
-                # e.g. NaT goes through inference instead, GH#70233
-                pass
         if not (isinstance(values, np.ndarray) and values.dtype == object):
             values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
@@ -371,12 +375,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Fast path: single-pass Cython for scalar fill values. GH#42147
         # Skip when fill value is itself NA — filling NAs with NA is a no-op,
         # and the Cython path would incorrectly clear mask bits.
-        # When NaN and NA are distinguished (is_nan_na() is False), float NaN
-        # is a valid fill value, not NA.
-        value_is_na = is_valid_na_for_dtype(value, self.dtype) and not (
-            lib.is_float(value) and not is_nan_na()
-        )
-        if lib.is_scalar(value) and not value_is_na:
+        if lib.is_scalar(value) and not is_valid_na_for_dtype(value, self.dtype):
             if not mask.any():
                 return self.copy() if copy else self[:]
             try:
@@ -523,9 +522,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_scalar(value):
-            if is_valid_na_for_dtype(value, self.dtype) and not (
-                lib.is_float(value) and not is_nan_na()
-            ):
+            if is_valid_na_for_dtype(value, self.dtype):
                 self._mask[key] = True
             else:
                 value = self._validate_setitem_value(value)
@@ -1638,14 +1635,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         from pandas.arrays import IntegerArray
 
-        keys, value_counts, na_counter = algos.value_counts_arraylike(
+        keys, value_counts, na_pos = algos.value_counts_arraylike(
             self._data, dropna=dropna, mask=self._mask
         )
         mask_index = np.zeros((len(value_counts),), dtype=np.bool_)
         mask = mask_index.copy()
 
-        if na_counter > 0:
-            mask_index[-1] = True
+        if na_pos != -1:
+            mask_index[na_pos] = True
 
         arr = IntegerArray(value_counts, mask)
         index = Index(

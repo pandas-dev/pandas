@@ -16,6 +16,8 @@ from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 
+from pandas.core.dtypes.common import needs_i8_conversion
+
 from pandas import (
     MultiIndex,
     option_context,
@@ -85,6 +87,12 @@ class HTMLFormatter:
             if is_multi_index and isinstance(column, tuple):
                 for column_index in column:
                     self.col_space[str(column_index)] = col_space_value
+        if self.col_space and not is_multi_index:
+            # write_th looks up col_space by the written (formatted) label
+            formatted = self._get_columns_formatted_values()
+            for label, fmt_label in zip(self.columns, formatted, strict=True):
+                if label in self.col_space:
+                    self.col_space.setdefault(fmt_label, self.col_space[label])
 
     def to_string(self) -> str:
         lines = self.render()
@@ -94,14 +102,15 @@ class HTMLFormatter:
 
     def render(self) -> list[str]:
         self._write_table()
+        self._write_footer()
+        return self.elements
 
+    def _write_footer(self) -> None:
         if self.should_show_dimensions:
             by = chr(215)  # ×  # noqa: RUF003
             self.write(
                 f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
             )
-
-        return self.elements
 
     @property
     def should_show_dimensions(self) -> bool:
@@ -131,6 +140,10 @@ class HTMLFormatter:
         return 0
 
     def _get_columns_formatted_values(self) -> Iterable[Hashable]:
+        if needs_i8_conversion(self.columns.dtype):
+            # match the row labels, e.g. no all-midnight times (GH#10640); other
+            # dtypes stay raw so display.precision does not apply (GH#17280)
+            return self.columns._format_flat(include_name=False)
         return self.columns
 
     @property
@@ -279,7 +292,7 @@ class HTMLFormatter:
         row: list[Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
-            template = 'colspan="{span:d}" halign="left"'
+            template = 'colspan="{span:d}"'
 
             sentinel: lib.NoDefault | bool
             if self.fmt.sparsify:
@@ -656,3 +669,25 @@ class NotebookFormatter(HTMLFormatter):
         super().render()
         self.write("</div>")
         return self.elements
+
+
+class SeriesNotebookFormatter(NotebookFormatter):
+    """
+    Internal class for Series._repr_html_().
+
+    Renders ``series.to_frame()`` without a column header, followed by the
+    footer of the Series text repr, so the result is visually distinct from
+    a one-column DataFrame.
+    """
+
+    def __init__(self, formatter: DataFrameFormatter, footer: str) -> None:
+        super().__init__(formatter)
+        self.footer = footer
+
+    def _write_footer(self) -> None:
+        if self.footer:
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
+            lines = [
+                pprint_thing(line, escape_chars=esc) for line in self.footer.split("\n")
+            ]
+            self.write(f"<p>{'<br>'.join(lines)}</p>")

@@ -31,7 +31,6 @@ import pytest
 
 from pandas.compat import (
     PY312,
-    pa_version_under20p0,
     pa_version_under21p0,
 )
 
@@ -368,9 +367,6 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if pa_version_under20p0 and op_name in ("skew", "kurt"):
-            return False
-
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
@@ -499,15 +495,6 @@ class TestArrowArray(base.ExtensionTests):
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
-        op_name = all_numeric_reductions
-        if op_name in ("skew", "kurt") and pa_version_under20p0:
-            if data.dtype._is_numeric:
-                mark = pytest.mark.xfail(reason=f"{op_name} not implemented")
-                request.applymarker(mark)
-        return super().test_reduce_frame(data, all_numeric_reductions, skipna)
-
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype):
@@ -560,14 +547,6 @@ class TestArrowArray(base.ExtensionTests):
     )
     def test_view(self, data):
         super().test_view(data)
-
-    def test_fillna_no_op_returns_copy(self, data):
-        data = data[~data.isna()]
-
-        valid = data[0]
-        result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
 
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
@@ -1000,28 +979,6 @@ class TestArrowArray(base.ExtensionTests):
         else:
             super().test_json_roundtrip(data)
 
-    def test_plot_on_x_axis(self, plot_data):
-        # GH 64535
-        # Setup expected exception and message for expected failures
-        err_cls = None
-        err_msg = ""
-
-        # Set expected values for certain dtypes
-        pa_dtype = plot_data["Data"].dtype.pyarrow_dtype
-
-        # Certain dtypes fail with NA values
-        if plot_data["Data"].isna().any():
-            if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-                err_cls = TypeError
-                err_msg = re.escape("Failed to convert value(s) to axis units: array(")
-
-        # Call test, errors should only be raised for unsupported dtypes set above
-        if err_cls:
-            with pytest.raises(err_cls, match=err_msg):
-                super().test_plot_on_x_axis(plot_data)
-        else:
-            super().test_plot_on_x_axis(plot_data)
-
     def test_plot_on_y_axis(self, plot_data):
         # GH 64535
         # Setup expected exception and message for expected failures
@@ -1054,11 +1011,6 @@ class TestArrowArray(base.ExtensionTests):
                 pytest.importorskip("matplotlib")
                 wrn_cls = UserWarning
                 wrn_msg = "Warning: converting a masked element to nan."
-            elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-                err_cls = TypeError
-                err_msg = re.escape(
-                    "Failed to convert value(s) to axis units: masked_array(data="
-                )
 
         # Call test, errors and warnings should only be raised for unsupported dtypes
         # set above

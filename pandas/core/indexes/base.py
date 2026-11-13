@@ -3748,7 +3748,7 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
             that = other.astype(dtype, copy=False)
-            return this.symmetric_difference(that, sort=sort).rename(result_name)
+            return this.symmetric_difference(that, result_name, sort=sort)
 
         this = self.unique()
         other = other.unique()
@@ -3775,7 +3775,11 @@ class Index(IndexOpsMixin, PandasObject):
             if len(result) == 0:
                 # result might be an Index, if other was an Index
                 return left_diff.remove_unused_levels().set_names(result_name)
-            result = cast("Index", result)
+            if not isinstance(result, ABCMultiIndex):
+                # other held non-tuple labels, so the result is flat, as in union;
+                #  per-level names do not apply to it
+                name = None if is_list_like(result_name) else result_name
+                return Index(result, name=name)
             return result.set_names(result_name)
 
     @final
@@ -6898,21 +6902,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
-            if isinstance(self, MultiIndex):
-                names = self.names
-            elif self.name:
-                names = [self.name] * len(new_values[0])
-            else:
-                names = None
-            # ValueError: tuples of different lengths, return a flat Index
-            #  (GH#50293); names are set afterwards so a mismatch still raises
-            try:
-                result = MultiIndex.from_tuples(new_values)
-            except ValueError:
-                pass
-            else:
-                if names is not None:
-                    result.names = names
+            width = len(new_values[0])
+            # non-tuples or tuples of different lengths give a flat Index, GH#50293
+            if all(
+                isinstance(val, tuple) and len(val) == width
+                for val in new_values[~isna(new_values)]
+            ):
+                # unlike an ndarray, list input accepts NA entries
+                result = MultiIndex.from_tuples(new_values.tolist())
+                if isinstance(self, MultiIndex):
+                    # only keep names if the number of levels is unchanged, GH#24800
+                    if self.nlevels == result.nlevels:
+                        result.names = self.names
+                elif self.name:
+                    result.names = [self.name] * result.nlevels
                 return result
 
         dtype = None
@@ -7380,19 +7383,23 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, defaults None
-            If None, defaults to 1.
+            If None, defaults to 1. Only the sign is used: a negative ``step``
+            gives bounds for a reversed slice.
 
         Returns
         -------
         tuple[int, int]
             Returns a tuple of two integers representing the slice locations for the
-            input labels within the index.
+            input labels within the index. Use them together with ``step``, as
+            ``slice(start, end, step)``.
 
         See Also
         --------
         Index.get_loc : Get location for a single label.
         Index.get_slice_bound : Calculate the slice bound for a single label;
             used internally by ``slice_locs`` for each of ``start`` and ``end``.
+        Index.slice_indexer : Compute the slice for input labels, including
+            ``step``.
 
         Notes
         -----
@@ -7417,6 +7424,18 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(list("bcde"))
         >>> idx.slice_locs(start="a", end="c")
         (0, 2)
+
+        ``step`` only sets the direction; apply it to the returned bounds:
+
+        >>> idx = pd.Index(list("abcde"))
+        >>> idx.slice_locs(start="b", end="d", step=2)
+        (1, 4)
+        >>> idx[1:4:2]
+        Index(['b', 'd'], dtype='str')
+        >>> idx.slice_locs(start="d", end="b", step=-1)
+        (3, 0)
+        >>> idx[3:0:-1]
+        Index(['d', 'c', 'b'], dtype='str')
         """
         inc = step is None or step >= 0
 

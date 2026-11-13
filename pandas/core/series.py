@@ -4,6 +4,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.formats.info",)
+
 from collections.abc import (
     Callable,
     Hashable,
@@ -26,6 +28,8 @@ from typing import (
 import warnings
 
 import numpy as np
+
+from pandas._config import get_option
 
 from pandas._libs import (
     lib,
@@ -116,6 +120,7 @@ from pandas.core.arrays.arrow import (
     StructAccessor,
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
+from pandas.core.arrays.interval import IntervalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.construction import (
     array as pd_array,
@@ -1618,6 +1623,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
+    def _repr_html_(self) -> str | None:
+        """
+        Return a html representation for a particular Series.
+
+        Mainly for IPython notebook.
+        """
+        # circular import
+        from pandas.io.formats.html import SeriesNotebookFormatter
+
+        if not get_option("display.notebook_repr_html"):
+            return None
+
+        formatter = fmt.DataFrameFormatter(
+            self.to_frame(),
+            header=False,
+            index_names=True,
+            bold_rows=True,
+            escape=True,
+            float_format=get_option("display.float_format"),
+            max_rows=get_option("display.max_rows"),
+            min_rows=get_option("display.min_rows"),
+            show_dimensions=False,
+        )
+        # truncate as the table does, so the footer agrees with it
+        footer = fmt.SeriesFormatter(
+            self,
+            name=True,
+            dtype=True,
+            length=get_option("display.show_dimensions"),
+            max_rows=formatter.max_rows_fitted,
+        )._get_footer()
+        return SeriesNotebookFormatter(formatter, footer=footer).to_string()
+
     @overload
     def to_string(
         self,
@@ -2146,7 +2184,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of the
             same length as the Series is passed (see the `groupby user guide
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#splitting-an-object-into-groups>`_),
             the values are used as-is to determine the groups. An index level
             name may also be passed to group by a level of the Series' index.
             Notice that a tuple is interpreted as a (single) key.
@@ -7380,6 +7418,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     cat = Accessor("cat", CategoricalAccessor)
     plot = Accessor("plot", pandas.plotting.PlotAccessor)
     sparse = Accessor("sparse", SparseAccessor)
+    # not in _accessors, so a label "interval" on a non-interval Series stays
+    #  reachable as an attribute
+    interval = Accessor("interval", IntervalAccessor)
     struct = Accessor("struct", StructAccessor)
     list = Accessor("list", ListAccessor)
 

@@ -20881,7 +20881,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/matplotlib-base-3.11.2-py313he85fb2c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/mmh3-5.3.1-py313hbdba758_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/multidict-6.7.1-py313h3dea7bd_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/mypy-2.1.0-py313hc25a8b5_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/mypy-2.4.0-py313hd42f317_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.6-hdb14827_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ninja-1.13.2-h171cf75_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/nlohmann_json-3.12.0-h54a6638_2.conda
@@ -21270,7 +21270,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/matplotlib-base-3.11.2-py313hc3ff0d0_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/mmh3-5.3.1-py313hcd9d686_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/multidict-6.7.1-py313hd3a54cf_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/mypy-2.1.0-py313h0aca3f2_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/mypy-2.4.0-py313he745173_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/ncurses-6.6-h2b6f883_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/ninja-1.13.2-hdc560ac_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/nlohmann_json-3.12.0-h7ac5ae9_2.conda
@@ -21797,7 +21797,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/matplotlib-base-3.11.2-py313h42ce095_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/mmh3-5.3.1-py313h95728b0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/multidict-6.7.1-py313h84cef87_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-64/mypy-2.1.0-py313h0b0ee5e_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-64/mypy-2.4.0-py313h4b81b55_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/ncurses-6.6-hcc0dc9a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/ninja-1.13.2-hebe015c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/nlohmann_json-3.12.0-h2fb4741_2.conda
@@ -22154,7 +22154,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/matplotlib-base-3.11.2-py313h6702c6e_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/mmh3-5.3.1-py313hb6048c5_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/multidict-6.7.1-py313haf6918d_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/mypy-2.1.0-py313h3e91af1_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/mypy-2.4.0-py313h2f871a8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.6-he64c551_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ninja-1.13.2-h3feff0a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/nlohmann_json-3.12.0-h784d473_2.conda
@@ -22478,7 +22478,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/matplotlib-base-3.11.2-py313hd763eb3_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/mmh3-5.3.1-py313hfe59770_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/multidict-6.7.1-py313hd650c13_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/win-64/mypy-2.1.0-py313h4ac8b90_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/mypy-2.4.0-py313h5fd188c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/ninja-1.13.2-h477610d_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/nlohmann_json-3.12.0-h5112557_2.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/numba-0.68.0-py313h927ade5_1.conda
@@ -29387,25 +29387,25 @@ packages:
   run_exports: {}
   size: 155230
   timestamp: 1792423153406
-- conda: https://conda.anaconda.org/conda-forge/linux-64/mypy-2.1.0-py313hc25a8b5_0.conda
-  sha256: 3666f4a3ecea885be8ee0e7fda391104e0b9da064e395a72ce94fa672304f484
-  md5: dbfcb53c34482ece0664e53cb975c585
+- conda: https://conda.anaconda.org/conda-forge/linux-64/mypy-2.4.0-py313hd42f317_0.conda
+  sha256: c07ef46f38a6321b262f3321a48a0348b9b9c1579f72549cfaf0c1ba4f66f89f
+  md5: 59facbe7c53032e17e407ad8eaf76fc1
   depends:
-  - ast-serialize >=0.3.0,<1.0.0
+  - ast-serialize >=0.11.2,<1.0.0
   - mypy_extensions >=1.0.0
   - pathspec >=1.0.0
   - python
-  - python-librt >=0.11.0
-  - typing_extensions >=4.6.0
+  - python-librt >=0.16.0
+  - typing_extensions >=4.14.0
   - psutil >=4.0
-  - libgcc >=14
   - __glibc >=2.17,<3.0.a0
+  - libgcc >=15
   - python_abi 3.13.* *_cp313
   license: MIT
   license_family: MIT
   run_exports: {}
-  size: 22456484
-  timestamp: 1780315600133
+  size: 23681777
+  timestamp: 1790965552278
 - conda: https://conda.anaconda.org/conda-forge/linux-64/mysql-common-9.0.1-h266115a_6.conda
   sha256: 9c2e3f9e9883e4b8d7e9e6abf7b235dc00bdcd5ef66640a360464a9f5756294d
   md5: 94116b69829e90b72d566e64421e1bff
@@ -40371,24 +40371,24 @@ packages:
   run_exports: {}
   size: 101634
   timestamp: 1771610940075
-- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/mypy-2.1.0-py313h0aca3f2_0.conda
-  sha256: 4aed304048299a7690dd637d5bddfbe1c7ec034615b780e48e08cdf56e2c14ef
-  md5: 8e5f50a441d29e811a9692a7fc823aff
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/mypy-2.4.0-py313he745173_0.conda
+  sha256: adc93186179f6bf585e6e8e4c667ce12a36405d7d16dd8b520886568f555b0e3
+  md5: a54b8a6344db1c2db5d903c9f3f49f0b
   depends:
-  - ast-serialize >=0.3.0,<1.0.0
+  - ast-serialize >=0.11.2,<1.0.0
   - mypy_extensions >=1.0.0
   - pathspec >=1.0.0
   - python
-  - python-librt >=0.11.0
-  - typing_extensions >=4.6.0
+  - python-librt >=0.16.0
+  - typing_extensions >=4.14.0
   - psutil >=4.0
-  - libgcc >=14
+  - libgcc >=15
   - python_abi 3.13.* *_cp313
   license: MIT
   license_family: MIT
   run_exports: {}
-  size: 21043404
-  timestamp: 1780315622633
+  size: 22386682
+  timestamp: 1790965521431
 - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/mysql-common-9.0.1-h3f5c77f_6.conda
   sha256: 303c94c5ba1e5cb972d2e8d3004355fac9acbbe5c3cc56d7c8f7433a316476d1
   md5: 8da887abc26a923d66d362b9a7bea2f3
@@ -55538,24 +55538,24 @@ packages:
   run_exports: {}
   size: 88966
   timestamp: 1771611016718
-- conda: https://conda.anaconda.org/conda-forge/osx-64/mypy-2.1.0-py313h0b0ee5e_0.conda
-  sha256: 1899f3fc96f089926e1016428afff151e603889199ff6e240fc46e70879b1423
-  md5: 2643b0ecf22591cbf3aef1a13eb4db80
+- conda: https://conda.anaconda.org/conda-forge/osx-64/mypy-2.4.0-py313h4b81b55_0.conda
+  sha256: 0e15e84698274b29098b6553d00ab909ef73c123efba7320a01b19e6fa2d29d9
+  md5: 513e05332c39c2888f8631fe12b84d78
   depends:
-  - ast-serialize >=0.3.0,<1.0.0
+  - ast-serialize >=0.11.2,<1.0.0
   - mypy_extensions >=1.0.0
   - pathspec >=1.0.0
   - python
-  - python-librt >=0.11.0
-  - typing_extensions >=4.6.0
+  - python-librt >=0.16.0
+  - typing_extensions >=4.14.0
   - psutil >=4.0
   - __osx >=11.0
   - python_abi 3.13.* *_cp313
   license: MIT
   license_family: MIT
   run_exports: {}
-  size: 14575684
-  timestamp: 1780315774440
+  size: 14421404
+  timestamp: 1790965829568
 - conda: https://conda.anaconda.org/conda-forge/osx-64/ncurses-6.6-hcc0dc9a_1.conda
   sha256: 12c1d676b9a0e8109b576672519312c5428308f3f3d7706f8717e2f536d5d9e7
   md5: 88a79390f87c8f3334b9999a892e78d4
@@ -65956,24 +65956,24 @@ packages:
   run_exports: {}
   size: 246720
   timestamp: 1793017731826
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/mypy-2.1.0-py313h3e91af1_0.conda
-  sha256: 22d438b2a38b9dd494f2ba377a83da76890b80383484f8bd9c7028b7cccb4928
-  md5: dd7addb5e48460aac9bec8a655b5fcba
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/mypy-2.4.0-py313h2f871a8_0.conda
+  sha256: db9056a1517abe9874c8df6a41dd06042a970c5450cb36237fb4248f19567a58
+  md5: 7a7cac6a9add5f4b82318818b127205b
   depends:
-  - ast-serialize >=0.3.0,<1.0.0
+  - ast-serialize >=0.11.2,<1.0.0
   - mypy_extensions >=1.0.0
   - pathspec >=1.0.0
   - python
-  - python-librt >=0.11.0
-  - typing_extensions >=4.6.0
+  - python-librt >=0.16.0
+  - typing_extensions >=4.14.0
   - psutil >=4.0
   - __osx >=11.0
   - python_abi 3.13.* *_cp313
   license: MIT
   license_family: MIT
   run_exports: {}
-  size: 13296591
-  timestamp: 1780315672240
+  size: 13222592
+  timestamp: 1790965547234
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ncurses-6.6-he64c551_1.conda
   sha256: 7024a48c8c0d0114ed4ab53c76bf9275d50e91ba7cea367a9aead638d3c29c68
   md5: 3dfa0d0316dc246cd44937a557de4501
@@ -75408,16 +75408,16 @@ packages:
   run_exports: {}
   size: 91672
   timestamp: 1771610834790
-- conda: https://conda.anaconda.org/conda-forge/win-64/mypy-2.1.0-py313h4ac8b90_0.conda
-  sha256: d17f2cfb1e17bee564e25a78cb825903806c6c8a8240ee47de58a4aab106e66f
-  md5: 8f39a2296c22ccc44e40c0eab88f412f
+- conda: https://conda.anaconda.org/conda-forge/win-64/mypy-2.4.0-py313h5fd188c_0.conda
+  sha256: cbef9359e3d16cdb39bb76b3f7865f671198cb46a1aa77aae96c401771142ec3
+  md5: 466a0a3ce5b6ab2228ad8d74c1eeb883
   depends:
-  - ast-serialize >=0.3.0,<1.0.0
+  - ast-serialize >=0.11.2,<1.0.0
   - mypy_extensions >=1.0.0
   - pathspec >=1.0.0
   - python
-  - python-librt >=0.11.0
-  - typing_extensions >=4.6.0
+  - python-librt >=0.16.0
+  - typing_extensions >=4.14.0
   - psutil >=4.0
   - vc >=14.3,<15
   - vc14_runtime >=14.44.35208
@@ -75426,8 +75426,8 @@ packages:
   license: MIT
   license_family: MIT
   run_exports: {}
-  size: 10592735
-  timestamp: 1780315651300
+  size: 10921665
+  timestamp: 1790965626963
 - conda: https://conda.anaconda.org/conda-forge/win-64/ninja-1.13.2-h477610d_1.conda
   sha256: 002bce37e87e39c6a1e5577b1018d294cd4517ba9c4be2ece92e5706acac41f5
   md5: 3a6804d04ecaf02987a075d5faf34877

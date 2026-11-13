@@ -223,9 +223,9 @@ class TestReaders:
 
         tm.assert_frame_equal(df1, df2)
 
-        for idx, row in df2.iterrows():
+        for idx in range(len(df2)):
             for col in df2.columns:
-                val = row[col]
+                val = df2.iloc[idx][col]
                 exp_val = df1.iloc[idx][col]
                 # Check if values match
                 assert val == exp_val, (
@@ -753,6 +753,72 @@ class TestReaders:
             dtype="float64",
         )
         tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("values", [[741528, "IPECL3"], ["IPECL3", 741528]])
+    def test_dtype_backend_pyarrow_mixed_types(self, read_ext, tmp_excel, values):
+        # GH#63830
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        pytest.importorskip("pyarrow")
+
+        df = pd.DataFrame({"a": [1, 2], "b": values})
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(tmp_excel, sheet_name="test", dtype_backend="pyarrow")
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="int64[pyarrow]"),
+                "b": pd.Series(values, dtype=object),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_dtype_backend_numpy_nullable_mixed_types(self, read_ext, tmp_excel):
+        # GH#63830
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df = pd.DataFrame(
+            {
+                "m1": [1, "a"],
+                "m2": ["a", 1],
+            }
+        )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
+        )
+        expected = pd.DataFrame(
+            {
+                "m1": pd.Series([1, "a"], dtype=object),
+                "m2": pd.Series(["a", 1], dtype=object),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_dtype_backend_numpy_nullable_time(self, read_ext, tmp_excel):
+        # GH#63830
+        # A to_excel round-trip cannot test time preservation: the Excel
+        #  writer stringifies datetime.time, so the file would contain
+        #  strings, not time cells. Write real time cells instead.
+        if read_ext != ".xlsx":
+            pytest.skip("Real time cells only tested for .xlsx")
+        openpyxl = pytest.importorskip("openpyxl")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "test"
+        ws.append(["t"])
+        ws.append([time(1, 2)])
+        ws.append([time(3, 4)])
+        wb.save(tmp_excel)
+
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
+        )
+        expected = pd.DataFrame(
+            {"t": pd.Series([time(1, 2), time(3, 4)], dtype=object)}
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
@@ -1288,6 +1354,39 @@ class TestReaders:
 
         exp_columns = pd.MultiIndex.from_product([("A", "B"), ("key", "val")])
         expected = pd.DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_excel_multiindex_header_index_col_after_empty_column(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#15133
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        rows = [
+            [None, None, None, "A", "A", "B", "B"],
+            [None, None, None, "x", "y", "x", "y"],
+            [None, "a", 1, 1, 2, 3, 4],
+            [None, "b", 2, 5, 6, 7, 8],
+        ]
+        pd.DataFrame(rows).to_excel(tmp_excel, header=False, index=False)
+        result = pd.read_excel(
+            tmp_excel, header=[0, 1], index_col=[1, 2], engine=engine
+        )
+
+        columns = pd.MultiIndex.from_tuples(
+            [
+                ("Unnamed: 0_level_0", "Unnamed: 0_level_1"),
+                ("A", "x"),
+                ("A", "y"),
+                ("B", "x"),
+                ("B", "y"),
+            ]
+        )
+        index = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        expected = pd.DataFrame(
+            [[np.nan, 1, 2, 3, 4], [np.nan, 5, 6, 7, 8]], index=index, columns=columns
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_read_excel_multiindex_header_index_col_consumes_all_columns(

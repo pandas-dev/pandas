@@ -90,15 +90,15 @@ the ``NA`` really is ``True`` or ``False``, since ``True & True`` is ``True``,
 but ``True & False`` is ``False``, so we can't determine the output.
 
 
-This differs from how ``np.nan`` behaves in logical operations. pandas treated
-``np.nan`` is *always false in the output*.
+This differs from how ``np.nan`` behaves in an object-dtype Series, where it
+counts as ``False``.
 
 In ``or``
 
 .. ipython:: python
 
-   pd.Series([True, False, np.nan], dtype="object") | True
-   pd.Series([True, False, np.nan], dtype="boolean") | True
+   pd.Series([True, False, np.nan], dtype="object") | False
+   pd.Series([True, False, np.nan], dtype="boolean") | False
 
 In ``and``
 

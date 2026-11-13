@@ -3,7 +3,10 @@ import re
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    DataError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -429,3 +432,34 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+def test_ohlc_numeric_only(as_index):
+    # GH#56946
+    df = pd.DataFrame(
+        {
+            "key": [1, 1, 2, 2],
+            "str": list("abcd"),
+            "num": [1.0, 3.0, 2.0, 5.0],
+            "dt": pd.date_range("2020", periods=4),
+            "flag": [True, False, True, False],
+        }
+    )
+    gb = df.groupby("key", as_index=as_index)
+
+    with pytest.raises(DataError, match="No numeric types to aggregate"):
+        gb.ohlc()
+
+    result = gb.ohlc(numeric_only=True)
+    expected = gb[["num", "flag"]].ohlc()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ohlc_numeric_only_series_raises():
+    # GH#56946
+    ser = pd.Series(list("abcd"))
+    gb = ser.groupby([1, 1, 2, 2])
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.ohlc and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
+        gb.ohlc(numeric_only=True)
