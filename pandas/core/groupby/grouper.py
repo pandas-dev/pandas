@@ -77,9 +77,9 @@ class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for an object.
 
-    This specification will select a column via the key parameter, or if the
-    level parameter is given, a level of the index of the target
-    object.
+    This specification will select a column or index level via the key
+    parameter, or if the level parameter is given, a level of the index of
+    the target object.
 
     If ``level`` is passed as a keyword to both `Grouper` and
     `groupby`, the values passed to `Grouper` take precedence.
@@ -94,7 +94,8 @@ class Grouper:
     Attributes
     ----------
     key : str, defaults to None
-        Groupby key, which selects the grouping column of the target.
+        Groupby key, which selects the grouping column or index level of the
+        target. A column takes precedence over an index level of the same name.
     level : name/number, defaults to None
         The level for the target index.
     freq : str / frequency object, defaults to None
@@ -292,6 +293,8 @@ class Grouper:
         self.binner = None
         self._grouper = None
         self._indexer: npt.NDArray[np.intp] | None = None
+        # whether _set_grouper resolved ``key`` to an index level, not a column
+        self._key_is_level = False
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True, observed: bool = True
@@ -359,7 +362,11 @@ class Grouper:
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(gpr_index, "name", None) == key and isinstance(obj, Series):
+            if (
+                getattr(gpr_index, "name", None) == key
+                and isinstance(obj, Series)
+                and not self._key_is_level
+            ):
                 # Sometimes self._grouper will have been resorted while
                 # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
@@ -371,10 +378,18 @@ class Grouper:
                     ax = unsorted_ax.take(obj.index)  # type: ignore[arg-type]
                 else:
                     ax = self._grouper.take(obj.index)  # type: ignore[arg-type]
-            else:
-                if key not in obj._info_axis:
-                    raise KeyError(f"The grouper name {key} is not found")
+            elif isinstance(obj, DataFrame) and key in obj.columns:
+                self._key_is_level = False
                 ax = Index(obj[key], name=key)
+            elif (gpr_index is None or self._key_is_level) and obj._is_level_reference(
+                key, axis=0
+            ):
+                # GH#19542 match groupby("name"), which accepts index level names.
+                # A follow-up call (gpr_index given) keeps the earlier resolution.
+                self._key_is_level = True
+                ax = obj.index.get_level_values(key)
+            else:
+                raise KeyError(f"The grouper name {key} is not found")
 
         else:
             ax = obj.index
@@ -822,7 +837,7 @@ def get_grouper(
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
         grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
-        if key.key is None:
+        if key.key is None or obj._is_level_reference(key.key, axis=0):
             return grouper, frozenset(), obj
         else:
             return grouper, frozenset({key.key}), obj
@@ -923,7 +938,11 @@ def get_grouper(
                 in_axis, level, gpr = False, gpr, None
             else:
                 raise KeyError(gpr)
-        elif isinstance(gpr, Grouper) and gpr.key is not None:
+        elif (
+            isinstance(gpr, Grouper)
+            and gpr.key is not None
+            and not obj._is_level_reference(gpr.key, axis=0)
+        ):
             # Add key to exclusions
             exclusions.add(gpr.key)
             in_axis = True

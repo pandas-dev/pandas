@@ -177,8 +177,9 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         )
         self.binner, self._grouper = self._get_binner()
         self._selection = selection
-        if self._timegrouper.key is not None:
-            self.exclusions = frozenset([self._timegrouper.key])
+        key = self._timegrouper.key
+        if key is not None and not self._timegrouper._key_is_level:
+            self.exclusions = frozenset([key])
         else:
             self.exclusions = frozenset()
 
@@ -2115,7 +2116,12 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
 
         # Try to select from a DataFrame, falling back to a Series
         try:
-            if isinstance(key, list) and self.key not in key and self.key is not None:
+            if (
+                isinstance(key, list)
+                and self.key not in key
+                and self.key is not None
+                and not self._timegrouper._key_is_level
+            ):
                 key.append(self.key)
             groupby = self._groupby[key]
         except IndexError:
@@ -2484,10 +2490,14 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
+        key_values = None
+        if key is not None and obj is not None:
+            if obj._is_level_reference(key, axis=0):  # type: ignore[attr-defined]
+                key_values = obj.index.get_level_values(key)  # type: ignore[attr-defined]
+            else:
+                key_values = obj[key]  # type: ignore[index]
         if (key is None and obj is not None and isinstance(obj.index, PeriodIndex)) or (  # type: ignore[attr-defined]
-            key is not None
-            and obj is not None
-            and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
+            getattr(key_values, "dtype", None) == "period"
         ):
             freq = to_offset(freq, is_period=True)
         else:

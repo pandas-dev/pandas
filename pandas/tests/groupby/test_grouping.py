@@ -1260,6 +1260,49 @@ def test_grouping_by_key_is_in_axis():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("freq", [None, "2D"])
+@pytest.mark.parametrize("multi", [False, True])
+def test_grouper_key_index_level_name(freq, multi):
+    # GH#19542 Grouper(key=...) accepts an index level name, like groupby("name")
+    dti = pd.date_range("2020-01-01", periods=6, freq="D", name="dt")
+    if multi:
+        index = pd.MultiIndex.from_arrays([list("xxyyzz"), dti], names=["k", "dt"])
+    else:
+        index = dti
+    df = pd.DataFrame({"v": range(6), "w": range(6, 12)}, index=index)
+
+    result = df.groupby(pd.Grouper(key="dt", freq=freq)).sum()
+    expected = df.groupby(pd.Grouper(level="dt", freq=freq)).sum()
+    tm.assert_frame_equal(result, expected)
+
+    result = df["v"].groupby(pd.Grouper(key="dt", freq=freq)).sum()
+    expected = df["v"].groupby(pd.Grouper(level="dt", freq=freq)).sum()
+    tm.assert_series_equal(result, expected)
+
+    key = pd.Grouper(key="dt", freq=freq)
+    result = df.groupby([key, "w"], as_index=False).sum()
+    level = pd.Grouper(level="dt", freq=freq)
+    expected = df.groupby([level, "w"], as_index=False).sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_key_column_and_index_level_name():
+    # GH#19542 a column takes precedence over an index level of the same name
+    dti = pd.date_range("2020-01-01", periods=4, freq="D")
+    df = pd.DataFrame({"dt": dti[::-1], "v": range(4)}, index=dti.rename("dt"))
+    result = df.groupby(pd.Grouper(key="dt", freq="2D")).sum()
+    expected = df.reset_index(drop=True).groupby(pd.Grouper(key="dt", freq="2D")).sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_grouper_key_series_index_name_is_also_label():
+    # GH#19542 on a Series, key refers to the index name, not an index label
+    ser = pd.Series([1, 2, 3], index=pd.Index(["a", "b", "c"], name="a"))
+    result = ser.groupby(pd.Grouper(key="a")).sum()
+    expected = ser.groupby(pd.Grouper(level="a")).sum()
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_any_with_timedelta():
     # GH#59712
     df = pd.DataFrame({"value": [pd.Timedelta(1), pd.NaT]})
