@@ -280,6 +280,7 @@ Interval
 - Bug in :class:`arrays.IntervalArray` setitem with a list-like of missing values and the ``future.distinguish_nan_and_na`` option enabled storing ``NaN`` endpoints instead of a missing interval for a nullable float subtype, or raising for a nullable integer subtype (:issue:`71950`)
 - Bug in :func:`concat` and :meth:`Index.append` with :class:`IntervalDtype` not retaining an extension dtype subtype, either casting it to a NumPy dtype or raising ``TypeError`` (:issue:`64297`)
 - Bug in :func:`interval_range` with large integer ``start`` or ``end`` silently returning too few intervals, or empty or wrongly spaced intervals, due to float precision loss (:issue:`71288`)
+- Bug in :meth:`IntervalDtype.__from_arrow__` returning incorrect (non-NA) intervals for null struct entries because the parent struct's validity bitmap was not applied to the child ``left``/``right`` arrays (:issue:`67754`)
 - Bug in :meth:`Series.shift` and :meth:`DataFrame.shift` with an :class:`IntervalDtype` column not retaining the subtype, either changing it or raising ``TypeError`` (:issue:`69922`)
 
 Indexing
