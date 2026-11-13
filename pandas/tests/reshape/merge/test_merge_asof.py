@@ -3717,3 +3717,38 @@ def test_merge_asof_empty_left_keeps_left_index(kwargs, by):
     )
     result = pd.merge_asof(left, right, right_index=True, by=by, **kwargs)
     tm.assert_index_equal(result.index, left.index)
+
+
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_merge_asof_mismatched_reso(unit, unit2, tz):
+    # GH#72010 the tolerance must be converted to the unit of the aligned keys
+    dti = pd.date_range("2024-01-01", periods=6, freq="s", unit=unit, tz=tz)
+    left = pd.DataFrame({"ts": dti[[2, 5]], "a": [1, 2]})
+    right = pd.DataFrame({"ts": dti[[1, 3]].as_unit(unit2), "b": [3, 4]})
+    result = pd.merge_asof(left, right, on="ts", tolerance=pd.Timedelta("1s"))
+    exp_unit = tm.get_finest_unit(unit, unit2)
+    expected = left.assign(ts=dti[[2, 5]].as_unit(exp_unit), b=[3, np.nan])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_by_array_mismatched_reso():
+    # GH#72010 a single datetime64 ndarray by key must not take the int64
+    #  fast path when the resolutions differ
+    left = pd.DataFrame({"ts": [1, 2], "a": [1, 2]})
+    right = pd.DataFrame({"ts": [0, 0], "b": [3, 4]})
+    by = np.array(["2024-01-01", "2024-01-02"], dtype="M8[s]")
+    result = pd.merge_asof(
+        left, right, on="ts", left_by=[by], right_by=[by.astype("M8[us]")]
+    )
+    expected = left.assign(b=[3, 4])
+    expected.insert(0, "key_0", by)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "US/Eastern"])
+def test_merge_asof_mismatched_reso_and_tz_raises(tz):
+    # GH#72010
+    left = pd.DataFrame({"ts": pd.date_range("2024", periods=2, unit="s", tz="UTC")})
+    right = pd.DataFrame({"ts": pd.date_range("2024", periods=2, unit="us", tz=tz)})
+    with pytest.raises(MergeError, match="incompatible merge keys"):
+        pd.merge_asof(left, right, on="ts")
