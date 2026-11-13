@@ -59,6 +59,7 @@ from cpython.unicode cimport (
     PyUnicode_DecodeUTF8,
 )
 from cython cimport Py_ssize_t
+from libc.math cimport NAN
 from libc.stdint cimport (
     INT32_MAX,
     INT64_MAX,
@@ -1985,8 +1986,10 @@ cdef class TextReader:
 
         fvals, _, mask = _try_double(self.parser, i, start, end,
                                      na_filter, na_hashset, na_fset)
+
         if fvals is None:
             return None
+
         return _maybe_upcast(fvals, use_dtype_backend=True,
                              dtype_backend="numpy_nullable", na_mask=mask)
 
@@ -3905,6 +3908,18 @@ cdef _try_double(parser_t *parser, int64_t col,
         return None, None, None
     return result, na_count, na_mask
 
+cdef inline bint _is_nan_token(const char *w, int64_t n, double *out) noexcept nogil:
+    # "nan", "-nan", "+nan", case-insensitive
+    cdef int64_t o = 0
+    if n == 4 and (w[0] == b"-" or w[0] == b"+"):
+        o = 1
+    elif n != 3:
+        return False
+    if ((w[o] | 0x20) == b"n" and (w[o+1] | 0x20) == b"a"
+            and (w[o+2] | 0x20) == b"n"):
+        out[0] = NAN
+        return True
+    return False
 
 cdef int _try_double_nogil(parser_t *parser,
                            float64_t (*double_converter)(
@@ -3957,7 +3972,8 @@ cdef int _try_double_nogil(parser_t *parser,
                                                1, &error, NULL, word_end)
                     if error != 0 or p_end == word or p_end != word_end:
                         error = 0
-                        if parse_special_float(word, word_len, data) != 0:
+                        if (parse_special_float(word, word_len, data) != 0
+                                and not _is_nan_token(word, word_len, data)):
                             return 1
                 if use_na_flist:
                     k64 = kh_get_float64(na_fhashset, data[0])
