@@ -2250,7 +2250,9 @@ cdef class TextReader:
                 else:
                     return self.header[0][j]
             else:
-                return None
+                # No header and no names: label by position, as CParserWrapper
+                # does, so a callable usecols sees the same labels
+                return i
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__

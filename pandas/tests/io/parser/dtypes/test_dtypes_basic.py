@@ -642,6 +642,15 @@ def test_dtypes_defaultdict_names_with_integer_header(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_dtypes_defaultdict_no_header(all_parsers):
+    # GH#71880 integer keys after a defaulted column still apply when header=None
+    dtype = defaultdict(lambda: "int64", {1: "float64", 2: "float64"})
+    parser = all_parsers
+    result = parser.read_csv(StringIO("1,2,3\n"), header=None, dtype=dtype)
+    expected = pd.DataFrame({0: [1], 1: [2.0], 2: [3.0]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     # GH#41574
     data = """a,b,a,b,b.1
