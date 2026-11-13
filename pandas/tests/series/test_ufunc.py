@@ -280,6 +280,117 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_series_equal(out, expected)
 
 
+@pytest.mark.filterwarnings("ignore:'where' used without 'out':UserWarning")
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+def test_ufunc_where_pandas_object(box):
+    # GH#60611 a pandas object as `where` used to recurse infinitely
+    ser = pd.Series([-3.0, 4.0, 1.0], name="a")
+    mask = np.array([False, True, True])
+    expected = pd.Series([4.0, 2.0], index=[1, 2], name="a")
+
+    # positions where mask is False are left uninitialized
+    result = np.maximum(ser, 2.0, where=box(mask))
+    tm.assert_series_equal(result[mask], expected)
+
+    result = np.maximum(ser, 2.0, where=box(mask), out=np.full(3, -1.0))
+    tm.assert_series_equal(result, pd.Series([-1.0, 4.0, 2.0], name="a"))
+
+
+where_boxes = [
+    pd.Series,
+    pd.Index,
+    pd.array,
+    pd.Categorical,
+    pd.arrays.SparseArray,
+    pd.arrays.NumpyExtensionArray,
+    pytest.param(
+        lambda x: pd.array(x, dtype="bool[pyarrow]"),
+        marks=td.skip_if_no("pyarrow"),
+        id="arrow",
+    ),
+]
+
+
+@pytest.mark.filterwarnings("ignore:'where' used without 'out':UserWarning")
+@pytest.mark.parametrize("box", where_boxes)
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([-3.0, 4.0, 1.0]),
+        pd.Index([-3.0, 4.0, 1.0]),
+        pd.Index(pd.array([-3, 4, 1], dtype="Int64")),
+        pd.array([-3.0, 4.0, 1.0], dtype="Float64"),
+        pd.arrays.NumpyExtensionArray(np.array([-3.0, 4.0, 1.0])),
+        pd.array(pd.to_timedelta([-3, 4, 1], unit="s")),
+    ],
+    ids=type,
+)
+def test_ufunc_where_pandas_object_only_where(values, box):
+    # GH#60611 a pandas `where` only masks; the inputs decide the result type
+    mask = np.array([False, True, True])
+    result = np.negative(values, where=box(mask))
+    expected = np.negative(values, where=mask)
+    assert type(result) is type(expected)
+    tm.assert_equal(result[mask], expected[mask])
+
+
+@pytest.mark.parametrize("box", where_boxes)
+def test_ufunc_where_pandas_object_only_where_out(box):
+    # GH#60611 like numpy, the result is `out` itself
+    out = np.full(3, np.nan)
+    where = box(np.array([False, True, True]))
+    result = np.negative(np.array([-3.0, 4.0, 1.0]), where=where, out=out)
+    assert result is out
+    tm.assert_numpy_array_equal(out, np.array([np.nan, -4.0, -1.0]))
+
+
+def test_ufunc_where_misaligned_raises():
+    # GH#60611 we don't guess whether to match `where` by label or position
+    ser = pd.Series([1.0, 2.0, 3.0])
+    mask = pd.Series([True, False, False], index=[2, 1, 0])
+    msg = "The ufunc 'where' argument must have the same axes as the aligned inputs"
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(ser, 10.0, where=mask, out=np.zeros(3))
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(ser, 10.0, where=mask.iloc[:2])
+    # numpy tries a subclass's __array_ufunc__ first
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(ser, 10.0, where=tm.SubclassedSeries(mask), out=np.zeros(3))
+
+
+@pytest.mark.parametrize(
+    "where",
+    [
+        pd.Series(pd.array([True, None, False])),
+        pd.Series([True, None, False], dtype=object),
+        pd.Index(pd.array([True, None, False])),
+        pd.array([True, None, False]),
+        pd.Categorical([True, None, False]),
+        pytest.param(
+            pd.array([True, None, False], dtype="bool[pyarrow]"),
+            marks=td.skip_if_no("pyarrow"),
+            id="arrow",
+        ),
+    ],
+    ids=type,
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([1.0, 2.0, 3.0]),
+        pd.Series([1.0, 2.0, 3.0]),
+        pd.Index([1.0, 2.0, 3.0]),
+        pd.array([1.0, 2.0, 3.0], dtype="Float64"),
+    ],
+    ids=type,
+)
+def test_ufunc_where_missing_raises(values, where):
+    # GH#60611 a pandas input with `out=` used to treat a missing value as True
+    msg = "The ufunc 'where' argument cannot contain missing values"
+    with pytest.raises(ValueError, match=msg):
+        np.negative(values, where=where, out=np.zeros(3))
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:

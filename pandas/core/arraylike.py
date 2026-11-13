@@ -18,7 +18,13 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
-from pandas.core.dtypes.generic import ABCNDFrame
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCNDFrame,
+)
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
 from pandas.core.construction import extract_array
@@ -292,6 +298,15 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     cls = type(self)
 
+    if kwargs.get("where") is self and not any(x is self for x in inputs):
+        # numpy tries a subclass first; defer so a pandas input checks the labels
+        if any(isinstance(x, NDFrame) for x in inputs):
+            return NotImplemented
+
+    result = dispatch_where_only_ufunc(self, ufunc, method, *inputs, **kwargs)
+    if result is not NotImplemented:
+        return result
+
     disallow_datetimelike_logical_ufunc(ufunc, inputs)
 
     kwargs = _standardize_out_kwarg(**kwargs)
@@ -407,6 +422,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             result = result.__finalize__(self)
         return result
 
+    if isinstance(kwargs.get("where"), ABCNDFrame):
+        kwargs["where"] = _unbox_where(kwargs["where"], reconstruct_axes)
+
     if "out" in kwargs:
         # e.g. test_multiindex_get_loc
         result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
@@ -470,6 +488,49 @@ def _standardize_out_kwarg(**kwargs) -> dict[str, Any]:
     return kwargs
 
 
+def _unbox_where(where, axes: dict[str, Any]) -> np.ndarray:
+    """
+    Convert a Series or DataFrame passed as a ufunc's `where` to an ndarray.
+
+    It must be labeled identically to the (aligned) inputs; we raise rather
+    than guess between label-based and positional matching.
+    """
+    same_axes = where.ndim == len(axes) and all(
+        ax.equals(other) for ax, other in zip(where.axes, axes.values(), strict=True)
+    )
+    if not same_axes:
+        raise ValueError(
+            "The ufunc 'where' argument must have the same axes as the aligned inputs"
+        )
+    return _where_to_ndarray(where)
+
+
+def _where_to_ndarray(where) -> np.ndarray:
+    # checked for every dtype: np.putmask (the `out=` path) and a Categorical's
+    #  to_numpy(dtype=bool) would both treat a missing value as True
+    if isna(where).any(axis=None):
+        raise ValueError("The ufunc 'where' argument cannot contain missing values")
+    dtypes = where.dtypes if where.ndim == 2 else [where.dtype]
+    if not all(is_bool_dtype(dtype) for dtype in dtypes):
+        # left for numpy to validate; np.putmask, used with `out=`, is laxer
+        return np.asarray(where)
+    return where.to_numpy(dtype=bool)
+
+
+def dispatch_where_only_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Handle a ufunc that reached `self` only through its `where` argument.
+
+    numpy defers to a `where` that defines __array_ufunc__, so passing `self`
+    on unchanged would recurse (GH#60611). As a mask, `self` has no say in the
+    result type.
+    """
+    if kwargs.get("where") is not self or any(x is self for x in inputs):
+        return NotImplemented
+    kwargs["where"] = _where_to_ndarray(self)
+    return getattr(ufunc, method)(*inputs, **kwargs)
+
+
 def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     If we have an `out` keyword, then call the ufunc without `out` and then
@@ -479,6 +540,8 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
     # Note: we assume _standardize_out_kwarg has already been called.
     out = kwargs.pop("out")
     where = kwargs.pop("where", None)
+    if isinstance(where, (ABCNDFrame, ABCIndex, ABCExtensionArray)):
+        where = _where_to_ndarray(where)
 
     result = getattr(ufunc, method)(*inputs, **kwargs)
 
