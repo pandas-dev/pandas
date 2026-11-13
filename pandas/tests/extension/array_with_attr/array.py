@@ -66,6 +66,13 @@ class FloatAttrArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self.data)
 
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+        return np.array(self.data, dtype=dtype)
+
     def isna(self):
         return np.isnan(self.data)
 

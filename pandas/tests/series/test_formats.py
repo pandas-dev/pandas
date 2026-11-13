@@ -300,6 +300,9 @@ class TestSeriesRepr:
             def __getitem__(self, ix):
                 return [ix == 1, ix == 0]
 
+            def __array__(self, dtype=None, copy=None):
+                return np.array([self[0], self[1]], dtype=dtype)
+
             @property
             def dtype(self):
                 return DtypeStub()
