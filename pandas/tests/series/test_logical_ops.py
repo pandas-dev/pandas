@@ -8,10 +8,13 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
+
+FLOAT_LOGICAL_OP_MSG = "Logical ops .* with float or complex dtypes"
 
 
 class TestSeriesLogicalOps:
@@ -226,7 +229,8 @@ class TestSeriesLogicalOps:
 
         # s_0123 will be all false now because of reindexing like s_tft
         expected = pd.Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        result = s_tft & s_0123
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+            result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
         # GH#52538: no longer to object type when reindex is needed;
@@ -237,11 +241,13 @@ class TestSeriesLogicalOps:
 
         s_a0b1c0 = pd.Series([1], list("b"))
 
-        res = s_tft & s_a0b1c0
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+            res = s_tft & s_a0b1c0
         expected = s_tff.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
-        res = s_tft | s_a0b1c0
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+            res = s_tft | s_a0b1c0
         expected = s_tft.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
@@ -272,10 +278,12 @@ class TestSeriesLogicalOps:
 
         expected = pd.DataFrame(False, index=range(9), columns=["A", *list(range(9))])
 
-        result = s & d
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+            result = s & d
         tm.assert_frame_equal(result, expected)
 
-        result = d & s
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+            result = d & s
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
@@ -393,23 +401,29 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
-        result = a & pd.Series([1], ["z"])
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+            result = a & pd.Series([1], ["z"])
         expected = pd.Series([False, False, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
-        result = a | pd.Series([1], ["z"])
+        with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+            result = a | pd.Series([1], ["z"])
         expected = pd.Series([True, True, False, True], list("abcz"))
         tm.assert_series_equal(result, expected)
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
+        result = a[a | empty.copy()]
+        tm.assert_series_equal(result, a[a])
+
+        # GH#61881 float before or after alignment
         for e in [
-            empty.copy(),
             pd.Series([1], ["z"]),
             pd.Series(np.nan, b.index),
             pd.Series(np.nan, a.index),
         ]:
-            result = a[a | e]
+            with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+                result = a[a | e]
             tm.assert_series_equal(result, a[a])
 
         for e in [pd.Series(["z"])]:
@@ -724,3 +738,127 @@ def test_logical_op_datetimelike_scalar_raises(op, scalar, left_dtype):
         op(left, scalar)
     with pytest.raises(TypeError, match=msg):
         op(scalar, left)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, np.asarray])
+@pytest.mark.parametrize("dtype", ["float64", "float32", "complex128"])
+def test_logical_op_bool_with_float_deprecated(op, box, dtype):
+    # GH#61881
+    left = pd.Series([False, True, False, True])
+    ser = pd.Series([np.nan, 0.0, 1.5, 2.5], dtype=dtype)
+    right = box(ser)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        result = op(left, right)
+
+    # the spelling the warning suggests gives the same answer
+    expected = op(left, ser.fillna(0).astype(bool))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        pd.Series([True, False]),
+        pd.Series([1, 0]),
+        pd.Series([True, None], dtype=object),
+        pd.Series([np.nan, np.nan]),
+    ],
+    ids=["bool", "int", "object", "float"],
+)
+def test_logical_op_all_nan_left_deprecated(other):
+    # GH#61881 with numpy operands, any non-NaN float on the left raises
+    left = pd.Series([np.nan, np.nan])
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        result = left | other
+    tm.assert_series_equal(result, pd.Series([False, False]))
+
+
+@pytest.mark.parametrize(
+    "left, expected",
+    [
+        (pd.Series([1, 2]), [True, True]),
+        (pd.Series([True, None], dtype=object), [True, False]),
+    ],
+    ids=["int", "object"],
+)
+def test_logical_op_all_nan_right_deprecated(left, expected):
+    # GH#61881
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        result = left | pd.Series([np.nan, np.nan])
+    tm.assert_series_equal(result, pd.Series(expected))
+
+
+@pytest.mark.parametrize(
+    "dtype", ["boolean", pd.SparseDtype("bool", fill_value=False)], ids=str
+)
+def test_logical_op_ea_bool_with_float_deprecated(dtype):
+    # GH#61881
+    left = pd.Series([False, True, False], dtype=dtype)
+    right = pd.Series([0.0, 0.0, 1.5])
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        result = left | right
+    tm.assert_series_equal(result, pd.Series([False, True, True], dtype=dtype))
+
+
+@pytest.mark.parametrize(
+    "left",
+    [
+        pd.Series([np.nan, np.nan], dtype="complex128"),
+        pd.Series([None, None], dtype="Float64"),
+        pd.Series(pd.arrays.SparseArray([np.nan, np.nan])),
+    ],
+    ids=["complex", "masked", "sparse"],
+)
+def test_logical_op_float_left_dtypes_deprecated(left):
+    # GH#61881
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        left | pd.Series([True, False])
+
+
+def test_logical_op_boolean_with_float_ea_deprecated():
+    # GH#61881
+    left = pd.Series([False, True], dtype="boolean")
+    right = pd.Series([0.5, 0.0], dtype="Float64")
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        result = left | right
+    tm.assert_series_equal(result, pd.Series([True, True], dtype="boolean"))
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_float_left_raises_without_warning(op):
+    # GH#61881 no point warning about behavior that already raises
+    left = pd.Series([np.nan, 1.5])
+    right = pd.Series([True, False])
+    with tm.assert_produces_warning(None):
+        with pytest.raises(TypeError, match="unsupported operand"):
+            op(left, right)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("dtype", ["int64", "float64"])
+@pytest.mark.parametrize(
+    "left_index, right_index",
+    [([0, 1, 2], [1, 2]), (list("abc"), ["z"])],
+    ids=["right-subset", "disjoint"],
+)
+def test_logical_op_float_from_alignment_deprecated(op, dtype, left_index, right_index):
+    # GH#61881 includes ints, which alignment casts to float
+    left = pd.Series([True, False, True], index=left_index)
+    right = pd.Series([2, 0][: len(right_index)], index=right_index, dtype=dtype)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=FLOAT_LOGICAL_OP_MSG):
+        result = op(left, right)
+
+    # casting without aligning gives the same answer
+    expected = op(left, right.astype(bool))
+    tm.assert_series_equal(result, expected)
+
+
+def test_logical_op_alignment_without_float_does_not_warn():
+    # GH#61881
+    left = pd.Series([True, False, True], index=[0, 1, 2])
+    right = pd.Series([True, False], index=[1, 2])
+    with tm.assert_produces_warning(None):
+        left | right
