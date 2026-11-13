@@ -326,6 +326,70 @@ def test_qcut() -> None:
     tm.assert_frame_equal(result, expected)
 
 
+def test_to_datetime() -> None:
+    # https://github.com/pandas-dev/pandas/issues/71259
+    df = pd.DataFrame({"a": ["2024-01-05", "bad", None]})
+    expr = pd.to_datetime(pd.col("a"), errors="coerce")
+    assert isinstance(expr, Expression)
+    assert str(expr).startswith("to_datetime(arg=col('a'), errors='coerce'")
+
+    result = df.assign(b=expr)
+    expected = df.assign(b=pd.to_datetime(df["a"], errors="coerce"))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [{"format": "%Y-%m-%d"}, {"utc": True}, {"dayfirst": True}, {"cache": False}],
+)
+def test_to_datetime_kwargs(kwargs) -> None:
+    # https://github.com/pandas-dev/pandas/issues/71259
+    df = pd.DataFrame({"a": ["2024-01-05", "2024-02-10"]})
+    result = df.assign(b=pd.to_datetime(pd.col("a"), **kwargs))
+    expected = df.assign(b=pd.to_datetime(df["a"], **kwargs))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_to_datetime_chained() -> None:
+    # https://github.com/pandas-dev/pandas/issues/71259
+    df = pd.DataFrame({"a": ["2024-01-05", "2025-02-10", "2026-03-15"]})
+    result = df.assign(year=pd.to_datetime(pd.col("a")).dt.year)
+    expected = df.assign(year=pd.to_datetime(df["a"]).dt.year)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[pd.to_datetime(pd.col("a")) > "2025-01-01"]
+    expected = df.loc[pd.to_datetime(df["a"]) > "2025-01-01"]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_to_numeric() -> None:
+    # https://github.com/pandas-dev/pandas/issues/71259
+    df = pd.DataFrame({"a": ["1", "2.5", "x", None]})
+    expr = pd.to_numeric(pd.col("a"), errors="coerce")
+    assert isinstance(expr, Expression)
+    assert str(expr).startswith("to_numeric(arg=col('a'), errors='coerce'")
+
+    result = df.assign(b=expr)
+    expected = df.assign(b=pd.to_numeric(df["a"], errors="coerce"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_to_numeric_downcast_and_chained() -> None:
+    # https://github.com/pandas-dev/pandas/issues/71259
+    df = pd.DataFrame({"a": ["1", "2", "3"], "b": [10, 20, 30]})
+    result = df.assign(c=pd.to_numeric(pd.col("a"), downcast="integer") * pd.col("b"))
+    expected = df.assign(c=pd.to_numeric(df["a"], downcast="integer") * df["b"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_to_numeric_invalid_still_raises() -> None:
+    # https://github.com/pandas-dev/pandas/issues/71259
+    # argument validation still applies when the expression is evaluated
+    df = pd.DataFrame({"a": ["1", "x"]})
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        df.assign(b=pd.to_numeric(pd.col("a")))
+
+
 def test_where() -> None:
     # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})

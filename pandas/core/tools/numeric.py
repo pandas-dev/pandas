@@ -38,6 +38,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.col import Expression
 from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
@@ -199,6 +200,14 @@ def to_numeric(
     >>> pd.to_numeric(pd.Index(["1", "2", "3"]))
     Index([1, 2, 3], dtype='int64')
     """
+    if isinstance(arg, Expression):
+        return arg._call_with_func(
+            to_numeric,
+            arg=arg,
+            errors=errors,
+            downcast=downcast,
+            dtype_backend=dtype_backend,
+        )
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
 
