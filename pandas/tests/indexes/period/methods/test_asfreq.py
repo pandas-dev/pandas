@@ -2,6 +2,8 @@ import re
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -22,7 +24,7 @@ class TestPeriodIndex:
         assert pi1.asfreq("Q", "s") == pi2
         assert pi1.asfreq("M", "start") == pi3
         assert pi1.asfreq("D", "StarT") == pi4
-        assert pi1.asfreq("h", "beGIN") == pi5
+        assert pi1.asfreq("h", "START") == pi5
         assert pi1.asfreq("Min", "s") == pi6
         assert pi1.asfreq("s", "s") == pi7
 
@@ -192,3 +194,29 @@ class TestPeriodIndex:
         pi = pd.PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
         with pytest.raises(ValueError, match=msg):
             pi.asfreq(freq=freq)
+
+
+@pytest.mark.parametrize(
+    "how, alt", [("begin", "start"), ("FiNiSh", "end"), ("BEGIN", "start")]
+)
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda obj, how: obj.asfreq("D", how=how),
+        lambda obj, how: obj.to_timestamp(how=how),
+        lambda obj, how: obj[0].asfreq("D", how=how),
+        lambda obj, how: obj[0].to_timestamp(how=how),
+        lambda obj, how: pd.Series(range(2), index=obj).to_timestamp(how=how),
+        lambda obj, how: pd.DataFrame({"a": range(2)}, index=obj).asfreq("D", how=how),
+    ],
+)
+def test_how_begin_finish_deprecated(func, how, alt):
+    # GH#49132
+    pi = pd.period_range("2000Q1", periods=2, freq="Q")
+    msg = f"how='{how}' is deprecated and will raise in a future version"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg) as record:
+        result = func(pi, how)
+    assert len(record) == 1
+    with tm.assert_produces_warning(None):
+        expected = func(pi, alt)
+    tm.assert_equal(result, expected)

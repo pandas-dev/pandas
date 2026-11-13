@@ -174,6 +174,7 @@ Other deprecations
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
+- Deprecated the undocumented ``how="begin"`` and ``how="finish"`` aliases in :meth:`Period.asfreq`, :meth:`Period.to_timestamp`, and the ``asfreq`` and ``to_timestamp`` methods of other period-holding objects; use ``"start"`` and ``"end"`` instead (:issue:`49132`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
