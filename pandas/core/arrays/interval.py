@@ -69,6 +69,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCIntervalIndex,
     ABCPeriodIndex,
+    ABCSeries,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -77,6 +78,10 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import ops
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
 from pandas.core.algorithms import (
     isin,
     take,
@@ -89,6 +94,10 @@ from pandas.core.arrays.base import (
 )
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -113,6 +122,7 @@ if TYPE_CHECKING:
 
     from pandas import (
         Index,
+        Series,
     )
 
 
@@ -2003,3 +2013,102 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         if values.dtype.kind in "iu" and values.dtype != np.int64:
             values = values.astype(np.int64)
     return values
+
+
+# ---------------------------------------------------------------------
+# The Series.interval accessor
+
+
+@delegate_names(
+    delegate=IntervalArray,
+    accessors=["left", "right", "mid", "length", "is_empty", "closed"],
+    typ="property",
+)
+@delegate_names(
+    delegate=IntervalArray,
+    accessors=["overlaps", "contains", "set_closed"],
+    typ="method",
+)
+class IntervalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    """
+    Accessor object for interval properties of the Series values.
+
+    Provides the endpoints, midpoints and lengths of the intervals, and
+    elementwise checks for containment and overlap, each returned as a
+    Series aligned with the original. A categorical Series with interval
+    categories, such as the result of :func:`cut`, is also supported.
+
+    Parameters
+    ----------
+    data : Series
+        The Series with interval or interval-categorical dtype to which the
+        accessor is attached.
+
+    See Also
+    --------
+    arrays.IntervalArray : Pandas array for interval data.
+    Series.cat : Accessor object for categorical properties of the Series values.
+    Series.dt : Accessor object for datetimelike properties of the Series values.
+
+    Examples
+    --------
+    >>> ser = pd.Series(pd.arrays.IntervalArray.from_breaks([0, 1, 3, 6]))
+    >>> ser.interval.mid
+    0    0.5
+    1    2.0
+    2    4.5
+    dtype: float64
+
+    >>> ser.interval.contains(2)
+    0    False
+    1     True
+    2    False
+    dtype: bool
+    """
+
+    def __init__(self, data) -> None:
+        values = data.array
+        if isinstance(values.dtype, CategoricalDtype) and isinstance(
+            values.categories.dtype, IntervalDtype
+        ):
+            # take, not astype, so missing values upcast an integer subtype
+            values = values.categories._values.take(values.codes, allow_fill=True)
+        if not isinstance(values.dtype, IntervalDtype):
+            raise AttributeError(
+                "Can only use .interval accessor with an 'interval' dtype"
+            )
+        self._parent = data
+        self._values = values
+        self._freeze()
+
+    def _wrap_result(self, result, copy: bool) -> Series:
+        from pandas import Series
+
+        return Series(
+            extract_array(result),
+            index=self._parent.index,
+            name=self._parent.name,
+            copy=copy,
+        ).__finalize__(self._parent)
+
+    def _delegate_property_get(self, name: str):
+        result = getattr(self._values, name)
+        if name == "closed":
+            return result
+        # left and right are views on the parent's data
+        return self._wrap_result(result, copy=name in ("left", "right"))
+
+    def _unbox(self, obj):
+        # match Series comparison ops instead of silently matching by position
+        if isinstance(obj, ABCSeries):
+            if not obj.index.equals(self._parent.index):
+                raise ValueError("Can only compare identically-labeled Series objects")
+            return obj._values
+        return obj
+
+    def _delegate_method(self, name: str, *args, **kwargs) -> Series:
+        args = tuple(self._unbox(arg) for arg in args)
+        kwargs = {key: self._unbox(val) for key, val in kwargs.items()}
+        method = getattr(self._values, name)
+        # set_closed shares the parent's endpoint arrays
+        return self._wrap_result(method(*args, **kwargs), copy=name == "set_closed")
