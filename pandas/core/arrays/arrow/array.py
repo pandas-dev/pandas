@@ -895,6 +895,12 @@ class ArrowExtensionArray(
         -------
         pa.Scalar
         """
+        # GH#69443 a 0-d ndarray is scalar-like (is_list_like is False) but
+        #  pa.scalar cannot convert the ndarray itself. setitem_inplace unwraps
+        #  a length-1 1-d array to one. item_from_zerodim keeps the dtype, so
+        #  datetime64 stays datetime64 instead of becoming an int.
+        value = lib.item_from_zerodim(value)
+
         if isinstance(value, pa.Scalar):
             pa_scalar = value
         elif isna(value) and not (lib.is_float(value) and not is_nan_na()):
