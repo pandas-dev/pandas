@@ -644,8 +644,10 @@ cdef class TextReader:
         self.na_fvalues = na_fvalues
 
         self.user_true_set = set(true_values or ())
-        # like BooleanDtype, a default true spelling beats a user false one
-        self.user_false_set = set(false_values or ()) - BooleanArray._TRUE_VALUES
+        # same precedence as BooleanDtype: any true spelling beats a user false one
+        self.user_false_set = (
+            set(false_values or ()) - self.user_true_set - BooleanArray._TRUE_VALUES
+        )
         self.true_values = _maybe_encode(true_values) + _true_values
         self.false_values = _maybe_encode(false_values) + _false_values
 
@@ -1800,7 +1802,6 @@ cdef class TextReader:
                                    dtype=bool)
                 is_false = np.array([val in self.user_false_set for val in result],
                                     dtype=bool)
-                is_false &= ~is_true
                 result = np.where(is_true | is_false, np.nan, result)
 
             array_type = dtype.construct_array_type()

@@ -545,15 +545,19 @@ class PythonParser(ParserBase):
                     # GH#47534 these dtypes do not take true_values/false_values,
                     #  so set those positions after parsing the rest
                     true_set = set(self.true_values or ())
-                    # like BooleanDtype, a default true spelling beats a user false one
-                    false_set = set(self.false_values or ()) - BooleanArray._TRUE_VALUES
+                    # same precedence as BooleanDtype: any true spelling beats a
+                    #  user false one
+                    false_set = (
+                        set(self.false_values or ())
+                        - true_set
+                        - BooleanArray._TRUE_VALUES
+                    )
                     is_true = np.array(
                         [str(val) in true_set for val in values], dtype=bool
                     )
                     is_false = np.array(
                         [str(val) in false_set for val in values], dtype=bool
                     )
-                    is_false &= ~is_true
                     strings = np.array(values, dtype=object)
                     strings[is_true | is_false] = np.nan
                     result = array_type._from_sequence_of_strings(
