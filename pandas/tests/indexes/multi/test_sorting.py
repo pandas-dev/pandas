@@ -36,6 +36,56 @@ def test_sortlevel_not_sort_remaining():
     assert sorted_idx.equals(mi)
 
 
+@pytest.mark.parametrize("level_kind", ["list", "tuple", "array"])
+@pytest.mark.parametrize("sort_remaining", [True, False])
+@pytest.mark.parametrize("ascending", [True, False, []])
+def test_sortlevel_empty_level(level_kind, sort_remaining, ascending):
+    # GH#25831
+    level = {
+        "list": [],
+        "tuple": (),
+        "array": np.array([], dtype=np.intp),
+    }[level_kind]
+    index = pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)], names=["a", "b"])
+    result, indexer = index.sortlevel(
+        level=level, ascending=ascending, sort_remaining=sort_remaining
+    )
+
+    # A list ``ascending`` does not pull in the remaining levels.
+    if sort_remaining and not isinstance(ascending, list):
+        positions = [0, 2, 1] if ascending else [1, 2, 0]
+    else:
+        positions = [0, 1, 2]
+    expected_indexer = np.array(positions, dtype=np.intp)
+    tm.assert_index_equal(result, index.take(expected_indexer))
+    tm.assert_numpy_array_equal(indexer, expected_indexer)
+
+
+def test_sortlevel_empty_level_empty_index():
+    # GH#25831
+    index = pd.MultiIndex.from_tuples([], names=["a", "b"])
+    result, indexer = index.sortlevel(level=[], sort_remaining=False)
+    tm.assert_index_equal(result, index)
+    tm.assert_numpy_array_equal(indexer, np.array([], dtype=np.intp))
+
+
+@pytest.mark.parametrize("sort_remaining", [True, False])
+def test_sortlevel_empty_level_invalid_na_position(sort_remaining):
+    # GH#25831
+    index = pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)])
+    with pytest.raises(ValueError, match="invalid na_position: invalid"):
+        index.sortlevel(level=[], sort_remaining=sort_remaining, na_position="invalid")
+
+
+def test_sortlevel_level_zero_not_treated_as_empty():
+    # GH#25831: ``level=0`` is falsy but still selects the first level.
+    index = pd.MultiIndex.from_tuples([(1, 2), (1, 0), (0, 1)], names=["a", "b"])
+    result, indexer = index.sortlevel(level=0, sort_remaining=False)
+    expected_indexer = np.array([2, 0, 1], dtype=np.intp)
+    tm.assert_index_equal(result, index.take(expected_indexer))
+    tm.assert_numpy_array_equal(indexer, expected_indexer)
+
+
 def test_sortlevel_deterministic():
     tuples = [
         ("bar", "one"),
