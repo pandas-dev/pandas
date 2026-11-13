@@ -2405,16 +2405,21 @@ class Tooltips:
         # this conditional adds tooltips as extra "title" attribute on a <td> element
         else:
             index_offset = self.tt_data.index.nlevels
-            body = d["body"]
-            for i in range(len(self.tt_data.index)):
+            row_trim = styler.css["row_trim"]
+            col_trim = styler.css["col_trim"]
+            # hidden rows are not in the rendered body and the body may be trimmed,
+            # so pair each rendered row with its position in ``tt_data``
+            visible_rows = [
+                i for i in range(len(self.tt_data.index)) if i not in styler.hidden_rows
+            ]
+            for i, row in zip(visible_rows, d["body"], strict=False):
+                if row_trim in row[0]["class"].split():
+                    break
                 for j in range(len(self.tt_data.columns)):
-                    if (
-                        not mask.iloc[i, j]
-                        or i in styler.hidden_rows
-                        or j in styler.hidden_columns
-                    ):
-                        row = body[i]
-                        item = row[j + index_offset]
+                    item = row[j + index_offset]
+                    if col_trim in item["class"].split():
+                        break
+                    if not (mask.iloc[i, j] or j in styler.hidden_columns):
                         value = self.tt_data.iloc[i, j]
                         item["attributes"] += f' title="{value}"'
         return d
