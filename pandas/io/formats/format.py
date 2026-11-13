@@ -329,6 +329,7 @@ def get_dataframe_repr_params() -> dict[str, Any]:
         "max_cols": config["display"]["max_columns"],
         "max_colwidth": config["display"]["max_colwidth"],
         "show_dimensions": config["display"]["show_dimensions"],
+        "show_dtypes": config["display"]["show_dtypes"],
         "line_width": line_width,
     }
 
@@ -451,6 +452,7 @@ class DataFrameFormatter:
         min_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool | str = False,
+        show_dtypes: bool = False,
         decimal: str = ".",
         bold_rows: bool = False,
         escape: bool = True,
@@ -473,6 +475,7 @@ class DataFrameFormatter:
         self.min_rows = min_rows
         self.max_cols = max_cols
         self.show_dimensions = show_dimensions
+        self.show_dtypes = show_dtypes
 
         self.max_cols_fitted = self._calc_max_cols_fitted()
         self.max_rows_fitted = self._calc_max_rows_fitted()
@@ -655,7 +658,7 @@ class DataFrameFormatter:
             num_rows += len(self.dimensions_info.splitlines())
 
         if self.header:
-            num_rows += 1
+            num_rows += 1 + self.show_dtypes
 
         return num_rows
 
@@ -739,6 +742,11 @@ class DataFrameFormatter:
             str_columns = [[label] for label in self.header]
         else:
             str_columns = self._get_formatted_column_labels(self.tr_frame)
+
+        if self.show_dtypes:
+            # positional: a list ``header`` is not truncated with tr_frame
+            for i, dtype in enumerate(self.tr_frame.dtypes):
+                str_columns[i].append(str(dtype))
 
         if self.show_row_idx_names:
             for x in str_columns:
@@ -860,6 +868,8 @@ class DataFrameFormatter:
             col_header = [format_name(x) for x in self._get_column_name_list()]
         else:
             col_header = [""] * columns.nlevels
+        if self.show_dtypes:
+            col_header.append("")
 
         if self.header:
             return col_header + adjoined
