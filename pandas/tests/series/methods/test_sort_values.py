@@ -274,3 +274,11 @@ def test_sort_values_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         ser.sort_values(inplace=True)
     tm.assert_series_equal(ser, expected)
+
+
+def test_sort_values_object_dtype_preserved():
+    # GH#71978
+    ser = pd.Series(["b", "a"], dtype=object)
+    result = ser.sort_values()
+    expected = pd.Series(["a", "b"], dtype=object, index=[1, 0])
+    tm.assert_series_equal(result, expected)
