@@ -33,6 +33,8 @@ def _get_min_value(dtype: np.dtype) -> int | float:
     """Get the minimum value for a given numpy dtype."""
     if dtype.kind == "f":
         return -np.inf
+    elif dtype.kind == "b":
+        return False
     elif dtype.kind == "u":
         return 0
     else:
@@ -43,6 +45,8 @@ def _get_max_value(dtype: np.dtype) -> int | float:
     """Get the maximum value for a given numpy dtype."""
     if dtype.kind == "f":
         return np.inf
+    elif dtype.kind == "b":
+        return True
     else:
         return np.iinfo(dtype).max
 
