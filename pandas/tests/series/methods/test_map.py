@@ -413,6 +413,15 @@ def test_map_dict_subclass_with_missing():
     tm.assert_series_equal(result, expected)
 
 
+def test_map_defaultdict_na_matches_nan_key():
+    # GH#72094
+    ser = pd.Series([1, None], dtype="Int64")
+    mapper = defaultdict(lambda: 0, {1: 10, np.nan: -1})
+    result = ser.map(mapper)
+    expected = pd.Series([10, -1], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
 def test_map_dict_subclass_without_missing():
     class DictWithoutMissing(dict):
         pass
