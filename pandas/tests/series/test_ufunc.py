@@ -362,6 +362,7 @@ def test_ufunc_where_misaligned_raises():
     "where",
     [
         pd.Series(pd.array([True, None, False])),
+        pd.Series([True, None, False], dtype=object),
         pd.Index(pd.array([True, None, False])),
         pd.array([True, None, False]),
         pd.Categorical([True, None, False]),
@@ -384,7 +385,7 @@ def test_ufunc_where_misaligned_raises():
     ids=type,
 )
 def test_ufunc_where_missing_raises(values, where):
-    # GH#60611 a pandas input with `out=` used to treat a Categorical's NaN as True
+    # GH#60611 a pandas input with `out=` used to treat a missing value as True
     msg = "The ufunc 'where' argument cannot contain missing values"
     with pytest.raises(ValueError, match=msg):
         np.negative(values, where=where, out=np.zeros(3))
