@@ -20,6 +20,8 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    NaT,
+    Period,
     Timedelta,
     Timestamp,
     iNaT,
@@ -27,6 +29,7 @@ from pandas._libs.tslibs import (
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas.core.common as com
 from pandas.core.computation import (
@@ -228,6 +231,18 @@ class BinOp(ops.BinOp):
         """whether my field is an ordered Categorical (None if unrecorded)"""
         return getattr(self.queryables.get(self.lhs.value), "ordered", None)
 
+    @property
+    def dtype_name(self) -> str:
+        """the name of the dtype my field was stored from ("" if unrecorded)"""
+        field = self.queryables.get(self.lhs.value)
+        name = ensure_decoded(getattr(field, "dtype", None))
+        return name if isinstance(name, str) else ""
+
+    @property
+    def is_period(self) -> bool:
+        """whether my field holds Periods, which are stored as int64 ordinals"""
+        return self.dtype_name.startswith("period")
+
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
@@ -245,10 +260,23 @@ class BinOp(ops.BinOp):
             op = "<=" if self.op in ("<", "<=") else ">"
             return f"({lhs} {op} {val})"
         kind = ensure_decoded(self.kind) or ""
-        if self.op in ("<", "<=") and kind.startswith(("datetime", "timedelta")):
-            # datetime64/timedelta64 columns are stored as int64 with NaT as
-            # iNaT, which sorts below every real value, so an unguarded "less
-            # than" would match the NaT rows. ">"/">=" need no such guard.
+        if ensure_decoded(self.meta) == "category" and self.op in (
+            "<",
+            "<=",
+            ">",
+            ">=",
+        ):
+            # a Categorical stores its codes, and a missing value has the code
+            # -1, which sorts below every real code, so an unguarded "<" would
+            # match the missing rows. Comparing a missing value is False.
+            return f"(({lhs} >= 0) & ({lhs} {self.op} {val}))"
+        if self.op in ("<", "<=") and (
+            kind.startswith(("datetime", "timedelta")) or self.is_period
+        ):
+            # datetime64/timedelta64 columns (and Periods, as ordinals) are
+            # stored as int64 with NaT as iNaT, which sorts below every real
+            # value, so an unguarded "less than" would match the NaT rows.
+            # ">"/">=" need no such guard.
             return f"(({lhs} != {iNaT}) & ({lhs} {self.op} {val}))"
         return f"({lhs} {self.op} {val})"
 
@@ -310,6 +338,20 @@ class BinOp(ops.BinOp):
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
+        elif (
+            kind == "integer"
+            and self.is_period
+            and not (lib.is_integer(conv_val) or lib.is_float(conv_val))
+        ):
+            # a Period column is stored as int64 ordinals: compare against the
+            # ordinal of the Period the value stands for, at the column's freq
+            freq = PeriodDtype.construct_from_string(self.dtype_name).freq
+            period = Period(conv_val, freq=freq)
+            if period is NaT:
+                raise ValueError(
+                    f"Cannot compare [{self.lhs.value}] to a missing Period"
+                )
+            return TermValue(period.ordinal, period.ordinal, kind)
         elif kind == "integer":
             try:
                 v_dec = Decimal(conv_val)
@@ -491,6 +533,53 @@ class UnaryOp(ops.UnaryOp):
         return None
 
 
+def _check_or_branches(node) -> tuple[bool, bool]:
+    """
+    Check that no ``|`` mixes terms that end up in the condition and the filter.
+
+    A term is evaluated either in the table (the numexpr condition) or, when it
+    cannot be (e.g. an ``in`` with more than ``BinOp._max_selectors`` values),
+    after the read (the filter). The two are always combined with an AND, so an OR
+    whose branches are split between them cannot be represented.
+
+    Returns
+    -------
+    tuple[bool, bool]
+        Whether ``node`` contributes to the condition and to the filter.
+    """
+    if is_term(node):
+        return False, False
+    if isinstance(node, UnaryOp):
+        return _check_or_branches(node.operand)
+
+    left, right = node.lhs, node.rhs
+    if is_term(left) and is_term(right):
+        return (
+            node.prune(ConditionBinOp) is not None,
+            node.prune(FilterBinOp) is not None,
+        )
+
+    kinds_left = _check_or_branches(left)
+    kinds_right = _check_or_branches(right)
+    if node.op == "|":
+        # each non-empty branch must be entirely a condition or entirely a filter
+        # and both branches must agree
+        branches = {k for k in (kinds_left, kinds_right) if any(k)}
+        if len(branches) > 1 or any(all(k) for k in branches):
+            raise NotImplementedError(
+                "the terms of an OR (|) must all be applied in the table or all be "
+                "applied as a filter after the read, but at least one of them can "
+                "only be applied as a filter (e.g. an 'in'/'==' with more than "
+                f"{BinOp._max_selectors} values) while another is applied in the "
+                "table. Reduce the number of values, combine the terms with '&' "
+                "instead, or read the data and filter it in pandas."
+            )
+    return (
+        kinds_left[0] or kinds_right[0],
+        kinds_left[1] or kinds_right[1],
+    )
+
+
 class PyTablesExprVisitor(BaseExprVisitor):
     const_type: ClassVar[type[ops.Term]] = Constant
     term_type: ClassVar[type[Term]] = Term
@@ -509,7 +598,19 @@ class PyTablesExprVisitor(BaseExprVisitor):
         if isinstance(node.op, (ast.Not, ast.Invert)):
             return UnaryOp("~", self.visit(node.operand))
         elif isinstance(node.op, ast.USub):
-            return self.const_type(-self.visit(node.operand).value, self.env)
+            operand = self.visit(node.operand)
+            if isinstance(operand, ops.BinOp):
+                # e.g. -(1 + 1): fold the arithmetic of constants
+                try:
+                    value = operand(self.env)
+                except Exception as err:
+                    raise NotImplementedError(
+                        "unary minus is only supported on a constant or on "
+                        "arithmetic of constants inside an HDFStore 'where'"
+                    ) from err
+            else:
+                value = operand.value
+            return self.const_type(-value, self.env)
         elif isinstance(node.op, ast.UAdd):
             raise NotImplementedError("Unary addition not supported")
         # TODO: return None might never be reached
@@ -568,7 +669,11 @@ class PyTablesExprVisitor(BaseExprVisitor):
         raise ValueError(f"Invalid Attribute context {ctx.__name__}")
 
     def translate_In(self, op):
-        return ast.Eq() if isinstance(op, ast.In) else op
+        if isinstance(op, ast.In):
+            return ast.Eq()
+        if isinstance(op, ast.NotIn):
+            return ast.NotEq()
+        return op
 
     def _rewrite_membership_op(self, node, left, right):
         return self.visit(node.op), node.op, left, right
@@ -662,7 +767,14 @@ class PyTablesExpr(expr.Expr):
                     local_dict = w.env.scope
                 else:
                     where[idx] = _validate_where(w)
-            _where = " & ".join([f"({w})" for w in com.flatten(where)])
+            # a PyTablesExpr formats as its parsed terms, which do not parse
+            #  back, so combine the text it was made from
+            _where = " & ".join(
+                [
+                    f"({w.expr if isinstance(w, PyTablesExpr) else w})"
+                    for w in com.flatten(where)
+                ]
+            )
         else:
             # _validate_where ensures we otherwise have a string
             _where = where
@@ -702,6 +814,9 @@ class PyTablesExpr(expr.Expr):
                 f"cannot process expression [{self.expr}], [{self}] "
                 "is not a valid filter"
             ) from err
+        # GH#71277 the condition and the filter are ANDed after the read, which
+        # is wrong if a term of an OR landed in one and the rest in the other
+        _check_or_branches(self.terms)
 
         return self.condition, self.filter
 

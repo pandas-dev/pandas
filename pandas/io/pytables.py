@@ -198,6 +198,10 @@ def _ensure_term(where, scope_level: int):
         ]
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
+    elif isinstance(where, (np.ndarray, Index, Series)) and not len(where):
+        # an empty array of coordinates selects no rows; it is not the absence
+        # of a where, which would select (or, for remove, delete) every row
+        return np.array([], dtype=np.int64)
     return where if where is None or len(where) else None
 
 
@@ -5634,6 +5638,10 @@ class AppendableTable(Table):
     def delete(
         self, where=None, start: int | None = None, stop: int | None = None
     ) -> int | None:
+        if isinstance(where, np.ndarray) and not len(where):
+            # an empty array of coordinates selects no rows
+            return 0
+
         # delete all rows (and return the nrows)
         if where is None or not len(where):
             if start is None and stop is None:
@@ -5656,8 +5664,10 @@ class AppendableTable(Table):
         selection = Selection(self, where, start=start, stop=stop)
         values = selection.select_coords()
 
-        # delete the rows in reverse order
-        sorted_series = Series(values, copy=False).sort_values(ignore_index=True)
+        # delete the rows in reverse order. Sort (and drop repeats of) the
+        # coordinates positionally: the groups below are found through the
+        # labels of this Series, which must therefore be 0..n-1 in order.
+        sorted_series = Series(np.unique(np.asarray(values)))
         ln = len(sorted_series)
 
         if ln:
@@ -6657,7 +6667,7 @@ class Selection:
             # see if we have a passed coordinate like
             inferred = lib.infer_dtype(where, skipna=False)
             if inferred in ("integer", "boolean"):
-                where = np.asarray(where)
+                where = np.array(where)
                 # start/stop are None on the read_coordinates paths, which is how
                 #  an out-of-range coordinate used to reach PyTables unchecked
                 start, stop = _resolve_row_window(
