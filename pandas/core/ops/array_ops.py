@@ -496,6 +496,21 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         if not (left.dtype.kind in "iu" and is_other_int_dtype):
             res_values = fill_bool(res_values)
 
+        if lvalues.dtype == object and (lmask := isna(lvalues)).any():
+            # GH#51267 NA on the left counts as False, as fill_bool does on the
+            #  right. Patch the result rather than filling lvalues, which would
+            #  expose e.g. `False & 1.5` to op and raise.
+            if isinstance(rvalues, np.ndarray):
+                # pair elements as na_logical_op did: one-to-one or by broadcasting
+                other = rvalues
+                if other.size != lvalues.size:
+                    shape = np.broadcast_shapes(lvalues.shape, other.shape)
+                    other = np.broadcast_to(other, shape)
+                other = other.reshape(lvalues.shape)[lmask]
+                res_values[lmask] = op(False, other.astype(bool))
+            elif not isna(rvalues):
+                res_values[lmask] = op(False, bool(rvalues))
+
     return res_values
 
 
