@@ -4363,7 +4363,16 @@ def test_read_sql_query_decimal_dtype_exact(
     "dtype, msg",
     [
         ("Int64", "cannot safely cast"),
-        pytest.param("int64[pyarrow]", "truncated", marks=td.skip_if_no("pyarrow")),
+        pytest.param(
+            "int64[pyarrow]",
+            "Rescaling Decimal",
+            marks=[
+                td.skip_if_no("pyarrow"),
+                pytest.mark.xfail(
+                    reason="int64[pyarrow] truncates Decimals, GH#72095", strict=True
+                ),
+            ],
+        ),
     ],
 )
 def test_read_sql_query_decimal_dtype_non_integral_raises(
