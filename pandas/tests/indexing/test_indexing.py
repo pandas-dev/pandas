@@ -8,7 +8,10 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -1280,3 +1283,74 @@ def test_object_dtype_series_set_series_element():
 
     s2.iloc[1] = pd.Series()
     tm.assert_series_equal(s2.iloc[1], pd.Series())
+
+
+@pytest.mark.parametrize(
+    "indexer, value",
+    [
+        (tm.iloc, np.array([[10, 11]])),
+        (tm.loc, np.array([[10, 11]])),
+        (tm.iloc, pd.DataFrame([[10, 11]])),
+    ],
+)
+@pytest.mark.parametrize("key", [1, (1, slice(None)), (1, [0, 1])])
+@pytest.mark.parametrize("dtypes", [["int64"] * 2, ["int64", "float64"], [object] * 2])
+def test_setitem_2d_value_into_row_deprecated(indexer, key, value, dtypes):
+    # GH#70257
+    df = pd.DataFrame({i: pd.array([1, 2, 3], dtype=dt) for i, dt in enumerate(dtypes)})
+    expected = df.copy()
+    expected.iloc[1] = [10, 11]
+
+    msg = "Setting a 2-D value into a single row is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        indexer(df)[key] = value
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "dtypes, value",
+    [
+        (["int64"] * 2, [[10, 11]]),
+        (["int64"] * 2, ([10, 11],)),
+        (["int64"] * 2, [np.array([10, 11])]),
+        ([object, object, "int64"], [[10, 11], [12, 13]]),
+    ],
+)
+def test_setitem_nested_sequence_into_row_deprecated(indexer_li, dtypes, value):
+    # GH#70257 a nested sequence read as rows, rather than one element per cell
+    df = pd.DataFrame({i: pd.array([1, 2, 3], dtype=dt) for i, dt in enumerate(dtypes)})
+
+    msg = "Setting a 2-D value into a single row is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        indexer_li(df)[1, [0, 1]] = value
+
+
+def test_iloc_setitem_2d_value_into_row_0d_key_deprecated():
+    # GH#70257 a 0-d row key selects a row like an int, see test_0d_row_key
+    df = pd.DataFrame({0: [1, 2, 3], 1: [4, 5, 6]})
+    expected = pd.DataFrame({0: [1, 10, 3], 1: [4, 11, 6]})
+
+    msg = "Setting a 2-D value into a single row is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.iloc[np.array(1), :] = np.array([[10, 11]])
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "dtypes, key, value",
+    [
+        ([object, object, "int64"], (1, [0, 1]), np.array([10, 11])),
+        # each object cell stores one element of the list
+        ([object] * 2, (1, [0, 1]), [[10, 11], [12, 13]]),
+        ([object, object, "int64"], (1, [0]), [(10, 11)]),
+        ([object, object, "int64"], (1, 0), np.array([[10, 11]])),
+        ([object] * 2, (1, 0), np.array([[10, 11]])),
+        ([object, object, "int64"], (1, 0), pd.DataFrame([[10, 11]])),
+    ],
+)
+def test_setitem_into_row_not_deprecated(dtypes, key, value):
+    # GH#70257 a 1-D value, nested list elements stored per object cell, and a
+    #  single cell are unaffected
+    df = pd.DataFrame({i: pd.array([1, 2, 3], dtype=dt) for i, dt in enumerate(dtypes)})
+    with tm.assert_produces_warning(None):
+        df.iloc[key] = value
