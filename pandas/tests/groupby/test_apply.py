@@ -411,10 +411,69 @@ def test_apply_frame_not_as_index_column_name(df):
     # GH 35964 - path within _wrap_applied_output not hit by a test
     grouped = df.groupby(["A", "B"], as_index=False)
     result = grouped.apply(len)
-    expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
-    # TODO(GH#34306): Use assert_frame_equal when column name is not np.nan
-    tm.assert_index_equal(result.index, expected.index)
-    tm.assert_numpy_array_equal(result.values, expected.values)
+    expected = grouped.count().rename(columns={"C": 0}).drop(columns="D")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [len, lambda x: [1], lambda x: [1, 2]])
+@pytest.mark.parametrize("selection", [None, ["B"], ["B", "C"]])
+def test_apply_frame_not_as_index_scalar_column_name(selection, func):
+    # GH#36306 label the result column like .reset_index()
+    df = pd.DataFrame({"A": [1, 2, 1], "B": [3, 4, 5], "C": [6, 7, 8]})
+    gb = df.groupby("A", as_index=False)
+    expected_gb = df.groupby("A")
+    if selection is not None:
+        gb = gb[selection]
+        expected_gb = expected_gb[selection]
+    result = gb.apply(func)
+    expected = expected_gb.apply(func).reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_frame_not_as_index_scalar_subclass():
+    # GH#36306 a subclass defining only _constructor keeps its type
+    class MyFrame(pd.DataFrame):
+        @property
+        def _constructor(self):
+            return MyFrame
+
+    df = MyFrame({"A": [1, 2, 1], "B": [3, 4, 5]})
+    result = df.groupby("A", as_index=False).apply(len)
+    assert type(result) is MyFrame
+
+
+def test_apply_frame_not_as_index_scalar_multiindex_selection():
+    # GH#36306 a top-level selection of MultiIndex columns is not used as the label
+    columns = pd.MultiIndex.from_tuples([("A", ""), ("B", "x"), ("B", "y")])
+    df = pd.DataFrame([[1, 3, 6], [2, 4, 7], [1, 5, 8]], columns=columns)
+    result = df.groupby("A", as_index=False)["B"].apply(len)
+    expected = df.groupby("A")["B"].apply(len).reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "keys, columns, expected",
+    [
+        (0, [0, None], [[1, 2], [2, 1]]),
+        ([0, 1], [0, 1, None], [[1, 3, 2], [2, 4, 1]]),
+    ],
+)
+def test_apply_frame_not_as_index_scalar_key_named_zero(keys, columns, expected):
+    # GH#36306 a key named 0 keeps the None label instead of being dropped
+    df = pd.DataFrame([[1, 3], [2, 4], [1, 3]])
+    result = df.groupby(keys, as_index=False).apply(len)
+    expected = pd.DataFrame(expected, columns=pd.Index(columns, dtype=object))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("name", [pd.NA, False])
+def test_apply_frame_not_as_index_scalar_key_named_not_zero(name):
+    # GH#36306 keys that do not collide with the 0 label
+    df = pd.DataFrame({"A": [1, 2, 1], "B": [3, 4, 5]})
+    key = pd.Series([1, 2, 1], name=name)
+    result = df.groupby(key, as_index=False).apply(len)
+    expected = df.groupby(key).apply(len).reset_index()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_frame_concat_series():
@@ -1226,7 +1285,7 @@ def test_apply_group_keys_false_duplicate_na_index_order(sort, dropna):
         [
             False,
             pd.DataFrame(
-                [[1, 1, 1], [2, 2, 1]], columns=pd.Index(["a", "b", None], dtype=object)
+                [[1, 1, 1], [2, 2, 1]], columns=pd.Index(["a", "b", 0], dtype=object)
             ),
         ],
         [

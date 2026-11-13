@@ -2433,7 +2433,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if self.as_index:
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
-                result = self.obj._constructor(values, columns=[self._selection])
+                # GH#36306 label like .reset_index(), keeping None if a key is
+                #  named 0 so the key is not dropped
+                collides = any(name in Index([0]) for name in self._grouper.names)
+                label = None if collides else 0
+                result = self.obj._constructor({label: values})
                 result = self._insert_inaxis_grouper(result)
                 return result
         else:
