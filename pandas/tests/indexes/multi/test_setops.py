@@ -735,6 +735,18 @@ def test_union_nan_got_duplicated(dtype, sort):
     tm.assert_index_equal(result, expected)
 
 
+def test_union_difference_groupby_na_codes():
+    # GH#60642 groupby(dropna=False) codes NA by its level position, not -1
+    mi = pd.MultiIndex.from_arrays([[1.0, np.nan], ["a", "b"]], names=["x", "y"])
+    df = pd.DataFrame({"v": [1, 2]}, index=mi).reset_index()
+    gb_mi = df.groupby(["x", "y"], dropna=False).sum().index
+
+    tm.assert_index_equal(mi.union(gb_mi, sort=False), mi)
+    tm.assert_index_equal(gb_mi.union(mi, sort=False), gb_mi)
+    assert mi.difference(gb_mi).empty
+    assert gb_mi.difference(mi).empty
+
+
 @pytest.mark.parametrize("val", [4, 1])
 def test_union_keep_ea_dtype(any_numeric_ea_dtype, val):
     # GH#48505
