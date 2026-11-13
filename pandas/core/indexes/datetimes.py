@@ -1265,7 +1265,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to floor the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1356,7 +1357,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to ceil the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'

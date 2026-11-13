@@ -1904,6 +1904,50 @@ def test_comparison_same_object_distinguish_nan_and_na(comparison_op):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Float64", "Float64"),
+        ("Int64", "Float64"),
+        pytest.param(
+            "float64[pyarrow]", "float64[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+def test_insert_nan_distinguish_nan_and_na(dtype, expected_dtype):
+    # GH#71870 NaN was converted to NA
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = Index([1, 2], dtype=dtype).insert(0, np.nan)
+        assert result.dtype == expected_dtype
+        assert np.isnan(result[0])
+        assert result[1:].tolist() == [1.0, 2.0]
+
+
+@pytest.mark.parametrize(
+    "pa_type, value",
+    [("string", "a"), ("bool", True), ("binary", b"a"), ("list", [1])],
+)
+def test_insert_nan_arrow_non_float_distinguish_nan_and_na(pa_type, value):
+    # follow-up to GH#71870: NaN was stored as e.g. "nan" or True, or raised
+    #  ArrowNotImplementedError
+    pa = pytest.importorskip("pyarrow")
+    pa_type = {
+        "string": pa.string(),
+        "bool": pa.bool_(),
+        "binary": pa.binary(),
+        "list": pa.list_(pa.int64()),
+    }[pa_type]
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = Index([value], dtype=pd.ArrowDtype(pa_type)).insert(0, np.nan)
+    assert result.dtype == object
+    assert len(result) == 2
+    assert np.isnan(result[0])
+    if isinstance(value, list):
+        assert list(result[1]) == value
+    else:
+        assert result[1] == value
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333

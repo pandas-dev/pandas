@@ -285,6 +285,7 @@ def to_numeric(
             set(),
             coerce_numeric=coerce_numeric,
             convert_to_masked_nullable=dtype_backend is not lib.no_default
+            or isinstance(values_dtype, ArrowDtype)
             or (
                 isinstance(values_dtype, StringDtype)
                 and values_dtype.na_value is libmissing.NA
@@ -336,10 +337,14 @@ def to_numeric(
         if mask is None or (new_mask is not None and new_mask.shape == mask.shape):
             # GH 52588
             mask = new_mask
+        elif new_mask is not None:
+            # GH#67949: mask covers the original input while new_mask covers
+            #  only the values left after dropping the original nulls, so
+            #  merge the parse failures back into their original positions
+            mask = mask.copy()
+            mask[~mask] = new_mask
         else:
             mask = mask.copy()
-            if new_mask is not None:
-                mask[~mask] = new_mask
         assert isinstance(mask, np.ndarray)
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values

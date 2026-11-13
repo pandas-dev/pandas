@@ -13,15 +13,15 @@ from libc.math cimport NAN
 
 cnp.import_array()
 
-from pandas._libs.dtypes cimport numeric_object_t
+from pandas._libs.dtypes cimport numeric_object_complex_t
 from pandas._libs.lib cimport c_is_list_like
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unstack(const numeric_object_t[:, :] values, const uint8_t[:] mask,
+def unstack(const numeric_object_complex_t[:, :] values, const uint8_t[:] mask,
             Py_ssize_t stride, Py_ssize_t length, Py_ssize_t width,
-            numeric_object_t[:, :] new_values) -> None:
+            numeric_object_complex_t[:, :] new_values) -> None:
     """
     Transform long values to wide new_values.
 
@@ -38,7 +38,7 @@ def unstack(const numeric_object_t[:, :] values, const uint8_t[:] mask,
     cdef:
         Py_ssize_t i, j, w, nulls, s, offset
 
-    with nogil(numeric_object_t is not object):
+    with nogil(numeric_object_complex_t is not object):
         for i in range(stride):
 
             nulls = 0

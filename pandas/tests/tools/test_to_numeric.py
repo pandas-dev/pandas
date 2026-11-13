@@ -158,6 +158,31 @@ def test_coerce_unhashable_nested_tuple():
     tm.assert_series_equal(result, expected)
 
 
+def test_zero_dim_ndarray_elements(errors):
+    # GH#47408 - a 0-dimensional array converts as the scalar it holds instead
+    # of tripping the len() check meant for empty containers.
+    kwargs = {"errors": errors} if errors is not None else {}
+    ser = pd.Series([3, np.array(2.1), np.array(4)], dtype=object)
+
+    result = pd.to_numeric(ser, **kwargs)
+
+    expected = pd.Series([3.0, 2.1, 4.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_zero_dim_ndarray_with_unparsable_string():
+    # GH#47408
+    ser = pd.Series([3, np.array(2.1), "a"], dtype=object)
+
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([3.0, 2.1, np.nan])
+    tm.assert_series_equal(result, expected)
+
+    msg = "Unable to parse string 'a' at position 2"
+    with pytest.raises(ValueError, match=msg):
+        pd.to_numeric(ser, errors="raise")
+
+
 def test_ignore_error():
     ser = pd.Series([1, -3.14, "apple"])
     result = pd.to_numeric(ser, errors="coerce")
@@ -981,12 +1006,25 @@ def test_invalid_dtype_backend():
         pd.to_numeric(ser, dtype_backend="numpy")
 
 
-def test_coerce_pyarrow_backend():
-    # GH 52588
+@pytest.mark.parametrize(
+    "data, expected, kwargs, dtype",
+    [
+        (list("12x"), [1, 2, None], {"dtype_backend": "pyarrow"}, "int64"),
+        (["1", "x"], [1, None], {}, "int64"),
+        (["1", "NaN"], [1, None], {}, "int64"),
+        (["1", None, "x"], [1, None, None], {}, "int64"),
+        (["1", None, "x"], [1, None, None], {"dtype_backend": "pyarrow"}, "int64"),
+        (["1.5", None, "x"], [1.5, None, None], {}, "float64"),
+    ],
+)
+def test_coerce_pyarrow_string(data, expected, kwargs, dtype):
+    # GH#52588, GH#67949: unparsable strings (including the "NaN" literal)
+    #  must become a real pd.NA that isna() sees, and a parse failure after
+    #  an existing missing value must not duplicate the last parsed value
     pa = pytest.importorskip("pyarrow")
-    ser = pd.Series(list("12x"), dtype=pd.ArrowDtype(pa.string()))
-    result = pd.to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
-    expected = pd.Series([1, 2, None], dtype=pd.ArrowDtype(pa.int64()))
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce", **kwargs)
+    expected = pd.Series(expected, dtype=pd.ArrowDtype(getattr(pa, dtype)()))
     tm.assert_series_equal(result, expected)
 
 
@@ -1070,34 +1108,20 @@ def test_long_mantissa_correctly_rounded(value, sign):
 
 
 @pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
-def test_to_numeric_nan_mask_sync(dtype_backend):
+@pytest.mark.parametrize("distinguish_nan_and_na", [False, True])
+def test_to_numeric_nan_mask_sync(dtype_backend, distinguish_nan_and_na):
     # GH 63732
     if dtype_backend == "pyarrow":
         pytest.importorskip("pyarrow")
-    ser = pd.Series([1.0, np.nan], dtype=np.float64)
-    result = pd.to_numeric(ser, dtype_backend=dtype_backend)
-
-    assert result.isna().sum() == 1
-    assert result.dropna().size == 1
-    expected_dtype = (
-        "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
-    )
-    expected = pd.Series([1.0, pd.NA], dtype=expected_dtype)
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
-def test_to_numeric_nan_mask_sync_distinguish_nan_and_na(dtype_backend):
-    # GH 63732
-    if dtype_backend == "pyarrow":
-        pytest.importorskip("pyarrow")
-    with pd.option_context("future.distinguish_nan_and_na", True):
+    with pd.option_context("future.distinguish_nan_and_na", distinguish_nan_and_na):
         ser = pd.Series([1.0, np.nan], dtype=np.float64)
         result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+
         expected_dtype = (
             "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
         )
-        expected = pd.Series([1.0, np.nan], dtype=expected_dtype)
+        na_val = np.nan if distinguish_nan_and_na else pd.NA
+        expected = pd.Series([1.0, na_val], dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
 
 
@@ -1129,24 +1153,4 @@ def test_to_numeric_downcast_with_nan(dtype_backend):
     result = pd.to_numeric(ser, dtype_backend=dtype_backend, downcast="integer")
     expected_dtype = "Int8" if dtype_backend == "numpy_nullable" else "int8[pyarrow]"
     expected = pd.Series([1, pd.NA], dtype=expected_dtype)
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
-@pytest.mark.parametrize(
-    "data, expected_vals, expected_type",
-    [
-        (["1", "x", None], [1, pd.NA, pd.NA], "int64[pyarrow]"),
-        (["1", "2", "x", None], [1, 2, pd.NA, pd.NA], "int64[pyarrow]"),
-        (["x", "y", None], [pd.NA, pd.NA, pd.NA], "double[pyarrow]"),
-    ],
-)
-def test_to_numeric_arrow_with_dtype_backend(
-    dtype_backend, data, expected_vals, expected_type
-):
-    # GH 63732
-    pa = pytest.importorskip("pyarrow")
-    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
-    result = pd.to_numeric(ser, errors="coerce", dtype_backend=dtype_backend)
-    expected = pd.Series(expected_vals, dtype=expected_type)
     tm.assert_series_equal(result, expected)

@@ -279,6 +279,24 @@ def test_skiprows_infield_quote(all_parsers):
 
 
 @pytest.mark.parametrize(
+    "preamble",
+    [
+        '# Value: ";"\n# Time: 4\n# Time: ""\n',
+        '"title\nsubtitle\nnotes"\n',
+    ],
+)
+def test_skiprows_leading_lines_with_quotes(all_parsers, preamble):
+    # GH#34732 rows skipped at the start of the file are physical lines, so a
+    # quote in them does not open a field spanning later lines
+    parser = all_parsers
+    data = preamble + "a;b\n1;2"
+    expected = pd.DataFrame({"a": [1], "b": [2]})
+
+    result = parser.read_csv(StringIO(data), sep=";", skiprows=3)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "kwargs,expected",
     [
         ({}, "1"),
@@ -477,16 +495,19 @@ def test_skiprows_past_end_of_file(all_parsers):
         parser.read_csv(StringIO(data), skiprows=5)
 
 
-def test_skiprows_to_final_line_without_newline(all_parsers):
-    # GH#48507 pyarrow's skip_rows cannot skip past a final line lacking a
-    # trailing newline; skip_rows_after_names covers only the header row
+def test_skiprows_to_end_of_file(all_parsers):
+    parser = all_parsers
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+        parser.read_csv(StringIO("a,b\n"), skiprows=1)
+
+
+def test_skiprows_to_final_line_without_newline(all_parsers, request):
+    # GH#48507, GH#62635
     parser = all_parsers
     data = "j0\na,b"
-
     if parser.engine == "pyarrow":
-        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
-            parser.read_csv(StringIO(data), skiprows=1)
-        return
+        reason = "empty columns get float64 dtype instead of object"
+        request.applymarker(pytest.mark.xfail(reason=reason))
 
     result = parser.read_csv(StringIO(data), skiprows=1)
     expected = pd.DataFrame(columns=["a", "b"], dtype=object)

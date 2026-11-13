@@ -424,3 +424,12 @@ class TestSetitemOutOfBounds:
         with tm.assert_produces_warning(None):
             arr[0] = value
         assert arr[0] == value
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "boolean"])
+def test_insert_nan_distinguish_nan_and_na_raises(dtype):
+    # GH#71870 this dtype cannot hold NaN, and NaN is not NA under the option
+    arr = pd.array([1, 0], dtype=dtype)
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        with pytest.raises(TypeError, match="Invalid value 'nan'"):
+            arr.insert(0, np.nan)

@@ -103,6 +103,8 @@ class TestConfig:
         assert "doc" in cf.describe_option("a", _print_desc=False)
         assert "doc2" in cf.describe_option("b", _print_desc=False)
         assert "precated" in cf.describe_option("b", _print_desc=False)
+        # no replacement key: no empty "use `` instead" hint
+        assert cf.describe_option("b", _print_desc=False).endswith("(Deprecated)")
         assert "doc3" in cf.describe_option("c.d.e1", _print_desc=False)
         assert "doc4" in cf.describe_option("c.d.e2", _print_desc=False)
 
