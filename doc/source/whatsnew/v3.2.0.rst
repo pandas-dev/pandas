@@ -264,6 +264,9 @@ Conversion
 - Fixed bug in :func:`to_numeric` with ``errors="coerce"`` raising ``TypeError`` for object values containing unhashable nested elements, such as a tuple containing a list, instead of coercing them to ``NaN`` (:issue:`69916`)
 -
 
+- Bug in :class:`DataFrame` constructor silently converting ``IntEnum`` members to plain :class:`int` when ``dtype=object`` was specified; constructing from mixed-type data with ``dtype=object`` now also preserves the original Python types instead of converting them (:issue:`59380`)
+-
+
 Strings
 ^^^^^^^
 - :meth:`Series.str.get_dummies` now raises a ``ValueError`` for an empty separator with ``object``, Python-backed string, or categorical data, matching Python's :meth:`str.split` behavior (:issue:`70811`)
