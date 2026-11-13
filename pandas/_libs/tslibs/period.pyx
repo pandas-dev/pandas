@@ -3487,11 +3487,22 @@ class Period(_Period):
     date_range : Return a fixed frequency DatetimeIndex.
     timedelta_range : Generates a fixed frequency range of timedeltas.
 
+    Notes
+    -----
+    A multiplied ``freq`` such as ``"2Q"`` sets only the length of the span:
+    the period starts at the base unit (here, the quarter) containing
+    ``value``, not on a fixed grid. See :ref:`timeseries.periods`.
+
     Examples
     --------
     >>> period = pd.Period('2012-1-1', freq='D')
     >>> period
     Period('2012-01-01', 'D')
+
+    A ``"2Q"`` period can start in any quarter:
+
+    >>> pd.Period("2017-05-01", freq="2Q")
+    Period('2017Q2', '2Q-DEC')
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,
