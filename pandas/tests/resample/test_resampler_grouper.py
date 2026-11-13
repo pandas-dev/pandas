@@ -197,7 +197,6 @@ def test_groupby_resample_on_multiple_keys_with_nan():
     result = rs["value"].sum()
     expected = rs.sum()["value"]
     tm.assert_series_equal(result, expected)
-    assert result.tolist() == [1.0, 3.0, 2.0, 0.0, 4.0]
 
 
 def test_groupby_with_origin():

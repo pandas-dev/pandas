@@ -287,8 +287,6 @@ class Grouper:
         self.sort = sort
         self.dropna = dropna
 
-        self.binner = None
-
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
