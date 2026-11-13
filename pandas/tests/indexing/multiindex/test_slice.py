@@ -823,3 +823,29 @@ def test_loc_level0_key_plus_null_slice_returns_view(key, iloc):
     result = df.loc[(key, slice(None)), :]
     tm.assert_frame_equal(result, df.iloc[iloc])
     assert tm.shares_memory(result, df)
+
+
+@pytest.mark.parametrize(
+    "na_position, expected_labels, expected_tuples, expected_from_nan",
+    [
+        ("last", [0, 2, 1, 3, 4], [2, 1, 3], [1, 3, 4, 5]),
+        ("first", [1, 0, 2, 3, 4], [2, 3], [1, 0, 2, 3, 4]),
+    ],
+)
+def test_loc_slice_after_sort_index_with_nan(
+    na_position, expected_labels, expected_tuples, expected_from_nan
+):
+    # GH#17931 missing values sort last by default, which slicing used to
+    #  reject as unsorted
+    mi = pd.MultiIndex.from_arrays(
+        [["a", "a", "a", "b", "b", None], [1, np.nan, 2, 1, 2, 1], list("uvwxyz")]
+    )
+    ser = pd.Series(range(6), index=mi).sort_index(na_position=na_position)
+    assert ser.loc["a":"b"].tolist() == expected_labels
+    assert ser.loc[("a", 2) : ("b", 1)].tolist() == expected_tuples
+    assert ser.loc[pd.IndexSlice["a":"b", 1:2]].tolist() == [0, 2, 3, 4]
+    # "c" is not in the level, so this takes the GH#52714 level-0 slice path
+    assert ser.loc[pd.IndexSlice["a":"c", :]].tolist() == expected_labels
+    assert ser.loc[("a", np.nan)].tolist() == [1]
+    assert ser.loc[np.nan].tolist() == [5]
+    assert ser.loc[("a", np.nan) :].tolist() == expected_from_nan
