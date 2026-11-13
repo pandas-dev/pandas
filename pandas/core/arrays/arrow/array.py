@@ -1542,6 +1542,47 @@ class ArrowExtensionArray(
             pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
             result = pc.binary_repeat(binary, pa_integral)
             return self._from_pyarrow_array(result)
+
+        self_array = self._pa_array
+        if arrow_funcs is ARROW_ARITHMETIC_FUNCS:
+            # GH#63064 match numpy/BooleanArray semantics for bools
+            if pa.types.is_boolean(pa_type) and (
+                pa.types.is_boolean(other.type) or pa.types.is_null(other.type)
+            ):
+                op_name = op.__name__
+                if op_name in {"add", "radd"}:
+                    result = pc.or_(self_array, other.cast(pa_type))
+                    return self._from_pyarrow_array(result)
+                elif op_name in {"mul", "rmul"}:
+                    result = pc.and_(self_array, other.cast(pa_type))
+                    return self._from_pyarrow_array(result)
+                elif op_name in {
+                    "truediv",
+                    "rtruediv",
+                    "floordiv",
+                    "rfloordiv",
+                    "pow",
+                    "rpow",
+                }:
+                    op_name = op_name.lstrip("r")
+                    raise NotImplementedError(
+                        f"operator '{op_name}' not implemented for bool dtypes"
+                    )
+            try:
+                if pa.types.is_boolean(pa_type) and (
+                    pa.types.is_integer(other.type) or pa.types.is_floating(other.type)
+                ):
+                    self_array = self_array.cast(other.type)
+                elif (
+                    pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type)
+                ) and pa.types.is_boolean(other.type):
+                    other = other.cast(pa_type)
+            except pa.ArrowNotImplementedError as err:
+                # e.g. no bool -> float16 cast
+                raise TypeError(
+                    self._op_method_error_message(other_original, op)
+                ) from err
+
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
@@ -1557,7 +1598,7 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
         try:
-            result = pc_func(self._pa_array, other)
+            result = pc_func(self_array, other)
         except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
         return self._from_pyarrow_array(result)
