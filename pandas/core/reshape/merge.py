@@ -1620,18 +1620,15 @@ class _MergeOperation:
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
+                    elif rk is not None:
+                        right_keys.append(right._get_label_or_level_values(rk))
+                        join_names.append(rk)
                     else:
-                        rk = cast("Hashable", rk)
-                        if rk is not None:
-                            right_keys.append(right._get_label_or_level_values(rk))
-                            join_names.append(rk)
-                        else:
-                            # work-around for merge_asof(right_index=True)
-                            right_keys.append(right.index._values)
-                            join_names.append(right.index.name)
+                        # work-around for merge_asof(right_index=True)
+                        right_keys.append(right.index._values)
+                        join_names.append(right.index.name)
                 else:
                     if not isinstance(rk, _known):
-                        rk = cast("Hashable", rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                         else:
@@ -1643,7 +1640,6 @@ class _MergeOperation:
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                     if lk is not None:
-                        lk = cast("Hashable", lk)
                         left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
@@ -1654,7 +1650,6 @@ class _MergeOperation:
             for k in self.left_on:
                 if isinstance(k, _known):
                     k = extract_array(k, extract_numpy=True)
-                    k = cast("ArrayLike", k)
                     left_keys.append(k)
                     join_names.append(None)
                 else:
@@ -1676,7 +1671,6 @@ class _MergeOperation:
                     right_keys.append(k)
                     join_names.append(None)
                 else:
-                    k = cast("Hashable", k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
@@ -1964,6 +1958,7 @@ class _MergeOperation:
             ("left", left_on, self.left),
             ("right", right_on, self.right),
         ):
+            assert keys is not None
             for key in keys:
                 if isinstance(key, _known) and len(key) != len(obj):
                     raise ValueError(
