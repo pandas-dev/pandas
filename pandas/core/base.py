@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_python_scalars
+
 from pandas._libs import lib
 from pandas._typing import (
     AxisInt,
@@ -44,7 +46,11 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -221,7 +227,10 @@ class SelectionMixin(Generic[NDFrameT]):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, tuple):
+        # a tuple column key (e.g. MultiIndex) selects like DataFrame.__getitem__
+        if isinstance(key, tuple) and not (
+            self.obj.ndim == 2 and len(key) > 0 and key in self.obj.columns
+        ):
             warnings.warn(
                 "Passing a tuple to __getitem__ is deprecated and "
                 "will raise a KeyError in a future version. Use a list instead.",
@@ -1010,11 +1019,19 @@ class IndexOpsMixin(OpsMixin):
         3
         """
         # We are explicitly making element iterators.
-        if not isinstance(self._values, np.ndarray):
+        values = self._values
+        if not isinstance(values, np.ndarray):
             # Check type instead of dtype to catch DTA/TDA
-            return iter(self._values)
+            if using_python_scalars() and values.dtype.kind != "O":
+                if isinstance(values.dtype, BaseMaskedDtype):
+                    return iter(values.tolist())
+                if values.dtype.kind not in "mM" and not isinstance(
+                    values.dtype, ArrowDtype
+                ):
+                    return map(maybe_unbox_numpy_scalar, values)
+            return iter(values)
         else:
-            return map(self._values.item, range(self._values.size))
+            return map(values.item, range(values.size))
 
     @cache_readonly
     def hasnans(self) -> bool:

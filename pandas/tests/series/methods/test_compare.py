@@ -138,3 +138,32 @@ def test_compare_datetime64_and_string():
     tm.assert_series_equal(result_eq1, expected_eq)
     tm.assert_series_equal(result_eq2, expected_eq)
     tm.assert_series_equal(result_neq, expected_neq)
+
+
+@pytest.mark.parametrize(
+    "val, val2",
+    [
+        (1567808378753000000, 1567808378753274000),
+        (np.uint64(2**63 + 1), np.uint64(2**63 + 3)),
+        (True, False),
+    ],
+)
+def test_compare_no_upcast_from_dropped_rows(val, val2):
+    # GH#39899
+    ser1 = pd.Series([val, val])
+    ser2 = pd.Series([val2, val])
+
+    result = ser1.compare(ser2)
+    expected = pd.DataFrame({"self": [val], "other": [val2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_compare_identical_keeps_dtype():
+    # GH#39899
+    ser = pd.Series([1, 2])
+    result = ser.compare(ser.copy())
+    expected = pd.DataFrame(
+        {"self": np.array([], dtype=np.int64), "other": np.array([], dtype=np.int64)},
+        index=pd.Index([], dtype=np.int64),
+    )
+    tm.assert_frame_equal(result, expected)

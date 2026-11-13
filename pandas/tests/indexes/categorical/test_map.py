@@ -139,3 +139,20 @@ def test_map_with_dict_or_series():
     result = cur_index.map(mapper)
     # Order of categories in result can be different
     tm.assert_index_equal(result, expected)
+
+
+def test_map_to_tuple_or_non_tuple():
+    # GH#24800
+    index = pd.CategoricalIndex(list("abc"), name="n")
+
+    # unique results stay categorical
+    result = index.map({"a": ("p", "q"), "b": "r", "c": "s"})
+    categories = pd.Index([("p", "q"), "r", "s"], dtype=object)
+    expected = pd.CategoricalIndex(
+        pd.Categorical.from_codes([0, 1, 2], categories), name="n"
+    )
+    tm.assert_index_equal(result, expected)
+
+    result = index.map(lambda val: ("p", "q") if val == "a" else "r")
+    expected = pd.Index([("p", "q"), "r", "r"], dtype=object, name="n")
+    tm.assert_index_equal(result, expected)

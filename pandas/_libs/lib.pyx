@@ -39,7 +39,10 @@ from cython cimport (
 )
 from libc.string cimport memcmp
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    is_nan_na,
+    using_string_dtype,
+)
 
 from pandas._libs.missing import check_na_tuples_nonequal
 from pandas.compat import PYARROW_INSTALLED
@@ -705,10 +708,13 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(ndarray left, ndarray right) -> bool:
+def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) -> bool:
     """
     Perform an element by element comparison on N-d object arrays
     taking into account nan positions.
+
+    If strict_nan, NaN and None are considered different, also inside
+    nested arrays.
     """
     # left and right both have object dtype, but we cannot annotate that
     #  without limiting ndim.
@@ -731,14 +737,14 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 if x.shape != y.shape:
                     return False
                 if x.dtype == y.dtype == object:
-                    if not array_equivalent_object(x, y):
+                    if not array_equivalent_object(x, y, strict_nan):
                         return False
                 else:
                     # Circular import isn't great, but so it goes.
                     # TODO: could use np.array_equal?
                     from pandas.core.dtypes.missing import array_equivalent
 
-                    if not array_equivalent(x, y):
+                    if not array_equivalent(x, y, strict_nan=strict_nan):
                         return False
 
             elif PyArray_Check(x) or PyArray_Check(y):
@@ -747,7 +753,7 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 return False
             elif not (
                 PyObject_RichCompareBool(x, y, Py_EQ)
-                or is_matching_na(x, y, nan_matches_none=True)
+                or is_matching_na(x, y, nan_matches_none=not strict_nan)
             ):
                 return False
         except (ValueError, TypeError):
@@ -2654,6 +2660,7 @@ def maybe_convert_numeric(
 
     for i in range(n):
         val = values[i]
+        val = item_from_zerodim(val)
         # We only want to disable NaNs showing as float if
         # a) convert_to_masked_nullable = True
         # b) no floats have been seen ( assuming an int shows up later )
@@ -2912,6 +2919,8 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         float64_t fnan = NaN
+        # under future.distinguish_nan_and_na a NaN is a value, not NA
+        bint nan_is_value = convert_to_nullable_dtype and not is_nan_na()
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -2947,7 +2956,7 @@ def maybe_convert_objects(ndarray[object] objects,
             if not convert_non_numeric:
                 seen.object_ = True
                 break
-        elif util.is_nan(val):
+        elif util.is_nan(val) and not nan_is_value:
             seen.nan_ = True
             mask[i] = True
             if util.is_complex_object(val):
@@ -3458,6 +3467,9 @@ def tuples_to_object_array(ndarray[object] tuples):
     result = np.empty((n, k), dtype=object)
     for i in range(n):
         tup = tuples[i]
+        if len(tup) != k:
+            # GH#50293
+            raise ValueError("All tuples must have the same length")
         for j in range(k):
             result[i, j] = tup[j]
 

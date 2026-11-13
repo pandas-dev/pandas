@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
@@ -208,23 +210,26 @@ class TestIndexSetOps:
         ],
     )
     def test_tuple_union_bug(self, method, expected, sort):
-        index1 = pd.Index(
-            np.array(
-                [(1, "A"), (2, "A"), (1, "B"), (2, "B")],
-                dtype=[("num", int), ("let", "S1")],
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            index1 = pd.Index(
+                np.array(
+                    [(1, "A"), (2, "A"), (1, "B"), (2, "B")],
+                    dtype=[("num", int), ("let", "S1")],
+                )
             )
-        )
-        index2 = pd.Index(
-            np.array(
-                [(1, "A"), (2, "A"), (1, "B"), (2, "B"), (1, "C"), (2, "C")],
-                dtype=[("num", int), ("let", "S1")],
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            index2 = pd.Index(
+                np.array(
+                    [(1, "A"), (2, "A"), (1, "B"), (2, "B"), (1, "C"), (2, "C")],
+                    dtype=[("num", int), ("let", "S1")],
+                )
             )
-        )
 
         result = getattr(index1, method)(index2, sort=sort)
         assert result.ndim == 1
 
-        expected = pd.Index(expected)
+        with tm.assert_produces_warning(Pandas4Warning, match="compound"):
+            expected = pd.Index(expected)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("first_list", [["b", "a"], []])

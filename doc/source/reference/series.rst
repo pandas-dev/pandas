@@ -289,6 +289,7 @@ to specific data types.
     Series.cat
     Series.dt
     Series.sparse
+    Series.interval
     DataFrame.sparse
     Index.str
 
@@ -300,6 +301,7 @@ Datetime, Timedelta, Period :ref:`dt <api.series.dt>`
 String                      :ref:`str <api.series.str>`
 Categorical                 :ref:`cat <api.series.cat>`
 Sparse                      :ref:`sparse <api.series.sparse>`
+Interval                    :ref:`interval <api.series.interval>`
 PyArrow list                :ref:`list <api.series.list>`
 PyArrow struct              :ref:`struct <api.series.struct>`
 =========================== =================================
@@ -371,6 +373,7 @@ Datetime methods
    Series.dt.month_name
    Series.dt.day_name
    Series.dt.as_unit
+   Series.dt.shift
 
 Period properties
 ^^^^^^^^^^^^^^^^^
@@ -407,6 +410,7 @@ Timedelta methods
    Series.dt.to_pytimedelta
    Series.dt.total_seconds
    Series.dt.as_unit
+   Series.dt.shift
 
 
 .. _api.series.str:
@@ -508,6 +512,7 @@ the ``Series.cat`` accessor.
    Series.cat.set_categories
    Series.cat.as_ordered
    Series.cat.as_unordered
+   Series.cat.to_dense
 
 
 .. _api.series.sparse:
@@ -533,6 +538,34 @@ Sparse-dtype specific methods and attributes are provided under the
 
    Series.sparse.from_coo
    Series.sparse.to_coo
+
+
+.. _api.series.interval:
+
+Interval accessor
+~~~~~~~~~~~~~~~~~
+
+Interval-dtype specific methods and attributes are available under
+the ``Series.interval`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.interval.left
+   Series.interval.right
+   Series.interval.mid
+   Series.interval.length
+   Series.interval.is_empty
+   Series.interval.closed
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_method.rst
+
+   Series.interval.contains
+   Series.interval.overlaps
+   Series.interval.set_closed
 
 
 .. _api.series.list:

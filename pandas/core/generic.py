@@ -1,6 +1,12 @@
 # pyright: reportPropertyTypeMismatch=false
 from __future__ import annotations
 
+__lazy_modules__ = (
+    "json",
+    "pandas.core.window",
+    "pandas.core.methods.describe",
+)
+
 import collections
 from copy import deepcopy
 import datetime as dt
@@ -82,6 +88,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -234,6 +241,31 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
+
+
+def _fill_bool_ea_na(cond):
+    """
+    Treat NA in a nullable boolean `where`/`mask` condition as False.
+
+    This matches boolean indexing (GH#35429). It must happen before `mask`
+    inverts the condition, so it cannot be left to `_where`.
+    """
+
+    def is_bool_ea(dtype) -> bool:
+        return isinstance(dtype, ExtensionDtype) and dtype.kind == "b"
+
+    if isinstance(cond, ABCDataFrame):
+        if not any(is_bool_ea(dtype) for dtype in cond._blk_dtypes):
+            return cond
+        cond = cond.copy(deep=False)
+        for loc, dtype in enumerate(cond._mgr.get_dtypes()):
+            if is_bool_ea(dtype):
+                cond.isetitem(loc, cond.iloc[:, loc].fillna(False))
+        return cond
+    # cond may also be an ndarray or list, which pass through unchanged
+    if is_bool_ea(getattr(cond, "dtype", None)):
+        return cond.fillna(False)
+    return cond
 
 
 class NDFrame(PandasObject, indexing.IndexingMixin):
@@ -5706,11 +5738,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
             DataFrame and is only supported with ``axis=0``.
+
+            .. versionadded:: 3.1.0
+
         na : {"raise", True, False}, default False
             How to treat missing values in a boolean mask. ``True`` or
             ``False`` treats missing values as that value, matching
             ``obj[mask]`` for a mask with nullable boolean dtype; ``"raise"``
             raises a ``ValueError``. Ignored when selecting labels.
+
+            .. versionadded:: 3.1.0
 
         Returns
         -------
@@ -6936,9 +6973,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         immutable, the underlying data can be safely shared and a copy
         is not needed.
 
-        Since pandas is not thread safe, see the
-        :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
-        environment.
+        See the :ref:`gotchas <gotchas.thread-safety>` before sharing pandas
+        objects between threads.
 
         Copy-on-Write protects shallow copies against accidental modifications.
         This means that any changes to the copied data would make a new copy
@@ -7297,6 +7333,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.T._pad_or_backfill(
                 method=method, limit=limit, limit_area=limit_area
             ).T
+            if inplace:
+                self._update_inplace(result)
+                return self
 
             return result
 
@@ -8310,7 +8349,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'values': Interpolation based on the numerical values
               in the DataFrame, treating them as equally spaced along the index.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial': Passed to
+              'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
               values of the index.  Both 'polynomial' and 'spline' require that
@@ -8318,9 +8357,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
               instead of Pandas first order `spline`.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
-              'cubicspline': Wrappers around the SciPy interpolation methods of
-              similar names. See `Notes`.
+            * 'barycentric', 'krogh', 'piecewise_polynomial', 'spline',
+              'pchip', 'akima', 'cubicspline': Wrappers around the SciPy
+              interpolation methods of similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
@@ -8350,7 +8389,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Keyword arguments to pass on to the interpolating function. Not
             all methods use them: the ``'linear'``, ``'time'``, ``'index'``,
             and ``'values'`` methods use NumPy and ignore any extra keyword
-            arguments (for example, ``left`` and ``right``).
+            arguments (for example, ``left`` and ``right``) other than
+            ``fill_value="extrapolate"``.
+
+            NaNs before the first or after the last valid value are filled
+            with the nearest valid value by the NumPy-based methods and left
+            as NaN by the `scipy.interpolate.interp1d` methods. Pass
+            ``fill_value="extrapolate"`` to extrapolate them instead. Leading
+            NaNs are only filled when ``limit_direction`` is 'backward' or
+            'both'.
 
         Returns
         -------
@@ -9185,7 +9232,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and is_scalar(lower)
             and is_scalar(upper)
         ):
-            lower, upper = min(lower, upper), max(lower, upper)
+            dtypes = set(self._mgr.get_dtypes())
+            dtype = dtypes.pop() if len(dtypes) == 1 else None
+            if isinstance(dtype, CategoricalDtype) and dtype.ordered:
+                # GH#49217 order by category position, not by value
+                pos = dtype.categories.get_indexer([lower, upper])
+                if pos.min() >= 0 and pos[0] > pos[1]:
+                    lower, upper = upper, lower
+            else:
+                lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
@@ -9502,11 +9557,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
-            'BA', 'BQE', and 'W' which all have a default of 'right'.
+            'BYE', 'BQE', and 'W' which all have a default of 'right'.
+            For those offsets, ``closed='right'`` puts the whole last day of
+            each period in its bin, while ``closed='left'`` puts it in the next
+            bin (e.g. with ``'ME'``, January 31 falls in the February bin).
         label : {'right', 'left'}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
-            'BA', 'BQE', and 'W' which all have a default of 'right'.
+            'BYE', 'BQE', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
@@ -9561,11 +9619,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#resampling>`__
         for more.
 
         To learn more about the offset strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
@@ -9979,34 +10037,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
-            else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
-
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
-                    axis=axis_int,
+        def rank_values(values: ArrayLike, values_axis: AxisInt) -> ArrayLike:
+            if isinstance(values, ExtensionArray) and values.ndim == 1:
+                return values._rank(
+                    axis=values_axis,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
                 )
-            else:
-                ranks = algos.rank(
-                    values,
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
-
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
+            return algos.rank(
+                values,
+                axis=values_axis,
+                method=method,
+                ascending=ascending,
+                na_option=na_option,
+                pct=pct,
+            )
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
@@ -10019,7 +10066,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        return ranker(data)
+        if data.ndim == 2 and axis_int == 0:
+            # GH#52829 ranking block by block retains extension dtypes; blocks
+            #  are transposed, so frame axis 0 is the block's last axis
+            res_mgr = data._mgr.apply(
+                lambda values: rank_values(values, values.ndim - 1)
+            )
+            ranks_obj = data._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
+        else:
+            # axis=1 needs all of a row's entries in one dtype, so it cannot go
+            #  block by block
+            values = data.values if data.ndim == 2 else data._values
+            ranks_obj = self._constructor(
+                rank_values(values, axis_int), **data._construct_axes_dict()
+            )
+        return ranks_obj.__finalize__(self, method="rank")
 
     def compare(
         self,
@@ -10066,19 +10127,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mask = ~((self == other) | (self.isna() & other.isna()))  # type: ignore[operator]
         mask.fillna(True, inplace=True)
 
-        if not keep_equal:
-            self = self.where(mask)
-            other = other.where(mask)
-
+        # drop rows/columns before masking so that values in dropped
+        # positions do not force an upcast, see GH#39899
         if not keep_shape:
             if isinstance(self, ABCDataFrame):
                 cmask = mask.any()
                 rmask = mask.any(axis=1)
                 self = self.loc[rmask, cmask]
                 other = other.loc[rmask, cmask]
+                mask = mask.loc[rmask, cmask]
             else:
                 self = self[mask]
                 other = other[mask]
+                mask = mask[mask]
+
+        if not keep_equal:
+            self = self.where(mask)
+            other = other.where(mask)
+
         if not isinstance(result_names, tuple):
             raise TypeError(
                 f"Passing 'result_names' as a {type(result_names)} is not "
@@ -10577,16 +10643,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True, extract_range=True)
+            if (
+                self.ndim == 1
+                and is_list_like(other)
+                # a dict is keyed and a set unordered, so neither lines up by position
+                and not isinstance(other, (np.ndarray, ExtensionArray, set, frozenset))
+                and not is_dict_like(other)
+                # outside numeric and bool dtypes a tuple is one element, as
+                #  for object dtype (GH#37681)
+                and (
+                    not isinstance(other, tuple)
+                    or is_numeric_dtype(self.dtype)
+                    or is_bool_dtype(self.dtype)
+                )
+            ):
+                # GH#63842 line up a list against the mask like an ndarray
+                other = common.asarray_tuplesafe(other)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
+            if self.ndim == 1 and other.ndim == 1 and len(other) == 1:
+                # broadcast like a scalar (GH#2745, GH#4192)
+                other = other.repeat(len(self))
+
             if other.shape != self.shape:
                 if self.ndim != 1:
-                    # In the ndim == 1 case we may have
-                    #  other length 1, which we treat as scalar (GH#2745, GH#4192)
-                    #  or len(other) == icond.sum(), which we treat like
-                    #  __setitem__ (GH#3235)
                     raise ValueError(
                         "other must be the same shape as self when an ndarray"
+                    )
+                if other.ndim == 1 and not (inplace and len(other) == cond.sum()):
+                    # inplace with one value per selected position is treated
+                    #  like __setitem__ (GH#3235)
+                    raise ValueError(
+                        f"Length of values ({len(other)}) does not match length "
+                        f"of index ({len(self)})"
                     )
 
             # we are the same shape, so create an actual object for alignment
@@ -10646,6 +10735,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is True, keep the original value. Where
             False, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10792,6 +10883,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
 
@@ -10817,6 +10909,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is False, keep the original value. Where
             True, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10963,7 +11057,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
-        cond = common.apply_if_callable(cond, self)
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
 
         # see gh-21891
@@ -12818,6 +12912,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
+        if (
+            isinstance(other, NDFrame)
+            and other.ndim == self.ndim
+            and not self.index.equals(other.index)
+        ):
+            # align rows to self rather than the union, so rows absent from self
+            #  cannot introduce NaNs that upcast the result, see GH#12755
+            other = self.align(other, join="left", axis=0)[1]
         result = op(self, other)
 
         # this makes sure that we are aligned like the input

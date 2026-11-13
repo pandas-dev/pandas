@@ -14,10 +14,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    EmptyDataError,
-    ParserWarning,
-)
+from pandas.errors import ParserWarning
 
 import pandas as pd
 import pandas._testing as tm
@@ -88,7 +85,15 @@ def test_text_buffer_encoding_errors(all_parsers, encoding_errors, expected):
     tm.assert_frame_equal(result, pd.DataFrame({"a": [expected]}))
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
+def test_binary_encoding_errors_pyarrow(pyarrow_parser_only):
+    # GH#71298 pyarrow ignores encoding_errors when it decodes bytes
+    parser = pyarrow_parser_only
+    data = BytesIO("id,value\n1,①\n".encode("cp932"))
+    msg = "The 'encoding_errors' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(data, encoding="shift_jis", encoding_errors="replace")
+
+
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
     data = BytesIO("\u0141aski, Jan;1".encode())
@@ -170,14 +175,6 @@ def test_utf8_bom_removal(all_parsers, data, kwargs, expected, encoding):
     def _encode_data_with_bom(_data):
         bom_data = (bom + _data).encode("utf-8")
         return BytesIO(bom_data)
-
-    if (
-        parser.engine == "pyarrow"
-        and data == "\n1"
-        and kwargs.get("skip_blank_lines", True)
-    ):
-        # CSV parse error: Empty CSV file or block: cannot infer number of columns
-        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(
         _encode_data_with_bom(data),
@@ -391,7 +388,7 @@ def test_readcsv_memmap_utf8(all_parsers, temp_file):
 
 
 @pytest.mark.parametrize("mode", ["w+b", "w+t"])
-def test_not_readable(all_parsers, mode):
+def test_not_readable(all_parsers, mode, request):
     # GH43439
     parser = all_parsers
     content = b"abcd"
@@ -400,17 +397,14 @@ def test_not_readable(all_parsers, mode):
     with tempfile.SpooledTemporaryFile(mode=mode, encoding="utf-8") as handle:
         handle.write(content)
         handle.seek(0)
-        if parser.engine == "pyarrow":
-            # pyarrow's CSV reader cannot read from a SpooledTemporaryFile
-            if "t" in mode:
-                msg = "The 'pyarrow' engine can only read from a binary file object"
-                with pytest.raises(TypeError, match=msg):
-                    parser.read_csv(handle)
-            else:
-                msg = "No columns to parse from file"
-                with pytest.raises(EmptyDataError, match=msg):
-                    parser.read_csv(handle)
+        if parser.engine == "pyarrow" and "t" in mode:
+            msg = "The 'pyarrow' engine can only read from a binary file object"
+            with pytest.raises(TypeError, match=msg):
+                parser.read_csv(handle)
             return
+        if parser.engine == "pyarrow":
+            reason = "empty columns get float64 dtype instead of object"
+            request.applymarker(pytest.mark.xfail(reason=reason))
         df = parser.read_csv(handle)
     expected = pd.DataFrame([], columns=["abcd"])
     tm.assert_frame_equal(df, expected)

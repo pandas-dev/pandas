@@ -138,8 +138,8 @@ The first stop for pandas issues and ideas is the `GitHub Issue Tracker
 pandas community experts can answer through `Stack Overflow
 <https://stackoverflow.com/questions/tagged/pandas>`__.
 
-Community
----------
+Community and project
+---------------------
 
 pandas is actively supported today by a community of like-minded individuals around
 the world who contribute their valuable time and energy to help make open source
@@ -147,28 +147,12 @@ pandas possible. Thanks to `all of our contributors <https://github.com/pandas-d
 
 If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`.
 
-pandas is a `NumFOCUS <https://numfocus.org/sponsored-projects>`__ sponsored project.
-This will help ensure the success of the development of pandas as a world-class open-source
-project and makes it possible to `donate <https://opencollective.com/pandas>`__ to the project.
+Information about the pandas project itself can be found on the `about page <https://pandas.pydata.org/about/>`__:
 
-Project governance
-------------------
-
-The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md>`__.
-The documents clarify how decisions are made and how the various elements of our community interact, including the relationship between open source collaborative development and work that may be funded by for-profit or non-profit entities.
-
-Wes McKinney is the Benevolent Dictator for Life (BDFL).
-
-Development team
------------------
-
-The list of the Core Team members and more detailed information can be found on the `pandas website <https://pandas.pydata.org/about/team.html>`__.
-
-
-Institutional partners
-----------------------
-
-The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about/sponsors.html>`__.
+- `Project governance <https://pandas.pydata.org/about/governance.html>`__
+- `Team <https://pandas.pydata.org/about/team.html>`__
+- `Sponsors and institutional partners <https://pandas.pydata.org/about/sponsors.html>`__
+- `Ways to support pandas <https://pandas.pydata.org/contribute.html>`__, including `donations <https://opencollective.com/pandas>`__
 
 License
 -------

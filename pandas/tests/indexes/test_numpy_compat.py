@@ -13,7 +13,8 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 def test_numpy_ufuncs_out(index):
-    result = index == index
+    # GH#71022 for a nullable dtype the comparison is a boolean ExtensionArray
+    result = np.asarray(index == index, dtype=bool)
 
     out = np.empty(index.shape, dtype=bool)
     np.equal(index, index, out=out)

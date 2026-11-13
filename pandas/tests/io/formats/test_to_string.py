@@ -1063,6 +1063,19 @@ class TestDataFrameToString:
         expected = "                   level3\n0  {'level2': ['level1']}"
         assert result == expected
 
+    def test_to_string_multiindex_sparsify_by_value(self):
+        # GH#10796 distinct values that format identically are not sparsified
+        mi = pd.MultiIndex.from_arrays([[1, "1"], ["a", "a"]])
+        df = pd.DataFrame({"C": [3, 4]}, index=mi)
+
+        result = df.to_string()
+        expected = "     C\n1 a  3\n1 a  4"
+        assert result == expected
+
+        result = df.T.to_string()
+        expected = "   1  1\n   a  a\nC  3  4"
+        assert result == expected
+
 
 class TestSeriesToString:
     def test_to_string_without_index(self):
@@ -1314,3 +1327,23 @@ class TestSeriesToString:
         # nat in summary
         result = str(s2.index)
         assert "NaT" in result
+
+
+@pytest.mark.parametrize("east_asian_width", [True, False])
+def test_to_string_ansi_escapes_aligned(east_asian_width):
+    # GH#55122 escape sequences such as terminal colors should not widen columns
+    def color(text):
+        return f"\x1b[96m{text}\x1b[0m"
+
+    df = pd.DataFrame(
+        {"a": ["XXX", "XXX", "XXX"], "b": ["YYY", "YYY", "YYY"]},
+        index=["r0", "r1", "r2"],
+    )
+    colored = pd.DataFrame(
+        {color("a"): [color("XXX"), "XXX", "XXX"], "b": ["YYY", "YYY", "YYY"]},
+        index=[color("r0"), "r1", "r2"],
+    )
+    with pd.option_context("display.unicode.east_asian_width", east_asian_width):
+        for obj, plain in [(colored, df), (colored.iloc[:, 0], df["a"])]:
+            result = re.sub(r"\x1b\[\d+m", "", obj.to_string())
+            assert result == plain.to_string()

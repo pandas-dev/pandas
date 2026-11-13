@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date
 import functools
 from typing import (
     TYPE_CHECKING,
     Any,
+    cast,
 )
 
 import numpy as np
@@ -49,9 +51,11 @@ from pandas.tseries.frequencies import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import timedelta
 
     from matplotlib.axes import Axes
+    from matplotlib.axis import Axis
 
     from pandas._typing import NDFrameT
 
@@ -65,11 +69,22 @@ def _asfreq_plotting(index: Index, freq: str | BaseOffset) -> Index:
     """
     Re-express a time-series plotting index at frequency ``freq``.
 
-    ``index`` is either a PeriodIndex or a plain int64 index of business-day
-    ordinals -- the representation used for BDay data to avoid the deprecated
-    Period[B].  Returns int64 business-day ordinals when ``freq`` is
+    ``index`` is a DatetimeIndex, a PeriodIndex, or a plain int64 index of
+    business-day ordinals -- the representation used for BDay data to avoid the
+    deprecated Period[B].  Returns int64 business-day ordinals when ``freq`` is
     business-daily, otherwise a PeriodIndex at ``freq``.
     """
+    if isinstance(index, ABCDatetimeIndex):
+        # Convert timestamps directly rather than via a coarser Period, which
+        # would move e.g. month-end dates to the 1st (GH#11574).
+        source_freq = _get_index_freq(index)
+        index = index.tz_localize(None)
+        if _get_period_alias(freq) == "B":
+            # Avoid creating deprecated Period[B]; use numpy business-day
+            # arithmetic to map each timestamp to its business-day ordinal.
+            dates = _roll_to_bday(index, source_freq)
+            return Index(bday_count_array(dates), dtype=np.int64)
+        return index.to_period(freq)
     if _get_period_alias(freq) == "B":
         if is_integer_dtype(index):
             # already business-day ordinals
@@ -84,10 +99,37 @@ def _asfreq_plotting(index: Index, freq: str | BaseOffset) -> Index:
     return index.asfreq(freq, how="S")  # type: ignore[attr-defined]
 
 
+def _roll_to_bday(index: DatetimeIndex, source_freq: BaseOffset | None) -> np.ndarray:
+    """
+    Move weekend dates to a business day, staying within their period at
+    ``source_freq`` where possible.
+
+    Rolls forward by default, but rolls back when only that keeps the date in
+    its own period, e.g. a Saturday month-end or a W-SUN date.
+    """
+    days = index.values.astype("datetime64[D]")
+    forward = np.busday_offset(days, 0, roll="forward")
+    alias = None if source_freq is None else _get_period_alias(source_freq)
+    if alias is None or (forward == days).all():
+        return forward
+    backward = np.busday_offset(days, 0, roll="backward")
+    periods = index.to_period(alias)
+    use_backward = (DatetimeIndex(forward).to_period(alias) != periods) & (
+        DatetimeIndex(backward).to_period(alias) == periods
+    )
+    return np.where(use_backward, backward, forward)
+
+
 def maybe_resample(
-    series: Series, ax: Axes, kwargs: dict[str, Any], index_freq: str | None = None
+    series: Series,
+    ax: Axes,
+    kwargs: dict[str, Any],
+    index_freq: str | None = None,
+    timestamps: Index | None = None,
 ):
     # resample against axes freq if necessary
+    # timestamps is the DatetimeIndex series was converted from, if any; the
+    # returned timestamps line up with the returned series, or are None
 
     if "how" in kwargs:
         raise ValueError(
@@ -103,11 +145,15 @@ def maybe_resample(
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy(deep=False)
-            series.index = _asfreq_plotting(series.index, ax_freq)
+            index = series.index if timestamps is None else timestamps
+            series.index = _asfreq_plotting(index, ax_freq)
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = "last"
-            if is_integer_dtype(series.index):
+            if timestamps is not None:
+                series = series.copy(deep=False)
+                series.index = _asfreq_plotting(timestamps, "D")
+            elif is_integer_dtype(series.index):
                 # business-day ordinals cannot be resampled; re-express them
                 # as daily Periods first (GH#66222)
                 series = series.copy(deep=False)
@@ -115,11 +161,15 @@ def maybe_resample(
             series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
+            if timestamps is not None:
+                # put each weekly bin on its last day, where the timestamps of
+                # weekly data fall
+                timestamps = series.index.asfreq("D", how="E").to_timestamp()  # type: ignore[attr-defined]
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
         else:  # pragma: no cover
             raise ValueError("Incompatible frequency conversion")
-    return freq, series
+    return freq, series, timestamps
 
 
 def _is_sub(f1: str, f2: str) -> bool:
@@ -158,6 +208,7 @@ def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None
 
 
 def _replot_ax(ax: Axes, freq: BaseOffset):
+    _drop_removed_lines(ax)
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
@@ -170,23 +221,57 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     lines = []
     labels = []
     if data is not None:
-        for series, plotf, kwds in data:
-            series = series.copy(deep=False)
-            series.index = _asfreq_plotting(series.index, freq)
-            # TODO #54485
-            ax._plot_data.append((series, plotf, kwds))  # type: ignore[attr-defined]
+        stacks = set()
+        for series, kind, kwds, _ in data:
+            index = _asfreq_plotting(series.index, freq)
 
             # for tsplot
+            plotf = kind
             if isinstance(plotf, str):
                 from pandas.plotting._matplotlib import PLOT_CLASSES
 
-                plotf = PLOT_CLASSES[plotf]._plot
+                plot_cls = PLOT_CLASSES[plotf]
+                plotf = plot_cls._plot
+                # the stack's first column may have been removed
+                stacking_id = kwds.get("stacking_id")
+                if stacking_id not in stacks:
+                    stacks.add(stacking_id)
+                    # only the line/area plot classes define _initialize_stacker
+                    plot_cls._initialize_stacker(  # type: ignore[attr-defined]
+                        ax, stacking_id, len(series)
+                    )
 
             values = np.asarray(series._values)
-            lines.append(plotf(ax, series.index._mpl_repr(), values, **kwds)[0])
+            line = plotf(ax, index._mpl_repr(), values, **kwds)[0]
+            # keep the cached index as-is so a later replot also converts from
+            # the original timestamps
+            # TODO #54485
+            ax._plot_data.append((series, kind, kwds, line))  # type: ignore[attr-defined]
+            lines.append(line)
             labels.append(pprint_thing(series.name))
 
     return lines, labels
+
+
+def _drop_removed_lines(ax: Axes) -> None:
+    """
+    Forget cached series whose line (or area fill) is no longer on ``ax``.
+
+    Once ``ax.clear()`` has removed every one of them, the axes freq is reset
+    as well, so the cleared axes plots like a new one (GH#54485).
+    """
+    data = getattr(ax, "_plot_data", None)
+    if not data:
+        return
+    # errorbar(fmt="none") draws no data line; such entries are never dropped
+    live = [entry for entry in data if entry[-1] is None or entry[-1].axes is ax]
+    # TODO #54485
+    ax._plot_data = live  # type: ignore[attr-defined]
+    # True after clear() (or relim() with nothing left); after line.remove()
+    # other artists may still be drawn in this freq's units
+    if not live and ax.ignore_existing_data_limits:
+        ax.freq = None  # type: ignore[attr-defined]
+        ax.xaxis.freq = None  # type: ignore[attr-defined]
 
 
 def decorate_axes(ax: Axes, freq: BaseOffset) -> None:
@@ -208,22 +293,27 @@ def _get_ax_freq(ax: Axes):
     Also checks shared axes (eg when using secondary yaxis, sharex=True
     or twinx)
     """
-    ax_freq = getattr(ax, "freq", None)
+    ax_freq = _live_ax_freq(ax)
     if ax_freq is None:
         # check for left/right ax in case of secondary yaxis
         if hasattr(ax, "left_ax"):
-            ax_freq = getattr(ax.left_ax, "freq", None)
+            ax_freq = _live_ax_freq(ax.left_ax)
         elif hasattr(ax, "right_ax"):
-            ax_freq = getattr(ax.right_ax, "freq", None)
+            ax_freq = _live_ax_freq(ax.right_ax)
     if ax_freq is None:
         # check if a shared ax (sharex/twinx) has already freq set
         shared_axes = ax.get_shared_x_axes().get_siblings(ax)
         if len(shared_axes) > 1:
             for shared_ax in shared_axes:
-                ax_freq = getattr(shared_ax, "freq", None)
+                ax_freq = _live_ax_freq(shared_ax)
                 if ax_freq is not None:
                     break
     return ax_freq
+
+
+def _live_ax_freq(ax: Axes):
+    _drop_removed_lines(ax)
+    return getattr(ax, "freq", None)
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
@@ -281,8 +371,15 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    # do not use tsplot if irregular was plotted first
-    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+    # do not use tsplot if irregular was plotted first, also on a shared-x
+    # sibling (GH#40470); on a sibling only date lines count (GH#71436)
+    elif ax_freq is None and (
+        len(ax.get_lines()) > 0
+        or any(
+            _has_date_lines(shared_ax)
+            for shared_ax in ax.get_shared_x_axes().get_siblings(ax)
+        )
+    ):
         return False
 
     if freq is None:
@@ -305,12 +402,22 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
             # Daily-or-coarser: any midnight timestamp is valid (e.g. month-end
             # dates plotted monthly). Avoids tz_localize() on DST gaps.
             return index[:1].is_normalized
-        period = Period(index[0], freq_str)
+        period = Period(index[0].tz_localize(None), freq_str)
         assert isinstance(period, Period)
         # GH#62936: compare wall-clock times. Localizing the period's timestamp
         # back to index.tz raises when it is ambiguous or nonexistent (DST).
         return period.to_timestamp() == index[0].tz_localize(None)
     return True
+
+
+def _has_date_lines(ax: Axes) -> bool:
+    # A line drawn at matplotlib date numbers keeps its dates as the original
+    # x data; period-ordinal lines, bar error caps and axhline are numeric.
+    for line in ax.get_lines():
+        xdata = cast("Sequence[Any]", line.get_xdata(orig=True))
+        if len(xdata) > 0 and isinstance(xdata[0], (date, np.datetime64)):
+            return True
+    return False
 
 
 def get_period_offset(ax: Axes, index: Index) -> BaseOffset | None:
@@ -366,16 +473,10 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> tuple[NDFrameT, str | None]
         freq_str = _get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):
-            if freq_str == "B":
-                # Avoid creating deprecated Period[B]; use numpy business-day
-                # arithmetic to map each timestamp to its business-day ordinal.
-                data = data.copy(deep=False)
-                data.index = Index(
-                    bday_count_array(data.index.tz_localize(None).values),
-                    dtype=np.int64,
-                )
-            else:
-                data = data.tz_localize(None).to_period(freq=freq_str)
+            # use_dynamic_x has already rejected a freq with no period alias
+            assert freq_str is not None
+            data = data.copy(deep=False)
+            data.index = _asfreq_plotting(data.index, freq_str)
         elif isinstance(data.index, ABCPeriodIndex):
             if freq_str == "B":
                 # Extract the existing Period[B] ordinals as plain int64 to
@@ -416,6 +517,32 @@ def set_period_converter(ax: Axes) -> None:
             xaxis.set_converter(PeriodConverter())
     else:
         xaxis.converter = PeriodConverter()
+
+
+def adopt_period_converter(ax: Axes) -> None:
+    """
+    Give ``ax`` a PeriodConverter at a shared-x sibling's freq if it has none.
+
+    matplotlib does not share converters, so datetimes plotted on a sibling of a
+    time-series axes would otherwise land at date-numbers far outside the shared
+    limits (GH#40470).  Skipped once ``clear()`` has reset the shared tick
+    formatter, as the sibling's time-series setup no longer applies.
+    """
+    xaxis: Axis = ax.get_xaxis()
+    if xaxis.get_converter() is not None or not isinstance(
+        xaxis.get_major_formatter(), TimeSeries_DateFormatter
+    ):
+        return
+    for other in ax.get_shared_x_axes().get_siblings(ax):
+        other_xaxis = other.get_xaxis()
+        freq = getattr(other_xaxis, "freq", None)
+        if freq is not None and isinstance(
+            other_xaxis.get_converter(), PeriodConverter
+        ):
+            # TODO #54485
+            xaxis.freq = freq  # type: ignore[attr-defined]
+            set_period_converter(ax)
+            return
 
 
 def format_dateaxis(
@@ -493,9 +620,13 @@ def format_dateaxis(
 
 
 def prepare_ts_data(
-    series: Series, ax: Axes, kwargs: dict[str, Any], index_freq: str | None = None
-) -> tuple[BaseOffset | str, Series]:
-    freq, data = maybe_resample(series, ax, kwargs, index_freq)
+    series: Series,
+    ax: Axes,
+    kwargs: dict[str, Any],
+    index_freq: str | None = None,
+    timestamps: Index | None = None,
+) -> tuple[BaseOffset | str, Series, Index | None]:
+    freq, data, timestamps = maybe_resample(series, ax, kwargs, index_freq, timestamps)
 
     # Set ax with freq info
     decorate_axes(ax, freq)
@@ -505,4 +636,4 @@ def prepare_ts_data(
     if hasattr(ax, "right_ax"):
         decorate_axes(ax.right_ax, freq)
 
-    return freq, data
+    return freq, data, timestamps

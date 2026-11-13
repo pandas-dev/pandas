@@ -381,6 +381,84 @@ class TestDataFrameEval:
         expected = pd.DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
+    @pytest.mark.parametrize(
+        "df",
+        [
+            pd.DataFrame(index=range(1), columns=list("ab")),
+            pd.DataFrame(columns=list("ab")),
+            pd.DataFrame({"a": [1, 2], "b": [3, 4]}, dtype=object),
+        ],
+    )
+    def test_eval_object_dtype_arithmetic(self, df, engine, parser):
+        # GH#27639 numexpr engine raised RecursionError
+        result = df.eval("a * b", engine=engine, parser=parser)
+        expected = df["a"] * df["b"]
+        tm.assert_series_equal(result, expected)
+
+        result = df.query("a * b == 3", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df[expected == 3])
+
+    def test_eval_string_dtype_concat(self, any_string_dtype, engine, parser):
+        # GH#27639
+        df = pd.DataFrame({"a": ["x", "y"], "b": ["1", "2"]}, dtype=any_string_dtype)
+        result = df.eval("a + b", engine=engine, parser=parser)
+        expected = df["a"] + df["b"]
+        tm.assert_series_equal(result, expected)
+
+        result = df.eval("a", engine=engine, parser=parser)
+        tm.assert_series_equal(result, df["a"])
+
+        ser = df["a"]
+        result = pd.eval("ser + ser", engine=engine, parser=parser)
+        tm.assert_series_equal(result, ser + ser)
+
+        result = pd.eval("df", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df)
+
+        result = pd.eval("'abc'", engine=engine, parser=parser)
+        assert result == "abc"
+
+    def test_eval_assign_string_literal(self, engine, parser):
+        # GH#15320
+        df = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
+        result = df.eval("c = 'foo'\nd = a + b", engine=engine, parser=parser)
+        expected = df.assign(c="foo", d=df["a"] + df["b"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_eval_object_dtype_numeric_parts_unchanged(self, engine, parser):
+        # GH#27639 evaluating object operands in python must not change how
+        #  numeric subexpressions or later lines are evaluated
+        df = pd.DataFrame(
+            {
+                "i8": np.array([100, 120, -100], dtype="int8"),
+                "obj_bool": pd.Series([True, True, True], dtype=object),
+                "bool": [True, True, True],
+                "s": ["p", "q", "r"],
+            }
+        )
+        result = df.eval("(i8 + i8 > 150) & obj_bool", engine=engine, parser=parser)
+        expected = df.eval("(i8 + i8 > 150) & bool", engine=engine, parser=parser)
+        tm.assert_series_equal(result, expected)
+
+        result = df.eval("r = s + s\nt = i8 + i8", engine=engine, parser=parser)
+        expected = df.eval("t = i8 + i8", engine=engine, parser=parser)
+        tm.assert_series_equal(result["t"], expected["t"])
+
+    def test_query_unary_op_object_dtype(self, engine):
+        # GH#45876 numexpr engine raised ValueError for a unary op on an object column
+        df = pd.DataFrame({"a": [True, False, None], "b": [1, -2, 3]}, dtype=object)
+        df = df.dropna()
+
+        result = df.query("not a", engine=engine)
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+        result = df.query("-b > 0", engine=engine)
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+        df = pd.DataFrame({"s": ["x", ""]})
+        result = df.eval("not s", engine=engine)
+        tm.assert_series_equal(result, pd.Series([False, True], name="s"))
+
     def test_using_numpy(self, engine, parser):
         # GH 58041
         skip_if_no_pandas_parser(parser)
@@ -1559,6 +1637,57 @@ class TestDataFrameQueryBacktickQuoting:
         res = df.eval("A + `def`")
         expect = df["A"] + df["def"]
         tm.assert_series_equal(res, expect)
+
+    @pytest.mark.parametrize(
+        "quoted, label",
+        [
+            ("`new-col`", "new-col"),
+            ("`new col`", "new col"),
+            ("`new``col`", "new`col"),
+            ("`new☺`", "new☺"),
+            ("`class`", "class"),
+        ],
+    )
+    def test_assign_to_new_backtick_column(self, df, quoted, label):
+        # GH#47699
+        res = df.eval(f"{quoted} = A + `B B`")
+        expect = df.assign(**{label: df["A"] + df["B B"]})
+        tm.assert_frame_equal(res, expect)
+
+    @pytest.mark.parametrize("label", ["B B", "F-F", "E.E", "def"])
+    def test_assign_to_existing_backtick_column(self, df, label):
+        # GH#47699
+        res = df.eval(f"`{label}` = A * 2")
+        expect = df.assign(**{label: df["A"] * 2})
+        tm.assert_frame_equal(res, expect)
+
+    def test_assign_to_backtick_column_used_by_later_line(self, df):
+        # GH#47699
+        res = df.eval("`new-col` = A + `B B`\nC = `new-col` * 2")
+        expect = df.assign(**{"new-col": df["A"] + df["B B"]})
+        expect["C"] = expect["new-col"] * 2
+        tm.assert_frame_equal(res, expect)
+
+    def test_assign_to_backtick_column_with_target(self, df):
+        # GH#47699
+        res = pd.eval("`new-col` = df.A + df['B B']", target=df)
+        expect = df.assign(**{"new-col": df["A"] + df["B B"]})
+        tm.assert_frame_equal(res, expect)
+
+    @pytest.mark.parametrize(
+        "expr, label",
+        [
+            ("`a b!` = `a_b!` * 2", "a b!"),
+            ("`a_b!` = `a b!` * 2", "a_b!"),
+            ("(`a b!`) = `a_b!` * 2", "a b!"),
+        ],
+    )
+    def test_assign_to_backtick_column_cleaned_to_same_name(self, expr, label):
+        # GH#47699
+        df = pd.DataFrame({"a_b!": [1, 2]})
+        res = df.eval(expr)
+        expect = df.assign(**{label: [2, 4]})
+        tm.assert_frame_equal(res, expect)
 
     def test_unneeded_quoting(self, df):
         res = df.query("`A` > 2")

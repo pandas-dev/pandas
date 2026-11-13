@@ -984,20 +984,8 @@ def test_pad_stable_sorting(fill_method):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "freq",
-    [
-        None,
-        pytest.param(
-            "D",
-            marks=pytest.mark.xfail(
-                reason="GH#23918 before method uses freq in vectorized approach"
-            ),
-        ),
-    ],
-)
 @pytest.mark.parametrize("periods", [1, -1])
-def test_pct_change(frame_or_series, freq, periods):
+def test_pct_change(frame_or_series, periods):
     # GH 21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
@@ -1016,8 +1004,19 @@ def test_pct_change(frame_or_series, freq, periods):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(periods=periods, freq=freq)
+    result = gb.pct_change(periods=periods)
     tm.assert_equal(result, expected)
+
+
+def test_pct_change_freq_excludes_grouping_column():
+    # GH#46944
+    df = pd.DataFrame(
+        {"a": ["x", "x", "y", "y"], "b": [1.0, 2.0, 4.0, 8.0]},
+        index=pd.date_range("2020-01-01", periods=4),
+    )
+    result = df.groupby("a").pct_change(freq="D")
+    expected = pd.DataFrame({"b": [np.nan, 1.0, np.nan, 1.0]}, index=df.index)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

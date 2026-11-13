@@ -5,6 +5,8 @@ and latex files. This module also applies to display formatting.
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.common",)
+
 from collections.abc import (
     Callable,
     Generator,
@@ -802,7 +804,7 @@ class DataFrameFormatter:
                     )
                 ]
                 if self.sparsify:
-                    fmt_columns = sparsify_labels(fmt_columns)
+                    fmt_columns = sparsify_labels(fmt_columns, columns.codes)
 
             str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
@@ -1528,7 +1530,10 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         # large values: more that 8 characters including decimal symbol
         # and first digit, hence > 1e6
         has_large_values = (abs_vals > 1e6).any()
-        has_small_values = ((abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)).any()
+        # values at or below chop_threshold are displayed as 0 (GH#12374)
+        has_small_values = (
+            (abs_vals < 10 ** (-self.digits)) & (abs_vals > max(threshold or 0, 0))
+        ).any()
 
         if has_small_values or (too_long and has_large_values):
             float_format = self._fixed_width_format("e")

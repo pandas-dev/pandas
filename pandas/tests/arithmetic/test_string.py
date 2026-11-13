@@ -124,15 +124,20 @@ def test_arithmetic_custom_object(any_string_dtype):
         tm.assert_series_equal(result, expected)
 
 
-def test_mixed_object_comparison(any_string_dtype):
-    # GH#60228
+@pytest.mark.parametrize(
+    "values, expected_values",
+    [([1, "b"], [False, True]), (["a", 1], [True, False])],
+)
+def test_mixed_object_comparison(any_string_dtype, values, expected_values):
+    # GH#60228, GH#35565 pyarrow raised a different error depending on which
+    #  element came first
     dtype = any_string_dtype
     ser = pd.Series(["a", "b"], dtype=dtype)
 
-    mixed = pd.Series([1, "b"], dtype=object)
+    mixed = pd.Series(values, dtype=object)
 
     result = ser == mixed
-    expected = pd.Series([False, True], dtype=bool)
+    expected = pd.Series(expected_values, dtype=bool)
     if dtype == object:
         pass
     elif dtype.storage == "python" and dtype.na_value is pd.NA:
@@ -141,6 +146,7 @@ def test_mixed_object_comparison(any_string_dtype):
         expected = expected.astype("bool[pyarrow]")
 
     tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser != mixed, ~expected)
 
 
 def test_pyarrow_numpy_string_invalid():

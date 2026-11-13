@@ -319,7 +319,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         Notes
         -----
         See more `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+        <https://pandas.pydata.org/docs/user_guide/groupby.html#piping-function-calls>`_
 
         Examples
         --------
@@ -881,7 +881,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
             * 'index', 'values': use the actual numerical values of the index.
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial': Passed to
+              'polynomial': Passed to
               `scipy.interpolate.interp1d`, whereas 'spline' is passed to
               `scipy.interpolate.UnivariateSpline`. These methods use the numerical
               values of the index.  Both 'polynomial' and 'spline' require that
@@ -889,9 +889,9 @@ class Resampler(BaseGroupBy[Any], PandasObject):
               ``df.interpolate(method='polynomial', order=5)``. Note that,
               `slinear` method in Pandas refers to the Scipy first order `spline`
               instead of Pandas first order `spline`.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima',
-              'cubicspline': Wrappers around the SciPy interpolation methods of
-              similar names. See `Notes`.
+            * 'barycentric', 'krogh', 'piecewise_polynomial', 'spline',
+              'pchip', 'akima', 'cubicspline': Wrappers around the SciPy
+              interpolation methods of similar names. See `Notes`.
             * 'from_derivatives': Refers to
               `scipy.interpolate.BPoly.from_derivatives`.
 
@@ -1749,12 +1749,19 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @final
-    def ohlc(self):
+    def ohlc(self, numeric_only: bool = False):
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
         This method computes OHLC (Open-High-Low-Close) values, commonly used
         in financial data analysis to summarize price movements within time periods.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -1791,6 +1798,8 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         obj = self._obj_with_exclusions
         if len(ax) == 0:
             # GH#42902
+            if numeric_only and obj.ndim == 2:
+                obj = obj._get_numeric_data()
             obj = obj.copy()
             obj.index = _asfreq_compat(obj.index, self.freq)
             if obj.ndim == 1:
@@ -1803,7 +1812,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
                 obj = obj.reindex(mi, axis=1)
             return obj
 
-        return self._downsample("ohlc")
+        return self._downsample("ohlc", numeric_only=numeric_only)
 
     @final
     def nunique(self):
@@ -2043,6 +2052,8 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
 
         self._groupby = groupby
         self._timegrouper = copy.copy(parent._timegrouper)
+        # exclude the grouping and `on` columns, GH#32162
+        self.exclusions = parent.exclusions | groupby.exclusions
 
         self.ax = parent.ax
         self.obj = parent.obj
@@ -2380,6 +2391,15 @@ class TimedeltaIndexResamplerGroupBy(  # type: ignore[misc]
         return TimedeltaIndexResampler
 
 
+def _rule_code(freq: BaseOffset) -> str:
+    try:
+        return freq.rule_code
+    except NotImplementedError:
+        # GH#31697: e.g. a generic DateOffset or Easter has no rule_code,
+        #  and neither is an end-anchored freq
+        return ""
+
+
 def get_resampler(obj: Series | DataFrame, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
@@ -2434,6 +2454,7 @@ class TimeGrouper(Grouper):
     )
 
     origin: TimeGrouperOrigin
+    offset: Timedelta | None
 
     def __init__(
         self,
@@ -2491,7 +2512,7 @@ class TimeGrouper(Grouper):
                 )
 
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
-        rule = freq.rule_code
+        rule = _rule_code(freq)
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
                 closed = "right"
@@ -2532,7 +2553,9 @@ class TimeGrouper(Grouper):
             self.origin = origin  # type: ignore[assignment]
         else:
             try:
-                self.origin = Timestamp(origin)
+                # error: Incompatible types in assignment (expression has type
+                # "Timestamp | NaTType", variable has type "TimeGrouperOrigin")
+                self.origin = Timestamp(origin)  # type: ignore[assignment]
             except (ValueError, TypeError) as err:
                 raise ValueError(
                     "'origin' should be equal to 'epoch', 'start', 'start_day', "
@@ -2541,7 +2564,9 @@ class TimeGrouper(Grouper):
                 ) from err
 
         try:
-            self.offset = Timedelta(offset) if offset is not None else None
+            # error: Incompatible types in assignment (expression has type
+            # "Timedelta | NaTType | None", variable has type "Timedelta | None")
+            self.offset = Timedelta(offset) if offset is not None else None  # type: ignore[assignment]
         except (ValueError, TypeError) as err:
             raise ValueError(
                 "'offset' should be a Timedelta convertible type. "
@@ -2733,9 +2758,8 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
-            0
-        ] in (
+        rule = _rule_code(self.freq)
+        if rule in ("BME", "ME", "W") or rule.split("-")[0] in (
             "BQE",
             "BYE",
             "QE",
@@ -2749,6 +2773,9 @@ class TimeGrouper(Grouper):
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
+                # GH#62601: a label on a nonexistent midnight was shifted forward
+                # (e.g. to 01:00); the bin still ends at the end of that day
+                edges_dti = edges_dti.normalize()
                 edges_dti = (
                     edges_dti
                     + Timedelta(days=1).as_unit(edges_dti.unit)
@@ -2876,8 +2903,7 @@ class TimeGrouper(Grouper):
 
             # Get offset for bin edge (not label edge) adjustment
             start_offset = Period(start, self.freq) - Period(p_start, self.freq)
-            # error: Item "Period" of "Union[Period, Any]" has no attribute "n"
-            bin_shift = start_offset.n % freq_mult  # type: ignore[union-attr]
+            bin_shift = start_offset.n % freq_mult
             start = p_start
 
         labels = binner = period_range(
@@ -2982,7 +3008,9 @@ def _get_timestamp_range_edges(
 
     Returns
     -------
-    A tuple of length 2, containing the adjusted pd.Timestamp objects.
+    A tuple of length 2, containing the adjusted pd.Timestamp objects. For a
+    non-Tick ``freq`` and timezone-aware inputs, the edges are returned as
+    timezone-naive wall-clock times (GH#62601).
     """
     if isinstance(freq, Tick) or (isinstance(freq, Day) and first.tz is None):
         index_tz = first.tz
@@ -3008,6 +3036,17 @@ def _get_timestamp_range_edges(
             unit=unit,
         )
     else:
+        if first.tz is not None:
+            # GH#62601: an anchored edge is a wall-clock time (e.g. midnight)
+            # that may not exist, or exist twice, in the index timezone around
+            # a DST transition.  Do the arithmetic on tz-naive wall times and
+            # leave the edges naive; the caller localizes them along with the
+            # bins (see the ``ambiguous``/``nonexistent`` handling in
+            # ``TimeGrouper._get_time_bins``).  Localizing here would shift a
+            # nonexistent midnight to 01:00 and move every later bin with it.
+            first = first.tz_localize(None)
+            last = last.tz_localize(None)
+
         first = first.normalize()
         last = last.normalize()
 
