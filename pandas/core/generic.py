@@ -7805,12 +7805,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 this **must** be a nested dictionary or Series.
 
             See the examples section for examples of each of these.
-        value : scalar, dict, list, str, regex, default None
+        value : scalar, dict, list, str, regex, callable, default None
             Value to replace any values matching `to_replace` with.
             For a DataFrame a dict of values can be used to specify which
             value to use for each column (columns not in the dict will not be
             filled). Regular expressions, strings and lists or dicts of such
-            objects are also allowed.
+            objects are also allowed. For regex replacement, a callable receives
+            a match object for each match and must return a replacement string,
+            as in :func:`re.sub`.
 
         inplace : bool, default False
             If True, performs operation inplace.
