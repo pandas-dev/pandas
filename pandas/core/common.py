@@ -300,13 +300,16 @@ def index_labels_to_array(
     array
     """
     if isinstance(labels, tuple) or not lib.is_list_like(labels):
-        labels = [labels]
+        if dtype is None and not isinstance(labels, tuple):
+            rlabels = asarray_tuplesafe([labels])
+            if rlabels.ndim == 1 and rlabels.dtype != object:
+                return rlabels
+        # don't let numpy unpack a sequence-like label, e.g. an Enum class
+        return construct_1d_object_array_from_listlike([labels])
     elif not isinstance(labels, (list, np.ndarray)):
         labels = list(labels)
 
-    rlabels = asarray_tuplesafe(labels, dtype=dtype)
-
-    return rlabels
+    return asarray_tuplesafe(labels, dtype=dtype)
 
 
 def maybe_make_list(obj: Any) -> list[Any] | tuple[Any, ...] | None:

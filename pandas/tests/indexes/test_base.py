@@ -898,12 +898,17 @@ class TestIndex:
             RED = 1
             BLUE = 2
 
-        index = Index([Color.RED, Color.BLUE, "c"], dtype=object)
-        with pytest.raises(KeyError, match="not found in axis"):
-            index.drop(Color)
+        index = Index([Color, Color.RED, Color.BLUE, "c"], dtype=object)
+        result = index.drop(Color)
+        tm.assert_index_equal(result, index[1:])
 
         result = index.drop(Color.RED)
-        tm.assert_index_equal(result, Index([Color.BLUE, "c"], dtype=object))
+        tm.assert_index_equal(result, index[[0, 2, 3]])
+
+        # neither the members nor a tuple of them match the class
+        index = Index([Color.RED, Color.BLUE, (Color.RED, Color.BLUE)], dtype=object)
+        with pytest.raises(KeyError, match="not found in axis"):
+            index.drop(Color)
 
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051

@@ -72,6 +72,10 @@ def test_drop_strenum_class_is_single_label():
     result = df.drop(columns=list(Cols))
     tm.assert_frame_equal(result, df[["c"]])
 
+    df = pd.DataFrame([[1, 2]], columns=pd.Index(["a", Cols], dtype=object))
+    result = df.drop(columns=Cols)
+    tm.assert_frame_equal(result, df[["a"]])
+
 
 class TestDataFrameDrop:
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
