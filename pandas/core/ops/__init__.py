@@ -15,6 +15,7 @@ from pandas.core.ops.array_ops import (
     logical_op,
     maybe_prepare_scalar_for_op,
     maybe_warn_complex_ordering,
+    unary_op,
 )
 from pandas.core.ops.common import (
     get_op_result_name,
@@ -102,5 +103,6 @@ __all__ = [
     "rsub",
     "rtruediv",
     "rxor",
+    "unary_op",
     "unpack_zerodim_and_defer",
 ]
