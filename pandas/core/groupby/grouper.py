@@ -263,7 +263,6 @@ class Grouper:
 
     sort: bool
     dropna: bool
-    _grouper: Index | None
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "sort", "dropna")
 
@@ -287,11 +286,6 @@ class Grouper:
         self.freq = freq
         self.sort = sort
         self.dropna = dropna
-
-        self._indexer_deprecated: npt.NDArray[np.intp] | None = None
-        self.binner = None
-        self._grouper = None
-        self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True, observed: bool = True
@@ -349,28 +343,13 @@ class Grouper:
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
 
-        # Keep self._grouper value before overriding
-        if self._grouper is None:
-            # TODO: What are we assuming about subsequent calls?
-            self._grouper = gpr_index
-            self._indexer = self._indexer_deprecated
-
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
-            # The 'on' is already defined
-            if getattr(gpr_index, "name", None) == key and isinstance(obj, Series):
-                # Sometimes self._grouper will have been resorted while
-                # obj has not. In this case there is a mismatch when we
-                # call self._grouper.take(obj.index) so we need to undo the sorting
-                # before we call _grouper.take.
-                assert self._grouper is not None
-                if self._indexer is not None:
-                    reverse_indexer = self._indexer.argsort()
-                    unsorted_ax = self._grouper.take(reverse_indexer)
-                    ax = unsorted_ax.take(obj.index)  # type: ignore[arg-type]
-                else:
-                    ax = self._grouper.take(obj.index)  # type: ignore[arg-type]
+            if isinstance(obj, Series) and getattr(gpr_index, "name", None) == key:
+                # A Series has no `on` column, so the caller passes its values
+                assert gpr_index is not None
+                ax = gpr_index
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
@@ -395,9 +374,7 @@ class Grouper:
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
-            indexer = self._indexer_deprecated = ax.array.argsort(
-                kind="mergesort", na_position="first"
-            )
+            indexer = ax.array.argsort(kind="mergesort", na_position="first")
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=0)
 

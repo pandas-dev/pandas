@@ -2056,6 +2056,7 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
         self.exclusions = parent.exclusions | groupby.exclusions
 
         self.ax = parent.ax
+        self._indexer = parent._indexer
         self.obj = parent.obj
 
     @no_type_check
@@ -2064,9 +2065,24 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
         Dispatch to _upsample; we are stripping all of the _upsample kwargs and
         performing the original function call on the grouped object.
         """
+        key_groups = None
+        if self._timegrouper.key is not None and self._groupby._selected_obj.ndim == 1:
+            # Series groups lack the `on` column, so split it like the groups, GH#59350
+            ax = self.ax
+            if self._indexer is not None:
+                # undo the sort so ax lines up with self._groupby.obj
+                ax = ax.take(np.argsort(self._indexer))
+            key_groups = iter(self._groupby._grouper._get_splitter(ax.to_series()))
 
         def func(x):
-            x = self._resampler_cls(x, timegrouper=self._timegrouper, gpr_index=self.ax)
+            if key_groups is None:
+                gpr_index = self.ax
+            else:
+                # apply calls func once per group, in splitter order
+                gpr_index = Index(next(key_groups), copy=False)
+            x = self._resampler_cls(
+                x, timegrouper=self._timegrouper, gpr_index=gpr_index
+            )
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)
