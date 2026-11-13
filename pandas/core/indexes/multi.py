@@ -5048,6 +5048,7 @@ class MultiIndex(Index):
             values = list(values)
 
         if level is None:
+            algos.warn_dataframe_isin_values(values)
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):

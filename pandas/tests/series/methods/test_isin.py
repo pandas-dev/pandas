@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import algorithms
@@ -460,3 +462,16 @@ def test_isin_arrow_array_list_values_pyarrow_cannot_box():
     arr = pd.array([2**53, 1, None], dtype="int64[pyarrow]")
     result = arr.isin([1, "a"])
     tm.assert_numpy_array_equal(result, np.array([False, True, False]))
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 1, 2]), pd.Index([0, 1, 2]), pd.RangeIndex(3)]
+)
+def test_isin_dataframe_values_deprecated(obj):
+    # GH#43460
+    df = pd.DataFrame({0: [5], 1: [6]})
+    msg = "Passing a DataFrame to isin is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = obj.isin(df)
+    expected = obj.isin(df.columns)
+    tm.assert_equal(result, expected)
