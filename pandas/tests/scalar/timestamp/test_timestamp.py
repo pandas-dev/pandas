@@ -993,3 +993,24 @@ def test_negative_prefix_non_iso_raises(date_string):
     msg = f"Unknown datetime string format, unable to parse: {date_string}"
     with pytest.raises(ValueError, match=re.escape(msg)):
         pd.Timestamp(date_string)
+
+
+@pytest.mark.parametrize("year", [10000, 10001, 0, -1])
+def test_out_of_range_year_tzaware_to_datetime64(year):
+    # GH#71371: tz-aware Timestamps with years outside Python's datetime range
+    # (1-9999) should preserve their year when converted to datetime64 storage,
+    # not silently corrupt to 1970/1972.
+    ts = pd.Timestamp(np.datetime64(f"{year:04d}-03-05T12:00", "us")).tz_localize("UTC")
+    assert ts.year == year
+
+    # Test Series
+    ser = pd.Series([ts])
+    assert ser[0].year == year
+
+    # Test DatetimeIndex
+    idx = pd.DatetimeIndex([ts])
+    assert idx[0].year == year
+
+    # Test to_datetime
+    result = pd.to_datetime([ts])
+    assert result[0].year == year
