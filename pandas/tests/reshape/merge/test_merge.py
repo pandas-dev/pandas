@@ -647,6 +647,32 @@ class TestMerge:
         expected = pd.DataFrame(values, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("sort", [True, False])
+    @pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
+    @pytest.mark.parametrize(
+        ("left_key", "right_key"),
+        [
+            # duplicates on both sides
+            ([2, 1, 2, 1, 3], [1, 2, 1, 4, 2]),
+            # unique right
+            ([2, 1, 2, 1, 3], [4, 2, 1]),
+            # both monotonic, unique right
+            ([1, 1, 2, 2, 3], [1, 2, 4]),
+            (["b", "a", "b", "a", "c"], ["a", "b", "a", "d", "b"]),
+        ],
+    )
+    def test_merge_row_order_within_key(self, left_key, right_key, how, sort):
+        # GH#37927
+        left = pd.DataFrame({"key": left_key, "lrow": range(len(left_key))})
+        right = pd.DataFrame({"key": right_key, "rrow": range(len(right_key))})
+
+        result = merge(left, right, on="key", how=how, sort=sort)
+        by = ["rrow", "lrow"] if how == "right" else ["lrow", "rrow"]
+        if sort or how == "outer":
+            by = ["key", *by]
+        expected = result.sort_values(by, kind="stable", ignore_index=True)
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_nan_right(self):
         df1 = pd.DataFrame({"i1": [0, 1], "i2": [0, 1]})
         df2 = pd.DataFrame({"i1": [0], "i3": [0]})
