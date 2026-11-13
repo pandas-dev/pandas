@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import abc
 from copy import deepcopy
 from datetime import (
     datetime,
@@ -3679,7 +3678,7 @@ class Index(IndexOpsMixin, PandasObject):
     def symmetric_difference(
         self,
         other: Axes,
-        result_name: abc.Hashable | None = None,
+        result_name: Hashable | None = None,
         sort: bool | None = None,
     ) -> Index:
         """
@@ -3847,7 +3846,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._engine.get_loc(casted_key)
         except KeyError as err:
             if isinstance(casted_key, slice) or (
-                isinstance(casted_key, abc.Iterable)
+                is_list_like(casted_key)
                 and any(isinstance(x, slice) for x in casted_key)
             ):
                 raise InvalidIndexError(key) from err
