@@ -10,7 +10,11 @@ import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import set_module
+from pandas.errors import Pandas4Warning
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.api import DataFrame
@@ -83,8 +87,10 @@ def to_feather(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "path")
 def read_feather(
-    path: FilePath | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[bytes],
+    /,
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
     storage_options: StorageOptions | None = None,
@@ -106,7 +112,7 @@ def read_feather(
 
     Parameters
     ----------
-    path : str, path object, or file-like object
+    source : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``read()`` function. The string could be a URL.
         Valid URL schemes include http, ftp, s3, gs and file. For file URLs, a host is
@@ -115,6 +121,10 @@ def read_feather(
         Certain URL schemes may require additional packages. For example, S3
         URLs require the ``s3fs`` library. See
         :ref:`install.optional_dependencies` for a full list.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``path``. Passing it by keyword is deprecated.
     columns : sequence, default None
         If not provided, all columns are read.
     use_threads : bool, default True
@@ -167,7 +177,7 @@ def read_feather(
     check_dtype_backend(dtype_backend)
 
     with get_handle(
-        path, "rb", storage_options=storage_options, is_text=False
+        source, "rb", storage_options=storage_options, is_text=False
     ) as handles:
         # pyarrow>=24 deprecates feather.read_table in favor of pyarrow.ipc;
         # suppress until we migrate the implementation (GH#66177)

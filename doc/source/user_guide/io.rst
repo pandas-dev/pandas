@@ -59,7 +59,7 @@ Parsing options
 Basic
 +++++
 
-filepath_or_buffer : various
+source : various
   Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`)
   URL (including http, ftp, and S3
   locations), or any object with a ``read()`` method (such as an open file or
@@ -213,7 +213,7 @@ low_memory : boolean, default ``True``
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
 memory_map : boolean, default False
-  If a filepath is provided for ``filepath_or_buffer``, map the file object
+  If a filepath is provided for ``source``, map the file object
   directly onto memory and access the data directly from there. Using this
   option can improve performance because there is no longer any I/O overhead.
 
@@ -292,7 +292,7 @@ Quoting, compression, and file format
 
 compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, xz, or zstandard if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
+  bz2, zip, xz, or zstandard if ``source`` is path-like ending in '.gz', '.bz2',
   '.zip', '.xz', '.zst', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
@@ -1548,7 +1548,7 @@ When reading a large file with the C engine, :func:`read_csv` splits the file
 into chunks and parses them in multiple threads, which can speed up reading
 considerably. This happens automatically when all of the following hold:
 
-* ``filepath_or_buffer`` is a local, uncompressed file path
+* ``source`` is a local, uncompressed file path
 * the C engine is used (the default)
 * the file's data rows total at least 5 MB, excluding any header preamble
 * more than one thread is in use -- see ``mode.max_threads`` below, which
@@ -1926,7 +1926,7 @@ Reading a JSON string to pandas object can take a number of parameters.
 The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
 is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
-* ``filepath_or_buffer`` : a **VALID** JSON string or file handle / StringIO. The string could be
+* ``source`` : a **VALID** JSON string or file handle / StringIO. The string could be
   a URL. Valid URL schemes include http, ftp, S3, and file. For file URLs, a host
   is expected. For instance, a local file could be
   file ://localhost/path/to/table.json
@@ -3360,11 +3360,11 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
    When ``engine=None``, the following logic will be used to determine the engine:
 
-   - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+   - If ``source`` is an OpenDocument format (.odf, .ods, .odt),
      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used
+   - Otherwise if ``source`` is an xls format, ``xlrd`` will be used
      if installed (deprecated), and ``calamine`` otherwise.
-   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used
+   - Otherwise if ``source`` is in xlsb format, ``pyxlsb`` will be used
      if installed (deprecated), and ``calamine`` otherwise.
    - Otherwise ``openpyxl`` will be used (deprecated default, see below).
 

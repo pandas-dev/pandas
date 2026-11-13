@@ -616,7 +616,7 @@ def test_read_filepath_or_buffer(all_parsers):
     parser = all_parsers
 
     with pytest.raises(TypeError, match="Expected file path name or file-like"):
-        parser.read_csv(filepath_or_buffer=b"input")
+        parser.read_csv(b"input")
 
 
 def test_single_char_leading_whitespace(all_parsers):

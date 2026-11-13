@@ -11,7 +11,11 @@ from typing import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import set_module
+from pandas.errors import Pandas4Warning
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.indexes.api import default_index
@@ -41,8 +45,10 @@ if TYPE_CHECKING:
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "path")
 def read_orc(
-    path: FilePath | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[bytes],
+    /,
     columns: list[str] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: pyarrow.fs.FileSystem | fsspec.spec.AbstractFileSystem | None = None,
@@ -62,7 +68,7 @@ def read_orc(
 
     Parameters
     ----------
-    path : str, path object, or file-like object
+    source : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``read()`` function. The string could be a URL.
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
@@ -72,6 +78,10 @@ def read_orc(
         Certain URL schemes may require additional packages. For example, S3
         URLs require the ``s3fs`` library. See
         :ref:`install.optional_dependencies` for a full list.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``path``. Passing it by keyword is deprecated.
     columns : list, default None
         If not None, only these columns will be read from the file.
         Output always follows the ordering of the file and not the columns list.
@@ -115,7 +125,7 @@ def read_orc(
     Before using this function you should read the :ref:`user guide about ORC <io.orc>`
     and :ref:`install optional dependencies <install.warn_orc>`.
 
-    If ``path`` is a URI scheme pointing to a local or remote file (e.g. "s3://"),
+    If ``source`` is a URI scheme pointing to a local or remote file (e.g. "s3://"),
     a ``pyarrow.fs`` filesystem will be attempted to read the file. You can also pass a
     pyarrow or fsspec filesystem object into the filesystem keyword to override this
     behavior.
@@ -133,25 +143,25 @@ def read_orc(
     if filesystem is not None:
         # open the path only through the given filesystem (GH#58746)
         pa_table = orc.read_table(
-            source=stringify_path(path),
+            source=stringify_path(source),
             columns=columns,
             filesystem=filesystem,
             **kwargs,
         )
         return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
-    with get_handle(path, "rb", is_text=False) as handles:
-        source = handles.handle
-        if is_fsspec_url(path):
+    with get_handle(source, "rb", is_text=False) as handles:
+        orc_source = handles.handle
+        if is_fsspec_url(source):
             pa = import_optional_dependency("pyarrow")
             pa_fs = import_optional_dependency("pyarrow.fs")
             try:
-                filesystem, source = pa_fs.FileSystem.from_uri(path)
+                filesystem, orc_source = pa_fs.FileSystem.from_uri(source)
             except (TypeError, pa.ArrowInvalid):
                 pass
 
         pa_table = orc.read_table(
-            source=source, columns=columns, filesystem=filesystem, **kwargs
+            source=orc_source, columns=columns, filesystem=filesystem, **kwargs
         )
     return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
