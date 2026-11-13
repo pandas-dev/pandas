@@ -24,14 +24,18 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -271,6 +275,7 @@ def cut(
 
     original = x
     x_idx = _preprocess_for_cut(x)
+    x_exact = x_idx
     x_idx, _ = _coerce_to_type(x_idx)
 
     if not np.iterable(bins):
@@ -294,6 +299,7 @@ def cut(
         include_lowest=include_lowest,
         duplicates=duplicates,
         ordered=ordered,
+        x_exact=x_exact,
     )
 
     return _postprocess_for_cut(fac, bins, retbins, original)
@@ -479,6 +485,7 @@ def _bins_to_cuts(
     include_lowest: bool = False,
     duplicates: str = "raise",
     ordered: bool = True,
+    x_exact: Index | None = None,
 ):
     if not ordered and labels is None:
         raise ValueError("'labels' must be provided if 'ordered = False'")
@@ -490,9 +497,12 @@ def _bins_to_cuts(
 
     result: Categorical | np.ndarray
 
+    search_values = x_idx if x_exact is None else _search_values(x_idx, x_exact, bins)
+
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
-        ids = bins.get_indexer(x_idx)
+        ids = bins.get_indexer(search_values)
+        ids[isna(x_idx)] = -1  # NA may have been filled in search_values
         cat_dtype = CategoricalDtype(bins, ordered=True)
         result = Categorical.from_codes(ids, dtype=cat_dtype, validate=False)
         return result, bins
@@ -509,7 +519,7 @@ def _bins_to_cuts(
     side: Literal["left", "right"] = "left" if right else "right"
 
     try:
-        ids = bins.searchsorted(x_idx, side=side)
+        ids = bins.searchsorted(search_values, side=side)
     except TypeError as err:
         # e.g. test_datetime_nan_error if bins are DatetimeArray and x_idx
         #  is integers
@@ -527,7 +537,7 @@ def _bins_to_cuts(
     ids = ensure_platform_int(ids)
 
     if include_lowest:
-        ids[x_idx == bins[0]] = 1
+        ids[search_values == bins[0]] = 1
 
     na_mask = isna(x_idx) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
@@ -572,6 +582,36 @@ def _bins_to_cuts(
     return result, bins
 
 
+def _search_values(x_idx: Index, x_exact: Index, bins: Index) -> Index | np.ndarray:
+    """
+    Values to compare with ``bins``.
+
+    ``x_idx`` holds nullable and pyarrow integers cast to float64, which loses
+    precision above 2**53 (GH#31389). If the original integers fit the dtype of
+    integer ``bins``, return them in that dtype instead, with NA filled with 0.
+    """
+    dtype = x_exact.dtype
+    if not isinstance(dtype, (BaseMaskedDtype, ArrowDtype)) or not is_integer_dtype(
+        dtype
+    ):
+        return x_idx
+
+    bins_dtype = bins.dtype
+    if isinstance(bins_dtype, IntervalDtype):
+        bins_dtype = bins_dtype.subtype
+    if isinstance(bins_dtype, (BaseMaskedDtype, ArrowDtype)):
+        bins_dtype = bins_dtype.numpy_dtype
+    if not lib.is_np_dtype(bins_dtype, "iu"):
+        return x_idx
+
+    values = x_exact.to_numpy(dtype=dtype.numpy_dtype, na_value=0)
+    info = np.iinfo(bins_dtype)
+    if len(values) and (values.min() < info.min or values.max() > info.max):
+        # casting would overflow, keep the float64 values
+        return x_idx
+    return values.astype(bins_dtype, copy=False)
+
+
 def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     """
     if the passed data is of datetime/timedelta, bool or nullable int type,
@@ -585,10 +625,8 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     elif is_bool_dtype(x.dtype):
         # GH 20303
         x = x.astype(np.int64)
-    # To support cut and qcut for IntegerArray we convert to float dtype.
-    # Will properly support in the future.
-    # https://github.com/pandas-dev/pandas/pull/31290
-    # https://github.com/pandas-dev/pandas/issues/31389
+    # cast to float64 to compute bins; _search_values recovers exact integers
+    #  where it can, see GH#31389
     elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
         x_arr = x.to_numpy(dtype=np.float64, na_value=np.nan)
         x = Index(x_arr, copy=False)
