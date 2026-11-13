@@ -162,6 +162,7 @@ Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
 - Deprecated :meth:`DatetimeIndex.snap`; for non-fixed offsets use the offset's ``rollback`` and ``rollforward`` methods. For fixed frequencies ``snap`` returns the values unchanged; use :meth:`DatetimeIndex.round` if rounding was intended (:issue:`27098`)
+- Deprecated the dependence of :attr:`DatetimeIndex.is_month_start`, :attr:`~DatetimeIndex.is_month_end`, :attr:`~DatetimeIndex.is_quarter_start`, :attr:`~DatetimeIndex.is_quarter_end`, :attr:`~DatetimeIndex.is_year_start` and :attr:`~DatetimeIndex.is_year_end` on the index's business or anchored ``freq`` (e.g. from :func:`bdate_range` or ``freq="YS-APR"``). In a future version they will ignore ``freq`` and use calendar boundaries, matching the ``Series.dt`` attributes (:issue:`58920`)
 - Deprecated ``median``, ``min``, ``max``, ``idxmin``, ``idxmax``, ``argmin``, ``argmax``, ``cummin``, ``cummax``, ``clip``, and the comparisons ``<``, ``<=``, ``>``, ``>=`` on ``complex`` data; complex numbers have no natural ordering, so in a future version these will raise ``TypeError`` (:issue:`43770`, :issue:`70087`)
 - Deprecated :meth:`DataFrame.iterrows`. Use :meth:`DataFrame.itertuples` instead (:issue:`43874`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
@@ -217,6 +218,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :attr:`DatetimeIndex.is_month_start` and the other ``is_*_start``/``is_*_end`` attributes raising for an index whose ``freq`` is a :class:`CustomBusinessDay` or a :class:`DateOffset` (:issue:`58920`)
 - Bug in :class:`Timestamp` constructor, :func:`to_datetime`, and :func:`read_csv` with ``parse_dates`` where a comma used as a date separator was read as a decimal point, silently giving a wrong result (e.g. ``"2013,11,04"`` parsed as ``2013-04-01``); such strings now raise, and :func:`read_csv` leaves the column unparsed (:issue:`17265`)
 - Bug in :func:`infer_freq` returning ``None`` for a semi-monthly :class:`DatetimeIndex`, e.g. one built with ``freq="SME"`` or ``freq="SMS"`` (:issue:`45819`)
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)

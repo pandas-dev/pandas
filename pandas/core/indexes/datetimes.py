@@ -27,7 +27,17 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
+    BQuarterBegin,
+    BQuarterEnd,
+    BusinessMonthBegin,
+    BusinessMonthEnd,
+    BYearBegin,
+    BYearEnd,
     DateOffset,
+    QuarterBegin,
+    QuarterEnd,
+    YearBegin,
+    YearEnd,
     prefix_mapping,
 )
 from pandas.errors import Pandas4Warning
@@ -60,6 +70,7 @@ from pandas.core.tools.times import to_time
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
+    from pandas._libs.tslibs.offsets import BaseOffset
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -677,15 +688,87 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # bool_ops: return raw result
 
+    def _freq_boundary_offset(self, field: str) -> BaseOffset | None:
+        """
+        The offset whose boundaries ``field`` follows because of ``self.freq``.
+
+        None if ``self.freq`` leaves ``field`` on calendar boundaries. Mirrors
+        ``fields.get_start_end_field``; remove when the GH#58920 deprecation
+        is enforced.
+        """
+        freq = self.freq
+        if freq is None or isinstance(freq, Tick):
+            return None
+        try:
+            rule_code = freq.rule_code
+        except NotImplementedError:
+            # e.g. DateOffset(months=1), which get_start_end_field cannot handle
+            return None
+
+        is_business = rule_code[0] == "B"
+        kwds = freq.kwds
+        month_kw = kwds.get("startingMonth", kwds.get("month", 12))
+        if rule_code.lstrip("B")[0:2] in ["QS", "YS"]:
+            start_month = month_kw
+            end_month = 12 if month_kw == 1 else month_kw - 1
+        else:
+            end_month = month_kw
+            start_month = end_month % 12 + 1
+
+        is_start = field.endswith("start")
+        if "month" in field:
+            if not is_business:
+                return None
+            return BusinessMonthBegin() if is_start else BusinessMonthEnd()
+        month = start_month if is_start else end_month
+        if "quarter" in field:
+            if not is_business and month % 3 == (1 if is_start else 0):
+                return None
+            if is_start:
+                return (BQuarterBegin if is_business else QuarterBegin)(
+                    startingMonth=month
+                )
+            return (BQuarterEnd if is_business else QuarterEnd)(startingMonth=month)
+        if not is_business and month == (1 if is_start else 12):
+            return None
+        if is_start:
+            return (BYearBegin if is_business else YearBegin)(month=month)
+        return (BYearEnd if is_business else YearEnd)(month=month)
+
+    def _start_end_field(self, field: str) -> npt.NDArray[np.bool_]:
+        result = self._data._get_start_end_field(field, None)
+        offset = self._freq_boundary_offset(field)
+        if offset is None:
+            return result
+        freq_result = self._data._get_start_end_field(field, self.freq)
+        if not np.array_equal(result, freq_result):
+            # GH#58920
+            kwargs = ", ".join(f"{key}={val}" for key, val in offset.kwds.items())
+            warnings.warn(
+                f"DatetimeIndex.{field} using the index's freq "
+                f"({self.freqstr}) to find period boundaries is deprecated. "
+                "In a future version freq will be ignored, matching "
+                f"Series.dt.{field}. To keep the current behavior, use "
+                f"`idx.map(pd.offsets.{type(offset).__name__}({kwargs})"
+                ".is_on_offset).to_numpy()`.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            return freq_result
+        return result
+
     @property
     def is_month_start(self) -> npt.NDArray[np.bool_]:
         """
         Indicates whether the date is the first day of the month.
 
+        .. deprecated:: 3.2.0
+            Using a business ``freq`` (e.g. ``"B"`` or ``"BMS"``) to find
+            month boundaries is deprecated. In a future version the result will
+            ignore ``freq``, matching :attr:`Series.dt.is_month_start`.
+
         This boolean attribute evaluates to True if the date falls on the
         first day of a calendar month, and False otherwise.
-        If the index has a business ``freq`` (e.g. ``"BMS"``), the result
-        follows that frequency's month boundaries instead of the calendar's.
 
         See Also
         --------
@@ -698,17 +781,20 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx.is_month_start
         array([False, False,  True])
         """
-        return self._data._get_start_end_field("is_month_start", self.freq)
+        return self._start_end_field("is_month_start")
 
     @property
     def is_month_end(self) -> npt.NDArray[np.bool_]:
         """
         Indicates whether the date is the last day of the month.
 
+        .. deprecated:: 3.2.0
+            Using a business ``freq`` (e.g. ``"B"`` or ``"BME"``) to find
+            month boundaries is deprecated. In a future version the result will
+            ignore ``freq``, matching :attr:`Series.dt.is_month_end`.
+
         This boolean attribute evaluates to True if the date falls on the
         last day of a calendar month, and False otherwise.
-        If the index has a business ``freq`` (e.g. ``"BME"``), the result
-        follows that frequency's month boundaries instead of the calendar's.
 
         See Also
         --------
@@ -721,19 +807,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx.is_month_end
         array([False,  True, False])
         """
-        return self._data._get_start_end_field("is_month_end", self.freq)
+        return self._start_end_field("is_month_end")
 
     @property
     def is_quarter_start(self) -> npt.NDArray[np.bool_]:
         """
         Indicator for whether the date is the first day of a quarter.
 
+        .. deprecated:: 3.2.0
+            Using a business or anchored ``freq`` (e.g. ``"BQS"`` or
+            ``"QS-FEB"``) to find quarter boundaries is deprecated. In a future
+            version the result will ignore ``freq``, matching
+            :attr:`Series.dt.is_quarter_start`.
+
         This boolean attribute evaluates to True if the date falls on the
         first day of a calendar quarter (January 1, April 1, July 1, or
         October 1), and False otherwise.
-        If the index has a business or anchored ``freq`` (e.g. ``"BQS"`` or
-        ``"QS-FEB"``), the result follows that frequency's quarter boundaries
-        instead of the calendar's.
 
         See Also
         --------
@@ -747,19 +836,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx.is_quarter_start
         array([False, False,  True, False])
         """
-        return self._data._get_start_end_field("is_quarter_start", self.freq)
+        return self._start_end_field("is_quarter_start")
 
     @property
     def is_quarter_end(self) -> npt.NDArray[np.bool_]:
         """
         Indicator for whether the date is the last day of a quarter.
 
+        .. deprecated:: 3.2.0
+            Using a business or anchored ``freq`` (e.g. ``"BQE"`` or
+            ``"QE-NOV"``) to find quarter boundaries is deprecated. In a future
+            version the result will ignore ``freq``, matching
+            :attr:`Series.dt.is_quarter_end`.
+
         This boolean attribute evaluates to True if the date falls on the
         last day of a calendar quarter (March 31, June 30, September 30, or
         December 31), and False otherwise.
-        If the index has a business or anchored ``freq`` (e.g. ``"BQE"`` or
-        ``"QE-NOV"``), the result follows that frequency's quarter boundaries
-        instead of the calendar's.
 
         See Also
         --------
@@ -773,18 +865,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx.is_quarter_end
         array([False,  True, False, False])
         """
-        return self._data._get_start_end_field("is_quarter_end", self.freq)
+        return self._start_end_field("is_quarter_end")
 
     @property
     def is_year_start(self) -> npt.NDArray[np.bool_]:
         """
         Indicate whether the date is the first day of a year.
 
+        .. deprecated:: 3.2.0
+            Using a business or anchored ``freq`` (e.g. ``"BYS"`` or
+            ``"YS-APR"``) to find year boundaries is deprecated. In a future
+            version the result will ignore ``freq``, matching
+            :attr:`Series.dt.is_year_start`.
+
         This boolean attribute evaluates to True if the date is January 1st,
         and False otherwise.
-        If the index has a business or anchored ``freq`` (e.g. ``"BYS"`` or
-        ``"YS-APR"``), the result follows that frequency's year boundaries
-        instead of the calendar's.
 
         See Also
         --------
@@ -796,29 +891,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx = pd.date_range("2017-12-30", periods=3)
         >>> idx.is_year_start
         array([False, False,  True])
-
-        With a business ``freq``, the first business day of the year counts
-        as the year start even when it is not January 1st:
-
-        >>> idx = pd.date_range("2020-10-30", periods=4, freq="BYS")
-        >>> idx
-        DatetimeIndex(['2021-01-01', '2022-01-03', '2023-01-02', '2024-01-01'],
-                      dtype='datetime64[us]', freq='BYS-JAN')
-        >>> idx.is_year_start
-        array([ True,  True,  True,  True])
         """
-        return self._data._get_start_end_field("is_year_start", self.freq)
+        return self._start_end_field("is_year_start")
 
     @property
     def is_year_end(self) -> npt.NDArray[np.bool_]:
         """
         Indicate whether the date is the last day of the year.
 
+        .. deprecated:: 3.2.0
+            Using a business or anchored ``freq`` (e.g. ``"BYE"`` or
+            ``"YE-MAR"``) to find year boundaries is deprecated. In a future
+            version the result will ignore ``freq``, matching
+            :attr:`Series.dt.is_year_end`.
+
         This boolean attribute evaluates to True if the date is December
         31st, and False otherwise.
-        If the index has a business or anchored ``freq`` (e.g. ``"BYE"`` or
-        ``"YE-MAR"``), the result follows that frequency's year boundaries
-        instead of the calendar's.
 
         See Also
         --------
@@ -831,7 +919,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx.is_year_end
         array([False,  True, False])
         """
-        return self._data._get_start_end_field("is_year_end", self.freq)
+        return self._start_end_field("is_year_end")
 
     @property
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
