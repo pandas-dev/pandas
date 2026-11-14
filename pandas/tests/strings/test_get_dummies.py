@@ -58,6 +58,23 @@ def test_get_dummies_with_dtype(any_string_dtype, dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["Int8", "Int64", "boolean"])
+def test_get_dummies_with_extension_dtype_preserves_index(dtype):
+    # GH#72087
+    s = pd.Series(
+        ["sale|gift", "gift", "sale"],
+        index=pd.Index([101, 205, 101], name="product_id"),
+    )
+    result = s.str.get_dummies(dtype=dtype)
+    expected = pd.DataFrame(
+        [[1, 1], [1, 0], [0, 1]],
+        columns=["gift", "sale"],
+        dtype=dtype,
+        index=s.index,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 # GH#47872
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
