@@ -447,8 +447,20 @@ class BaseBlockManager(PandasObject):
                         #  obj.axes[-1].equals(self.items)
                         if obj.ndim == 1:
                             kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
-                        else:
-                            kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
+                            continue
+                        if b.values.ndim == 1:
+                            # A 1D-only EA block holds a single column. When
+                            #  obj's column has the block's dtype, pass that
+                            #  array as Series.where does; DataFrame._values
+                            #  would densify it to a 2D object ndarray. Other
+                            #  dtypes keep the object path, which e.g. lets a
+                            #  Categorical take values from other categories.
+                            loc = b.mgr_locs.as_array[0]
+                            col = obj._mgr.iget_values(loc)
+                            if col.dtype == b.dtype:
+                                kwargs[k] = col
+                                continue
+                        kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
                     else:
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]

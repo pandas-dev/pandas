@@ -1355,3 +1355,106 @@ def test_where_mask_nullable_bool_cond_na_frame(method, inplace, cond_dtype):
     if inplace:
         result = df
     tm.assert_frame_equal(result, expected)
+
+
+def _where_test_array(values, dtype):
+    if dtype == "string[pyarrow]":
+        values = [None if v is None else str(v) for v in values]
+    elif dtype == "boolean":
+        values = [None if v is None else v > 5 for v in values]
+    elif dtype == "category":
+        dtype = pd.CategoricalDtype([1, 2, 3, 10, 30])
+    elif dtype == "interval":
+        values = [None if v is None else pd.Interval(v, v + 1) for v in values]
+        dtype = None
+    return pd.array(values, dtype=dtype)
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+@pytest.mark.parametrize("method", ["where", "mask"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        "Int64",
+        "boolean",
+        "category",
+        "interval",
+    ],
+)
+def test_where_mask_frame_other_same_ea_dtype_matches_series(method, inplace, dtype):
+    # A column of a frame other with the block's 1D extension dtype is passed
+    #  to the block as it is, not through a 2D object ndarray; the result
+    #  matches Series.where/mask column by column
+    df = pd.DataFrame(
+        {
+            "a": _where_test_array([1, 2, None, 3], dtype),
+            "b": np.arange(4),
+            "c": _where_test_array([3, None, 2, 1], dtype),
+        }
+    )
+    other = pd.DataFrame(
+        {
+            "a": _where_test_array([10, None, 30, 10], dtype),
+            "b": np.arange(4) * 10,
+            "c": _where_test_array([None, 30, 10, 30], dtype),
+        }
+    )
+    cond = pd.DataFrame(
+        {
+            "a": pd.array([True, False, True, None], dtype="boolean"),
+            "b": [True, False, True, False],
+            "c": [False, True, False, True],
+        }
+    )
+
+    expected = pd.DataFrame(
+        {col: getattr(df[col], method)(cond[col], other[col]) for col in df.columns}
+    )
+    result = df.copy()
+    res = getattr(result, method)(cond, other, inplace=inplace)
+    if not inplace:
+        result = res
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "other_categories", [["z", "y", "x"], ["x", "y"]], ids=["reordered", "subset"]
+)
+@pytest.mark.parametrize("op", ["where", "mask", "where_inplace", "setitem"])
+def test_where_mask_frame_other_categorical_other_categories(op, other_categories):
+    # the same categories in another order are an equal dtype and pass
+    #  through as an array; a subset keeps the object path. Both take any
+    #  value that is a category of self
+    dtype = pd.CategoricalDtype(["x", "y", "z"])
+    df = pd.DataFrame({"a": pd.Categorical(["x", "y", "x"], dtype=dtype)})
+    other = pd.DataFrame(
+        {"a": pd.Categorical(["y", "x", "y"], categories=other_categories)}
+    )
+    cond = pd.DataFrame({"a": [True, False, True]})
+
+    if op == "where":
+        result = df.where(cond, other)
+    elif op == "mask":
+        result = df.mask(~cond, other)
+    elif op == "where_inplace":
+        result = df.copy()
+        result.where(cond, other, inplace=True)
+    else:
+        result = df.copy()
+        result[~cond] = other
+
+    expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fillna_frame_other_categorical_other_categories():
+    dtype = pd.CategoricalDtype(["x", "y", "z"])
+    df = pd.DataFrame({"a": pd.Categorical(["x", None, "x"], dtype=dtype)})
+    other = pd.DataFrame({"a": pd.Categorical(["y", "x", "y"], categories=["x", "y"])})
+
+    result = df.fillna(other)
+
+    expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
