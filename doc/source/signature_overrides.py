@@ -309,6 +309,14 @@ _OFFSET_SIGNATURES = {
         "normalize",
         "wom_weekday",
     ),
+    pd.tseries.offsets.MonthEnd: (
+        "n",
+        "normalize",
+    ),
+    pd.tseries.offsets.MonthBegin: (
+        "n",
+        "normalize",
+    ),
 }
 
 
