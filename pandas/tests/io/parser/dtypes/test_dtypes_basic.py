@@ -13,7 +13,6 @@ import pytest
 from pandas._libs import lib
 from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
-    EmptyDataError,
     Pandas4Warning,
     ParserWarning,
 )
@@ -249,22 +248,11 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_delimiter_with_usecols_and_parse_dates(all_parsers):
+def test_delimiter_with_usecols_and_parse_dates(all_parsers, request):
     # GH#35873
     if all_parsers.engine == "pyarrow":
-        # pyarrow cannot parse this single-line input with these options
-        msg = "No columns to parse from file"
-        with pytest.raises(EmptyDataError, match=msg):
-            all_parsers.read_csv(
-                StringIO('"dump","-9,1","-9,1",20101010'),
-                engine="python",
-                names=["col", "col1", "col2", "col3"],
-                usecols=["col1", "col2", "col3"],
-                parse_dates=["col3"],
-                decimal=",",
-            )
-        return
-
+        reason = "usecols labels together with names raise ArrowKeyError"
+        request.applymarker(pytest.mark.xfail(reason=reason))
     result = all_parsers.read_csv(
         StringIO('"dump","-9,1","-9,1",20101010'),
         engine="python",
@@ -625,6 +613,62 @@ def test_nullable_boolean_dtype_with_true_false_values(all_parsers):
     expected = pd.DataFrame(
         {"a": pd.array([True, False, True], dtype="boolean"), "b": [1, 2, 3]}
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arrow_boolean_dtype_with_true_false_values(all_parsers, request):
+    # GH#47534
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="pyarrow true_values/false_values replace the default spellings",
+                raises=pa.ArrowInvalid,
+            )
+        )
+    dtype = pd.ArrowDtype(pa.bool_())
+    # "tRuE" is a pyarrow spelling that BooleanDtype does not accept, and the
+    #  user's "0" takes precedence over pyarrow's, also in a column ("c") that
+    #  pyarrow could parse on its own
+    data = "a,b,c\nyes,1,false\nno,2,0\ntRuE,3,false\n,4,false\n0,5,0\n"
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": dtype, "c": dtype},
+        true_values=["yes", "0"],
+        false_values=["no"],
+    )
+    expected = pd.DataFrame(
+        {
+            "a": pd.array([True, False, True, None, True], dtype=dtype),
+            "b": [1, 2, 3, 4, 5],
+            "c": pd.array([False, True, False, False, True], dtype=dtype),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arrow_boolean_dtype_true_false_values_precedence(all_parsers, request):
+    # GH#47534 same precedence as BooleanDtype: a user true spelling first, then
+    #  the default true spellings, then a user false spelling
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="pyarrow true_values/false_values replace the default spellings",
+                raises=pa.ArrowInvalid,
+            )
+        )
+    dtype = pd.ArrowDtype(pa.bool_())
+    data = "a\ntrue\nx\nfalse\n1\n"
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": dtype},
+        true_values=["x"],
+        false_values=["true", "x", "1"],
+    )
+    expected = pd.DataFrame({"a": pd.array([True, True, False, True], dtype=dtype)})
     tm.assert_frame_equal(result, expected)
 
 

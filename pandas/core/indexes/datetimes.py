@@ -1265,7 +1265,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to floor the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1356,7 +1357,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to ceil the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1754,6 +1756,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         --------
         PeriodIndex: Immutable ndarray holding ordinal values.
         DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
+
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, each
+        timestamp maps to the 2-hour period starting at its own hour. For
+        aligned 2-hour bins, use ``floor("2h").to_period("2h")``.
 
         Examples
         --------

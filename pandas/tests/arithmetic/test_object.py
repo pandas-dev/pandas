@@ -445,3 +445,32 @@ def test_add_frame_sparse_object():
     result = df + arr
     expected = pd.DataFrame([["xa", "yb"]]).astype(pd.SparseDtype(object))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "box", [pd.Series, pd.Index, pd.DataFrame, lambda x: pd.array(x, dtype=object)]
+)
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        (operator.neg, [Decimal(-1), np.nan, Decimal(2)]),
+        (operator.pos, [Decimal(1), np.nan, Decimal(-2)]),
+        (operator.abs, [Decimal(1), np.nan, Decimal(2)]),
+    ],
+)
+def test_unary_op_object_with_none(box, op, expected):
+    # GH#42862 missing entries become NaN, as in obj * -1
+    obj = box(np.array([Decimal(1), None, Decimal(-2)], dtype=object))
+    result = op(obj)
+    expected = box(np.array(expected, dtype=object))
+    tm.assert_equal(result, expected)
+
+
+def test_neg_object_matches_mul():
+    # GH#42862
+    df = pd.DataFrame({"a": [pd.NA, -1, None], "b": [np.nan, -1, 1]})
+    tm.assert_frame_equal(-df, df * -1)
+
+    ser = pd.Series(["a", None], dtype=object)
+    with pytest.raises(TypeError, match="bad operand type for unary -: 'str'"):
+        -ser

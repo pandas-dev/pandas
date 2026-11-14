@@ -157,9 +157,13 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     if dtype == _dtype_obj:
         pass
     elif isinstance(value, (np.datetime64, dt.datetime)):
-        value = Timestamp(value)
+        # error: Incompatible types in assignment (expression has type
+        # "Timestamp | NaTType", variable has type "Scalar")
+        value = Timestamp(value)  # type: ignore[assignment]
     elif isinstance(value, (np.timedelta64, dt.timedelta)):
-        value = Timedelta(value)
+        # error: Incompatible types in assignment (expression has type
+        # "Timedelta | NaTType", variable has type "Scalar")
+        value = Timedelta(value)  # type: ignore[assignment]
 
     return value
 
@@ -732,9 +736,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        # error: Non-overlapping identity check (left operand type: "Timestamp",
-        # right operand type: "NaTType")
-        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
+        if val is NaT or val.tz is None:
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -747,9 +749,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            # error: Non-overlapping identity check (left operand type: "Timedelta",
-            # right operand type: "NaTType")
-            if val is NaT:  # type: ignore[comparison-overlap]
+            if val is NaT:
                 val = np.timedelta64("NaT", "ns")
             else:
                 val = val.asm8
@@ -1477,10 +1477,11 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
     object_with_dtype : object with a ``dtype`` attribute, optional
         The data (e.g. a Series or array) that ``value`` came from. Pass this
         whenever ``value`` is an element of the data or is derived from its
-        elements: object dtype stores arbitrary user objects, so a NumPy
-        scalar coming from object-dtype data is a stored value rather than a
-        boxing artifact, and is returned unchanged. Omit for values whose
-        type does not follow the data's dtype, e.g. positions, counts, and
+        elements: data whose dtype has kind ``"O"`` (e.g. object dtype, or a
+        Categorical or Sparse dtype backed by object values) stores arbitrary
+        user objects, so a NumPy scalar coming from such data is a stored
+        value rather than a boxing artifact, and is returned unchanged. Omit for values
+        whose type does not follow the data's dtype, e.g. positions, counts, and
         the results of any/all. The ``.dtype`` attribute is only accessed if
         unboxing is actually going to happen, so passing the object rather
         than its dtype avoids that cost on hot paths.
@@ -1492,7 +1493,7 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
     """
     result = value
     if using_python_scalars() and isinstance(value, np.generic):
-        if object_with_dtype is not None and object_with_dtype.dtype == object:
+        if object_with_dtype is not None and object_with_dtype.dtype.kind == "O":
             return result
         if isinstance(result, np.longdouble):
             result = float(result)

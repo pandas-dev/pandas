@@ -622,6 +622,22 @@ def test_categorical_accessor(method):
     assert result.attrs == {"a": 1}
 
 
+@pytest.mark.parametrize(
+    "method",
+    [
+        operator.attrgetter("left"),
+        operator.attrgetter("mid"),
+        operator.methodcaller("contains", 1),
+        operator.methodcaller("set_closed", "both"),
+    ],
+)
+def test_interval_accessor(method):
+    s = pd.Series(pd.arrays.IntervalArray.from_breaks([0, 1, 2]))
+    s.attrs = {"a": 1}
+    result = method(s.interval)
+    assert result.attrs == {"a": 1}
+
+
 # ----------------------------------------------------------------------------
 # Groupby
 

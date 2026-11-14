@@ -762,3 +762,16 @@ def test_arrow_string_accepts_typed_null_scalar():
     arr = pd.array(["a", "b"], dtype="string[pyarrow]")
     arr[0] = pa.scalar(None, type=pa.int64())
     assert arr[0] is pd.NA
+
+
+def test_setitem_str_list_with_nan(using_nan_is_na):
+    # GH#64578
+    dtype = ArrowDtype(pa.string())
+    arr = pd.array(["x", "y", "z"], dtype=dtype)
+    if not using_nan_is_na:
+        with pytest.raises(TypeError, match="Invalid value"):
+            arr[:2] = ["a", np.nan]
+        return
+    arr[:2] = ["a", np.nan]
+    expected = pd.array(["a", None, "z"], dtype=dtype)
+    tm.assert_extension_array_equal(arr, expected)

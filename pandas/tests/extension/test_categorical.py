@@ -117,6 +117,19 @@ class TestCategorical(base.ExtensionTests):
         # to break things by changing.
         super().test_getitem_scalar(data)
 
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts_no_sort(self, data_for_grouping, dropna):
+        # Categorical orders by categories and includes unobserved ones, GH#12835
+        data = data_for_grouping.take([0, 2, 4, 5, 3, 4])
+        result = pd.Series(data).value_counts(sort=False, dropna=dropna)
+
+        values, counts = ["a", "b", "c"], [1, 3, 0]
+        if not dropna:
+            values, counts = [*values, None], [*counts, 2]
+        index = pd.CategoricalIndex(values, categories=data.categories)
+        expected = pd.Series(counts, index=index, name="count")
+        tm.assert_series_equal(result, expected)
+
     def test_combine_add(self, data_repeated):
         # GH 20825
         # When adding categoricals in combine, result is a string

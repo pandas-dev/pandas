@@ -282,6 +282,103 @@ def test_conversion_large_dtypes_from_numpy_array(data, arrow_dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("kind", ["U", "S"])
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        (["7", "-8"], "int64[pyarrow]"),
+        (["7", "8"], "uint8[pyarrow]"),
+        (["1.5", "2"], "float64[pyarrow]"),
+        (["1.5", "2"], "halffloat[pyarrow]"),
+        (["true", "false"], "bool[pyarrow]"),
+    ],
+)
+def test_from_numpy_str_array_to_numeric(data, dtype, kind):
+    # GH#71827 pyarrow could segfault converting these with a mask
+    result = pd.array(np.array(data, dtype=kind), dtype=dtype)
+    expected = pd.array(data, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("kind", ["U", "S"])
+def test_from_numpy_str_array_empty(kind):
+    # GH#71827
+    result = pd.array(np.array([], dtype=kind), dtype="int64[pyarrow]")
+    expected = pd.array([], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.skipif(pa_version_under18p0, reason="bool8 added in pyarrow 18")
+@pytest.mark.parametrize("kind", ["U", "S"])
+def test_from_numpy_str_array_to_extension_storage(kind):
+    # GH#71827 bool8 converts through its primitive int8 storage
+    dtype = ArrowDtype(pa.bool8())
+    result = pd.array(np.array(["1", "0"], dtype=kind), dtype=dtype)
+    expected = pd.array(["1", "0"], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("kind", ["U", "S"])
+def test_from_numpy_str_array_to_run_end_encoded(kind):
+    # GH#71827 pyarrow could segfault converting these with a mask
+    dtype = ArrowDtype(pa.run_end_encoded(pa.int32(), pa.int64()))
+    with pytest.raises(NotImplementedError, match="run_end_encoded"):
+        pd.array(np.array(["7", "8"], dtype=kind), dtype=dtype)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        (["2020-01-01", "2020-01-02"], "date32[pyarrow]"),
+        (["01:02:03", "04:05:06"], "time64[us][pyarrow]"),
+    ],
+)
+def test_from_numpy_str_array_to_temporal(data, dtype):
+    # GH#71827
+    result = pd.array(np.array(data), dtype=dtype)
+    expected = pd.array(data, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_numpy_str_array_to_int_invalid():
+    # GH#71827 pyarrow could also return garbage, e.g. [8]
+    with pytest.raises(pa.ArrowInvalid, match="abc"):
+        pd.array(np.array(["abc"]), dtype="int64[pyarrow]")
+
+
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string(), pa.binary()])
+@pytest.mark.parametrize("box", [list, tuple])
+def test_from_sequence_str_with_nan(pa_type, box, using_nan_is_na):
+    # GH#64578
+    dtype = ArrowDtype(pa_type)
+    values = box(["a", "nan", np.nan])
+    if not using_nan_is_na:
+        with pytest.raises(pa.ArrowTypeError, match="got a 'float' object"):
+            pd.array(values, dtype=dtype)
+        return
+    result = pd.array(values, dtype=dtype)
+    expected = pd.array(["a", "nan", None], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, pa_type, expected",
+    [
+        ([b"a", b"nan", np.nan], pa.binary(), [b"a", b"nan", None]),
+        (["1", np.nan], pa.int64(), [1, None]),
+    ],
+)
+def test_from_sequence_with_nan_other_types(values, pa_type, expected, using_nan_is_na):
+    # GH#64578
+    dtype = ArrowDtype(pa_type)
+    if not using_nan_is_na:
+        with pytest.raises(pa.ArrowTypeError, match="got a 'float' object"):
+            pd.array(values, dtype=dtype)
+        return
+    result = pd.array(values, dtype=dtype)
+    tm.assert_extension_array_equal(result, pd.array(expected, dtype=dtype))
+
+
 def test_astype_from_non_pyarrow(data):
     # GH49795
     np_arr = data.to_numpy()
