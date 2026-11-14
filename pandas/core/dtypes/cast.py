@@ -1092,8 +1092,10 @@ def convert_dtypes(
                 except (pa.ArrowInvalid, TypeError, OverflowError):
                     pa_type = to_pyarrow_type(base_dtype)
                 else:
-                    # pyarrow casts every nested timestamp to the first one's tz
-                    if _contains_tz_aware_timestamp(pa_type):
+                    # pyarrow infers nested timestamps and durations at the
+                    # first value's tz and at microsecond resolution, dropping
+                    # other tzs and truncating nanoseconds
+                    if _contains_timestamp_or_duration(pa_type):
                         pa_type = to_pyarrow_type(base_dtype)
             else:
                 pa_type = to_pyarrow_type(base_dtype)
@@ -1107,13 +1109,13 @@ def convert_dtypes(
     return inferred_dtype
 
 
-def _contains_tz_aware_timestamp(pa_type: pa.DataType) -> bool:
+def _contains_timestamp_or_duration(pa_type: pa.DataType) -> bool:
     import pyarrow as pa
 
-    if pa.types.is_timestamp(pa_type):
-        return pa_type.tz is not None
+    if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+        return True
     return any(
-        _contains_tz_aware_timestamp(pa_type.field(i).type)
+        _contains_timestamp_or_duration(pa_type.field(i).type)
         for i in range(pa_type.num_fields)
     )
 

@@ -265,18 +265,36 @@ class TestConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_series_equal(result, ser)
 
-        ser = pd.Series(
-            [
-                [pd.Timestamp("2020-01-01", tz="UTC")],
-                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
-            ]
-        )
-        result = ser.convert_dtypes(dtype_backend="pyarrow")
-        tm.assert_series_equal(result, ser)
-
         vals = np.empty(2, dtype=object)
         vals[:] = [2**70, 2**71]
         ser = pd.Series(vals, dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [
+                [pd.Timestamp("2020-01-01", tz="UTC")],
+                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
+            ],
+            [
+                [pd.Timestamp("2020-01-01")],
+                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
+            ],
+            [
+                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
+                [pd.Timestamp("2020-01-01")],
+            ],
+            [[pd.Timestamp("2020-01-01 00:00:00.000000001")]],
+            [[pd.Timedelta(1)], [pd.Timedelta(2)]],
+            [{"a": pd.Timedelta(1)}],
+        ],
+    )
+    def test_convert_dtypes_pyarrow_nested_datetimelike_stays_object(self, data):
+        # GH#65034
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(data)
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_series_equal(result, ser)
 
