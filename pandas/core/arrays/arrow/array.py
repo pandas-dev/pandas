@@ -1601,7 +1601,61 @@ class ArrowExtensionArray(
             result = pc_func(self_array, other)
         except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
+        if (
+            arrow_funcs is ARROW_ARITHMETIC_FUNCS
+            and isinstance(other, pa.Scalar)
+            and result.type != pa_type
+        ):
+            # GH#69436: an operation with a scalar should keep the array's
+            #  dtype when the result fits in it, e.g. int32[pyarrow] + 1
+            #  stays int32[pyarrow] instead of widening to int64[pyarrow]
+            result = self._narrow_scalar_op_result(result, pa_type)
         return self._from_pyarrow_array(result)
+
+    def _narrow_scalar_op_result(
+        self, result: pa.Array | pa.ChunkedArray, pa_type: pa.DataType
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Narrow the result of an arithmetic operation with a scalar back to
+        the array's dtype when the result fits (GH#69436).
+
+        PyArrow infers a 64-bit type for a Python scalar, so e.g.
+        ``int32[pyarrow] + 1`` is computed in int64. When every value of
+        the result fits in the original dtype, cast it back; otherwise
+        keep the wider result. Unsigned integer dtypes are excluded:
+        subtracting can go negative, so whether the result fits would
+        depend on the data. A floating-point result is only narrowed
+        when the cast does not turn a finite value into an infinity, and
+        a decimal result is only narrowed when its scale is unchanged, so
+        e.g. division keeps the wider result.
+        """
+        if pa.types.is_signed_integer(pa_type) and pa.types.is_integer(result.type):
+            try:
+                return result.cast(pa_type)
+            except pa.ArrowInvalid:
+                return result
+        elif (
+            pa.types.is_floating(pa_type)
+            and pa.types.is_floating(result.type)
+            and result.type != pa_type
+        ):
+            casted = result.cast(pa_type)
+            overflow = pc.any(
+                pc.and_kleene(pc.is_finite(result), pc.is_inf(casted))
+            ).as_py()
+            if overflow is not True:
+                return casted
+            return result
+        elif (
+            pa.types.is_decimal(pa_type)
+            and pa.types.is_decimal(result.type)
+            and result.type.scale == pa_type.scale
+        ):
+            try:
+                return result.cast(pa_type)
+            except pa.ArrowInvalid:
+                return result
+        return result
 
     def _logical_method(self, other, op) -> Self:
         # checked here too because the GH#60234 arm below returns without
