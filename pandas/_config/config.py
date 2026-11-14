@@ -792,9 +792,9 @@ def _build_option_description(k: str) -> str:
             s += f"\n    [default: {o.defval}] [currently: {get_option(k)}]"
 
     if d:
-        rkey = d.rkey or ""
         s += "\n    (Deprecated"
-        s += f", use `{rkey}` instead."
+        if d.rkey:
+            s += f", use `{d.rkey}` instead."
         s += ")"
 
     return s

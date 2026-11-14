@@ -14,6 +14,7 @@ from collections import (
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
+import inspect
 import io
 import mmap
 import os
@@ -75,6 +76,7 @@ from pandas.core.arrays import (
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
+    MultiIndex,
     RangeIndex,
     ensure_index,
 )
@@ -85,6 +87,7 @@ from pandas.io.common import (
     IOHandles,
     get_handle,
     infer_compression,
+    is_potential_multi_index,
     stringify_path,
     validate_header_arg,
 )
@@ -1301,6 +1304,14 @@ def _read_csv_chunks(
         with contextlib.suppress(BufferError):
             mm.close()
 
+    # Rebuild the MultiIndex that the flattened worker labels lost, as the
+    # serial read does for all-tuple names.
+    column_index = (
+        MultiIndex.from_tuples(cast("list[tuple[Hashable, ...]]", columns))
+        if is_potential_multi_index(columns)
+        else ensure_index(columns)
+    )
+
     index: Index
     if index_engine is not None:
         gathered = _concatenate_chunks(index_dicts, index_labels, warn_mixed=False)
@@ -1317,7 +1328,7 @@ def _read_csv_chunks(
         data = _concatenate_chunks(chunk_dicts, columns, warn_mixed=False)
         return DataFrame(
             wrap_object_columns(data, dtype_arg, index),
-            columns=columns,
+            columns=column_index,
             index=index,
             copy=False,
         )
@@ -1341,7 +1352,7 @@ def _read_csv_chunks(
             block_specs.append((values, np.array([pos], dtype=np.intp)))
 
     block_objs = [_make_block(values, placement) for values, placement in block_specs]
-    mgr = BlockManager(block_objs, [ensure_index(columns), index])
+    mgr = BlockManager(block_objs, [column_index, index])
     return DataFrame._from_mgr(mgr, mgr.axes)
 
 
@@ -2567,6 +2578,10 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+# keywords read_fwf may forward via **kwds, see GH#34953
+_READ_CSV_KWARGS = frozenset(inspect.signature(read_csv).parameters)
+
+
 @overload
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
@@ -2663,7 +2678,7 @@ def read_fwf(
     chunksize : int, optional
         Number of lines to read from the file per chunk.
     **kwds : optional
-        Optional keyword arguments can be passed to ``TextFileReader``.
+        Additional keyword arguments accepted by :func:`read_csv`.
 
     Returns
     -------
@@ -2680,6 +2695,10 @@ def read_fwf(
     --------
     >>> pd.read_fwf("data.csv")  # doctest: +SKIP
     """
+    for key in kwds:
+        if key not in _READ_CSV_KWARGS:
+            raise TypeError(f"read_fwf() got an unexpected keyword argument '{key}'")
+
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")

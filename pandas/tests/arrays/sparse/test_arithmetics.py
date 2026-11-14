@@ -602,6 +602,18 @@ def test_logical_op_both_sparse_matches_dense(op):
 
 
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_object_na_matches_dense(op):
+    # GH#51267
+    values = np.array([np.nan, False, True], dtype=object)
+    other = np.array([True, True, False])
+    expected = op(pd.Series(values), pd.Series(other))
+    result = op(SparseArray(values), SparseArray(other))
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+    result = op(SparseArray(other), SparseArray(values))
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 @pytest.mark.parametrize("n_sparse, n_other", [(11, 10), (10, 11)])
 def test_logical_op_masked_other_uneven_length_series(op, n_sparse, n_other):
     # GH#68483 the alignment path onto the above; either operand can be the one

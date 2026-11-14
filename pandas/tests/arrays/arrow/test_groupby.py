@@ -662,34 +662,49 @@ class TestGroupbyAggPyArrowNative:
         tm.assert_series_equal(result, expected)
 
 
+_DATE_ARR = pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)])
+_TIME_ARR = pa.array([time(2), time(1), None, time(3)])
+_STRING_ARR = pa.array(["b", "a", None, "c"])
+# GH#49758 these fall back to the Series method, see test_groupby_cum_op_fallback
+_FALLBACK_SUPPORTED = {
+    ("date32[day]", "cummin"),
+    ("date32[day]", "cummax"),
+    ("time64[us]", "cummin"),
+    ("time64[us]", "cummax"),
+    ("string", "cumsum"),
+    ("string", "cummin"),
+    ("string", "cummax"),
+}
+
+
 @pytest.mark.parametrize("frame", [True, False])
 @pytest.mark.parametrize(
-    "how",
+    "arr, how",
     [
-        "any",
-        "all",
-        "std",
-        "sem",
-        "idxmin",
-        "idxmax",
-        "cumsum",
-        "cumprod",
-        "cummin",
-        "cummax",
-        "rank",
+        pytest.param(arr, how, id=f"{arr.type}-{how}")
+        for arr in [
+            _DATE_ARR,
+            _TIME_ARR,
+            pa.array([b"b", b"a", None, b"c"]),
+            _STRING_ARR,
+            _STRING_ARR.dictionary_encode(),
+            pa.array([[2], [1], None, [3]]),
+        ]
+        for how in [
+            "any",
+            "all",
+            "std",
+            "sem",
+            "idxmin",
+            "idxmax",
+            "cumsum",
+            "cumprod",
+            "cummin",
+            "cummax",
+            "rank",
+        ]
+        if (str(arr.type), how) not in _FALLBACK_SUPPORTED
     ],
-)
-@pytest.mark.parametrize(
-    "arr",
-    [
-        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
-        pa.array([time(2), time(1), None, time(3)]),
-        pa.array([b"b", b"a", None, b"c"]),
-        pa.array(["b", "a", None, "c"]),
-        pa.array(["b", "a", None, "c"]).dictionary_encode(),
-        pa.array([[2], [1], None, [3]]),
-    ],
-    ids=lambda arr: str(arr.type),
 )
 def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
     # GH#69717 used to raise NotImplementedError, mostly with no message
@@ -698,6 +713,42 @@ def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
     msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
     with pytest.raises(TypeError, match=msg):
         getattr(obj.groupby([0, 0, 1, 1]), how)()
+
+
+@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize(
+    "arr, how, indexer",
+    [
+        (_DATE_ARR, "cummin", [0, 1, 2, 3]),
+        (_DATE_ARR, "cummax", [0, 0, 2, 3]),
+        (_TIME_ARR, "cummin", [0, 1, 2, 3]),
+        (_TIME_ARR, "cummax", [0, 0, 2, 3]),
+        (_STRING_ARR, "cummin", [0, 1, 2, 3]),
+        (_STRING_ARR, "cummax", [0, 0, 2, 3]),
+    ],
+    ids=lambda val: str(val.type) if isinstance(val, pa.Array) else None,
+)
+def test_groupby_cum_op_fallback(arr, how, indexer, frame):
+    # GH#49758
+    ser = pd.Series(ArrowExtensionArray(arr))
+    obj = ser.to_frame() if frame else ser
+    result = getattr(obj.groupby([0, 0, 1, 1]), how)()
+    expected = pd.Series(ArrowExtensionArray(arr.take(indexer)))
+    if frame:
+        expected = expected.to_frame()
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("frame", [True, False])
+def test_groupby_cumsum_string_fallback(frame):
+    # GH#49758
+    ser = pd.Series(ArrowExtensionArray(_STRING_ARR))
+    obj = ser.to_frame() if frame else ser
+    result = obj.groupby([0, 0, 1, 1]).cumsum()
+    expected = pd.Series(ArrowExtensionArray(pa.array(["b", "ba", None, "c"])))
+    if frame:
+        expected = expected.to_frame()
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("frame", [True, False])
@@ -775,3 +826,17 @@ def test_groupby_count_return_arrow_dtype(data_missing):
         dtype="int64[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("sort", [True, False])
+def test_groupby_dictionary_after_filter(sort):
+    # GH#71828 the filtered-out "b" must not come back as an empty group
+    dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    df = pd.DataFrame(
+        {"k": pd.array(["a", "b", "c", "a"], dtype=dtype), "v": [1, 2, 3, 4]}
+    )
+    result = df[df["v"] > 2].groupby("k", sort=sort, observed=True)["v"].sum()
+    keys = ["a", "c"] if sort else ["c", "a"]
+    values = [4, 3] if sort else [3, 4]
+    expected = pd.Series(values, index=pd.Index(keys, dtype=dtype, name="k"), name="v")
+    tm.assert_series_equal(result, expected)
