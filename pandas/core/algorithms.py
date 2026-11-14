@@ -2008,9 +2008,9 @@ def map_array(
             dict_with_default = mapper
             mapper = lambda x: dict_with_default[
                 np.nan
-            if (isinstance(x, float) and np.isnan(x))
-            or (x is NA and np.nan in dict_with_default)
-            else x
+                if (isinstance(x, float) and np.isnan(x))
+                or (x is NA and np.nan in dict_with_default)
+                else x
             ]
         else:
             # Dictionary does not have a default. Thus it's safe to
