@@ -2007,7 +2007,10 @@ def map_array(
             # convert mapper to a lookup function (GH #15999).
             dict_with_default = mapper
             mapper = lambda x: dict_with_default[
-                np.nan if isinstance(x, float) and np.isnan(x) else x
+                np.nan
+                if (isinstance(x, float) and np.isnan(x))
+                or (x is NA and np.nan in dict_with_default)
+                else x
             ]
         else:
             # Dictionary does not have a default. Thus it's safe to
