@@ -192,6 +192,51 @@ class TestToIterable:
         assert type(result) is expected_type
 
     @pytest.mark.parametrize(
+        "dtype, data, python_type",
+        [
+            ("Sparse[int64]", [0, 1], int),
+            ("Sparse[float64]", [0.0, 1.5], float),
+            ("Sparse[bool]", [False, True], bool),
+            ("longdouble", [1.5, 2.5], float),
+            ("clongdouble", [1.5 + 1j, 2.5], complex),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method", [list, lambda x: x.tolist()], ids=["iter", "tolist"]
+    )
+    def test_iterable_python_scalars(
+        self, index_or_series, method, dtype, data, python_type, using_python_scalars
+    ):
+        # GH#64266
+        obj = index_or_series(data, dtype=dtype)
+        result = method(obj)
+        assert result == data
+        if using_python_scalars:
+            assert [type(x) for x in result] == [python_type] * len(data)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.to_datetime(["2020-01-01", None]),
+            pd.to_timedelta(["1D", None]),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method", [list, lambda x: x.tolist()], ids=["iter", "tolist"]
+    )
+    def test_iterable_sparse_datetimelike_nat(
+        self, index_or_series, method, values, using_python_scalars
+    ):
+        # GH#64266
+        obj = index_or_series(pd.arrays.SparseArray(values))
+        result = method(obj)
+        assert result[0] == values[0]
+        if using_python_scalars:
+            assert result[1] is pd.NaT
+        else:
+            assert isinstance(result[1], (np.datetime64, np.timedelta64))
+
+    @pytest.mark.parametrize(
         "method",
         [
             lambda x: x.tolist(),
