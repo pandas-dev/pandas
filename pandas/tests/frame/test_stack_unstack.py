@@ -1692,6 +1692,38 @@ def test_unstack_unused_entry_from_nan_in_other_level(sort):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["float64", "Int64"])
+@pytest.mark.parametrize(
+    "level_codes, labels, values",
+    [
+        ([2, 0, 2, 0], ["z", "x"], [[1, 2], [3, 4]]),
+        ([2, -1, 2, 0], ["z", np.nan, "x"], [[1, 2, None], [3, None, 4]]),
+    ],
+)
+def test_unstack_sort_false_unused_level_value(dtype, level_codes, labels, values):
+    # GH#66673 a level value that no row uses shifted the column labels of a
+    #  DataFrame (or EA-backed Series) unstacked with sort=False
+    index = pd.MultiIndex(
+        levels=[["a", "b"], ["x", "y", "z"]],
+        codes=[[0, 0, 1, 1], level_codes],
+        names=["r", "c"],
+    )
+    df = pd.DataFrame({"v": [1, 2, 3, 4]}, index=index, dtype=dtype)
+
+    result = df.unstack(sort=False)
+
+    expected = pd.DataFrame(
+        values,
+        index=pd.Index(["a", "b"], name="r"),
+        columns=pd.MultiIndex.from_product([["v"], labels], names=[None, "c"]),
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df["v"].unstack(sort=False)
+    tm.assert_frame_equal(result, expected["v"])
+
+
 @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
 @pytest.mark.parametrize(
     "fill_value, expected_fill", [(None, complex("nan")), (1j, 1j)]
