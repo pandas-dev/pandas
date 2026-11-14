@@ -1014,6 +1014,18 @@ class _MergeOperation:
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
+        # Subclasses may add keys, such as merge_asof's 'by' columns.
+        for side, keys, obj in (
+            ("left", self.left_on, self.left),
+            ("right", self.right_on, self.right),
+        ):
+            for key in keys:
+                if isinstance(key, _known) and len(key) != len(obj):
+                    raise ValueError(
+                        "Array-like join key must have the same length as the "
+                        f"{side} DataFrame ({len(obj)}), got {len(key)}"
+                    )
+
         (
             self.left_join_keys,
             self.right_join_keys,
@@ -1953,18 +1965,6 @@ class _MergeOperation:
                 left_on = [None] * n
         if len(right_on) != len(left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
-
-        for side, keys, obj in (
-            ("left", left_on, self.left),
-            ("right", right_on, self.right),
-        ):
-            assert keys is not None
-            for key in keys:
-                if isinstance(key, _known) and len(key) != len(obj):
-                    raise ValueError(
-                        "Array-like join key must have the same length as the "
-                        f"{side} DataFrame ({len(obj)}), got {len(key)}"
-                    )
 
         return left_on, right_on
 
