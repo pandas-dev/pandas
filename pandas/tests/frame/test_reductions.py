@@ -2885,6 +2885,37 @@ def test_reduction_axis_none_object_dtype_preserves_numpy_scalars():
 
 
 @pytest.mark.parametrize(
+    "method",
+    [
+        "min",
+        "max",
+        "sum",
+        "prod",
+        "mean",
+        "median",
+        "std",
+        "var",
+        "sem",
+        "skew",
+        "kurt",
+    ],
+)
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", "boolean", "Sparse[int64]", "Sparse[float64]"]
+)
+def test_reduction_axis_none_ea_python_scalars(method, dtype, using_python_scalars):
+    # GH#64266
+    df = pd.DataFrame({"a": [1, 0, 1], "b": [1, 1, 0]}, dtype=dtype)
+    result = getattr(df, method)(axis=None)
+    ser = pd.concat([df["a"], df["b"]], ignore_index=True)
+    expected = getattr(ser, method)()
+    assert type(result) is type(expected)
+    assert result == expected
+    if using_python_scalars:
+        assert not isinstance(result, np.generic)
+
+
+@pytest.mark.parametrize(
     "kernel",
     [
         "corr",
