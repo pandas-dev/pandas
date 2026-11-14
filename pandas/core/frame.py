@@ -17106,14 +17106,14 @@ class DataFrame(NDFrame, OpsMixin):
             dtype = find_common_type(df._blk_dtypes)
             if isinstance(dtype, ExtensionDtype):
                 df = df.astype(dtype)
-                values = concat_compat(list(df._iter_column_arrays()))
-                result = values._reduce(name, skipna=skipna, keepdims=False, **kwds)
+                arr = concat_compat(list(df._iter_column_arrays()))
+                result = arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
             else:
-                values = df.values
-                result = func(values)
+                arr = df.values
+                result = func(arr)
             return maybe_unbox_numpy_scalar(
                 result,
-                object_with_dtype=None if name in ["any", "all"] else values,
+                object_with_dtype=None if name in ["any", "all"] else arr,
             )
         elif axis == 1:
             if len(df.index) == 0:
