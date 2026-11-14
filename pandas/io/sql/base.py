@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -171,6 +172,7 @@ def _convert_arrays_to_dataframe(
     columns,
     coerce_float: bool = True,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+    dtype: DtypeArg | None = None,
 ) -> DataFrame:
     if data and is_dict_like(data[0]) and not isinstance(data[0], (list, tuple)):
         # DBAPI cursors returning dict rows, e.g. pymysql's DictCursor. Use
@@ -180,8 +182,38 @@ def _convert_arrays_to_dataframe(
         data = [tuple(row.values()) for row in data]
     content = lib.to_object_array_tuples(data)
     idx_len = content.shape[0]
-    arrays = convert_object_array(
-        list(content.T),
+    arrays = list(content.T)
+    targets: list[Any]
+    if not dtype:
+        targets = [None] * len(arrays)
+    elif is_dict_like(dtype):
+        dtype = cast("Mapping[Hashable, Any]", dtype)
+        targets = [dtype.get(columns[i]) for i in range(len(arrays))]
+    else:
+        targets = [dtype] * len(arrays)
+    # Inference can cast Decimal and int+NULL columns to float64, rounding values
+    # beyond 2**53; give integer targets the exact values (GH#61667)
+    to_infer = []
+    for i, target in enumerate(targets):
+        target_dtype = None if target is None else pandas_dtype(target)
+        if target_dtype is None or target_dtype.kind not in "iu":
+            to_infer.append(i)
+            continue
+        mask = isna(arrays[i])
+        inferred = lib.infer_dtype(arrays[i], skipna=True)
+        lossy = (inferred == "integer" and mask.any()) or (
+            # a direct cast would silently truncate non-integral Decimals
+            inferred == "decimal"
+            and all(
+                val.is_finite() and val == val.to_integral_value()
+                for val in arrays[i][~mask]
+            )
+        )
+        # a numpy int dtype can't hold NULL; infer so the cast raises as before
+        if not lossy or (isinstance(target_dtype, np.dtype) and mask.any()):
+            to_infer.append(i)
+    converted = convert_object_array(
+        [arrays[i] for i in to_infer],
         dtype=None,
         coerce_float=coerce_float,
         dtype_backend=dtype_backend,
@@ -190,7 +222,7 @@ def _convert_arrays_to_dataframe(
         pa = import_optional_dependency("pyarrow")
 
         result_arrays = []
-        for arr in arrays:
+        for arr in converted:
             pa_array = pa.array(arr, from_pandas=True)
             if arr.dtype == "string":
                 # TODO: Arrow still infers strings arrays as regular strings instead
@@ -198,7 +230,9 @@ def _convert_arrays_to_dataframe(
                 # dtype_backend="pyarrow". We may want to reconsider this
                 pa_array = pa_array.cast(pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
-        arrays = result_arrays  # type: ignore[assignment]
+        converted = result_arrays  # type: ignore[assignment]
+    for i, arr in zip(to_infer, converted, strict=True):
+        arrays[i] = arr
     if arrays:
         return DataFrame._from_arrays(
             arrays, columns=columns, index=range(idx_len), verify_integrity=False
@@ -217,7 +251,9 @@ def wrap_result(
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
-    frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
+    frame = _convert_arrays_to_dataframe(
+        data, columns, coerce_float, dtype_backend, dtype
+    )
 
     if dtype:
         frame = frame.astype(dtype)

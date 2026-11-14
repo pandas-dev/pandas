@@ -248,7 +248,8 @@ def read_sql_query(
         can lose precision: an integral ``decimal.Decimal`` larger than ``2**53``
         has no exact ``float64`` representation, so a long identifier can be
         silently rounded. Pass ``False`` to leave such values as Python objects
-        in an ``object``-dtype column.
+        in an ``object``-dtype column, or pass an integer ``dtype`` such as
+        ``"Int64"`` for that column.
     params : list, tuple or mapping, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
@@ -407,7 +408,8 @@ def read_sql(
         can lose precision: an integral ``decimal.Decimal`` larger than ``2**53``
         has no exact ``float64`` representation, so a long identifier can be
         silently rounded. Pass ``False`` to leave such values as Python objects
-        in an ``object``-dtype column.
+        in an ``object``-dtype column, or pass an integer ``dtype`` such as
+        ``"Int64"`` for that column.
     params : list, tuple or dict, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
