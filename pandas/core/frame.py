@@ -14578,7 +14578,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         df = self.reset_index(drop=True)
         if len(columns) == 1:
-            result = df[columns[0]].explode()
+            result = df[columns[0]].explode().to_frame()
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             exploded = {}
@@ -14602,6 +14602,9 @@ class DataFrame(NDFrame, OpsMixin):
                 elif not np.array_equal(counts0, counts):
                     raise ValueError("columns must have matching element counts")
             result = DataFrame(exploded)
+        # Tuple labels become a MultiIndex when building ``result`` even if
+        # self.columns is flat, so reuse the original labels (GH#55142)
+        result.columns = self.columns[self.columns.get_indexer(columns)]
         result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))
