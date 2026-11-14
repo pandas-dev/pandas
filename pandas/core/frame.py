@@ -17107,11 +17107,13 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(dtype, ExtensionDtype):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
-                return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
-            values = df.values
+                result = arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
+            else:
+                arr = df.values
+                result = func(arr)
             return maybe_unbox_numpy_scalar(
-                func(values),
-                object_with_dtype=None if name in ["any", "all"] else values,
+                result,
+                object_with_dtype=None if name in ["any", "all"] else arr,
             )
         elif axis == 1:
             if len(df.index) == 0:
