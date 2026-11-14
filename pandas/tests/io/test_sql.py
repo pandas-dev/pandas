@@ -4363,16 +4363,7 @@ def test_read_sql_query_decimal_dtype_exact(
     "dtype, msg",
     [
         ("Int64", "cannot safely cast"),
-        pytest.param(
-            "int64[pyarrow]",
-            "Rescaling Decimal",
-            marks=[
-                td.skip_if_no("pyarrow"),
-                pytest.mark.xfail(
-                    reason="int64[pyarrow] truncates Decimals, GH#72095", strict=True
-                ),
-            ],
-        ),
+        pytest.param("int64[pyarrow]", "truncated", marks=td.skip_if_no("pyarrow")),
     ],
 )
 def test_read_sql_query_decimal_dtype_non_integral_raises(
@@ -4403,11 +4394,12 @@ def test_read_sql_query_dtype_still_infers(
     monkeypatch.setitem(
         sqlite3.converters, "DT", lambda b: datetime.fromisoformat(b.decode())
     )
+    monkeypatch.setitem(sqlite3.converters, "DEC", lambda b: Decimal(b.decode()))
     conn = sqlite_builtin_detect_types
-    conn.execute("CREATE TABLE test (a INTEGER, b DT)")
+    conn.execute("CREATE TABLE test (a INTEGER, b DT, c DEC)")
     conn.executemany(
-        "INSERT INTO test VALUES (?, ?)",
-        [(2**60 + 1, "2020-01-01"), (None, "2020-01-02")],
+        "INSERT INTO test VALUES (?, ?, ?)",
+        [(2**60 + 1, "2020-01-01", "1"), (None, "2020-01-02", None)],
     )
     result = read_sql_query(
         "SELECT * FROM test", conn, dtype={"a": dtype, "b": "int64"}
@@ -4416,8 +4408,9 @@ def test_read_sql_query_dtype_still_infers(
     expected = pd.Series([datetime(2020, 1, 1), datetime(2020, 1, 2)])
     assert result["b"].tolist() == expected.astype("int64").tolist()
 
-    with pytest.raises(pd.errors.IntCastingNaNError, match="non-finite"):
-        read_sql_query("SELECT a FROM test", conn, dtype={"a": "int64"})
+    for col in ["a", "c"]:
+        with pytest.raises(pd.errors.IntCastingNaNError, match="non-finite"):
+            read_sql_query(f"SELECT {col} FROM test", conn, dtype={col: "int64"})
 
 
 @pytest.mark.parametrize(

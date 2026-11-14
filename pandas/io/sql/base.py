@@ -191,20 +191,27 @@ def _convert_arrays_to_dataframe(
         targets = [dtype.get(columns[i]) for i in range(len(arrays))]
     else:
         targets = [dtype] * len(arrays)
+    # Inference can cast Decimal and int+NULL columns to float64, rounding values
+    # beyond 2**53; give integer targets the exact values (GH#61667)
     to_infer = []
     for i, target in enumerate(targets):
         target_dtype = None if target is None else pandas_dtype(target)
         if target_dtype is None or target_dtype.kind not in "iu":
             to_infer.append(i)
             continue
-        # Skip the float64 coercion of Decimals, and of ints with NULL for a
-        # nullable target, which rounds ints beyond 2**53 (GH#61667); the
-        # caller's astype sets the final dtype.
-        arrays[i] = lib.maybe_convert_objects(
-            arrays[i],
-            convert_to_nullable_dtype=not isinstance(target_dtype, np.dtype),
-            convert_non_numeric=True,
+        mask = isna(arrays[i])
+        inferred = lib.infer_dtype(arrays[i], skipna=True)
+        lossy = (inferred == "integer" and mask.any()) or (
+            # a direct cast would silently truncate non-integral Decimals
+            inferred == "decimal"
+            and all(
+                val.is_finite() and val == val.to_integral_value()
+                for val in arrays[i][~mask]
+            )
         )
+        # a numpy int dtype can't hold NULL; infer so the cast raises as before
+        if not lossy or (isinstance(target_dtype, np.dtype) and mask.any()):
+            to_infer.append(i)
     converted = convert_object_array(
         [arrays[i] for i in to_infer],
         dtype=None,
