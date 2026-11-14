@@ -449,6 +449,78 @@ def test_join_interval_index_with_categorical_of_intervals(as_list, categorical_
     tm.assert_frame_equal(result, expected[[*left.columns, *right.columns]])
 
 
+def test_join_list_multiindex_fallback():
+    # GH 57676
+    join_df = pd.DataFrame(
+        {"foo": [1, 2]},
+        index=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")], names=("x", "y")),
+    )
+    cat_df = pd.DataFrame(
+        {"cat": [10, 20]},
+        index=pd.Index(["a", "b"], name="y"),
+    )
+
+    result = join_df.join([cat_df])
+    expected = join_df.join(cat_df)
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_list_multiindex_different_names():
+    # GH 57676 / GH 69481
+    # Different index names, but same number of levels (should use concat)
+    join_df = pd.DataFrame(
+        {"A": [1, 2]},
+        index=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")], names=["x", "y"]),
+    )
+    b = pd.DataFrame(
+        {"B": [3, 4]},
+        index=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")], names=["p", "q"]),
+    )
+
+    result = join_df.join([b])
+    expected = pd.DataFrame(
+        {"A": [1, 2], "B": [3, 4]},
+        index=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")], names=["x", "y"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_list_multiindex_different_names_with_none():
+    # GH 57676 / GH 69481
+    join_df = pd.DataFrame(
+        {"A": [1, 2]},
+        index=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")], names=["x", "y"]),
+    )
+    e = pd.DataFrame(
+        {"E": [1, 2]},
+        index=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")], names=["x", None]),
+    )
+
+    result = join_df.join([e])
+    expected = pd.DataFrame(
+        {"A": [1, 2], "E": [1, 2]},
+        index=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")], names=["x", "y"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_list_multiindex_one_level():
+    # GH#57676
+    df0 = pd.DataFrame(
+        {"a": [10, 20]},
+        index=pd.MultiIndex.from_tuples([(1,), (2,)], names=["x"]),
+    )
+    df1 = pd.DataFrame(
+        {"b": [100, 200]},
+        index=pd.Index([1, 2], name="x"),
+    )
+
+    result = df0.join([df1])
+    expected = df0.join(df1)
+    tm.assert_frame_equal(result, expected)
+
+
 class TestDataFrameJoin:
     def test_join(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
