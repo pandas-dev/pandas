@@ -1384,9 +1384,7 @@ def _where_test_array(values, dtype):
     ],
 )
 def test_where_mask_frame_other_same_ea_dtype_matches_series(method, inplace, dtype):
-    # A column of a frame other with the block's 1D extension dtype is passed
-    #  to the block as it is, not through a 2D object ndarray; the result
-    #  matches Series.where/mask column by column
+    # result matches Series.where/mask column by column
     df = pd.DataFrame(
         {
             "a": _where_test_array([1, 2, None, 3], dtype),
@@ -1424,9 +1422,7 @@ def test_where_mask_frame_other_same_ea_dtype_matches_series(method, inplace, dt
 )
 @pytest.mark.parametrize("op", ["where", "mask", "where_inplace", "setitem"])
 def test_where_mask_frame_other_categorical_other_categories(op, other_categories):
-    # the same categories in another order are an equal dtype and pass
-    #  through as an array; a subset keeps the object path. Both take any
-    #  value that is a category of self
+    # other's values are all categories of self
     dtype = pd.CategoricalDtype(["x", "y", "z"])
     df = pd.DataFrame({"a": pd.Categorical(["x", "y", "x"], dtype=dtype)})
     other = pd.DataFrame(
