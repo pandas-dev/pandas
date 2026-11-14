@@ -50,6 +50,7 @@ from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -988,7 +989,13 @@ class IndexOpsMixin(OpsMixin):
         >>> idx.to_list()
         [1, 2, 3]
         """
-        return self._values.tolist()
+        values = self._values
+        if using_python_scalars() and (
+            isinstance(values.dtype, SparseDtype)
+            or values.dtype.type in (np.longdouble, np.clongdouble)
+        ):
+            return list(self)
+        return values.tolist()
 
     to_list = tolist
 
@@ -1025,12 +1032,19 @@ class IndexOpsMixin(OpsMixin):
             if using_python_scalars() and values.dtype.kind != "O":
                 if isinstance(values.dtype, BaseMaskedDtype):
                     return iter(values.tolist())
-                if values.dtype.kind not in "mM" and not isinstance(
-                    values.dtype, ArrowDtype
+                if isinstance(values.dtype, SparseDtype) or (
+                    values.dtype.kind not in "mM"
+                    and not isinstance(values.dtype, ArrowDtype)
                 ):
                     return map(maybe_unbox_numpy_scalar, values)
             return iter(values)
         else:
+            if using_python_scalars() and values.dtype.type in (
+                np.longdouble,
+                np.clongdouble,
+            ):
+                # ndarray.item returns NumPy scalars for these dtypes
+                return map(maybe_unbox_numpy_scalar, values)
             return map(values.item, range(values.size))
 
     @cache_readonly

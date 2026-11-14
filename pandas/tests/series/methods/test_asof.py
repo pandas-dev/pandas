@@ -215,3 +215,33 @@ def test_asof_quarterly_string_deprecated():
 
     # following the deprecation message preserves the behavior
     assert result == ser.asof(pd.Period("2000Q2").to_timestamp())
+
+
+@pytest.mark.parametrize(
+    "dtype, value, python_type",
+    [
+        ("int64", 2, int),
+        ("float64", 2.5, float),
+        ("Int64", 2, int),
+        ("Float64", 2.5, float),
+        ("boolean", True, bool),
+        ("Sparse[int64]", 2, int),
+        ("longdouble", 2.5, float),
+    ],
+)
+def test_asof_python_scalars(dtype, value, python_type, using_python_scalars):
+    # GH#64266
+    ser = pd.Series([value, value], index=[10, 20], dtype=dtype)
+    result = ser.asof(15)
+    assert result == value
+    if using_python_scalars:
+        assert type(result) is python_type
+    else:
+        assert isinstance(result, np.generic)
+
+
+def test_asof_object_dtype_preserves_numpy_scalars():
+    # GH#64266
+    val = np.int8(1)
+    ser = pd.Series([val], index=[10], dtype=object)
+    assert ser.asof(15) is val
