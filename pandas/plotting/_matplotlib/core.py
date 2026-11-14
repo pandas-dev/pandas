@@ -1780,12 +1780,13 @@ class LinePlot(MPLPlot):
         # cache the original timestamps so a replot at a finer freq places
         # them correctly (GH#11574)
         cached = data if timestamps is None else data.set_axis(timestamps)
-        # TODO #54485
-        ax._plot_data.append((cached, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(
             ax, data.index, np.asarray(data._values), style=style, **kwds
         )
+        # keep the artist so the entry can be dropped once it leaves the axes
+        # TODO #54485
+        ax._plot_data.append((cached, self._kind, kwds, lines[0]))  # type: ignore[attr-defined]
         # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 

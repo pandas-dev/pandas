@@ -152,6 +152,28 @@ def test_iter(idx):
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    "level",
+    [
+        pd.Index([2**53 + 1], dtype="int64"),
+        pd.Index([2**64 - 1], dtype="uint64"),
+        pd.Index([1], dtype="int8"),
+        pd.CategoricalIndex([2**53 + 1]),
+    ],
+)
+def test_iter_int_level_with_nan(level):
+    # GH#24375 int level with missing codes must not be cast to float64
+    idx = pd.MultiIndex(levels=[level, ["a", "b"]], codes=[[0, -1], [0, 1]])
+    expected = (int(level[0]), "a")
+    result = list(idx)
+    assert result[0] == expected
+    assert not isinstance(result[0][0], float)
+    assert np.isnan(result[1][0])
+    assert idx.tolist() == result
+    assert idx.values[0] == expected
+    assert idx.get_loc(result[0]) == 0
+
+
 def test_sub(idx):
     first = idx
 

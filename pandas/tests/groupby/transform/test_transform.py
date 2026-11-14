@@ -839,15 +839,18 @@ def test_cython_transform_frame_column(
     df = request.getfixturevalue(df_fix)
     gb = df.groupby(group_keys=False, **gb_target)
     c = column
+    # object dtype applies the Series method group-by-group, so it raises
+    #  exactly when that does for some group, GH#49758
+    object_fallback = c in ("string", "string_missing") and not using_infer_string
     if (
         c not in ["float", "int", "float_missing"]
         and op != "shift"
         and not (c == "timedelta" and op == "cumsum")
+        and not (c in ("string", "string_missing") and op == "cumsum")
+        and not object_fallback
     ):
         if c == "timedelta":
             msg = f"timedelta64 type does not support {op} operations"
-        elif c in ("string", "string_missing") and not using_infer_string:
-            msg = f"{op} is not supported for object dtype"
         else:
             # datetime, or the string columns under the str dtype
             msg = "does not support operation"
@@ -856,7 +859,17 @@ def test_cython_transform_frame_column(
         with pytest.raises(TypeError, match=msg):
             getattr(gb[c], op)()
     else:
-        expected = gb[c].apply(targop)
+        try:
+            expected = gb[c].apply(targop)
+        except TypeError:
+            if not object_fallback:
+                raise
+            msg = f"{op} is not supported for object dtype"
+            with pytest.raises(TypeError, match=msg):
+                gb[c].transform(op)
+            with pytest.raises(TypeError, match=msg):
+                getattr(gb[c], op)()
+            return
         expected.name = c
         if c in ["string_missing", "string"]:
             expected = expected.fillna(np.nan)

@@ -1043,6 +1043,13 @@ class ArrowExtensionArray(
             if is_nan_na():
                 try:
                     arr_value = np.asarray(value)
+                    if (
+                        arr_value.dtype.kind in "US"
+                        and not isinstance(value, np.ndarray)
+                        and (arr_value == arr_value.dtype.type("nan")).any()
+                    ):
+                        # numpy casts NaN to "nan" in e.g. ["a", np.nan] (GH#64578)
+                        arr_value = np.asarray(value, dtype=object)
                     if arr_value.ndim > 1:
                         # e.g. test_fixed_size_list we have list data.  ndim > 1
                         #  means there were no scalar (NA) entries.
@@ -1535,6 +1542,47 @@ class ArrowExtensionArray(
             pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
             result = pc.binary_repeat(binary, pa_integral)
             return self._from_pyarrow_array(result)
+
+        self_array = self._pa_array
+        if arrow_funcs is ARROW_ARITHMETIC_FUNCS:
+            # GH#63064 match numpy/BooleanArray semantics for bools
+            if pa.types.is_boolean(pa_type) and (
+                pa.types.is_boolean(other.type) or pa.types.is_null(other.type)
+            ):
+                op_name = op.__name__
+                if op_name in {"add", "radd"}:
+                    result = pc.or_(self_array, other.cast(pa_type))
+                    return self._from_pyarrow_array(result)
+                elif op_name in {"mul", "rmul"}:
+                    result = pc.and_(self_array, other.cast(pa_type))
+                    return self._from_pyarrow_array(result)
+                elif op_name in {
+                    "truediv",
+                    "rtruediv",
+                    "floordiv",
+                    "rfloordiv",
+                    "pow",
+                    "rpow",
+                }:
+                    op_name = op_name.lstrip("r")
+                    raise NotImplementedError(
+                        f"operator '{op_name}' not implemented for bool dtypes"
+                    )
+            try:
+                if pa.types.is_boolean(pa_type) and (
+                    pa.types.is_integer(other.type) or pa.types.is_floating(other.type)
+                ):
+                    self_array = self_array.cast(other.type)
+                elif (
+                    pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type)
+                ) and pa.types.is_boolean(other.type):
+                    other = other.cast(pa_type)
+            except pa.ArrowNotImplementedError as err:
+                # e.g. no bool -> float16 cast
+                raise TypeError(
+                    self._op_method_error_message(other_original, op)
+                ) from err
+
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
@@ -1550,7 +1598,7 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
         try:
-            result = pc_func(self._pa_array, other)
+            result = pc_func(self_array, other)
         except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
         return self._from_pyarrow_array(result)
@@ -2175,6 +2223,60 @@ class ArrowExtensionArray(
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
 
+    def _factorize_dictionary(
+        self, use_na_sentinel: bool
+    ) -> tuple[np.ndarray, ExtensionArray]:
+        """
+        Factorize a dictionary-typed array.
+
+        A stored dictionary can hold unreferenced, duplicate or null entries
+        (GH#71828), so factorize the dictionaries' values, map the indices
+        through those codes, then renumber by first appearance.
+        """
+        data = self._pa_array
+        value_type = data.type.value_type
+        if sum(len(chunk.dictionary) for chunk in data.chunks) > len(data):
+            # e.g. one chunk per parquet row group, each storing every category:
+            # decoding hashes fewer values than factorizing the dictionaries
+            return type(self)(data.cast(value_type)).factorize(use_na_sentinel)
+        dictionaries = pa.chunked_array(
+            [chunk.dictionary for chunk in data.chunks], type=value_type
+        )
+        dict_codes, dict_uniques = type(self)(dictionaries).factorize()
+        # -1 (a null dictionary entry) passes through take unchanged
+        dict_codes_pa = pa.array(dict_codes, type=pa.int64())
+        mapped = []
+        offset = 0
+        for chunk in data.chunks:
+            size = len(chunk.dictionary)
+            mapped.append(dict_codes_pa.slice(offset, size).take(chunk.indices))
+            offset += size
+        codes = (
+            _safe_fill_null(pa.chunked_array(mapped, type=pa.int64()), -1)
+            .to_numpy()
+            .astype(np.intp, copy=False)
+        )
+
+        num_dict = len(dict_uniques)
+        if not use_na_sentinel:
+            # nulls take the code num_dict, so they are numbered like any value
+            codes = np.where(codes == -1, num_dict, codes)
+        # position of each code's first appearance; the extra last slot absorbs -1
+        first = np.full(num_dict + 2, len(codes), dtype=np.intp)
+        np.minimum.at(first, codes, np.arange(len(codes), dtype=np.intp))
+        is_first = np.zeros(len(codes) + 1, dtype=bool)
+        is_first[first[:-1]] = True
+        # the referenced codes, in order of first appearance
+        order = codes[is_first[:-1]]
+        lookup = np.full(num_dict + 2, -1, dtype=np.intp)
+        lookup[order] = np.arange(len(order), dtype=np.intp)
+
+        # code num_dict, if referenced, is the null
+        positions = pa.array(order, mask=order == num_dict)
+        dict_values = cast("ArrowExtensionArray", dict_uniques)._pa_array
+        uniques = dict_values.combine_chunks().take(positions)
+        return lookup[codes], self._from_pyarrow_array(uniques)
+
     def factorize(
         self,
         use_na_sentinel: bool = True,
@@ -2238,14 +2340,16 @@ class ArrowExtensionArray(
             return indices, uniques
 
         if pa.types.is_dictionary(data.type):
-            # dictionary_encode is a no-op on already-encoded input, so cast back
-            # to the value type and re-encode when nulls must be encoded, or when
-            # a chunk stores the null as a dictionary value (GH#66490)
-            dict_has_null = any(c.dictionary.null_count > 0 for c in data.chunks)
-            if null_encoding == "encode" or dict_has_null:
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            else:
+            try:
+                return self._factorize_dictionary(use_na_sentinel)
+            except pa.ArrowNotImplementedError:
+                # no hash or take kernel for the value type (e.g. list,
+                # string_view): keep the stored dictionary, unless it holds
+                # a null or use_na_sentinel is False (GH#66490)
+                if not use_na_sentinel or any(
+                    chunk.dictionary.null_count for chunk in data.chunks
+                ):
+                    raise
                 encoded = data
         else:
             encoded = data.dictionary_encode(null_encoding=null_encoding)
@@ -4010,7 +4114,6 @@ class ArrowExtensionArray(
                 "prod",
                 "mean",
                 "median",
-                "cumsum",
                 "cumprod",
                 "std",
                 "sem",
