@@ -675,14 +675,30 @@ class TestArrowArray(base.ExtensionTests):
         else:
             expected_data = expected
 
-        # the pointwise method will have retained our original dtype, while
-        #  the op(ser, other) version will have cast to 64bit
+        # the pointwise method will have retained our original dtype, and
+        #  so does the op(ser, other) version for a scalar that fits (GH#69436).
+        #  Take the dtype from the op itself, as the result only keeps the
+        #  original dtype when it fits in it, e.g. subtracting from an
+        #  unsigned dtype can go negative and keeps the wider dtype.
+        obj_dtype = tm.get_dtype(obj)
         if type(other) is int and op_name not in ["__floordiv__"]:
-            if original_dtype.kind == "f":
+            if isinstance(obj_dtype, ArrowDtype) and (
+                pa.types.is_signed_integer(obj_dtype.pyarrow_dtype)
+                or pa.types.is_floating(obj_dtype.pyarrow_dtype)
+                or pa.types.is_decimal(obj_dtype.pyarrow_dtype)
+            ):
+                alt_dtype = tm.get_dtype(getattr(obj, op_name)(other))
+                return expected.astype(alt_dtype)
+            elif original_dtype.kind == "f":
                 return expected.astype("float64[pyarrow]")
             else:
                 return expected.astype("int64[pyarrow]")
         elif type(other) is float:
+            if isinstance(obj_dtype, ArrowDtype) and pa.types.is_floating(
+                obj_dtype.pyarrow_dtype
+            ):
+                alt_dtype = tm.get_dtype(getattr(obj, op_name)(other))
+                return expected.astype(alt_dtype)
             return expected.astype("float64[pyarrow]")
 
         # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
