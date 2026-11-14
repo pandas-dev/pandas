@@ -357,6 +357,7 @@ I/O
 - Bug in :func:`read_csv` with ``engine="c"`` occasionally dropping leading whitespace from the first value of a line in large inputs (:issue:`34085`)
 - Bug in :func:`read_csv` with ``engine="c"`` or ``engine="python"`` ignoring ``true_values`` and ``false_values`` for boolean extension dtypes other than :class:`BooleanDtype`, such as ``bool[pyarrow]`` (:issue:`47534`)
 - Bug in :func:`read_csv` with ``engine="c"`` shifting a row's values one column left when the row starts with the delimiter and follows a blank, comment, or skipped line in a file with ``\r`` line endings (:issue:`71409`)
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` and ``header=None`` numbering the columns selected by ``usecols`` from 0 instead of labelling them by their position in the file, as the other engines do (:issue:`67008`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` and ``parse_dates`` converting a non-date ``index_col`` (e.g. integers) to strings (:issue:`71873`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``EmptyDataError`` for input whose only line lacks a trailing newline (:issue:`62635`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` silently wrapping values outside the range of the requested integer ``dtype`` instead of raising (:issue:`38013`)

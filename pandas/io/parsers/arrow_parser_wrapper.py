@@ -403,7 +403,12 @@ class ArrowParserWrapper(ParserBase):
         multi_index_named = True
         self._implicit_index_count = 0
         if self.header is None and self.names is None:
-            self.names = range(num_cols)
+            if self.kwds.get("include_columns") is not None:
+                # GH#67008 label the selected columns by their position in the
+                # file, as the other engines do; pyarrow names them f{position}
+                self.names = [int(name[1:]) for name in table.column_names]
+            else:
+                self.names = range(num_cols)
         if self.names is not None and len(self.names) != num_cols:
             # usecols is passed through to pyarrow, so num_cols here already
             # reflects it
@@ -464,21 +469,24 @@ class ArrowParserWrapper(ParserBase):
 
                 # Process dtype for index_col and drop from dtypes
                 if isinstance(self.dtype, dict):
+                    # the dtype may be keyed by the index_col item or by the label;
+                    #  either way it applies to the column labelled col_name, as
+                    #  item need not be a label (GH#67008)
                     key, new_dtype = (
                         (item, self.dtype.get(item))
                         if self.dtype.get(item) is not None
-                        else (frame.columns[item], self.dtype.get(frame.columns[item]))
+                        else (col_name, self.dtype.get(col_name))
                     )
                     if new_dtype is not None:
                         # GH#57512 don't undo a parse_dates conversion
                         if not (
-                            frame[key].dtype.kind == "M"
+                            frame[col_name].dtype.kind == "M"
                             and pandas_dtype(new_dtype).kind != "M"
                             and parse_as_dates
                         ):
-                            casted = frame[key].astype(new_dtype)
-                            validate_integer_cast(frame[key], casted.dtype)
-                            frame[key] = casted
+                            casted = frame[col_name].astype(new_dtype)
+                            validate_integer_cast(frame[col_name], casted.dtype)
+                            frame[col_name] = casted
                         del self.dtype[key]
 
             if self.dtype is not None and not isinstance(self.dtype, dict):
