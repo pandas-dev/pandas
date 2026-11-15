@@ -728,6 +728,21 @@ class TestDataFramePlots:
         with pytest.raises(AttributeError, match="unexpected keyword"):
             df.plot.area(**kwargs)
 
+    def test_area_timedelta_stacked(self):
+        # GH#52246
+        df = pd.DataFrame(
+            {
+                "a": pd.to_timedelta([1, 2, 3], unit="s"),
+                "b": pd.to_timedelta([4, None, 6], unit="s"),
+            }
+        )
+        ax = df.plot.area()
+        a = df["a"].astype(np.int64).to_numpy(dtype=np.float64)
+        b = df["b"].fillna(pd.Timedelta(0)).astype(np.int64).to_numpy(dtype=np.float64)
+        tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), a)
+        tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), a + b)
+        assert ax.get_ylim()[0] == 0
+
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))

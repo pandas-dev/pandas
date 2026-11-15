@@ -1910,7 +1910,15 @@ class AreaPlot(LinePlot):
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
-        data = data.fillna(value=0)
+
+        def _fillna(col: Series) -> Series:
+            # GH#52246 plot timedeltas as integers, as matplotlib draws them,
+            #  so they can be filled, stacked and compared with zero
+            if lib.is_np_dtype(col.dtype, "m"):
+                return col.fillna(np.timedelta64(0, "ns")).astype(np.int64)
+            return col.fillna(0)
+
+        data = _fillna(data) if isinstance(data, ABCSeries) else data.apply(_fillna)
         LinePlot.__init__(self, data, **kwargs)
 
         if not self.stacked:
