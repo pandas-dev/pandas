@@ -243,6 +243,22 @@ class BinOp(ops.BinOp):
         """whether my field holds Periods, which are stored as int64 ordinals"""
         return self.dtype_name.startswith("period")
 
+    @property
+    def string_nan_rep(self) -> str | None:
+        """
+        The sentinel value stored in the HDF5 file for missing strings, or None
+        if the column is not a string column.
+
+        Fixed-width string columns store missing values as a byte sentinel
+        (default ``"nan"``).  Inequality comparisons must exclude these rows
+        because the sentinel sorts lexicographically like a real string value,
+        e.g. ``b"nan" >= b"j"`` is True in C even though the Python value is
+        missing.
+        """
+        if ensure_decoded(self.kind) != "string":
+            return None
+        return getattr(self.queryables.get(self.lhs.value), "nan_rep", None)
+
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
@@ -278,6 +294,20 @@ class BinOp(ops.BinOp):
             # value, so an unguarded "less than" would match the NaT rows.
             # ">"/">=" need no such guard.
             return f"(({lhs} != {iNaT}) & ({lhs} {self.op} {val}))"
+        nan_rep = self.string_nan_rep
+        if nan_rep is not None and self.op in ("<", "<=", ">", ">="):
+            # Fixed-width string columns store missing values as a byte sentinel
+            # (default b"nan").  The sentinel sorts lexicographically in PyTables
+            # C engine like a real string value, so an unguarded inequality would
+            # incorrectly include or exclude missing rows.  Exclude the sentinel
+            # so that inequalities on string columns behave like their in-memory
+            # counterparts: missing values are never selected.
+            if self.encoding is not None:
+                nan_bytes = pprint_thing_encoded(nan_rep, encoding=self.encoding)
+                nan_val = str(nan_bytes)
+            else:
+                nan_val = f'"{nan_rep}"'
+            return f"(({lhs} != {nan_val}) & ({lhs} {self.op} {val}))"
         return f"({lhs} {self.op} {val})"
 
     def convert_value(self, conv_val) -> TermValue:

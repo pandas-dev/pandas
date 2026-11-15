@@ -278,6 +278,18 @@ def test_select_negated_constant_expression(temp_hdfstore):
 
 
 @pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
+def test_select_string_column_inequality_skips_missing(temp_hdfstore, op):
+    # GH#71432: Fixed-width string columns store missing values as a byte sentinel
+    # (default b"nan"). Inequality comparisons must exclude the sentinel row.
+    df = pd.DataFrame({"s": ["a", None, "j", "z", None, "b"], "x": range(6)})
+    temp_hdfstore.append("df", df, data_columns=True)
+    result = temp_hdfstore.select("df", where=f"s {op} 'j'")
+    mask = _COMPARE[op](df["s"], "j") & df["s"].notna()
+    expected = df[mask]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
 def test_select_ordered_categorical_comparison_skips_missing(temp_hdfstore, op):
     # a missing value is stored as the code -1, which sorts below every category
     cat = pd.Categorical(
