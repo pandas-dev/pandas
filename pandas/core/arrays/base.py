@@ -3325,9 +3325,11 @@ class ExtensionArray:
         """
         from pandas.core.arrays.string_ import StringDtype
 
-        if isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype):
-            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name="quantile"))
-        if is_bool_dtype(self.dtype):
+        if (
+            isinstance(self.dtype, StringDtype)
+            or is_object_dtype(self.dtype)
+            or is_bool_dtype(self.dtype)
+        ):
             raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name="quantile"))
 
         mask = np.asarray(isna(self))

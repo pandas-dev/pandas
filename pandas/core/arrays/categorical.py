@@ -3055,8 +3055,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         dtype = self.dtype
-        if how in ["sum", "prod", "cumsum", "cumprod", "skew", "kurt"]:
-            raise TypeError(REDUCTION_MESSAGE.format(dtype=dtype, name=how))
         if how in ["min", "max", "rank", "idxmin", "idxmax"] and not dtype.ordered:
             # raise TypeError instead of NotImplementedError to ensure we
             #  don't go down a group-by-group path, since in the empty-groups

@@ -4581,13 +4581,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             # ndarray path
-            if is_object_dtype(values.dtype) or values.dtype.kind == "c":
-                # GH#43770 complex has no ordering, so no quantile
-                raise TypeError(
-                    REDUCTION_MESSAGE.format(dtype=values.dtype, name="quantile")
-                )
-            if is_bool_dtype(values.dtype):
-                # GH#51424 remove to match Series/DataFrame behavior
+            # GH#43770 complex has no ordering, so no quantile
+            # GH#51424 remove bool to match Series/DataFrame behavior
+            if (
+                is_object_dtype(values.dtype)
+                or values.dtype.kind == "c"
+                or is_bool_dtype(values.dtype)
+            ):
                 raise TypeError(
                     REDUCTION_MESSAGE.format(dtype=values.dtype, name="quantile")
                 )
