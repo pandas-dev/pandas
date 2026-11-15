@@ -9,6 +9,7 @@ from pandas.errors import Pandas4Warning
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
+from pandas.core.resample import _asfreq_compat
 
 
 @pytest.fixture
@@ -667,8 +668,9 @@ def test_resample_no_groups_group_keys_false(all_na_keys, index_func):
         df["A"] = np.nan
     else:
         df = df.iloc[:0]
-    result = df.groupby("A", group_keys=False).resample("D").sum()
-    expected = pd.DataFrame({"B": []}, index=index[:0])
+    # "W" differs from the input freq
+    result = df.groupby("A", group_keys=False).resample("W").sum()
+    expected = pd.DataFrame({"B": []}, index=_asfreq_compat(index[:0], "W"))
     tm.assert_frame_equal(result, expected)
 
 
