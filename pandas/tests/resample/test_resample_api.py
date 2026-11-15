@@ -347,6 +347,32 @@ def test_transform_frame(on):
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_arg_deprecated(_test_series):
+    # GH#40112
+    r = _test_series.resample("20min")
+    expected = r.transform(func="mean")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="`arg` has been renamed to `func`"
+    ):
+        result = r.transform(arg="mean")
+    tm.assert_series_equal(result, expected)
+
+
+def test_transform_arg_passed_to_func(_test_series):
+    # GH#40112 with func given, `arg` is a keyword for the UDF
+    r = _test_series.resample("20min")
+    result = r.transform(lambda x, arg: x + arg, arg=10)
+    tm.assert_series_equal(result, _test_series + 10)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"func": None}])
+def test_transform_func_required(_test_series, kwargs):
+    r = _test_series.resample("20min")
+    msg = "missing 1 required positional argument: 'func'"
+    with pytest.raises(TypeError, match=msg):
+        r.transform(**kwargs)
+
+
 @pytest.mark.parametrize(
     "func",
     [

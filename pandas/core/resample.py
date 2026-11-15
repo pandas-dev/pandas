@@ -456,7 +456,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
     apply = aggregate
 
     @final
-    def transform(self, arg, *args, **kwargs):
+    def transform(self, func=None, *args, **kwargs):
         """
         Call function producing a like-indexed Series on each group.
 
@@ -464,7 +464,7 @@ class Resampler(BaseGroupBy[Any], PandasObject):
 
         Parameters
         ----------
-        arg : function
+        func : function
             To apply to each group. Should return a Series with the same index.
         *args, **kwargs
             Additional arguments and keywords.
@@ -495,8 +495,20 @@ class Resampler(BaseGroupBy[Any], PandasObject):
         2018-01-01 01:00:00   NaN
         Freq: h, dtype: float64
         """
+        if func is None and "arg" in kwargs:
+            func = kwargs.pop("arg")
+            warnings.warn(
+                "The parameter `arg` has been renamed to `func`, and it "
+                "will stop being supported in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if func is None:
+            raise TypeError(
+                "Resampler.transform() missing 1 required positional argument: 'func'"
+            )
         return self._selected_obj.groupby(self._timegrouper).transform(
-            arg, *args, **kwargs
+            func, *args, **kwargs
         )
 
     def _downsample(self, how, **kwargs):
