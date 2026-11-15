@@ -1028,6 +1028,31 @@ class TestInplaceOperations:
         expected = pd.Series([2], dtype=dtype_mul)
         tm.assert_series_equal(ser1, expected)
 
+    @pytest.mark.parametrize(
+        "index, other_index",
+        [
+            ([0, 1, 2], [0, 1, 2, 3]),
+            ([0, 1, 2], [3, 2, 1, 0]),
+            ([0, 0, 1], [0, 1, 2]),
+        ],
+    )
+    def test_series_inplace_ops_align_left(self, index, other_index):
+        # GH#12755 labels only in other must not upcast the result
+        ser = pd.Series([1, 2, 3], index=index)
+        orig = ser
+        other = pd.Series(10, index=other_index)
+        ser += other
+        assert ser is orig
+        expected = pd.Series([11, 12, 13], index=index)
+        tm.assert_series_equal(ser, expected)
+
+    def test_series_inplace_ops_align_left_missing(self):
+        # GH#12755 labels missing from other are still NaN
+        ser = pd.Series([1, 2, 3])
+        ser += pd.Series(10, index=[0, 1])
+        expected = pd.Series([11.0, 12.0, np.nan])
+        tm.assert_series_equal(ser, expected)
+
 
 def test_none_comparison(request, series_with_simple_index):
     series = series_with_simple_index
@@ -1228,3 +1253,27 @@ def test_cmp_categorical_positional_listlike_deprecated():
     for other in [(1, 2, 3), range(3)]:
         with tm.assert_produces_warning(None):
             cat == other
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.date_range("2016-01-01", periods=3),
+        pd.date_range("2016-01-01", tz="US/Pacific", periods=3),
+        pd.timedelta_range("1 Day", periods=3),
+    ],
+)
+def test_arithmetic_mismatched_datetime_units(index):
+    # GH#63417 the left operand's unit is kept
+    left = index.as_unit("us")
+    right = index.as_unit("ns")
+    ser = pd.Series([1, 2, 3], index=left)
+    ser2 = pd.Series([1, 2, 3], index=right)
+
+    result = ser + ser2
+    expected = pd.Series([2, 4, 6], index=left)
+    tm.assert_series_equal(result, expected)
+
+    result2 = ser2 + ser
+    expected2 = pd.Series([2, 4, 6], index=right)
+    tm.assert_series_equal(result2, expected2)

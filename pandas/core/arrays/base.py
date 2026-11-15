@@ -24,6 +24,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     algos as libalgos,
     groupby as libgroupby,
@@ -2396,7 +2398,7 @@ class ExtensionArray:
         return self
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         """
         Concatenate multiple arrays of this dtype.
 
@@ -2408,6 +2410,9 @@ class ExtensionArray:
         ----------
         to_concat : sequence of this type
             An array of the same dtype to concatenate.
+        axis : int, default 0
+            Axis along which to concatenate. pandas only passes the axis
+            keyword for dtypes that support 2D (``dtype._supports_2d``).
 
         Returns
         -------
@@ -3175,7 +3180,9 @@ class ExtensionArray:
         [10, 20, <NA>]
         Length: 3, dtype: Int64
         """
-        result = map_array(self, mapper, na_action=na_action)
+        # Under future.distinguish_nan_and_na, inference would turn None
+        #  into NaN, which _cast_pointwise_result then keeps as a value.
+        result = map_array(self, mapper, na_action=na_action, convert=is_nan_na())
         if isinstance(result, np.ndarray):
             return self._cast_pointwise_result(result)
         return result
@@ -3241,7 +3248,6 @@ class ExtensionArray:
                 "prod",
                 "mean",
                 "median",
-                "cumsum",
                 "cumprod",
                 "std",
                 "sem",

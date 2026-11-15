@@ -677,3 +677,13 @@ def test_assert_frame_equal_check_freq_categorical_index():
 
     with tm.assert_produces_warning(None):
         tm.assert_frame_equal(left, right, check_freq=False)
+
+
+@pytest.mark.parametrize("kwargs", [{"check_exact": True}, {"rtol": 1e-12, "atol": 0}])
+def test_assert_frame_equal_message_full_precision(kwargs):
+    # GH#71509 differences below display.precision must be visible in the message
+    left = pd.DataFrame({"x": [1.0, 2.5]})
+    right = pd.DataFrame({"x": [1.000000001, 2.5]})
+    msg = r"\[left\]:  \[1\.0, 2\.5\]\n\[right\]: \[1\.000000001, 2\.5\]"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(left, right, **kwargs)
