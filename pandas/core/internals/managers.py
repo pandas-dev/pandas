@@ -452,7 +452,9 @@ class BaseBlockManager(PandasObject):
                             # pass a same-dtype column as is; _values would
                             #  convert it to a 2D object ndarray
                             loc = b.mgr_locs.as_array[0]
-                            col = obj._mgr.iget_values(loc)
+                            mgr = obj._mgr
+                            assert isinstance(mgr, BlockManager)  # for mypy
+                            col = mgr.iget_values(loc)
                             if col.dtype == b.dtype:
                                 kwargs[k] = col
                                 continue
