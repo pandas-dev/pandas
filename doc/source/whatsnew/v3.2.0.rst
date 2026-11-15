@@ -495,6 +495,7 @@ Reshaping
 
 Sparse
 ^^^^^^
+- Bug in arithmetic operations between a :class:`SparseDtype` :class:`Series` or :class:`arrays.SparseArray` and a list or array of a different length raising ``AssertionError`` instead of ``ValueError`` (:issue:`37086`)
 - Bug in setting integer :class:`SparseDtype` values into an integer :class:`Series` or :class:`Index` (``__setitem__``, ``.loc``, ``.iloc``, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.update`, :meth:`Index.putmask`) raising ``AttributeError: 'SparseDtype' object has no attribute 'itemsize'`` (:issue:`68457`)
 
 ExtensionArray

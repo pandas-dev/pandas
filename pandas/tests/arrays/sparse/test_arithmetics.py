@@ -723,10 +723,16 @@ def test_ordering_na_scalar_datetimelike_raises(op, dtype):
         ([0, 1, 2, 3], [0, 1, 2]),
     ],
 )
-def test_mismatched_length_arith_op(a, b, all_arithmetic_functions):
+@pytest.mark.parametrize("cons", [list, np.array])
+def test_mismatched_length_arith_op(
+    a, b, cons, all_arithmetic_functions, index_or_series_or_array
+):
+    # GH#37086 used to raise AssertionError
     op = all_arithmetic_functions
-    with pytest.raises(AssertionError, match=f"length mismatch: {len(a)} vs. {len(b)}"):
-        op(SparseArray(a, fill_value=0), np.array(b))
+    left = index_or_series_or_array(SparseArray(a, fill_value=0))
+    msg = f"operands have mismatched length {len(a)} and {len(b)}"
+    with pytest.raises(ValueError, match=msg):
+        op(left, cons(b))
 
 
 @pytest.mark.parametrize("op", ["add", "sub", "mul", "truediv", "floordiv", "pow"])
