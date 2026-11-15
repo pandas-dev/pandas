@@ -721,12 +721,18 @@ def test_ordering_na_scalar_datetimelike_raises(op, dtype):
     [
         ([0, 1, 2], [0, 1, 2, 3]),
         ([0, 1, 2, 3], [0, 1, 2]),
+        ([0, 1, 0], [5]),
     ],
 )
-def test_mismatched_length_arith_op(a, b, all_arithmetic_functions):
+@pytest.mark.parametrize("other_box", [np.array, list])
+def test_mismatched_length_arith_op(
+    a, b, other_box, index_or_series_or_array, all_arithmetic_functions
+):
+    # GH#23853 raised AssertionError
     op = all_arithmetic_functions
+    left = index_or_series_or_array(SparseArray(a, fill_value=0))
     with pytest.raises(ValueError, match=f"length mismatch: {len(a)} vs. {len(b)}"):
-        op(SparseArray(a, fill_value=0), np.array(b))
+        op(left, other_box(b))
 
 
 @pytest.mark.parametrize(
@@ -739,10 +745,14 @@ def test_mismatched_length_arith_op(a, b, all_arithmetic_functions):
         ([1], []),
     ],
 )
-def test_mismatched_length_arith_op_sparse_operand(a, b, all_arithmetic_functions):
+def test_mismatched_length_arith_op_sparse_operand(
+    a, b, index_or_series_or_array, all_arithmetic_functions
+):
     # GH#23853 e.g. SparseArray([1, 0, 2]) + SparseArray([1]) had length 1
     op = all_arithmetic_functions
-    left = SparseArray(np.array(a, dtype=np.int64), fill_value=0)
+    left = index_or_series_or_array(
+        SparseArray(np.array(a, dtype=np.int64), fill_value=0)
+    )
     right = SparseArray(np.array(b, dtype=np.int64), fill_value=0)
     with pytest.raises(ValueError, match="length mismatch"):
         op(left, right)
