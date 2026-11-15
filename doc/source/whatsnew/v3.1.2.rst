@@ -25,6 +25,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Fixed :meth:`Series.sort_values` converting ``object`` dtype holding strings to ``str`` dtype when the values were not already sorted, and raising ``UnicodeEncodeError`` for strings containing lone surrogates (:issue:`71978`)
 - Fixed :meth:`arrays.SparseArray.from_indices` raising on ``datetime64`` or ``timedelta64`` data in a unit pandas does not support, and silently accepting unsorted, duplicate or negative ``indices`` with ``kind="block"`` (:issue:`71872`)
 
 .. ---------------------------------------------------------------------------
