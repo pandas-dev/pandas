@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import operator
 from operator import (
     le,
@@ -1215,11 +1216,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         try:
             self.left._validate_fill_value(value_left)
         except (LossySetitemError, TypeError) as err:
-            msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
-            msg = (
-                f"{msg}. Value should be intervals with a compatible subtype, "
-                f"got '{array.dtype}' instead."
-            )
+            if mask.any() and is_integer_dtype(self.dtype.subtype):
+                # missing entries upcast array.dtype, so reporting it would mislead
+                msg = "Cannot set float NaN to integer-backed IntervalArray"
+            else:
+                msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
+                msg = (
+                    f"{msg}. Value should be intervals with a compatible subtype, "
+                    f"got '{array.dtype}' instead."
+                )
             raise TypeError(msg) from err
 
         return value_left, value_right
@@ -1232,10 +1237,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 try:
                     self.left._validate_fill_value(endpoint)
                 except TypeError as err:
-                    if str(err):
-                        # e.g. the tz-awareness mismatch message
+                    if self.dtype.subtype.kind == "M" and isinstance(
+                        endpoint, datetime
+                    ):
+                        # tz-awareness mismatch; keep the more specific message
                         raise
-                    # a value the subtype cannot hold raises a bare TypeError
                     msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
                     msg = (
                         f"{msg}. Value should be an 'Interval' with a compatible "

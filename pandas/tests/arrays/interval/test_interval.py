@@ -356,9 +356,27 @@ def test_setitem_incompatible_subtype_raises():
     with pytest.raises(TypeError, match=msg):
         arr[:1] = [pd.Interval(0.5, 1.5)]
 
+    msg = "Cannot set float NaN to integer-backed IntervalArray"
+    with pytest.raises(TypeError, match=msg):
+        arr[:2] = [pd.Interval(0, 1), None]
+
+
+@pytest.mark.parametrize(
+    "breaks",
+    [pd.date_range("2020", periods=3), pd.timedelta_range(0, periods=3)],
+)
+def test_setitem_incompatible_datetimelike_subtype_raises(breaks):
+    # GH#60218
+    arr = IntervalArray.from_breaks(breaks)
+    msg = re.escape(
+        f"Invalid value '(0, 1]' for dtype '{arr.dtype}'. Value should be an "
+        "'Interval' with a compatible subtype, got endpoint '0' instead."
+    )
+    with pytest.raises(TypeError, match=f"^{msg}$"):
+        arr[0] = pd.Interval(0, 1)
+
 
 def test_setitem_tz_mismatch_keeps_message():
-    # an endpoint error that already has a message is not replaced
     arr = IntervalArray.from_breaks(pd.date_range("2020", periods=3))
     value = pd.Interval(pd.Timestamp("2020", tz="UTC"), pd.Timestamp("2021", tz="UTC"))
     with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
