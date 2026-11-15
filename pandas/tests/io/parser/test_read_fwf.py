@@ -155,6 +155,15 @@ A   B     C            D            E
         read_fwf(StringIO(data), colspecs=None, widths=None)
 
 
+@pytest.mark.parametrize("kwarg", ["width", "delim_whitespace"])
+def test_unexpected_keyword(kwarg):
+    # GH#34953 a typo or a read_csv argument removed in 3.0 was silently ignored
+    data = "AA1234\nBB5678\n"
+    msg = f"read_fwf\\(\\) got an unexpected keyword argument '{kwarg}'"
+    with pytest.raises(TypeError, match=msg):
+        read_fwf(StringIO(data), **{kwarg: [2, 4]})
+
+
 def test_read_csv_compat():
     csv_data = """\
 A,B,C,D,E

@@ -88,7 +88,7 @@ class DocBuilder:
         elif single_doc.startswith("pandas."):
             try:
                 obj = pandas  # noqa: F821
-                for name in single_doc.split("."):
+                for name in single_doc.split(".")[1:]:
                     obj = getattr(obj, name)
             except AttributeError as err:
                 raise ImportError(f"Could not import {single_doc}") from err

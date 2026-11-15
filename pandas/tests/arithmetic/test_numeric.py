@@ -470,7 +470,6 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
     def test_ser_div_ser(
         self,
-        switch_numexpr_min_elements,
         dtype1,
         any_real_numpy_dtype,
     ):
@@ -487,11 +486,6 @@ class TestDivisionByZero:
                 name=None,
             )
         expected.iloc[0:3] = np.inf
-        if first.dtype == "int64" and second.dtype == "float32":
-            # when using numexpr, the casting rules are slightly different
-            # and int64/float32 combo results in float32 instead of float64
-            if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
-                expected = expected.astype("float32")
 
         result = first / second
         tm.assert_series_equal(result, expected)

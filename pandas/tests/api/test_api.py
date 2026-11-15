@@ -4,6 +4,8 @@ import importlib
 import inspect
 import pathlib
 import pkgutil
+import subprocess
+import sys
 
 import pytest
 
@@ -55,7 +57,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
+    private_lib = ["compat", "core", "util"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -343,6 +345,7 @@ class TestApi(Base):
         "VariableOffsetWindowIndexer",
     ]
     allowed_api_extensions = [
+        "Accessor",
         "no_default",
         "ExtensionDtype",
         "register_extension_dtype",
@@ -606,3 +609,68 @@ def test_attributes_module(module_name):
         except Exception:
             failures.append((module_name, name, type(obj), obj.__module__))
     assert len(failures) == 0, "\n".join(str(e) for e in failures)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports():
+    # `import pandas` should not eagerly import the deferred I/O backends
+    code = (
+        "import pandas, sys; "
+        "assert 'pandas.io.excel' not in sys.modules; "
+        "assert 'pandas.testing' not in sys.modules"
+    )
+    subprocess.check_call([sys.executable, "-X", "lazy_imports=normal", "-c", code])
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports_read_csv():
+    # pd.read_csv must only load pandas.io.parsers, not sibling backends
+    code = (
+        "import pandas as pd, sys\n"
+        "from io import StringIO\n"
+        "pd.read_csv(StringIO('a,b\\n1,2'))\n"
+        "assert 'pandas.io.parsers' in sys.modules\n"
+        "import pandas.io.api\n"
+        "siblings = set(pandas.io.api.__lazy_modules__) - {'pandas.io.parsers'}\n"
+        "loaded = [m for m in siblings if m in sys.modules]\n"
+        "assert not loaded, f'unexpectedly loaded: {loaded}'\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-X", "lazy_imports=normal", "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports_io_namespace():
+    code = (
+        "import pandas as pd, sys\n"
+        # the whole derived set (backends + common) is advertised but none of it
+        # is imported by a plain `import pandas`
+        "names = pd.io._lazy_submodules()\n"
+        "assert names <= set(dir(pd.io))\n"
+        "assert not any(f'pandas.io.{n}' in sys.modules for n in names)\n"
+        "assert len(set(dir(pd.io))) == len(dir(pd.io))\n"
+        # common is deferred by core.frame / io.formats.format, not by io.api
+        "assert pd.io.common.get_handle is not None\n"
+        # accessing one reifies just that submodule, leaving the rest lazy
+        "_ = pd.io.stata\n"
+        "assert 'pandas.io.stata' in sys.modules\n"
+        "assert 'pandas.io.json' not in sys.modules\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-X", "lazy_imports=normal", "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr

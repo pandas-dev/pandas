@@ -757,15 +757,17 @@ def raise_assert_detail(
         index_values = np.asarray(index_values)
 
     if isinstance(index_values, np.ndarray):
-        msg += f"\n[index]: {pprint_thing(index_values)}"
+        msg += f"\n[index]: {pprint_thing(index_values, use_display_precision=False)}"
 
+    # GH#71509 show values at full precision, so that differences smaller than
+    # display.precision are visible in the message
     if isinstance(left, np.ndarray):
-        left = pprint_thing(left)
+        left = pprint_thing(left, use_display_precision=False)
     elif isinstance(left, (CategoricalDtype, StringDtype, NumpyEADtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
-        right = pprint_thing(right)
+        right = pprint_thing(right, use_display_precision=False)
     elif isinstance(right, (CategoricalDtype, StringDtype, NumpyEADtype)):
         right = repr(right)
 
@@ -845,6 +847,10 @@ def assert_numpy_array_equal(
                 raise_assert_detail(
                     obj, f"{obj} shapes are different", left.shape, right.shape
                 )
+
+            # report e.g. a datetime unit mismatch as a dtype difference, GH#68459
+            if check_dtype:
+                assert_attr_equal("dtype", left, right, obj=obj)
 
             diff = 0.0
             # ravel so the count is over values, matching the `left.size` total

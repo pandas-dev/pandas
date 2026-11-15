@@ -29,6 +29,7 @@ from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.mark.single_cpu
@@ -587,6 +588,97 @@ def test_zoneinfo_from_file_without_key_ambiguous_infer():
     tm.assert_numpy_array_equal(
         result.tz_convert("UTC").asi8, expected.tz_convert("UTC").asi8
     )
+
+
+_dateutil_lt_3 = Version(dateutil.__version__) < Version("3")  # type: ignore[attr-defined]
+_skip_if_dateutil_lt_3 = pytest.mark.skipif(
+    _dateutil_lt_3, reason="tzfile key added in 3.0"
+)
+
+
+@pytest.mark.parametrize(
+    "make_tz",
+    [
+        lambda: dateutil.tz.gettz("US/Eastern"),
+        # no key, so no zoneinfo twin
+        pytest.param(
+            lambda: dateutil.tz.tzfile(io.BytesIO(_tzdata_bytes("US/Eastern"))),
+            marks=pytest.mark.skipif(
+                _dateutil_lt_3,
+                reason="dateutil<3 reads only the TZif v1 block, which is empty "
+                "in slim tzdata files",
+            ),
+        ),
+        # dateutil accepts this key but zoneinfo does not
+        pytest.param(
+            lambda: dateutil.tz.gettz("America/New York"),
+            marks=pytest.mark.skipif(
+                _dateutil_lt_3 and is_platform_windows(),
+                reason="dateutil<3 resolves spaced keys only on a system TZPATH",
+            ),
+        ),
+        # a key naming a different zone than the data
+        pytest.param(
+            lambda: dateutil.tz.tzfile(
+                io.BytesIO(_tzdata_bytes("US/Eastern")),
+                key="Europe/Paris",  # type: ignore[call-arg]
+            ),
+            marks=_skip_if_dateutil_lt_3,
+        ),
+    ],
+)
+@pytest.mark.parametrize("unit", ["s", "ns"])
+def test_dateutil_tzfile_matches_zoneinfo(make_tz, unit):
+    # GH#71459 dateutil>=3 tzfile no longer has the attributes the dateutil
+    #  path reads, so every DST zone raised AttributeError
+    tz = make_tz()
+    expected_tz = zoneinfo.ZoneInfo("US/Eastern")
+
+    naive = pd.DatetimeIndex(
+        ["2025-03-09 02:30", "2025-11-02 01:30", "2025-07-01"]
+    ).as_unit(unit)
+    kwargs = {"ambiguous": True, "nonexistent": "shift_forward"}
+    result = naive.tz_localize(tz, **kwargs)
+    expected = naive.tz_localize(expected_tz, **kwargs)
+    tm.assert_numpy_array_equal(result.asi8, expected.asi8)
+
+    utc = pd.date_range("2025-01-01", "2025-12-31", freq="7h", tz="UTC", unit=unit)
+    assert [ts.utcoffset() for ts in utc.tz_convert(tz)] == [
+        ts.utcoffset() for ts in utc.tz_convert(expected_tz)
+    ]
+
+    # dateutil<3 has no rules past 2037, so check far-future dates against tz
+    for wall in [datetime(2025, 6, 15, 12), datetime(2150, 7, 1)]:
+        ts = pd.Timestamp(wall).as_unit(unit)
+        assert ts.tz_localize(tz).timestamp() == wall.replace(tzinfo=tz).timestamp()
+
+
+@_skip_if_dateutil_lt_3
+def test_dateutil_tzfile_fast_path_detection():
+    # GH#71459 is_fixed_offset needs the zoneinfo twin, which dateutil>=3
+    #  zones get only from a key that matches their data
+    data = io.BytesIO(_tzdata_bytes("US/Eastern"))
+    assert timezones.is_fixed_offset(dateutil.tz.gettz("Etc/GMT+5"))
+    assert not timezones.is_fixed_offset(dateutil.tz.tzfile(data, key="Etc/GMT+5"))
+
+
+@_skip_if_dateutil_lt_3
+def test_dateutil_tzfile_get_timezone_uses_key():
+    # GH#71459 _filename is a machine-specific path, so Timestamp repr and
+    #  serialized zones use the key instead, when it matches the data
+    tz = dateutil.tz.gettz("US/Eastern")
+    assert timezones.get_timezone(tz) == "dateutil/US/Eastern"
+    ts = pd.Timestamp("2025-01-01", tz=tz)
+    assert "tz='dateutil/US/Eastern'" in repr(ts)
+
+    # a key that doesn't match the data is ignored; filename= is passed
+    #  because _filename otherwise defaults to the key
+    mislabeled = dateutil.tz.tzfile(
+        io.BytesIO(_tzdata_bytes("US/Eastern")),
+        filename="mislabeled",
+        key="Europe/Paris",
+    )
+    assert timezones.get_timezone(mislabeled) == "dateutil/mislabeled"
 
 
 def test_zoneinfo_fast_path_detection():

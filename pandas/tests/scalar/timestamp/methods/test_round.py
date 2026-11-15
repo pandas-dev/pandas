@@ -207,11 +207,11 @@ class TestTimestampRound:
     def test_rounding_nat_frequency(self):
         ts = Timestamp("2000-01-05 05:09:15.13")
 
-        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+        with pytest.raises(TypeError, match="got NaTType"):
             ts.ceil(NaT)
-        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+        with pytest.raises(TypeError, match="got NaTType"):
             ts.floor(NaT)
-        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+        with pytest.raises(TypeError, match="got NaTType"):
             ts.round(NaT)
 
     def test_rounding_nat_timestamp(self):

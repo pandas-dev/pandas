@@ -1062,6 +1062,14 @@ def test_setitem_with_different_string_storage():
         (r"[\u0e00-\u0e7f]", True),
         (r"\pL\u20AC", True),  # also includes an invalid escape \p for Python
         (r"\Q\u\E", True),  # \Q..\E pattern supported by pyarrow, but prioritize \u
+        # RE2's \s misses ASCII whitespace such as "\x0b" (GH#70991)
+        (r"\s+", True),
+        (r"\S", True),
+        (r"[^\w\s]", True),
+        (r"(?:x\S)*", True),
+        (r"(a|\s)", True),
+        (r"\\s", False),
+        (r"[sS]", False),
     ],
 )
 def test_needs_python_regex_unsupported_code(pat, expected):
@@ -1078,13 +1086,11 @@ def test_needs_python_regex_unsupported_code(pat, expected):
         (r"\W", True),
         (r"\d{3}", True),
         (r"\D", True),
-        (r"\s+", True),
-        (r"\S", True),
         (r"\bword\b", True),
         (r"\B", True),
-        (r"[^\w\s]", True),
+        (r"[^\w,]", True),
         (r"[\w-]", True),
-        (r"(?:x\S)*", True),
+        (r"(?:x\D)*", True),
         (r"(foo|bar\d)", True),
         (r"(?>\w)", True),
         (r"[a-z0-9_]+", False),

@@ -140,6 +140,15 @@ class TestSeriesPlots:
         assert xmin <= lines[0].get_data(orig=False)[0][0]
         assert xmax >= lines[0].get_data(orig=False)[0][-1]
 
+    def test_sharex_xlim_keeps_sibling_data(self):
+        # GH#14074
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series([1, 2, 3]).plot(ax=ax1)
+        pd.Series([0.5, 0.1]).plot(ax=ax2)
+        xmin, xmax = ax1.get_xlim()
+        assert xmin <= 0
+        assert xmax >= 2
+
     def test_ts_area_lim(self, ts):
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.area(stacked=False, ax=ax)
@@ -342,6 +351,21 @@ class TestSeriesPlots:
         ]
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "color",
+        [
+            ("red", "blue", "green"),
+            ("r", "b", "g", "k"),
+            ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+        ],
+    )
+    def test_bar_user_colors_tuple_of_colors(self, color):
+        # GH#18449 a 3- or 4-tuple of colors is not a single RGB(A) color
+        ser = pd.Series(range(len(color)))
+        ax = ser.plot.bar(color=color)
+        result = [patch.get_facecolor() for patch in ax.patches]
+        assert result == [mpl.colors.to_rgba(col) for col in color]
+
     def test_rotation_default(self):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # Default rot 0
@@ -416,6 +440,32 @@ class TestSeriesPlots:
 
         color_expected = ["r", "g", "b", "r", "g"]
         _check_colors(ax.patches, facecolors=color_expected)
+
+    @pytest.mark.parametrize(
+        "color, expected",
+        [
+            (["r", "g", "b"], ["r", "g", "b", "r", "g"]),
+            ("r", ["r"] * 5),
+            ((1.0, 0.0, 0.0), [(1.0, 0.0, 0.0)] * 5),
+        ],
+    )
+    def test_pie_series_color(self, color, expected):
+        # GH#11228
+        series = pd.Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
+        ax = _check_plot_works(series.plot.pie, color=color)
+        _check_colors(ax.patches, facecolors=expected)
+
+    def test_pie_series_color_and_colors_raises(self):
+        # GH#11228
+        series = pd.Series([1, 2, 3])
+        with pytest.raises(TypeError, match="Only specify one of"):
+            series.plot.pie(color=["r"], colors=["g"])
+
+    def test_pie_series_color_dict_raises(self):
+        # GH#11228
+        series = pd.Series([1, 2, 3], index=["red", "green", "blue"])
+        with pytest.raises(TypeError, match="do not support a dict"):
+            series.plot.pie(color={"red": "k", "green": "k", "blue": "k"})
 
     def test_pie_series_labels_and_colors(self):
         series = pd.Series(

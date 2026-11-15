@@ -19,9 +19,18 @@ from __future__ import annotations
 import pathlib
 import sys
 import tomllib
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import yaml
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Mapping,
+        Sequence,
+    )
 
 from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
@@ -80,12 +89,34 @@ def _strip_extra_specifiers(version: str) -> str:
     return version.split(",", maxsplit=1)[0]
 
 
+def _expand_extra(
+    optional_dependencies: Mapping[str, Sequence[str]], extra: str
+) -> frozenset[str]:
+    dependencies: set[str] = set()
+    for dependency in optional_dependencies[extra]:
+        dependency = dependency.strip()
+        if dependency.startswith("pandas["):
+            nested_extras = dependency.removeprefix("pandas[").removesuffix("]")
+            for nested_extra in nested_extras.split(","):
+                dependencies |= _expand_extra(
+                    optional_dependencies, nested_extra.strip()
+                )
+        else:
+            dependencies.add(dependency)
+    return frozenset(dependencies)
+
+
 def get_toml_map_from(toml_dic: dict[str, Any]) -> dict[str, str]:
-    toml_deps = {}
-    toml_dependencies = set(toml_dic["project"]["optional-dependencies"]["all"])
-    for dependency in toml_dependencies:
-        toml_package, toml_version = dependency.strip().split(">=")
-        toml_deps[toml_package] = _strip_extra_specifiers(toml_version)
+    toml_deps: dict[str, str] = {}
+    optional_dependencies = toml_dic["project"]["optional-dependencies"]
+    for dependency in _expand_extra(optional_dependencies, "all"):
+        toml_package, toml_version = dependency.split(">=")
+        toml_version = _strip_extra_specifiers(toml_version)
+        if toml_deps.setdefault(toml_package, toml_version) != toml_version:
+            raise ValueError(
+                f"{toml_package} has conflicting minimum versions across "
+                f"extras: {toml_deps[toml_package]} and {toml_version}"
+            )
     return toml_deps
 
 
@@ -291,22 +322,19 @@ def _get_version_from_pixi_spec(spec: str | dict[str, Any]) -> str | None:
 def get_versions_from_toml() -> dict[str, str]:
     """Min versions in pyproject.toml for pip install pandas[extra]."""
     install_map = _optional.INSTALL_MAPPING
-    optional_dependencies = {}
     with open(PYPROJECT_PATH, "rb") as pyproject_f:
         pyproject_toml = tomllib.load(pyproject_f)
-        opt_deps = pyproject_toml["project"]["optional-dependencies"]
-        dependencies = set(opt_deps["all"])
-
-        # remove pytest plugin dependencies
-        pytest_plugins = {dep for dep in opt_deps["test"] if dep.startswith("pytest-")}
-        dependencies = dependencies.difference(pytest_plugins)
-
-    for dependency in dependencies:
-        package, version = dependency.strip().split(">=")
-        optional_dependencies[install_map.get(package, package).casefold()] = (
-            _strip_extra_specifiers(version)
-        )
-
+    test_dependencies = _expand_extra(
+        pyproject_toml["project"]["optional-dependencies"], "test"
+    )
+    pytest_plugins = frozenset(
+        dep.split(">=")[0] for dep in test_dependencies if dep.startswith("pytest-")
+    )
+    optional_dependencies = {
+        install_map.get(package, package).casefold(): version
+        for package, version in get_toml_map_from(pyproject_toml).items()
+        if package not in pytest_plugins
+    }
     for item in EXCLUDE_DEPS:
         optional_dependencies.pop(item, None)
     return optional_dependencies
