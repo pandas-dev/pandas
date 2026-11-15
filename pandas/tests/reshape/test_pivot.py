@@ -2005,6 +2005,44 @@ class TestPivotTable:
         expected = pd.DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
+    @pytest.mark.parametrize(
+        "box", [tuple, lambda x: np.array(x, dtype=object), lambda x: iter(x)]
+    )
+    @pytest.mark.parametrize("margins", [True, False])
+    def test_pivot_table_aggfunc_list_like(self, box, margins):
+        # GH#19940
+        df = pd.DataFrame(
+            {"A": ["a", "a", "b", "b"], "B": ["x", "y", "x", "y"], "C": [1, 2, 3, 4]}
+        )
+        funcs = ["sum", np.mean]
+        result = df.pivot_table(
+            values="C", index="A", columns="B", aggfunc=box(funcs), margins=margins
+        )
+        expected = df.pivot_table(
+            values="C", index="A", columns="B", aggfunc=funcs, margins=margins
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("box", [tuple, list])
+    @pytest.mark.parametrize("margins", [True, False])
+    def test_pivot_table_aggfunc_name_func_pairs(self, box, margins):
+        # GH#19940
+        df = pd.DataFrame(
+            {"A": ["a", "a", "b", "b"], "B": ["x", "y", "x", "y"], "C": [1, 2, 3, 4]}
+        )
+        aggfunc = box([("total", "sum"), "max", ("avg", "mean")])
+        result = df.pivot_table(
+            values="C", index="A", columns="B", aggfunc=aggfunc, margins=margins
+        )
+        expected = df.pivot_table(
+            values="C",
+            index="A",
+            columns="B",
+            aggfunc=["sum", "max", "mean"],
+            margins=margins,
+        ).rename(columns={"sum": "total", "mean": "avg"}, level=0)
+        tm.assert_frame_equal(result, expected)
+
     def test_categorical_margins(self, observed):
         # GH 10989
         df = pd.DataFrame(

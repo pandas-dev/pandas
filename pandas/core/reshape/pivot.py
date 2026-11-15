@@ -15,6 +15,7 @@ from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
+    is_dict_like,
     is_list_like,
     is_nested_list_like,
     is_scalar,
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Iterable,
     )
 
     from pandas._typing import (
@@ -95,7 +97,8 @@ def pivot_table(
     aggfunc : function, list of functions, dict, default "mean"
         If a list of functions is passed, the resulting pivot table will have
         hierarchical columns whose top level are the function names
-        (inferred from the function objects themselves).
+        (inferred from the function objects themselves, or given explicitly
+        as ``(name, function)`` pairs).
         If a dict is passed, the key is column to aggregate and the value is
         function or list of functions. If ``margins=True``, aggfunc will be
         used to calculate the partial aggregates.
@@ -249,10 +252,18 @@ def pivot_table(
     index = _convert_by(index)
     columns = _convert_by(columns)
 
+    if is_list_like(aggfunc) and not is_dict_like(aggfunc):
+        # GH#19940 treat tuples etc. like lists
+        aggfunc = list(cast("Iterable[AggFuncTypeBase]", aggfunc))
     if isinstance(aggfunc, list):
         pieces: list[DataFrame] = []
         keys = []
         for func in aggfunc:
+            if isinstance(func, tuple):
+                # (name, func) pair, as in groupby.agg
+                key, func = func
+            else:
+                key = getattr(func, "__name__", func)
             _table = __internal_pivot_table(
                 data,
                 values=values,
@@ -268,7 +279,7 @@ def pivot_table(
                 kwargs=kwargs,
             )
             pieces.append(_table)
-            keys.append(getattr(func, "__name__", func))
+            keys.append(key)
 
         table = concat(pieces, keys=keys, axis=1)
         return table.__finalize__(data, method="pivot_table")

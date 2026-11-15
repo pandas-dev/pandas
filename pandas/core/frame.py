@@ -14057,7 +14057,8 @@ class DataFrame(NDFrame, OpsMixin):
         aggfunc : function, list of functions, dict, default "mean"
             If a list of functions is passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
-            (inferred from the function objects themselves).
+            (inferred from the function objects themselves, or given explicitly
+            as ``(name, function)`` pairs).
             If a dict is passed, the key is column to aggregate and the value is
             function or list of functions. If ``margin=True``, aggfunc will be
             used to calculate the partial aggregates.
