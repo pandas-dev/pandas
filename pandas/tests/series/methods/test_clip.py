@@ -182,8 +182,8 @@ class TestSeriesClip:
         ],
     )
     def test_clip_inplace_bound_not_representable(self, kwargs):
-        # GH#21476 in-place clip with a bound float32 cannot hold exactly must
-        #  raise, not store a rounded value
+        # GH#21476 in-place clip with a float64 bound that float32 cannot hold
+        #  exactly must raise, not store a rounded value
         ser = pd.Series([0.0], dtype=np.float32)
         expected = ser.copy()
         with pytest.raises(TypeError, match="Invalid value"):
