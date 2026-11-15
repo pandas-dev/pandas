@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     BaseOffset,
     Day,
     OutOfBoundsDatetime,
+    Tick,
     Timedelta,
     Timestamp,
     iNaT,
@@ -65,6 +66,7 @@ def generate_regular_range(
         td = Timedelta(days=freq.n)
     else:
         freq.nanos  # raises if non-fixed frequency
+        assert isinstance(freq, Tick)
         td = Timedelta(freq)
     b: int
     e: int

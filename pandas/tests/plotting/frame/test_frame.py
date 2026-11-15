@@ -2402,7 +2402,7 @@ class TestDataFramePlots:
         ax = df.plot(kind=kind, **args)
         # https://github.com/pandas-dev/pandas/issues/9003#issuecomment-70544889
         if kind in ["line", "area"]:
-            for i, (cached_data, _, _) in enumerate(ax._plot_data):
+            for i, (cached_data, *_) in enumerate(ax._plot_data):
                 ser = df.iloc[:, i]
                 assert not tm.shares_memory(ser, cached_data)
                 tm.assert_numpy_array_equal(ser._values, cached_data._values)

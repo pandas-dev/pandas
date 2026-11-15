@@ -46,6 +46,7 @@ from pandas.io.sql import (
     read_sql_query,
     read_sql_table,
 )
+from pandas.io.sql.sqlite import _get_valid_sqlite_name
 
 if TYPE_CHECKING:
     import sqlalchemy
@@ -555,7 +556,7 @@ def drop_table(
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
     if isinstance(conn, sqlite3.Connection):
-        conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
+        conn.execute(f"DROP TABLE IF EXISTS {_get_valid_sqlite_name(table_name)}")
         conn.commit()
 
     else:
@@ -576,7 +577,7 @@ def drop_view(
     import sqlalchemy
 
     if isinstance(conn, sqlite3.Connection):
-        conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
+        conn.execute(f"DROP VIEW IF EXISTS {_get_valid_sqlite_name(view_name)}")
         conn.commit()
     else:
         adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")

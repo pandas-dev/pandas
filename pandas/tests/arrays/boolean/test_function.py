@@ -66,6 +66,27 @@ def test_ufuncs_unary(ufunc):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("masked_value", [True, False])
+def test_ufunc_with_out_ignores_masked_values(masked_value):
+    # GH#42303 the value under the mask must not end up in a numpy out
+    arr = pd.array([True, False, pd.NA], dtype="boolean")
+    arr._data[2] = masked_value
+    other = np.ones(3, dtype=bool)
+
+    # a bool out cannot hold NA, so this raises
+    out = np.ones(3, dtype=bool)
+    msg = "Specify an appropriate 'na_value' for this dtype"
+    with pytest.raises(ValueError, match=msg):
+        np.logical_and(arr, other, out=out)
+
+    # an object out can hold NA
+    out = np.empty(3, dtype=object)
+    result = np.logical_and(arr, other, out=out)
+    assert result is out
+    expected = np.array([True, False, pd.NA], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_ufunc_numeric():
     # np.sqrt on np.bool_ returns float16, which we upcast to Float32
     #  bc we do not have Float16

@@ -2479,3 +2479,61 @@ def test_groupby_multiday_grouper_closed_right_intraday():
         index=DatetimeIndex(["2019-12-31", "2020-01-02", "2020-01-04"], freq="2D"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["resample", "groupby"])
+def test_resample_dateoffset(func):
+    # GH#31697
+    df = pd.DataFrame(
+        {
+            "Timestamp": date_range("2020-01-01", "2020-03-01", periods=5),
+            "Amount": [5, 10, 15, 20, 25],
+        }
+    )
+    freq = pd.DateOffset(months=1)
+    if func == "resample":
+        result = df.resample(freq, on="Timestamp").sum()
+    else:
+        result = df.groupby(Grouper(key="Timestamp", freq=freq)).sum()
+
+    expected = pd.DataFrame(
+        {"Amount": [30, 20, 25]},
+        index=date_range("2020-01-01", periods=3, freq=freq, name="Timestamp"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed, expected_dates, expected_values",
+    [
+        ("left", ["2024-01-15", "2024-02-15"], [31, 29]),
+        ("right", ["2023-12-15", "2024-01-15", "2024-02-15"], [1, 31, 28]),
+    ],
+)
+def test_resample_dateoffset_bins_start_at_first_day(
+    closed, expected_dates, expected_values
+):
+    # GH#31697
+    ser = pd.Series(1, index=date_range("2024-01-15", periods=60, freq="D"))
+    freq = pd.DateOffset(months=1)
+    result = ser.resample(freq, closed=closed).sum()
+
+    expected = pd.Series(
+        expected_values,
+        index=DatetimeIndex(expected_dates, freq=freq),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_easter():
+    # GH#31697
+    ser = pd.Series(1, index=date_range("2020-01-01", "2021-12-31", freq="D"))
+    result = ser.resample(offsets.Easter()).sum()
+
+    expected = pd.Series(
+        [102, 357, 272],
+        index=DatetimeIndex(
+            ["2019-04-21", "2020-04-12", "2021-04-04"], freq=offsets.Easter()
+        ),
+    )
+    tm.assert_series_equal(result, expected)
