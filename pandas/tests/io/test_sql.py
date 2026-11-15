@@ -4298,17 +4298,8 @@ def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     "dtype_backend",
     [
         lib.no_default,
-        pytest.param(
-            "numpy_nullable",
-            marks=pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
-        ),
-        pytest.param(
-            "pyarrow",
-            marks=[
-                td.skip_if_no("pyarrow"),
-                pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
-            ],
-        ),
+        "numpy_nullable",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ],
 )
 def test_read_sql_query_driver_objects_not_stringified(
@@ -4321,6 +4312,36 @@ def test_read_sql_query_driver_objects_not_stringified(
     conn.execute("INSERT INTO test VALUES (?)", ('{"hello": ["4", "5"], "hi": 6}',))
     result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
     assert result["a"].tolist() == [{"hello": ["4", "5"], "hi": 6}]
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_read_sql_binary_column(conn, request, dtype_backend):
+    # GH#59242 bytes, decodable as UTF-8 or not, must not be cast to string
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    values = [b"\x01\x23\x45\x67\x89\xab\xcd\xef", b"abc", None]
+    if "adbc" in conn_name:
+        # ADBC maps Arrow binary to the database's binary type
+        sql_dtype = None
+    elif conn_name == "sqlite_buildin":
+        sql_dtype = {"a": "BLOB"}
+    else:
+        sqlalchemy = pytest.importorskip("sqlalchemy")
+        sql_dtype = {"a": sqlalchemy.LargeBinary}
+    pd.DataFrame({"a": values}, dtype=object).to_sql(
+        name="test_binary", con=conn, index=False, if_exists="replace", dtype=sql_dtype
+    )
+
+    result = pd.read_sql("SELECT * FROM test_binary", conn, dtype_backend=dtype_backend)
+
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        expected = pd.DataFrame(
+            {"a": pd.array(values, dtype=pd.ArrowDtype(pa.binary()))}
+        )
+    else:
+        expected = pd.DataFrame({"a": values}, dtype=object)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.db
