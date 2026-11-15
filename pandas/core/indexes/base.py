@@ -164,6 +164,7 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
     warn_compound_dtype,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import (
     disallow_ndim_indexing,
@@ -629,6 +630,8 @@ class Index(IndexOpsMixin, PandasObject):
         elif dtype == np.float16:
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
+        if isinstance(data, np.ndarray):
+            warn_non_native_byteorder(data)
 
         if copy:
             # asarray_tuplesafe does not always copy underlying data,
@@ -8209,7 +8212,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
-            return self._values._reduce(name="min", skipna=skipna)
+            return maybe_unbox_numpy_scalar(
+                self._values._reduce(name="min", skipna=skipna), object_with_dtype=self
+            )
 
         return maybe_unbox_numpy_scalar(
             nanops.nanmin(self._values, skipna=skipna), object_with_dtype=self
@@ -8289,7 +8294,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return maybe_unbox_numpy_scalar(self._na_value)
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
-            return self._values._reduce(name="max", skipna=skipna)
+            return maybe_unbox_numpy_scalar(
+                self._values._reduce(name="max", skipna=skipna), object_with_dtype=self
+            )
 
         return maybe_unbox_numpy_scalar(
             nanops.nanmax(self._values, skipna=skipna), object_with_dtype=self

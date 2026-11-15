@@ -169,6 +169,7 @@ Other deprecations
 - Deprecated :meth:`DataFrame.agg` with a single callable producing a :class:`DataFrame` result, e.g. ``df.agg(lambda x: x + 1)``; in a future version this will return a :class:`Series` with one entry per column. Use :meth:`DataFrame.apply` instead (:issue:`49673`)
 - Deprecated :meth:`DataFrame.iterrows`. Use :meth:`DataFrame.itertuples` instead (:issue:`43874`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated constructing :class:`DataFrame`, :class:`Index` and :class:`Series` (including via ``astype``) from numeric data with non-native byte order (e.g. ``">f4"`` on a little-endian machine); this will raise in a future version. Convert with ``arr.astype(arr.dtype.newbyteorder("="))`` first (:issue:`53234`)
 - Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a list-like ``name`` to :meth:`Index.copy`; pass the label itself instead (:issue:`19171`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)
@@ -201,6 +202,7 @@ Performance improvements
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
 - Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
+- Performance improvement in :meth:`Series.where` and :meth:`Series.mask` for nullable integer, float and boolean data when ``other`` has the same dtype (:issue:`72118`)
 - Reduced ``import pandas`` time on Python 3.15+ by deferring rarely used subsystems with :pep:`810` lazy imports (:issue:`65885`)
 - Reduced memory usage of :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a single row or a small slice of rows together with a list of columns (:issue:`69477`)
 - Reduced memory usage of :meth:`Series.duplicated`, non-unique :meth:`Index.duplicated`, and the corresponding ``drop_duplicates`` methods with ``keep="first"`` or ``keep="last"`` on data with many distinct values (:issue:`39799`)
@@ -260,6 +262,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
+- Bug in :func:`array`, :func:`factorize` and :func:`unique` with NumPy arrays of non-native byte order raising an unclear error, or for ``datetime64`` and ``timedelta64`` in :func:`factorize` and :func:`unique` returning incorrect values; these now raise a clear ``ValueError`` (:issue:`53234`)
 - Bug in :func:`to_numeric` raising ``TypeError`` for object values containing 0-dimensional :class:`numpy.ndarray` elements instead of converting them (:issue:`47408`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)
 - Bug in :func:`to_numeric` with ``errors="coerce"`` on :class:`ArrowDtype` string data storing a float ``NaN`` for unparsable values instead of a missing value, and duplicating a parsed value into the position of a failed parse when the input already contained missing values (:issue:`67949`)
@@ -333,6 +336,7 @@ MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
 - Bug in :meth:`DataFrame.dropna` raising ``KeyError`` when ``subset`` contained a partial key of a :class:`MultiIndex` (:issue:`17737`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` (or ``AssertionError`` for a :class:`MultiIndex` key) when indexing a :class:`MultiIndex` with a list of tuples shorter than the number of levels; these now select all rows matching each partial key (:issue:`16083`)
 - Bug in :meth:`DataFrame.sort_index`, :meth:`Series.sort_index`, :meth:`MultiIndex.sort_values` and :meth:`MultiIndex.is_monotonic_increasing` ignoring the category order of a :class:`CategoricalIndex` level (:issue:`47607`)
 - Bug in :meth:`Index.map` raising when mapping to tuples with a different number of elements than a :class:`MultiIndex` has levels, or when only some results are tuples (:issue:`24800`)
 - Bug in :meth:`MultiIndex.append`, :func:`concat`, :meth:`DataFrame.join` and :func:`merge` emitting a spurious ``RuntimeWarning`` when :class:`MultiIndex` level values could not be sorted (:issue:`61477`)
@@ -476,8 +480,10 @@ Reshaping
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
 - Bug in :func:`concat` raising ``ArrowInvalid`` when casting integers exceeding ``2**53`` to a PyArrow float dtype, e.g. ``int64[pyarrow]`` with ``uint64[pyarrow]``; these now round as with NumPy dtypes (:issue:`58819`)
 - Bug in :func:`concat` raising ``ValueError`` when tuple ``keys`` contain a missing value such as ``None`` (:issue:`57993`)
+- Bug in :func:`cut` with nullable or PyArrow integer data placing values above ``2**53`` in the wrong bin (:issue:`31389`)
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
+- Bug in :meth:`DataFrame.join` with a list of objects with unique indexes and ``how="left"`` or ``how="right"`` casting boolean columns to ``object`` and integer columns to ``float64`` when another joined object had index labels not in the result (:issue:`28269`)
 - Bug in :meth:`DataFrame.pivot` and :func:`pivot` with a list of ``values`` casting the pivoted columns to a common dtype, e.g. integers to ``float64`` or ``object`` (:issue:`43547`)
 - Bug in :meth:`DataFrame.pivot`, :meth:`DataFrame.pivot_table`, :meth:`DataFrame.unstack` and :meth:`Series.unstack` raising ``TypeError`` on complex data when the result has missing cells (:issue:`25221`)
 - Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
