@@ -529,6 +529,7 @@ def unstack_multiple(
     group_index = get_group_index(ccodes, shape, sort=sort_columns, xnull=False)
 
     comp_ids, obs_ids = compress_group_index(group_index, sort=sort_columns)
+    comp_ids = ensure_platform_int(comp_ids)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
     if not rlocs:
