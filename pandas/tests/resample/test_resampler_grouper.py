@@ -657,6 +657,21 @@ def test_resample_no_index(keys):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("all_na_keys", [True, False])
+@pytest.mark.parametrize("index_func", [date_range, pd.period_range])
+def test_resample_no_groups_group_keys_false(all_na_keys, index_func):
+    # GH#21192
+    index = index_func("2018-01-01", periods=2, freq="D", name="dt")
+    df = pd.DataFrame({"A": [1, 2], "B": [1.0, 2.0]}, index=index)
+    if all_na_keys:
+        df["A"] = np.nan
+    else:
+        df = df.iloc[:0]
+    result = df.groupby("A", group_keys=False).resample("D").sum()
+    expected = pd.DataFrame({"B": []}, index=index[:0])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_resample_no_columns():
     # GH#52484
     df = pd.DataFrame(

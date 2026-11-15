@@ -833,6 +833,29 @@ class TestGrouping:
         expected = pd.DataFrame({"B": [], "C": []}, index=None)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("as_index", [True, False])
+    @pytest.mark.parametrize("all_na_keys", [True, False])
+    def test_groupby_apply_empty_group_keys_false_keeps_index(
+        self, as_index, all_na_keys
+    ):
+        # GH#21192
+        if all_na_keys:
+            # no groups, but the input is not empty
+            dti = pd.DatetimeIndex(["2018-01-01"], name="dt")
+            df = pd.DataFrame({"A": [np.nan], "B": [1.0]}, index=dti)
+        else:
+            df = pd.DataFrame({"A": [], "B": []}, index=pd.DatetimeIndex([], name="dt"))
+        index = df.index[:0]
+        gb = df.groupby("A", group_keys=False, as_index=as_index)
+
+        result = gb.apply(lambda x: x)
+        expected = pd.DataFrame({"B": []}, index=index)
+        tm.assert_frame_equal(result, expected)
+
+        result = gb["B"].apply(lambda x: x)
+        expected = pd.Series([], name="B", index=index, dtype=np.float64)
+        tm.assert_series_equal(result, expected)
+
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
         s = pd.Series([], name="name", dtype="float64")

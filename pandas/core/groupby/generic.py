@@ -603,7 +603,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
             elif not self.group_keys:
-                res_index = None
+                # GH#21192 func not called; with group_keys=False, assume transform-like
+                res_index = data.index[:0]
             else:
                 res_index = self._grouper.result_index
 
@@ -2390,7 +2391,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
-            elif not self.group_keys or not self.as_index:
+            elif not self.group_keys:
+                # GH#21192 func not called; with group_keys=False, assume transform-like
+                res_index = data.index[:0]
+            elif not self.as_index:
                 res_index = None
             else:
                 res_index = self._grouper.result_index

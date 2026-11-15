@@ -2081,8 +2081,10 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
             and len(result) == 0
             and not isinstance(result.index, PeriodIndex)
         ):
+            # with group_keys=False there are no group keys to append to
             result = result.set_index(
-                _asfreq_compat(self.obj.index[:0], freq=self.freq), append=True
+                _asfreq_compat(self.obj.index[:0], freq=self.freq),
+                append=self._groupby.group_keys,
             )
 
         return self._wrap_result(result)
