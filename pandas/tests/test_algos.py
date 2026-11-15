@@ -2138,7 +2138,7 @@ class TestIsMonotonic:
     )
     @pytest.mark.parametrize("reverse", [True, False])
     def test_long(self, dtype, position, change, expected, reverse):
-        # GH#???
+        # GH#72122
         values = np.arange(2, 6002, 2, dtype=dtype)
         if change == "duplicate":
             values[position] = values[position - 1]
@@ -2154,7 +2154,7 @@ class TestIsMonotonic:
     @pytest.mark.parametrize("position", [0, 1500, 2999])
     @pytest.mark.parametrize("reverse", [True, False])
     def test_long_nan(self, dtype, position, reverse):
-        # GH#???
+        # GH#72122
         values = np.arange(3000, dtype=dtype)
         values[position] = np.nan
         if reverse:
@@ -2165,7 +2165,7 @@ class TestIsMonotonic:
     @pytest.mark.parametrize("position", [1500, 2999])
     @pytest.mark.parametrize("reverse", [True, False])
     def test_long_nat(self, dtype, position, reverse):
-        # GH#???
+        # GH#72122
         values = np.arange(3000, dtype="int64").view(dtype)
         if reverse:
             values = values[::-1].copy()

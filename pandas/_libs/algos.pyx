@@ -945,18 +945,14 @@ cdef inline bint _is_monotonic_contiguous(
     bint* is_monotonic_inc,
     bint* is_monotonic_dec,
 ) noexcept nogil:
-    # Count comparison outcomes in blocks instead of branching on each
-    # element. Loops without data-dependent branches can be vectorized, and
-    # their speed depends much less on the data and on code layout.
-    # Returns whether the values are unique.
+    # Blockwise counting for vectorization.
+    # Returns whether the values are strictly monotonic.
     cdef:
         Py_ssize_t i, start, end, n_bad
         bint descending
         Py_ssize_t n_lt = 0, n_gt = 0, n_eq = 0
 
-    # Strictly monotonic values need only one comparison per element. The
-    # direction is taken from the first pair. NaN compares False, so it
-    # counts as bad here.
+    # Fast path for strictly monotonic values, likely the most common case.
     descending = ptr[1] < ptr[0]
     start = 1
     if descending:
@@ -1013,7 +1009,7 @@ cdef inline bint _is_monotonic_contiguous(
 
     is_monotonic_inc[0] = n_lt == 0
     is_monotonic_dec[0] = n_gt == 0
-    return n_lt + n_gt == n - 1
+    return (n_lt == 0 or n_gt == 0) and n_lt + n_gt == n - 1
 
 
 @cython.boundscheck(False)
@@ -1056,10 +1052,9 @@ def is_monotonic(const numeric_object_t[:] arr, bint timelike):
         and arr.strides[0] == sizeof(numeric_object_t)
     ):
         with nogil:
-            is_unique = _is_monotonic_contiguous(
+            is_strict_monotonic = _is_monotonic_contiguous(
                 &arr[0], n, timelike, &is_monotonic_inc, &is_monotonic_dec
             )
-        is_strict_monotonic = is_unique and (is_monotonic_inc or is_monotonic_dec)
         return is_monotonic_inc, is_monotonic_dec, is_strict_monotonic
 
     with nogil(numeric_object_t is not object):
