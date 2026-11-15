@@ -2153,7 +2153,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
@@ -3402,7 +3402,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         *,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -3429,7 +3429,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         *,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -3456,7 +3456,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         *,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -3691,13 +3691,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Deal with hiding indexes and relabelling column names
         hide_: list[dict[str, Any]] = []
         relabel_index_: list[dict[str, Any]] = []
-        if columns:
-            hide_.append(
-                {
-                    "subset": [c for c in self.columns if c not in columns],
-                    "axis": "columns",
-                }
-            )
+        if columns is not None and len(columns):
+            if isinstance(columns, str):
+                # a str is matched by substring, as before; changing that needs a
+                # deprecation
+                hidden = [c for c in self.columns if c not in columns]
+            else:
+                # MultiIndex.isin raises on a mix of tuples and scalars
+                labels = self.columns.to_flat_index()
+                hidden = list(self.columns[~labels.isin(columns)])
+            hide_.append({"subset": hidden, "axis": "columns"})
         if header is False:
             hide_.append({"axis": "columns"})
         elif isinstance(header, (list, tuple)):
@@ -3824,7 +3827,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable[..., Any] | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
@@ -3851,7 +3854,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable[..., Any] | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
@@ -3878,7 +3881,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: str | Callable[..., Any] | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: bool | list[str] = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
