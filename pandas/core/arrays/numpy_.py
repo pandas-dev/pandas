@@ -15,6 +15,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import LossySetitemError
+from pandas.errors.messages import INVALID_SETITEM_VALUE
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_min_count
 
@@ -185,7 +186,7 @@ class NumpyExtensionArray(
             return np_can_hold_element(self._ndarray.dtype, value)
         except LossySetitemError as err:
             raise TypeError(
-                f"Invalid value '{value!s}' for dtype '{self.dtype}'"
+                INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
             ) from err
         except NotImplementedError:
             # np_can_hold_element doesn't handle all dtypes (e.g. "U"),

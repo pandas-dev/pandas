@@ -317,7 +317,7 @@ class TestTimedeltaArray:
         msg = "|".join(
             [
                 "searchsorted requires compatible dtype or scalar",
-                "value should be a 'Timedelta', 'NaT', or array of those. Got",
+                "Value should be a 'Timedelta', 'NaT', or array of those, got",
             ]
         )
         with pytest.raises(TypeError, match=msg):

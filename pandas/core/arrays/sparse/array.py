@@ -45,6 +45,7 @@ from pandas.errors import (
     Pandas4Warning,
     PerformanceWarning,
 )
+from pandas.errors.messages import INVALID_SETITEM_VALUE
 from pandas.util._decorators import (
     set_module,
 )
@@ -1770,7 +1771,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # GH#69028 our _from_sequence casts to the subtype instead of
             #  raising, so validate here; Index.insert widens on the raise
             if not _can_hold_for_fill(self.dtype.subtype, item):
-                raise TypeError(f"Invalid value '{item!s}' for dtype '{self.dtype}'")
+                raise TypeError(
+                    INVALID_SETITEM_VALUE.format(value=item, dtype=self.dtype)
+                )
         return super().insert(loc, item)
 
     def astype(self, dtype: AstypeArg | None = None, copy: bool = True):

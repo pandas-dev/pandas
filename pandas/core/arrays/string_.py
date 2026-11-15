@@ -30,6 +30,10 @@ from pandas.compat import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import (
+    INVALID_SETITEM_LISTLIKE,
+    INVALID_SETITEM_VALUE,
+)
 from pandas.util._decorators import (
     set_module,
 )
@@ -752,9 +756,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if isna(value):
             return self.dtype.na_value
         elif not isinstance(value, str):
+            msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
             raise TypeError(
-                f"Invalid value '{value}' for dtype '{self.dtype}'. Value should be a "
-                f"string or missing value, got '{type(value).__name__}' instead."
+                f"{msg}. Value should be a string or missing value, "
+                f"got '{type(value).__name__}' instead."
             )
         return value
 
@@ -844,10 +849,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             if isna(value):
                 value = self.dtype.na_value
             elif not isinstance(value, str):
+                msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
                 raise TypeError(
-                    f"Invalid value '{value}' for dtype '{self.dtype}'. Value should "
-                    f"be a string or missing value, got '{type(value).__name__}' "
-                    "instead."
+                    f"{msg}. Value should be a string or missing value, "
+                    f"got '{type(value).__name__}' instead."
                 )
         else:
             value = extract_array(value, extract_numpy=True)
@@ -860,9 +865,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 # compatible, compatibility with arrow backed strings
                 value = np.asarray(value)
             if len(value) and not lib.is_string_array(value, skipna=True):
+                msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
                 raise TypeError(
-                    "Invalid value for dtype 'str'. Value should be a "
-                    "string or missing value (or array of those)."
+                    f"{msg}. Value should be a string or missing value "
+                    "(or array of those)."
                 )
         return value
 

@@ -37,7 +37,7 @@ def test_take_raises():
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr.take([0, -1], allow_fill=True, fill_value=pd.Period("2000", freq="W"))
 
-    msg = "value should be a 'Period' or 'NaT'. Got 'str' instead"
+    msg = "Value should be a 'Period' or 'NaT', got 'str' instead"
     with pytest.raises(TypeError, match=msg):
         arr.take([0, -1], allow_fill=True, fill_value="foo")
 

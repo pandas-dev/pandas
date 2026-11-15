@@ -183,7 +183,7 @@ class TestIntervalIndex:
         expected = data.astype(object).insert(1, "foo")
         tm.assert_index_equal(res, expected)
 
-        msg = "can only insert Interval objects and NA into an IntervalArray"
+        msg = "Value should be an 'Interval' or missing value, got 'str' instead."
         with pytest.raises(TypeError, match=msg):
             data._data.insert(1, "foo")
 
@@ -209,7 +209,7 @@ class TestIntervalIndex:
             # trying to insert pd.NaT into a numeric-dtyped Index should cast
             expected = data.astype(object).insert(1, pd.NaT)
 
-            msg = "can only insert Interval objects and NA into an IntervalArray"
+            msg = "Value should be an 'Interval' or missing value, got 'NaTType'"
             with pytest.raises(TypeError, match=msg):
                 data._data.insert(1, pd.NaT)
 

@@ -19,6 +19,10 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors.messages import (
+    INVALID_SETITEM_LISTLIKE,
+    INVALID_SETITEM_VALUE,
+)
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_na_arg
 
@@ -309,9 +313,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if self.dtype.na_value is np.nan and item is np.nan:
             item = libmissing.NA
         if not isinstance(item, str) and item is not libmissing.NA:
+            msg = INVALID_SETITEM_VALUE.format(value=item, dtype=self.dtype)
             raise TypeError(
-                f"Invalid value '{item}' for dtype 'str'. Value should be a "
-                f"string or missing value, got '{type(item).__name__}' instead."
+                f"{msg}. Value should be a string or missing value, "
+                f"got '{type(item).__name__}' instead."
             )
         return super().insert(loc, item)
 
@@ -340,17 +345,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 or pa.types.is_null(value.type)
                 or not value.is_valid
             ):
+                msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
                 raise TypeError(
-                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
-                    f"string or missing value, got '{type(value).__name__}' instead."
+                    f"{msg}. Value should be a string or missing value, "
+                    f"got '{type(value).__name__}' instead."
                 )
         elif is_scalar(value):
             if isna(value):
                 value = None
             elif not isinstance(value, str):
+                msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
                 raise TypeError(
-                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
-                    f"string or missing value, got '{type(value).__name__}' instead."
+                    f"{msg}. Value should be a string or missing value, "
+                    f"got '{type(value).__name__}' instead."
                 )
         elif isinstance(value, type(self)):
             pass
@@ -362,9 +369,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             if len(value) and not (
                 value.ndim == 1 and lib.is_string_array(value, skipna=True)
             ):
+                msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
                 raise TypeError(
-                    "Invalid value for dtype 'str'. Value should be a "
-                    "string or missing value (or array of those)."
+                    f"{msg}. Value should be a string or missing value "
+                    "(or array of those)."
                 )
         return super()._validate_setitem_value(value)
 

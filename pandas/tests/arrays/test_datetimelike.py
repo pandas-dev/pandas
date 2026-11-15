@@ -179,7 +179,7 @@ class SharedTests:
 
     @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp(2021, 1, 1, 12).time])
     def test_take_fill_raises(self, fill_value, arr1d):
-        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        msg = f"Value should be a '{arr1d._scalar_type.__name__}' or 'NaT', got"
         with pytest.raises(TypeError, match=msg):
             arr1d.take([0, 1], allow_fill=True, fill_value=fill_value)
 
@@ -201,7 +201,7 @@ class SharedTests:
         expected = arr1d[[-1, 1]]
         tm.assert_equal(result, expected)
 
-        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        msg = f"Value should be a '{arr1d._scalar_type.__name__}' or 'NaT', got"
         with pytest.raises(TypeError, match=msg):
             arr1d.take([-1, 1], allow_fill=True, fill_value="foo")
 
@@ -318,15 +318,17 @@ class SharedTests:
         with pytest.raises(
             TypeError,
             match=re.escape(
-                f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                "or array of those. Got 'str' instead."
+                f"Invalid value 'foo' for dtype '{arr1d.dtype}'. Value should be a "
+                f"'{arr1d._scalar_type.__name__}', 'NaT', or array of those, "
+                "got 'str' instead."
             ),
         ):
             arr.searchsorted("foo")
 
         msg = re.escape(
-            f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-            "or array of those. Got str array instead."
+            f"Invalid value for dtype '{arr1d.dtype}'. Value should be a "
+            f"'{arr1d._scalar_type.__name__}', 'NaT', or array of those, "
+            "got str array instead."
         )
         if not using_infer_string:
             msg = msg.replace("str", "string")
@@ -524,7 +526,7 @@ class SharedTests:
         with pytest.raises(IndexError, match="index 12 is out of bounds"):
             arr[12] = val
 
-        with pytest.raises(TypeError, match="value should be a.* 'object'"):
+        with pytest.raises(TypeError, match="Value should be a.* 'object'"):
             arr[0] = object()
 
         msg = "cannot set using a list-like indexer with a different length"
@@ -542,8 +544,8 @@ class SharedTests:
         # We dont case e.g. int64 to our own dtype for setitem
 
         msg = (
-            f"value should be a '{arr1d._scalar_type.__name__}', "
-            "'NaT', or array of those. Got"
+            f"Value should be a '{arr1d._scalar_type.__name__}', "
+            "'NaT', or array of those, got"
         )
         with pytest.raises(TypeError, match=msg):
             arr1d[:2] = box([0, 1])
@@ -569,7 +571,7 @@ class SharedTests:
 
     def test_shift_fill_int_deprecated(self, arr1d):
         # GH#31971, enforced in 2.0
-        with pytest.raises(TypeError, match="value should be a"):
+        with pytest.raises(TypeError, match="Value should be a"):
             arr1d.shift(1, fill_value=1)
 
     def test_median(self, arr1d):
@@ -840,7 +842,7 @@ class TestDatetimeArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=now)
         assert result[0] == now
 
-        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        msg = f"Value should be a '{arr1d._scalar_type.__name__}' or 'NaT', got"
         with pytest.raises(TypeError, match=msg):
             # fill_value Timedelta invalid
             arr.take([-1, 1], allow_fill=True, fill_value=now - now)
@@ -857,7 +859,7 @@ class TestDatetimeArray(SharedTests):
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
         value = NaT._value
-        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        msg = f"Value should be a '{arr1d._scalar_type.__name__}' or 'NaT', got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
@@ -1036,7 +1038,7 @@ class TestTimedeltaArray(SharedTests):
         assert result[0] == td1
 
         value = fixed_now_ts
-        msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
+        msg = f"Value should be a '{arr._scalar_type.__name__}' or 'NaT', got"
         with pytest.raises(TypeError, match=msg):
             # fill_value Timestamp invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
@@ -1089,7 +1091,7 @@ class TestPeriodArray(SharedTests):
         arr = arr1d
 
         value = NaT._value
-        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        msg = f"Value should be a '{arr1d._scalar_type.__name__}' or 'NaT', got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
@@ -1255,9 +1257,11 @@ def test_casting_nat_setitem_array(arr, casting_nats):
     ids=lambda x: type(x).__name__,
 )
 def test_invalid_nat_setitem_array(arr, non_casting_nats):
+    # a wrong-kind NaT is not printed as the invalid value, GH#60218
     msg = (
-        "value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
-        "Got '(timedelta64|datetime64|int)' instead."
+        f"^Invalid value (for|'{NaT._value}' for) dtype '{re.escape(str(arr.dtype))}'. "
+        "Value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those, "
+        "got '(timedelta64|datetime64|int)' instead."
     )
 
     for nat in non_casting_nats:
