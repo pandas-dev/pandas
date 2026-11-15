@@ -34,6 +34,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
@@ -103,6 +104,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
+        DtypeObj,
         IndexLabel,
         JoinHow,
         MergeHow,
@@ -2558,6 +2560,9 @@ class _AsOfMerge(_OrderedMerge):
 
         def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int) -> None:
             if left.dtype != right.dtype:
+                if _asof_common_numeric_dtype(left.dtype, right.dtype) is not None:
+                    # GH#21559 cast to the common dtype in _get_join_indexers
+                    return
                 if isinstance(left.dtype, CategoricalDtype) and isinstance(
                     right.dtype, CategoricalDtype
                 ):
@@ -2670,7 +2675,13 @@ class _AsOfMerge(_OrderedMerge):
             self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
 
-        # _maybe_require_matching_dtypes already checked for dtype matching
+        # _maybe_require_matching_dtypes already checked for dtype matching,
+        #  apart from numeric dtypes that can be safely cast to a common one
+        if left_values.dtype != right_values.dtype:
+            common = _asof_common_numeric_dtype(left_values.dtype, right_values.dtype)
+            assert common is not None
+            left_values = astype_array(left_values, common, copy=False)
+            right_values = astype_array(right_values, common, copy=False)
         assert left_values.dtype == right_values.dtype
 
         tolerance = self.tolerance
@@ -2712,12 +2723,14 @@ class _AsOfMerge(_OrderedMerge):
             if len(left_join_keys) == 1:
                 lby = left_join_keys[0]
                 rby = right_join_keys[0]
-                if isinstance(lby, np.ndarray) and lby.dtype.kind in "biumM":
-                    # Matching dtypes are enforced in
-                    #  _maybe_require_matching_dtypes, and the int64
-                    #  representation preserves equality, so these values
-                    #  can be used as group keys directly without
-                    #  factorizing.
+                if (
+                    isinstance(lby, np.ndarray)
+                    and lby.dtype.kind in "biumM"
+                    and lby.dtype == rby.dtype
+                ):
+                    # The int64 representation preserves equality for
+                    #  matching dtypes, so these values can be used as
+                    #  group keys directly without factorizing.
                     left_by_values = lby.astype(np.int64, copy=False)
                     right_by_values = rby.astype(np.int64, copy=False)
                 else:
@@ -2767,6 +2780,25 @@ class _AsOfMerge(_OrderedMerge):
                 tolerance,
                 False,
             )
+
+
+def _asof_common_numeric_dtype(left: DtypeObj, right: DtypeObj) -> DtypeObj | None:
+    """
+    Common dtype for merge_asof keys of differing integer or float dtypes.
+
+    Returns None if the keys are not both integer or both float, or if the
+    common dtype would leave that family (e.g. int64 and uint64 -> float64).
+    """
+    if left.kind in "iu" and right.kind in "iu":
+        kinds = "iu"
+    elif left.kind == "f" and right.kind == "f":
+        kinds = "f"
+    else:
+        return None
+    common = find_common_type([left, right])
+    if common.kind not in kinds:
+        return None
+    return common
 
 
 def _get_multiindex_indexer(

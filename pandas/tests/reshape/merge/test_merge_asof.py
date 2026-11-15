@@ -3717,3 +3717,58 @@ def test_merge_asof_empty_left_keeps_left_index(kwargs, by):
     )
     result = pd.merge_asof(left, right, right_index=True, by=by, **kwargs)
     tm.assert_index_equal(result.index, left.index)
+
+
+@pytest.mark.parametrize(
+    "left_dtype, right_dtype",
+    [
+        ("float64", "float32"),
+        ("int32", "int64"),
+        ("int8", "uint8"),
+        ("int64", "Int32"),
+        ("Float32", "float64"),
+        pytest.param("int64[pyarrow]", "int32", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("key", ["on", "by"])
+def test_merge_asof_mismatched_numeric_dtypes(left_dtype, right_dtype, key):
+    # GH#21559
+    # -1 would wrap if the keys were cast to uint8 instead of the common dtype
+    left = pd.DataFrame({"by": [1, 2, 1], "on": [-1, 3, 5], "a": [1, 2, 3]})
+    right = pd.DataFrame({"by": [1, 1, 2], "on": [0, 2, 3], "b": [4, 5, 6]})
+    left[key] = left[key].astype(left_dtype)
+    right[key] = right[key].astype(right_dtype)
+    result = pd.merge_asof(left, right, on="on", by="by")
+    expected = left.assign(b=[np.nan, 6, 5])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "left_dtype, right_dtype", [("float64", "float32"), ("int64", "Int32")]
+)
+def test_merge_asof_mismatched_numeric_index_dtypes(left_dtype, right_dtype):
+    # GH#21559
+    left = pd.DataFrame({"a": [1, 2]}, index=pd.Index([1, 3], dtype=left_dtype))
+    right = pd.DataFrame({"b": [4, 5]}, index=pd.Index([0, 2], dtype=right_dtype))
+    result = pd.merge_asof(left, right, left_index=True, right_index=True)
+    expected = left.assign(b=[4, 5])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_mismatched_by_dtypes_with_na():
+    # GH#21559 a nullable by key must not take the int64 fast path
+    left = pd.DataFrame({"by": [1, 2], "on": [1, 3]})
+    right = pd.DataFrame({"by": pd.array([1, None], dtype="Int32"), "on": [0, 2]})
+    right["b"] = [4, 5]
+    result = pd.merge_asof(left, right, on="on", by="by")
+    expected = left.assign(b=[4, np.nan])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("key", ["on", "by"])
+def test_merge_asof_int64_uint64_raises(key):
+    # GH#21559 the common dtype float64 would lose precision
+    left = pd.DataFrame({"by": [1], "on": [1]})
+    right = pd.DataFrame({"by": [1], "on": [1]}).astype({key: "uint64"})
+    with pytest.raises(MergeError, match="must be the same type"):
+        pd.merge_asof(left, right, on="on", by="by")
