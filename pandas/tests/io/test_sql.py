@@ -4363,13 +4363,14 @@ def test_read_sql_mixed_types_not_stringified(
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_sql_memoryview_column(
-    sqlite_builtin_detect_types, monkeypatch, dtype_backend
+@pytest.mark.parametrize("binary_type", [memoryview, bytearray])
+def test_read_sql_binary_like_column(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend, binary_type
 ):
     # GH#59242 drivers such as psycopg2 return binary data as memoryview
-    monkeypatch.setitem(sqlite3.converters, "MVIEW", memoryview)
+    monkeypatch.setitem(sqlite3.converters, "BINLIKE", binary_type)
     conn = sqlite_builtin_detect_types
-    conn.execute("CREATE TABLE test (a MVIEW)")
+    conn.execute("CREATE TABLE test (a BINLIKE)")
     conn.executemany("INSERT INTO test VALUES (?)", [(b"\x89",), (None,)])
     result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
     values = [b"\x89", None]
