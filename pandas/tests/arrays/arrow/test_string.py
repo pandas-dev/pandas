@@ -1017,3 +1017,32 @@ def test_str_extract_flags(expand):
     if expand:
         expected = expected.to_frame()
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ("upper", ()),
+        ("len", ()),
+        ("contains", ("a",)),
+        ("startswith", ("b",)),
+        ("replace", ("a", "z")),
+    ],
+)
+def test_str_accessor_dictionary_encoded(method, args):
+    # GH#69462 - .str should work on dictionary-encoded strings and give the
+    # same values as the plain (decoded) Arrow string dtype
+    values = ["apple", "banana", "apple", None, "cherry"]
+    dict_dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    ser = pd.Series(values, dtype=dict_dtype)
+    result = getattr(ser.str, method)(*args)
+    plain = pd.Series(values, dtype=ArrowDtype(pa.string()))
+    expected = getattr(plain.str, method)(*args)
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_accessor_dictionary_non_string_values_raises():
+    # GH#69462 - a dictionary of non-string values should still be rejected
+    ser = pd.Series([1, 2, 1], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.int64())))
+    with pytest.raises(AttributeError, match="Can only use .str accessor"):
+        ser.str
