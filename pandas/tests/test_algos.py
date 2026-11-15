@@ -2124,6 +2124,54 @@ class TestIsMonotonic:
         assert algos.is_monotonic(values) == (True, False, True)
         assert algos.is_monotonic(values[::-1]) == (False, True, True)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int16", "int32", "int64", "uint16", "uint32", "uint64", "float32", "float64"],
+    )
+    @pytest.mark.parametrize("position", [1, 1023, 1024, 1025, 2500, 2999])
+    @pytest.mark.parametrize(
+        "change, expected",
+        [
+            ("duplicate", (True, False, False)),
+            ("decrease", (False, False, False)),
+        ],
+    )
+    @pytest.mark.parametrize("reverse", [True, False])
+    def test_long(self, dtype, position, change, expected, reverse):
+        # GH#???
+        values = np.arange(2, 6002, 2, dtype=dtype)
+        if change == "duplicate":
+            values[position] = values[position - 1]
+        else:
+            values[position] = values[position - 1] - 1
+        if reverse:
+            values = values[::-1].copy()
+            expected = (expected[1], expected[0], expected[2])
+        assert algos.is_monotonic(values) == expected
+        assert algos.is_monotonic(np.repeat(values, 2)[::2]) == expected
+
+    @pytest.mark.parametrize("dtype", ["float32", "float64"])
+    @pytest.mark.parametrize("position", [0, 1500, 2999])
+    @pytest.mark.parametrize("reverse", [True, False])
+    def test_long_nan(self, dtype, position, reverse):
+        # GH#???
+        values = np.arange(3000, dtype=dtype)
+        values[position] = np.nan
+        if reverse:
+            values = values[::-1].copy()
+        assert algos.is_monotonic(values) == (False, False, False)
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+    @pytest.mark.parametrize("position", [1500, 2999])
+    @pytest.mark.parametrize("reverse", [True, False])
+    def test_long_nat(self, dtype, position, reverse):
+        # GH#???
+        values = np.arange(3000, dtype="int64").view(dtype)
+        if reverse:
+            values = values[::-1].copy()
+        values.view("int64")[position] = np.iinfo(np.int64).min
+        assert algos.is_monotonic(values) == (False, False, False)
+
     def test_complex_raises(self):
         # https://github.com/pandas-dev/pandas/pull/65803
         # complex is not orderable
