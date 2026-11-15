@@ -382,7 +382,7 @@ class TestDataFrameMisc:
         assert pd.concat([other, df]).attrs == {}
 
     def test_attrs_concat_nan_and_nested(self):
-        # GH#45824 NaN and NA are kept even though ``x == x`` is not True for them
+        # GH#45824 identical NaN/NA objects are kept, as with dict ==
         df = pd.DataFrame({"a": [1, 2]})
         df.attrs = {"nan": np.nan, "na": pd.NA}
         result = pd.concat([df.head(1), df.tail(1)])
