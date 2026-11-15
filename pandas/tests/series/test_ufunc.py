@@ -367,7 +367,7 @@ def test_ufunc_where_misaligned_raises():
         pd.array([True, None, False]),
         pd.Categorical([True, None, False]),
         pytest.param(
-            pd.array([True, None, False], dtype="bool[pyarrow]"),
+            lambda: pd.array([True, None, False], dtype="bool[pyarrow]"),
             marks=td.skip_if_no("pyarrow"),
             id="arrow",
         ),
@@ -386,6 +386,8 @@ def test_ufunc_where_misaligned_raises():
 )
 def test_ufunc_where_missing_raises(values, where):
     # GH#60611 a pandas input with `out=` used to treat a missing value as True
+    if callable(where):
+        where = where()
     msg = "The ufunc 'where' argument cannot contain missing values"
     with pytest.raises(ValueError, match=msg):
         np.negative(values, where=where, out=np.zeros(3))
