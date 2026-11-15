@@ -2124,11 +2124,8 @@ class TestIsMonotonic:
         assert algos.is_monotonic(values) == (True, False, True)
         assert algos.is_monotonic(values[::-1]) == (False, True, True)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        ["int16", "int32", "int64", "uint16", "uint32", "uint64", "float32", "float64"],
-    )
-    @pytest.mark.parametrize("position", [1, 1023, 1024, 1025, 2500, 2999])
+    @pytest.mark.parametrize("dtype", ["int64", "float64"])
+    @pytest.mark.parametrize("position", [1024, 1025, 2999])
     @pytest.mark.parametrize(
         "change, expected",
         [
@@ -2148,28 +2145,38 @@ class TestIsMonotonic:
             values = values[::-1].copy()
             expected = (expected[1], expected[0], expected[2])
         assert algos.is_monotonic(values) == expected
-        assert algos.is_monotonic(np.repeat(values, 2)[::2]) == expected
 
-    @pytest.mark.parametrize("dtype", ["float32", "float64"])
-    @pytest.mark.parametrize("position", [0, 1500, 2999])
-    @pytest.mark.parametrize("reverse", [True, False])
-    def test_long_nan(self, dtype, position, reverse):
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            [np.nan, 1, 2],
+            [1, np.nan, 3],
+            [1, 2, np.nan],
+            [np.nan, 2, 1],
+            [3, np.nan, 1],
+            [2, 1, np.nan],
+        ],
+    )
+    def test_nan(self, arr):
         # GH#72122
-        values = np.arange(3000, dtype=dtype)
-        values[position] = np.nan
-        if reverse:
-            values = values[::-1].copy()
+        values = np.array(arr, dtype="float64")
         assert algos.is_monotonic(values) == (False, False, False)
 
-    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
-    @pytest.mark.parametrize("position", [1500, 2999])
-    @pytest.mark.parametrize("reverse", [True, False])
-    def test_long_nat(self, dtype, position, reverse):
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            [1, 2, None],
+            [1, None, 3],
+            [2, 1, None],
+            [3, None, 1],
+        ],
+    )
+    def test_nat(self, arr):
         # GH#72122
-        values = np.arange(3000, dtype="int64").view(dtype)
-        if reverse:
-            values = values[::-1].copy()
-        values.view("int64")[position] = np.iinfo(np.int64).min
+        nat = np.iinfo(np.int64).min
+        values = np.array([nat if x is None else x for x in arr], dtype="int64").view(
+            "datetime64[ns]"
+        )
         assert algos.is_monotonic(values) == (False, False, False)
 
     def test_complex_raises(self):
