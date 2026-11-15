@@ -54,9 +54,7 @@ def test_get_dummies_index():
     [pd.RangeIndex(3), pd.Index([101, 205, 101], name="product_id")],
 )
 def test_get_dummies_with_dtype(any_string_dtype, dtype, index):
-    s = pd.Series(
-        ["a|b", "a|c", np.nan], dtype=any_string_dtype, index=index
-    )
+    s = pd.Series(["a|b", "a|c", np.nan], dtype=any_string_dtype, index=index)
     result = s.str.get_dummies("|", dtype=dtype)
     expected = pd.DataFrame(
         [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
