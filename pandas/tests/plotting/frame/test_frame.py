@@ -12,6 +12,7 @@ import string
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -2895,6 +2896,59 @@ class TestDataFramePlots:
 
         _check_visible([ax.xaxis.get_label()], visible=True)
         _check_visible(ax.get_xticklabels(), visible=True)
+
+
+@pytest.mark.parametrize(
+    "kwargs, missing",
+    [
+        ({"y": ["a", "b"], "secondary_y": ["c"]}, "['c']"),
+        ({"secondary_y": ["zzz"]}, "['zzz']"),
+        ({"secondary_y": "zzz"}, "['zzz']"),
+        ({"secondary_y": ("b", "zzz")}, "['zzz']"),
+        ({"x": "a", "secondary_y": ["a"]}, "['a']"),
+        ({"secondary_y": ["s"]}, "['s']"),
+        ({"subplots": True, "secondary_y": ["zzz"]}, "['zzz']"),
+        ({"kind": "bar", "secondary_y": ["zzz"]}, "['zzz']"),
+    ],
+)
+def test_secondary_y_unmatched_label_warns(kwargs, missing):
+    # GH#13041
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "s": ["x", "y"]})
+    msg = re.escape(f"secondary_y entries {missing} do not match any plotted column")
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.plot(**kwargs)
+
+
+@pytest.mark.parametrize("secondary_y", [None, np.False_])
+def test_secondary_y_flag_scalar_no_warning(secondary_y):
+    # GH#13041 these mean "no secondary axis", not a label
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    with tm.assert_produces_warning(None):
+        ax = df.plot(secondary_y=secondary_y)
+    assert not hasattr(ax, "right_ax")
+
+
+def test_secondary_y_ndarray_index_no_warning():
+    # GH#13041 ndarray and Index entries match columns via their own __contains__
+    mi = pd.DataFrame(
+        [[1, 2], [3, 4]], columns=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")])
+    )
+    with tm.assert_produces_warning(None):
+        ax = mi.plot(secondary_y=np.array([("a", "x"), ("b", "y")]), grid=False)
+    assert len(ax.get_lines()) == 2
+    plt.close("all")
+
+    df = pd.DataFrame([[1.0, 2.0]], columns=[0.5, np.nan])
+    with tm.assert_produces_warning(None):
+        ax = df.plot(secondary_y=pd.Index([np.nan]), grid=False)
+    assert len(ax.right_ax.get_lines()) == 1
+
+
+def test_secondary_y_scatter_no_warning():
+    # GH#13041 scatter ignores secondary_y entirely, so "plotted columns" would mislead
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    with tm.assert_produces_warning(None):
+        df.plot.scatter(x="a", y="b", secondary_y=["zzz"])
 
 
 def _generate_4_axes_via_gridspec():
