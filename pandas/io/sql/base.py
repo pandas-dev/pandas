@@ -191,8 +191,13 @@ def _convert_arrays_to_dataframe(
 
         result_arrays = []
         for arr in arrays:
+            inferred = lib.infer_dtype(arr, skipna=True)
+            # psycopg2 returns bytea as memoryview, which infers as "mixed"
+            is_binary = inferred == "mixed" and all(
+                v is None or isinstance(v, (bytes, memoryview)) for v in arr
+            )
             # GH#59242 keep mixed columns as object, as read_excel does (GH#63830)
-            if lib.infer_dtype(arr, skipna=True) in ("mixed", "mixed-integer"):
+            if inferred in ("mixed", "mixed-integer") and not is_binary:
                 result_arrays.append(arr)
                 continue
             try:
