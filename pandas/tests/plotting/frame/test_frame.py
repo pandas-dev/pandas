@@ -1747,6 +1747,33 @@ class TestDataFramePlots:
         df.columns = colnames
         _check_plot_works(df.plot, x=x, y=y)
 
+    @pytest.mark.parametrize(
+        "y,labels",
+        [
+            ("A", "A"),
+            (["A", "B"], ["A", "B"]),
+            (["B", "A"], ["B", "A"]),
+            (0, "A"),
+            ([0, 1], ["A", "B"]),
+        ],
+    )
+    def test_plot_y_includes_x(self, y, labels):
+        # GH#22088 a column may be plotted against itself
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [3, 1, 2]})
+        expected = df.set_index(df["A"])[labels].plot()
+        _check_data(df.plot(x="A", y=y), expected)
+
+    @pytest.mark.parametrize("err", ["xerr", "yerr"])
+    def test_plot_errorbar_names_x(self, err):
+        # GH#22088
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [3, 1, 2]})
+        result = df.plot(x="A", y="B", **{err: "A"})
+        expected = df.set_index(df["A"]).plot(y="B", **{err: df["A"].to_numpy()})
+        tm.assert_numpy_array_equal(
+            np.asarray(result.collections[0].get_segments()),
+            np.asarray(expected.collections[0].get_segments()),
+        )
+
     def test_hexbin_basic(self):
         df = pd.DataFrame(
             {
