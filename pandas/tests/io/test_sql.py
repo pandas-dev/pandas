@@ -4344,6 +4344,16 @@ def test_read_sql_binary_column(conn, request, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("values", [[1, "x"], [1.5, "x"]])
+def test_read_sql_mixed_types_not_stringified(sqlite_buildin, dtype_backend, values):
+    # GH#59242 SQLite columns can mix storage classes; keep them as object
+    # rather than casting to string or raising in pyarrow
+    query = f"SELECT {values[0]!r} AS a UNION ALL SELECT {values[1]!r}"
+    result = pd.read_sql(query, sqlite_buildin, dtype_backend=dtype_backend)
+    expected = pd.DataFrame({"a": values}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.db
 def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     conn = postgresql_psycopg2_engine

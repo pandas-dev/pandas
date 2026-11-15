@@ -191,14 +191,20 @@ def _convert_arrays_to_dataframe(
 
         result_arrays = []
         for arr in arrays:
-            pa_array = pa.array(arr, from_pandas=True)
+            try:
+                pa_array = pa.array(arr, from_pandas=True)
+            except (pa.ArrowInvalid, pa.ArrowTypeError):
+                # GH#59242 mixed types or objects Arrow can't infer stay object,
+                #  matching read_excel (GH#63830)
+                result_arrays.append(arr)
+                continue
             if arr.dtype == "string":
                 # TODO: Arrow still infers strings arrays as regular strings instead
                 # of large_string, which is what we preserver everywhere else for
                 # dtype_backend="pyarrow". We may want to reconsider this
                 pa_array = pa_array.cast(pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
-        arrays = result_arrays  # type: ignore[assignment]
+        arrays = result_arrays
     if arrays:
         return DataFrame._from_arrays(
             arrays, columns=columns, index=range(idx_len), verify_integrity=False
