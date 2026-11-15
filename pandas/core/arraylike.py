@@ -375,9 +375,6 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     else:
         reconstruct_kwargs = {}
 
-    # the ndarray a DataFrame was converted to, if needed
-    frame_values: np.ndarray | None = None
-
     def reconstruct(result):
         if ufunc.nout > 1:
             # np.modf, np.frexp, np.divmod
@@ -392,10 +389,6 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             #  Python object
             if self.ndim == 1:
                 return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
-            if frame_values is not None:
-                # match DataFrame._reduce with axis=None: decide on the dtype of
-                #  the array that was reduced, not the column dtypes
-                return maybe_unbox_numpy_scalar(result, object_with_dtype=frame_values)
             return result
 
         if result.ndim != self.ndim:
@@ -461,8 +454,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # Those can have an axis keyword and thus can't be called block-by-block
         # self is the only input: two-input ufuncs and nout > 1 on a DataFrame
         #  take the first branch above
-        frame_values = np.asarray(self)
-        result = getattr(ufunc, method)(frame_values, **kwargs)
+        values = np.asarray(self)
+        result = getattr(ufunc, method)(values, **kwargs)
+        if lib.is_scalar(result):
+            # match DataFrame._reduce with axis=None: decide on the dtype of
+            #  the array that was reduced, not the column dtypes
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=values)
         # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
