@@ -4344,13 +4344,35 @@ def test_read_sql_binary_column(conn, request, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("values", [[1, "x"], [1.5, "x"]])
-def test_read_sql_mixed_types_not_stringified(sqlite_buildin, dtype_backend, values):
+@pytest.mark.parametrize(
+    "first, second, values",
+    [
+        ("1", "'x'", [1, "x"]),
+        ("1.5", "'x'", [1.5, "x"]),
+        ("'a'", "x'78'", ["a", b"x"]),
+    ],
+)
+def test_read_sql_mixed_types_not_stringified(
+    sqlite_buildin, dtype_backend, first, second, values
+):
     # GH#59242 SQLite columns can mix storage classes; keep them as object
-    # rather than casting to string or raising in pyarrow
-    query = f"SELECT {values[0]!r} AS a UNION ALL SELECT {values[1]!r}"
+    # rather than casting to string, raising, or coercing in pyarrow
+    query = f"SELECT {first} AS a UNION ALL SELECT {second}"
     result = pd.read_sql(query, sqlite_buildin, dtype_backend=dtype_backend)
     expected = pd.DataFrame({"a": values}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_sql_int_outside_int64_not_stringified(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend
+):
+    # GH#59242 Python ints that Arrow can't hold stay object
+    monkeypatch.setitem(sqlite3.converters, "BIGNUM", int)
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a BIGNUM TEXT)")
+    conn.executemany("INSERT INTO test VALUES (?)", [(str(2**70),), ("1",)])
+    result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
+    expected = pd.DataFrame({"a": [2**70, 1]}, dtype=object)
     tm.assert_frame_equal(result, expected)
 
 

@@ -191,11 +191,14 @@ def _convert_arrays_to_dataframe(
 
         result_arrays = []
         for arr in arrays:
+            # GH#59242 keep mixed columns as object, as read_excel does (GH#63830)
+            if lib.infer_dtype(arr, skipna=True) in ("mixed", "mixed-integer"):
+                result_arrays.append(arr)
+                continue
             try:
                 pa_array = pa.array(arr, from_pandas=True)
-            except (pa.ArrowInvalid, pa.ArrowTypeError):
-                # GH#59242 mixed types or objects Arrow can't infer stay object,
-                #  matching read_excel (GH#63830)
+            except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
+                # e.g. Python ints outside the int64 range
                 result_arrays.append(arr)
                 continue
             if arr.dtype == "string":
