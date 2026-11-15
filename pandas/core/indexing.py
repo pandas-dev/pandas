@@ -1961,7 +1961,11 @@ class _LocIndexer(_LocationIndexer):
         )
 
     def _getitem_tuple(self, tup: tuple[Any, ...]):
-        if len(tup) > self.ndim and _is_flat_tuple_label(tup, self.obj.index):
+        if (
+            self.axis is None
+            and len(tup) > self.ndim
+            and _is_flat_tuple_label(tup, self.obj.index)
+        ):
             return self._get_label(tup, axis=0)
 
         with suppress(IndexingError):

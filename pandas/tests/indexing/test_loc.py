@@ -1777,6 +1777,8 @@ class TestLocBaseIndependent:
         idx3 = pd.Index([(1, 2, 3), (4, 5, 6)], tupleize_cols=False)
         df3 = pd.DataFrame({"x": [1, 2], "y": [3, 4]}, index=idx3)
         tm.assert_series_equal(df3.loc[(1, 2, 3)], df3.iloc[0])
+        both3 = pd.DataFrame([[1, 2], [3, 4]], index=idx3, columns=idx3)
+        tm.assert_series_equal(both3.loc(axis=1)[(1, 2, 3)], both3.iloc[:, 0])
 
     def test_loc_getitem_tuple_label_flat_index_elements_also_labels(self):
         # GH#21574 the tuple label wins, as with Series.__getitem__
