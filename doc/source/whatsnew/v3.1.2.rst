@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed a regression in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and the other assertion functions, where the failure message rounded float values to ``display.precision``, so differing values could look identical (:issue:`71509`)
 - Fixed a regression in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ConversionError`` when plotting timezone-aware datetime data containing missing values (:issue:`71879`)
 - Fixed a regression in :meth:`Timestamp.strftime` raising ``AttributeError`` instead of ``TypeError`` when ``format`` is not a string (:issue:`71914`)
+- Fixed a regression in ``fillna`` on :class:`arrays.DatetimeArray`, :class:`arrays.TimedeltaArray` and :class:`arrays.PeriodArray` not raising on an invalid fill value when the array has no missing values (:issue:`36466`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_312.bugs:
