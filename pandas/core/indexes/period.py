@@ -225,8 +225,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Parameters
         ----------
         freq : str or DateOffset, optional
-            Target frequency. The default is 'D' for week or longer,
-            's' otherwise. With ``how="start"``, the result is the start of
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
             ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
             daily gives midnight on that period's last day, so
             ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
