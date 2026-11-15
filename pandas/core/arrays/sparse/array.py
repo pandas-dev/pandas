@@ -2921,7 +2921,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(other, SparseArray):
             if len(self) != len(other):
-                raise ValueError(f"length mismatch: {len(self)} vs. {len(other)}")
+                raise ValueError(
+                    f"operands have mismatched length {len(self)} and {len(other)}"
+                )
             return _sparse_array_op(self, other, op, op_name)
 
         elif is_scalar(other):
@@ -2962,7 +2964,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             other = np.asarray(other)
             with np.errstate(all="ignore"):
                 if len(self) != len(other):
-                    raise ValueError(f"length mismatch: {len(self)} vs. {len(other)}")
+                    raise ValueError(
+                        f"operands have mismatched length {len(self)} and {len(other)}"
+                    )
                 if not isinstance(other, SparseArray):
                     dtype = getattr(other, "dtype", None)
                     other = _as_sparse_operand(other, self.fill_value, dtype=dtype)

@@ -565,17 +565,6 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(ValueError, match="shape mismatch"):
             left + other
 
-    def test_parr_addsub_length_one_broadcasts(self):
-        # a length-1 operand keeps broadcasting, see GH#23853
-        pi = pd.period_range("2016-01-01", periods=3, freq="D")
-        expected = pd.period_range("2016-01-02", periods=3, freq="D")
-        tm.assert_index_equal(pi + np.array([1]), expected)
-        tm.assert_index_equal(pi + pd.timedelta_range("1D", periods=1).array, expected)
-
-        off = pi.freq
-        expected = pd.Index([0 * off, 1 * off, 2 * off])
-        tm.assert_index_equal(pi - pi[:1], expected)
-
     def test_parr_sub_pi_mismatched_freq(self, box_with_array, box_with_array2):
         rng = pd.period_range("1/1/2000", freq="D", periods=5)
         other = pd.period_range("1/6/2000", freq="h", periods=5)

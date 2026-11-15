@@ -731,7 +731,8 @@ def test_mismatched_length_arith_op(
     # GH#23853 raised AssertionError
     op = all_arithmetic_functions
     left = index_or_series_or_array(SparseArray(a, fill_value=0))
-    with pytest.raises(ValueError, match=f"length mismatch: {len(a)} vs. {len(b)}"):
+    msg = f"operands have mismatched length {len(a)} and {len(b)}"
+    with pytest.raises(ValueError, match=msg):
         op(left, other_box(b))
 
 
@@ -754,7 +755,7 @@ def test_mismatched_length_arith_op_sparse_operand(
         SparseArray(np.array(a, dtype=np.int64), fill_value=0)
     )
     right = SparseArray(np.array(b, dtype=np.int64), fill_value=0)
-    with pytest.raises(ValueError, match="length mismatch"):
+    with pytest.raises(ValueError, match="operands have mismatched length"):
         op(left, right)
 
 
