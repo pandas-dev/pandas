@@ -360,6 +360,16 @@ def test_setitem_incompatible_subtype_raises():
     with pytest.raises(TypeError, match=msg):
         arr[:2] = [pd.Interval(0, 1), None]
 
+    # the missing entry is not the only problem, so don't blame it
+    msg = re.escape(
+        "Invalid value for dtype 'interval[int64, right]'. Value should be intervals "
+        "with a compatible subtype, got 'interval[datetime64[us], right]' instead."
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr[:2] = [pd.Interval(pd.Timestamp("2020"), pd.Timestamp("2021")), None]
+    with pytest.raises(TypeError, match=re.escape("got 'interval[float64, right]'")):
+        arr[:2] = [pd.Interval(0.5, 1.5), None]
+
 
 @pytest.mark.parametrize(
     "breaks",

@@ -1216,8 +1216,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         try:
             self.left._validate_fill_value(value_left)
         except (LossySetitemError, TypeError) as err:
+            nan_only = False
             if mask.any() and is_integer_dtype(self.dtype.subtype):
                 # missing entries upcast array.dtype, so reporting it would mislead
+                #  when they are the only problem
+                try:
+                    self.left._validate_fill_value(np.asarray(value_left[~mask]))
+                    nan_only = True
+                except (LossySetitemError, TypeError):
+                    pass
+            if nan_only:
                 msg = "Cannot set float NaN to integer-backed IntervalArray"
             else:
                 msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
