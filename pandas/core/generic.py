@@ -101,6 +101,7 @@ from pandas.core.dtypes.inference import (
     is_nested_list_like,
 )
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     isna,
     notna,
 )
@@ -266,6 +267,37 @@ def _fill_bool_ea_na(cond):
     if is_bool_ea(getattr(cond, "dtype", None)):
         return cond.fillna(False)
     return cond
+
+
+def _attrs_equal(left: dict[Hashable, Any], right: dict[Hashable, Any]) -> bool:
+    """
+    Like ``left == right``, but without raising on array-like values (GH#45824).
+    """
+    if left.keys() != right.keys():
+        return False
+    pandas_types = (NDFrame, Index)
+    array_types = (np.ndarray, ExtensionArray)
+    for key, lval in left.items():
+        rval = right[key]
+        if lval is rval:
+            continue
+        if isinstance(lval, pandas_types) or isinstance(rval, pandas_types):
+            equal = isinstance(lval, pandas_types) and lval.equals(rval)
+        elif isinstance(lval, array_types) or isinstance(rval, array_types):
+            equal = (
+                isinstance(lval, array_types)
+                and isinstance(rval, array_types)
+                and bool(array_equivalent(lval, rval))
+            )
+        else:
+            try:
+                equal = bool(lval == rval)
+            except (TypeError, ValueError):
+                # e.g. array-likes nested in a list or dict
+                equal = False
+        if not equal:
+            return False
+    return True
 
 
 class NDFrame(PandasObject, indexing.IndexingMixin):
@@ -6452,7 +6484,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if all(bool(obj.attrs) for obj in objs):
                 # all inputs have non-empty attrs
                 attrs = objs[0].attrs
-                have_same_attrs = all(obj.attrs == attrs for obj in objs[1:])
+                have_same_attrs = all(
+                    _attrs_equal(obj.attrs, attrs) for obj in objs[1:]
+                )
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 
