@@ -230,6 +230,7 @@ class TestSeriesSortValues:
         )
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.filterwarnings("ignore:Storing data with non-native byte order")
     @pytest.mark.parametrize("dtype", [">f8", "complex128"])
     def test_sort_values_monotonic_check_unsupported_dtype(self, dtype):
         # GH#59092 dtypes the already-sorted check rejects fall back to argsort
