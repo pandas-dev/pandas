@@ -413,13 +413,13 @@ class TestDataFramePlots:
             {"value": np.arange(10.0), "month": [1, 2] * 5, 0: [1, 2] * 5}
         )
         ax = df.boxplot(column="value", by=by(df))
-        suptitle = ax.figure._suptitle
+        suptitle = ax.figure.get_suptitle()
         if expected is None:
             assert ax.get_xlabel() == ""
-            assert suptitle is None
+            assert suptitle == ""
         else:
             assert ax.get_xlabel() == expected
-            assert suptitle.get_text() == f"Boxplot grouped by {expected}"
+            assert suptitle == f"Boxplot grouped by {expected}"
         assert [t.get_text() for t in ax.get_xticklabels()] == ["1", "2"]
 
 
