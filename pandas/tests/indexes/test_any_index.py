@@ -54,6 +54,71 @@ def test_map_identity_mapping(index, request, using_infer_string):
     tm.assert_index_equal(result, index, exact="equiv", check_freq=False)
 
 
+@pytest.fixture
+def two_value_index(index_flat):
+    # CategoricalIndex differs, see categorical/test_map.py
+    if not len(index_flat) or isinstance(index_flat, pd.CategoricalIndex):
+        pytest.skip("Test doesn't apply to empty or categorical index")
+    return index_flat.unique()[:2].rename("n")
+
+
+def _xfail_if_tuples_become_arrow_lists(index, request):
+    # ExtensionArray.map casts tuples to pyarrow lists since GH#64801
+    if index.dtype == "string[pyarrow]":
+        request.applymarker(pytest.mark.xfail(reason="tuples cast to pyarrow lists"))
+
+
+def test_map_to_tuples_names_each_level(two_value_index, request):
+    # GH#24800
+    _xfail_if_tuples_become_arrow_lists(two_value_index, request)
+    first, second = two_value_index.tolist()
+    result = two_value_index.map(lambda val: (val, val))
+    expected = pd.MultiIndex.from_tuples(
+        [(first, first), (second, second)], names=["n", "n"]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_tuples_of_different_lengths(two_value_index, request):
+    # GH#50293
+    _xfail_if_tuples_become_arrow_lists(two_value_index, request)
+    first, second = two_value_index.tolist()
+    result = two_value_index.map(lambda val: (val,) if val == first else (val, val))
+    expected = pd.Index([(first,), (second, second)], name="n", tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_tuple_or_non_tuple(two_value_index):
+    # GH#24800
+    first, _ = two_value_index.tolist()
+    result = two_value_index.map(lambda val: (val, val) if val == first else "b")
+    expected = pd.Index([(first, first), "b"], dtype=object, name="n")
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_value", [None, np.nan])
+def test_map_to_tuple_or_na(two_value_index, na_value, request):
+    # GH#24800
+    _xfail_if_tuples_become_arrow_lists(two_value_index, request)
+    first, _ = two_value_index.tolist()
+    result = two_value_index.map(lambda val: (val, val) if val == first else na_value)
+    expected = pd.MultiIndex.from_tuples(
+        [(first, first), (np.nan, np.nan)], names=["n", "n"]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_dict_to_tuples_missing_key(two_value_index, request):
+    # GH#24800
+    _xfail_if_tuples_become_arrow_lists(two_value_index, request)
+    first, _ = two_value_index.tolist()
+    result = two_value_index.map({first: (first, first)})
+    expected = pd.MultiIndex.from_tuples(
+        [(first, first), (np.nan, np.nan)], names=["n", "n"]
+    )
+    tm.assert_index_equal(result, expected)
+
+
 def test_wrong_number_names(index):
     names = index.nlevels * ["apple", "banana", "carrot"]
     with pytest.raises(ValueError, match="^Length"):

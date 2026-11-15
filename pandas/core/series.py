@@ -120,6 +120,7 @@ from pandas.core.arrays.arrow import (
     StructAccessor,
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
+from pandas.core.arrays.interval import IntervalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.construction import (
     array as pd_array,
@@ -4295,7 +4296,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
 
         result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index], copy=False
+            self._values[sorted_index],
+            index=self.index[sorted_index],
+            dtype=self.dtype,
+            copy=False,
         )
 
         if ignore_index:
@@ -7417,6 +7421,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     cat = Accessor("cat", CategoricalAccessor)
     plot = Accessor("plot", pandas.plotting.PlotAccessor)
     sparse = Accessor("sparse", SparseAccessor)
+    # not in _accessors, so a label "interval" on a non-interval Series stays
+    #  reachable as an attribute
+    interval = Accessor("interval", IntervalAccessor)
     struct = Accessor("struct", StructAccessor)
     list = Accessor("list", ListAccessor)
 

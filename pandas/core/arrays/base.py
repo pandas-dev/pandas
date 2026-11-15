@@ -3248,7 +3248,6 @@ class ExtensionArray:
                 "prod",
                 "mean",
                 "median",
-                "cumsum",
                 "cumprod",
                 "std",
                 "sem",

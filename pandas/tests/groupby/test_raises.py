@@ -129,10 +129,10 @@ def test_groupby_raises_string(
         "corrwith": (TypeError, "Could not convert"),
         "count": (None, ""),
         "cumcount": (None, ""),
-        "cummax": (TypeError, "cummax is not supported for object dtype"),
-        "cummin": (TypeError, "cummin is not supported for object dtype"),
+        "cummax": (None, ""),
+        "cummin": (None, ""),
         "cumprod": (TypeError, "cumprod is not supported for object dtype"),
-        "cumsum": (TypeError, "cumsum is not supported for object dtype"),
+        "cumsum": (None, ""),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "first": (None, ""),
@@ -176,7 +176,6 @@ def test_groupby_raises_string(
             "prod",
             "mean",
             "median",
-            "cumsum",
             "cumprod",
             "std",
             "sem",
@@ -198,8 +197,6 @@ def test_groupby_raises_string(
             #  there.
             msg = "operation 'sub' not supported for dtype 'str' with dtype 'str'"
 
-        elif groupby_func in ["cummin", "cummax"]:
-            msg = msg.replace("object", "str")
         elif groupby_func == "corrwith":
             msg = "Cannot perform reduction 'mean' with string dtype"
 
@@ -376,7 +373,20 @@ def test_groupby_raises_datetime_np(
 
 
 @pytest.mark.parametrize(
-    "func", ["any", "all", "std", "sem", "skew", "idxmin", "idxmax"]
+    "func",
+    [
+        "any",
+        "all",
+        "std",
+        "sem",
+        "skew",
+        "idxmin",
+        "idxmax",
+        "cumsum",
+        "cumprod",
+        "cummin",
+        "cummax",
+    ],
 )
 def test_groupby_raises_interval(func):
     # GH#69717 used to raise NotImplementedError

@@ -20,6 +20,7 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
+    period as libperiod,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
@@ -269,6 +270,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq=None)
         """
+        how = libperiod.validate_end_alias(how)
         parr = self._data
         arr = parr.to_timestamp(freq, how)
         result = DatetimeIndex._simple_new(arr, name=self.name)
