@@ -114,6 +114,7 @@ class PythonParser(ParserBase):
 
         self.skiprows = kwds["skiprows"]
 
+        self.skipfunc: Callable[[int], bool]
         if callable(self.skiprows):
             self.skipfunc = self.skiprows
         else:
