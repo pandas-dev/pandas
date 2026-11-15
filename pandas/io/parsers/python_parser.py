@@ -114,7 +114,7 @@ class PythonParser(ParserBase):
 
         self.skiprows = kwds["skiprows"]
 
-        self.skipfunc: Callable[[int], bool]
+        self.skipfunc: Callable[[int], object]
         if callable(self.skiprows):
             self.skipfunc = self.skiprows
         else:
@@ -1459,7 +1459,7 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         colspecs: list[tuple[int, int]] | Literal["infer"],
         delimiter: str | None,
         comment: str | None,
-        skipfunc: Callable[[int], bool] | None = None,
+        skipfunc: Callable[[int], object] | None = None,
         infer_nrows: int = 100,
     ) -> None:
         self.f = f
@@ -1492,7 +1492,7 @@ class FixedWidthReader(abc.Iterator[list[str]]):
                 )
 
     def get_rows(
-        self, infer_nrows: int, skipfunc: Callable[[int], bool] | None = None
+        self, infer_nrows: int, skipfunc: Callable[[int], object] | None = None
     ) -> list[str]:
         """
         Read rows from self.f, skipping as specified.
@@ -1530,7 +1530,7 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         return detect_rows
 
     def detect_colspecs(
-        self, infer_nrows: int = 100, skipfunc: Callable[[int], bool] | None = None
+        self, infer_nrows: int = 100, skipfunc: Callable[[int], object] | None = None
     ) -> list[tuple[int, int]]:
         # Regex escape the delimiters
         delimiters = "".join([rf"\{x}" for x in self.delimiter])
