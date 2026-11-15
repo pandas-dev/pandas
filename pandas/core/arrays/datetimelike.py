@@ -1300,6 +1300,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
+        if self.shape != other.shape:
+            raise ValueError("cannot add indices of unequal length")
+
         if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
@@ -1307,9 +1310,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-
-        # Caller is responsible for broadcasting if necessary
-        assert self.shape == other.shape, (self.shape, other.shape)
 
         res_values = op(self.astype("O"), np.asarray(other))
         return res_values

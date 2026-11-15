@@ -474,3 +474,27 @@ def test_neg_object_matches_mul():
     ser = pd.Series(["a", None], dtype=object)
     with pytest.raises(TypeError, match="bad operand type for unary -: 'str'"):
         -ser
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2016-01-01", periods=3),
+        pd.date_range("2016-01-01", periods=3, tz="UTC"),
+        pd.timedelta_range("1 Day", periods=3),
+        pd.period_range("2016-01-01", periods=3, freq="D"),
+    ],
+)
+@pytest.mark.parametrize("op", [operator.add, operator.sub])
+def test_datetimelike_addsub_object_array_length_mismatch(
+    values, op, index_or_series_or_array
+):
+    # GH#37086 mismatched length object array raised AssertionError
+    obj = index_or_series_or_array(values)
+    other = np.array([pd.offsets.Day(1), pd.offsets.Day(2)])
+
+    msg = "cannot add indices of unequal length"
+    with pytest.raises(ValueError, match=msg):
+        op(obj, other)
+    with pytest.raises(ValueError, match=msg):
+        op(obj, list(other))
