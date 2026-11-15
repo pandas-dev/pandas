@@ -4246,7 +4246,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
 
         result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index], copy=False
+            self._values[sorted_index],
+            index=self.index[sorted_index],
+            dtype=self.dtype,
+            copy=False,
         )
 
         if ignore_index:
