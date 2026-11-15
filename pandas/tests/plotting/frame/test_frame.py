@@ -2951,6 +2951,19 @@ def test_secondary_y_scatter_no_warning():
         df.plot.scatter(x="a", y="b", secondary_y=["zzz"])
 
 
+@pytest.mark.parametrize("x", [None, "c"])
+def test_secondary_y_scalar_y_no_warning(x):
+    # GH#13041 scalar y plots a Series, exempt like Series.plot so one
+    #  secondary_y list can serve several calls onto shared axes
+    df = pd.DataFrame({"a": [1, 2], "b": [30, 40], "c": [5, 6]})
+    ax = None
+    with tm.assert_produces_warning(None):
+        for col in ["a", "b"]:
+            ax = df.plot(x=x, y=col, secondary_y=["b"], ax=ax)
+    assert len(ax.left_ax.get_lines()) == 1
+    assert len(ax.left_ax.right_ax.get_lines()) == 1
+
+
 def _generate_4_axes_via_gridspec():
     gs = mpl.gridspec.GridSpec(2, 2)
     ax_tl = plt.subplot(gs[0, 0])
