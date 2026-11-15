@@ -8,6 +8,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from io import StringIO
@@ -4381,6 +4382,23 @@ def test_read_sql_binary_like_column(
         )
     else:
         expected = pd.DataFrame({"a": values}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_sql_tz_aware_time_keeps_offset(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend
+):
+    # GH#59242 tz-aware times (e.g. psycopg2 TIMETZ) stay object, since
+    # Arrow's time types can't hold the offset
+    monkeypatch.setitem(
+        sqlite3.converters, "TIMETZ", lambda b: time.fromisoformat(b.decode())
+    )
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a TIMETZ)")
+    conn.executemany("INSERT INTO test VALUES (?)", [("01:00:00+05:00",), (None,)])
+    result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
+    tz = timezone(timedelta(hours=5))
+    expected = pd.DataFrame({"a": [time(1, 0, tzinfo=tz), None]}, dtype=object)
     tm.assert_frame_equal(result, expected)
 
 
