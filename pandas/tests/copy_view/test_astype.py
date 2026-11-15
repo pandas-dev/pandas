@@ -205,6 +205,22 @@ def test_astype_arrow_timestamp():
     assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
 
 
+def test_astype_arrow_timestamp_with_nat():
+    # GH#71743
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {"a": [pd.Timestamp("2020-01-01 01:01:01.000001"), pd.NaT]}, dtype="M8[ns]"
+    )
+    df_orig = df.copy()
+    result = df.astype("timestamp[ns][pyarrow]")
+    tm.assert_frame_equal(df, df_orig)
+    expected = pd.DataFrame(
+        {"a": [pd.Timestamp("2020-01-01 01:01:01.000001"), None]},
+        dtype="timestamp[ns][pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_convert_dtypes_infer_objects():
     ser = pd.Series(["a", "b", "c"])
     ser_orig = ser.copy()

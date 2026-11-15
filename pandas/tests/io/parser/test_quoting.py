@@ -135,7 +135,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
         ({"quotechar": '"', "quoting": csv.QUOTE_NONNUMERIC}, [[1.0, 2.0, "foo"]]),
     ],
 )
-def test_quoting_various(all_parsers, kwargs, exp_data, request):
+def test_quoting_various(all_parsers, kwargs, exp_data):
     data = '1,2,"foo"'
     parser = all_parsers
     columns = ["a", "b", "c"]
@@ -147,8 +147,6 @@ def test_quoting_various(all_parsers, kwargs, exp_data, request):
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(StringIO(data), names=columns, **kwargs)
             return
-        mark = pytest.mark.xfail(reason="ParserError: Empty CSV file or block")
-        request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), names=columns, **kwargs)
     expected = pd.DataFrame(exp_data, columns=columns)

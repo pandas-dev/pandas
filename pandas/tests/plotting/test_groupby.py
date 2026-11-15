@@ -239,3 +239,41 @@ class TestDataFrameGroupByPlots:
 
         assert res["a"].get_legend() is None
         assert res["b"].get_legend() is None
+
+    @pytest.mark.parametrize(
+        "method, args, kwargs",
+        [
+            ("__call__", (), {}),
+            ("__call__", ("x", "y"), {"kind": "bar"}),
+            ("line", (), {}),
+            ("scatter", ("x", "y"), {"legend": True}),
+        ],
+    )
+    def test_groupby_plot_frame_title_is_group_key(self, method, args, kwargs):
+        # GH#12452
+        df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [4, 3, 2, 1], "z": list("abab")})
+        res = getattr(df.groupby("z").plot, method)(*args, **kwargs)
+        assert [ax.get_title() for ax in res] == ["a", "b"]
+
+    def test_groupby_plot_frame_title_subplots(self):
+        # GH#12452 with subplots the group key becomes the figure title
+        df = pd.DataFrame({"x": [1, 2, 3, 4], "z": [0, 0, 1, 1], "w": list("aabb")})
+        res = df.groupby(["z", "w"]).plot(subplots=True)
+        assert [axes[0].figure.get_suptitle() for axes in res] == ["(0, a)", "(1, b)"]
+
+    @pytest.mark.parametrize(
+        "call, expected",
+        [
+            (lambda gb: gb.plot(title="T"), "T"),
+            (lambda gb: gb.plot(title=None), ""),
+            (lambda gb: gb.plot(ax=mpl.pyplot.subplots()[1]), ""),
+            (lambda gb: gb.plot("x", "y", "line", mpl.pyplot.subplots()[1]), ""),
+            (lambda gb: gb["x"].plot(), ""),
+        ],
+        ids=["title", "title_none", "ax", "positional_ax", "series"],
+    )
+    def test_groupby_plot_title_not_defaulted(self, call, expected):
+        # GH#12452 no group-key title when the user set one or groups share axes
+        df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [4, 3, 2, 1], "z": list("abab")})
+        res = call(df.groupby("z"))
+        assert [ax.get_title() for ax in res] == [expected, expected]

@@ -250,6 +250,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             return "Decimal: {}".format
         return repr
 
+    # no axis keyword, to test third-party EAs that lack it (GH#47514)
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))

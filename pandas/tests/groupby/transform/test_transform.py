@@ -839,15 +839,18 @@ def test_cython_transform_frame_column(
     df = request.getfixturevalue(df_fix)
     gb = df.groupby(group_keys=False, **gb_target)
     c = column
+    # object dtype applies the Series method group-by-group, so it raises
+    #  exactly when that does for some group, GH#49758
+    object_fallback = c in ("string", "string_missing") and not using_infer_string
     if (
         c not in ["float", "int", "float_missing"]
         and op != "shift"
         and not (c == "timedelta" and op == "cumsum")
+        and not (c in ("string", "string_missing") and op == "cumsum")
+        and not object_fallback
     ):
         if c == "timedelta":
             msg = f"timedelta64 type does not support {op} operations"
-        elif c in ("string", "string_missing") and not using_infer_string:
-            msg = f"{op} is not supported for object dtype"
         else:
             # datetime, or the string columns under the str dtype
             msg = "does not support operation"
@@ -856,7 +859,17 @@ def test_cython_transform_frame_column(
         with pytest.raises(TypeError, match=msg):
             getattr(gb[c], op)()
     else:
-        expected = gb[c].apply(targop)
+        try:
+            expected = gb[c].apply(targop)
+        except TypeError:
+            if not object_fallback:
+                raise
+            msg = f"{op} is not supported for object dtype"
+            with pytest.raises(TypeError, match=msg):
+                gb[c].transform(op)
+            with pytest.raises(TypeError, match=msg):
+                getattr(gb[c], op)()
+            return
         expected.name = c
         if c in ["string_missing", "string"]:
             expected = expected.fillna(np.nan)
@@ -984,20 +997,8 @@ def test_pad_stable_sorting(fill_method):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "freq",
-    [
-        None,
-        pytest.param(
-            "D",
-            marks=pytest.mark.xfail(
-                reason="GH#23918 before method uses freq in vectorized approach"
-            ),
-        ),
-    ],
-)
 @pytest.mark.parametrize("periods", [1, -1])
-def test_pct_change(frame_or_series, freq, periods):
+def test_pct_change(frame_or_series, periods):
     # GH 21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
@@ -1016,8 +1017,19 @@ def test_pct_change(frame_or_series, freq, periods):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(periods=periods, freq=freq)
+    result = gb.pct_change(periods=periods)
     tm.assert_equal(result, expected)
+
+
+def test_pct_change_freq_excludes_grouping_column():
+    # GH#46944
+    df = pd.DataFrame(
+        {"a": ["x", "x", "y", "y"], "b": [1.0, 2.0, 4.0, 8.0]},
+        index=pd.date_range("2020-01-01", periods=4),
+    )
+    result = df.groupby("a").pct_change(freq="D")
+    expected = pd.DataFrame({"b": [np.nan, 1.0, np.nan, 1.0]}, index=df.index)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

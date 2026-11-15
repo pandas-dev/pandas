@@ -586,6 +586,13 @@ class ExcelFormatter:
             if indexer is not None:
                 self._css_cols = indexer
 
+        # likewise rows and index/header levels, which Styler.hide can remove
+        self._css_rows = np.arange(len(df))
+        self._css_index_levels = np.arange(df.index.nlevels)
+        self._css_column_levels = np.arange(df.columns.nlevels)
+        if self.styler is not None:
+            index, header = self._drop_hidden(index, header)
+
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index
@@ -597,6 +604,42 @@ class ExcelFormatter:
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
         self.autofilter = autofilter
+
+    def _drop_hidden(
+        self, index: bool, header: Sequence[Hashable] | bool
+    ) -> tuple[bool, Sequence[Hashable] | bool]:
+        """
+        Remove the rows, columns, levels and names hidden with ``Styler.hide``.
+        """
+        styler = self.styler
+        rows = np.setdiff1d(self._css_rows, styler.hidden_rows)
+        col_mask = ~np.isin(self._css_cols, styler.hidden_columns)
+        df = self.df.iloc[rows, col_mask]
+        self._css_rows = rows
+        self._css_cols = self._css_cols[col_mask]
+
+        new_index = df.index
+        if all(styler.hide_index_):
+            index = False
+        elif any(styler.hide_index_):
+            new_index = new_index.droplevel(list(np.flatnonzero(styler.hide_index_)))
+            self._css_index_levels = np.flatnonzero(~np.array(styler.hide_index_))
+        if styler.hide_index_names:
+            new_index = new_index.set_names([None] * new_index.nlevels)
+
+        new_columns = df.columns
+        if all(styler.hide_columns_):
+            header = False
+        elif any(styler.hide_columns_):
+            new_columns = new_columns.droplevel(
+                list(np.flatnonzero(styler.hide_columns_))
+            )
+            self._css_column_levels = np.flatnonzero(~np.array(styler.hide_columns_))
+        if styler.hide_column_names:
+            new_columns = new_columns.set_names([None] * new_columns.nlevels)
+
+        self.df = df.set_axis(new_index, axis=0).set_axis(new_columns, axis=1)
+        return index, header
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
@@ -660,7 +703,7 @@ class ExcelFormatter:
                     val=values[i],
                     style=None,
                     css_styles=getattr(self.styler, "ctx_columns", None),
-                    css_row=lnum,
+                    css_row=self._css_column_levels[lnum],
                     css_col=self._css_cols[i],
                     css_converter=self.style_converter,
                     mergestart=mergestart,
@@ -694,7 +737,7 @@ class ExcelFormatter:
                     val=colname,
                     style=None,
                     css_styles=getattr(self.styler, "ctx_columns", None),
-                    css_row=0,
+                    css_row=self._css_column_levels[0],
                     css_col=self._css_cols[colindex],
                     css_converter=self.style_converter,
                 )
@@ -763,8 +806,8 @@ class ExcelFormatter:
                     val=idxval,
                     style=None,
                     css_styles=getattr(self.styler, "ctx_index", None),
-                    css_row=idx,
-                    css_col=0,
+                    css_row=self._css_rows[idx],
+                    css_col=self._css_index_levels[0],
                     css_converter=self.style_converter,
                 )
             coloffset = 1
@@ -830,8 +873,8 @@ class ExcelFormatter:
                             val=values[i],
                             style=None,
                             css_styles=getattr(self.styler, "ctx_index", None),
-                            css_row=i,
-                            css_col=gcolidx,
+                            css_row=self._css_rows[i],
+                            css_col=self._css_index_levels[gcolidx],
                             css_converter=self.style_converter,
                             mergestart=mergestart,
                             mergeend=mergeend,
@@ -852,8 +895,8 @@ class ExcelFormatter:
                             val=indexcolval,
                             style=None,
                             css_styles=getattr(self.styler, "ctx_index", None),
-                            css_row=idx,
-                            css_col=gcolidx,
+                            css_row=self._css_rows[idx],
+                            css_col=self._css_index_levels[gcolidx],
                             css_converter=self.style_converter,
                         )
                     gcolidx += 1
@@ -876,7 +919,7 @@ class ExcelFormatter:
                     val=val,
                     style=None,
                     css_styles=getattr(self.styler, "ctx", None),
-                    css_row=i,
+                    css_row=self._css_rows[i],
                     css_col=self._css_cols[colidx],
                     css_converter=self.style_converter,
                 )
