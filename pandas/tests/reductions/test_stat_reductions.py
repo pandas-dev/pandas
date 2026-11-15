@@ -277,13 +277,13 @@ class TestSeriesStatReductions:
         sp_stats = pytest.importorskip("scipy.stats")
         compare_func = getattr(sp_stats, sp_func)
 
-        string_series = pd.Series([1.0, 2.0, 2.0, 3.0, 10.0], name="series")
+        ser = pd.Series([1.0, 2.0, 2.0, 3.0, 10.0], name="series")
 
-        result = getattr(string_series, name)(bias=bias)
-        expected = compare_func(string_series, bias=bias)
+        result = getattr(ser, name)(bias=bias)
+        expected = compare_func(ser, bias=bias)
         tm.assert_almost_equal(result, expected)
 
-        df = pd.DataFrame({"a": string_series, "b": string_series * 2})
+        df = pd.DataFrame({"a": ser, "b": ser * 2})
         result = getattr(df, name)(bias=bias)
         expected = pd.Series(
             [compare_func(df[c], bias=bias) for c in df.columns], index=df.columns

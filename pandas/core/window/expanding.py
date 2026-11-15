@@ -958,7 +958,7 @@ class Expanding(RollingAndExpandingMixin):
         Computes the third standardized moment over all data points seen
         so far, measuring the asymmetry of the distribution.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 
@@ -1012,10 +1012,9 @@ class Expanding(RollingAndExpandingMixin):
         Calculate the expanding kurtosis, optionally corrected for statistical bias.
 
         Measures the tailedness of the distribution over all data points
-        seen so far. A minimum of four periods is required, or two when
-        ``bias=True``.
+        seen so far.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 

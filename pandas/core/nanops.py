@@ -1725,7 +1725,7 @@ def nanskew(
     """
     Compute the skewness, optionally corrected for statistical bias.
 
-    By default, the result applies a small correction for bias when
+    By default, the result applies a correction for bias when
     estimating from a sample. Set ``bias=True`` to skip this correction
     and return the raw (uncorrected) value instead.
 
@@ -1794,7 +1794,7 @@ def nankurt(
     """
     Compute the excess kurtosis, optionally corrected for statistical bias.
 
-    By default, the result applies a small correction for bias when
+    By default, the result applies a correction for bias when
     estimating from a sample. Set ``bias=True`` to skip this correction
     and return the raw (uncorrected) value instead.
 

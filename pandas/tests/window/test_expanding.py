@@ -241,15 +241,15 @@ def test_expanding_skew_kurt_numerical_stability(method):
 def test_expanding_skew_kurt_bias(sp_func, exp_func, bias):
     sp_stats = pytest.importorskip("scipy.stats")
     compare_func = partial(getattr(sp_stats, sp_func), bias=bias)
-    s = pd.Series([1.0, 2.0, 2.0, 3.0, 10.0])
-    result = getattr(s.expanding(), exp_func)(bias=bias)
+    ser = pd.Series([1.0, 2.0, 2.0, 3.0, 10.0])
+    result = getattr(ser.expanding(), exp_func)(bias=bias)
     # with bias=False a minimum of 3 (skew) or 4 (kurt) observations is
     # required, so the leading windows are NaN; with bias=True they compute
     min_periods = 2 if bias else 4 if exp_func == "kurt" else 3
     expected = pd.Series(
         [
-            compare_func(s.iloc[: i + 1]) if i + 1 >= min_periods else np.nan
-            for i in range(len(s))
+            compare_func(ser.iloc[: i + 1]) if i + 1 >= min_periods else np.nan
+            for i in range(len(ser))
         ]
     )
     tm.assert_series_equal(result, expected)

@@ -10082,7 +10082,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return skew over requested axis, optionally corrected for statistical bias.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 
@@ -10142,7 +10142,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Kurtosis obtained using Fisher's definition of
         kurtosis (kurtosis of normal == 0.0).
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 

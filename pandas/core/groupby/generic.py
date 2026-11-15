@@ -1372,7 +1372,7 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return skew, optionally corrected for statistical bias.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 
@@ -1471,7 +1471,7 @@ class SeriesGroupBy(GroupBy[Series]):
         computes Fisher's definition of kurtosis (normal distribution has
         a kurtosis of zero) for each group.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 
@@ -3732,7 +3732,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Return skew within groups.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 
@@ -3836,7 +3836,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Kurtosis obtained using Fisher's definition (kurtosis of normal == 0.0).
         Values are computed for each numeric column within each group.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 

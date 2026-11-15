@@ -11,7 +11,9 @@ from pandas._libs.algos cimport (
     calc_kurt,
     calc_skew,
     calc_var,
+    kurt_min_nobs,
     moments_add_value,
+    skew_min_nobs,
 )
 
 import numpy as np
@@ -584,7 +586,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
         bint is_monotonic_increasing_bounds
         bint requires_recompute, numerically_unstable = False
 
-    minp = max(minp, 2 if bias else 3)
+    minp = max(minp, skew_min_nobs(bias))
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
@@ -727,7 +729,7 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
         bint is_monotonic_increasing_bounds
         bint requires_recompute, numerically_unstable = False
 
-    minp = max(minp, 2 if bias else 4)
+    minp = max(minp, kurt_min_nobs(bias))
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )

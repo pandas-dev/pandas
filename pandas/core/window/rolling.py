@@ -2967,10 +2967,9 @@ class Rolling(RollingAndExpandingMixin):
         Calculate the rolling skewness, optionally corrected for statistical bias.
 
         This is equivalent to applying ``scipy.stats.skew`` with the same
-        ``bias`` over each rolling window. A minimum of three periods is
-        required, or two when ``bias=True``.
+        ``bias`` over each rolling window.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 
@@ -3075,10 +3074,9 @@ class Rolling(RollingAndExpandingMixin):
         Calculate the rolling kurtosis, optionally corrected for statistical bias.
 
         This is equivalent to applying ``scipy.stats.kurtosis`` with the same
-        ``bias`` over each rolling window. A minimum of four periods is
-        required, or two when ``bias=True``.
+        ``bias`` over each rolling window.
 
-        By default, the result applies a small correction for bias when
+        By default, the result applies a correction for bias when
         estimating from a sample. Set ``bias=True`` to skip this correction
         and return the raw (uncorrected) value instead.
 
