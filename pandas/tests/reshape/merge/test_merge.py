@@ -2915,6 +2915,37 @@ def test_merge_result_empty_index_and_on():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_inner_empty_on_side_keeps_its_index():
+    # GH#22921 the result index comes from the "on" side even when it is empty
+    empty = pd.DataFrame(
+        {"a": np.array([], dtype="int64")}, index=pd.Index([], dtype=object, name="L")
+    )
+    other = pd.DataFrame({"b": [1]}, index=pd.Index([1], name="R"))
+    expected = pd.DataFrame(
+        {"a": np.array([], dtype="int64"), "b": np.array([], dtype="int64")},
+        index=empty.index,
+    )
+
+    result = merge(empty, other, left_on="a", right_index=True)
+    tm.assert_frame_equal(result, expected)
+
+    result = merge(other, empty, left_index=True, right_on="a")
+    tm.assert_frame_equal(result, expected[["b", "a"]])
+
+
+@pytest.mark.parametrize("how", ["left", "outer"])
+def test_merge_empty_on_side_keeps_index_side_rows(how):
+    # GH#22921 unlike inner, these keep the rows and index of the index side
+    empty = pd.DataFrame(
+        {"a": np.array([], dtype="int64")}, index=pd.Index([], dtype=object, name="L")
+    )
+    other = pd.DataFrame({"b": [1]}, index=pd.Index([1], name="R"))
+    expected = pd.DataFrame({"b": [1], "a": [1]}, index=other.index)
+
+    result = merge(other, empty, left_index=True, right_on="a", how=how)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_merge_suffixes_produce_dup_columns_raises():
     # GH#22818; Enforced in 2.0
     left = pd.DataFrame({"a": [1, 2, 3], "b": 1, "b_x": 2})

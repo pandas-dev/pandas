@@ -1450,8 +1450,9 @@ class _MergeOperation:
             (left_indexer, right_indexer) = self._get_join_indexers()
 
             if self.right_index:
-                # GH#41171 asof takes the left index even when left is empty
-                if len(self.left) > 0 or self.how == "asof":
+                # only right/outer take the right index when left is empty,
+                # see GH#41171, GH#22921
+                if len(self.left) > 0 or self.how not in ("right", "outer"):
                     join_index = self._create_join_index(
                         left_ax,
                         right_ax,
@@ -1472,7 +1473,7 @@ class _MergeOperation:
                         how="left",
                     )
 
-                elif len(self.right) > 0:
+                elif len(self.right) > 0 or self.how not in ("left", "outer"):
                     join_index = self._create_join_index(
                         right_ax,
                         left_ax,
