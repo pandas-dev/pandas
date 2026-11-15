@@ -295,6 +295,34 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     return res_values
 
 
+def unary_op(values: ArrayLike, op):
+    """
+    Evaluate a unary operation `-`, `+`, or `abs`.
+
+    If the operator raises on object-dtype values, it is retried on the
+    non-missing entries and missing entries become NaN, as in arithmetic_op.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+    op : {operator.neg, operator.pos, operator.abs, np.abs}
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    try:
+        return op(values)
+    except TypeError:
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            raise
+        # GH#42862
+        mask = notna(values)
+        result = np.full(values.shape, np.nan, dtype=object)
+        result[mask] = op(values[mask])
+        return result
+
+
 def maybe_warn_complex_ordering(lvalues, rvalues, op) -> None:
     """
     Warn on an ordering comparison of numpy data where either side is complex.

@@ -74,6 +74,7 @@ from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
+    validate_native_byteorder,
 )
 from pandas.core.indexers import validate_indices
 
@@ -134,6 +135,12 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     if not isinstance(values, ABCMultiIndex):
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
+
+    if isinstance(values, np.ndarray) and not (
+        values.dtype.kind == "f" and values.dtype.itemsize in [2, 12, 16]
+    ):
+        # the float branch below converts these sizes to native float64
+        validate_native_byteorder(values)
 
     if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values))

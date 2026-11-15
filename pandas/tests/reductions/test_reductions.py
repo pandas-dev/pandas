@@ -2208,3 +2208,20 @@ def test_negative_min_count_deprecated_index(how, dtype):
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = getattr(idx, how)(min_count=-1)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["Int64", "Float64", "boolean", "Sparse[int64]", "Sparse[float64]", "Sparse[bool]"],
+)
+@pytest.mark.parametrize("opname", ["min", "max"])
+def test_index_minmax_ea_python_scalars(opname, dtype, using_python_scalars):
+    # GH#64266
+    # non-monotonic data so the result is not taken from the first/last element
+    idx = pd.Index(pd.array([1, 0, 1], dtype=dtype))
+    result = getattr(idx, opname)()
+    expected = getattr(pd.Series(idx), opname)()
+    assert type(result) is type(expected)
+    assert result == expected
+    if using_python_scalars:
+        assert not isinstance(result, np.generic)

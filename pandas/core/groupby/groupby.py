@@ -1558,6 +1558,37 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return ensure_block_shape(res_values, ndim=ndim)
 
     @final
+    def _transform_py_fallback(
+        self, how: str, values: ArrayLike, **kwargs
+    ) -> ArrayLike:
+        """
+        Apply the Series method ``how`` group-by-group, for cumulative ops
+        whose cython kernel does not support ``values.dtype``.
+        """
+        from pandas.core.reshape.concat import concat
+
+        if values.ndim == 2:
+            # object block in DataFrameGroupBy, one row per column
+            return np.vstack(
+                [
+                    np.asarray(self._transform_py_fallback(how, row, **kwargs))
+                    for row in values
+                ]
+            )
+
+        ser = Series(values, dtype=values.dtype, copy=False)
+        try:
+            results = [
+                getattr(group, how)(**kwargs)
+                for group in self._grouper._get_splitter(ser)
+            ]
+        except (TypeError, NotImplementedError) as err:
+            raise TypeError(f"{how} is not supported for {values.dtype} dtype") from err
+        # rows in a dropped NA group are absent from results and become NA
+        res = concat(results) if results else ser.iloc[:0]
+        return res.reindex(range(len(ser)))._values
+
+    @final
     def _cython_agg_general(
         self,
         how: str,

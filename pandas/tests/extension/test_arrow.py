@@ -663,6 +663,10 @@ class TestArrowArray(base.ExtensionTests):
             return pointwise_result.astype("boolean[pyarrow]")
 
         original_dtype = tm.get_dtype(expected)
+        if tm.get_dtype(obj) == ArrowDtype(pa.bool_()):
+            # GH#63064 pointwise on python bools gives ints; casting back to
+            #  bool matches the logical or/and that add/mul give for bools
+            return expected.astype(tm.get_dtype(obj))
 
         was_frame = False
         if isinstance(expected, pd.DataFrame):
@@ -779,6 +783,14 @@ class TestArrowArray(base.ExtensionTests):
             exc = (NotImplementedError, TypeError)
         elif arrow_temporal_supported:
             exc = None
+        elif pa.types.is_boolean(pa_dtype):
+            # GH#63064 match non-masked and masked bool dtypes
+            if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
+                exc = NotImplementedError
+            elif op_name in ["__sub__", "__rsub__"]:
+                exc = TypeError
+            else:
+                exc = None
         elif op_name in ["__add__", "__radd__"] and (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
         ):

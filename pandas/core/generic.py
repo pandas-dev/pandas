@@ -112,6 +112,7 @@ from pandas.core import (
     indexing,
     missing,
     nanops,
+    ops,
     sample,
 )
 from pandas.core.array_algos.replace import should_use_regex
@@ -1400,10 +1401,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # "_SupportsInversion[ndarray[Any, dtype[bool_]]]"
                 return operator.inv(values)  # type: ignore[arg-type]
             else:
-                # error: Argument 1 to "neg" has incompatible type "Union
-                # [ExtensionArray, ndarray[Any, Any]]"; expected
-                # "_SupportsNeg[ndarray[Any, dtype[Any]]]"
-                return operator.neg(values)  # type: ignore[arg-type]
+                return ops.unary_op(values, operator.neg)
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -1415,10 +1413,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_bool_dtype(values.dtype):
                 return values.copy()
             else:
-                # error: Argument 1 to "pos" has incompatible type "Union
-                # [ExtensionArray, ndarray[Any, Any]]"; expected
-                # "_SupportsPos[ndarray[Any, dtype[Any]]]"
-                return operator.pos(values)  # type: ignore[arg-type]
+                return ops.unary_op(values, operator.pos)
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -1554,7 +1549,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        res_mgr = self._mgr.apply(np.abs)
+        res_mgr = self._mgr.apply(ops.unary_op, op=np.abs)
         return self._constructor_from_mgr(res_mgr, axes=res_mgr.axes).__finalize__(
             self, name="abs"
         )
