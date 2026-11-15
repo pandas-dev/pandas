@@ -445,16 +445,14 @@ class BaseBlockManager(PandasObject):
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
                         #  obj.axes[-1].equals(self.items)
-                        if obj.ndim == 1:
+                        if isinstance(obj, ABCSeries):
                             kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
                             continue
                         if b.values.ndim == 1:
                             # pass a same-dtype column as is; _values would
                             #  convert it to a 2D object ndarray
                             loc = b.mgr_locs.as_array[0]
-                            mgr = obj._mgr
-                            assert isinstance(mgr, BlockManager)  # for mypy
-                            col = mgr.iget_values(loc)
+                            col = obj._get_column_array(loc)
                             if col.dtype == b.dtype:
                                 kwargs[k] = col
                                 continue
