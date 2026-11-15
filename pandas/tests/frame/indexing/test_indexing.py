@@ -11,6 +11,7 @@ import pytest
 
 from pandas._libs import iNaT
 from pandas.compat import PY315
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_integer
 
@@ -1534,9 +1535,12 @@ class TestDataFrameIndexing:
         # GH#57457
         columns = ["a"]
         data = [np.array([1, 2], dtype=">f8")]
-        df = pd.DataFrame(dict(zip(columns, data, strict=True)))
+        msg = "non-native byte order"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df = pd.DataFrame(dict(zip(columns, data, strict=True)))
         result = df[df.columns]
-        dfexp = pd.DataFrame({"a": [1, 2]}, dtype=">f8")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            dfexp = pd.DataFrame({"a": [1, 2]}, dtype=">f8")
         expected = dfexp[dfexp.columns]
         tm.assert_frame_equal(result, expected)
 
@@ -1624,7 +1628,8 @@ def test_mixed_dtype_row_python_scalars(indexer):
     )
     with pd.option_context("future.python_scalars", True):
         row = indexer(df)
-        _, expected = next(df.iterrows())
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            _, expected = next(df.iterrows())
     assert row.dtype == object
     assert [type(x) for x in row.array] == [int, float, bool, int, np.int8]
     # NumPy scalars stored in object dtype are user data, not unboxed

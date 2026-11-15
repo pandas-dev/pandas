@@ -755,6 +755,52 @@ def test_binary_buffer_without_mode_respects_encoding(encoding):
     tm.assert_frame_equal(result, expected)
 
 
+class AutoClosingBuffer(IOBase):
+    # mimics a urllib3 response (e.g. requests' Response.raw), which reports
+    # closed once exhausted
+    auto_close = True
+
+    def __init__(self, data) -> None:
+        self.buffer = BytesIO(data)
+
+    def readable(self) -> bool:
+        return True
+
+    @property
+    def closed(self) -> bool:
+        return self.buffer.closed
+
+    def read(self, amt=None):
+        if self.buffer.closed:
+            return b""
+        data = self.buffer.read(-1 if amt is None else amt)
+        if amt is None or not data:
+            self.buffer.close()
+        return data
+
+    def flush(self) -> None:
+        # urllib3 also skips flushing a closed response
+        pass
+
+
+@pytest.mark.parametrize(
+    "reader, kwargs, data",
+    [
+        (pd.read_csv, {"encoding": "latin1"}, "a,b\n1,\N{DEGREE SIGN}\n"),
+        (pd.read_csv, {"engine": "python"}, "a,b\n1,x\n"),
+        (pd.read_json, {}, '{"a":{"0":1},"b":{"0":"x"}}'),
+        (pd.read_xml, {"parser": "etree"}, "<data><row><a>1</a><b>x</b></row></data>"),
+    ],
+)
+def test_read_auto_closing_buffer(reader, kwargs, data):
+    # GH#71883 wrapping a buffer that closes itself at EOF in a TextIOWrapper
+    # raised "I/O operation on closed file"
+    encoding = kwargs.get("encoding", "utf-8")
+    expected = reader(BytesIO(data.encode(encoding)), **kwargs)
+    result = reader(AutoClosingBuffer(data.encode(encoding)), **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_fail_mmap():
     # GH#45630 raise a clear ValueError instead of the cryptic
     # UnsupportedOperation("fileno") from BytesIO

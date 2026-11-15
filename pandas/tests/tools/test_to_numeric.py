@@ -158,6 +158,31 @@ def test_coerce_unhashable_nested_tuple():
     tm.assert_series_equal(result, expected)
 
 
+def test_zero_dim_ndarray_elements(errors):
+    # GH#47408 - a 0-dimensional array converts as the scalar it holds instead
+    # of tripping the len() check meant for empty containers.
+    kwargs = {"errors": errors} if errors is not None else {}
+    ser = pd.Series([3, np.array(2.1), np.array(4)], dtype=object)
+
+    result = pd.to_numeric(ser, **kwargs)
+
+    expected = pd.Series([3.0, 2.1, 4.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_zero_dim_ndarray_with_unparsable_string():
+    # GH#47408
+    ser = pd.Series([3, np.array(2.1), "a"], dtype=object)
+
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([3.0, 2.1, np.nan])
+    tm.assert_series_equal(result, expected)
+
+    msg = "Unable to parse string 'a' at position 2"
+    with pytest.raises(ValueError, match=msg):
+        pd.to_numeric(ser, errors="raise")
+
+
 def test_ignore_error():
     ser = pd.Series([1, -3.14, "apple"])
     result = pd.to_numeric(ser, errors="coerce")
@@ -981,12 +1006,25 @@ def test_invalid_dtype_backend():
         pd.to_numeric(ser, dtype_backend="numpy")
 
 
-def test_coerce_pyarrow_backend():
-    # GH 52588
+@pytest.mark.parametrize(
+    "data, expected, kwargs, dtype",
+    [
+        (list("12x"), [1, 2, None], {"dtype_backend": "pyarrow"}, "int64"),
+        (["1", "x"], [1, None], {}, "int64"),
+        (["1", "NaN"], [1, None], {}, "int64"),
+        (["1", None, "x"], [1, None, None], {}, "int64"),
+        (["1", None, "x"], [1, None, None], {"dtype_backend": "pyarrow"}, "int64"),
+        (["1.5", None, "x"], [1.5, None, None], {}, "float64"),
+    ],
+)
+def test_coerce_pyarrow_string(data, expected, kwargs, dtype):
+    # GH#52588, GH#67949: unparsable strings (including the "NaN" literal)
+    #  must become a real pd.NA that isna() sees, and a parse failure after
+    #  an existing missing value must not duplicate the last parsed value
     pa = pytest.importorskip("pyarrow")
-    ser = pd.Series(list("12x"), dtype=pd.ArrowDtype(pa.string()))
-    result = pd.to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
-    expected = pd.Series([1, 2, None], dtype=pd.ArrowDtype(pa.int64()))
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce", **kwargs)
+    expected = pd.Series(expected, dtype=pd.ArrowDtype(getattr(pa, dtype)()))
     tm.assert_series_equal(result, expected)
 
 

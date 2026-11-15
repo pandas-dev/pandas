@@ -2395,7 +2395,7 @@ class Rolling(RollingAndExpandingMixin):
         Notes
         -----
         See more `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`__.
+        <https://pandas.pydata.org/docs/user_guide/groupby.html#piping-function-calls>`__.
 
         Examples
         --------
