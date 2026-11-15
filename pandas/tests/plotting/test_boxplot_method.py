@@ -395,6 +395,33 @@ class TestDataFramePlots:
             )
             assert target_label == pprint_thing(["group"])
 
+    @pytest.mark.parametrize(
+        "by, expected",
+        [
+            (lambda df: df["month"], "month"),
+            (lambda df: pd.Index(df["month"]), "month"),
+            (lambda df: pd.Grouper(key="month"), "month"),
+            (lambda df: 0, "0"),
+            (lambda df: df["month"].values, None),
+            (lambda df: list(df["month"]), None),
+        ],
+        ids=["Series", "Index", "Grouper", "int-label", "ndarray", "list"],
+    )
+    def test_boxplot_by_label(self, by, expected):
+        # GH#23007 label with the key's name, not its repr
+        df = pd.DataFrame(
+            {"value": np.arange(10.0), "month": [1, 2] * 5, 0: [1, 2] * 5}
+        )
+        ax = df.boxplot(column="value", by=by(df))
+        suptitle = ax.figure._suptitle
+        if expected is None:
+            assert ax.get_xlabel() == ""
+            assert suptitle is None
+        else:
+            assert ax.get_xlabel() == expected
+            assert suptitle.get_text() == f"Boxplot grouped by {expected}"
+        assert [t.get_text() for t in ax.get_xticklabels()] == ["1", "2"]
+
 
 class TestDataFrameGroupByPlots:
     def test_boxplot_legacy1(self, hist_df):
