@@ -535,7 +535,7 @@ cdef class BlockIndex(SparseIndex):
         Vectorized lookup, returns ndarray[int32_t]
         """
         cdef:
-            Py_ssize_t n, i, j, ind_val
+            Py_ssize_t n, i, j, ind_val, cum_len
             ndarray[int32_t, ndim=1] locs, lens
             ndarray[int32_t, ndim=1] results
 

@@ -402,7 +402,7 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode(IntervalNode):
         """
 
         # GH 51826: ensures nan is handled properly during reindexing
-        if np.isnan(point):
+        if point != point:
             return
 
         cdef:
