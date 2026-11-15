@@ -239,7 +239,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.skipif(
-        np.finfo(np.longdouble).eps >= np.finfo(np.float64).eps,
+        bool(np.finfo(np.longdouble).eps >= np.finfo(np.float64).eps),
         reason="longdouble is no wider than float64",
     )
     def test_sort_values_longdouble_equal_as_float64(self):
