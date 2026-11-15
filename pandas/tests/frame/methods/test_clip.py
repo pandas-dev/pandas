@@ -137,6 +137,37 @@ class TestDataFrameClip:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_clip_period_and_numeric_threshold_with_missing_values(self):
+        # GH#44785
+        # period columns must not be filled with inf either; missing
+        # positions act as no bounds per column
+        df = pd.DataFrame(
+            {
+                "p": pd.period_range("2020-01", periods=2, freq="M"),
+                "n": [1.0, 2.0],
+            }
+        )
+        threshold = pd.DataFrame(
+            {
+                "p": pd.Series(
+                    [None, pd.Period("2020-03", "M")],
+                    dtype=pd.PeriodDtype("M"),
+                ),
+                "n": [np.nan, 5.0],
+            }
+        )
+        result = df.clip(lower=threshold)
+        expected = pd.DataFrame(
+            {
+                "p": pd.Series(
+                    [pd.Period("2020-01", "M"), pd.Period("2020-03", "M")],
+                    dtype="period[M]",
+                ),
+                "n": [1.0, 5.0],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_clip_mixed_numeric(self):
         # clip on mixed integer or floats
         # GH#24162, clipping now preserves numeric types per column

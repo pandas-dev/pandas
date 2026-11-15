@@ -8986,7 +8986,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if is_list_like(threshold):
             fill_value = np.inf if method.__name__ == "le" else -np.inf
             if isinstance(threshold, ABCDataFrame):
-                dt_like = threshold.dtypes.map(lambda dt: dt.kind in "mM")
+                # GH 44785: +/-np.inf cannot be compared against datetime,
+                # timedelta or period values, so those columns keep their
+                # missing values and are tracked by a mask instead of being
+                # filled.
+                dt_like = threshold.dtypes.map(
+                    lambda dt: dt.kind in "mM" or isinstance(dt, PeriodDtype)
+                )
                 if not dt_like.any():
                     threshold_inf = threshold.fillna(fill_value)
                     no_bound_mask = None
@@ -9002,10 +9008,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     no_bound_mask = threshold.isna()
             else:
                 dtype = getattr(threshold, "dtype", None)
-                if dtype is not None and dtype.kind in "mM":
-                    # GH 44785: +/-np.inf cannot be compared against datetime
-                    # or timedelta values, so track the missing positions
-                    # explicitly and keep the original values there.
+                dt_like = False
+                if dtype is not None:
+                    if dtype.kind in "mM" or isinstance(dtype, PeriodDtype):
+                        dt_like = True
+                    elif dtype.kind == "O":
+                        # GH 44785: an object-dtype threshold may still hold
+                        # datetime-like values (e.g. [NaT, Timestamp]) that
+                        # cannot be compared against +/-np.inf.
+                        dt_like = lib.infer_dtype(threshold, skipna=False) in (
+                            "datetime",
+                            "timedelta",
+                            "period",
+                        )
+                if dt_like:
+                    # GH 44785: track the missing positions explicitly and
+                    # keep the original values where the threshold is missing.
                     threshold_inf = threshold
                     no_bound_mask = threshold.isna()
                 else:
