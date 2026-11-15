@@ -13,6 +13,7 @@ from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1796,7 +1797,7 @@ def test_groupby_complex_raises(func):
     # GH#43701, GH#43770 median/skew/kurt must raise, not discard the
     #  imaginary part
     data = pd.Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
-    msg = f"dtype 'complex128' does not support operation '{func}'"
+    msg = REDUCTION_MESSAGE.format(dtype="complex128", name=func)
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
 

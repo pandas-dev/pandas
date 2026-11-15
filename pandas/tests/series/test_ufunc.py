@@ -13,6 +13,7 @@ import pytest
 
 from pandas.compat.numpy import np_version_gt2_6
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -338,7 +339,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support operation",
+                    REDUCTION_MESSAGE.format(dtype=".*", name=".*"),
                     "unsupported operand type",
                     "ufunc 'multiply' cannot use operands",
                 ]
@@ -368,7 +369,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support operation",
+                    REDUCTION_MESSAGE.format(dtype=".*", name=".*"),
                     "unsupported operand type",
                     "ufunc 'add' cannot use operands",
                 ]

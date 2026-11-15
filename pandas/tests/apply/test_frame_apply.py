@@ -6,6 +6,7 @@ import pytest
 
 from pandas.compat import is_platform_arm
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -1485,7 +1486,7 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    msg = "does not support operation"
+    msg = REDUCTION_MESSAGE.format(dtype=".*", name=".*")
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
 
@@ -1595,7 +1596,7 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    msg = "does not support operation"
+    msg = REDUCTION_MESSAGE.format(dtype=".*", name=".*")
     with pytest.raises(TypeError, match=msg):
         df.agg("sum")
 
@@ -1603,7 +1604,7 @@ def test_nuiscance_columns():
     expected = pd.Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    msg = "does not support operation"
+    msg = REDUCTION_MESSAGE.format(dtype=".*", name=".*")
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
 

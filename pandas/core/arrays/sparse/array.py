@@ -45,6 +45,7 @@ from pandas.errors import (
     Pandas4Warning,
     PerformanceWarning,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import (
     set_module,
 )
@@ -2082,7 +2083,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         method = getattr(self, name, None)
 
         if method is None:
-            raise TypeError(f"cannot perform {name} with type {self.dtype}")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
 
         if name in _skipna_aware_reductions:
             # these methods handle skipna themselves; dropping NAs beforehand
@@ -2318,7 +2319,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             "cummax": np.maximum.accumulate,
         }.get(name)
         if accum_func is None:
-            raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+            raise NotImplementedError(
+                REDUCTION_MESSAGE.format(dtype=self.dtype, name=name)
+            )
 
         if name == "cumsum" and skipna and self.dtype.subtype.kind in "biufc":
             # numeric cumsum keeps the NA gaps as gaps instead of densifying;

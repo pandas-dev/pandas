@@ -46,6 +46,7 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -2879,7 +2880,7 @@ class ArrowExtensionArray(
         try:
             result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
         except pa.ArrowNotImplementedError as err:
-            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            msg = REDUCTION_MESSAGE.format(dtype=self.dtype, name=name)
             raise TypeError(msg) from err
 
         if convert_to_int:
@@ -2896,7 +2897,7 @@ class ArrowExtensionArray(
         pyarrow.compute does not implement these methods for strings.
         """
         if name == "cumprod":
-            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            msg = REDUCTION_MESSAGE.format(dtype=self.dtype, name=name)
             raise TypeError(msg)
 
         # We may need to strip out trailing NA values
@@ -3064,10 +3065,7 @@ class ArrowExtensionArray(
             # "Callable[[Any, Any, KwArg(Any)], Any]")
             pyarrow_meth = getattr(pc, pyarrow_name, None)  # type: ignore[assignment]
             if pyarrow_meth is None:
-                raise TypeError(
-                    f"'{type(self).__name__}' with dtype {self.dtype} "
-                    f"does not support operation '{name}'"
-                )
+                raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
 
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
         if name in ["any", "all", "sum", "prod"] and "min_count" not in kwargs:
@@ -3083,10 +3081,9 @@ class ArrowExtensionArray(
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
         except (AttributeError, NotImplementedError, TypeError) as err:
             msg = (
-                f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support operation '{name}' with pyarrow "
-                f"version {pa.__version__}. '{name}' may be supported by "
-                f"upgrading pyarrow."
+                REDUCTION_MESSAGE.format(dtype=self.dtype, name=name)
+                + f" with pyarrow version {pa.__version__}. '{name}' may be "
+                "supported by upgrading pyarrow."
             )
             raise TypeError(msg) from err
         if name == "median":
@@ -4120,9 +4117,7 @@ class ArrowExtensionArray(
                 "var",
                 "skew",
             ]:
-                raise TypeError(
-                    f"dtype '{self.dtype}' does not support operation '{how}'"
-                )
+                raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=how))
             # Fall through to Arrow-native path below
 
         pa_type = self._pa_array.type
@@ -4212,7 +4207,7 @@ class ArrowExtensionArray(
             values = self._to_groupby_compatible()
         except NotImplementedError as err:
             raise TypeError(
-                f"dtype '{self.dtype}' does not support operation 'quantile'"
+                REDUCTION_MESSAGE.format(dtype=self.dtype, name="quantile")
             ) from err
         result = values._groupby_quantile(
             qs=qs,

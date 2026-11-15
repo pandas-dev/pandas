@@ -11,6 +11,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.errors.messages import REDUCTION_MESSAGE
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
@@ -1020,7 +1022,7 @@ class TestPivotTable:
     def test_margins_raises_on_nuisance(self, data, kwargs, using_infer_string):
         msg = re.escape("agg function failed [how->mean,dtype->")
         if using_infer_string:
-            msg = "dtype 'str' does not support operation 'mean'"
+            msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
         with pytest.raises(TypeError, match=msg):
             data.pivot_table(margins=True, aggfunc="mean", **kwargs)
 

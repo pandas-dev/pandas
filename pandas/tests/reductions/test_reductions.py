@@ -4,12 +4,14 @@ from datetime import (
     timedelta,
 )
 from decimal import Decimal
+import re
 
 import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -427,13 +429,7 @@ class TestIndexReductions:
         )
         td = s.diff()
 
-        msg = "|".join(
-            [
-                f"reduction operation '{opname}' not allowed for this dtype",
-                rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"does not support operation '{opname}'",
-            ]
-        )
+        msg = re.escape(REDUCTION_MESSAGE.format(dtype=td.dtype, name=opname))
 
         with pytest.raises(TypeError, match=msg):
             getattr(td, opname)()
@@ -787,7 +783,7 @@ class TestSeriesReductions:
             msg = "|".join(
                 [
                     "operation 'var' not allowed",
-                    "does not support operation 'var'",
+                    REDUCTION_MESSAGE.format(dtype=".*", name="var"),
                 ]
             )
             with pytest.raises(TypeError, match=msg):

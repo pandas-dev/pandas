@@ -7,6 +7,7 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -247,7 +248,7 @@ def tests_raises_on_nuisance(test_frame, using_infer_string):
     expected = r[["A", "B", "C"]].mean()
     msg = re.escape("agg function failed [how->mean,dtype->")
     if using_infer_string:
-        msg = "dtype 'str' does not support operation 'mean'"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
     with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
@@ -848,9 +849,8 @@ def test_selection_api_validation():
     tm.assert_frame_equal(exp, result)
 
     exp.index.name = "d"
-    with pytest.raises(
-        TypeError, match="datetime64 type does not support operation 'sum'"
-    ):
+    msg = re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="sum"))
+    with pytest.raises(TypeError, match=msg):
         df.resample("2D", level="d").sum()
     result = df.resample("2D", level="d").sum(numeric_only=True)
     tm.assert_frame_equal(exp, result)
@@ -1042,10 +1042,10 @@ def test_frame_downsample_method(
             klass = TypeError
             msg = re.escape(f"agg function failed [how->{method},dtype->")
             if using_infer_string:
-                msg = f"dtype 'str' does not support operation '{method}'"
+                msg = REDUCTION_MESSAGE.format(dtype="str", name=method)
         elif method in ["sum", "std", "sem"] and using_infer_string:
             klass = TypeError
-            msg = f"dtype 'str' does not support operation '{method}'"
+            msg = REDUCTION_MESSAGE.format(dtype="str", name=method)
         else:
             klass = ValueError
             msg = expected_data
@@ -1099,7 +1099,7 @@ def test_series_downsample_method(
     elif method == "prod":
         msg = re.escape("agg function failed [how->prod,dtype->")
         if using_infer_string:
-            msg = "dtype 'str' does not support operation 'prod'"
+            msg = REDUCTION_MESSAGE.format(dtype="str", name="prod")
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
 

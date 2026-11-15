@@ -138,3 +138,12 @@ def test_pandas_warnings_filter(warn_category, filter_category):
     with tm.assert_produces_warning(None), warnings.catch_warnings():
         warnings.filterwarnings(category=filter_category, action="ignore")
         warnings.warn("test", category=warn_category)
+
+
+def test_reduction_message():
+    # GH#59580 the other tests build their expected message from REDUCTION_MESSAGE;
+    # this one pins the user-facing wording
+    ser = pd.Series(["a", "b"], dtype="category")
+    msg = "dtype 'category' does not support operation 'sum'"
+    with pytest.raises(TypeError, match=msg):
+        ser.sum()

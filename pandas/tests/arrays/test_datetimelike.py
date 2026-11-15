@@ -12,6 +12,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import to_offset
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -239,7 +240,7 @@ class SharedTests:
         assert result == arr1d[0]
 
     def test_reduce_invalid(self, arr1d):
-        msg = "does not support operation 'not a method'"
+        msg = REDUCTION_MESSAGE.format(dtype=".*", name="not a method")
         with pytest.raises(TypeError, match=msg):
             arr1d._reduce("not a method")
 

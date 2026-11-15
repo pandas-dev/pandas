@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.errors.messages import REDUCTION_MESSAGE
+
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
@@ -40,5 +42,7 @@ class TestAccumulator:
             ],
             dtype="M8[ns]",
         )
-        with pytest.raises(TypeError, match=f"Accumulation {func}"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=func)
+        ):
             arr._accumulate(func)

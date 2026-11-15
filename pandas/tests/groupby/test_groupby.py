@@ -10,6 +10,7 @@ from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -474,7 +475,7 @@ def test_frame_multi_key_function_list_partial_failure(using_infer_string):
     funcs = ["mean", "std"]
     msg = re.escape("agg function failed [how->mean,dtype->")
     if using_infer_string:
-        msg = "dtype 'str' does not support operation 'mean'"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
     with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
@@ -765,7 +766,7 @@ def test_raises_on_nuisance(df, using_infer_string):
     grouped = df.groupby("A")
     msg = re.escape("agg function failed [how->mean,dtype->")
     if using_infer_string:
-        msg = "dtype 'str' does not support operation 'mean'"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -774,7 +775,7 @@ def test_raises_on_nuisance(df, using_infer_string):
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime(2011, 1, 1)
     grouped = df.groupby("A")
-    msg = "datetime64 type does not support operation 'sum'"
+    msg = re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="sum"))
     with pytest.raises(TypeError, match=msg):
         grouped.agg("sum")
     with pytest.raises(TypeError, match=msg):
@@ -809,7 +810,7 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only, using_infer_string):
         # Added numeric_only as part of GH#46560; these do not drop nuisance
         # columns when numeric_only is False
         if using_infer_string:
-            msg = f"dtype 'str' does not support operation '{agg_function}'"
+            msg = REDUCTION_MESSAGE.format(dtype="str", name=agg_function)
             klass = TypeError
         elif agg_function in ("std", "sem"):
             klass = ValueError
@@ -840,7 +841,7 @@ def test_raise_on_nuisance_python_single(df, using_infer_string):
     msg = "could not convert"
     if using_infer_string:
         err = TypeError
-        msg = "dtype 'str' does not support operation 'skew'"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="skew")
     with pytest.raises(err, match=msg):
         grouped.skew()
 
@@ -849,7 +850,7 @@ def test_raise_on_nuisance_python_multiple(three_group, using_infer_string):
     grouped = three_group.groupby(["A", "B"])
     msg = re.escape("agg function failed [how->mean,dtype->")
     if using_infer_string:
-        msg = "dtype 'str' does not support operation 'mean'"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -1900,16 +1901,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
         if is_dt64 or is_cat or is_per or (is_str and op != "sum"):
             # GH#41291
             # datetime64 -> prod and sum are invalid
-            if is_dt64:
-                msg = "datetime64 type does not support"
-            elif is_per:
-                msg = "Period type does not support"
-            elif is_str:
-                msg = f"dtype 'str' does not support operation '{op}'"
-            else:
-                msg = "category type does not support"
-            if op in ["skew", "kurt"]:
-                msg = "|".join([msg, f"does not support operation '{op}'"])
+            msg = REDUCTION_MESSAGE.format(dtype=".*", name=op)
             with pytest.raises(TypeError, match=msg):
                 get_result()
 
@@ -2778,18 +2770,10 @@ def test_groupby_reduce_period():
     ser = pi.to_series()
     gb = ser.groupby(grps)
 
-    with pytest.raises(TypeError, match="Period type does not support sum operations"):
-        gb.sum()
-    with pytest.raises(
-        TypeError, match="Period type does not support cumsum operations"
-    ):
-        gb.cumsum()
-    with pytest.raises(TypeError, match="Period type does not support prod operations"):
-        gb.prod()
-    with pytest.raises(
-        TypeError, match="Period type does not support cumprod operations"
-    ):
-        gb.cumprod()
+    for op in ["sum", "cumsum", "prod", "cumprod", "std", "sem"]:
+        msg = re.escape(REDUCTION_MESSAGE.format(dtype="period[D]", name=op))
+        with pytest.raises(TypeError, match=msg):
+            getattr(gb, op)()
 
     res = gb.max()
     expected = ser[-10:]

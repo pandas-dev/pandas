@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import SpecificationError
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -204,48 +205,32 @@ def test_apply_modify_traceback():
         data.apply(transform, axis=1)
 
 
-def test_agg_raises_frame(axis, using_infer_string):
+def test_agg_raises_frame(axis):
     # GH 21224
     df = pd.DataFrame([["a", "b"], ["b", "a"]])
-    expected = TypeError
-    if using_infer_string:
-        expected = (TypeError, NotImplementedError)
-
     msg = "|".join(
         [
             "can't multiply sequence by non-int of type 'str'",
-            # NotImplementedError python backend
-            "cannot perform cumprod with type str",
-            # TypeError pyarrow
-            "operation 'cumprod' not supported for dtype 'str'",
+            REDUCTION_MESSAGE.format(dtype="str", name="cumprod"),
         ]
     )
-    with pytest.raises(expected, match=msg):
+    with pytest.raises(TypeError, match=msg):
         df.agg("cumprod", axis=axis)
 
 
 @pytest.mark.parametrize("func", ["mean", "prod", "std", "var", "median", "cumprod"])
-def test_agg_raises_series(func, using_infer_string):
+def test_agg_raises_series(func):
     # GH21224
     series = pd.Series("a b c".split())
-    expected = TypeError
-    msg = "|".join(
-        ["[Cc]ould not convert", "can't multiply sequence by non-int of type"]
-    )
-    if using_infer_string and func == "cumprod":
-        expected = (TypeError, NotImplementedError)
-
     msg = "|".join(
         [
-            msg,
-            "does not support",
+            "[Cc]ould not convert",
+            "can't multiply sequence by non-int of type",
+            REDUCTION_MESSAGE.format(dtype=".*", name=".*"),
             "has no kernel",
-            "Cannot perform",
-            "cannot perform",
-            "operation",
         ]
     )
-    with pytest.raises(expected, match=msg):
+    with pytest.raises(TypeError, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
         series.agg(func)
 
