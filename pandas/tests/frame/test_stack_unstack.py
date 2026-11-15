@@ -3162,3 +3162,22 @@ def test_stack_na_label_lookup(na_in, labels):
     # like any MultiIndex, unstack puts the -1 coded label first
     unstacked = result.unstack(level=0 if na_in == "index" else 1)
     tm.assert_index_equal(unstacked.columns, labels.take([1, 0, 2]))
+
+
+@pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
+def test_stack_columns_with_na(future_stack):
+    # GH#72098
+    df = pd.DataFrame({"a": [1, 2], None: [3, 2]})
+    result = df.stack(0, future_stack=future_stack)
+    if future_stack:
+        index = pd.MultiIndex.from_tuples(
+            [(0, "a"), (0, np.nan), (1, "a"), (1, np.nan)]
+        )
+    else:
+        index = pd.MultiIndex(
+            levels=[[0, 1], df.columns],
+            codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+            verify_integrity=False,
+        )
+    expected = pd.Series([1, 3, 2, 2], index=index)
+    tm.assert_series_equal(result, expected)
