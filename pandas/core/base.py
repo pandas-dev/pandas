@@ -997,9 +997,7 @@ class IndexOpsMixin(OpsMixin):
             if dtype.type is np.clongdouble:
                 return values.astype(np.complex128).tolist()
             if isinstance(dtype, SparseDtype):
-                if dtype.kind in "mM":
-                    return list(self)
-                return values.to_dense().tolist()
+                return list(self)
         return values.tolist()
 
     to_list = tolist
