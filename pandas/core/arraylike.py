@@ -452,13 +452,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     else:
         # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
         # Those can have an axis keyword and thus can't be called block-by-block
-        # self is the only input: two-input ufuncs and nout > 1 on a DataFrame
-        #  take the first branch above
         values = np.asarray(self)
         result = getattr(ufunc, method)(values, **kwargs)
         if lib.is_scalar(result):
-            # match DataFrame._reduce with axis=None: decide on the dtype of
-            #  the array that was reduced, not the column dtypes
             return maybe_unbox_numpy_scalar(result, object_with_dtype=values)
         # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
