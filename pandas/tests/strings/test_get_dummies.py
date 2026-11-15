@@ -30,7 +30,7 @@ def test_get_dummies_index():
     tm.assert_index_equal(result, expected)
 
 
-# GH#47872
+# GH#47872, GH#72087
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -49,28 +49,20 @@ def test_get_dummies_index():
         "boolean",
     ],
 )
-def test_get_dummies_with_dtype(any_string_dtype, dtype):
-    s = pd.Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+@pytest.mark.parametrize(
+    "index",
+    [pd.RangeIndex(3), pd.Index([101, 205, 101], name="product_id")],
+)
+def test_get_dummies_with_dtype(any_string_dtype, dtype, index):
+    s = pd.Series(
+        ["a|b", "a|c", np.nan], dtype=any_string_dtype, index=index
+    )
     result = s.str.get_dummies("|", dtype=dtype)
     expected = pd.DataFrame(
-        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=dtype
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("dtype", ["Int8", "Int64", "boolean"])
-def test_get_dummies_with_extension_dtype_preserves_index(dtype):
-    # GH#72087
-    s = pd.Series(
-        ["sale|gift", "gift", "sale"],
-        index=pd.Index([101, 205, 101], name="product_id"),
-    )
-    result = s.str.get_dummies(dtype=dtype)
-    expected = pd.DataFrame(
-        [[1, 1], [1, 0], [0, 1]],
-        columns=["gift", "sale"],
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
+        columns=list("abc"),
         dtype=dtype,
-        index=s.index,
+        index=index,
     )
     tm.assert_frame_equal(result, expected)
 
