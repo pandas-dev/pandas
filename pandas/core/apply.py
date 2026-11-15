@@ -1754,8 +1754,8 @@ class FrameColumnApply(FrameApply):
         if self.result_type == "expand":
             result = self.infer_to_same_shape(results, res_index)
 
-        # we have a non-series and don't want inference
-        elif not isinstance(results[0], ABCSeries):
+        # we have a non-series or were asked to reduce, so don't infer
+        elif self.result_type == "reduce" or not isinstance(results[0], ABCSeries):
             result = self.obj._constructor_sliced(results)
             result.index = res_index
 

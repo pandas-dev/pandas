@@ -1310,6 +1310,17 @@ def test_result_type_series_result_other_index(int_frame_const_col, engine, requ
     tm.assert_frame_equal(result, expected)
 
 
+def test_result_type_reduce_series_result(axis):
+    # GH#19571 a Series result is not expanded on either axis
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    result = df.apply(lambda x: pd.Series([0, 1]), axis=axis, result_type="reduce")
+    assert result.dtype == object
+    expected_index = df.columns if axis in [0, "index"] else df.index
+    tm.assert_index_equal(result.index, expected_index)
+    for value in result:
+        tm.assert_series_equal(value, pd.Series([0, 1]))
+
+
 @pytest.mark.parametrize(
     "box",
     [lambda x: list(x), lambda x: tuple(x), lambda x: np.array(x, dtype="int64")],
