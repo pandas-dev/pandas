@@ -1800,7 +1800,8 @@ def read_csv(
         while parsing. Each chunk is type-inferred independently, and a column
         whose chunks disagree is re-read in one pass, so the result matches
         ``low_memory=False``; that re-read needs at least as much memory as
-        ``low_memory=False``. Where the column cannot be re-read (e.g. from a
+        ``low_memory=False`` and reads the source again, which for a remote
+        file means a second download. Where the column cannot be re-read (e.g. from a
         pipe, or in a later chunk of an iterating read), its chunks are
         concatenated instead, which can silently round integers beyond the
         ``int64`` range to ``float64``, or give an ``object`` column holding
@@ -2412,7 +2413,8 @@ def read_table(
         while parsing. Each chunk is type-inferred independently, and a column
         whose chunks disagree is re-read in one pass, so the result matches
         ``low_memory=False``; that re-read needs at least as much memory as
-        ``low_memory=False``. Where the column cannot be re-read (e.g. from a
+        ``low_memory=False`` and reads the source again, which for a remote
+        file means a second download. Where the column cannot be re-read (e.g. from a
         pipe, or in a later chunk of an iterating read), its chunks are
         concatenated instead, which can silently round integers beyond the
         ``int64`` range to ``float64``, or give an ``object`` column holding

@@ -209,7 +209,8 @@ low_memory : boolean, default ``True``
   Internally process the file in chunks, resulting in lower memory use
   while parsing. A column whose chunks infer different types is re-read in
   one pass, so the result matches ``low_memory=False``, using at least as much
-  memory; where it cannot be re-read, its chunks are concatenated instead,
+  memory and reading the source again (a second download for a remote file);
+  where it cannot be re-read, its chunks are concatenated instead,
   which can silently lose precision or mix types with a ``DtypeWarning``.
   Specify the type with the ``dtype`` parameter to avoid both.
   Note that the entire file is read into a single ``DataFrame`` regardless,

@@ -2110,6 +2110,24 @@ def test_low_memory_reread_iterating_read_resumes(monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("compression", ["gzip", "bz2", "xz"])
+@pytest.mark.parametrize("encoding", [None, "latin-1"])
+def test_low_memory_reread_compressed_path(
+    monkeypatch, temp_file, compression, encoding
+):
+    # GH#68706: a decompressor that opened the file itself can rewind it
+    data = _mixed_dtype_data()
+    pd.read_csv(StringIO(data), dtype=str).to_csv(
+        temp_file, index=False, compression=compression
+    )
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(None):
+            result = pd.read_csv(temp_file, compression=compression, encoding=encoding)
+        expected = pd.read_csv(StringIO(data), low_memory=False)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_low_memory_codecs_reader_not_reread(monkeypatch):
     # GH#68706: seeking a codecs reader drops the text it has decoded ahead, so
     # a re-read would lose rows from the next chunk of an iterating read
@@ -2156,20 +2174,25 @@ def _streaming_tar_member(data: bytes) -> Any:
 
 
 @pytest.mark.parametrize(
-    "make_source, compression",
+    "make_source, compression, encoding",
     [
         # rewinding would decompress the preamble
-        (lambda data: _after_preamble(gzip.compress(data)), "gzip"),
-        (lambda data: _after_preamble(bz2.compress(data)), "bz2"),
-        (lambda data: _after_preamble(lzma.compress(data)), "xz"),
-        (lambda data: _ReadOnlyStream(gzip.compress(data)), "gzip"),
-        (lambda data: _ReadOnlyStream(bz2.compress(data)), "bz2"),
-        (_streaming_tar_member, None),
+        (lambda data: _after_preamble(gzip.compress(data)), "gzip", None),
+        (lambda data: _after_preamble(bz2.compress(data)), "bz2", None),
+        (lambda data: _after_preamble(lzma.compress(data)), "xz", None),
+        # a non-UTF-8 encoding wraps the decompressor in a TextIOWrapper
+        (lambda data: _after_preamble(gzip.compress(data)), "gzip", "latin-1"),
+        (lambda data: _after_preamble(bz2.compress(data)), "bz2", "latin-1"),
+        (lambda data: _after_preamble(lzma.compress(data)), "xz", "latin-1"),
+        (lambda data: _ReadOnlyStream(gzip.compress(data)), "gzip", None),
+        (lambda data: _ReadOnlyStream(gzip.compress(data)), "gzip", "latin-1"),
+        (lambda data: _ReadOnlyStream(bz2.compress(data)), "bz2", None),
+        (_streaming_tar_member, None, None),
     ],
 )
 @pytest.mark.parametrize("chunksize", [None, 30])
 def test_low_memory_compressed_stream_not_reread(
-    monkeypatch, make_source, compression, chunksize
+    monkeypatch, make_source, compression, chunksize, encoding
 ):
     # GH#68706: a decompressor over a caller's stream cannot rewind to where its
     # data starts, so its diverged columns are concatenated as before
@@ -2181,10 +2204,10 @@ def test_low_memory_compressed_stream_not_reread(
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
         if chunksize is None:
-            result = pd.read_csv(source, compression=compression)
+            result = pd.read_csv(source, compression=compression, encoding=encoding)
         else:
             with pd.read_csv(
-                source, compression=compression, chunksize=chunksize
+                source, compression=compression, encoding=encoding, chunksize=chunksize
             ) as reader:
                 result = pd.concat(reader)
     assert len(result) == nrows

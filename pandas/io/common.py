@@ -1299,9 +1299,10 @@ def can_rewind(handle: Any) -> bool:
     Only an io stream's position covers what it has read ahead; e.g. a
     ``codecs`` reader drops the text it has decoded but not handed out.
     """
-    inner = (
-        handle.buffer if isinstance(handle, (_BytesIOWrapper, _IOWrapper)) else handle
-    )
+    inner = handle
+    # a non-UTF-8 encoding puts a TextIOWrapper over any decompressor
+    while isinstance(inner, (_BytesIOWrapper, _IOWrapper, TextIOWrapper)):
+        inner = inner.buffer
     if not isinstance(inner, (IOBase, mmap.mmap)) or isinstance(
         inner, tarfile.ExFileObject
     ):
