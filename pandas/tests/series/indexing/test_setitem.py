@@ -342,6 +342,35 @@ class TestSetitemBooleanMask:
         expected = pd.Series(["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize("dtype", ["int64", "uint64"])
+    def test_setitem_boolean_partial_series_no_float_roundtrip(self, dtype):
+        # GH#18409 the unselected labels missing from the value must not
+        #  upcast it to float64
+        big = 2**62 + 1
+        ser = pd.Series([0, 1], dtype=dtype)
+        ser[[False, True]] += big
+        ser[[True, False]] += big
+        expected = pd.Series([big, big + 1], dtype=dtype)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("dtype", ["int8", "int32", "uint32"])
+    def test_setitem_boolean_partial_series_wider_int(self, dtype):
+        # GH#18409 a wider int value that fits is still accepted
+        ser = pd.Series([0, 1, 2], dtype=dtype)
+        other = pd.Series([10, 20, 30], dtype="int64")
+        mask = ser > 0
+        ser[mask] = other[mask]
+        expected = pd.Series([0, 20, 30], dtype=dtype)
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("other_dtype", ["uint64", "Sparse[uint64]"])
+    def test_setitem_boolean_partial_series_uint_no_wraparound(self, other_dtype):
+        # GH#18409 a same-width unsigned value that does not fit is not wrapped
+        ser = pd.Series([0, 1, 2], dtype="int64")
+        other = pd.Series([np.iinfo(np.uint64).max], index=[1], dtype=other_dtype)
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser[[False, True, False]] = other
+
     def test_setitem_boolean_nullable_int_types(self, any_numeric_ea_dtype):
         # GH: 26468
         ser = pd.Series([5, 6, 7, 8], dtype=any_numeric_ea_dtype)
@@ -1883,10 +1912,11 @@ def test_setitem_empty_mask_dont_upcast_dt64():
     tm.assert_series_equal(ser, orig)
 
 
-def test_setitem_bool_dtype_with_boolean_indexer():
+@pytest.mark.parametrize("other_dtype", [bool, object])
+def test_setitem_bool_dtype_with_boolean_indexer(other_dtype):
     # GH 57338
     s1 = pd.Series([True, True, True], dtype=bool)
-    s2 = pd.Series([False, False, False], dtype=bool)
+    s2 = pd.Series([False, False, False], dtype=other_dtype)
     condition = [False, True, False]
     s1[condition] = s2[condition]
     expected = pd.Series([True, False, True], dtype=bool)
