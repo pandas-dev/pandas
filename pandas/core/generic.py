@@ -251,7 +251,7 @@ def _take_rows_for_where(
     if indexer is None or not join_index.equals(obj.index):
         return other
     missing = indexer == -1
-    if missing.all() or not missing.any():
+    if missing.all():
         return other
     # _where inverts cond for inplace, so there it marks where other is used
     used = cond.to_numpy(dtype=bool)
@@ -266,8 +266,8 @@ def _take_rows_for_where(
         # setting an int array into an int dtype checks only the itemsize,
         #  whereas the float64 a reindex gives is checked by value
         return other
-    # these rows are never used; fill them with a row align also keeps, since
-    #  setting validates every value of other
+    # these rows are never used; fill them from a matched row, since setting
+    #  validates every value of other and the reindex path validates matched rows too
     indexer = indexer.copy()
     indexer[missing] = indexer[~missing][0]
     return other.take(indexer).set_axis(obj.index, axis=0)
@@ -300,6 +300,13 @@ def _has_unsafe_int_cast(obj: NDFrame, other: NDFrame) -> bool:
             # a 2D put densifies a Sparse int column to int64
             return True
         other_np = as_numpy_int(other_dtype)
+        if (
+            own_dtype.kind == "u"
+            and isinstance(other_dtype, np.dtype)
+            and other_dtype.kind == "i"
+        ):
+            # np_can_hold_element checks these by value
+            continue
         if other_np is not None and not np.can_cast(other_np, own_dtype):
             return True
     return False

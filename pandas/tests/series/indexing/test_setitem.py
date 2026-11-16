@@ -363,6 +363,17 @@ class TestSetitemBooleanMask:
         expected = pd.Series([0, 20, 30], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_boolean_partial_series_uint_from_int64(self):
+        # GH#18409 a signed value is checked by value, so it is set exactly
+        big = 2**62 + 1
+        ser = pd.Series([0, 1, 2], dtype="uint64")
+        ser[[False, True, False]] = pd.Series([big], index=[1])
+        expected = pd.Series([0, big, 2], dtype="uint64")
+        tm.assert_series_equal(ser, expected)
+
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser[[False, True, False]] = pd.Series([-1], index=[1])
+
     @pytest.mark.parametrize("other_dtype", ["uint64", "Sparse[uint64]"])
     def test_setitem_boolean_partial_series_uint_no_wraparound(self, other_dtype):
         # GH#18409 a same-width unsigned value that does not fit is not wrapped
