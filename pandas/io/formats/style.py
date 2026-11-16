@@ -648,6 +648,12 @@ class Styler(StylerRenderer):
         ``number-format`` property, writing ``§`` in place of Excel's ``;`` section
         separator.
 
+        .. warning::
+
+           Strings starting with ``=`` may be written as formulas; see
+           :meth:`pandas.DataFrame.to_excel`. Any workaround options must be
+           passed to :class:`pandas.ExcelWriter`.
+
         Examples
         --------
 

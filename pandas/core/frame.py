@@ -16659,6 +16659,12 @@ class DataFrame(NDFrame, OpsMixin):
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa: E501
+        if is_list_like(method) and not callable(method):
+            raise TypeError(
+                "method must be a string or a callable, got "
+                f"{type(method).__name__}. To correlate with another Series or "
+                "DataFrame, use DataFrame.corrwith."
+            )
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
