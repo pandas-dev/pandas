@@ -8984,80 +8984,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
         if is_list_like(threshold):
-            fill_value = np.inf if method.__name__ == "le" else -np.inf
-            if isinstance(threshold, ABCDataFrame):
-                # GH 44785: +/-np.inf cannot be compared against datetime,
-                # timedelta or period values, so those columns keep their
-                # missing values and are tracked by a mask instead of being
-                # filled.
-                dt_like = threshold.dtypes.map(
-                    lambda dt: dt.kind in "mM" or isinstance(dt, PeriodDtype)
-                )
-                if not dt_like.any():
-                    threshold_inf = threshold.fillna(fill_value)
-                    no_bound_mask = None
-                else:
-                    # GH 44785: +/-np.inf cannot be compared against datetime
-                    # or timedelta values. Fill only the remaining columns
-                    # and track the missing positions explicitly, keeping
-                    # the original values where the threshold is missing.
-                    non_dt_cols = [col for col, is_dt in dt_like.items() if not is_dt]
-                    threshold_inf = threshold.copy() if non_dt_cols else threshold
-                    for col in non_dt_cols:
-                        threshold_inf[col] = threshold[col].fillna(fill_value)
-                    no_bound_mask = threshold.isna()
-            else:
-                dtype = getattr(threshold, "dtype", None)
-                dt_like = False
-                if dtype is not None:
-                    if dtype.kind in "mM" or isinstance(dtype, PeriodDtype):
-                        dt_like = True
-                    elif dtype.kind == "O":
-                        # GH 44785: an object-dtype threshold may still hold
-                        # datetime-like values (e.g. [NaT, Timestamp]) that
-                        # cannot be compared against +/-np.inf.
-                        dt_like = lib.infer_dtype(threshold, skipna=False) in (
-                            "datetime",
-                            "timedelta",
-                            "period",
-                        )
-                if dt_like:
-                    # GH 44785: track the missing positions explicitly and
-                    # keep the original values where the threshold is missing.
-                    threshold_inf = threshold
-                    no_bound_mask = threshold.isna()
-                else:
-                    threshold_inf = threshold.fillna(fill_value)
-                    no_bound_mask = None
+            # GH 44785: track missing positions with a mask instead of
+            # filling with +/-inf, which cannot be compared against
+            # datetime-like thresholds
+            no_bound_mask = isna(threshold)
         else:
-            threshold_inf = threshold
             no_bound_mask = None
 
-        subset = method(threshold_inf, axis=axis) | isna(self)
+        subset = method(threshold, axis=axis) | isna(self)
         if no_bound_mask is not None:
             if isinstance(no_bound_mask, ABCSeries):
-                # Align the missing-threshold positions to the shape of
-                # the comparison result along the axis the threshold
-                # was applied on.
                 if isinstance(subset, ABCSeries):
                     no_bound_mask = no_bound_mask.reindex(subset.index, fill_value=True)
                 elif axis in (0, None):
-                    values = no_bound_mask.reindex(
-                        subset.index, fill_value=True
-                    ).to_numpy()
-                    no_bound_mask = self._constructor(
-                        np.tile(values[:, None], (1, len(subset.columns))),
-                        index=subset.index,
-                        columns=subset.columns,
-                    )
+                    no_bound_mask = no_bound_mask.reindex(subset.index, fill_value=True)
+                    subset = (subset.T | no_bound_mask).T
                 else:
-                    values = no_bound_mask.reindex(
+                    no_bound_mask = no_bound_mask.reindex(
                         subset.columns, fill_value=True
-                    ).to_numpy()
-                    no_bound_mask = self._constructor(
-                        np.tile(values, (len(subset.index), 1)),
-                        index=subset.index,
-                        columns=subset.columns,
                     )
             elif no_bound_mask.shape != subset.shape:
                 no_bound_mask = no_bound_mask.reindex(
