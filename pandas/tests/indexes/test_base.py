@@ -1748,10 +1748,15 @@ class TestIndexUtils:
         tm.assert_index_equal(result, expected)
 
 
+def _assign_index(obj, labels):
+    obj.index = labels
+    return obj.index
+
+
 @pytest.mark.parametrize(
     "set_axis",
     [
-        lambda obj, labels: setattr(obj, "index", labels) or obj.index,
+        _assign_index,
         lambda obj, labels: obj.set_axis(labels).index,
         lambda obj, labels: obj.reindex(labels).index,
         lambda obj, labels: ensure_index(labels),
