@@ -1305,6 +1305,20 @@ results in ``ValueError``.
     pd.Timestamp("2014-08-01 09:00") + bh
     pd.Timestamp("2014-08-01 18:00") + bh
 
+Each business hour is 60 minutes of business time; any part of an hour that
+does not fit before closing continues from the next opening. If the business
+hours are not a whole number of hours long, a ``date_range`` therefore no
+longer lines up with the opening time after the first day.
+
+.. ipython:: python
+
+    bh = pd.offsets.BusinessHour(start="09:30", end="16:00")
+    pd.date_range("2014-08-01 09:30", periods=9, freq=bh)
+
+A 24-hour business day cannot be expressed with ``BusinessHour``. For hourly
+timestamps around the clock on weekdays only, filter an hourly range instead,
+e.g. ``dti[dti.day_of_week < 5]``.
+
 Passing ``start`` time later than ``end`` represents midnight business hour.
 In this case, business hour exceeds midnight and overlap to the next day.
 Valid business hours are distinguished by whether it started from valid ``BusinessDay``.
@@ -2208,6 +2222,25 @@ frequency such as ``"24h"``; to group timestamps into days starting at 08:00, us
 
    period = pd.Period("2012-1-1 08:00", freq="24h")
    period.start_time, period.end_time
+
+A multiplied frequency sets only the length of the span, not a grid the span
+aligns to: a ``"2Q"`` period can start in any quarter. Converting a timestamp
+with a multiplied frequency starts the span at the base unit containing that
+timestamp, so ``to_period("2h")`` does not group timestamps into
+2-hour bins. For a fixed frequency such as ``"2h"``, floor the timestamps
+first (or use :meth:`~Series.resample`) to get aligned bins. For ``"2Q"``,
+shift each quarter back to the start of its half-year.
+
+.. ipython:: python
+
+   pd.Period("2017-05-01", freq="2Q")
+
+   dti = pd.date_range("2016-01-01", periods=4, freq="h")
+   dti.to_period("2h")
+   dti.floor("2h").to_period("2h")
+
+   q = pd.date_range("2017-02-01", periods=4, freq="3MS").to_period("Q")
+   (q - (q.quarter - 1) % 2).asfreq("2Q")
 
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).

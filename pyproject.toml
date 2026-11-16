@@ -592,7 +592,7 @@ module = [
   "pandas.io.html", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
-  "pandas.io.sql", # TODO
+  "pandas.io.sql.*", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
