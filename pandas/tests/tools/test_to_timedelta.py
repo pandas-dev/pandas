@@ -720,3 +720,27 @@ def test_to_timedelta_float_array_coerce_out_of_bounds(values, unit, box):
     # errors="raise" is unaffected
     with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input"):
         pd.to_timedelta(box(values), **kwargs)
+
+
+@pytest.mark.parametrize("unit", ["s", "m", "h", "D", "W"])
+def test_to_timedelta_masked_out_of_bounds_under_na(unit):
+    # GH#71444 the value stored underneath pd.NA took part in the float->int64
+    #  fast path, so an out-of-range one raised instead of being ignored
+    arr = pd.array([1e17, 1.0], dtype="Float64")
+    arr[0] = pd.NA
+
+    result = pd.to_timedelta(arr, unit=unit)
+
+    expected = pd.to_timedelta([None, 1.0], unit=unit)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["s", "m", "h", "D", "W"])
+@pytest.mark.parametrize("box", [np.array, lambda x: pd.array(x, dtype="Float64")])
+def test_to_timedelta_float_nan_with_unit(unit, box):
+    # GH#71444 casting NaN to int64 is undefined behaviour and gives
+    #  INT64_MAX on RISC-V, so it must not reach the integer fast path
+    result = pd.to_timedelta(box([1.0, np.nan]), unit=unit)
+
+    expected = pd.to_timedelta([1.0, None], unit=unit)
+    tm.assert_index_equal(result, expected)

@@ -5034,3 +5034,16 @@ def test_to_datetime_float_out_of_bounds_coerce_with_format():
         )
 
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "s"])
+@pytest.mark.parametrize("box", [np.array, lambda x: pd.array(x, dtype="Float64")])
+def test_to_datetime_float_nan_with_unit(unit, box):
+    # GH#71444 casting NaN to int64 is undefined behaviour and gives
+    #  INT64_MAX on RISC-V, so it must not reach the integer fast path.
+    #  On platforms where it gives 0 (ARM) or INT64_MIN (x86, the NaT
+    #  sentinel) the unpatched code happens to produce the right answer.
+    result = pd.to_datetime(box([150.0, np.nan]), unit=unit)
+
+    expected = pd.to_datetime([150.0, None], unit=unit)
+    tm.assert_index_equal(result, expected)
