@@ -948,7 +948,8 @@ class StringMethods(NoNewAttributesMixin):
             warnings.warn(
                 "The default value of regex in Series.str.split will change from "
                 "None to False in a future version, so pat will be treated as a "
-                "literal string. Pass regex=True to keep the current behavior.",
+                "literal string. Pass regex=True to keep the current behavior, or "
+                "regex=False to adopt the future default and silence this warning.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
