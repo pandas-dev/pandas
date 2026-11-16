@@ -850,6 +850,38 @@ def test_assign_drop_duplicates(method):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("n_cols", [1, 2])
+@pytest.mark.parametrize(
+    "make_value",
+    [
+        lambda: np.array([1.0, 2.0, 3.0]),
+        # becomes a StringArray that can wrap the input's memory
+        lambda: np.array(["x", "y", "z"], dtype=object),
+        lambda: pd.Series([1, 2, 3], dtype="Int64"),
+    ],
+    ids=["ndarray", "ndarray-str", "ea-series"],
+)
+def test_assign_new_columns_independent_of_input(make_value, n_cols):
+    # GH#60075 assign defers copying new columns; writes must still not
+    #  propagate between the result and the input or the parent
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    with pd.option_context("mode.string_storage", "python"):
+        value = make_value()
+        value_orig = value.copy()
+        result = df.assign(**{f"b{i}": value for i in range(n_cols)})
+        result_orig = result.copy()
+
+        result.iloc[0, 1] = result.iloc[1, 1]
+        tm.assert_equal(value, value_orig)
+        result.iloc[0, 0] = 99
+        tm.assert_frame_equal(df, df_orig)
+
+        result = df.assign(**{f"b{i}": value for i in range(n_cols)})
+        value[0] = value[1]
+        tm.assert_frame_equal(result, result_orig)
+
+
 @pytest.mark.parametrize("obj", [pd.Series([1, 2]), pd.DataFrame({"a": [1, 2]})])
 def test_take(obj):
     # Check that no copy is made when we take all rows in original order
