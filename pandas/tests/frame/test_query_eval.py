@@ -95,15 +95,11 @@ class TestCompat:
 
         if NUMEXPR_BLOCKED_VERSION is not None:
             msg = (
-                rf"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can "
-                r"silently return incorrect results"
+                rf"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but is older "
+                r"than the minimum supported version"
             )
         else:
-            msg = (
-                r"'numexpr' is not installed or an unsupported version. "
-                r"Cannot use engine='numexpr' for query/eval if 'numexpr' is "
-                r"not installed"
-            )
+            msg = r"'numexpr' is not installed. Cannot use engine='numexpr'."
         with pytest.raises(ImportError, match=msg):
             df.query("A>0", engine="numexpr")
         with pytest.raises(ImportError, match=msg):

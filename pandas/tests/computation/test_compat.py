@@ -23,10 +23,7 @@ def test_compat():
     ne = pytest.importorskip("numexpr")
 
     ver = ne.__version__
-    if (
-        Version(ver) < Version(VERSIONS["numexpr"])
-        or Version(ver).base_version in check.BLOCKED_NUMEXPR_VERSIONS
-    ):
+    if Version(ver) < Version(VERSIONS["numexpr"]):
         assert not check.NUMEXPR_INSTALLED
     else:
         assert check.NUMEXPR_INSTALLED
@@ -35,12 +32,9 @@ def test_compat():
 @pytest.fixture
 def blocked_numexpr(monkeypatch):
     """
-    Behave as though the installed numexpr were a blocked version, and yield it.
+    Behave as though the installed numexpr were too old to use, and yield it.
     """
-    if not check.BLOCKED_NUMEXPR_VERSIONS:
-        pytest.skip("no numexpr versions are currently blocked")
-
-    version = min(check.BLOCKED_NUMEXPR_VERSIONS)
+    version = "2.14.1"
     monkeypatch.setattr(check, "NUMEXPR_INSTALLED", False)
     monkeypatch.setattr(check, "NUMEXPR_BLOCKED_VERSION", version)
     monkeypatch.setattr(check, "_warned_blocked", False)
@@ -55,21 +49,21 @@ def blocked_numexpr(monkeypatch):
     expressions.set_use_numexpr(pd.get_option("compute.use_numexpr"))
 
 
-def test_blocked_numexpr_version_not_used(monkeypatch):
-    # GH#65408 numexpr releases known to silently return wrong results are not
-    #  used even though they satisfy the minimum version
+@pytest.mark.parametrize(
+    "version, usable", [("2.11.0", False), ("2.14.1", False), ("2.14.2", True)]
+)
+def test_old_numexpr_version_not_used(monkeypatch, version, usable):
+    # GH#62468, GH#65408 numexpr before 2.14.2 can silently return wrong results
     ne = pytest.importorskip("numexpr")
-    if not check.BLOCKED_NUMEXPR_VERSIONS:
-        pytest.skip("no numexpr versions are currently blocked")
 
-    monkeypatch.setattr(ne, "__version__", min(check.BLOCKED_NUMEXPR_VERSIONS))
+    monkeypatch.setattr(ne, "__version__", version)
     try:
         # GH#66956 importing pandas does not warn; the warning is deferred to
         #  the first operation that would have used numexpr
         with tm.assert_produces_warning(None):
             importlib.reload(check)
-        assert not check.NUMEXPR_INSTALLED
-        assert check.NUMEXPR_BLOCKED_VERSION == min(check.BLOCKED_NUMEXPR_VERSIONS)
+        assert check.NUMEXPR_INSTALLED is usable
+        assert check.NUMEXPR_BLOCKED_VERSION == (None if usable else version)
     finally:
         monkeypatch.undo()
         importlib.reload(check)
@@ -77,7 +71,9 @@ def test_blocked_numexpr_version_not_used(monkeypatch):
 
 def test_blocked_numexpr_warns_once(blocked_numexpr):
     # GH#66956
-    with tm.assert_produces_warning(UserWarning, match="can silently return incorrect"):
+    with tm.assert_produces_warning(
+        UserWarning, match="older than the minimum supported version"
+    ):
         check.warn_numexpr_blocked()
 
     with tm.assert_produces_warning(None):
@@ -96,7 +92,9 @@ def test_blocked_numexpr_warns_on_arithmetic(blocked_numexpr, monkeypatch):
         expressions.evaluate(operator.add, small, small)
 
     arr = np.ones(11)
-    with tm.assert_produces_warning(UserWarning, match="can silently return incorrect"):
+    with tm.assert_produces_warning(
+        UserWarning, match="older than the minimum supported version"
+    ):
         expressions.evaluate(operator.add, arr, arr)
 
 
@@ -108,7 +106,9 @@ def test_blocked_numexpr_warns_on_where(blocked_numexpr, monkeypatch):
 
     arr = np.ones(11)
     cond = np.ones(11, dtype=bool)
-    with tm.assert_produces_warning(UserWarning, match="can silently return incorrect"):
+    with tm.assert_produces_warning(
+        UserWarning, match="older than the minimum supported version"
+    ):
         expressions.where(cond, arr, arr)
 
 
@@ -119,7 +119,9 @@ def test_blocked_numexpr_warns_on_frame_op(blocked_numexpr, monkeypatch):
     expressions.set_use_numexpr(True)
 
     df = pd.DataFrame(np.ones((11, 1)))
-    with tm.assert_produces_warning(UserWarning, match="can silently return incorrect"):
+    with tm.assert_produces_warning(
+        UserWarning, match="older than the minimum supported version"
+    ):
         result = df + df
     tm.assert_frame_equal(result, pd.DataFrame(np.full((11, 1), 2.0)))
 
@@ -139,7 +141,9 @@ def test_blocked_numexpr_no_frame_op_warning_if_disabled(blocked_numexpr, monkey
 def test_blocked_numexpr_warns_on_eval(blocked_numexpr):
     # GH#66956 eval falls back to the python engine and reports why
     a, b = 1, 2  # noqa: F841
-    with tm.assert_produces_warning(UserWarning, match="can silently return incorrect"):
+    with tm.assert_produces_warning(
+        UserWarning, match="older than the minimum supported version"
+    ):
         res = pd.eval("a + b")
     assert res == 3
 
@@ -148,7 +152,7 @@ def test_blocked_numexpr_engine_raises_naming_the_version(blocked_numexpr):
     # GH#66956 this path raises instead of warning, so the message has to say
     #  which numexpr is refused and why
     a, b = 1, 2  # noqa: F841
-    msg = f"numexpr {blocked_numexpr} is installed, but can silently return"
+    msg = f"numexpr {blocked_numexpr} is installed, but is older than the minimum"
     with pytest.raises(ImportError, match=msg):
         pd.eval("a + b", engine="numexpr")
 
