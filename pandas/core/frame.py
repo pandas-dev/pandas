@@ -19929,14 +19929,19 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
-        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex, by default at *beginning* of period.
 
         This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
         ----------
-        freq : str, default frequency of PeriodIndex
-            Desired frequency.
+        freq : str or DateOffset, optional
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Convention for converting period to timestamp; start of period
             vs. end. Case-insensitive.
@@ -19985,7 +19990,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df1.index
         DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[us]', freq=None)
 
-        Using `freq` which is the offset that the Timestamps will have
+        With ``freq="M"``, each timestamp is the last day of the period's first
+        month
 
         >>> df2 = pd.DataFrame(data=d, index=idx)
         >>> df2 = df2.to_timestamp(freq="M")
