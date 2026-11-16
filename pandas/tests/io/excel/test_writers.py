@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -141,11 +142,35 @@ class TestRoundTrip:
                 reader,
                 sheet_name="Data_with_head",
                 index_col=None,
+                header=0,
                 names=["A", "B"],
             )
 
         tm.assert_frame_equal(xlsdf_no_head, refdf)
         tm.assert_frame_equal(xlsdf_with_head, refdf)
+
+    @pytest.mark.parametrize("header_kwarg", [{}, {"header": "infer"}])
+    def test_names_with_default_header_deprecated(self, tmp_excel, header_kwarg):
+        # GH#11889
+        refdf = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        with ExcelWriter(tmp_excel) as writer:
+            refdf.to_excel(writer, sheet_name="first", index=False)
+            refdf.to_excel(writer, sheet_name="second", index=False)
+
+        expected = refdf.set_axis(["A", "B"], axis=1)
+        msg = "read_excel with 'names' and the default header='infer'"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.read_excel(tmp_excel, names=["A", "B"], **header_kwarg)
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.read_excel(
+                tmp_excel, sheet_name=None, names=["A", "B"], **header_kwarg
+            )
+        tm.assert_frame_equal(result["second"], expected)
+
+        result = pd.read_excel(tmp_excel, **header_kwarg)
+        tm.assert_frame_equal(result, refdf)
 
     def test_creating_and_reading_multiple_sheets(self, tmp_excel):
         # see gh-9450

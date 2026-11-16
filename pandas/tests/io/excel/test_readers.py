@@ -1525,6 +1525,7 @@ class TestReaders:
             "testskiprows" + read_ext,
             sheet_name="skiprows_list",
             skiprows=3,
+            header=0,
             names=["a", "b", "c", "d"],
         )
         expected = pd.DataFrame(

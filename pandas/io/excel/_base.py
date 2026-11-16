@@ -91,7 +91,7 @@ def read_excel(
     # sheet name is str or int -> DataFrame
     sheet_name: str | int = ...,
     *,
-    header: int | Sequence[int] | None = ...,
+    header: int | Sequence[int] | Literal["infer"] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | str | Sequence[int] | None = ...,
     usecols: int
@@ -130,7 +130,7 @@ def read_excel(
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     *,
-    header: int | Sequence[int] | None = ...,
+    header: int | Sequence[int] | Literal["infer"] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | str | Sequence[int] | None = ...,
     usecols: int
@@ -168,7 +168,7 @@ def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
-    header: int | Sequence[int] | None = 0,
+    header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: SequenceNotStr[Hashable] | range | None = None,
     index_col: int | str | Sequence[int] | None = None,
     usecols: int
@@ -245,16 +245,21 @@ def read_excel(
           as a dict of `DataFrame`
         * ``None``: Returns a dictionary containing DataFrames for each sheet.
 
-    header : int, list of int, default 0
+    header : int, list of int, 'infer' or None, default 'infer'
         Row (0-indexed) to use for the column labels of the parsed
         DataFrame. If a list of integers is passed those row positions will
         be combined into a ``MultiIndex``, with levels in the order given.
         Rows before the first header row are skipped and do not appear in
         the result; when a list is passed, rows between the listed positions
         are skipped as well. Use None if there is no header.
+
+        The default ``'infer'`` behaves like ``header=0``. When ``names`` is
+        passed, it will behave like ``header=None`` in a future version, as
+        in :func:`read_csv`.
     names : array-like, default None
         List of column names to use. If file contains no header row,
-        then you should explicitly pass header=None.
+        then you should explicitly pass header=None. To replace an
+        existing header row, pass header=0.
     index_col : int, str, list of int, default None
         Column (0-indexed) to use as the row labels of the DataFrame.
         Pass None if there is no such column.  If a list is passed,
@@ -743,7 +748,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
-        header: int | Sequence[int] | None = 0,
+        header: int | Sequence[int] | Literal["infer"] | None = "infer",
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
@@ -763,6 +768,19 @@ class BaseExcelReader(Generic[_WorkbookT]):
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
     ):
+        if isinstance(header, str) and header == "infer":
+            if names is not None:
+                # GH#11889
+                warnings.warn(
+                    "In a future version, read_excel with 'names' and the "
+                    "default header='infer' will read the first row as data "
+                    "instead of replacing it with 'names', matching read_csv. "
+                    "Pass header=0 to keep the current behavior or header=None "
+                    "to adopt the future behavior and silence this warning.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+            header = 0
         validate_header_arg(header)
         validate_integer("nrows", nrows)
 
@@ -1738,7 +1756,7 @@ class ExcelFile:
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
-        header: int | Sequence[int] | None = 0,
+        header: int | Sequence[int] | Literal["infer"] | None = "infer",
         names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
@@ -1773,16 +1791,21 @@ class ExcelFile:
             Lists of strings/integers are used to request multiple sheets.
             When ``None``, will return a dictionary containing DataFrames for
             each sheet.
-        header : int, list of int, default 0
+        header : int, list of int, 'infer' or None, default 'infer'
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will
             be combined into a ``MultiIndex``, with levels in the order given.
             Rows before the first header row are skipped and do not appear in
             the result; when a list is passed, rows between the listed positions
             are skipped as well. Use None if there is no header.
+
+            The default ``'infer'`` behaves like ``header=0``. When ``names`` is
+            passed, it will behave like ``header=None`` in a future version, as
+            in :func:`read_csv`.
         names : array-like, default None
             List of column names to use. If file contains no header row,
-            then you should explicitly pass header=None.
+            then you should explicitly pass header=None. To replace an
+            existing header row, pass header=0.
         index_col : int, str, list of int, default None
             Column (0-indexed) to use as the row labels of the DataFrame.
             Pass None if there is no such column.  If a list is passed,
