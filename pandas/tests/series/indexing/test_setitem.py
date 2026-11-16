@@ -1818,6 +1818,119 @@ def test_setitem_int_not_positional():
     tm.assert_series_equal(ser3, expected3)
 
 
+@pytest.mark.parametrize(
+    "key",
+    [
+        [1, 4],
+        np.array([1, 4]),
+        pd.Index([1, 4]),
+        pd.Series([1, 4]),
+        lambda x: [1, 4],
+        slice(1, 3),
+        slice(None),
+        Ellipsis,
+    ],
+)
+def test_setitem_series_value_unaligned_deprecated(key):
+    # GH#37516
+    ser = pd.Series(range(5))
+    target = ser[key(ser) if callable(key) else key]
+    value = pd.Series(range(10, 10 + len(target)), index=target.index[::-1])
+
+    # currently positional, like iloc
+    expected = ser.copy()
+    expected.iloc[ser.index.get_indexer(target.index)] = value.array
+
+    with tm.assert_produces_warning(Pandas4Warning, match="ignores the index"):
+        ser[key] = value
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        [1, 4],
+        slice(1, 3),
+    ],
+)
+def test_setitem_series_value_no_warning(key):
+    # GH#37516 no warning when the result would not change
+    ser = pd.Series(range(5))
+    target = ser[key]
+    value = pd.Series(range(10, 10 + len(target)), index=target.index)
+    positions = ser.index.get_indexer(target.index)
+
+    expected = ser.copy()
+    expected.iloc[positions] = value.array
+    with tm.assert_produces_warning(None):
+        ser[key] = value
+    tm.assert_series_equal(ser, expected)
+
+    # value.array opts in to the current positional behavior
+    ser = pd.Series(range(5))
+    expected.iloc[positions] = value[::-1].array
+    with tm.assert_produces_warning(None):
+        ser[key] = value[::-1].array
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "ser, key, value_index",
+    [
+        (pd.Series(range(3), index=pd.date_range("2020", periods=3)), [], pd.Index([])),
+        (pd.Series(range(3)), [1, 1], pd.Index([1, 1])),
+    ],
+)
+def test_setitem_series_value_empty_or_duplicate_no_warning(ser, key, value_index):
+    # GH#37516
+    expected = ser.copy()
+    value = pd.Series(range(10, 10 + len(value_index)), index=value_index, dtype=int)
+    with tm.assert_produces_warning(None):
+        ser[key] = value
+    expected.iloc[expected.index.get_indexer(value_index)] = value.array
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "ser_index, value_index",
+    [
+        (pd.Index([0, 1, 2]), pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])),
+        (pd.Index([pd.NA, 1, 2], dtype="Int64"), pd.Index([0, 1, 2], dtype="uint64")),
+        (
+            pd.MultiIndex.from_arrays([[0, 1, 2]]),
+            pd.MultiIndex.from_arrays([[0, 1, 2]] * 2),
+        ),
+    ],
+)
+def test_setitem_series_value_unalignable_index_deprecated(ser_index, value_index):
+    # GH#37516 warns and sets positionally even where the indexes cannot be aligned
+    ser = pd.Series(range(3), index=ser_index)
+    value = pd.Series([10, 11, 12], index=value_index)
+    with tm.assert_produces_warning(Pandas4Warning, match="ignores the index"):
+        ser[:] = value
+    tm.assert_series_equal(ser, pd.Series([10, 11, 12], index=ser_index))
+
+
+@pytest.mark.parametrize("key", [[1, 4], slice(1, 3)])
+def test_setitem_series_value_length_mismatch_raises(key):
+    # GH#37516 a length mismatch raises without the deprecation warning
+    ser = pd.Series(range(5))
+    value = pd.Series([10, 11, 12], index=[7, 8, 9])
+    msg = "with a different length than the value"
+    with tm.assert_produces_warning(None):
+        with pytest.raises(ValueError, match=msg):
+            ser[key] = value
+
+
+def test_setitem_series_value_bool_mask_aligns():
+    # GH#37516 boolean masks already align, so they do not warn
+    ser = pd.Series(range(5))
+    mask = np.array([False, True, False, False, True])
+    with tm.assert_produces_warning(None):
+        ser[mask] = pd.Series([10, 11], index=[4, 1])
+    tm.assert_series_equal(ser, pd.Series([0, 11, 2, 3, 10]))
+
+
 def test_setitem_with_bool_indexer():
     # GH#42530
 

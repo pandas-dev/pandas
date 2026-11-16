@@ -393,6 +393,15 @@ def test_ufunc_where_missing_raises(values, where):
         np.negative(values, where=where, out=np.zeros(3))
 
 
+def test_binary_ufunc_out_different_index():
+    # GH#37516 `out` is filled positionally, without the setitem deprecation warning
+    ser = pd.Series([1, 2], index=[10, 20])
+    out = pd.Series([0, 0])
+    with tm.assert_produces_warning(None):
+        np.add(ser, 1, out=out)
+    tm.assert_series_equal(out, pd.Series([2, 3]))
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:

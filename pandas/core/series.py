@@ -1242,6 +1242,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
+            self._maybe_warn_unaligned_series_value(indexer, value)
             return self._set_values(indexer, value)
 
         try:
@@ -1317,7 +1318,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
+        self._maybe_warn_unaligned_series_value(indexer, value)
         self._set_values(indexer, value)
+
+    def _maybe_warn_unaligned_series_value(self, indexer, value) -> None:
+        # GH#37516 ser[key] = value sets a Series value positionally, while
+        # ser.loc[key] = value aligns it on the index
+        if not isinstance(value, Series):
+            return
+        target = self.index[indexer]
+        if len(value) != len(target) or len(target) == 0:
+            return
+        if value.index.equals(target):
+            return
+        warnings.warn(
+            "Setting with `ser[key] = value` where `value` is a Series "
+            "currently ignores the index of `value`. In a future version, "
+            "`value` will be aligned on the index, as `.loc` does. To keep "
+            "the current behavior, set `value.array` instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     def _set_values(self, key, value) -> None:
         if isinstance(key, (Index, Series)):
