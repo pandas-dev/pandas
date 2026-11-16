@@ -951,6 +951,16 @@ def test_fillna_fill_frame_with_duplicate_labels_raises(axis):
         df.fillna(value)
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_fillna_series_with_non_unique_index_raises(axis):
+    # GH#36608
+    df = pd.DataFrame({"a": [1.0, np.nan]})
+    value = pd.Series([0.0, 2.0], index=["a", "a"])
+    msg = "Cannot fillna with a Series with non-unique index"
+    with pytest.raises(ValueError, match=msg):
+        df.fillna(value, axis=axis)
+
+
 @pytest.mark.parametrize("axis", [1, "columns"])
 @pytest.mark.parametrize(
     "method, expected_values",
