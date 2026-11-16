@@ -130,6 +130,7 @@ repos:
         entry: python -m mypy
         language: system
         pass_filenames: false
+        args: [-n, auto]
         types: [python]
         stages: [manual]
     -   id: stubtest
