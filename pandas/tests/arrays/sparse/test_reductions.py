@@ -994,21 +994,15 @@ def test_sum_object_fill_value(arr, expected):
     assert result == pd.Series(arr.to_dense(), dtype=object).sum()
 
 
-def test_sum_object_fill_value_na_raises_like_dense():
-    # GH#68581 a stored NA among strings raises in nanops instead of being
-    #  skipped; sparse now matches dense here rather than returning the gaps
-    #  out of order.  Both sides flip together when that is fixed.
+def test_sum_object_fill_value_na_matches_dense():
+    # GH#68581, GH#59764 a stored NA among strings is skipped, as for dense
     arr = SparseArray(np.array(["a", np.nan, "b"], dtype=object), fill_value="a")
-    msg = "can only concatenate str"
-    with pytest.raises(TypeError, match=msg):
-        arr.sum()
-    with pytest.raises(TypeError, match=msg):
-        pd.Series(arr.to_dense(), dtype=object).sum()
+    assert arr.sum() == "ab"
+    assert pd.Series(arr.to_dense(), dtype=object).sum() == "ab"
 
 
 def test_sum_object_null_fill_value_keeps_stored_order():
-    # GH#68581 an NA fill needs no adjustment, so this stays on the closed-form
-    #  path; it deliberately does not match dense, which raises instead
+    # GH#68581 an NA fill needs no adjustment, so this stays on the closed-form path
     arr = SparseArray(["a", "b", None])
     assert arr._null_fill_value
     assert arr.sum() == "ab"

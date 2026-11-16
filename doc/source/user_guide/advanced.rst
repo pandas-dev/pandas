@@ -308,7 +308,7 @@ Passing a list of labels or tuples works similar to reindexing:
    multi-level key, a list is used to specify several keys. Or in other words,
    tuples go horizontally (traversing levels), lists go vertically (scanning levels).
 
-Importantly, a list of tuples indexes several complete ``MultiIndex`` keys,
+Importantly, a list of tuples indexes several ``MultiIndex`` keys,
 whereas a tuple of lists refer to several values within a level:
 
 .. ipython:: python
@@ -319,6 +319,13 @@ whereas a tuple of lists refer to several values within a level:
    )
    s.loc[[("A", "c"), ("B", "d")]]  # list of tuples
    s.loc[(["A", "B"], ["c", "d"])]  # tuple of lists
+
+A list of equal-length tuples shorter than the number of levels selects every
+row matching on the leading levels:
+
+.. ipython:: python
+
+   s.loc[[("B",), ("A",)]]
 
 
 .. _advanced.mi_slicers:

@@ -908,6 +908,55 @@ def test_construction_trailing_characters_raises(value, leftover):
 
 
 @pytest.mark.parametrize(
+    "value",
+    [
+        "00:00:01,5",
+        "0 days 00:00:01,500",
+        "-1 days 01:02:03,456789123",
+        # more than 6 decimals infers "ns" even without sub-microsecond content
+        "00:00:01,123456000",
+    ],
+)
+def test_construction_comma_decimal_seconds(value):
+    # GH#71877 a comma between digits in the seconds field is a decimal point
+    expected = pd.Timedelta(value.replace(",", "."))
+    result = pd.Timedelta(value)
+    assert result == expected
+    assert result.unit == expected.unit
+
+    result = pd.to_timedelta([value])
+    tm.assert_index_equal(result, pd.TimedeltaIndex([expected]))
+
+
+@pytest.mark.parametrize("value", ["1,5 days", "1,234 days", "1,5s", "1,5", "1:02,5"])
+def test_construction_comma_between_digits_raises(value):
+    # GH#71877 outside the seconds field, decimal vs thousands comma is ambiguous
+    msg = re.escape(
+        "a comma between digits is only allowed as the decimal point of "
+        f"hh:mm:ss, received: {value}"
+    )
+    with pytest.raises(ValueError, match=msg):
+        pd.Timedelta(value)
+
+    with pytest.raises(ValueError, match=msg):
+        pd.to_timedelta([value])
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("1 day, 0:00:05", pd.Timedelta(days=1, seconds=5)),
+        ("1 day,0:00:05", pd.Timedelta(days=1, seconds=5)),
+        ("1D,2h", pd.Timedelta(days=1, hours=2)),
+        (str(timedelta(days=-1, seconds=5)), pd.Timedelta(days=-1, seconds=5)),
+    ],
+)
+def test_construction_comma_separator(value, expected):
+    # GH#71877 other commas are still skipped, so str(timedelta) round-trips
+    assert pd.Timedelta(value) == expected
+
+
+@pytest.mark.parametrize(
     "value, msg",
     [
         # a single term is out of range, so cast_from_unit raises before
