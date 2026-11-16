@@ -81,6 +81,22 @@ def test_write_unsupported_compression_type(temp_file):
         df.to_json(temp_file, compression="unsupported")
 
 
+def test_to_json_compression_without_path():
+    # GH#32326
+    df = pd.DataFrame({"A": [1]})
+    msg = "compression has no effect when no path or buffer is given"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df.to_json(compression="gzip")
+    assert result == df.to_json()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        df["A"].to_json(compression={"method": "gzip", "mtime": 1})
+    with tm.assert_produces_warning(None):
+        df.to_json(compression="infer")
+        df.to_json(compression=None)
+    with pytest.raises(ValueError, match="Unrecognized compression type: unsupported"):
+        df.to_json(compression="unsupported")
+
+
 def test_read_unsupported_compression_type(temp_file):
     msg = "Unrecognized compression type: unsupported"
     with pytest.raises(ValueError, match=msg):

@@ -445,3 +445,56 @@ def test_add_frame_sparse_object():
     result = df + arr
     expected = pd.DataFrame([["xa", "yb"]]).astype(pd.SparseDtype(object))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "box", [pd.Series, pd.Index, pd.DataFrame, lambda x: pd.array(x, dtype=object)]
+)
+@pytest.mark.parametrize(
+    "op, expected",
+    [
+        (operator.neg, [Decimal(-1), np.nan, Decimal(2)]),
+        (operator.pos, [Decimal(1), np.nan, Decimal(-2)]),
+        (operator.abs, [Decimal(1), np.nan, Decimal(2)]),
+    ],
+)
+def test_unary_op_object_with_none(box, op, expected):
+    # GH#42862 missing entries become NaN, as in obj * -1
+    obj = box(np.array([Decimal(1), None, Decimal(-2)], dtype=object))
+    result = op(obj)
+    expected = box(np.array(expected, dtype=object))
+    tm.assert_equal(result, expected)
+
+
+def test_neg_object_matches_mul():
+    # GH#42862
+    df = pd.DataFrame({"a": [pd.NA, -1, None], "b": [np.nan, -1, 1]})
+    tm.assert_frame_equal(-df, df * -1)
+
+    ser = pd.Series(["a", None], dtype=object)
+    with pytest.raises(TypeError, match="bad operand type for unary -: 'str'"):
+        -ser
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2016-01-01", periods=3),
+        pd.date_range("2016-01-01", periods=3, tz="UTC"),
+        pd.timedelta_range("1 Day", periods=3),
+        pd.period_range("2016-01-01", periods=3, freq="D"),
+    ],
+)
+@pytest.mark.parametrize("op", [operator.add, operator.sub])
+def test_datetimelike_addsub_object_array_length_mismatch(
+    values, op, index_or_series_or_array
+):
+    # GH#37086 mismatched length object array raised AssertionError
+    obj = index_or_series_or_array(values)
+    other = np.array([pd.offsets.Day(1), pd.offsets.Day(2)])
+
+    msg = "cannot add indices of unequal length"
+    with pytest.raises(ValueError, match=msg):
+        op(obj, other)
+    with pytest.raises(ValueError, match=msg):
+        op(obj, list(other))

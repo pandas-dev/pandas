@@ -18,7 +18,10 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.missing import isna
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+    warn_unused_compression,
+)
 from pandas.io.xml import get_data_from_filepath
 
 if TYPE_CHECKING:
@@ -354,6 +357,7 @@ class _BaseXMLFormatter:
             return None
 
         else:
+            warn_unused_compression(self.compression)
             return xml_doc.decode(self.encoding).rstrip()
 
 

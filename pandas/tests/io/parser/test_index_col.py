@@ -324,7 +324,6 @@ def test_multiindex_columns_index_col_with_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_infer_types_boolean_sum(all_parsers):
     # GH#44079
     parser = all_parsers
