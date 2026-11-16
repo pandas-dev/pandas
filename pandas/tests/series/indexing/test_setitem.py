@@ -1874,20 +1874,65 @@ def test_setitem_series_value_no_warning(key):
     tm.assert_series_equal(ser, expected)
 
 
+def test_setitem_series_value_empty_no_warning():
+    # GH#37516
+    ser = pd.Series(range(3), index=pd.date_range("2020", periods=3))
+    expected = ser.copy()
+    with tm.assert_produces_warning(None):
+        ser[[]] = pd.Series([], index=pd.Index([]), dtype=int)
+    tm.assert_series_equal(ser, expected)
+
+
 @pytest.mark.parametrize(
-    "ser, key, value_index",
+    "index, key, value_index",
     [
-        (pd.Series(range(3), index=pd.date_range("2020", periods=3)), [], pd.Index([])),
-        (pd.Series(range(3)), [1, 1], pd.Index([1, 1])),
+        (pd.Index([0, 1, 1]), 1, pd.Index([2, 1])),
+        (
+            pd.MultiIndex.from_product([["a", "b"], [1, 2]]),
+            "a",
+            pd.MultiIndex.from_product([["a"], [2, 1]]),
+        ),
+        (
+            pd.date_range("2020-01-30", periods=4),
+            "2020-01",
+            pd.DatetimeIndex(["2020-01-31", "2020-01-30"]),
+        ),
     ],
 )
-def test_setitem_series_value_empty_or_duplicate_no_warning(ser, key, value_index):
-    # GH#37516
+@pytest.mark.parametrize("value_dtype", ["int64", "float64"])
+def test_setitem_series_value_scalar_key_unaligned_deprecated(
+    index, key, value_index, value_dtype
+):
+    # GH#37516 a scalar key matching several rows; float64 values take the
+    #  fallback path in Series.__setitem__
+    ser = pd.Series(range(len(index)), index=index)
+    value = pd.Series([10, 11], index=value_index, dtype=value_dtype)
+
     expected = ser.copy()
-    value = pd.Series(range(10, 10 + len(value_index)), index=value_index, dtype=int)
-    with tm.assert_produces_warning(None):
+    expected.iloc[ser.index.get_loc(key)] = [10, 11]
+
+    with tm.assert_produces_warning(Pandas4Warning, match="ignores the index"):
         ser[key] = value
-    expected.iloc[expected.index.get_indexer(value_index)] = value.array
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "index, key",
+    [
+        (pd.Index([0, 1, 1]), 1),
+        (pd.MultiIndex.from_product([["a", "b"], [1, 2]]), "a"),
+        (pd.MultiIndex.from_product([["a", "b"], ["x", "y"], [1, 2]]), ("a", "x")),
+        (pd.date_range("2020-01-30", periods=4), "2020-01"),
+    ],
+)
+def test_setitem_series_value_scalar_key_getitem_result_no_warning(index, key):
+    # GH#37516 ser[key] = ser[key] * 10 does not change once aligned, including
+    #  where ser[key] drops MultiIndex levels
+    ser = pd.Series(range(len(index)), index=index)
+    expected = ser.copy()
+    expected.loc[key] = expected.loc[key] * 10
+    with tm.assert_produces_warning(None):
+        ser[key] = ser[key] * 10
     tm.assert_series_equal(ser, expected)
 
 

@@ -147,6 +147,7 @@ from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    count_leading_scalars,
 )
 from pandas.core.internals import SingleBlockManager
 from pandas.core.methods import selectn
@@ -1242,7 +1243,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            self._maybe_warn_unaligned_series_value(indexer, value)
+            self._maybe_warn_unaligned_series_value(key, indexer, value)
             return self._set_values(indexer, value)
 
         try:
@@ -1297,6 +1298,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
+        if not is_integer(loc):
+            # before the write, so this also covers __setitem__'s fallback
+            self._maybe_warn_unaligned_series_value(key, loc, value)
 
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
@@ -1318,10 +1322,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
-        self._maybe_warn_unaligned_series_value(indexer, value)
+        self._maybe_warn_unaligned_series_value(key, indexer, value)
         self._set_values(indexer, value)
 
-    def _maybe_warn_unaligned_series_value(self, indexer, value) -> None:
+    def _maybe_warn_unaligned_series_value(self, key, indexer, value) -> None:
         # GH#37516 ser[key] = value sets a Series value positionally, while
         # ser.loc[key] = value aligns it on the index
         if not isinstance(value, Series):
@@ -1329,6 +1333,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         target = self.index[indexer]
         if len(value) != len(target) or len(target) == 0:
             return
+        ndropped = target.nlevels - value.index.nlevels
+        if 0 < ndropped <= count_leading_scalars(key):
+            # .loc aligns ser[partial_key] on the levels it keeps, see GH#43719
+            target = target._drop_level_numbers(list(range(ndropped))[::-1])
         if value.index.equals(target):
             return
         warnings.warn(
