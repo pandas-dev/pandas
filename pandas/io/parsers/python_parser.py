@@ -375,7 +375,11 @@ class PythonParser(ParserBase):
                     na_fvalue = self.na_fvalues[col]
 
                     if isinstance(col, int) and col not in self.orig_names:
-                        col = self.orig_names[col]
+                        try:
+                            col = self.orig_names[col]
+                        except IndexError:
+                            # GH#14624
+                            continue
 
                     clean_na_values[col] = na_value
                     clean_na_fvalues[col] = na_fvalue

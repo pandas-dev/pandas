@@ -1047,3 +1047,40 @@ def test_dtype_conversion_in_sanitization():
     for v, e in zip(values, expected, strict=True):
         assert v == e
         assert type(v) == type(e)
+
+
+@skip_pyarrow  # dict converters/na_values are unsupported
+@pytest.mark.parametrize("data", ["a,b\n1,2\n3,4\n", "a,b\n"])
+@pytest.mark.parametrize("index_col", [None, 0])
+@pytest.mark.parametrize(
+    "keyword,value",
+    [("converters", lambda x: "X" + x), ("dtype", "float64"), ("na_values", ["2"])],
+)
+@pytest.mark.parametrize("key", [5, -5])
+def test_out_of_range_integer_key_ignored(
+    all_parsers, data, index_col, keyword, value, key
+):
+    # GH#14624
+    parser = all_parsers
+    expected = parser.read_csv(StringIO(data), index_col=index_col)
+    result = parser.read_csv(
+        StringIO(data), index_col=index_col, **{keyword: {key: value}}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_col", [None, 0])
+def test_integer_dtype_key_label_out_of_range_no_rows(all_parsers, index_col):
+    # GH#14624 an integer key past the last position still matches a label
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("a,b\n"),
+        names=[5, 0],
+        header=0,
+        dtype={5: "float64"},
+        index_col=index_col,
+    )
+    if index_col is None:
+        assert result[5].dtype == "float64"
+    else:
+        assert result.index.dtype == "float64"

@@ -369,7 +369,11 @@ class ParserBase:
 
         for col, v in mapping.items():
             if isinstance(col, int) and col not in self.orig_names:
-                col = self.orig_names[col]
+                try:
+                    col = self.orig_names[col]
+                except IndexError:
+                    # ignore out-of-range positions, as the C parser does GH#14624
+                    continue
             clean[col] = v
         if isinstance(mapping, defaultdict):
             remaining_cols = set(self.orig_names) - set(clean.keys())
@@ -806,10 +810,12 @@ class ParserBase:
             dtype_dict = defaultdict(lambda: dtype)
         else:
             dtype = cast("dict[Hashable, Dtype]", dtype)
-            dtype_dict = defaultdict(
-                lambda: None,
-                {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
-            )
+            dtype_dict = defaultdict(lambda: None)
+            for k, v in dtype.items():
+                # an out-of-range integer key may still be a label, GH#14624
+                if is_integer(k) and -len(columns) <= k < len(columns):
+                    k = columns[k]
+                dtype_dict[k] = v
 
         # Even though we have no data, the "index" of the empty DataFrame
         # could for example still be an empty MultiIndex. Thus, we need to

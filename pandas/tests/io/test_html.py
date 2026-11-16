@@ -199,6 +199,16 @@ class TestReadHtml:
         )[0]
         tm.assert_frame_equal(res, df)
 
+    def test_converters_tables_of_different_widths(self, flavor_read_html):
+        # GH#14624
+        html = (
+            "<table><tr><th>a</th></tr><tr><td>1</td></tr></table>"
+            "<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>"
+        )
+        result = flavor_read_html(StringIO(html), converters={1: lambda x: "X" + x})
+        tm.assert_frame_equal(result[0], pd.DataFrame({"a": [1]}))
+        tm.assert_frame_equal(result[1], pd.DataFrame({"a": [1], "b": ["X2"]}))
+
     def test_dtype_backend(self, string_storage, dtype_backend, flavor_read_html):
         # GH#50286
         df = pd.DataFrame(
