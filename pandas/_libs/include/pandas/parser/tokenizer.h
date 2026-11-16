@@ -182,8 +182,8 @@ typedef struct parser_t {
   // straight out of line_fields, which the boundary throws away.
   int64_t prev_line_fields;
 
-  // Field count, before padding or bad-line handling, of the first line
-  // end_line ends after this is reset to -1; skiprows lines don't count.
+  // Raw field count (before padding or bad-line handling) of the first line
+  // ended after this is set to -1; skiprows lines don't count.
   // See TextReader._skip_wide_first_row (GH#47490).
   int64_t lookahead_fields;
 

@@ -1190,6 +1190,9 @@ class PythonParser(ParserBase):
                     and len(self.buf[1]) == self.num_original_columns
                     and self.on_bad_lines != self.BadLineHandleMethod.BLHM_ERROR
                     and self.usecols is None
+                    and not self._have_mi_columns
+                    # buf[1] may be the footer
+                    and not self.skipfooter
                 ):
                     # treat the wide first row as a bad line, not an index, as in
                     # TextReader._skip_wide_first_row. buf[1] is the row after the

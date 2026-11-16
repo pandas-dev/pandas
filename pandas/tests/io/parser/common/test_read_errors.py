@@ -405,6 +405,17 @@ def test_wide_first_row_implicit_index_with_on_bad_lines(
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # ValueError: MultiIndex columns are not supported
+def test_wide_first_row_mi_columns_with_on_bad_lines(all_parsers):
+    # GH#47490 - MultiIndex columns are excluded from the rule
+    parser = all_parsers
+    data = "a,b\nc,d\ni,\nx,1,2\ny,3\n"
+    result = parser.read_csv(
+        StringIO(data), header=[0, 1], index_col=0, on_bad_lines="skip"
+    )
+    assert list(result.index) == ["x", "y"]
+
+
 @skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
 def test_index_col_false_short_names_keep_header_width(all_parsers):
     # GH#49279 - names replaces the column count, but the header line is still what
