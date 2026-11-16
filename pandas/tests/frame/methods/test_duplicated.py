@@ -52,7 +52,6 @@ def test_duplicated_keep(keep, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH#21720; nan/None falsely considered equal")
 @pytest.mark.parametrize(
     "keep, expected",
     [
@@ -66,6 +65,19 @@ def test_duplicated_nan_none(keep, expected):
 
     result = df.duplicated(keep=keep)
     tm.assert_series_equal(result, expected)
+
+
+def test_duplicated_distinct_null_kinds():
+    # GH#21720 match Series.duplicated, which does not treat null kinds as equal
+    ser = pd.Series(
+        [np.nan, None, pd.NA, pd.NaT, None, np.nan, pd.NA, pd.NaT], dtype=object
+    )
+    df = pd.DataFrame({"A": ser, "B": 1})
+
+    result = df.duplicated()
+    expected = pd.Series([False] * 4 + [True] * 4)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, ser.duplicated())
 
 
 @pytest.mark.parametrize("subset", [None, ["A", "B"], "A", []])
