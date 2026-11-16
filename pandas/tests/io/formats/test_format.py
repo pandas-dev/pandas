@@ -916,7 +916,10 @@ class TestDataFrameFormatting:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        df = pd.DataFrame(index=arrays, columns=arrays)
+        df = pd.DataFrame(
+            index=pd.MultiIndex.from_arrays(arrays),
+            columns=pd.MultiIndex.from_arrays(arrays),
+        )
         with pd.option_context("display.max_rows", 7, "display.max_columns", 7):
             assert has_doubly_truncated_repr(df)
 

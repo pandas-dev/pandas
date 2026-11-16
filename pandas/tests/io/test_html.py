@@ -1405,10 +1405,12 @@ class TestReadHtml:
         expected_df = pd.DataFrame(
             data=[("Hillary", 68, "D"), ("Bernie", 74, "D"), ("Donald", 69, "R")]
         )
-        expected_df.columns = [
-            ["Unnamed: 0_level_0", "Age", "Party"],
-            ["Name", "Unnamed: 1_level_1", "Unnamed: 2_level_1"],
-        ]
+        expected_df.columns = pd.MultiIndex.from_arrays(
+            [
+                ["Unnamed: 0_level_0", "Age", "Party"],
+                ["Name", "Unnamed: 1_level_1", "Unnamed: 2_level_1"],
+            ]
+        )
         html = expected_df.to_html(index=False)
         html_df = flavor_read_html(StringIO(html))[0]
         tm.assert_frame_equal(expected_df, html_df)

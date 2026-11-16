@@ -28,7 +28,7 @@ def df1():
             [-0.807333, 0.08298, -0.873361],
         ]
     )
-    res.columns = [list("ABC"), list("abc")]
+    res.columns = pd.MultiIndex.from_arrays([list("ABC"), list("abc")])
     res.columns.names = ["CAP", "low"]
     return res
 
@@ -339,7 +339,7 @@ class TestMelt:
             df.melt(["a", "b", "not_here", "or_there"], ["c", "d"])
 
         # Multiindex melt fails if column is missing from multilevel melt
-        df.columns = [list("ABCD"), list("abcd")]
+        df.columns = pd.MultiIndex.from_arrays([list("ABCD"), list("abcd")])
         with pytest.raises(KeyError, match=msg):
             df.melt([("E", "a")], [("B", "b")])
         # Multiindex fails if column is missing from single level melt

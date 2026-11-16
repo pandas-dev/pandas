@@ -336,8 +336,8 @@ class TestGetitemCallable:
 
     def test_loc_multiindex_columns_one_level(self):
         # GH#29749
-        df = pd.DataFrame([[1, 2]], columns=[["a", "b"]])
-        expected = pd.DataFrame([1], columns=[["a"]])
+        df = pd.DataFrame([[1, 2]], columns=pd.MultiIndex.from_arrays([["a", "b"]]))
+        expected = pd.DataFrame([1], columns=pd.MultiIndex.from_arrays([["a"]]))
 
         result = df["a"]
         tm.assert_frame_equal(result, expected)

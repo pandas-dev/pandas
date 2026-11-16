@@ -62,7 +62,7 @@ class TestDataFrameToRecords:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         data = np.zeros((8, 4))
-        df = pd.DataFrame(data, index=index)
+        df = pd.DataFrame(data, index=pd.MultiIndex.from_arrays(index))
         r = df.to_records(index=True)["level_0"]
         assert "bar" in r
         assert "one" not in r

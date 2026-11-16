@@ -159,7 +159,7 @@ def melt(
 
     If you have multi-index columns:
 
-    >>> df.columns = [list("ABC"), list("DEF")]
+    >>> df.columns = pd.MultiIndex.from_arrays([list("ABC"), list("DEF")])
     >>> df
        A  B  C
        D  E  F

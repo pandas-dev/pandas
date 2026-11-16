@@ -15,7 +15,9 @@ def simple_multiindex_dataframe():
 
     data = np.random.default_rng(2).standard_normal((3, 3))
     return pd.DataFrame(
-        data, columns=[[2, 2, 4], [6, 8, 10]], index=[[4, 4, 8], [8, 10, 12]]
+        data,
+        columns=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+        index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
     )
 
 
@@ -24,16 +26,26 @@ def simple_multiindex_dataframe():
     [
         (
             lambda df: df.iloc[0],
-            lambda arr: pd.Series(arr[0], index=[[2, 2, 4], [6, 8, 10]], name=(4, 8)),
+            lambda arr: pd.Series(
+                arr[0],
+                index=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+                name=(4, 8),
+            ),
         ),
         (
             lambda df: df.iloc[2],
-            lambda arr: pd.Series(arr[2], index=[[2, 2, 4], [6, 8, 10]], name=(8, 12)),
+            lambda arr: pd.Series(
+                arr[2],
+                index=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+                name=(8, 12),
+            ),
         ),
         (
             lambda df: df.iloc[:, 2],
             lambda arr: pd.Series(
-                arr[:, 2], index=[[4, 4, 8], [8, 10, 12]], name=(4, 10)
+                arr[:, 2],
+                index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
+                name=(4, 10),
             ),
         ),
     ],
@@ -76,8 +88,8 @@ def test_iloc_getitem_labels():
     arr = np.random.default_rng(2).standard_normal((4, 3))
     df = pd.DataFrame(
         arr,
-        columns=[["i", "i", "j"], ["A", "A", "B"]],
-        index=[["i", "i", "j", "k"], ["X", "X", "Y", "Y"]],
+        columns=pd.MultiIndex.from_arrays([["i", "i", "j"], ["A", "A", "B"]]),
+        index=pd.MultiIndex.from_arrays([["i", "i", "j", "k"], ["X", "X", "Y", "Y"]]),
     )
     result = df.iloc[2, 2]
     expected = arr[2, 2]
