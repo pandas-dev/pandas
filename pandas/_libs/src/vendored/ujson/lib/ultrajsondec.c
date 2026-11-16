@@ -118,7 +118,6 @@ JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
 JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
   int intNeg = 1;
   JSUINT64 intValue;
-  JSUINT64 prevIntValue;
   int chr;
   int decimalCount = 0;
   double frcValue = 0.0;
@@ -158,16 +157,15 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     case '7':
     case '8':
     case '9': {
-      // PERF: Don't do 64-bit arithmetic here unless we have to
-      prevIntValue = intValue;
+      if (intValue > ULLONG_MAX / 10 ||
+          (intValue == ULLONG_MAX / 10 &&
+           (JSUINT64)(chr - 48) > ULLONG_MAX % 10)) {
+        goto DECODE_BIG;
+      }
       intValue = intValue * 10ULL + (JSLONG)(chr - 48);
 
-      if (intNeg == 1 && prevIntValue > intValue) {
-        return SetError(ds, -1, "Value is too big!");
-      } else if (intNeg == -1 && intValue > overflowLimit) {
-        return SetError(ds, -1,
-                        overflowLimit == LLONG_MAX ? "Value is too big!"
-                                                   : "Value is too small");
+      if (intNeg == -1 && intValue > overflowLimit) {
+        goto DECODE_BIG;
       }
 
       offset++;
@@ -203,6 +201,21 @@ BREAK_INT_LOOP:
     return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSUINT64)intNeg));
   else
     return ds->dec->newInt(ds->prv, (JSINT32)(intValue * (JSUINT64)intNeg));
+
+DECODE_BIG:
+  // Integer part overflows int64/uint64, see GH#20599
+  while (*offset >= '0' && *offset <= '9') {
+    offset++;
+  }
+  if (*offset == '.' || *offset == 'e' || *offset == 'E') {
+    return decodePreciseFloat(ds);
+  }
+  {
+    JSOBJ ret = ds->dec->newBigNum(ds->prv, ds->start, offset);
+    ds->lastType = JT_INT;
+    ds->start = offset;
+    return ret;
+  }
 
 DECODE_FRACTION:
 

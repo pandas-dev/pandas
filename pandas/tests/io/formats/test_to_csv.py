@@ -1110,3 +1110,57 @@ def test_to_csv_datetime_tz_consistent_format():
     ]
     expected = tm.convert_rows_list_to_csv_str(expected_rows)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "first_row, index, kwargs, expected_rows",
+    [
+        (
+            [np.nan, np.nan],
+            ["r0", "r1"],
+            {},
+            [",a,b", ",x,y", ",,", "r0,,", "r1,1.0,2.0"],
+        ),
+        (
+            [np.nan, np.nan],
+            pd.MultiIndex.from_tuples([("r", 0), ("r", 1)]),
+            {},
+            [",,a,b", ",,x,y", ",,,", "r,0,,", "r,1,1.0,2.0"],
+        ),
+        # missing index value: two of three fields blank
+        (
+            [np.nan, 0.5],
+            [np.nan, 1.0],
+            {},
+            [",a,b", ",x,y", ",,", ",,0.5", "1.0,1.0,2.0"],
+        ),
+        (
+            [np.nan, np.nan],
+            ["r0", "r1"],
+            {"index_label": False},
+            [",a,b", ",x,y", ",,", "r0,,", "r1,1.0,2.0"],
+        ),
+    ],
+)
+@pytest.mark.parametrize("engine", ["c", "python"])
+def test_to_csv_mi_columns_blank_first_row_roundtrip(
+    first_row, index, kwargs, expected_rows, engine
+):
+    # GH#21995 the first row was read back as index names and dropped
+    columns = pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")])
+    df = pd.DataFrame([first_row, [1.0, 2.0]], index=index, columns=columns)
+
+    result = df.to_csv(**kwargs)
+    assert result == tm.convert_rows_list_to_csv_str(expected_rows)
+
+    index_col = list(range(df.index.nlevels))
+    roundtrip = pd.read_csv(
+        io.StringIO(result), header=[0, 1], index_col=index_col, engine=engine
+    )
+    tm.assert_frame_equal(roundtrip, df, check_index_type=False)
+
+
+def test_to_csv_mi_columns_empty_frame():
+    # GH#21995 no first row to check for the index line
+    df = pd.DataFrame(columns=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]))
+    assert df.to_csv() == tm.convert_rows_list_to_csv_str([",a,b", ",x,y"])

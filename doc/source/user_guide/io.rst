@@ -87,12 +87,13 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
-  that are not specified will be skipped (e.g. 2 in this example is
-  skipped). The levels follow the order of the list, so ``[1,0]`` puts
-  row 1 in level 0. Note that this parameter ignores commented lines
-  and empty lines if ``skip_blank_lines=True``, so header=0 denotes the
-  first line of data rather than the first line of the file.
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Rows above
+  ``min(header)``, and unlisted rows in between are skipped
+  (e.g. ``[1,2,4]`` skips rows 0 and 3). The levels follow the order
+  of the list, so ``[1,0]`` puts row 1 in level 0. Note that this
+  parameter ignores commented lines and empty lines if
+  ``skip_blank_lines=True``, so header=0 denotes the first line of
+  data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
@@ -372,6 +373,10 @@ columns:
     df["a"][0]
     df = pd.read_csv(StringIO(data), dtype={"b": object, "c": np.float64, "d": "Int64"})
     df.dtypes
+
+Complex numbers are not inferred and are read as strings by default. To parse
+them, pass a complex dtype, e.g. ``dtype={"a": "complex128"}``; both the ``(1+2j)``
+form written by :meth:`DataFrame.to_csv` and bare ``1+2j`` are accepted.
 
 Fortunately, pandas offers more than one way to ensure that your column(s)
 contain only one ``dtype``. If you're unfamiliar with these concepts, you can
@@ -1208,7 +1213,7 @@ after a delimiter:
 The parsers make every attempt to "do the right thing" and not be fragile. Type
 inference is a pretty big deal. If a column can be coerced to integer dtype
 without altering the contents, the parser will do so. Any non-numeric
-columns will come through as object dtype as with the rest of pandas objects.
+columns will come through as strings.
 
 .. _io.quoting:
 
@@ -2222,6 +2227,7 @@ pandas type     Table Schema type
 =============== =================
 int64           integer
 float64         number
+complex128      object
 bool            boolean
 datetime64[ns]  datetime
 timedelta64[ns] duration
@@ -2343,7 +2349,8 @@ for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table"
 
 The ``extDtype`` key carries the name of the extension, if you have properly registered
 the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
-and re-convert the serialized data into your custom dtype.
+and re-convert the serialized data into your custom dtype. Complex columns also use
+this key, with the name of their NumPy dtype.
 
 .. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
@@ -5690,7 +5697,7 @@ documentation.
 
 Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
-Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+Examples of such drivers are `psycopg 3 <https://www.psycopg.org/psycopg3/docs/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -6133,7 +6140,7 @@ Specifying this will return an iterator through chunks of the query result:
    usage. Most database drivers fetch the complete result set into client
    memory before the first chunk is produced. Actually streaming the result
    requires a server-side cursor, which with SQLAlchemy is requested with the
-   ``stream_results`` execution option (supported by, e.g., the psycopg2 and
+   ``stream_results`` execution option (supported by, e.g., the psycopg and
    pymysql drivers; drivers without server-side cursor support ignore it):
 
    .. code-block:: python
@@ -6154,7 +6161,11 @@ connecting to.
 
    from sqlalchemy import create_engine
 
-   engine = create_engine("postgresql://scott:tiger@localhost:5432/mydatabase")
+   # PostgreSQL using the psycopg 3 driver:
+   engine = create_engine("postgresql+psycopg://scott:tiger@localhost:5432/mydatabase")
+
+   # or using the psycopg2 driver:
+   engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
 
    engine = create_engine("mysql+mysqldb://scott:tiger@localhost/foo")
 
@@ -6168,6 +6179,14 @@ connecting to.
 
    # or absolute, starting with a slash:
    engine = create_engine("sqlite:////absolute/path/to/foo.db")
+
+.. note::
+
+   The ``postgresql`` pip extra (``pip install "pandas[postgresql]"``) installs
+   psycopg2, not psycopg 3. To use the ``postgresql+psycopg`` dialect with
+   SQLAlchemy, install psycopg 3 separately, e.g.
+   ``pip install "psycopg[binary]"``. See
+   :ref:`install.optional_dependencies` for the full list of SQL dependencies.
 
 For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
@@ -6523,6 +6542,15 @@ with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
 .. _xarray: https://xarray.pydata.org/en/stable/
+
+R data files
+''''''''''''
+
+rdata_ and pyreadr_ read and write R's ``.rds`` and ``.RData``/``.rda``
+formats, converting R data frames to and from pandas ``DataFrame`` objects.
+
+.. _rdata: https://rdata.readthedocs.io/en/stable/
+.. _pyreadr: https://github.com/ofajardo/pyreadr
 
 .. _io.perf:
 

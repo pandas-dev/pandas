@@ -1268,6 +1268,30 @@ def test_invalid_nat_setitem_array(arr, non_casting_nats):
 @pytest.mark.parametrize(
     "arr",
     [
+        pd.date_range("2000-01-01", periods=3)._data,
+        pd.timedelta_range("1 Day", periods=3)._data,
+        pd.period_range("2000-01-01", periods=3, freq="D")._data,
+    ],
+    ids=lambda x: type(x).__name__,
+)
+@pytest.mark.parametrize("hasna", [True, False])
+@pytest.mark.parametrize("copy", [True, False])
+def test_fillna_invalid_value_raises(arr, hasna, copy):
+    # GH#36466 the fill value is validated even when there is nothing to fill
+    arr = arr.copy()
+    if hasna:
+        arr[1] = NaT
+    msg = (
+        "value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
+        "Got 'str' instead."
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr.fillna("foo", copy=copy)
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
         pd.date_range("2000", periods=4)._values,
         pd.timedelta_range("2000", periods=4)._values,
     ],

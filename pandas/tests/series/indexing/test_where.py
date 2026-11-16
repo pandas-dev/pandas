@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import InvalidIndexError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
 
@@ -415,6 +416,16 @@ def test_where_datetimetz():
     tm.assert_series_equal(rs, expected)
 
 
+def test_where_other_list_of_nested_tuples():
+    # GH#43780
+    key1 = (("a1", "a2"), ("b1", "b2"))
+    key2 = (("x1", "x2"), ("y1", "y2"))
+    ser = pd.Series([key1, key1])
+    result = ser.where([True, False], [key2, key2])
+    expected = pd.Series([key1, key2])
+    tm.assert_series_equal(result, expected)
+
+
 def test_where_sparse():
     # GH#17198 make sure we dont get an AttributeError for sp_index
     ser = pd.Series(pd.arrays.SparseArray([1, 2]))
@@ -492,3 +503,59 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+@pytest.mark.parametrize(
+    "cond_dtype",
+    ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize("box", [pd.array, pd.Series])
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_nullable_bool_cond_na_series(method, inplace, box, cond_dtype):
+    # GH#35429, GH#56844 NA in cond is treated as False, as in boolean indexing
+    ser = pd.Series([1, 2, 3])
+    cond = box([True, False, pd.NA], dtype=cond_dtype)
+    if method == "where":
+        expected = pd.Series([1, -9, -9])
+    else:
+        expected = pd.Series([-9, 2, 3])
+
+    result = getattr(ser, method)(cond, -9, inplace=inplace)
+    if inplace:
+        result = ser
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+def test_mask_nullable_na_cond_from_self(dtype):
+    # GH#52955, GH#60729 NA in the values gives NA in cond; keep it unreplaced
+    ser = pd.Series([1, 2, None, 4], dtype=dtype)
+    result = ser.mask(ser <= 2, -99)
+    expected = pd.Series([-99, -99, None, 4], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", [*tm.ALL_INT_EA_DTYPES, *tm.FLOAT_EA_DTYPES, "boolean"]
+)
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_masked_other_same_dtype(method, dtype):
+    # NA in the values and in other is kept where it is picked
+    def make(values):
+        if dtype == "boolean":
+            values = [None if val is None else val > 10 for val in values]
+        return pd.Series(values, dtype=dtype)
+
+    ser = make([1, None, 3, None])
+    other = make([None, 20, 30, None])
+    cond = np.array([True, False, False, True])
+
+    result = getattr(ser, method)(cond, other)
+    if method == "where":
+        expected = make([1, 20, 30, None])
+    else:
+        expected = make([None, None, 3, None])
+    tm.assert_series_equal(result, expected)

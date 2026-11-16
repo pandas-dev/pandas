@@ -185,6 +185,14 @@ class TestJSONArray(base.ExtensionTests):
             request.applymarker(unhashable)
         super().test_value_counts(all_data, dropna)
 
+    @pytest.mark.xfail(
+        reason="JSONArray does not treat {} as missing; "
+        "assert_index_equal fails on JSONDtype index"
+    )
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts_no_sort(self, data_for_grouping, dropna):
+        super().test_value_counts_no_sort(data_for_grouping, dropna)
+
     @unhashable
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
@@ -196,6 +204,14 @@ class TestJSONArray(base.ExtensionTests):
 
     def test_combine_first(self, data):
         super().test_combine_first(data)
+
+    @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
+    def test_where_series_listlike_other(self, data):
+        super().test_where_series_listlike_other(data)
+
+    @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
+    def test_mask_listlike_other_inplace(self, data):
+        super().test_mask_listlike_other_inplace(data)
 
     @pytest.mark.xfail(reason="broadcasting error")
     def test_where_series(self, data, na_value):
