@@ -94,63 +94,58 @@ def test_where_mask_temporal_reinterpretation_raises(meth):
         getattr(ser, meth)(np.array([True, False, True]), other)
 
 
-@pytest.mark.parametrize(
-    "pa_type",
-    [
-        pa.list_(pa.int64()),
-        pa.large_list(pa.string()),
-        pa.list_(pa.int64(), 2),
-        pa.struct([("a", pa.int64())]),
-        pa.map_(pa.string(), pa.int64()),
-        pa.fixed_shape_tensor(pa.int64(), [2]),
-    ],
-)
+NESTED_TYPES = [
+    pa.list_(pa.int64()),
+    pa.large_list(pa.string()),
+    pa.list_(pa.int64(), 2),
+    pa.struct([("a", pa.int64())]),
+    pa.map_(pa.string(), pa.int64()),
+    pa.fixed_shape_tensor(pa.int64(), [2]),
+]
+
+
+@pytest.mark.parametrize("pa_type", NESTED_TYPES)
 @pytest.mark.parametrize("value", ["", "zz", b"", b"zz"])
-@pytest.mark.parametrize(
-    "method",
-    [
-        "where",
-        "mask",
-        "fillna",
-        "setitem_mask",
-        "setitem_list",
-        "setitem_int",
-        "insert",
-    ],
-)
-def test_nested_str_bytes_value_raises(pa_type, value, method):
+@pytest.mark.parametrize("key", [1, [1, 2], np.array([False, True, True])])
+def test_nested_str_bytes_setitem_raises(pa_type, value, key, indexer_sli):
     # pyarrow reads a str or bytes as a sequence, e.g. b"zz" -> [122, 122]
     ser = pd.Series([None, None, None], dtype=ArrowDtype(pa_type))
-    cond = np.array([True, False, False])
     msg = re.escape(f"Invalid value '{value!s}' for dtype '{ser.dtype}'")
     with pytest.raises(TypeError, match=msg):
-        if method == "where":
-            ser.where(cond, value)
-        elif method == "mask":
-            ser.mask(~cond, value)
-        elif method == "fillna":
-            ser.fillna(value)
-        elif method == "setitem_mask":
-            ser[~cond] = value
-        elif method == "setitem_list":
-            ser.iloc[[1, 2]] = value
-        elif method == "setitem_int":
-            ser.iloc[1] = value
-        else:
-            ser.array.insert(1, value)
+        indexer_sli(ser)[key] = value
+
+
+@pytest.mark.parametrize("pa_type", NESTED_TYPES)
+@pytest.mark.parametrize("value", ["", "zz", b"", b"zz"])
+@pytest.mark.parametrize(
+    "func",
+    [
+        pytest.param(lambda ser, v: ser.where([True, False, False], v), id="where"),
+        pytest.param(lambda ser, v: ser.mask([False, True, True], v), id="mask"),
+        pytest.param(lambda ser, v: ser.fillna(v), id="fillna"),
+        pytest.param(lambda ser, v: ser.array.insert(1, v), id="insert"),
+    ],
+)
+def test_nested_str_bytes_value_raises(pa_type, value, func):
+    ser = pd.Series([None, None, None], dtype=ArrowDtype(pa_type))
+    msg = re.escape(f"Invalid value '{value!s}' for dtype '{ser.dtype}'")
+    with pytest.raises(TypeError, match=msg):
+        func(ser, value)
 
 
 @pytest.mark.parametrize("value", ["zz", b"zz"])
-@pytest.mark.parametrize("method", ["insert", "where", "putmask"])
-def test_index_nested_str_bytes_value_casts_to_object(value, method):
+@pytest.mark.parametrize(
+    "func, pos",
+    [
+        pytest.param(lambda idx, v: idx.insert(0, v), 0, id="insert"),
+        pytest.param(lambda idx, v: idx.where([True, False], v), 1, id="where"),
+        pytest.param(lambda idx, v: idx.putmask([False, True], v), 1, id="putmask"),
+    ],
+)
+def test_index_nested_str_bytes_value_casts_to_object(value, func, pos):
     # the TypeError above makes Index upcast, as for other values it can't hold
     idx = pd.Index([[1], None], dtype=ArrowDtype(pa.list_(pa.int64())))
-    if method == "insert":
-        result, pos = idx.insert(0, value), 0
-    elif method == "where":
-        result, pos = idx.where(np.array([True, False]), value), 1
-    else:
-        result, pos = idx.putmask(np.array([False, True]), value), 1
+    result = func(idx, value)
     assert result.dtype == object
     assert result[pos] == value
     assert list(result[1 - pos]) == [1]
