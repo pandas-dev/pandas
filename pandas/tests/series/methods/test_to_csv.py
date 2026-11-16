@@ -96,7 +96,7 @@ class TestSeriesToCSV:
     def test_to_csv_list_entries(self):
         s = pd.Series(["jack and jill", "jesse and frank"])
 
-        split = s.str.split(r"\s+and\s+")
+        split = s.str.split(r"\s+and\s+", regex=True)
 
         buf = StringIO()
         split.to_csv(buf, header=False)
