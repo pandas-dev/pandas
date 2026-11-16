@@ -1902,8 +1902,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 else:
                     copy = True
 
-            if blk.is_extension:
-                # Avoid implicit conversion of extension blocks to object
+            if blk.is_extension or (
+                dtype is not None
+                and blk.dtype.kind in "mM"
+                and dtype.kind in "SUTmM"
+                and dtype.kind != blk.dtype.kind
+            ):
+                # Avoid implicit conversion of extension blocks to object.
+                # For datetime64/timedelta64, string and cross-kind casts
+                # use DatetimeArray/TimedeltaArray rules, GH#44484
 
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"

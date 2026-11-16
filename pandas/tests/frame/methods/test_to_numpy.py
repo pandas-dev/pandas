@@ -52,6 +52,17 @@ class TestToNumpy:
         expected = np.array([["2020-01-01 00:00:00", "100.0"]], dtype=str)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_to_numpy_timedelta_str_and_cross_kind(self):
+        # GH#44484 numpy's repr gave "86400000000 microseco"
+        tdi = pd.to_timedelta(["1D", None]).as_unit("us")
+        df = pd.DataFrame({"a": tdi, "b": tdi})
+        result = df.to_numpy(str, na_value="not available")
+        expected = np.array([["1 days"] * 2, ["not available"] * 2], dtype=str)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError, match="Cannot cast TimedeltaArray"):
+            df.to_numpy("M8[us]")
+
     def test_to_numpy_datetime_with_na(self):
         # GH #53115
         dti = pd.date_range("2016-01-01", periods=3, unit="ns")
