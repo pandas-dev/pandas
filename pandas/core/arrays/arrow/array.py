@@ -272,6 +272,16 @@ if HAS_PYARROW:
         "rpow": lambda x, y: pc.power_checked(y, x),
     }
 
+    # the next index type when a dictionary outgrows its index type
+    WIDER_INDEX_TYPE = {
+        pa.int8(): pa.int16(),
+        pa.int16(): pa.int32(),
+        pa.int32(): pa.int64(),
+        pa.uint8(): pa.uint16(),
+        pa.uint16(): pa.uint32(),
+        pa.uint32(): pa.uint64(),
+    }
+
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -329,6 +339,22 @@ def to_pyarrow_type(
         except pa.ArrowNotImplementedError:
             pass
     return None
+
+
+def _drop_null_dictionary_entries(arr: pa.DictionaryArray) -> pa.DictionaryArray:
+    """
+    Move null dictionary entries into the validity bitmap of the indices.
+    """
+    dictionary = arr.dictionary
+    if not dictionary.null_count:
+        return arr
+    valid = dictionary.is_valid()
+    positions = pc.subtract(pc.cumulative_sum(valid.cast(pa.int64())), 1)
+    mapping = pc.if_else(valid, positions, pa.scalar(None, type=pa.int64()))
+    indices = mapping.take(arr.indices).cast(arr.type.index_type)
+    return pa.DictionaryArray.from_arrays(
+        indices, dictionary.filter(valid), ordered=arr.type.ordered
+    )
 
 
 def _is_varbinary_type(pa_type: pa.DataType) -> bool:
@@ -3843,6 +3869,8 @@ class ArrowExtensionArray(
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
+        if pa.types.is_dictionary(values.type):
+            return cls._replace_with_mask_dictionary(values, mask, replacements)
         if pa_version_under25p0 and pa.types.is_null(values.type):
             # GH#66703 pc.replace_with_mask aborts the process for null dtype
             # (apache/arrow#47447, fixed in pyarrow 25.0.0). The null type
@@ -3860,6 +3888,81 @@ class ArrowExtensionArray(
         result = np.array(values, dtype=object)
         result[mask] = replacements
         return pa.array(result, type=values.type, from_pandas=is_nan_na())
+
+    @classmethod
+    def _replace_with_mask_dictionary(
+        cls,
+        values: pa.Array | pa.ChunkedArray,
+        mask: npt.NDArray[np.bool_] | bool,
+        replacements: ArrayLike | Scalar,
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        _replace_with_mask for dictionary data, done on the indices.
+
+        pc.replace_with_mask has no dictionary kernel, and the NumPy fallback
+        turns a null into a dictionary value (ChunkedArray.to_numpy decodes
+        with np.take). Replacing the indices keeps the dictionary's order and
+        entries; replacement values that are not in it are appended, widening
+        the index type if they don't fit, as pa.array would.
+        """
+        dict_type = values.type
+        value_type = dict_type.value_type
+        if isinstance(values, pa.ChunkedArray):
+            if values.num_chunks == 0:
+                return values
+            # unify_dictionaries rejects a null dictionary entry (GH#66490)
+            chunks = [_drop_null_dictionary_entries(chunk) for chunk in values.chunks]
+            if len(chunks) > 1:
+                chunks = pa.chunked_array(chunks, type=dict_type).unify_dictionaries()
+                chunks = chunks.chunks
+            dictionary = chunks[0].dictionary
+            indices = pa.chunked_array(
+                [chunk.indices for chunk in chunks], type=dict_type.index_type
+            )
+        else:
+            dictionary, indices = values.dictionary, values.indices
+
+        is_scalar = not isinstance(replacements, (pa.Array, np.ndarray, list))
+        if isinstance(replacements, pa.Scalar):
+            rep = pa.repeat(replacements, 1)
+        elif isinstance(replacements, pa.Array):
+            rep = replacements
+        else:
+            rep = pa.array(
+                [replacements] if is_scalar else replacements, from_pandas=is_nan_na()
+            )
+        if pa.types.is_dictionary(rep.type):
+            rep = rep.dictionary.take(rep.indices)
+        if rep.type != value_type:
+            rep = rep.cast(value_type)
+
+        valid = rep.drop_null()
+        new = pc.unique(valid.filter(pc.invert(pc.is_in(valid, value_set=dictionary))))
+        if len(new):
+            dictionary = pa.concat_arrays([dictionary, new])
+            index_type = dict_type.index_type
+            while len(dictionary) - 1 > np.iinfo(index_type.to_pandas_dtype()).max:
+                index_type = WIDER_INDEX_TYPE[index_type]
+            if index_type != dict_type.index_type:
+                indices = indices.cast(index_type)
+                dict_type = pa.dictionary(index_type, value_type, dict_type.ordered)
+        rep_indices = pc.index_in(rep, value_set=dictionary, skip_nulls=True).cast(
+            dict_type.index_type
+        )
+        result = pc.replace_with_mask(
+            indices, mask, rep_indices[0] if is_scalar else rep_indices
+        )
+
+        def _encode(chunk: pa.Array) -> pa.DictionaryArray:
+            return pa.DictionaryArray.from_arrays(
+                chunk, dictionary, ordered=dict_type.ordered
+            )
+
+        if isinstance(result, pa.ChunkedArray):
+            return pa.chunked_array(
+                [_encode(chunk) for chunk in result.chunks], type=dict_type
+            )
+        return _encode(result)
 
     # ------------------------------------------------------------------
     # GroupBy Methods

@@ -21,6 +21,7 @@ import pandas as pd
 import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
+pc = pytest.importorskip("pyarrow.compute")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
@@ -156,6 +157,156 @@ def test_setitem_null_slice_no_alias_dictionary():
         dtype=dtype,
     )
     tm.assert_extension_array_equal(arr, expected)
+
+
+DICTIONARY_VALUES = [
+    pytest.param(pa.array(["a", "b", None, "b"]), "z", id="string"),
+    pytest.param(pa.array([2**53 + 1, 2, None, 2]), 9, id="int64"),
+    pytest.param(pa.array([2**64 - 1, 2, None, 2], type=pa.uint64()), 9, id="uint64"),
+    pytest.param(pa.array([1.5, 2.5, None, 2.5]), 9.5, id="float64"),
+]
+
+
+def _dictionary_series(values, chunks, null_encoding):
+    # "sliced" chunks share one dictionary, "separate" ones each have their own
+    encoded = values.dictionary_encode(null_encoding=null_encoding)
+    parts = {
+        "single": [encoded],
+        "sliced": [encoded[:1], encoded[1:]],
+        "separate": [
+            part.dictionary_encode(null_encoding=null_encoding)
+            for part in [values[:2], values[2:]]
+        ],
+    }[chunks]
+    return pd.Series(ArrowExtensionArray(pa.chunked_array(parts)), copy=False)
+
+
+@pytest.mark.parametrize("values, other", DICTIONARY_VALUES)
+@pytest.mark.parametrize("chunks", ["single", "sliced", "separate"])
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+@pytest.mark.parametrize("key", [np.array([False, True, False, True]), [1, 3]])
+@pytest.mark.parametrize(
+    "box",
+    [pytest.param(lambda o: o, id="scalar"), pytest.param(lambda o: [o, o], id="list")],
+)
+def test_dictionary_setitem_keeps_missing(
+    values, other, chunks, null_encoding, key, box, indexer_sli
+):
+    # _replace_with_mask fell back to NumPy for dictionaries, where
+    #  ChunkedArray.to_numpy turns a dictionary null into a dictionary value
+    ser = _dictionary_series(values, chunks, null_encoding)
+    dtype = ser.dtype
+    indexer_sli(ser)[key] = box(other)
+    assert ser.dtype == dtype
+    assert ser.array._pa_array.to_pylist() == [values[0].as_py(), other, None, other]
+
+
+@pytest.mark.parametrize("values, other", DICTIONARY_VALUES)
+@pytest.mark.parametrize("chunks", ["single", "sliced", "separate"])
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+@pytest.mark.parametrize(
+    "func",
+    [
+        pytest.param(
+            lambda ser, o: ser.where([True, False, True, False], o), id="where"
+        ),
+        pytest.param(
+            lambda ser, o: ser.mask(
+                [False, True, False, True], np.array([o] * 4, dtype=object)
+            ),
+            id="mask_ndarray",
+        ),
+    ],
+)
+def test_dictionary_where_keeps_missing(values, other, chunks, null_encoding, func):
+    ser = _dictionary_series(values, chunks, null_encoding)
+    result = func(ser, other)
+    assert result.dtype == ser.dtype
+    assert result.array._pa_array.to_pylist() == [
+        values[0].as_py(),
+        other,
+        None,
+        other,
+    ]
+
+
+@pytest.mark.parametrize("values, other", DICTIONARY_VALUES)
+@pytest.mark.parametrize("chunks", ["single", "sliced", "separate"])
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+def test_dictionary_replace_keeps_missing(
+    values, other, chunks, null_encoding, request
+):
+    if (
+        chunks == "separate"
+        and null_encoding == "encode"
+        and values.type == pa.uint64()
+    ):
+        request.applymarker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason="comparing to 2 falls back to to_numpy, which cannot unify "
+                "dictionaries holding a null",
+            )
+        )
+    ser = _dictionary_series(values, chunks, null_encoding)
+    result = ser.replace(ser.iloc[1], other)
+    assert result.dtype == ser.dtype
+    assert result.array._pa_array.to_pylist() == [
+        values[0].as_py(),
+        other,
+        None,
+        other,
+    ]
+
+
+@pytest.mark.parametrize("distinguish_nan_and_na", [False, True])
+@pytest.mark.parametrize("other", [np.nan, [np.nan, 9.5]])
+def test_dictionary_replace_with_mask_nan(other, distinguish_nan_and_na):
+    # a dictionary agrees with its value type on whether NaN is missing
+    values = pa.array([1.5, np.nan, None, 1.5], from_pandas=False)
+    mask = np.array([False, True, False, True])
+    with pd.option_context("future.distinguish_nan_and_na", distinguish_nan_and_na):
+        ser = pd.Series(ArrowExtensionArray(values.dictionary_encode()), copy=False)
+        ser[mask] = other
+        expected = pd.Series(ArrowExtensionArray(values), copy=False)
+        expected[mask] = other
+
+    result = ser.array._pa_array
+    assert pa.types.is_dictionary(result.type)
+    expected = expected.array._pa_array
+    assert result.cast(pa.float64()).is_null().equals(expected.is_null())
+    assert pc.is_nan(result.cast(pa.float64())).equals(pc.is_nan(expected))
+
+
+def test_dictionary_replace_with_mask_keeps_dictionary():
+    # the replacement runs on the indices, so the dictionary keeps its order
+    #  and its unused values, and a new value is appended
+    arr = pa.DictionaryArray.from_arrays(
+        pa.array([1, 0, None], pa.int32()), pa.array(["lo", "hi", "mid"]), ordered=True
+    )
+    ser = pd.Series(ArrowExtensionArray(arr), copy=False)
+    ser[np.array([False, False, True])] = "lo"
+    result = ser.array._pa_array
+    assert result.type == arr.type
+    assert result.to_pylist() == ["hi", "lo", "lo"]
+    assert result.chunk(0).dictionary.to_pylist() == ["lo", "hi", "mid"]
+
+    result = ser.where(np.array([True, False, True]), "top").array._pa_array
+    assert result.to_pylist() == ["hi", "top", "lo"]
+    assert result.chunk(0).dictionary.to_pylist() == ["lo", "hi", "mid", "top"]
+
+
+def test_dictionary_replace_with_mask_widens_index():
+    # a new value that does not fit the index type widens it, as pa.array does
+    values = [f"v{i}" for i in range(128)]
+    arr = pa.DictionaryArray.from_arrays(
+        pa.array([*range(128), None], pa.int8()), pa.array(values)
+    )
+    ser = pd.Series(ArrowExtensionArray(arr), copy=False)
+    ser[np.arange(129) == 127] = "new"
+    result = ser.array._pa_array
+    assert result.type == pa.dictionary(pa.int16(), pa.string())
+    assert result.to_pylist() == [*values[:127], "new", None]
 
 
 @pytest.mark.parametrize("kind", ["list", "struct"])
