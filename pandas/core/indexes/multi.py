@@ -784,7 +784,15 @@ class MultiIndex(Index):
                 vals = vals.astype(object)
 
             array_vals = np.asarray(vals)
-            array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
+            if array_vals.dtype.kind in "iu" and (mask := codes == -1).any():
+                # filling NaN via take_nd would cast to float64, GH#24375
+                filled = np.full(len(codes), index._na_value, dtype=object)
+                filled[~mask] = array_vals.take(codes[~mask])
+                array_vals = filled
+            else:
+                array_vals = algos.take_nd(
+                    array_vals, codes, fill_value=index._na_value
+                )
             values.append(array_vals)
 
         arr = lib.fast_zip(values)
@@ -3416,7 +3424,33 @@ class MultiIndex(Index):
             self._raise_if_missing(key, indexer, axis_name)
             return self[indexer], indexer
 
+        if len(keyarr) and 0 < len(keyarr[0]) < self.nlevels:
+            nlev = len(keyarr[0])
+            if isinstance(keyarr, MultiIndex) or all(
+                isinstance(tup, tuple) and len(tup) == nlev for tup in keyarr
+            ):
+                # GH#16083 partial tuples select on the first nlev levels
+                return self._get_indexer_partial_tuples(keyarr, nlev, axis_name)
+
         return super()._get_indexer_strict(key, axis_name)
+
+    def _get_indexer_partial_tuples(
+        self, keyarr, nlev: int, axis_name: str
+    ) -> tuple[Index, npt.NDArray[np.intp]]:
+        """
+        Find all rows whose first `nlev` levels match each key, in key order.
+        """
+        trunc = MultiIndex(
+            levels=self.levels[:nlev], codes=self.codes[:nlev], verify_integrity=False
+        )
+        indexer, missing = trunc.get_indexer_non_unique(keyarr)
+        if len(missing):
+            keys = ensure_index(keyarr)
+            if len(missing) == len(keys):
+                raise KeyError(f"None of [{keys}] are in the [{axis_name}]")
+            not_found = list(keys[missing].unique())
+            raise KeyError(f"{not_found} not in index")
+        return self[indexer], indexer
 
     def _raise_if_missing(self, key, indexer, axis_name: str) -> None:
         keyarr = key

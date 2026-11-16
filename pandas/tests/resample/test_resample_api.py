@@ -1156,3 +1156,14 @@ def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
 
     exp = pd.DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
     tm.assert_frame_equal(result, exp)
+
+
+@pytest.mark.parametrize("periods", [4, 0])
+def test_resample_ohlc_numeric_only(periods):
+    # GH#56946
+    index = date_range("2020-01-01", periods=4, freq="12h")
+    df = pd.DataFrame({"str": list("abcd"), "num": [1.0, 3.0, 2.0, 5.0]}, index=index)
+    df = df.iloc[:periods]
+    result = df.resample("D").ohlc(numeric_only=True)
+    expected = df[["num"]].resample("D").ohlc()
+    tm.assert_frame_equal(result, expected)

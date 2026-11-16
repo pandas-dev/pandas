@@ -68,6 +68,7 @@ from pandas.core.base import PandasObject
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import (
@@ -445,10 +446,18 @@ class BaseBlockManager(PandasObject):
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
                         #  obj.axes[-1].equals(self.items)
-                        if obj.ndim == 1:
+                        if isinstance(obj, ABCSeries):
                             kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
-                        else:
-                            kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
+                            continue
+                        if b.values.ndim == 1:
+                            # pass a same-dtype column as is; _values would
+                            #  convert it to a 2D object ndarray
+                            loc = b.mgr_locs.as_array[0]
+                            col = obj._get_column_array(loc)
+                            if col.dtype == b.dtype:
+                                kwargs[k] = col
+                                continue
+                        kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
                     else:
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
@@ -2513,6 +2522,8 @@ def _form_blocks(
             values, placement = _stack_arrays(tup_block, dtype)
             if is_dtlike:
                 values = ensure_wrapped_if_datetimelike(values)
+            else:
+                warn_non_native_byteorder(values)
             blk = block_type(values, placement=BlockPlacement(placement), ndim=2)
             nbs.append(blk)
 

@@ -15,10 +15,12 @@ from pandas.core.dtypes.inference import is_list_like
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from pathlib import Path
 
-    from pandas._typing import DtypeBackend
+    from pandas._typing import (
+        DtypeBackend,
+        SequenceNotStr,
+    )
 
     from pandas import DataFrame
 
@@ -26,7 +28,7 @@ if TYPE_CHECKING:
 @set_module("pandas")
 def read_spss(
     path: str | Path,
-    usecols: Sequence[str] | None = None,
+    usecols: SequenceNotStr[str] | None = None,
     convert_categoricals: bool = True,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     **kwargs: Any,

@@ -870,6 +870,23 @@ class WhereMisalignedCond:
         self.df.where(self.mask, other=0.0)
 
 
+class WhereFrameOther:
+    params = ["Float64", "float64[pyarrow]", "string[pyarrow]"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 100_000
+        values = np.random.randn(N, 10)
+        self.mask = DataFrame(values < 0)
+        if dtype == "string[pyarrow]":
+            values = values.astype(str)
+        self.df = DataFrame(values, dtype=dtype)
+        self.other = DataFrame(values[::-1], dtype=dtype)
+
+    def time_where(self, dtype):
+        self.df.where(self.mask, self.other)
+
+
 class FindValidIndex:
     param_names = ["dtype"]
     params = [
