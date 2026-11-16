@@ -1558,6 +1558,37 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return ensure_block_shape(res_values, ndim=ndim)
 
     @final
+    def _transform_py_fallback(
+        self, how: str, values: ArrayLike, **kwargs
+    ) -> ArrayLike:
+        """
+        Apply the Series method ``how`` group-by-group, for cumulative ops
+        whose cython kernel does not support ``values.dtype``.
+        """
+        from pandas.core.reshape.concat import concat
+
+        if values.ndim == 2:
+            # object block in DataFrameGroupBy, one row per column
+            return np.vstack(
+                [
+                    np.asarray(self._transform_py_fallback(how, row, **kwargs))
+                    for row in values
+                ]
+            )
+
+        ser = Series(values, dtype=values.dtype, copy=False)
+        try:
+            results = [
+                getattr(group, how)(**kwargs)
+                for group in self._grouper._get_splitter(ser)
+            ]
+        except (TypeError, NotImplementedError) as err:
+            raise TypeError(f"{how} is not supported for {values.dtype} dtype") from err
+        # rows in a dropped NA group are absent from results and become NA
+        res = concat(results) if results else ser.iloc[:0]
+        return res.reindex(range(len(ser)))._values
+
+    @final
     def _cython_agg_general(
         self,
         how: str,
@@ -3397,11 +3428,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def ohlc(self) -> DataFrame:
+    def ohlc(self, numeric_only: bool = False) -> DataFrame:
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -3494,6 +3532,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             obj = self._selected_obj
 
             is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                raise TypeError(
+                    f"Cannot use numeric_only=True with {type(self).__name__}.ohlc "
+                    "and non-numeric dtypes."
+                )
             if not is_numeric:
                 raise DataError("No numeric types to aggregate")
 
@@ -3509,7 +3552,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result.reset_index()
             return result
 
-        result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
+        result = self._apply_to_column_groupbys(
+            lambda sgb: sgb.ohlc(), numeric_only=numeric_only
+        )
         return result
 
     def describe(

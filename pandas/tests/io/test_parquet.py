@@ -891,6 +891,23 @@ class TestParquetPyArrow(Base):
         result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
         assert str(result["a"].dtype.pyarrow_dtype.index_type) == index_type
 
+    def test_read_dtype_backend_pyarrow_list_of_struct_null_field(self, pa, temp_file):
+        # GH#58867 "b" holds only None, so pyarrow types it null; its child array
+        #  came back too short, so reading the elements raised ArrowIndexError
+        import pyarrow
+
+        df = pd.DataFrame({"a": [[{"b": None}, {"g": "moo"}]]})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+
+        pa_type = pyarrow.list_(
+            pyarrow.struct([("b", pyarrow.null()), ("g", pyarrow.string())])
+        )
+        assert result["a"].dtype == pd.ArrowDtype(pa_type)
+        expected = [[{"b": None, "g": None}, {"b": None, "g": "moo"}]]
+        assert result["a"].tolist() == expected
+
     @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(
         self, df_compat, s3_bucket_public, s3so, pa, temp_file

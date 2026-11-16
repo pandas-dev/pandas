@@ -72,6 +72,27 @@ class Dropna:
         self.s.dropna()
 
 
+class WhereSeriesOther:
+    params = ["Int64", "Float64", "boolean"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10**6
+        if dtype == "Int64":
+            values = np.random.randint(0, 100, N)
+        elif dtype == "boolean":
+            values = np.random.randn(N) > 0
+        else:
+            values = np.random.randn(N)
+        self.s = Series(values, dtype=dtype)
+        self.other = Series(values[::-1], dtype=dtype)
+        self.other[::10] = NA
+        self.cond = np.random.randn(N) < 0
+
+    def time_where(self, dtype):
+        self.s.where(self.cond, self.other)
+
+
 class Fillna:
     params = [
         [

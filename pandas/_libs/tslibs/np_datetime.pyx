@@ -878,6 +878,19 @@ cdef int64_t _convert_reso_with_dtstruct(
 cdef Py_ssize_t _ADD_VECTORIZED_MIN_SIZE = 1000
 
 
+cdef int _check_broadcasts_to_left(
+    ndarray left, ndarray right, Py_ssize_t size
+) except -1:
+    # size is that of left and right broadcast together; the result has left's
+    #  shape, so anything else would truncate or reshape it, GH#23853
+    if right.ndim > left.ndim or size != left.size:
+        raise ValueError(
+            f"shape mismatch: cannot broadcast {(<object>right).shape} "
+            f"to {(<object>left).shape}"
+        )
+    return 0
+
+
 @cython.overflowcheck(True)
 cpdef cnp.ndarray add_overflowsafe(
     cnp.ndarray left, cnp.ndarray right, bint sentinel_ok=False
@@ -885,7 +898,7 @@ cpdef cnp.ndarray add_overflowsafe(
     """
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
-    `right` may either be zero-dim or of the same shape as `left`.
+    `right` must broadcast to the shape of `left`.
 
     A sum landing exactly on NPY_DATETIME_NAT is rejected, since as a datetime64
     or timedelta64 value it would be indistinguishable from a missing one. Pass
@@ -900,12 +913,15 @@ cpdef cnp.ndarray add_overflowsafe(
         Py_ssize_t _, N = left.size
         int64_t lval, rval, res_value
         int64_t lmin, lmax, rmin, rmax
+        cnp.broadcast operands
 
     # Fast path: bound the result from the operands' min/max, and when every
     #  sum provably stays inside (NPY_DATETIME_NAT, INT64_MAX] hand the whole
     #  thing to numpy.  NPY_DATETIME_NAT is INT64_MIN, so a minimum above it
     #  also rules out NaT operands.
     if N >= _ADD_VECTORIZED_MIN_SIZE and right.size > 0:
+        operands = cnp.PyArray_MultiIterNew2(left, right)
+        _check_broadcasts_to_left(left, right, cnp.PyArray_MultiIter_SIZE(operands))
         lmin = left.min()
         rmin = right.min()
         if lmin > NPY_DATETIME_NAT and rmin > NPY_DATETIME_NAT:
@@ -923,6 +939,8 @@ cpdef cnp.ndarray add_overflowsafe(
             left.ndim, left.shape, cnp.NPY_INT64, 0
         )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    _check_broadcasts_to_left(left, right, cnp.PyArray_MultiIter_SIZE(mi))
 
     # Note: doing this try/except outside the loop improves performance over
     #  doing it inside the loop.

@@ -114,6 +114,41 @@ class TestDataFrameCumulativeOps:
         tm.assert_frame_equal(result, expected)
 
 
+def test_cumsum_object_with_na():
+    # GH#59764: only "a" holds an NA, so the columns take different paths
+    df = pd.DataFrame({"a": ["x", None, "y"], "b": ["p", "q", "r"]}, dtype=object)
+    result = df.cumsum()
+    expected = pd.DataFrame(
+        {"a": ["x", np.nan, "xy"], "b": ["p", "pq", "pqr"]}, dtype=object
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, expected_a",
+    [
+        ("cummax", [np.nan, "b", np.nan, "b", "c"]),
+        ("cummin", [np.nan, "b", np.nan, "a", "a"]),
+    ],
+)
+def test_cummax_cummin_object_with_na(method, expected_a):
+    # GH#59764: the first valid value "b" is neither the max nor the min
+    df = pd.DataFrame(
+        {
+            "a": [None, "b", None, "a", "c"],
+            "b": ["p", "q", "r", "s", "t"],
+            "c": [None] * 5,
+        },
+        dtype=object,
+    )
+    result = getattr(df, method)()
+    expected = pd.DataFrame(
+        {"a": expected_a, "b": getattr(df["b"], method)(), "c": [np.nan] * 5},
+        dtype=object,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_td64_cumsum_overflow():
     # GH#66551: the check applies per column
     df = pd.DataFrame(

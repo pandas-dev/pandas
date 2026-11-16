@@ -50,7 +50,11 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS_FULL,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._libs.tslibs.offsets import RelativeDeltaOffset
+from pandas._libs.tslibs.fields import RoundTo
+from pandas._libs.tslibs.offsets import (
+    RelativeDeltaOffset,
+    validate_floor_ceil_offset,
+)
 from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.errors import (
     Pandas4Warning,
@@ -1212,6 +1216,37 @@ default 'raise'
         dt64_values = new_values.view(self._ndarray.dtype)
         return type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
 
+    def _round(self, freq, mode, ambiguous, nonexistent):
+        offset = to_offset(freq)
+        if (
+            # the base class rounds the wall times, which re-enters here
+            self.tz is not None
+            or mode == RoundTo.NEAREST_HALF_EVEN
+            or isinstance(offset, (Tick, Day))
+        ):
+            return super()._round(freq, mode, ambiguous, nonexistent)
+
+        # GH#15303 snap to the midnights that offset is on; keep in sync
+        #  with Timestamp._round
+        validate_floor_ceil_offset(offset)
+        norm = self.normalize()
+        day = Timedelta(days=1).as_unit(self.unit)
+        if (norm.asi8 > lib.i8max - day._value).any():
+            # norm + day would overflow; the scalar path avoids it
+            return type(self)._from_sequence(
+                [ts if ts is NaT else ts._round(offset, mode) for ts in self],
+                dtype=self.dtype,
+            )
+        with warnings.catch_warnings():
+            # the offset arithmetic is internal; don't report it as the user's
+            warnings.simplefilter("ignore", PerformanceWarning)
+            # the last such midnight before the next midnight
+            result = norm + day - offset
+            if mode == RoundTo.PLUS_INFTY:
+                mask = result != self
+                result[mask] = result[mask] + offset
+        return result
+
     def to_period(self, freq=None) -> PeriodArray:
         """
         Cast to PeriodArray/PeriodIndex at a particular frequency.
@@ -1239,6 +1274,12 @@ default 'raise'
         --------
         PeriodIndex: Immutable ndarray holding ordinal values.
         DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
+
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, each
+        timestamp maps to the 2-hour period starting at its own hour. For
+        aligned 2-hour bins, use ``floor("2h").to_period("2h")``.
 
         Examples
         --------
