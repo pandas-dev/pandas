@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -512,6 +514,63 @@ def test_datetime_and_object_nat_no_dtype_check():
     left = pd.Series([pd.NaT])
     right = pd.Series([pd.NaT], dtype=object)
     tm.assert_series_equal(left, right, check_dtype=False, check_exact=True)
+
+
+@pytest.mark.parametrize("check_exact", [True, False])
+@pytest.mark.parametrize(
+    "left_val, right_val",
+    [
+        (None, np.nan),
+        (np.nan, None),
+        (np.nan, pd.NA),
+        (pd.NaT, None),
+        (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")),
+        (Decimal("NaN"), np.nan),
+    ],
+)
+def test_object_mismatched_na(left_val, right_val, check_exact):
+    # GH#18463
+    left = pd.Series(["a", left_val], dtype=object)
+    right = pd.Series(["a", right_val], dtype=object)
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(left, right, check_exact=check_exact)
+    with pytest.raises(AssertionError, match="are different"):
+        tm.assert_frame_equal(
+            left.to_frame(), right.to_frame(), check_exact=check_exact
+        )
+
+
+@pytest.mark.parametrize("check_exact", [True, False])
+@pytest.mark.parametrize(
+    "values, dtype",
+    [([1.0, np.nan], "float64"), (["a", np.nan], pd.StringDtype(na_value=np.nan))],
+)
+def test_nan_vs_object_none_no_dtype_check(values, dtype, check_exact):
+    # GH#18463
+    left = pd.Series(values, dtype=dtype)
+    right = pd.Series([values[0], None], dtype=object)
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)
+
+
+@pytest.mark.parametrize("check_exact", [True, False])
+@pytest.mark.parametrize(
+    "val",
+    [
+        None,
+        np.nan,
+        pd.NA,
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        Decimal("NaN"),
+    ],
+)
+def test_object_matching_na(val, check_exact):
+    # GH#18463
+    left = pd.Series(["a", val], dtype=object)
+    right = pd.Series(["a", val], dtype=object)
+    tm.assert_series_equal(left, right, check_exact=check_exact)
 
 
 def test_assert_series_equal_int_tol():

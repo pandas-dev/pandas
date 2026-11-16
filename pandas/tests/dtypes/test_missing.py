@@ -701,6 +701,26 @@ def test_array_equivalent_object_fallback_float32_complex_nan(value, strict_nan)
     assert array_equivalent(left, right, strict_nan=strict_nan)
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.NA,
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        Decimal("NaN"),
+    ],
+)
+@pytest.mark.parametrize("strict_nan", [True, False])
+@pytest.mark.parametrize("nested", [False, True])
+def test_array_equivalent_matching_na(value, nested, strict_nan):
+    # GH#18463; nested: a Series element makes == raise, so the Python fallback compares
+    first = pd.Series([1, 2]) if nested else "a"
+    left = np.array([first, value], dtype=object)
+    right = np.array([first.copy() if nested else first, value], dtype=object)
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+
+
 @pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.xfail(reason="failing")
 @pytest.mark.parametrize("strict_nan", [True, False])
