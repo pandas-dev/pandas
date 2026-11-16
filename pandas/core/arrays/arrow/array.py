@@ -272,16 +272,6 @@ if HAS_PYARROW:
         "rpow": lambda x, y: pc.power_checked(y, x),
     }
 
-    # the next index type when a dictionary outgrows its index type
-    WIDER_INDEX_TYPE = {
-        pa.int8(): pa.int16(),
-        pa.int16(): pa.int32(),
-        pa.int32(): pa.int64(),
-        pa.uint8(): pa.uint16(),
-        pa.uint16(): pa.uint32(),
-        pa.uint32(): pa.uint64(),
-    }
-
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -3901,26 +3891,30 @@ class ArrowExtensionArray(
 
         pc.replace_with_mask has no dictionary kernel, and the NumPy fallback
         turns a null into a dictionary value (ChunkedArray.to_numpy decodes
-        with np.take). Replacing the indices keeps the dictionary's order and
-        entries; replacement values that are not in it are appended, widening
-        the index type if they don't fit, as pa.array would.
+        with np.take). Replacement values not in the dictionary are appended.
+        An ordered dictionary keeps all its entries, since their order is its
+        meaning; otherwise entries no longer used are dropped, so repeated
+        assignment doesn't grow the dictionary.
         """
         dict_type = values.type
-        value_type = dict_type.value_type
-        if isinstance(values, pa.ChunkedArray):
-            if values.num_chunks == 0:
-                return values
-            # unify_dictionaries rejects a null dictionary entry (GH#66490)
-            chunks = [_drop_null_dictionary_entries(chunk) for chunk in values.chunks]
-            if len(chunks) > 1:
-                chunks = pa.chunked_array(chunks, type=dict_type).unify_dictionaries()
-                chunks = chunks.chunks
+        index_type = dict_type.index_type
+        is_chunked = isinstance(values, pa.ChunkedArray)
+        chunks = values.chunks if is_chunked else [values]
+        if not chunks:
+            return values
+        # unify_dictionaries rejects a null dictionary entry (GH#66490)
+        chunks = [_drop_null_dictionary_entries(chunk) for chunk in chunks]
+        dictionary = chunks[0].dictionary
+        if any(not chunk.dictionary.equals(dictionary) for chunk in chunks[1:]):
+            unified = pa.chunked_array(chunks, type=dict_type).unify_dictionaries()
+            chunks = unified.chunks
             dictionary = chunks[0].dictionary
-            indices = pa.chunked_array(
-                [chunk.indices for chunk in chunks], type=dict_type.index_type
-            )
-        else:
-            dictionary, indices = values.dictionary, values.indices
+        # int64 so that appended entries can't overflow index_type here
+        indices: pa.Array | pa.ChunkedArray = pa.chunked_array(
+            [chunk.indices for chunk in chunks], type=index_type
+        ).cast(pa.int64())
+        if not is_chunked:
+            indices = indices.chunk(0)
 
         is_scalar = not isinstance(replacements, (pa.Array, np.ndarray, list))
         if isinstance(replacements, pa.Scalar):
@@ -3933,25 +3927,33 @@ class ArrowExtensionArray(
             )
         if pa.types.is_dictionary(rep.type):
             rep = rep.dictionary.take(rep.indices)
-        if rep.type != value_type:
-            rep = rep.cast(value_type)
+        if rep.type != dict_type.value_type:
+            rep = rep.cast(dict_type.value_type)
 
-        valid = rep.drop_null()
-        new = pc.unique(valid.filter(pc.invert(pc.is_in(valid, value_set=dictionary))))
-        if len(new):
+        rep_indices = pc.index_in(rep, value_set=dictionary).cast(pa.int64())
+        is_new = pc.and_(pc.is_null(rep_indices), pc.is_valid(rep))
+        if pc.any(is_new).as_py():
+            new = pc.unique(rep.filter(is_new))
+            new_indices = pc.add(pc.index_in(rep, value_set=new), len(dictionary))
+            rep_indices = pc.coalesce(rep_indices, new_indices.cast(pa.int64()))
             dictionary = pa.concat_arrays([dictionary, new])
-            index_type = dict_type.index_type
-            while len(dictionary) - 1 > np.iinfo(index_type.to_pandas_dtype()).max:
-                index_type = WIDER_INDEX_TYPE[index_type]
-            if index_type != dict_type.index_type:
-                indices = indices.cast(index_type)
-                dict_type = pa.dictionary(index_type, value_type, dict_type.ordered)
-        rep_indices = pc.index_in(rep, value_set=dictionary, skip_nulls=True).cast(
-            dict_type.index_type
-        )
         result = pc.replace_with_mask(
             indices, mask, rep_indices[0] if is_scalar else rep_indices
         )
+
+        if not dict_type.ordered:
+            positions = pa.array(np.arange(len(dictionary)))
+            used = pc.is_in(positions, value_set=pc.unique(result).drop_null())
+            if not pc.all(used).as_py():
+                mapping = pc.subtract(pc.cumulative_sum(used.cast(pa.int64())), 1)
+                result = pc.take(mapping, result)
+                dictionary = dictionary.filter(used)
+
+        if len(dictionary) - 1 > np.iinfo(index_type.to_pandas_dtype()).max:
+            raise TypeError(
+                f"Cannot store {len(dictionary)} distinct values in {dict_type}"
+            )
+        result = result.cast(index_type)
 
         def _encode(chunk: pa.Array) -> pa.DictionaryArray:
             return pa.DictionaryArray.from_arrays(

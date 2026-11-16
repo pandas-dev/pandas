@@ -197,7 +197,7 @@ def test_dictionary_setitem_keeps_missing(
     ser = _dictionary_series(values, chunks, null_encoding)
     dtype = ser.dtype
     indexer_sli(ser)[key] = box(other)
-    assert ser.dtype == dtype
+    assert ser.array._pa_array.type == dtype.pyarrow_dtype
     assert ser.array._pa_array.to_pylist() == [values[0].as_py(), other, None, other]
 
 
@@ -278,9 +278,9 @@ def test_dictionary_replace_with_mask_nan(other, distinguish_nan_and_na):
     assert pc.is_nan(result.cast(pa.float64())).equals(pc.is_nan(expected))
 
 
-def test_dictionary_replace_with_mask_keeps_dictionary():
-    # the replacement runs on the indices, so the dictionary keeps its order
-    #  and its unused values, and a new value is appended
+def test_dictionary_replace_with_mask_ordered_keeps_entries():
+    # an ordered dictionary's order is its meaning, so it keeps its order and
+    #  its unused values, and a new value is appended
     arr = pa.DictionaryArray.from_arrays(
         pa.array([1, 0, None], pa.int32()), pa.array(["lo", "hi", "mid"]), ordered=True
     )
@@ -296,17 +296,39 @@ def test_dictionary_replace_with_mask_keeps_dictionary():
     assert result.chunk(0).dictionary.to_pylist() == ["lo", "hi", "mid", "top"]
 
 
-def test_dictionary_replace_with_mask_widens_index():
-    # a new value that does not fit the index type widens it, as pa.array does
+def test_dictionary_replace_with_mask_drops_unused_entries():
+    # otherwise entries no longer used are dropped, keeping the order of the
+    #  others, so repeated assignment doesn't grow the dictionary
+    arr = pa.array(["a", "b", "c"]).dictionary_encode()
+    ser = pd.Series(ArrowExtensionArray(arr), copy=False)
+    ser[np.array([False, True, False])] = "z"
+    result = ser.array._pa_array
+    assert result.to_pylist() == ["a", "z", "c"]
+    assert result.chunk(0).dictionary.to_pylist() == ["a", "c", "z"]
+
+    for value in ["x", "y", "w"]:
+        ser[np.ones(3, dtype=bool)] = value
+    assert ser.array._pa_array.chunk(0).dictionary.to_pylist() == ["w"]
+
+
+def test_dictionary_replace_with_mask_index_type():
+    # the dtype's index type never changes: a replaced value frees its entry,
+    #  and more values than the index type can address raise
     values = [f"v{i}" for i in range(128)]
     arr = pa.DictionaryArray.from_arrays(
         pa.array([*range(128), None], pa.int8()), pa.array(values)
     )
     ser = pd.Series(ArrowExtensionArray(arr), copy=False)
-    ser[np.arange(129) == 127] = "new"
-    result = ser.array._pa_array
-    assert result.type == pa.dictionary(pa.int16(), pa.string())
-    assert result.to_pylist() == [*values[:127], "new", None]
+    dtype = ser.dtype
+    ser[np.arange(129) == 0] = "new"
+    assert ser.array._pa_array.type == dtype.pyarrow_dtype
+    assert ser.array._pa_array.to_pylist() == ["new", *values[1:], None]
+
+    msg = "Cannot store 129 distinct values in dictionary<values=string, indices=int8"
+    with pytest.raises(TypeError, match=msg):
+        ser[np.arange(129) == 128] = "other"
+    with pytest.raises(TypeError, match=msg):
+        ser.where(np.arange(129) != 128, "other")
 
 
 @pytest.mark.parametrize("kind", ["list", "struct"])
