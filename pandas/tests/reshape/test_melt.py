@@ -847,11 +847,12 @@ class TestWideToLong:
         )
         df["id"] = df.index
         exp_data = {
-            "X": x.tolist() + x.tolist(),
-            "A": ["a", "b", "c", "d", "e", "f"],
-            "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-            "year": [1970, 1970, 1970, 1980, 1980, 1980],
-            "id": [0, 1, 2, 0, 1, 2],
+            # GH#24831 single-id order is i-major, like the multi-id case
+            "X": [x[0], x[0], x[1], x[1], x[2], x[2]],
+            "A": ["a", "d", "b", "e", "c", "f"],
+            "B": [2.5, 3.2, 1.2, 1.3, 0.7, 0.1],
+            "year": [1970, 1980, 1970, 1980, 1970, 1980],
+            "id": [0, 0, 1, 1, 2, 2],
         }
         expected = pd.DataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
@@ -883,11 +884,12 @@ class TestWideToLong:
         )
         df["id"] = df.index
         exp_data = {
-            "X": x.tolist() + x.tolist(),
-            "A": ["a", "b", "c", "d", "e", "f"],
-            "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-            "year": [1970, 1970, 1970, 1980, 1980, 1980],
-            "id": [0, 1, 2, 0, 1, 2],
+            # GH#24831 single-id order is i-major, like the multi-id case
+            "X": [x[0], x[0], x[1], x[1], x[2], x[2]],
+            "A": ["a", "d", "b", "e", "c", "f"],
+            "B": [2.5, 3.2, 1.2, 1.3, 0.7, 0.1],
+            "year": [1970, 1980, 1970, 1980, 1970, 1980],
+            "id": [0, 0, 1, 1, 2, 2],
         }
         expected = pd.DataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
@@ -907,11 +909,12 @@ class TestWideToLong:
         )
         df["id"] = df.index
         exp_data = {
-            "X": x.tolist() + x.tolist(),
-            "A(quarterly)": ["a", "b", "c", "d", "e", "f"],
-            "B(quarterly)": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-            "year": [1970, 1970, 1970, 1980, 1980, 1980],
-            "id": [0, 1, 2, 0, 1, 2],
+            # GH#24831 single-id order is i-major, like the multi-id case
+            "X": [x[0], x[0], x[1], x[1], x[2], x[2]],
+            "A(quarterly)": ["a", "d", "b", "e", "c", "f"],
+            "B(quarterly)": [2.5, 3.2, 1.2, 1.3, 0.7, 0.1],
+            "year": [1970, 1980, 1970, 1980, 1970, 1980],
+            "id": [0, 0, 1, 1, 2, 2],
         }
         expected = pd.DataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[
@@ -932,11 +935,12 @@ class TestWideToLong:
         )
         df["id"] = df.index
         exp_data = {
-            "X": ["X1", "X2", "X1", "X2"],
-            "A": [1.0, 2.0, 3.0, 4.0],
-            "B": [5.0, 6.0, np.nan, np.nan],
-            "id": [0, 1, 0, 1],
-            "year": [2010, 2010, 2011, 2011],
+            # GH#24831 single-id order is i-major, like the multi-id case
+            "X": ["X1", "X1", "X2", "X2"],
+            "A": [1.0, 3.0, 2.0, 4.0],
+            "B": [5.0, np.nan, 6.0, np.nan],
+            "id": [0, 0, 1, 1],
+            "year": [2010, 2011, 2010, 2011],
         }
         expected = pd.DataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
@@ -960,13 +964,14 @@ class TestWideToLong:
         df["id"] = df.index
         expected = pd.DataFrame(
             {
-                "BBBX": [91, 92, 93, 91, 92, 93],
-                "BBBZ": [91, 92, 93, 91, 92, 93],
-                "A": ["a11", "a22", "a33", "a21", "a22", "a23"],
-                "B": ["b11", "b12", "b13", "b21", "b22", "b23"],
-                "BB": [1, 2, 3, 4, 5, 6],
-                "id": [0, 1, 2, 0, 1, 2],
-                "year": [11, 11, 11, 12, 12, 12],
+                # GH#24831 single-id order is i-major, like the multi-id case
+                "BBBX": [91, 91, 92, 92, 93, 93],
+                "BBBZ": [91, 91, 92, 92, 93, 93],
+                "A": ["a11", "a21", "a22", "a22", "a33", "a23"],
+                "B": ["b11", "b21", "b12", "b22", "b13", "b23"],
+                "BB": [1, 4, 2, 5, 3, 6],
+                "id": [0, 0, 1, 1, 2, 2],
+                "year": [11, 12, 11, 12, 11, 12],
             }
         )
         expected = expected.set_index(["id", "year"])[["BBBX", "BBBZ", "A", "B", "BB"]]
@@ -1021,13 +1026,14 @@ class TestWideToLong:
         df["id"] = df.index
         expected = pd.DataFrame(
             {
-                "Arating": [91, 92, 93, 91, 92, 93],
-                "Arating_old": [91, 92, 93, 91, 92, 93],
-                "A": ["a11", "a22", "a33", "a21", "a22", "a23"],
-                "B": ["b11", "b12", "b13", "b21", "b22", "b23"],
-                "BB": [1, 2, 3, 4, 5, 6],
-                "id": [0, 1, 2, 0, 1, 2],
-                "year": [11, 11, 11, 12, 12, 12],
+                # GH#24831 single-id order is i-major, like the multi-id case
+                "Arating": [91, 91, 92, 92, 93, 93],
+                "Arating_old": [91, 91, 92, 92, 93, 93],
+                "A": ["a11", "a21", "a22", "a22", "a33", "a23"],
+                "B": ["b11", "b21", "b12", "b22", "b13", "b23"],
+                "BB": [1, 4, 2, 5, 3, 6],
+                "id": [0, 0, 1, 1, 2, 2],
+                "year": [11, 12, 11, 12, 11, 12],
             }
         )
         expected = expected.set_index(["id", "year"])[
@@ -1129,22 +1135,23 @@ class TestWideToLong:
 
         expected = pd.DataFrame(
             {
+                # GH#24831 single-id order is i-major, like the multi-id case
                 "actor": [
                     "CCH Pounder",
-                    "Johnny Depp",
-                    "Christoph Waltz",
                     "Joel David Moore",
+                    "Johnny Depp",
                     "Orlando Bloom",
+                    "Christoph Waltz",
                     "Rory Kinnear",
                 ],
-                "actor_fb_likes": [1000.0, 40000.0, 11000.0, 936.0, 5000.0, 393.0],
-                "num": [1, 1, 1, 2, 2, 2],
+                "actor_fb_likes": [1000.0, 936.0, 40000.0, 5000.0, 11000.0, 393.0],
+                "num": [1, 2, 1, 2, 1, 2],
                 "title": [
                     "Avatar",
-                    "Pirates of the Caribbean",
-                    "Spectre",
                     "Avatar",
                     "Pirates of the Caribbean",
+                    "Pirates of the Caribbean",
+                    "Spectre",
                     "Spectre",
                 ],
             }
@@ -1201,10 +1208,11 @@ class TestWideToLong:
         )
         expected = pd.DataFrame(
             {
-                "A": ["X1", "X2", "X1", "X2"],
-                "colname": ["placebo", "placebo", "test", "test"],
-                "result": [5.0, 6.0, np.nan, np.nan],
-                "treatment": [1.0, 2.0, 3.0, 4.0],
+                # GH#24831 single-id order is i-major, like the multi-id case
+                "A": ["X1", "X1", "X2", "X2"],
+                "colname": ["placebo", "test", "placebo", "test"],
+                "result": [5.0, np.nan, 6.0, np.nan],
+                "treatment": [1.0, 3.0, 2.0, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])
@@ -1225,10 +1233,11 @@ class TestWideToLong:
         )
         expected = pd.DataFrame(
             {
-                "A": ["X1", "X2", "X1", "X2"],
-                "colname": ["1", "1", "foo", "foo"],
-                "result": [0.0, 9.0, 5.0, 6.0],
-                "treatment": [1.0, 2.0, 3.0, 4.0],
+                # GH#24831 single-id order is i-major, like the multi-id case
+                "A": ["X1", "X1", "X2", "X2"],
+                "colname": ["1", "foo", "1", "foo"],
+                "result": [0.0, 5.0, 9.0, 6.0],
+                "treatment": [1.0, 3.0, 2.0, 4.0],
             }
         ).set_index(["A", "colname"])
         result = pd.wide_to_long(
@@ -1248,10 +1257,11 @@ class TestWideToLong:
         )
         expected = pd.DataFrame(
             {
-                "A": ["X1", "X2", "X1", "X2", "X1", "X2", "X1", "X2"],
-                "colname": [1.2, 1.2, 1.0, 1.0, 1.1, 1.1, 2.1, 2.1],
-                "result": [5.0, 6.0, 0.0, 9.0, np.nan, np.nan, np.nan, np.nan],
-                "treatment": [np.nan, np.nan, np.nan, np.nan, 1.0, 2.0, 3.0, 4.0],
+                # GH#24831 single-id order is i-major, like the multi-id case
+                "A": ["X1", "X1", "X1", "X1", "X2", "X2", "X2", "X2"],
+                "colname": [1.2, 1.0, 1.1, 2.1, 1.2, 1.0, 1.1, 2.1],
+                "result": [5.0, 0.0, np.nan, np.nan, 6.0, 9.0, np.nan, np.nan],
+                "treatment": [np.nan, np.nan, 1.0, 3.0, np.nan, np.nan, 2.0, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])
@@ -1289,6 +1299,41 @@ class TestWideToLong:
         ):
             df.melt(id_vars="value", value_name="value")
 
+    def test_single_id_order_matches_multi_id(self):
+        # GH#24831 single-id and multi-id results must order j consistently
+        values1 = np.array(
+            [
+                [0.45, 0.3, "Test1", 2, 6],
+                [0.03, 1.2, "Test2", 9, 7],
+                [0.7, 4.2, "Test3", 4, 2],
+            ],
+            dtype=object,
+        )
+        stackme1 = pd.DataFrame(
+            values1,
+            columns=["group1_a1", "group1_b2", "Test", "group2_a1", "group2_b2"],
+        )
+        result = pd.wide_to_long(
+            stackme1,
+            stubnames=["group1", "group2"],
+            j="a-b-Label",
+            suffix=".+",
+            sep="_",
+            i="Test",
+        )
+        expected_index = pd.MultiIndex.from_tuples(
+            [
+                ("Test1", "a1"),
+                ("Test1", "b2"),
+                ("Test2", "a1"),
+                ("Test2", "b2"),
+                ("Test3", "a1"),
+                ("Test3", "b2"),
+            ],
+            names=["Test", "a-b-Label"],
+        )
+        tm.assert_index_equal(result.index, expected_index)
+
     def test_missing_stubname(self, any_string_dtype):
         # GH46044
         df = pd.DataFrame({"id": ["1", "2"], "a-1": [100, 200], "a-2": [300, 400]})
@@ -1301,11 +1346,12 @@ class TestWideToLong:
             sep="-",
         )
         index = pd.Index(
-            [("1", 1), ("2", 1), ("1", 2), ("2", 2)],
+            # GH#24831 single-id order is i-major, like the multi-id case
+            [("1", 1), ("1", 2), ("2", 1), ("2", 2)],
             name=("id", "num"),
         )
         expected = pd.DataFrame(
-            {"a": [100, 200, 300, 400], "b": [np.nan] * 4},
+            {"a": [100, 300, 200, 400], "b": [np.nan] * 4},
             index=index,
         )
         new_level = expected.index.levels[0].astype(any_string_dtype)

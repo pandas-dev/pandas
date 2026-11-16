@@ -18,7 +18,10 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
-from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
@@ -468,11 +471,11 @@ def wide_to_long(
                     X  A    B
     id year
     0  1970 -1.085631  a  2.5
+       1980 -1.085631  d  3.2
     1  1970  0.997345  b  1.2
+       1980  0.997345  e  1.3
     2  1970  0.282978  c  0.7
-    0  1980 -1.085631  d  3.2
-    1  1980  0.997345  e  1.3
-    2  1980  0.282978  f  0.1
+       1980  0.282978  f  0.1
 
     With multiple id columns
 
@@ -559,11 +562,11 @@ def wide_to_long(
              X  A(weekly)  B(weekly)
     id year
     0  2010  0   0.548814   0.437587
+       2011  0   0.544883   0.383442
     1  2010  1   0.715189   0.891773
+       2011  1   0.423655   0.791725
     2  2010  1   0.602763   0.963663
-    0  2011  0   0.544883   0.383442
-    1  2011  1   0.423655   0.791725
-    2  2011  1   0.645894   0.528895
+       2011  1   0.645894   0.528895
 
     If we have many columns, we could also use a regex to find our
     stubnames and pass that list on to wide_to_long
@@ -685,6 +688,11 @@ def wide_to_long(
     new = df[id_vars]
 
     if len(i) == 1:
-        return new.set_index(i).join(melted)
+        result = new.set_index(i).join(melted)
+        # GH#24831 Reorder the join result from j-major to i-major so
+        # the j column is ordered consistently with the multi-id case;
+        # the stable sort keeps the order of j values within each i.
+        indexer = Index(new[i[0]]).get_indexer(result.index.get_level_values(0))
+        return result.iloc[np.argsort(indexer, kind="stable")]
     else:
         return new.merge(melted.reset_index(), on=i).set_index([*i, j])
