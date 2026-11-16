@@ -63,6 +63,22 @@ class TestToNumpy:
         with pytest.raises(TypeError, match="Cannot cast TimedeltaArray"):
             df.to_numpy("M8[us]")
 
+    def test_to_numpy_timedelta_multi_block(self):
+        # GH#44484 frames with more than one block go through _interleave
+        tdi = pd.to_timedelta(["1D", None]).as_unit("us")
+        dti = pd.to_datetime(["2012-01-01", None])
+        df = pd.DataFrame({"a": tdi, "b": dti})
+        with pytest.raises(TypeError, match="Cannot cast DatetimeArray"):
+            df.to_numpy("m8[us]")
+
+        df = pd.DataFrame({"a": tdi, "b": [1.5, 2.5]})
+        result = df.to_numpy(np.dtypes.StringDType())
+        expected = np.array(
+            [["1 days", "1.5"], ["NaT", "2.5"]],
+            dtype=np.dtypes.StringDType(),
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_to_numpy_datetime_with_na(self):
         # GH #53115
         dti = pd.date_range("2016-01-01", periods=3, unit="ns")
