@@ -568,3 +568,29 @@ def test_usecols_header_none_index_col(all_parsers, dtype):
 
     expected = pd.DataFrame({0: [1, 4]}, index=pd.Index([3.0, 6.0], name=2))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (
+            {1: "float64"},
+            pd.DataFrame({1: [2.0, 5.0]}, index=pd.Index([3, 6], name=2)),
+        ),
+        (
+            {2: "float64"},
+            pd.DataFrame({1: [2, 5]}, index=pd.Index([3.0, 6.0], name=2)),
+        ),
+    ],
+)
+def test_usecols_header_none_index_col_dtype_key_is_label(all_parsers, dtype, expected):
+    # GH#67008 a dtype key that is a column label applies to that column, even
+    #  when it equals the index_col position
+    parser = all_parsers
+    data = "1,2,3\n4,5,6"
+
+    result = parser.read_csv(
+        StringIO(data), header=None, usecols=[1, 2], index_col=1, dtype=dtype
+    )
+
+    tm.assert_frame_equal(result, expected)

@@ -469,14 +469,18 @@ class ArrowParserWrapper(ParserBase):
 
                 # Process dtype for index_col and drop from dtypes
                 if isinstance(self.dtype, dict):
-                    # the dtype may be keyed by the index_col item or by the label;
-                    #  either way it applies to the column labelled col_name, as
-                    #  item need not be a label (GH#67008)
-                    key, new_dtype = (
-                        (item, self.dtype.get(item))
-                        if self.dtype.get(item) is not None
-                        else (col_name, self.dtype.get(col_name))
-                    )
+                    # match the other engines: a key is a column label first, and
+                    #  an integer index_col item only counts as a key when it is
+                    #  not also a label, as the labels need not be positions
+                    #  (GH#67008)
+                    key = col_name
+                    if (
+                        self.dtype.get(col_name) is None
+                        and is_integer(item)
+                        and item not in frame.columns
+                    ):
+                        key = item
+                    new_dtype = self.dtype.get(key)
                     if new_dtype is not None:
                         # GH#57512 don't undo a parse_dates conversion
                         if not (
