@@ -194,6 +194,7 @@ void parser_set_default_options(parser_t *self) {
   self->preloaded = 0;
   self->header_done = 0;
   self->prev_line_fields = -1;
+  self->lookahead_fields = -1;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -474,6 +475,10 @@ static int end_line(parser_t *self, int64_t remaining_input) {
     // reset field count
     self->line_fields[self->lines] = 0;
     return 0;
+  }
+
+  if (self->lookahead_fields < 0) {
+    self->lookahead_fields = fields;
   }
 
   /* The first lines are normally exempt from the field-count check: they are
