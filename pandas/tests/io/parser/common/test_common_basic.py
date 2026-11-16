@@ -1049,7 +1049,6 @@ def test_dtype_conversion_in_sanitization():
         assert type(v) == type(e)
 
 
-@skip_pyarrow  # dict converters/na_values are unsupported
 @pytest.mark.parametrize("data", ["a,b\n1,2\n3,4\n", "a,b\n"])
 @pytest.mark.parametrize("index_col", [None, 0])
 @pytest.mark.parametrize(
@@ -1062,10 +1061,20 @@ def test_out_of_range_integer_key_ignored(
 ):
     # GH#14624
     parser = all_parsers
+    kwargs = {"index_col": index_col, keyword: {key: value}}
+    if parser.engine == "pyarrow" and keyword != "dtype":
+        msg = "|".join(
+            [
+                "not supported with the 'pyarrow' engine",
+                "doesn't support passing a dict",
+            ]
+        )
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+
     expected = parser.read_csv(StringIO(data), index_col=index_col)
-    result = parser.read_csv(
-        StringIO(data), index_col=index_col, **{keyword: {key: value}}
-    )
+    result = parser.read_csv(StringIO(data), **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
