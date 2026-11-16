@@ -266,6 +266,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor and :meth:`DataFrame.from_records` where a list of :class:`Series` with extension dtypes lost those dtypes (:issue:`56231`)
+- Bug in :class:`Series`, :class:`Index` and :class:`DataFrame` constructors with ``dtype="int64"`` and a ``datetime64`` or ``timedelta64`` NumPy array of unit ``"s"``, ``"ms"``, ``"us"`` or ``"ns"`` not matching the result for the equivalent :class:`arrays.DatetimeArray` or :class:`arrays.TimedeltaArray` (:issue:`55140`)
 - Bug in :func:`array`, :func:`factorize` and :func:`unique` with NumPy arrays of non-native byte order raising an unclear error, or for ``datetime64`` and ``timedelta64`` in :func:`factorize` and :func:`unique` returning incorrect values; these now raise a clear ``ValueError`` (:issue:`53234`)
 - Bug in :func:`to_numeric` raising ``TypeError`` for object values containing 0-dimensional :class:`numpy.ndarray` elements instead of converting them (:issue:`47408`)
 - Bug in :func:`to_numeric` where a long value with a leading ``+`` was not correctly rounded (:issue:`44145`)

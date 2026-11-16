@@ -1205,10 +1205,10 @@ class TestDataFrameConstructors:
         assert len(frame.columns) == 3
         assert pd.isna(frame).values.all()
 
-        # cast type
-        msg = r"datetime64\[ns\] values and dtype=int64 is not supported"
-        with pytest.raises(TypeError, match=msg):
-            pd.DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+        # cast type, GH#55140
+        frame = pd.DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+        assert frame.values.dtype == np.int64
+        assert (frame.values == np.iinfo(np.int64).min).all()
 
         # Check non-masked values
         mat2 = ma.copy(mat)
