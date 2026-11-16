@@ -351,7 +351,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
+def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None, int64_t ddof=1):
     cdef:
         Py_ssize_t i, xi, yi, N, K
         int64_t minpv
@@ -407,10 +407,10 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
                 else:
-                    divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
+                    divisor = <float64_t>(nobs - ddof) if cov else sqrt(ssqdmx * ssqdmy)
 
                     # clip `covxy / divisor` to ensure coeff is within bounds
-                    if divisor != 0:
+                    if divisor > 0:
                         val = covxy / divisor
                         if not cov:
                             if val > 1.0:
