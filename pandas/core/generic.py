@@ -2257,6 +2257,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         and cell character count does not exceed Excel's limitations.
         All other limitations must be checked by the user.
 
+        .. warning::
+
+           Both ``openpyxl`` and ``xlsxwriter`` write strings starting with
+           ``=`` as formulas, which Excel evaluates when the file is opened.
+           Writing untrusted data this way can lead to formula injection, and
+           such strings do not round-trip through :func:`read_excel`.
+           ``xlsxwriter`` writes them as text when
+           ``engine_kwargs={"options": {"strings_to_formulas": False}}`` is
+           passed to :class:`ExcelWriter`, or to ``to_excel`` with a file path,
+           but still writes ``{=...}`` strings as array formulas; ``openpyxl``
+           has no equivalent option.
+
         Examples
         --------
 
