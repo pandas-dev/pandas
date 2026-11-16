@@ -437,6 +437,55 @@ class TestNumpyReductions:
                 # check we have e.g. Timestamp instead of dt64
                 assert type(result) == type(expected)
 
+    @pytest.mark.parametrize(
+        "ufunc, data, dtype, expected",
+        [
+            (np.logical_and, [1, 2], "int64", True),
+            (np.logical_or, [0.0, 2.5], "float64", True),
+            (np.bitwise_or, [1, 2], "int64", 3),
+            (np.fmax, [1.5, 2.0], "float64", 2.0),
+            (np.fmax, [1, 2], "int64", 2),
+            (np.fmax, [1, 2], "Int64", 2),
+            (np.bitwise_or, [1, 2], "Sparse[int64]", 3),
+            (np.fmin, [1.5, 2.0], "longdouble", 1.5),
+            (
+                np.fmax,
+                ["2020-01-01", "2021-01-01"],
+                "datetime64[ns]",
+                pd.Timestamp("2021-01-01"),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
+    def test_reduce_not_in_reduction_aliases(
+        self, ufunc, data, dtype, expected, box, using_python_scalars
+    ):
+        # GH#64266
+        obj = box(pd.Series(data, dtype=dtype))
+        kwargs = {"axis": None} if box is pd.DataFrame else {}
+        result = ufunc.reduce(obj, **kwargs)
+        assert result == expected
+        if using_python_scalars:
+            assert type(result) is type(expected)
+        else:
+            assert isinstance(result, (np.generic, pd.Timestamp))
+
+    def test_reduce_frame_categorical_python_scalars(self, using_python_scalars):
+        # GH#64266 CategoricalDtype.kind is "O", but the reduced array is int64
+        df = pd.DataFrame({"a": pd.Categorical([1, 2])})
+        result = np.fmax.reduce(df, axis=None)
+        assert result == 2
+        assert type(result) is (int if using_python_scalars else np.int64)
+
+    @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
+    def test_reduce_object_dtype_preserves_numpy_scalars(self, box):
+        # GH#64266
+        obj = box(pd.Series([np.int8(1), np.int8(2)], dtype=object))
+        kwargs = {"axis": None} if box is pd.DataFrame else {}
+        result = np.bitwise_or.reduce(obj, **kwargs)
+        assert result == 3
+        assert type(result) is np.int8
+
     @pytest.mark.skipif(
         not np_version_gt2_6, reason="minimummaximum added in numpy 2.6"
     )

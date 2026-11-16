@@ -295,6 +295,34 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     return res_values
 
 
+def unary_op(values: ArrayLike, op):
+    """
+    Evaluate a unary operation `-`, `+`, or `abs`.
+
+    If the operator raises on object-dtype values, it is retried on the
+    non-missing entries and missing entries become NaN, as in arithmetic_op.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+    op : {operator.neg, operator.pos, operator.abs, np.abs}
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    try:
+        return op(values)
+    except TypeError:
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            raise
+        # GH#42862
+        mask = notna(values)
+        result = np.full(values.shape, np.nan, dtype=object)
+        result[mask] = op(values[mask])
+        return result
+
+
 def maybe_warn_complex_ordering(lvalues, rvalues, op) -> None:
     """
     Warn on an ordering comparison of numpy data where either side is complex.
@@ -495,6 +523,21 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         #   integer dtypes.  Otherwise these are boolean ops
         if not (left.dtype.kind in "iu" and is_other_int_dtype):
             res_values = fill_bool(res_values)
+
+        if lvalues.dtype == object and (lmask := isna(lvalues)).any():
+            # GH#51267 NA on the left counts as False, as fill_bool does on the
+            #  right. Patch the result rather than filling lvalues, which would
+            #  expose e.g. `False & 1.5` to op and raise.
+            if isinstance(rvalues, np.ndarray):
+                # pair elements as na_logical_op did: one-to-one or by broadcasting
+                other = rvalues
+                if other.size != lvalues.size:
+                    shape = np.broadcast_shapes(lvalues.shape, other.shape)
+                    other = np.broadcast_to(other, shape)
+                other = other.reshape(lvalues.shape)[lmask]
+                res_values[lmask] = op(False, other.astype(bool))
+            elif not isna(rvalues):
+                res_values[lmask] = op(False, bool(rvalues))
 
     return res_values
 

@@ -18,6 +18,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.generic import ABCNDFrame
 
 from pandas.core import roperator
@@ -383,8 +384,11 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     def _reconstruct(result):
         if lib.is_scalar(result) or not hasattr(result, "ndim"):
-            # e.g. a gufunc with signature "(n)->()" reducing object-dtype
-            #  data to an arbitrary Python object
+            # e.g. a reduction not in REDUCTION_ALIASES, or a gufunc with
+            #  signature "(n)->()" reducing object-dtype data to an arbitrary
+            #  Python object
+            if self.ndim == 1:
+                return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
             return result
 
         if result.ndim != self.ndim:
@@ -448,7 +452,10 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     else:
         # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
         # Those can have an axis keyword and thus can't be called block-by-block
-        result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
+        values = np.asarray(self)
+        result = getattr(ufunc, method)(values, **kwargs)
+        if lib.is_scalar(result):
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=values)
         # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
