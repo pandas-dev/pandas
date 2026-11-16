@@ -70,7 +70,10 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -8526,7 +8529,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: float64
 
         >>> s.asof(20)
-        np.float64(2.0)
+        2.0
 
         For a sequence `where`, a Series is returned. The first value is
         NaN, because the first element of `where` is before the first
@@ -8541,7 +8544,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         NaN, even though NaN is at the index location for ``30``.
 
         >>> s.asof(30)
-        np.float64(2.0)
+        2.0
 
         Take all columns into consideration
 
@@ -8618,7 +8621,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 values = self._values
                 while loc > 0 and isna(values[loc]):
                     loc -= 1
-                return values[loc]
+                return maybe_unbox_numpy_scalar(values[loc], object_with_dtype=values)
 
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])

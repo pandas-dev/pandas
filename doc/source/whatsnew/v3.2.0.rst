@@ -185,6 +185,7 @@ Other deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :attr:`Index.is_monotonic_increasing`, :attr:`Index.is_monotonic_decreasing` and :attr:`Index.is_unique` for numeric and datetimelike data, and in indexing on large monotonic indexes (:issue:`72122`)
 - Performance improvement in :meth:`DataFrame.apply` with ``raw=True`` (:issue:`66203`)
 - Performance improvement in :meth:`DataFrame.explode` when exploding multiple columns (:issue:`53967`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69632`, :issue:`69748`, :issue:`70140`)
@@ -195,6 +196,7 @@ Performance improvements
 - Performance improvement in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with PyArrow-backed string data (:issue:`60861`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
 - Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
+- Performance improvement in :meth:`DataFrame.where` and :meth:`DataFrame.mask` when ``other`` is a :class:`DataFrame` whose columns have the same extension dtype, such as PyArrow-backed strings, categorical or interval data, which are no longer converted to an object array (:issue:`72120`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`DataFrameGroupBy.transform` and :meth:`SeriesGroupBy.transform` with a user-defined function when the input rows are not already ordered by group or NA group keys are dropped (:issue:`71957`)
 - Performance improvement in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with a ``date_format`` built from ``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f`` and ``%N`` (:issue:`44764`)
@@ -232,6 +234,7 @@ Datetimelike
 - Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on datetime-like data missing ``numpy.datetime64`` or ``numpy.timedelta64`` values (``NaT``, or any value on numpy < 2.2) when ``values`` also held non-datetime-like entries (:issue:`71186`)
 - Bug in :meth:`Series.quantile` and :meth:`DataFrame.quantile` with ``datetime64`` or ``timedelta64`` data and ``interpolation="linear"`` or ``"midpoint"`` losing precision for large values, so that e.g. ``q=0`` did not return the minimum, and returning an incorrect value when the values spanned more than the ``int64`` range (:issue:`49110`)
 - Bug in ``!=`` between a :class:`Tick` offset such as :class:`Hour` and an array-like of ``timedelta64`` values or ``pd.NA`` raising ``ValueError`` or ``TypeError`` (:issue:`71162`)
+- Bug in addition and subtraction of ``datetime64``, ``timedelta64`` or ``period`` data with an object-dtype list or array of a different length, such as one of :class:`DateOffset` objects, raising ``AssertionError`` instead of ``ValueError`` (:issue:`37086`)
 - Bug in comparisons, indexing, setitem and :meth:`Series.astype` to :class:`CategoricalDtype` with datetime, timedelta or period values not parsing :class:`ArrowDtype` ``string`` and ``large_string`` values the way :class:`StringDtype` values are parsed (:issue:`62051`)
 
 Timedelta
@@ -242,6 +245,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
+- Bug in timezone-aware datetimes outside the range of :class:`datetime.datetime` with a ``zoneinfo`` time zone, where localizing, converting or displaying them and :meth:`Timestamp.utcoffset` raised ``NotImplementedError``, for example after adding a large :class:`Timedelta`; they now follow the time zone's rules (:issue:`68009`)
 -
 
 Numeric
@@ -370,6 +374,7 @@ I/O
 - Bug in :func:`read_csv`, :func:`read_html` and other I/O functions raising ``UnicodeEncodeError`` for URLs containing non-ASCII characters (:issue:`21499`)
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
 - Bug in :func:`read_excel` raising ``ValueError`` when ``header`` is a list and ``index_col`` consumes all columns (:issue:`66372`)
+- Bug in :func:`read_fwf` raising ``TypeError`` when ``skiprows`` is a callable and ``colspecs`` is inferred (:issue:`20603`)
 - Bug in :func:`read_html` raising ``ImportError`` when ``lxml`` is not installed instead of falling back to ``bs4`` + ``html5lib`` with the default ``flavor=None`` (:issue:`30281`)
 - Bug in :func:`read_html` with ``index_col`` reading the index-names row written by :meth:`DataFrame.to_html` as an extra column level instead of as the index names (:issue:`8897`)
 - Bug in :func:`read_html` with the ``bs4`` or ``html5lib`` parser dropping tables that have identical content, so only the first was returned (:issue:`49934`)
@@ -429,6 +434,7 @@ Plotting
 - Bug in :func:`plotting.table` ignoring ``rowLabels`` and ``colLabels`` or raising a ``TypeError`` when they were passed (:issue:`37811`)
 - Bug in :meth:`DataFrame.hist` and :meth:`Series.hist` raising ``ValueError`` when passing ``weights`` together with ``by`` (:issue:`9540`)
 - Bug in :meth:`DataFrame.hist` with ``by`` and no ``column`` plotting the numeric grouping column alongside the other columns (:issue:`41188`)
+- Bug in :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` raising on ``timedelta64`` data (:issue:`52246`)
 - Bug in :meth:`DataFrame.plot.hist` with ``by`` raising ``TypeError`` when ``bins`` was a sequence of bin edges (:issue:`11483`)
 - Bug in :meth:`DataFrame.plot.hist` with ``subplots=True`` and ``sharex=False`` using the same bins for every subplot, so columns on a smaller scale collapsed into a single bar (:issue:`13489`)
 - Bug in :meth:`DataFrame.plot.pie` and :meth:`Series.plot.pie` silently ignoring ``color`` (:issue:`11228`)
@@ -442,6 +448,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` cutting off data already plotted on axes sharing the x-axis (``sharex=True``) (:issue:`14074`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a regular-frequency :class:`DatetimeIndex` or :class:`PeriodIndex` mislabeling ticks set with ``xticks=`` or ``ax.set_xticks`` (:issue:`18881`)
+- Bug in :meth:`DataFrame.plot` raising ``KeyError`` when ``y`` included the ``x`` column, e.g. ``df.plot(x="a", y="a")`` (:issue:`22088`)
 - Bug in :meth:`DataFrame.plot` with ``stacked=True`` and ``secondary_y`` drawing the secondary columns at the wrong height once a higher-frequency time series is plotted on the same axes (:issue:`72052`)
 - Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` drawing datetimes outside the visible range when they share the x-axis (``sharex=True``, ``twinx``, or ``secondary_y=True``) with a time-series plot (:issue:`14322`, :issue:`40470`)
 - Bug in :meth:`Series.plot.hist` and :meth:`DataFrame.plot.hist` with ``datetime64`` data drawing only empty bars (:issue:`17372`)

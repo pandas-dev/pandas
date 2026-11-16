@@ -616,7 +616,13 @@ DataCol1   DataCol2
     tm.assert_frame_equal(result, expected)
 
 
-def test_skiprows_by_index_inference():
+@pytest.mark.parametrize(
+    "skiprows",
+    # GH#20603 callable skiprows must be applied when inferring colspecs
+    [[0, 2], lambda x: x in [0, 2]],
+    ids=["list", "callable"],
+)
+def test_skiprows_by_index_inference(skiprows):
     data = """
 To be skipped
 Not  To  Be  Skipped
@@ -624,7 +630,6 @@ Once more to be skipped
 123  34   8      123
 456  78   9      456
 """.strip()
-    skiprows = [0, 2]
 
     expected = read_csv(StringIO(data), skiprows=skiprows, sep=r"\s+")
     result = read_fwf(StringIO(data), skiprows=skiprows)
