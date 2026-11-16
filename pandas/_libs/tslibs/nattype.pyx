@@ -1603,8 +1603,10 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or timedelta
+        freq : str, timedelta or DateOffset
             Frequency string or timedelta value indicating the flooring resolution.
+            Also accepts a single step of a date-anchored frequency like
+            'MS' (month start).
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1707,8 +1709,10 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or timedelta
+        freq : str, timedelta or DateOffset
             Frequency string or timedelta value indicating the ceiling resolution.
+            Also accepts a single step of a date-anchored frequency like
+            'MS' (month start).
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 

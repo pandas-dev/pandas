@@ -5,6 +5,8 @@ and latex files. This module also applies to display formatting.
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.common",)
+
 from collections.abc import (
     Callable,
     Generator,

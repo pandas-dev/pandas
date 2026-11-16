@@ -11,6 +11,11 @@ labeling information
 
 from __future__ import annotations
 
+__lazy_modules__ = (
+    "pandas.io.common",
+    "pandas.io.formats.info",
+)
+
 import collections
 from collections import abc
 import functools
@@ -157,6 +162,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     ensure_index_from_sequences,
+    get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import (
     MultiIndex,
@@ -13655,7 +13661,7 @@ class DataFrame(NDFrame, OpsMixin):
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of length
             equal to the number of rows is passed (see the `groupby user guide
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#splitting-an-object-into-groups>`_),
             the values are used as-is to determine the groups. A label or list
             of labels may be passed to group by the columns in ``self``.
             Notice that a tuple is interpreted as a (single) key.
@@ -16013,14 +16019,26 @@ class DataFrame(NDFrame, OpsMixin):
             # join indexes only using concat
             if can_concat:
                 if how in {"left", "right"}:
-                    res = concat(
-                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
-                    )
                     index = self.index if how == "left" else frames[-1].index
                     if sort:
                         index = index.sort_values()
-                    result = res.reindex(index)
-                    return result
+                    # align to the union as an outer concat would, but take only
+                    # the result's rows so keys absent from it do not upcast the
+                    # kept columns, see GH#28269
+                    union = get_objs_combined_axis(frames, sort=False)[0]
+                    target = union.reindex(index)[1]
+                    aligned = []
+                    for frame in frames:
+                        if union.equals(frame.index):
+                            indexer = target
+                        else:
+                            indexer = algorithms.take_nd(
+                                frame.index.get_indexer(union), target, fill_value=-1
+                            )
+                        aligned.append(
+                            frame._reindex_with_indexers({0: [index, indexer]})
+                        )
+                    return concat(aligned, axis=1, verify_integrity=True)
                 else:
                     if how == "outer":
                         sort = True
@@ -16903,10 +16921,16 @@ class DataFrame(NDFrame, OpsMixin):
         this = self._get_numeric_data() if numeric_only else self
 
         if isinstance(other, Series):
-            return this.apply(
+            result = this.apply(
                 lambda x: other.corr(x, method=method, min_periods=min_periods),
                 axis=axis,
             )
+            if isinstance(result.dtype, ExtensionDtype):
+                # apply retains the frame's extension dtype for a pointwise
+                #  result; a correlation coefficient is a float, see
+                #  test_corrwith_series_ea_frame_is_float64. GH#61812
+                result = result.astype(np.float64)
+            return result
 
         if numeric_only:
             other = other._get_numeric_data()
@@ -17096,11 +17120,13 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(dtype, ExtensionDtype):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
-                return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
-            values = df.values
+                result = arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
+            else:
+                arr = df.values
+                result = func(arr)
             return maybe_unbox_numpy_scalar(
-                func(values),
-                object_with_dtype=None if name in ["any", "all"] else values,
+                result,
+                object_with_dtype=None if name in ["any", "all"] else arr,
             )
         elif axis == 1:
             if len(df.index) == 0:
@@ -19370,7 +19396,13 @@ class DataFrame(NDFrame, OpsMixin):
         2    2
         dtype: int64
         """
-        return self.apply(Series.nunique, axis=axis, dropna=dropna)
+        result = self.apply(Series.nunique, axis=axis, dropna=dropna)
+        if isinstance(result.dtype, ExtensionDtype):
+            # apply retains the frame's extension dtype for a pointwise
+            #  result; a count of distinct values stays int64, as in count()
+            #  and groupby.nunique. GH#61812
+            result = result.astype(np.int64)
+        return result
 
     def idxmin(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False

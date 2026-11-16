@@ -13,12 +13,9 @@ from pandas.errors import Pandas4Warning
 import pandas as pd
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
 depr_msg = "float_precision"
 
 
-@skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
 def test_float_parser(all_parsers):
     # see gh-9565
     parser = all_parsers
