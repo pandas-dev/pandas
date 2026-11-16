@@ -839,6 +839,37 @@ class TestDataFrameSelectReindex:
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
 
+    def test_reindex_overlapping_intervalindex(self):
+        # GH#72070
+        index = pd.interval_range(start=0, freq=1, periods=3, closed="both")
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+
+        result = df.reindex(index[:-1])
+        expected = pd.DataFrame({"a": [1, 2]}, index=index[:-1])
+        tm.assert_frame_equal(result, expected)
+
+        # missing labels are filled, even though the intervals overlap
+        target = pd.IntervalIndex.from_tuples([(0, 1), (10, 11)], closed="both")
+        result = df.reindex(target)
+        expected = pd.DataFrame({"a": [1, np.nan]}, index=target)
+        tm.assert_frame_equal(result, expected)
+
+        # a scalar label matching more than one interval is ambiguous
+        msg = "matches multiple intervals"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex([1.0])
+
+        # fill methods and their arguments are not supported for IntervalIndex
+        msg = "method pad not yet implemented for IntervalIndex"
+        with pytest.raises(NotImplementedError, match=msg):
+            df.reindex(index[:-1], method="pad")
+        msg = "limit argument only valid"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(index[:-1], limit=1)
+        msg = "tolerance argument only valid"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(index[:-1], tolerance=1)
+
     def test_reindex_with_duplicate_columns(self):
         # reindex is invalid!
         df = pd.DataFrame(
