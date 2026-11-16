@@ -94,6 +94,68 @@ def test_where_mask_temporal_reinterpretation_raises(meth):
         getattr(ser, meth)(np.array([True, False, True]), other)
 
 
+@pytest.mark.parametrize(
+    "pa_type",
+    [
+        pa.list_(pa.int64()),
+        pa.large_list(pa.string()),
+        pa.list_(pa.int64(), 2),
+        pa.struct([("a", pa.int64())]),
+        pa.map_(pa.string(), pa.int64()),
+        pa.fixed_shape_tensor(pa.int64(), [2]),
+    ],
+)
+@pytest.mark.parametrize("value", ["", "zz", b"", b"zz"])
+@pytest.mark.parametrize(
+    "method",
+    [
+        "where",
+        "mask",
+        "fillna",
+        "setitem_mask",
+        "setitem_list",
+        "setitem_int",
+        "insert",
+    ],
+)
+def test_nested_str_bytes_value_raises(pa_type, value, method):
+    # pyarrow reads a str or bytes as a sequence, e.g. b"zz" -> [122, 122]
+    ser = pd.Series([None, None, None], dtype=ArrowDtype(pa_type))
+    cond = np.array([True, False, False])
+    msg = re.escape(f"Invalid value '{value!s}' for dtype '{ser.dtype}'")
+    with pytest.raises(TypeError, match=msg):
+        if method == "where":
+            ser.where(cond, value)
+        elif method == "mask":
+            ser.mask(~cond, value)
+        elif method == "fillna":
+            ser.fillna(value)
+        elif method == "setitem_mask":
+            ser[~cond] = value
+        elif method == "setitem_list":
+            ser.iloc[[1, 2]] = value
+        elif method == "setitem_int":
+            ser.iloc[1] = value
+        else:
+            ser.array.insert(1, value)
+
+
+@pytest.mark.parametrize("value", ["zz", b"zz"])
+@pytest.mark.parametrize("method", ["insert", "where", "putmask"])
+def test_index_nested_str_bytes_value_casts_to_object(value, method):
+    # the TypeError above makes Index upcast, as for other values it can't hold
+    idx = pd.Index([[1], None], dtype=ArrowDtype(pa.list_(pa.int64())))
+    if method == "insert":
+        result, pos = idx.insert(0, value), 0
+    elif method == "where":
+        result, pos = idx.where(np.array([True, False]), value), 1
+    else:
+        result, pos = idx.putmask(np.array([False, True]), value), 1
+    assert result.dtype == object
+    assert result[pos] == value
+    assert list(result[1 - pos]) == [1]
+
+
 @pytest.mark.parametrize("limit", [None, 1])
 def test_fillna_string_self_agrees_with_limit_path(limit):
     # GH#68419 fillna shares _validate_setitem_value with __setitem__, so the
