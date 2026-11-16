@@ -195,6 +195,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with PyArrow-backed string data (:issue:`60861`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
+- Performance improvement in :meth:`DataFrame.stack` when all columns share an extension dtype such as ``"Int64"`` or ``"string"`` (:issue:`72178`)
 - Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
 - Performance improvement in :meth:`DataFrame.where` and :meth:`DataFrame.mask` when ``other`` is a :class:`DataFrame` whose columns have the same extension dtype, such as PyArrow-backed strings, categorical or interval data, which are no longer converted to an object array (:issue:`72120`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
@@ -495,6 +496,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot` and :func:`pivot` with a list of ``values`` casting the pivoted columns to a common dtype, e.g. integers to ``float64`` or ``object`` (:issue:`43547`)
 - Bug in :meth:`DataFrame.pivot`, :meth:`DataFrame.pivot_table`, :meth:`DataFrame.unstack` and :meth:`Series.unstack` raising ``TypeError`` on complex data when the result has missing cells (:issue:`25221`)
 - Bug in :meth:`DataFrame.stack` where missing labels in the result's :class:`MultiIndex` could not be found by lookups such as ``.loc``; unstacking such a result now places the missing label first unless ``sort=False`` is passed (:issue:`40366`)
+- Bug in :meth:`DataFrame.stack` with a single column of a nullable or PyArrow-backed integer dtype losing precision for values above ``2**53`` when missing values are present (:issue:`72178`)
 
 Sparse
 ^^^^^^

@@ -3162,3 +3162,50 @@ def test_stack_na_label_lookup(na_in, labels):
     # like any MultiIndex, unstack puts the -1 coded label first
     unstacked = result.unstack(level=0 if na_in == "index" else 1)
     tm.assert_index_equal(unstacked.columns, labels.take([1, 0, 2]))
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+@pytest.mark.parametrize("ncols", [1, 2])
+def test_stack_nullable_int_lossless(dtype, ncols):
+    # large ints next to NA must not round-trip through float64
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {
+            "a": pd.array([2**53 + 1, None], dtype=dtype),
+            "b": pd.array([1, 2], dtype=dtype),
+        }
+    ).iloc[:, :ncols]
+    result = df.stack()
+    values = [2**53 + 1, None] if ncols == 1 else [2**53 + 1, 1, None, 2]
+    expected = pd.Series(
+        pd.array(values, dtype=dtype),
+        index=pd.MultiIndex.from_product([[0, 1], df.columns]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("ncols", [1, 2])
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.array([1, 2], dtype="Int64"),
+        pd.array(["a", "b"], dtype="string"),
+        pd.Categorical(["a", "b"]),
+        pd.array(pd.date_range("2020", periods=2, tz="UTC")),
+        pd.array(pd.period_range("2020", periods=2, freq="D")),
+    ],
+)
+def test_stack_extension_dtype(values, ncols):
+    df = pd.DataFrame({f"c{i}": values for i in range(ncols)})
+    original = df.copy()
+    result = df.stack()
+    expected = pd.Series(
+        values.take(np.repeat([0, 1], ncols)),
+        index=pd.MultiIndex.from_product([[0, 1], df.columns]),
+    )
+    tm.assert_series_equal(result, expected)
+
+    # the result is writable and does not share memory with df
+    result.iloc[0] = result.iloc[-1]
+    tm.assert_frame_equal(df, original)
