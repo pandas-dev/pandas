@@ -334,9 +334,8 @@ class DtypeWarning(Warning):
     """
     Warning raised when reading different dtypes in a column from a file.
 
-    Raised for a dtype incompatibility. This can happen whenever `read_csv`
-    or `read_table` encounter non-uniform dtypes in a column(s) of a given
-    CSV file.
+    Raised when `read_csv` or `read_table` cannot re-read a column whose chunks
+    inferred different dtypes, and concatenating them mixes types.
 
     See Also
     --------
@@ -345,12 +344,11 @@ class DtypeWarning(Warning):
 
     Notes
     -----
-    This warning is issued when dealing with larger files because the dtype
-    checking happens per chunk read.
-
-    Despite the warning, the CSV file is read with mixed types in a single
-    column which will be an object type. See the examples below to better
-    understand this issue.
+    With ``low_memory=True`` (the default) dtypes are inferred per chunk, and a
+    column whose chunks disagree is re-read in one pass. This warning is issued
+    where the column cannot be re-read, e.g. from a pipe or in a later chunk of
+    an iterating read. The column is then returned with mixed types, such as an
+    object column.
 
     Examples
     --------
@@ -364,7 +362,12 @@ class DtypeWarning(Warning):
     ...     }
     ... )  # doctest: +SKIP
     >>> df.to_csv("test.csv", index=False)  # doctest: +SKIP
-    >>> df2 = pd.read_csv("test.csv")  # doctest: +SKIP
+
+    A script run as ``cat test.csv | python script.py`` reads it from a pipe,
+    which cannot be rewound:
+
+    >>> import sys  # doctest: +SKIP
+    >>> df2 = pd.read_csv(sys.stdin)  # doctest: +SKIP
     ... # DtypeWarning: Columns (0: a) have mixed types
 
     Important to notice that ``df2`` will contain both `str` and `int` for the
