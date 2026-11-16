@@ -1088,10 +1088,17 @@ class _LocationIndexer(_NDFrameIndexerBase):
         iloc: _iLocIndexer = (
             cast("_iLocIndexer", self) if self.name == "iloc" else self.obj.iloc
         )
-        iloc._setitem_with_indexer(indexer, value, self.name)
-
-        if self.obj.shape[0] != orig_nrows:
-            self._post_expansion_casting(orig_dtype_info, orig_columns)
+        orig_mgr = self.obj._mgr
+        try:
+            iloc._setitem_with_indexer(indexer, value, self.name)
+            if self.obj.shape[0] != orig_nrows:
+                self._post_expansion_casting(orig_dtype_info, orig_columns)
+        except Exception:
+            if self.obj.shape[0] != orig_nrows:
+                # GH#15490 undo the added rows; adding rows copies, so
+                #  orig_mgr is unmodified
+                self.obj._mgr = orig_mgr
+            raise
 
     def _post_expansion_casting(
         self,

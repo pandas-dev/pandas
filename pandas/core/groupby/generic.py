@@ -796,10 +796,18 @@ class SeriesGroupBy(GroupBy[Series]):
         try:
             result = self._grouper._cython_operation(obj._values, how, 0, **kwargs)
         except NotImplementedError as err:
-            # e.g. test_groupby_raises_string
-            raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
+            # rank's kwargs (e.g. ties_method) don't map onto Series.rank
+            if how == "rank":
+                raise TypeError(
+                    f"{how} is not supported for {obj.dtype} dtype"
+                ) from err
+            # raises for numeric_only=True with a non-numeric dtype
+            self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
+            result = self._transform_py_fallback(how, obj._values, **kwargs)
 
-        return obj._constructor(result, index=self.obj.index, name=obj.name)
+        return obj._constructor(
+            result, index=self.obj.index, name=obj.name, dtype=result.dtype
+        )
 
     def _transform_general(
         self, func: Callable[..., Any], engine, engine_kwargs, *args, **kwargs
@@ -2507,9 +2515,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             try:
                 return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
             except NotImplementedError as err:
-                raise TypeError(
-                    f"{how} is not supported for {bvalues.dtype} dtype"
-                ) from err
+                # rank's kwargs (e.g. ties_method) don't map onto Series.rank
+                if how == "rank":
+                    raise TypeError(
+                        f"{how} is not supported for {bvalues.dtype} dtype"
+                    ) from err
+                return self._transform_py_fallback(how, bvalues, **kwargs)
 
         res_mgr = mgr.apply(arr_func)
 
@@ -3135,10 +3146,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
         return self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
 
-    def _apply_to_column_groupbys(self, func) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, numeric_only: bool = False) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         obj = self._obj_with_exclusions
+        if numeric_only:
+            obj = obj._get_numeric_data()
         columns = obj.columns
         sgbs = (
             SeriesGroupBy(

@@ -162,6 +162,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     ensure_index_from_sequences,
+    get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import (
     MultiIndex,
@@ -16018,14 +16019,26 @@ class DataFrame(NDFrame, OpsMixin):
             # join indexes only using concat
             if can_concat:
                 if how in {"left", "right"}:
-                    res = concat(
-                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
-                    )
                     index = self.index if how == "left" else frames[-1].index
                     if sort:
                         index = index.sort_values()
-                    result = res.reindex(index)
-                    return result
+                    # align to the union as an outer concat would, but take only
+                    # the result's rows so keys absent from it do not upcast the
+                    # kept columns, see GH#28269
+                    union = get_objs_combined_axis(frames, sort=False)[0]
+                    target = union.reindex(index)[1]
+                    aligned = []
+                    for frame in frames:
+                        if union.equals(frame.index):
+                            indexer = target
+                        else:
+                            indexer = algorithms.take_nd(
+                                frame.index.get_indexer(union), target, fill_value=-1
+                            )
+                        aligned.append(
+                            frame._reindex_with_indexers({0: [index, indexer]})
+                        )
+                    return concat(aligned, axis=1, verify_integrity=True)
                 else:
                     if how == "outer":
                         sort = True
@@ -17107,11 +17120,13 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(dtype, ExtensionDtype):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
-                return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
-            values = df.values
+                result = arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
+            else:
+                arr = df.values
+                result = func(arr)
             return maybe_unbox_numpy_scalar(
-                func(values),
-                object_with_dtype=None if name in ["any", "all"] else values,
+                result,
+                object_with_dtype=None if name in ["any", "all"] else arr,
             )
         elif axis == 1:
             if len(df.index) == 0:
@@ -19914,14 +19929,19 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
-        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex, by default at *beginning* of period.
 
         This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
         ----------
-        freq : str, default frequency of PeriodIndex
-            Desired frequency.
+        freq : str or DateOffset, optional
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Convention for converting period to timestamp; start of period
             vs. end. Case-insensitive.
@@ -19970,7 +19990,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df1.index
         DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[us]', freq=None)
 
-        Using `freq` which is the offset that the Timestamps will have
+        With ``freq="M"``, each timestamp is the last day of the period's first
+        month
 
         >>> df2 = pd.DataFrame(data=d, index=idx)
         >>> df2 = df2.to_timestamp(freq="M")

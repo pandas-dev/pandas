@@ -164,6 +164,7 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
     warn_compound_dtype,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import (
     disallow_ndim_indexing,
@@ -348,9 +349,12 @@ class Index(IndexOpsMixin, PandasObject):
         know the input data won't be modified elsewhere).
         Set to True to force copying Series/Index input up front.
     name : object
-        Name to be stored in the index.
-    tupleize_cols : bool (default: True)
-        When True, attempt to create a MultiIndex if possible.
+        Name to be stored in the index. If a MultiIndex is created, a tuple
+        with one name per level.
+    tupleize_cols : bool, default True
+        When True, a non-empty list (or other non-array iterable) of tuples
+        becomes a MultiIndex, unless ``dtype`` is an extension or datetime-like
+        dtype.
 
     See Also
     --------
@@ -383,6 +387,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     >>> pd.Index([1, 2, 3], dtype="uint8")
     Index([1, 2, 3], dtype='uint8')
+
+    >>> pd.Index([("a", 1), ("b", 2)], name=("letter", "number"))
+    MultiIndex([('a', 1),
+                ('b', 2)],
+               names=['letter', 'number'])
     """
 
     # similar to __array_priority__, positions Index after Series and DataFrame
@@ -621,6 +630,8 @@ class Index(IndexOpsMixin, PandasObject):
         elif dtype == np.float16:
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
+        if isinstance(data, np.ndarray):
+            warn_non_native_byteorder(data)
 
         if copy:
             # asarray_tuplesafe does not always copy underlying data,
@@ -7874,7 +7885,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _unary_method(self, op: Callable[..., Any]) -> Index:
-        result = op(self._values)
+        result = ops.unary_op(self._values, op)
         return Index(result, name=self.name, copy=False)
 
     def __abs__(self) -> Index:
@@ -7888,7 +7899,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __invert__(self) -> Index:
         # GH#8875
-        return self._unary_method(operator.inv)
+        # bypass _unary_method so ~ still raises on object values with None
+        # error: Unsupported operand type for ~ ("ExtensionArray | ndarray[...]")
+        result = ~self._values  # type: ignore[operator]
+        return Index(result, name=self.name, copy=False)
 
     # --------------------------------------------------------------------
     # Reductions
@@ -8198,7 +8212,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
-            return self._values._reduce(name="min", skipna=skipna)
+            return maybe_unbox_numpy_scalar(
+                self._values._reduce(name="min", skipna=skipna), object_with_dtype=self
+            )
 
         return maybe_unbox_numpy_scalar(
             nanops.nanmin(self._values, skipna=skipna), object_with_dtype=self
@@ -8278,7 +8294,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return maybe_unbox_numpy_scalar(self._na_value)
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
-            return self._values._reduce(name="max", skipna=skipna)
+            return maybe_unbox_numpy_scalar(
+                self._values._reduce(name="max", skipna=skipna), object_with_dtype=self
+            )
 
         return maybe_unbox_numpy_scalar(
             nanops.nanmax(self._values, skipna=skipna), object_with_dtype=self

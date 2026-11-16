@@ -493,10 +493,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            # error: Argument 1 to "Timestamp" has incompatible type "object";
-            # expected "integer[Any] | float | str | date | datetime |
-            # datetime64[date | int | None]"  [arg-type]
-            other = self._scalar_type(other)  # type: ignore[arg-type]
+            # error: No overload variant of "Timestamp" matches argument type
+            # "object"  [call-overload]
+            other = self._scalar_type(other)  # type: ignore[call-overload]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -568,9 +567,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(msg)
 
         elif isinstance(value, self._recognized_scalars):
-            # error: Argument 1 to "Timestamp" has incompatible type "object"; expected
-            # "integer[Any] | float | str | date | datetime | datetime64"
-            value = self._scalar_type(value)  # type: ignore[arg-type]
+            # error: No overload variant of "Timestamp" matches argument type
+            # "object"  [call-overload]
+            value = self._scalar_type(value)  # type: ignore[call-overload]
 
         else:
             msg = self._validation_error_message(value, allow_listlike)
@@ -729,13 +728,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         # Fast path: single-pass Cython using iNaT sentinel. GH#42147
         if lib.is_scalar(value):
-            if not self._hasna:
-                return self.copy() if copy else self[:]
             try:
                 validated = self._validate_setitem_value(value)
             except (ValueError, TypeError):
+                # super().fillna raises, even when there is nothing to fill
                 pass
             else:
+                if not self._hasna:
+                    return self.copy() if copy else self[:]
                 if copy:
                     new_ndarray = self._ndarray.copy()
                 else:
@@ -1301,6 +1301,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
+        if self.shape != other.shape:
+            raise ValueError("cannot add indices of unequal length")
+
         if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
@@ -1308,9 +1311,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-
-        # Caller is responsible for broadcasting if necessary
-        assert self.shape == other.shape, (self.shape, other.shape)
 
         res_values = op(self.astype("O"), np.asarray(other))
         return res_values
@@ -2169,7 +2169,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         ----------
         freq : str or Offset
             The frequency level to floor the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or for datetimes a single step of
+            a date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -2274,7 +2275,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         ----------
         freq : str or Offset
             The frequency level to ceil the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or for datetimes a single step of
+            a date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'

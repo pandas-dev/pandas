@@ -194,7 +194,7 @@ Axis: TypeAlias = AxisInt | Literal["index", "columns", "rows"]
 IndexLabel: TypeAlias = Hashable | Sequence[Hashable]
 Level: TypeAlias = Hashable
 Shape: TypeAlias = tuple[int, ...]
-Suffixes: TypeAlias = Sequence[str | None]
+Suffixes: TypeAlias = SequenceNotStr[str | None]
 Ordered: TypeAlias = bool | None
 JSONSerializable: TypeAlias = PythonScalar | list[Any] | dict[Any, Any] | None
 Frequency: TypeAlias = Union[str, "BaseOffset"]
@@ -500,6 +500,8 @@ AlignJoin: TypeAlias = Literal["outer", "inner", "left", "right"]
 DtypeBackend: TypeAlias = Literal["pyarrow", "numpy_nullable"]
 
 TimeUnit: TypeAlias = Literal["s", "ms", "us", "ns"]
+
+NaTStrings: TypeAlias = Literal["", "NaT", "nat", "NAT", "nan", "NaN", "NAN"]
 OpenFileErrors: TypeAlias = Literal[
     "strict",
     "ignore",
