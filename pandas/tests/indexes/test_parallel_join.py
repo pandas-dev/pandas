@@ -115,8 +115,9 @@ def test_merge_and_align_match_serial(chunked):
         expected_merge = pd.merge(left, right, on="key", how="outer")
         expected_sum = ser1 + ser2
     tm.assert_frame_equal(pd.merge(left, right, on="key", how="outer"), expected_merge)
+    assert len(chunked) == 1
     tm.assert_series_equal(ser1 + ser2, expected_sum)
-    assert chunked
+    assert len(chunked) == 2
 
 
 def test_object_dtype_stays_serial(chunked):
