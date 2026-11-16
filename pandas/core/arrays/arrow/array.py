@@ -341,22 +341,6 @@ def to_pyarrow_type(
     return None
 
 
-def _drop_null_dictionary_entries(arr: pa.DictionaryArray) -> pa.DictionaryArray:
-    """
-    Move null dictionary entries into the validity bitmap of the indices.
-    """
-    dictionary = arr.dictionary
-    if not dictionary.null_count:
-        return arr
-    valid = dictionary.is_valid()
-    positions = pc.subtract(pc.cumulative_sum(valid.cast(pa.int64())), 1)
-    mapping = pc.if_else(valid, positions, pa.scalar(None, type=pa.int64()))
-    indices = mapping.take(arr.indices).cast(arr.type.index_type)
-    return pa.DictionaryArray.from_arrays(
-        indices, dictionary.filter(valid), ordered=arr.type.ordered
-    )
-
-
 def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     """
     Whether this is one of string, large_string, binary and large_binary.
@@ -370,6 +354,22 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
         or pa.types.is_large_string(pa_type)
         or pa.types.is_binary(pa_type)
         or pa.types.is_large_binary(pa_type)
+    )
+
+
+def _drop_null_dictionary_entries(arr: pa.DictionaryArray) -> pa.DictionaryArray:
+    """
+    Move null dictionary entries into the validity bitmap of the indices.
+    """
+    dictionary = arr.dictionary
+    if not dictionary.null_count:
+        return arr
+    valid = dictionary.is_valid()
+    positions = pc.subtract(pc.cumulative_sum(valid.cast(pa.int64())), 1)
+    mapping = pc.if_else(valid, positions, pa.scalar(None, type=pa.int64()))
+    indices = mapping.take(arr.indices).cast(arr.type.index_type)
+    return pa.DictionaryArray.from_arrays(
+        indices, dictionary.filter(valid), ordered=arr.type.ordered
     )
 
 
