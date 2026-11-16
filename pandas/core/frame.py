@@ -9085,6 +9085,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self._constructor_sliced(False, dtype=bool, index=self.index)
 
         def f(vals) -> tuple[np.ndarray, int]:
+            uniques: np.ndarray | Index
             if isinstance(vals, np.ndarray) and vals.dtype == object:
                 # factorize treats all nulls as equal; Series.duplicated
                 # distinguishes None/NaN/NA, see GH#21720
