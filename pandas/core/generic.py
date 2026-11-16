@@ -1306,7 +1306,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         The row/column index do not need to have the same type, as long
         as the values are considered equal. Corresponding columns and
-        index must be of the same dtype.
+        index must be of the same dtype, except that datetime or timedelta
+        values differing only in resolution are considered equal.
 
         Parameters
         ----------

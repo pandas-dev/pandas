@@ -95,6 +95,14 @@ class TestEquals:
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
 
+    def test_equals_mismatched_datetimelike_resolution(self):
+        # GH#55694
+        dti = pd.date_range("2016-01-01", periods=3)
+        df1 = pd.DataFrame({"a": dti, "b": dti - dti[0], "c": dti})
+        df2 = df1.astype({"a": "M8[s]", "b": "m8[s]", "c": "M8[s]"})
+        assert df1.equals(df2)
+        assert df2.equals(df1)
+
     def test_equals_categorical_categories_order(self):
         cat1 = pd.Categorical(["a", "b", "a"], categories=["a", "b"])
         cat2 = pd.Categorical(["a", "b", "a"], categories=["b", "a"])
