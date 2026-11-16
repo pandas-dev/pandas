@@ -555,7 +555,7 @@ def _array_equivalent_object(
 
     for left_value, right_value in zip(left_remaining, right_remaining, strict=True):
         if libmissing.checknull(left_value):
-            # e.g. NaT vs NaT must match, NaN vs None must not
+            # e.g. NaT vs NaT must match
             if not libmissing.is_matching_na(left_value, right_value):
                 return False
         else:

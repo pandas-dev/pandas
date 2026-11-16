@@ -520,7 +520,6 @@ Other
 - Bug in :func:`describe_option` suggesting an empty replacement option for deprecated options that have no replacement (:issue:`72035`)
 - Bug in :func:`eval` with a multi-line expression and a ``target`` raising ``UndefinedVariableError`` when a line after the first referenced a variable (:issue:`31952`)
 - Bug in :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where ``not`` performed a bitwise inversion instead of a logical negation, e.g. ``pd.eval("not True")`` returned ``-2`` and ``df.query("a > 1 and not True")`` could return rows (:issue:`11367`)
-- Bug in :func:`testing.assert_numpy_array_equal` with ``strict_nan=True`` treating identical missing values such as ``NaT`` or ``pd.NA`` in object-dtype arrays as different (:issue:`18463`)
 - Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with ``check_dtype=False`` and ``check_exact=True`` comparing missing values against an object column differently from ``check_exact=False``; ``pd.NA`` and ``NaT`` no longer match ``np.nan`` or ``None`` (:issue:`61473`)
 - Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with ``check_exact=True`` treating ``np.nan`` and ``None`` in object-dtype values as equal, unlike ``check_exact=False`` (:issue:`18463`)
 - Bug in :func:`testing.assert_series_equal`, :func:`testing.assert_frame_equal` and :func:`testing.assert_index_equal` treating ``np.nan`` and ``None`` as equal when they appear inside NumPy arrays stored in object-dtype values (:issue:`55492`)
