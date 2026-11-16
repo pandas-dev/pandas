@@ -39,9 +39,7 @@ def test_get_dummies_no_labels(any_string_dtype):
     for data in ([None, None], ["", ""]):
         s = pd.Series(data, dtype=any_string_dtype)
         result = s.str.get_dummies("|")
-        expected = pd.DataFrame(
-            np.empty((2, 0), dtype="int64"), columns=pd.Index([])
-        )
+        expected = pd.DataFrame(np.empty((2, 0), dtype="int64"), columns=pd.Index([]))
         tm.assert_frame_equal(result, expected)
 
 
