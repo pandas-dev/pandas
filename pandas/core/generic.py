@@ -2789,7 +2789,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed".
         index : bool, default True
-            Write DataFrame index as a column.
+            Create PyTables indexes on the stored index and data columns to
+            speed up queries (``format='table'`` only). The object's index is
+            written regardless.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : str, optional
