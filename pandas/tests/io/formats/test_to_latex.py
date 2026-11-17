@@ -1,6 +1,7 @@
 from datetime import datetime
 from textwrap import dedent
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -76,6 +77,36 @@ class TestToLatex:
             \end{tabular}
             """
         )
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "box",
+        [list, tuple, pd.Index, np.array, pd.Series, pd.array, pd.Categorical],
+    )
+    def test_to_latex_columns_listlike(self, box):
+        # GH#72199
+        df = pd.DataFrame([[1, 2, 3]], columns=[0.5, 1.5, np.nan])
+        result = df.to_latex(columns=box([0.5, np.nan]))
+        expected = df[[0.5, np.nan]].to_latex()
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "columns",
+        [[("a", "x"), "a"], pd.MultiIndex.from_tuples([("a", "x")])],
+    )
+    def test_to_latex_columns_multiindex(self, columns):
+        # GH#72199
+        mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+        df = pd.DataFrame([[1, 2, 3]], columns=mi)
+        result = df.to_latex(columns=columns)
+        expected = df[[("a", "x")]].to_latex()
+        assert result == expected
+
+    def test_to_latex_columns_str(self):
+        # GH#72199 a str is matched by substring, as before
+        df = pd.DataFrame([[1, 2, 3]], columns=["ab", "a", "abc"])
+        result = df.to_latex(columns="ab")
+        expected = df[["ab", "a"]].to_latex()
         assert result == expected
 
     @pytest.mark.parametrize(
