@@ -1356,6 +1356,39 @@ class TestReaders:
         expected = pd.DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_read_excel_multiindex_header_index_col_after_empty_column(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#15133
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        rows = [
+            [None, None, None, "A", "A", "B", "B"],
+            [None, None, None, "x", "y", "x", "y"],
+            [None, "a", 1, 1, 2, 3, 4],
+            [None, "b", 2, 5, 6, 7, 8],
+        ]
+        pd.DataFrame(rows).to_excel(tmp_excel, header=False, index=False)
+        result = pd.read_excel(
+            tmp_excel, header=[0, 1], index_col=[1, 2], engine=engine
+        )
+
+        columns = pd.MultiIndex.from_tuples(
+            [
+                ("Unnamed: 0_level_0", "Unnamed: 0_level_1"),
+                ("A", "x"),
+                ("A", "y"),
+                ("B", "x"),
+                ("B", "y"),
+            ]
+        )
+        index = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        expected = pd.DataFrame(
+            [[np.nan, 1, 2, 3, 4], [np.nan, 5, 6, 7, 8]], index=index, columns=columns
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_read_excel_multiindex_header_index_col_consumes_all_columns(
         self, read_ext, engine, tmp_excel
     ):

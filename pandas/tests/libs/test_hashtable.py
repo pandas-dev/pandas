@@ -543,6 +543,40 @@ def test_hash_equal_namedtuple_with_nans():
     assert ht.objects_are_equal(a, b)
 
 
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (np.float64("nan"), np.float64("nan")),
+        (np.float64("nan"), float("nan")),
+        (np.float32("nan"), np.float64("nan")),
+        (np.longdouble("nan"), float("nan")),
+        (np.complex128(complex(np.nan, 1)), np.complex128(complex(np.nan, 1))),
+        (np.complex64(complex(1, np.nan)), complex(1, np.nan)),
+        (np.clongdouble(complex(np.nan, np.nan)), complex(np.nan, np.nan)),
+        ((1, np.float32("nan")), (1, float("nan"))),
+    ],
+)
+def test_hash_equal_numpy_nan_scalars(a, b):
+    # GH#16632
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+    assert ht.objects_are_equal(b, a)
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (np.float64("nan"), complex(np.nan, 0)),
+        (np.complex64(complex(np.nan, 1)), complex(np.nan, 2)),
+        (np.float32("nan"), np.float64(1.0)),
+    ],
+)
+def test_numpy_nan_scalars_not_equal(a, b):
+    # GH#16632
+    assert not ht.objects_are_equal(a, b)
+    assert not ht.objects_are_equal(b, a)
+
+
 def test_hash_equal_namedtuple_and_tuple():
     T = namedtuple("T", ["x", "y"])
     a = T(1, (2, 3))
@@ -746,9 +780,11 @@ class TestHelpFunctions:
         mask = np.zeros((5,), dtype=np.bool_)
         mask[1] = True
         mask[4] = True
-        keys, counts, na_counter = ht.value_count(values, False, mask=mask)
+        keys, counts, na_pos = ht.value_count(values, False, mask=mask)
         assert len(keys) == 2
-        assert na_counter == 2
+        # NA is first seen after one distinct value, GH#23074
+        assert na_pos == 1
+        tm.assert_numpy_array_equal(counts, np.array([3, 2], dtype=np.int64))
 
     def test_value_count_stable(self, dtype, writable):
         # GH12679

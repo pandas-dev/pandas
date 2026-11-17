@@ -19,6 +19,7 @@ import warnings
 
 from pandas._config.config import _global_config as config
 
+from pandas._libs import lib
 from pandas.compat._optional import (
     import_optional_dependency,
 )
@@ -230,7 +231,7 @@ class SQLDatabase(PandasSQL):
         columns=None,
         schema: str | None = None,
         chunksize: int | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame.
@@ -308,7 +309,7 @@ class SQLDatabase(PandasSQL):
         coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
@@ -348,7 +349,7 @@ class SQLDatabase(PandasSQL):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL query into a DataFrame.

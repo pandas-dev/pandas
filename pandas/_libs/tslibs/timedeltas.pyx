@@ -661,6 +661,7 @@ cdef int64_t parse_timedelta_string(
     cdef:
         str c
         bint neg = 0, have_dot = 0, have_value = 0, have_hhmmss = 0
+        Py_ssize_t i
         str current_unit = None
         int64_t m = 0
         object result = 0, r
@@ -680,9 +681,22 @@ cdef int64_t parse_timedelta_string(
     if len(ts) == 0 or ts in nat_strings:
         return NPY_NAT
 
-    for c in ts:
+    for i, c in enumerate(ts):
 
-        # skip whitespace / commas
+        if c == "," and 0 < i < len(ts) - 1 and (
+            "0" <= ts[i - 1] <= "9" and "0" <= ts[i + 1] <= "9"
+        ):
+            # a comma between digits is the decimal point of the seconds
+            #  field (ISO 8601, as Timestamp reads it); elsewhere, e.g.
+            #  "1,234 days", decimal vs thousands separator is ambiguous
+            if current_unit != "m":
+                raise ValueError(
+                    "a comma between digits is only allowed as the decimal "
+                    f"point of hh:mm:ss, received: {ts}"
+                )
+            c = "."
+
+        # skip whitespace / commas, e.g. str(timedelta) "1 day, 0:00:00"
         if c == " " or c == ",":
             pass
 
@@ -941,7 +955,11 @@ cdef bint needs_nano_unit(int64_t ival, str item):
     # TODO: more performant way of doing this check?
     if ival % 1000 != 0:
         return True
-    return re.search(r"\.\d{7}", item) or "ns" in item or "nano" in item.lower()
+    return (
+        re.search(r"\.\d{7}|\d,\d{7}", item)
+        or "ns" in item
+        or "nano" in item.lower()
+    )
 
 
 cpdef inline str parse_timedelta_unit(str unit):
