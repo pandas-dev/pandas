@@ -293,6 +293,43 @@ def test_dictionary_replace_with_mask_chunks_exceed_index_type():
     assert result.to_pylist() == [*values[0], *values[1][:50], "a0", *values[1][51:]]
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param(False, id="scalar"),
+        pytest.param([False, True, True, False, False, True, False], id="list"),
+    ],
+)
+def test_dictionary_replace_with_mask_bool_chunks(value):
+    # GH#52059 the decoded values take the same path as boolean data, where
+    #  pc.replace_with_mask gives wrong values for some chunk layouts
+    parts = [[True, True, False], [None, True, False, True, None], [True, False, True]]
+    arr = pa.chunked_array([pa.array(part).dictionary_encode() for part in parts])
+    ser = pd.Series(ArrowExtensionArray(arr), copy=False)
+    dtype = ser.dtype
+    mask = np.array([1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1], dtype=bool)
+    ser[mask] = value
+    values = iter(value if isinstance(value, list) else [value] * mask.sum())
+    flat = [x for part in parts for x in part]
+    expected = [next(values) if m else x for m, x in zip(mask, flat, strict=True)]
+    assert ser.array._pa_array.type == dtype.pyarrow_dtype
+    assert [None if pd.isna(x) else x for x in ser] == expected
+
+
+def test_dictionary_replace_with_mask_null_value_type():
+    # GH#66703 the decoded null type takes the same path as null data, which
+    #  pc.replace_with_mask aborts on for pyarrow < 25
+    arr = ArrowExtensionArray(
+        pa.DictionaryArray.from_arrays(
+            pa.array([None, None, None], pa.int32()), pa.array([], pa.null())
+        )
+    )
+    dtype = arr.dtype
+    arr[np.array([True, False, True])] = arr[:2]
+    assert arr._pa_array.type == dtype.pyarrow_dtype
+    assert arr.isna().all()
+
+
 @pytest.mark.parametrize("kind", ["list", "struct"])
 def test_setitem_null_slice_no_alias_nested(kind):
     # GH#67990 pa.concat_arrays does copy a nested type's children, which is why

@@ -3846,14 +3846,12 @@ class ArrowExtensionArray(
         if pa.types.is_dictionary(values.type):
             # pc.replace_with_mask has no dictionary kernel, and the NumPy
             #  fallback below decodes a missing index (-1) to the last
-            #  dictionary value: replace on the decoded values instead
-            if isinstance(replacements, (pa.Array, pa.Scalar)) and (
-                pa.types.is_dictionary(replacements.type)
-            ):
-                replacements = replacements.cast(replacements.type.value_type)
-            result = pc.replace_with_mask(
-                values.cast(values.type.value_type), mask, replacements
-            )
+            #  dictionary value: replace on the decoded values instead, which
+            #  goes through the workarounds below for the value type
+            value_type = values.type.value_type
+            if isinstance(replacements, (pa.Array, pa.Scalar)):
+                replacements = replacements.cast(value_type)
+            result = cls._replace_with_mask(values.cast(value_type), mask, replacements)
             # encode each chunk on its own: one dictionary for all chunks
             #  may not fit the index type
             if isinstance(result, pa.ChunkedArray):
