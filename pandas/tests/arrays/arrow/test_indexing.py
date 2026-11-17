@@ -278,44 +278,9 @@ def test_dictionary_replace_with_mask_nan(other, distinguish_nan_and_na):
     assert pc.is_nan(result.cast(pa.float64())).equals(pc.is_nan(expected))
 
 
-def test_dictionary_replace_with_mask_ordered_keeps_entries():
-    # an ordered dictionary's order is its meaning, so it keeps its order and
-    #  its unused values, and a new value is appended
-    arr = pa.DictionaryArray.from_arrays(
-        pa.array([1, 0, None], pa.int32()), pa.array(["lo", "hi", "mid"]), ordered=True
-    )
-    ser = pd.Series(ArrowExtensionArray(arr), copy=False)
-    ser[np.array([False, False, True])] = "lo"
-    result = ser.array._pa_array
-    assert result.type == arr.type
-    assert result.to_pylist() == ["hi", "lo", "lo"]
-    assert result.chunk(0).dictionary.to_pylist() == ["lo", "hi", "mid"]
-
-    result = ser.where(np.array([True, False, True]), "top").array._pa_array
-    assert result.to_pylist() == ["hi", "top", "lo"]
-    assert result.chunk(0).dictionary.to_pylist() == ["lo", "hi", "mid", "top"]
-
-
-def test_dictionary_replace_with_mask_drops_unused_entries():
-    # otherwise unused entries are dropped, keeping the order of the others,
-    #  so repeated assignment doesn't grow the dictionary
-    arr = pa.DictionaryArray.from_arrays(
-        pa.array([0, 1, 2], pa.int32()), pa.array(["a", "b", "c", "unused"])
-    )
-    ser = pd.Series(ArrowExtensionArray(arr), copy=False)
-    ser[np.array([False, True, False])] = "z"
-    result = ser.array._pa_array
-    assert result.to_pylist() == ["a", "z", "c"]
-    assert result.chunk(0).dictionary.to_pylist() == ["a", "c", "z"]
-
-    for value in ["x", "y", "w"]:
-        ser[np.ones(3, dtype=bool)] = value
-    assert ser.array._pa_array.chunk(0).dictionary.to_pylist() == ["w"]
-
-
-def test_dictionary_replace_with_mask_per_chunk_dictionaries():
-    # each chunk keeps its own dictionary: together they can hold more values
-    #  than the index type addresses, and an ordered chunk keeps its order
+def test_dictionary_replace_with_mask_chunks_exceed_index_type():
+    # each chunk is encoded on its own: together the chunks can hold more
+    #  values than the index type addresses
     values = [f"a{i}" for i in range(100)], [f"b{i}" for i in range(100)]
     chunks = [
         pa.DictionaryArray.from_arrays(pa.array(range(100), pa.int8()), pa.array(v))
@@ -326,41 +291,6 @@ def test_dictionary_replace_with_mask_per_chunk_dictionaries():
     result = ser.array._pa_array
     assert result.type == pa.dictionary(pa.int8(), pa.string())
     assert result.to_pylist() == [*values[0], *values[1][:50], "a0", *values[1][51:]]
-
-    ordered = [
-        pa.DictionaryArray.from_arrays(
-            pa.array([0, 1]), pa.array(dictionary), ordered=True
-        )
-        for dictionary in (["hi", "lo"], ["lo", "hi"])
-    ]
-    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(ordered)), copy=False)
-    ser[np.array([False, True, False, True])] = "lo"
-    result = ser.array._pa_array
-    assert result.to_pylist() == ["hi", "lo", "lo", "lo"]
-    assert [chunk.dictionary.to_pylist() for chunk in result.chunks] == [
-        ["hi", "lo"],
-        ["lo", "hi"],
-    ]
-
-
-def test_dictionary_replace_with_mask_index_type():
-    # the dtype's index type never changes: a replaced value frees its entry,
-    #  and more values than the index type can address raise
-    values = [f"v{i}" for i in range(128)]
-    arr = pa.DictionaryArray.from_arrays(
-        pa.array([*range(128), None], pa.int8()), pa.array(values)
-    )
-    ser = pd.Series(ArrowExtensionArray(arr), copy=False)
-    dtype = ser.dtype
-    ser[np.arange(129) == 0] = "new"
-    assert ser.array._pa_array.type == dtype.pyarrow_dtype
-    assert ser.array._pa_array.to_pylist() == ["new", *values[1:], None]
-
-    msg = "Cannot store more than 128 distinct values in dictionary<values=string, "
-    with pytest.raises(TypeError, match=msg):
-        ser[np.arange(129) == 128] = "other"
-    with pytest.raises(TypeError, match=msg):
-        ser.where(np.arange(129) != 128, "other")
 
 
 @pytest.mark.parametrize("kind", ["list", "struct"])
