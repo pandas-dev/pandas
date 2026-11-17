@@ -3,6 +3,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_index_accessor
+from pandas.tests.test_register_accessor import ensure_removed
 
 
 @pytest.fixture
@@ -123,23 +124,33 @@ def test_ax_registered_index_accessor():
         def apply(self):
             return self._index.str.upper()
 
-    register_index_accessor("axtest")(Upper)
-    try:
+    with ensure_removed(pd.Index, "axtest"):
+        register_index_accessor("axtest")(Upper)
         df = pd.DataFrame({"a": [1]}, index=["x"])
         result = df.ax.axtest.apply()
         expected = pd.DataFrame({"a": [1]}, index=["X"])
         tm.assert_frame_equal(result, expected)
-    finally:
-        del pd.Index.axtest
-        pd.Index._accessors.discard("axtest")
 
 
-def test_ax_rejects_sort_values(frame_or_series):
+@pytest.mark.parametrize(
+    "name",
+    [
+        "sort_values",
+        "take",
+        "union",
+        "intersection",
+        "difference",
+        "symmetric_difference",
+        "join",
+    ],
+)
+def test_ax_rejects_reordering_methods(frame_or_series, name):
+    # e.g. index.union(["a"]) sorts ["b", "a"] without moving the data
     obj = frame_or_series([10, 20], index=["b", "a"])
-    with pytest.raises(AttributeError, match="use sort_index instead"):
-        obj.ax.sort_values
-    assert not hasattr(obj.ax, "sort_values")
-    assert "sort_values" not in dir(obj.ax)
+    with pytest.raises(AttributeError, match=f"does not support '{name}'"):
+        getattr(obj.ax, name)
+    assert not hasattr(obj.ax, name)
+    assert name not in dir(obj.ax)
 
 
 def test_ax_accessor_not_valid_on_any_axis():

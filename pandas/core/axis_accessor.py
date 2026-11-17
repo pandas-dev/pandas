@@ -19,16 +19,30 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+# may permute the labels, which the length check in _apply can't catch
+_REORDERING_METHODS = frozenset(
+    {
+        "sort_values",
+        "take",
+        "union",
+        "intersection",
+        "difference",
+        "symmetric_difference",
+        "join",
+    }
+)
+
+
 class AxisAccessor:
     """
     Pass-through to the methods of a Series or DataFrame axis.
 
     ``obj.ax.method(*args, axis=0, **kwargs)`` is equivalent to
     ``obj.set_axis(obj.index.method(*args, **kwargs), axis=0)``, with
-    ``axis=1`` using ``obj.columns`` instead. Methods that do not return an
-    Index of the same length as the axis raise TypeError. ``sort_values`` is
-    not supported, since it would reorder the labels without moving the data;
-    use ``sort_index`` instead.
+    ``axis=1`` using ``obj.columns`` instead; ``axis`` is keyword-only. Methods
+    that do not return an Index of the same length as the axis raise TypeError.
+    Methods that can reorder the labels without moving the data, such as
+    ``sort_values``, ``take`` and the set operations, are not supported.
 
     Parameters
     ----------
@@ -76,10 +90,10 @@ class AxisAccessor:
     def __getattr__(self, name: str) -> Callable[..., NDFrame] | AxisAccessor:
         if name.startswith("_"):
             raise AttributeError(name)
-        if not self._path and name == "sort_values":
+        if not self._path and name in _REORDERING_METHODS:
             raise AttributeError(
-                "ax does not support 'sort_values', which would reorder the labels "
-                "without moving the data; use sort_index instead"
+                f"ax does not support '{name}', which can reorder the labels "
+                "without moving the data"
             )
         axes = self._obj.axes
         if not self._path and any(name in labels._accessors for labels in axes):
@@ -123,7 +137,7 @@ class AxisAccessor:
                 for name in labels._accessors
                 if hasattr(labels, name)
             }
-            names.discard("sort_values")
+            names -= _REORDERING_METHODS
         return sorted(names)
 
 
