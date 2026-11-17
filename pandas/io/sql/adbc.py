@@ -13,7 +13,6 @@ from typing import (
     Literal,
 )
 
-from pandas._libs import lib
 from pandas.compat._optional import (
     import_optional_dependency,
 )
@@ -411,7 +410,7 @@ class ADBCDatabase(PandasSQL):
 
         with self.con.cursor() as cur:
             try:
-                total_inserted = cur.adbc_ingest(
+                total_inserted: int = cur.adbc_ingest(
                     table_name=name, data=tbl, mode=mode, db_schema_name=schema
                 )
             except Error as exc:
@@ -421,7 +420,7 @@ class ADBCDatabase(PandasSQL):
 
         self.con.commit()
         # adbc_ingest returns -1 when the driver can't count the rows
-        if lib.is_integer(total_inserted) and total_inserted < 0:
+        if total_inserted < 0:
             return None
         return total_inserted
 
