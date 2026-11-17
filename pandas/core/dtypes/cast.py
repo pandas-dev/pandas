@@ -1079,9 +1079,7 @@ def convert_dtypes(
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
     elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
-        # GH#53648, GH#57395 reverse of the pyarrow branch above: timestamp and
-        #  duration go back to datetime64/timedelta64, and other unmapped types
-        #  (dictionary, date, list, ...) are kept as-is
+        # GH#53648, GH#57395 reverse of the pyarrow branch; unmapped types are kept
         import pyarrow as pa
 
         from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
