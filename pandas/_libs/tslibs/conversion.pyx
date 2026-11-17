@@ -1011,12 +1011,14 @@ cdef int64_t parse_pydatetime(
         _TSObject _ts
         int64_t result
 
-    if val.tzinfo is not None:
+    if isinstance(val, _Timestamp):
+        # GH#71371 going through the py datetime fields loses the year of a
+        #  tz-aware Timestamp outside 1-9999: it keeps 1970/1972 in the
+        #  underlying datetime struct. _value is already UTC in its own unit.
+        result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
+    elif val.tzinfo is not None:
         _ts = convert_datetime_to_tsobject(val, None, nanos=0, reso=creso)
         result = _ts.value
     else:
-        if isinstance(val, _Timestamp):
-            result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
-        else:
-            result = pydatetime_to_dt64(val, dts, reso=creso)
+        result = pydatetime_to_dt64(val, dts, reso=creso)
     return result
