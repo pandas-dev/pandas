@@ -384,6 +384,26 @@ the default value first, if there is one:
 * {'low', 'medium', 'high'}
 * {'cat', 'dog', 'bird'}
 
+If the set of values is too long to fit on one line, use the type of the
+values instead, and list them as bullet points in the description:
+
+.. code-block:: python
+
+    """
+    Parameters
+    ----------
+    unit : str, default 'ns'
+        Unit of the input.
+
+        Possible values:
+
+        * 'D' or 'days'
+        * 'h' or 'hours'
+        * 'm' or 'minutes'
+        * 's' or 'seconds'
+        * 'ns' or 'nanoseconds'
+    """
+
 If the type is defined in a Python module, the module must be specified:
 
 * datetime.date
