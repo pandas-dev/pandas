@@ -1099,6 +1099,19 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
         check_round_trip(df, temp_file, pa, check_dtype=False)
 
+    @pytest.mark.parametrize("tz", ["UTC", "America/Denver"])
+    def test_read_dtype_backend_pyarrow_timezone_aware_index(self, pa, tz, temp_file):
+        # GH#56282
+        idx = pd.date_range("2001-05-07", periods=3, tz=tz, unit="us", name="dt")
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=idx)
+        df.to_parquet(temp_file, engine=pa)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+
+        expected = df.astype("int64[pyarrow]")
+        expected.index = idx.astype(pd.ArrowDtype(pyarrow.timestamp("us", tz=tz)))
+        tm.assert_frame_equal(result, expected)
+
     def test_filter_row_groups(self, pa, temp_file):
         # https://github.com/pandas-dev/pandas/issues/26551
         pytest.importorskip("pyarrow")
