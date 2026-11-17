@@ -433,3 +433,31 @@ def test_insert_nan_distinguish_nan_and_na_raises(dtype):
     with pd.option_context("future.distinguish_nan_and_na", True):
         with pytest.raises(TypeError, match="Invalid value 'nan'"):
             arr.insert(0, np.nan)
+
+
+def test_where_2d_row_mask():
+    # the np.where fast path is for a mask of the array's shape; a mask over
+    #  the rows of a 2D array picks whole rows, as in the base class
+    arr = pd.array([1, 2, 3, 4], dtype="Int64").reshape(2, 2)
+    value = pd.array([10, 20, 30, 40], dtype="Int64").reshape(2, 2)
+
+    result = arr._where(np.array([True, False]), value)
+
+    expected = pd.array([1, 2, 30, 40], dtype="Int64").reshape(2, 2)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_where_other_masked_dtype():
+    # a masked value of another dtype takes the base class path, which
+    #  validates the picked values against self's dtype
+    arr = pd.array([1, None, 3], dtype="Int64")
+    mask = np.array([True, False, False])
+
+    result = arr._where(mask, pd.array([10, 20, None], dtype="Int32"))
+    tm.assert_extension_array_equal(result, pd.array([1, 20, None], dtype="Int64"))
+
+    result = arr._where(mask, pd.array([10.0, 20.0, None], dtype="Float64"))
+    tm.assert_extension_array_equal(result, pd.array([1, 20, None], dtype="Int64"))
+
+    with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
+        arr._where(mask, pd.array([10.0, 2.5, None], dtype="Float64"))

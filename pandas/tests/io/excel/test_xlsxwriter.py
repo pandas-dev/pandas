@@ -4,6 +4,7 @@ import uuid
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
 
@@ -76,6 +77,23 @@ def test_engine_kwargs(tmp_excel, nan_inf_to_errors):
         tmp_excel, engine="xlsxwriter", engine_kwargs=engine_kwargs
     ) as writer:
         assert writer.book.nan_inf_to_errors == nan_inf_to_errors
+
+
+@pytest.mark.parametrize("as_text", [False, True])
+def test_strings_to_formulas(tmp_excel, as_text):
+    # GH#29095 - the default and the workaround documented in DataFrame.to_excel
+    openpyxl = pytest.importorskip("openpyxl")
+    df = pd.DataFrame({"a": ["=1+1"]})
+    engine_kwargs = {"options": {"strings_to_formulas": False}} if as_text else None
+    df.to_excel(
+        tmp_excel, engine="xlsxwriter", index=False, engine_kwargs=engine_kwargs
+    )
+
+    cell = openpyxl.load_workbook(tmp_excel)["Sheet1"]["A2"]
+    assert cell.data_type == ("s" if as_text else "f")
+    if as_text:
+        result = pd.read_excel(tmp_excel, engine="openpyxl")
+        tm.assert_frame_equal(result, df)
 
 
 def test_book_and_sheets_consistent(tmp_excel):

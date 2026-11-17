@@ -912,6 +912,92 @@ def test_index_where_listlike_other_keeps_ea_dtype(any_numeric_ea_and_arrow_dtyp
 
 
 @pytest.mark.parametrize(
+    "dtype", ["datetime64[ns]", "datetime64[ns, UTC]", "period[D]", "timedelta64[ns]"]
+)
+@pytest.mark.parametrize("ncols", [1, 2, 4])
+def test_where_listlike_other_datetimelike(dtype, ncols):
+    # GH#70533 a list other was not lined up with the rows; ncols=4 is square
+    if dtype == "timedelta64[ns]":
+        values = pd.array(pd.timedelta_range("1 day", periods=4), dtype=dtype)
+    else:
+        values = pd.array(pd.date_range("2016-01-01", periods=4), dtype=dtype)
+    other = list(values[[3, 2, 1, 0]])
+    df = pd.DataFrame(dict.fromkeys(range(ncols), values))
+    cond = pd.DataFrame(
+        {col: [(row + col) % 2 == 0 for row in range(4)] for col in range(ncols)}
+    )
+    expected = pd.DataFrame(
+        {
+            col: [values[row] if cond[col][row] else other[row] for row in range(4)]
+            for col in range(ncols)
+        }
+    ).astype(dtype)
+
+    result = df.where(cond, other)
+    tm.assert_frame_equal(result, expected)
+
+    df[~cond] = other
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+def test_where_listlike_other_datetimelike_one_per_column(dtype):
+    # GH#70533 a list with one value per column broadcasts like it does for int64
+    if dtype == "timedelta64[ns]":
+        values = pd.array(pd.timedelta_range("1 day", periods=3), dtype=dtype)
+    else:
+        values = pd.array(pd.date_range("2016-01-01", periods=3), dtype=dtype)
+    df = pd.DataFrame({"a": values, "b": values})
+    cond = pd.DataFrame({"a": [True, False, False], "b": [True, False, False]})
+
+    result = df.where(cond, [values[1], values[2]])
+    expected = pd.DataFrame({"a": values[[0, 1, 1]], "b": values[[0, 2, 2]]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, other",
+    [
+        (pd.date_range("2016-01-01", periods=3), ["2020-01-01", "2020-01-02"]),
+        (pd.period_range("2016-01-01", periods=3, freq="D"), ["2020-01-01"] * 2),
+        (pd.timedelta_range("1 day", periods=3), ["2D", "3D"]),
+    ],
+)
+@pytest.mark.parametrize("inplace", [True, False])
+def test_mask_listlike_other_datetimelike_strings(values, other, inplace):
+    # GH#70533 strings in a list other are parsed to the column's dtype
+    df = pd.DataFrame({"a": values})
+    cond = pd.DataFrame({"a": [False, True, True]})
+    expected = pd.DataFrame(
+        {"a": values[:1].append(pd.Index(other, dtype=values.dtype))}
+    )
+    other = ["NaT", *other]
+
+    result = df.mask(cond, other, inplace=inplace)
+    if inplace:
+        result = df
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, other",
+    [
+        (pd.date_range("2016-01-01", periods=3), "2020-01-01"),
+        (pd.period_range("2016-01-01", periods=3, freq="D"), "2020-01-01"),
+        (pd.timedelta_range("1 day", periods=3), "2D"),
+    ],
+)
+def test_where_2d_ndarray_other_datetimelike_strings(values, other):
+    # GH#70533 strings in a 2D ndarray other are parsed rather than upcasting
+    df = pd.DataFrame({"a": values, "b": values})
+    cond = pd.DataFrame({"a": [True, False, False], "b": [True, False, True]})
+    expected = df.where(cond, pd.Index([other], dtype=values.dtype)[0])
+
+    result = df.where(cond, np.array([[other] * 2] * 3, dtype=object))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "values",
     [
         pd.date_range("2016-01-01", periods=4),
@@ -1268,4 +1354,103 @@ def test_where_mask_nullable_bool_cond_na_frame(method, inplace, cond_dtype):
     result = getattr(df, method)(cond, -9, inplace=inplace)
     if inplace:
         result = df
+    tm.assert_frame_equal(result, expected)
+
+
+def _where_test_array(values, dtype):
+    if dtype == "string[pyarrow]":
+        values = [None if v is None else str(v) for v in values]
+    elif dtype == "boolean":
+        values = [None if v is None else v > 5 for v in values]
+    elif dtype == "category":
+        dtype = pd.CategoricalDtype([1, 2, 3, 10, 30])
+    elif dtype == "interval":
+        values = [None if v is None else pd.Interval(v, v + 1) for v in values]
+        dtype = None
+    return pd.array(values, dtype=dtype)
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+@pytest.mark.parametrize("method", ["where", "mask"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        "Int64",
+        "boolean",
+        "category",
+        "interval",
+    ],
+)
+def test_where_mask_frame_other_same_ea_dtype_matches_series(method, inplace, dtype):
+    # result matches Series.where/mask column by column
+    df = pd.DataFrame(
+        {
+            "a": _where_test_array([1, 2, None, 3], dtype),
+            "b": np.arange(4),
+            "c": _where_test_array([3, None, 2, 1], dtype),
+        }
+    )
+    other = pd.DataFrame(
+        {
+            "a": _where_test_array([10, None, 30, 10], dtype),
+            "b": np.arange(4) * 10,
+            "c": _where_test_array([None, 30, 10, 30], dtype),
+        }
+    )
+    cond = pd.DataFrame(
+        {
+            "a": pd.array([True, False, True, None], dtype="boolean"),
+            "b": [True, False, True, False],
+            "c": [False, True, False, True],
+        }
+    )
+
+    expected = pd.DataFrame(
+        {col: getattr(df[col], method)(cond[col], other[col]) for col in df.columns}
+    )
+    result = df.copy()
+    res = getattr(result, method)(cond, other, inplace=inplace)
+    if not inplace:
+        result = res
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "other_categories", [["z", "y", "x"], ["x", "y"]], ids=["reordered", "subset"]
+)
+@pytest.mark.parametrize("op", ["where", "mask", "where_inplace", "setitem"])
+def test_where_mask_frame_other_categorical_other_categories(op, other_categories):
+    # other's values are all categories of self
+    dtype = pd.CategoricalDtype(["x", "y", "z"])
+    df = pd.DataFrame({"a": pd.Categorical(["x", "y", "x"], dtype=dtype)})
+    other = pd.DataFrame(
+        {"a": pd.Categorical(["y", "x", "y"], categories=other_categories)}
+    )
+    cond = pd.DataFrame({"a": [True, False, True]})
+
+    if op == "where":
+        result = df.where(cond, other)
+    elif op == "mask":
+        result = df.mask(~cond, other)
+    elif op == "where_inplace":
+        result = df.copy()
+        result.where(cond, other, inplace=True)
+    else:
+        result = df.copy()
+        result[~cond] = other
+
+    expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fillna_frame_other_categorical_other_categories():
+    dtype = pd.CategoricalDtype(["x", "y", "z"])
+    df = pd.DataFrame({"a": pd.Categorical(["x", None, "x"], dtype=dtype)})
+    other = pd.DataFrame({"a": pd.Categorical(["y", "x", "y"], categories=["x", "y"])})
+
+    result = df.fillna(other)
+
+    expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
     tm.assert_frame_equal(result, expected)
