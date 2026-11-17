@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -656,13 +657,13 @@ class NumpyExtensionArray(
         return type(self)(~self._ndarray)
 
     def __neg__(self) -> NumpyExtensionArray:
-        return type(self)(-self._ndarray)
+        return type(self)(ops.unary_op(self._ndarray, operator.neg))
 
     def __pos__(self) -> NumpyExtensionArray:
-        return type(self)(+self._ndarray)
+        return type(self)(ops.unary_op(self._ndarray, operator.pos))
 
     def __abs__(self) -> NumpyExtensionArray:
-        return type(self)(abs(self._ndarray))
+        return type(self)(ops.unary_op(self._ndarray, operator.abs))
 
     def _cmp_method(self, other, op):
         if isinstance(other, NumpyExtensionArray):

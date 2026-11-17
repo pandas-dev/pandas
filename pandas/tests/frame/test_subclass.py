@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -91,6 +93,20 @@ class TestDataFrameSubclassing:
         tm.assert_frame_equal(df, unpickled)
         assert df._metadata == unpickled._metadata
         assert df.testattr == unpickled.testattr
+
+    def test_dataframe_metadata_arithmetic(self, all_arithmetic_operators):
+        # GH#34177
+        df = tm.SubclassedDataFrame({"X": [1, 2, 3], "Y": [4, 5, 6]})
+        df.testattr = "XXX"
+        op = getattr(tm.SubclassedDataFrame, all_arithmetic_operators)
+
+        result = op(df, 2)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        assert result.testattr == "XXX"
+
+        result = op(df, df)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        assert result.testattr == "XXX"
 
     def test_indexing_sliced(self):
         # GH 11559
@@ -197,9 +213,10 @@ class TestDataFrameSubclassing:
     def test_subclass_iterrows(self):
         # GH 13977
         df = tm.SubclassedDataFrame({"a": [1]})
-        for i, row in df.iterrows():
-            assert isinstance(row, tm.SubclassedSeries)
-            tm.assert_series_equal(row, df.loc[i])
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for i, row in df.iterrows():
+                assert isinstance(row, tm.SubclassedSeries)
+                tm.assert_series_equal(row, df.loc[i])
 
     def test_subclass_stack(self):
         # GH 15564

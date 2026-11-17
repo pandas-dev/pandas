@@ -536,3 +536,26 @@ def test_mask_nullable_na_cond_from_self(dtype):
     result = ser.mask(ser <= 2, -99)
     expected = pd.Series([-99, -99, None, 4], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", [*tm.ALL_INT_EA_DTYPES, *tm.FLOAT_EA_DTYPES, "boolean"]
+)
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_masked_other_same_dtype(method, dtype):
+    # NA in the values and in other is kept where it is picked
+    def make(values):
+        if dtype == "boolean":
+            values = [None if val is None else val > 10 for val in values]
+        return pd.Series(values, dtype=dtype)
+
+    ser = make([1, None, 3, None])
+    other = make([None, 20, 30, None])
+    cond = np.array([True, False, False, True])
+
+    result = getattr(ser, method)(cond, other)
+    if method == "where":
+        expected = make([1, 20, 30, None])
+    else:
+        expected = make([None, None, 3, None])
+    tm.assert_series_equal(result, expected)

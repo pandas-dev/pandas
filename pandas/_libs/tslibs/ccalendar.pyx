@@ -151,6 +151,34 @@ cdef bint is_leapyear(int64_t year) noexcept nogil:
             ((year % 100) != 0 or (year % 400) == 0))
 
 
+@cython.cdivision(True)
+cdef int64_t pydatetime_equivalent_year(int64_t year) noexcept nogil:
+    """
+    Return a year with the same calendar as ``year`` that the stdlib datetime
+    can hold: ``year`` itself if it is between 2 and 9998.
+
+    The Gregorian calendar repeats every 400 years (146097 days, a whole number
+    of weeks), so moving by whole cycles keeps leap years and weekdays, and a
+    time zone rule gives a wall time the same UTC offset in both years. Years 1
+    and 9999 are moved too, because converting from UTC there can cross out of
+    datetime's range.
+
+    Parameters
+    ----------
+    year : int64_t
+
+    Returns
+    -------
+    int64_t
+    """
+    # NB: both numerators are positive, so cdivision is floor division here
+    if year > 9998:
+        return year - 400 * ((year - 9599) // 400)
+    if year < 2:
+        return year + 400 * ((401 - year) // 400)
+    return year
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_week_of_year(int64_t year, int month, int day) noexcept nogil:
