@@ -215,11 +215,15 @@ def merge(
     left_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the left DataFrame. Can also
         be an array or list of arrays of the length of the left DataFrame.
-        These arrays are treated as if they are columns.
+        These arrays, including :class:`Series` and :class:`Index` objects, are
+        used as join key values, not column names. To use an :class:`Index` of
+        column names, convert it to a list first.
     right_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the right DataFrame. Can also
         be an array or list of arrays of the length of the right DataFrame.
-        These arrays are treated as if they are columns.
+        These arrays, including :class:`Series` and :class:`Index` objects, are
+        used as join key values, not column names. To use an :class:`Index` of
+        column names, convert it to a list first.
     left_index : bool, default False
         Use the index from the left DataFrame as the join key(s). If it is a
         MultiIndex, the number of keys in the other DataFrame (either the index
@@ -697,12 +701,14 @@ def merge_asof(
         or ``left_on`` / ``right_on`` must be given.
     left_on : label or array-like
         Field name to join on in left DataFrame. Can also be an array of the
-        length of the left DataFrame, which is treated as if it were a column.
+        length of the left DataFrame, whose elements are used as join key values,
+        not column names.
         If specified, sort the left DataFrame by this key in ascending order
         before merging.
     right_on : label or array-like
         Field name to join on in right DataFrame. Can also be an array of the
-        length of the right DataFrame, which is treated as if it were a column.
+        length of the right DataFrame, whose elements are used as join key values,
+        not column names.
         If specified, sort the right DataFrame by this key in ascending order
         before merging.
     left_index : bool
@@ -1007,6 +1013,18 @@ class _MergeOperation:
             raise MergeError(msg)
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
+
+        # Subclasses may add keys, such as merge_asof's 'by' columns.
+        for side, keys, obj in (
+            ("left", self.left_on, self.left),
+            ("right", self.right_on, self.right),
+        ):
+            for key in keys:
+                if isinstance(key, _known) and len(key) != len(obj):
+                    raise ValueError(
+                        "Array-like join key must have the same length as the "
+                        f"{side} DataFrame ({len(obj)}), got {len(key)}"
+                    )
 
         (
             self.left_join_keys,
@@ -1592,9 +1610,6 @@ class _MergeOperation:
 
         left, right = self.left, self.right
 
-        is_lkey = lambda x: isinstance(x, _known) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(x, _known) and len(x) == len(right)
-
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
         # regular pd.merge(), users cannot specify both 'left_index' and
@@ -1610,29 +1625,22 @@ class _MergeOperation:
             for lk, rk in zip(self.left_on, self.right_on, strict=True):
                 lk = extract_array(lk, extract_numpy=True)
                 rk = extract_array(rk, extract_numpy=True)
-                if is_lkey(lk):
+                if isinstance(lk, _known):
                     lk = cast("ArrayLike", lk)
                     left_keys.append(lk)
-                    if is_rkey(rk):
+                    if isinstance(rk, _known):
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
+                    elif rk is not None:
+                        right_keys.append(right._get_label_or_level_values(rk))
+                        join_names.append(rk)
                     else:
-                        # Then we're either Hashable or a wrong-length arraylike,
-                        #  the latter of which will raise
-                        rk = cast("Hashable", rk)
-                        if rk is not None:
-                            right_keys.append(right._get_label_or_level_values(rk))
-                            join_names.append(rk)
-                        else:
-                            # work-around for merge_asof(right_index=True)
-                            right_keys.append(right.index._values)
-                            join_names.append(right.index.name)
+                        # work-around for merge_asof(right_index=True)
+                        right_keys.append(right.index._values)
+                        join_names.append(right.index.name)
                 else:
-                    if not is_rkey(rk):
-                        # Then we're either Hashable or a wrong-length arraylike,
-                        #  the latter of which will raise
-                        rk = cast("Hashable", rk)
+                    if not isinstance(rk, _known):
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                         else:
@@ -1644,9 +1652,6 @@ class _MergeOperation:
                         rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                     if lk is not None:
-                        # Then we're either Hashable or a wrong-length arraylike,
-                        #  the latter of which will raise
-                        lk = cast("Hashable", lk)
                         left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
@@ -1655,14 +1660,11 @@ class _MergeOperation:
                         join_names.append(left.index.name)
         elif _any(self.left_on):
             for k in self.left_on:
-                if is_lkey(k):
+                if isinstance(k, _known):
                     k = extract_array(k, extract_numpy=True)
-                    k = cast("ArrayLike", k)
                     left_keys.append(k)
                     join_names.append(None)
                 else:
-                    # Then we're either Hashable or a wrong-length arraylike,
-                    #  the latter of which will raise
                     k = cast("Hashable", k)
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
@@ -1676,14 +1678,11 @@ class _MergeOperation:
         elif _any(self.right_on):
             for k in self.right_on:
                 k = extract_array(k, extract_numpy=True)
-                if is_rkey(k):
+                if isinstance(k, _known):
                     k = cast("ArrayLike", k)
                     right_keys.append(k)
                     join_names.append(None)
                 else:
-                    # Then we're either Hashable or a wrong-length arraylike,
-                    #  the latter of which will raise
-                    k = cast("Hashable", k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):

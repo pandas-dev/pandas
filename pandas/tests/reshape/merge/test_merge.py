@@ -347,6 +347,52 @@ class TestMerge:
         merged = merge(left, right, left_index=True, right_on=key, how="outer")
         tm.assert_series_equal(merged["key_0"], pd.Series(key, name="key_0"))
 
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize(
+        "key_type, key_length, other_key",
+        [
+            (pd.Index, 2, "column"),
+            (np.array, 0, "array"),
+            (pd.Series, 4, "index"),
+            (pd.array, 2, "mixed"),
+        ],
+    )
+    def test_merge_array_key_wrong_length(self, side, key_type, key_length, other_key):
+        # GH#58279
+        frame = pd.DataFrame({"key": [1, 2, 3], "value": [4, 5, 6]})
+        other = pd.DataFrame({"key": [1, 2], "other": [7, 8]})
+        key = key_type(range(key_length))
+        other_side = "right" if side == "left" else "left"
+        kwargs = {f"{side}_on": key}
+        if other_key == "index":
+            kwargs[f"{other_side}_index"] = True
+        elif other_key == "mixed":
+            kwargs[f"{side}_on"] = ["key", key]
+            kwargs[f"{other_side}_on"] = ["key", "other"]
+        else:
+            kwargs[f"{other_side}_on"] = (
+                other["key"].to_numpy() if other_key == "array" else "key"
+            )
+        left, right = (frame, other) if side == "left" else (other, frame)
+        msg = (
+            "Array-like join key must have the same length as the "
+            f"{side} DataFrame (3), got {key_length}"
+        )
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            merge(left, right, **kwargs)
+
+    @pytest.mark.parametrize("side", ["left", "right"])
+    def test_merge_on_array_key_wrong_length(self, side):
+        # GH#58279
+        left = pd.DataFrame({"a": range(3 if side == "left" else 2)})
+        right = pd.DataFrame({"b": range(3 if side == "right" else 2)})
+        msg = (
+            "Array-like join key must have the same length as the "
+            f"{side} DataFrame (3), got 2"
+        )
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            merge(left, right, on=pd.Index([1, 2]))
+
     def test_no_overlap_more_informative_error(self):
         dt = datetime(2011, 1, 1)
         df1 = pd.DataFrame({"x": ["a"]}, index=[dt])

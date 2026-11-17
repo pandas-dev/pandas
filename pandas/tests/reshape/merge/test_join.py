@@ -151,6 +151,17 @@ class TestJoin:
         with pytest.raises(ValueError, match=msg):
             target.join(source, on="A")
 
+    def test_join_on_array_key_wrong_length(self):
+        # GH#58279
+        left = pd.DataFrame({"a": [1, 2, 3]})
+        right = pd.DataFrame({"b": [10, 20]}, index=[1, 2])
+        msg = (
+            "Array-like join key must have the same length as the "
+            r"left DataFrame \(3\), got 2"
+        )
+        with pytest.raises(ValueError, match=msg):
+            left.join(right, on=np.array([1, 2]))
+
     def test_join_on_fails_with_different_right_index(self):
         df = pd.DataFrame(
             {
