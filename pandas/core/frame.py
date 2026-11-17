@@ -9806,8 +9806,8 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         This function cannot be used with all column types. For example, when
-        specifying columns with `object` or `category` dtypes, ``TypeError`` is
-        raised.
+        specifying columns with complex or unordered `category` dtypes,
+        ``TypeError`` is raised.
 
         Examples
         --------
