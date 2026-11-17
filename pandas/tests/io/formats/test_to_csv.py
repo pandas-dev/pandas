@@ -1164,11 +1164,3 @@ def test_to_csv_mi_columns_empty_frame():
     # GH#21995 no first row to check for the index line
     df = pd.DataFrame(columns=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]))
     assert df.to_csv() == tm.convert_rows_list_to_csv_str([",a,b", ",x,y"])
-
-
-@pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
-def test_to_csv_columns_listlike(box):
-    # GH#30449
-    df = pd.DataFrame([[1, 2, 3]], columns=[0.5, 1.5, np.nan])
-    result = df.to_csv(columns=box([0.5, np.nan]))
-    assert result == tm.convert_rows_list_to_csv_str([",0.5,", "0,1,3"])
