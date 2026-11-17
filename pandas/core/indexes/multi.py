@@ -2222,7 +2222,9 @@ class MultiIndex(Index):
         >>> mi.to_list()
         [('a', 'apple'), ('a', 'banana'), ('b', 'apple'), ('b', 'banana')]
         """
-        return self.tolist()
+        return super().to_list()
+
+    tolist = to_list
 
     def to_frame(
         self,
