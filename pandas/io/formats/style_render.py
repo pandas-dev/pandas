@@ -1019,15 +1019,24 @@ class StylerRenderer:
             visible_index_levels: list[int] = [
                 i for i in range(index_levels) if not self.hide_index_[i]
             ]
+            index_hidden = not visible_index_levels
+            if index_hidden and data_len:
+                # GH#59877 the hidden index still groups the rows, so rule the data
+                cline_levels = list(range(index_levels))
+            else:
+                cline_levels = visible_index_levels
+            end = len(visible_index_levels) + data_len
             for rn, r in enumerate(visible_row_indexes):
-                for lvln, lvl in enumerate(visible_index_levels):
+                for lvln, lvl in enumerate(cline_levels):
                     if lvl == index_levels - 1 and "skip-last" in clines:
                         continue
                     idx_len = d["index_lengths"].get((lvl, r), None)
                     if idx_len is not None:  # i.e. not a sparsified entry
-                        d["clines"][rn + idx_len].append(
-                            f"\\cline{{{lvln + 1}-{len(visible_index_levels) + data_len}}}"  # noqa: E501
-                        )
+                        start = 1 if index_hidden else lvln + 1
+                        cline = f"\\cline{{{start}-{end}}}"
+                        # with the index hidden, all levels give the same cline
+                        if cline not in d["clines"][rn + idx_len]:
+                            d["clines"][rn + idx_len].append(cline)
 
     def format(
         self,

@@ -839,6 +839,12 @@ class Styler(StylerRenderer):
             - `"skip-last;index"`: as above with lines extending only the width of the
               index entries.
 
+            If the whole index is hidden, the `"data"` options still add clines
+            between its groups, spanning the data columns.
+
+            .. versionchanged:: 3.2.0
+                Clines are added when the whole index is hidden.
+
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
