@@ -20,10 +20,6 @@ from pandas.io.sql.base import (
     PandasSQL,
     SQLTable,
 )
-from pandas.io.sql.dbapi2 import (
-    DBAPI2Database,
-    DBAPI2Table,
-)
 from pandas.io.sql.sqla import (
     BaseEngine,
     SQLAlchemyEngine,
@@ -38,8 +34,6 @@ from pandas.io.sql.sqlite import (
 __all__ = [
     "ADBCDatabase",
     "BaseEngine",
-    "DBAPI2Database",
-    "DBAPI2Table",
     "DatabaseError",
     "PandasSQL",
     "SQLAlchemyEngine",
