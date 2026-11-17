@@ -28,6 +28,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -166,7 +167,9 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             mask = mask.copy()
         return values, mask
 
-    original = values
+    # Unwrap Series/Index so the lossless-cast check below indexes by
+    #  position, not by label
+    original = extract_array(values, extract_numpy=True)
     if not copy:
         values = np.asarray(values)
     else:

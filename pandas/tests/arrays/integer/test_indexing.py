@@ -1,3 +1,5 @@
+import numpy as np
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -16,4 +18,24 @@ def test_array_setitem():
     arr[arr > 1] = 1
 
     expected = pd.array([1, 1], dtype="Int64")
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_setitem_series_non_default_index(any_int_ea_dtype):
+    # GH#72193 the lossless-cast check looked values up by label, not position
+    arr = pd.array([1, 2], dtype=any_int_ea_dtype)
+    arr[:] = pd.Series([3.0, np.nan], index=[5, 6])
+
+    expected = pd.array([3, None], dtype=any_int_ea_dtype)
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_setitem_series_keeps_precision():
+    # GH#72193 looking up by label compared 2**53 + 1 with another element that
+    #  equals it as a float, so the lost precision went undetected
+    big = 2**53 + 1
+    arr = pd.array([0, 0, 0], dtype="Int64")
+    arr[:] = pd.Series(pd.array([big, 2**53, None], dtype="Int64"), index=[1, 0, 2])
+
+    expected = pd.array([big, 2**53, None], dtype="Int64")
     tm.assert_extension_array_equal(arr, expected)
