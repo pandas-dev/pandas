@@ -2103,3 +2103,14 @@ def test_setitem_enlarge_int_ea_above_2_53(dtype):
 
     expected = pd.Series([1, 2, 1700000000000000000], dtype=dtype)
     tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
+def test_setitem_masked_int_series_value_keeps_precision(indexer):
+    # GH#72193 a nullable integer value with missing values went through float64,
+    #  rounding 2**53 + 1 next to a larger value
+    big = 2**53 + 1
+    ser = pd.Series([0, 0, 0], dtype="Int64")
+    indexer(ser)[:] = pd.Series([big, 2**60, None], dtype="Int64")
+    expected = pd.Series([big, 2**60, None], dtype="Int64")
+    tm.assert_series_equal(ser, expected)

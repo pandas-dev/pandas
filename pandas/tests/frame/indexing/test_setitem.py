@@ -853,6 +853,29 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_frame_value_masked_int_keeps_precision(self):
+        # GH#72193 integers above 2**53 in a frame value were rounded through float
+        big = 2**53 + 1
+        df = pd.DataFrame({"x": [0, 0, 0, 0], "y": [0, 0, 0, 0]}, dtype="Int64")
+        value = pd.DataFrame(
+            {"x": [big, 2**53, 2**60, None], "y": [big, 2**53, 2**60, None]},
+            index=[1, 0, 3, 2],
+            dtype="Int64",
+        )
+        df.loc[[1, 0, 3, 2]] = value
+        expected = pd.DataFrame(
+            {"x": [2**53, big, None, 2**60], "y": [2**53, big, None, 2**60]},
+            dtype="Int64",
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_frame_value_masked_int_out_of_bounds_raises(self):
+        # GH#72193 converting through float clipped 2**63 to 2**63 - 1
+        df = pd.DataFrame({"x": [0, 0], "y": [0, 0]}, dtype="Int64")
+        value = pd.DataFrame({"x": [2**63, None], "y": [2**63, None]}, dtype="UInt64")
+        with pytest.raises(TypeError, match="Invalid value"):
+            df.loc[:] = value
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -1158,22 +1181,6 @@ class TestDataFrameSetItemBooleanMask:
         getattr(df, indexer)[mask] = getattr(value, indexer)[mask]
         expected = pd.DataFrame(
             {"x": [1, 6, 3, None], "y": [1, 6, 3, None]}, dtype=dtype
-        )
-        tm.assert_frame_equal(df, expected)
-
-    def test_loc_setitem_frame_value_masked_int_keeps_precision(self):
-        # GH#72193 the lossless-cast check compared 2**53 + 1 with the element at
-        #  the same label instead of position, which equals it as a float
-        big = 2**53 + 1
-        df = pd.DataFrame({"x": [0, 0, 0], "y": [0, 0, 0]}, dtype="Int64")
-        value = pd.DataFrame(
-            {"x": [big, 2**53, None], "y": [big, 2**53, None]},
-            index=[1, 0, 2],
-            dtype="Int64",
-        )
-        df.loc[[1, 0, 2]] = value
-        expected = pd.DataFrame(
-            {"x": [2**53, big, None], "y": [2**53, big, None]}, dtype="Int64"
         )
         tm.assert_frame_equal(df, expected)
 
