@@ -196,6 +196,14 @@ class TestSeriesNLargestNSmallest:
         tm.assert_series_equal(ser.nlargest(1, keep="last"), ser.iloc[[4]])
         tm.assert_series_equal(ser.nlargest(1, keep="all"), ser.iloc[[2, 4]])
 
+    def test_nlargest_categorical_uses_category_order(self):
+        # GH#61166
+        ser = pd.Series(
+            pd.Categorical(list("abca"), categories=list("cba"), ordered=True)
+        )
+        tm.assert_series_equal(ser.nlargest(1), ser.iloc[[0]])
+        tm.assert_series_equal(ser.nsmallest(1), ser.iloc[[2]])
+
     def test_nlargest_mixed_object_raises(self, nselect_method):
         # incomparable values raise like in sort_values
         ser = pd.Series([3.0, 2, 1, 2, "5"], dtype=object)
