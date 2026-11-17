@@ -1021,7 +1021,7 @@ class StylerRenderer:
             ]
             index_hidden = not visible_index_levels
             if index_hidden and data_len:
-                # GH#59877 the hidden index still groups the rows, so rule the data
+                # GH#59877 hidden index still groups rows; draw clines across the data
                 cline_levels = list(range(index_levels))
             else:
                 cline_levels = visible_index_levels
