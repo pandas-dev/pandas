@@ -1892,6 +1892,9 @@ def test_setitem_series_value_empty_no_warning():
             "a",
             pd.MultiIndex.from_product([["a"], [2, 1]]),
         ),
+        (pd.MultiIndex.from_product([["a", "b"], [1, 2]]), "a", pd.Index([2, 1])),
+        # .loc raises on these duplicate rows instead of aligning
+        (pd.MultiIndex.from_tuples([("a", 1), ("a", 1), ("b", 2)]), "a", [1, 1]),
         (
             pd.date_range("2020-01-30", periods=4),
             "2020-01",

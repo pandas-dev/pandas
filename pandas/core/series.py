@@ -1334,7 +1334,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if len(value) != len(target) or len(target) == 0:
             return
         ndropped = target.nlevels - value.index.nlevels
-        if 0 < ndropped <= count_leading_scalars(key):
+        if (
+            0 < ndropped <= count_leading_scalars(key)
+            and target.is_unique
+            and value.index.is_unique
+        ):
             # .loc aligns ser[partial_key] on the levels it keeps, see GH#43719
             target = target._drop_level_numbers(list(range(ndropped))[::-1])
         if value.index.equals(target):
