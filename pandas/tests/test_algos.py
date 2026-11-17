@@ -49,13 +49,13 @@ class TestFactorize:
         obj = index_or_series_obj_orderable
         result_codes, result_uniques = obj.factorize(sort=sort)
 
-        constructor = pd.Index
-        if isinstance(obj, pd.MultiIndex):
-            constructor = pd.MultiIndex.from_tuples
         expected_arr = obj.unique()
         if expected_arr.dtype == np.float16:
             expected_arr = expected_arr.astype(np.float32)
-        expected_uniques = constructor(expected_arr)
+        if isinstance(obj, pd.MultiIndex):
+            expected_uniques = expected_arr
+        else:
+            expected_uniques = pd.Index(expected_arr)
         if (
             isinstance(obj, pd.Index)
             and expected_uniques.dtype == bool
