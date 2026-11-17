@@ -331,7 +331,7 @@ class SQLiteDatabase(PandasSQL):
         coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> Generator[DataFrame]:
         """Return generator through chunked result set"""
         has_read_data = False
@@ -370,7 +370,7 @@ class SQLiteDatabase(PandasSQL):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         cursor = self.execute(sql, params)
         columns = [col_desc[0] for col_desc in cursor.description]

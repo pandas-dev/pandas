@@ -162,9 +162,6 @@ def read_sql_table(
     """
 
     check_dtype_backend(dtype_backend)
-    if dtype_backend is lib.no_default:
-        dtype_backend = "numpy"  # type: ignore[assignment]
-    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
@@ -315,9 +312,6 @@ def read_sql_query(
     """
 
     check_dtype_backend(dtype_backend)
-    if dtype_backend is lib.no_default:
-        dtype_backend = "numpy"  # type: ignore[assignment]
-    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         return pandas_sql.read_query(
@@ -533,9 +527,6 @@ def read_sql(
     """
 
     check_dtype_backend(dtype_backend)
-    if dtype_backend is lib.no_default:
-        dtype_backend = "numpy"  # type: ignore[assignment]
-    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         if isinstance(pandas_sql, SQLiteDatabase):

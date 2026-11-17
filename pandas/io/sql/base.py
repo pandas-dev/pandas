@@ -170,7 +170,7 @@ def _convert_arrays_to_dataframe(
     data,
     columns,
     coerce_float: bool = True,
-    dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     if data and is_dict_like(data[0]) and not isinstance(data[0], (list, tuple)):
         # DBAPI cursors returning dict rows, e.g. pymysql's DictCursor. Use
@@ -214,7 +214,7 @@ def wrap_result(
     coerce_float: bool = True,
     parse_dates=None,
     dtype: DtypeArg | None = None,
-    dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
     frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
@@ -459,7 +459,7 @@ class SQLTable(PandasObject):
         columns,
         coerce_float: bool = True,
         parse_dates=None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> Generator[DataFrame]:
         """Return generator through chunked result set."""
         has_read_data = False
@@ -494,7 +494,7 @@ class SQLTable(PandasObject):
         parse_dates=None,
         columns=None,
         chunksize: int | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         from sqlalchemy import select
 
@@ -614,7 +614,7 @@ class SQLTable(PandasObject):
     def _harmonize_columns(
         self,
         parse_dates=None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> None:
         """
         Make the DataFrame's column types align with the SQL table
@@ -656,7 +656,7 @@ class SQLTable(PandasObject):
                     # Convert tz-aware Datetime SQL columns to UTC
                     utc = col_type is DatetimeTZDtype
                     self.frame[col_name] = _handle_date_column(df_col, utc=utc)
-                elif dtype_backend == "numpy" and col_type is float:
+                elif dtype_backend is lib.no_default and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type)
                 elif (
@@ -665,7 +665,7 @@ class SQLTable(PandasObject):
                     and is_object_dtype(self.frame[col_name])
                 ):
                     self.frame[col_name] = df_col.astype(col_type)
-                elif dtype_backend == "numpy" and len(df_col) == df_col.count():
+                elif dtype_backend is lib.no_default and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
                         self.frame[col_name] = df_col.astype(col_type)
@@ -804,7 +804,7 @@ class PandasSQL(PandasObject, ABC):
         columns=None,
         schema: str | None = None,
         chunksize: int | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         raise NotImplementedError(
             "read_sql_table not supported for a DBAPI connection. Use "
@@ -821,7 +821,7 @@ class PandasSQL(PandasObject, ABC):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         pass
 

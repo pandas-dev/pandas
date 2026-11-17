@@ -1602,6 +1602,29 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Rendering Methods
 
+    cdef datetime _pydatetime_for_tzinfo(self):
+        """
+        The datetime to hand to tzinfo methods: this Timestamp, or, if it is
+        outside the range of the stdlib datetime, its wall time in a year with
+        the same calendar, which the time zone treats the same (GH#68009).
+
+        ZoneInfo reads the year of the stdlib base, which is then a placeholder,
+        and calls ``toordinal``, which raises for such a Timestamp.
+        """
+        if 1 <= self._year <= 9999:
+            return self
+        return datetime(
+            ccalendar.pydatetime_equivalent_year(self._year),
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
+            self.microsecond,
+            self.tzinfo,
+            fold=self.fold,
+        )
+
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
         Return the time formatted according to ISO 8601.
@@ -1644,8 +1667,10 @@ cdef class _Timestamp(ABCTimestamp):
         '2020-03-14T15:32:52.192548'
         """
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
-        base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
-        # We need to replace the fake year 1970 with our real year
+        base = datetime.isoformat(
+            self._pydatetime_for_tzinfo(), sep=sep, timespec=base_ts
+        )
+        # We need to replace a placeholder year with our real year
         year_str = f"{self._year:04d}"
         base = year_str + "-" + base.split("-", 1)[1]
 
@@ -1975,6 +2000,12 @@ cdef class _Timestamp(ABCTimestamp):
         Timestamp : Represents a specific timestamp.
         Period : Represents a span of time.
         to_period : Converts an object to a Period.
+
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, the
+        result is the 2-hour period starting at this timestamp's hour. For an
+        aligned 2-hour bin, use ``ts.floor("2h").to_period("2h")``.
 
         Examples
         --------
@@ -2608,7 +2639,7 @@ class Timestamp(_Timestamp):
         >>> ts.dst()
         datetime.timedelta(seconds=3600)
         """
-        return super().dst()
+        return datetime.dst((<_Timestamp>self)._pydatetime_for_tzinfo())
 
     def isocalendar(self):
         """
@@ -2663,7 +2694,7 @@ class Timestamp(_Timestamp):
         >>> ts.tzname()
         'CET'
         """
-        return super().tzname()
+        return datetime.tzname((<_Timestamp>self)._pydatetime_for_tzinfo())
 
     @property
     def tzinfo(self):
@@ -2721,7 +2752,7 @@ class Timestamp(_Timestamp):
         >>> ts.utcoffset()
         datetime.timedelta(seconds=3600)
         """
-        return super().utcoffset()
+        return datetime.utcoffset((<_Timestamp>self)._pydatetime_for_tzinfo())
 
     def utctimetuple(self):
         """

@@ -14,6 +14,7 @@ from collections import (
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
+import inspect
 import io
 import mmap
 import os
@@ -2577,6 +2578,10 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+# keywords read_fwf may forward via **kwds, see GH#34953
+_READ_CSV_KWARGS = frozenset(inspect.signature(read_csv).parameters)
+
+
 @overload
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
@@ -2673,7 +2678,7 @@ def read_fwf(
     chunksize : int, optional
         Number of lines to read from the file per chunk.
     **kwds : optional
-        Optional keyword arguments can be passed to ``TextFileReader``.
+        Additional keyword arguments accepted by :func:`read_csv`.
 
     Returns
     -------
@@ -2690,6 +2695,10 @@ def read_fwf(
     --------
     >>> pd.read_fwf("data.csv")  # doctest: +SKIP
     """
+    for key in kwds:
+        if key not in _READ_CSV_KWARGS:
+            raise TypeError(f"read_fwf() got an unexpected keyword argument '{key}'")
+
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")

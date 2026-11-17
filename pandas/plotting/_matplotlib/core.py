@@ -1780,12 +1780,13 @@ class LinePlot(MPLPlot):
         # cache the original timestamps so a replot at a finer freq places
         # them correctly (GH#11574)
         cached = data if timestamps is None else data.set_axis(timestamps)
-        # TODO #54485
-        ax._plot_data.append((cached, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(
             ax, data.index, np.asarray(data._values), style=style, **kwds
         )
+        # keep the artist so the entry can be dropped once it leaves the axes
+        # TODO #54485
+        ax._plot_data.append((cached, self._kind, kwds, lines[0]))  # type: ignore[attr-defined]
         # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 
@@ -1909,7 +1910,15 @@ class AreaPlot(LinePlot):
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
-        data = data.fillna(value=0)
+
+        def _fillna(col: Series) -> Series:
+            # GH#52246 plot timedeltas as integers, as matplotlib draws them,
+            #  so they can be filled, stacked and compared with zero
+            if lib.is_np_dtype(col.dtype, "m"):
+                return col.fillna(np.timedelta64(0, "ns")).astype(np.int64)
+            return col.fillna(0)
+
+        data = _fillna(data) if isinstance(data, ABCSeries) else data.apply(_fillna)
         LinePlot.__init__(self, data, **kwargs)
 
         if not self.stacked:

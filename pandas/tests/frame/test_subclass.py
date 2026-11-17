@@ -94,6 +94,20 @@ class TestDataFrameSubclassing:
         assert df._metadata == unpickled._metadata
         assert df.testattr == unpickled.testattr
 
+    def test_dataframe_metadata_arithmetic(self, all_arithmetic_operators):
+        # GH#34177
+        df = tm.SubclassedDataFrame({"X": [1, 2, 3], "Y": [4, 5, 6]})
+        df.testattr = "XXX"
+        op = getattr(tm.SubclassedDataFrame, all_arithmetic_operators)
+
+        result = op(df, 2)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        assert result.testattr == "XXX"
+
+        result = op(df, df)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        assert result.testattr == "XXX"
+
     def test_indexing_sliced(self):
         # GH 11559
         df = tm.SubclassedDataFrame(
