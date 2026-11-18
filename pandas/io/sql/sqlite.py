@@ -39,6 +39,7 @@ from pandas.core.api import (
 from pandas.io.sql.base import (
     PandasSQL,
     SQLTable,
+    begin_sqlite3_transaction,
     get_unicode_name,
     wrap_result,
 )
@@ -276,17 +277,27 @@ class SQLiteDatabase(PandasSQL):
 
     def __init__(self, con) -> None:
         self.con = con
+        self._transaction_depth = 0
 
     @contextmanager
     def run_transaction(self):
+        # only the outermost call commits or rolls back, so that to_sql's
+        # drop, create and insert form one transaction
+        outermost = self._transaction_depth == 0
+        if outermost:
+            begin_sqlite3_transaction(self.con)
+        self._transaction_depth += 1
         cur = self.con.cursor()
         try:
             yield cur
-            self.con.commit()
+            if outermost:
+                self.con.commit()
         except Exception:
-            self.con.rollback()
+            if outermost:
+                self.con.rollback()
             raise
         finally:
+            self._transaction_depth -= 1
             cur.close()
 
     def execute(self, sql: str | Select[Any] | TextClause, params=None):
@@ -490,8 +501,9 @@ class SQLiteDatabase(PandasSQL):
             index_label=index_label,
             dtype=dtype,
         )
-        table.create()
-        return table.insert(chunksize, method)
+        with self.run_transaction():
+            table.create()
+            return table.insert(chunksize, method)
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         wld = "?"
