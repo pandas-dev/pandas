@@ -425,6 +425,34 @@ def test_agg_empty_func_groupby(func):
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_list_numeric_only():
+    # GH#53839
+    index = date_range("2020-01-01", periods=4, freq="h")
+    df = pd.DataFrame({"a": [1, 2, 3, 4], "s": ["w", "x", "y", "z"]}, index=index)
+    result = df.resample("2h").agg(["sum", "mean"], numeric_only=True)
+    expected = pd.DataFrame(
+        [[3, 1.5], [7, 3.5]],
+        index=date_range("2020-01-01", periods=2, freq="2h"),
+        columns=pd.MultiIndex.from_product([["a"], ["sum", "mean"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"numeric_only": True}, {}])
+def test_agg_list_no_columns_to_aggregate(kwargs):
+    # GH#53839
+    index = date_range("2020-01-01", periods=4, freq="h")
+    df = pd.DataFrame({"s": ["w", "x", "y", "z"]}, index=index)
+    if not kwargs:
+        df = df[[]]
+    result = df.resample("2h").agg(["sum", "mean"], **kwargs)
+    expected = pd.DataFrame(
+        index=date_range("2020-01-01", periods=2, freq="2h"),
+        columns=pd.MultiIndex.from_arrays([[], []]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_dict_forwards_kwargs():
     # GH#23889
     df = pd.DataFrame(

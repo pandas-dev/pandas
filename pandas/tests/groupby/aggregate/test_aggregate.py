@@ -1122,6 +1122,52 @@ def test_groupby_aggregate_empty_func_as_index_false(func):
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_agg_list_numeric_only(as_index):
+    # GH#53839
+    df = pd.DataFrame(
+        {
+            "g": [1, 1, 2],
+            "a": [1, 2, 3],
+            "s": ["x", "y", "z"],
+            "b": [1.5, 2.5, 3.5],
+            "c": [True, False, True],
+            "d": pd.date_range("2020-01-01", periods=3),
+        }
+    )
+    result = df.groupby("g", as_index=as_index).agg(["min", "mean"], numeric_only=True)
+    expected = pd.DataFrame(
+        {
+            ("a", "min"): [1, 3],
+            ("a", "mean"): [1.5, 3.0],
+            ("b", "min"): [1.5, 3.5],
+            ("b", "mean"): [2.0, 3.5],
+            ("c", "min"): [False, True],
+            ("c", "mean"): [0.5, 1.0],
+        },
+        index=pd.Index([1, 2], name="g"),
+    )
+    if not as_index:
+        expected = expected.reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"numeric_only": True}, {}])
+def test_groupby_agg_list_no_columns_to_aggregate(as_index, kwargs):
+    # GH#53839
+    df = pd.DataFrame({"g": [1, 1, 2], "s": ["x", "y", "z"]})
+    df.columns.name = "foo"
+    if not kwargs:
+        df = df[["g"]]
+    result = df.groupby("g", as_index=as_index).agg(["min", "mean"], **kwargs)
+    expected = pd.DataFrame(
+        index=pd.Index([1, 2], name="g"),
+        columns=pd.MultiIndex.from_arrays([[], []], names=["foo", None]),
+    )
+    if not as_index:
+        expected = expected.reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_aggregate_empty_with_multiindex_frame_single(as_index):
     # GH 39178, 51445
     df = pd.DataFrame(columns=["a", "b", "c"])
