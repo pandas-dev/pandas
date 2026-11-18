@@ -29,7 +29,7 @@ from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
-from pandas.core.arrays.arrow._arrow_utils import _arrow_dtype_mapping
+from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
     from collections.abc import (

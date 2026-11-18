@@ -96,7 +96,7 @@ from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
-from pandas.core.arrays.arrow._arrow_utils import _arrow_dtype_mapping
+from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArrayNaResult,
