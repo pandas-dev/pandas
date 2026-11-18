@@ -126,6 +126,10 @@ If pandas has been installed :ref:`from source <install.source>`, running ``pyte
 The unit tests can also be run from the pandas module itself with the :func:`test` function. The packages required to run the tests
 can be installed with ``pip install "pandas[test]"``.
 
+The test data files are not installed by default, so tests that need them fail unless
+``--no-strict-data-files`` is passed to skip them. To install them, build pandas from source with
+``-Csetup-args=-Dinstall_test_data=true``.
+
 .. note::
 
     Test failures are not necessarily indicative of a broken pandas installation.
