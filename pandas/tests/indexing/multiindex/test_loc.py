@@ -1071,6 +1071,22 @@ def test_loc_np_datetime64_key_on_object_dt64_level():
     tm.assert_frame_equal(result, expected)
 
 
+def test_loc_partial_key_datetime64_on_date_level():
+    # GH#55969 np.datetime64 equals datetime.date but hashes differently, so
+    #  whether the level lookup misses depends on the hash seed; with 10 dates
+    #  some miss is near-certain
+    dates = pd.date_range("2023-11-01", periods=10).date
+    mi = pd.MultiIndex.from_product([dates, ["A", "B"], ["X"]])
+    ser = pd.Series(np.arange(len(mi), dtype=np.int64), index=mi)
+    for i, day in enumerate(dates):
+        key = np.datetime64(day, "D")
+        result = ser.loc[(key, "B")]
+        expected = pd.Series([2 * i + 1], index=pd.Index(["X"]))
+        tm.assert_series_equal(result, expected)
+        with pytest.raises(KeyError, match="C"):
+            ser.loc[(key, "C")]
+
+
 def test_loc_multiindex_with_overlapping_interval_single_match():
     # GH#27456 - tuple .loc on MultiIndex with overlapping IntervalIndex
     # level returned Series instead of scalar when only one interval matched
@@ -1150,3 +1166,47 @@ def test_loc_scalar_level_key_trailing_null_slices(pad):
 
     result = df["x"].loc[("a",) + (slice(None),) * pad]
     tm.assert_series_equal(result, expected["x"])
+
+
+@pytest.mark.parametrize(
+    "key, positions",
+    [
+        ([(1, "a")], [0, 1]),
+        ([(1,)], [0, 1, 2, 3]),
+        ([(2, "b"), (1, "a"), (2, "b")], [6, 7, 0, 1, 6, 7]),
+    ],
+)
+@pytest.mark.parametrize("box", [list, pd.MultiIndex.from_tuples])
+def test_loc_list_of_partial_tuples(key, positions, box):
+    # GH#16083
+    mi = pd.MultiIndex.from_product([[1, 2], ["a", "b"], ["i", "ii"]])
+    df = pd.DataFrame({"A": range(8), "B": range(8)}, index=mi)
+    expected = df.iloc[positions]
+
+    tm.assert_frame_equal(df.loc[box(key)], expected)
+    tm.assert_series_equal(df["A"].loc[box(key)], expected["A"])
+    tm.assert_frame_equal(df.T[box(key)], expected.T)
+
+    df.loc[box(key), "A"] = -1
+    assert (df["A"].iloc[positions] == -1).all()
+    assert df["A"].drop(df.index[positions]).ge(0).all()
+
+
+def test_loc_list_of_partial_tuples_unsorted_non_unique():
+    # GH#16083
+    mi = pd.MultiIndex.from_tuples(
+        [(2, "b", "i"), (1, "a", "ii"), (2, "a", "i"), (1, "a", "i"), (1, "a", "ii")]
+    )
+    df = pd.DataFrame({"A": range(5)}, index=mi)
+    result = df.loc[[(1, "a"), (2, "b")]]
+    tm.assert_frame_equal(result, df.iloc[[1, 3, 4, 0]])
+
+
+def test_loc_list_of_partial_tuples_missing_raises():
+    # GH#16083
+    mi = pd.MultiIndex.from_product([[1, 2], ["a", "b"], ["i", "ii"]])
+    df = pd.DataFrame({"A": range(8)}, index=mi)
+    with pytest.raises(KeyError, match=r"None of \[Index\(\[\(3, 'a'\)\]"):
+        df.loc[[(3, "a")]]
+    with pytest.raises(KeyError, match=r"\[\(3, 'a'\)\] not in index"):
+        df.loc[[(1, "a"), (3, "a")]]

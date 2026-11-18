@@ -796,7 +796,7 @@ def read_json(
     chunksize : int, optional
         Return JsonReader object for iteration.
         See the `line-delimited json docs
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
+        <https://pandas.pydata.org/docs/user_guide/io.html#line-delimited-json>`_
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
@@ -1550,7 +1550,8 @@ class Parser:
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
-                if all(notna(data)):
+                # fillna would discard the non-NaN part of a complex value
+                if data.dtype.kind == "c" or all(notna(data)):
                     return data, False
 
                 filled = data.fillna(np.nan)
@@ -1589,7 +1590,7 @@ class Parser:
             try:
                 data = data.astype("float64")
                 converted = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         if data.dtype.kind == "f" and data.dtype != "float64":

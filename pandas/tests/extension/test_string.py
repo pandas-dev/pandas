@@ -175,14 +175,6 @@ class TestStringArray(base.ExtensionTests):
         expected = data_missing[[1]]
         tm.assert_extension_array_equal(result, expected)
 
-    def test_fillna_no_op_returns_copy(self, data):
-        data = data[~data.isna()]
-
-        valid = data[0]
-        result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:

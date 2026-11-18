@@ -15,6 +15,7 @@ if TYPE_CHECKING:
         axis as maxis,
         lines as mlines,
     )
+
     from pandas.core.arrays import ExtensionArray
 
 import numpy as np

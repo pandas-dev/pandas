@@ -162,6 +162,26 @@ def test_shift_periods_freq():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("periods", [1, [1, 2]])
+def test_shift_freq_excludes_grouping_column(periods):
+    # GH#46944
+    df = pd.DataFrame(
+        {"a": [1, 1, 2, 2], "b": [1.0, 2.0, 4.0, 8.0]},
+        index=pd.date_range("2020-01-01", periods=4),
+    )
+    result = df.groupby("a").shift(periods, freq="D")
+    expected = df[["b"]].shift(periods, freq="D")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_shift_freq_no_group_keys_in_index(frame_or_series):
+    # GH#23918
+    obj = frame_or_series(range(4), index=pd.date_range("2018-01-01", periods=4))
+    result = obj.groupby([1, 1, 2, 2]).shift(freq="D")
+    expected = obj.shift(freq="D")
+    tm.assert_equal(result, expected)
+
+
 def test_shift_disallow_freq_and_fill_value():
     # GH 53832
     data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}

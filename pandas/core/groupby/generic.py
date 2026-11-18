@@ -42,10 +42,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    IntervalDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
@@ -95,10 +92,7 @@ if TYPE_CHECKING:
         TakeIndexer,
     )
 
-    from pandas import (
-        Categorical,
-        IntervalIndex,
-    )
+    from pandas import Categorical
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -802,10 +796,18 @@ class SeriesGroupBy(GroupBy[Series]):
         try:
             result = self._grouper._cython_operation(obj._values, how, 0, **kwargs)
         except NotImplementedError as err:
-            # e.g. test_groupby_raises_string
-            raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
+            # rank's kwargs (e.g. ties_method) don't map onto Series.rank
+            if how == "rank":
+                raise TypeError(
+                    f"{how} is not supported for {obj.dtype} dtype"
+                ) from err
+            # raises for numeric_only=True with a non-numeric dtype
+            self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
+            result = self._transform_py_fallback(how, obj._values, **kwargs)
 
-        return obj._constructor(result, index=self.obj.index, name=obj.name)
+        return obj._constructor(
+            result, index=self.obj.index, name=obj.name, dtype=result.dtype
+        )
 
     def _transform_general(
         self, func: Callable[..., Any], engine, engine_kwargs, *args, **kwargs
@@ -1167,25 +1169,13 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
-        # lab is a Categorical with categories an IntervalIndex
+        # lab holds the positions of each value's bin in lev, -1 for NA
         cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
         cat_obj = cast("Categorical", cat_ser._values)
         lev = cat_obj.categories
-        lab = lev.take(
-            cat_obj.codes,
-            allow_fill=True,
-            fill_value=lev._na_value,
-        )
-        llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
+        lab = cat_obj.codes
 
-        if isinstance(lab.dtype, IntervalDtype):
-            # TODO: should we do this inside II?
-            lab_interval = cast("IntervalIndex", lab)
-
-            sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
-        else:
-            sorter = np.lexsort((lab, ids))
-
+        sorter = np.lexsort((lab, ids))
         ids, lab = ids[sorter], lab[sorter]
 
         # group boundaries are where group ids change
@@ -1195,7 +1185,7 @@ class SeriesGroupBy(GroupBy[Series]):
             idx = idchanges
 
         # new values are where sorted labels change
-        lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
+        lchanges = lab[1:] != lab[:-1]
         inc = np.r_[True, lchanges]
         if not len(val):
             inc = lchanges
@@ -1216,7 +1206,7 @@ class SeriesGroupBy(GroupBy[Series]):
                     use_na_sentinel=self._grouper.dropna,
                 )[0]
             ]
-        codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
+        codes = [rep(level_codes) for level_codes in codes] + [lab[inc]]
         levels = [*self._grouper.levels, lev]
 
         if dropna:
@@ -1228,13 +1218,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if normalize:
             out = out.astype("float")
+            # NA values stay in the denominator to match Series.value_counts
             d = np.diff(np.r_[idx, len(ids)])
+            acc = rep(d)
             if dropna:
-                m = ids[isna(lab)]
-                np.add.at(d, m, -1)
-                acc = rep(d)[mask]
-            else:
-                acc = rep(d)
+                acc = acc[mask]
             out /= acc
 
         # for compat. with libgroupby.value_counts need to ensure every
@@ -2527,9 +2515,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             try:
                 return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
             except NotImplementedError as err:
-                raise TypeError(
-                    f"{how} is not supported for {bvalues.dtype} dtype"
-                ) from err
+                # rank's kwargs (e.g. ties_method) don't map onto Series.rank
+                if how == "rank":
+                    raise TypeError(
+                        f"{how} is not supported for {bvalues.dtype} dtype"
+                    ) from err
+                return self._transform_py_fallback(how, bvalues, **kwargs)
 
         res_mgr = mgr.apply(arr_func)
 
@@ -3155,10 +3146,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_agged_manager(self, mgr: BlockManager) -> DataFrame:
         return self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
 
-    def _apply_to_column_groupbys(self, func) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, numeric_only: bool = False) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         obj = self._obj_with_exclusions
+        if numeric_only:
+            obj = obj._get_numeric_data()
         columns = obj.columns
         sgbs = (
             SeriesGroupBy(
@@ -3898,6 +3891,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Uses the backend specified by the option ``plotting.backend``.
         By default, matplotlib is used.
+
+        .. versionchanged:: 3.2.0
+            Each group's plot is titled with its group key unless ``title``
+            or ``ax`` is passed.
 
         Returns
         -------

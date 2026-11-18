@@ -938,3 +938,41 @@ def test_quantile_empty_datetimelike(typ, unit):
     result = df.quantile()
     expected = pd.Series([pd.NaT], name=0.5, dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_quantile_dt64_endpoints_exact(interp_method):
+    # GH#49110
+    interpolation, method = interp_method
+    values = np.array([1567703790155681000, 1567703793155681000], dtype="i8")
+    df = pd.DataFrame({"a": values.view("M8[ns]"), "b": values.view("m8[ns]")})
+    result = df.quantile(
+        [0, 1], numeric_only=False, interpolation=interpolation, method=method
+    )
+    expected = pd.DataFrame(
+        {"a": values.view("M8[ns]"), "b": values.view("m8[ns]")}, index=[0.0, 1.0]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_quantile_dt64_exact_nat_per_column():
+    # GH#49110
+    nat = np.iinfo(np.int64).min
+    a = np.array([1567703790155681000, 1567703793155681000, nat], dtype="i8")
+    b = np.array([nat, nat, nat], dtype="i8")
+    c = np.array([5, 1567703793155681000, 7], dtype="i8")
+    df = pd.DataFrame(
+        {"a": a.view("M8[ns]"), "b": b.view("M8[ns]"), "c": c.view("m8[ns]")}
+    )
+    result = df.quantile([0, 0.5, 1], numeric_only=False)
+    expected = pd.DataFrame(
+        {
+            "a": np.array(
+                [1567703790155681000, 1567703791655681000, 1567703793155681000],
+                dtype="i8",
+            ).view("M8[ns]"),
+            "b": b.view("M8[ns]"),
+            "c": np.array([5, 7, 1567703793155681000], dtype="i8").view("m8[ns]"),
+        },
+        index=[0.0, 0.5, 1.0],
+    )
+    tm.assert_frame_equal(result, expected)

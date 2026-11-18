@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -648,6 +649,58 @@ def test_array_equivalent_nested_list(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
+def _nest_object(value):
+    arr = np.empty(1, dtype=object)
+    arr[0] = value
+    return arr
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+@pytest.mark.parametrize(
+    "left_inner, right_inner",
+    [
+        (_nest_object(np.nan), _nest_object(None)),
+        (_nest_object(None), _nest_object(np.nan)),
+        (_nest_object(_nest_object(np.nan)), _nest_object(_nest_object(None))),
+        # nested arrays of different dtypes
+        (_nest_object(None), np.array([np.nan])),
+    ],
+)
+def test_array_equivalent_nested_strict_nan(left_inner, right_inner, dtype_equal):
+    # GH#55492
+    left = _nest_object(left_inner)
+    right = _nest_object(right_inner)
+    assert array_equivalent(left, right, strict_nan=False, dtype_equal=dtype_equal)
+    assert not array_equivalent(left, right, strict_nan=True, dtype_equal=dtype_equal)
+
+
+def test_array_equivalent_nested_strict_nan_distinct_nans():
+    # GH#55492 distinct NaN objects, so equality can't come from identity
+    left = _nest_object(_nest_object(float("nan")))
+    right = _nest_object(_nest_object(float("nan")))
+    assert array_equivalent(left, right, strict_nan=True)
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+@pytest.mark.parametrize(
+    "value, dtype", [(np.float32("nan"), np.float64), (complex(np.nan, 0), complex)]
+)
+def test_array_equivalent_nested_strict_nan_mixed_dtype(value, dtype, dtype_equal):
+    # GH#55492 nested object array vs nested non-object array with the same NaN
+    left = _nest_object(_nest_object(value))
+    right = _nest_object(np.array([value], dtype=dtype))
+    assert array_equivalent(left, right, strict_nan=True, dtype_equal=dtype_equal)
+
+
+@pytest.mark.parametrize("strict_nan", [True, False])
+@pytest.mark.parametrize("value", [np.float32("nan"), complex(np.nan, 0)])
+def test_array_equivalent_object_fallback_float32_complex_nan(value, strict_nan):
+    # GH#55492 a Series element makes == raise, so the Python fallback compares
+    left = np.array([pd.Series([1, 2]), value], dtype=object)
+    right = np.array([pd.Series([1, 2]), value], dtype=object)
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+
+
 @pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.xfail(reason="failing")
 @pytest.mark.parametrize("strict_nan", [True, False])
@@ -918,6 +971,29 @@ class TestIsValidNAForDtype:
 
         dtype = IntervalDtype("datetime64[ns]", "both")
         assert not is_valid_na_for_dtype(pd.NaT, dtype)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            "Int64",
+            "boolean",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_is_valid_na_for_dtype_nan_distinguish_nan_and_na(self, dtype):
+        # GH#71870
+        dtype = pandas_dtype(dtype)
+        categorical = CategoricalDtype(pd.Index([1, 0], dtype=dtype))
+        with pd.option_context("future.distinguish_nan_and_na", False):
+            assert is_valid_na_for_dtype(np.nan, dtype)
+            assert is_valid_na_for_dtype(np.nan, categorical)
+
+        with pd.option_context("future.distinguish_nan_and_na", True):
+            assert not is_valid_na_for_dtype(np.nan, dtype)
+            assert is_valid_na_for_dtype(pd.NA, dtype)
+            assert is_valid_na_for_dtype(np.nan, categorical)
+            assert is_valid_na_for_dtype(np.nan, np.dtype("float64"))
 
     def test_is_valid_na_for_dtype_categorical(self):
         dtype = CategoricalDtype(categories=[0, 1, 2])

@@ -329,6 +329,16 @@ def test_value_counts_with_nan(dropna, index_or_series):
     tm.assert_series_equal(res, expected)
 
 
+def test_value_counts_object_strings_keep_pd_na(index_or_series):
+    # GH#42851
+    obj = index_or_series(["a", "a", "b", pd.NA], dtype=object)
+    result = obj.value_counts(dropna=False)
+    expected = pd.Series(
+        [2, 1, 1], index=pd.Index(["a", "b", pd.NA], dtype=object), name="count"
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_value_counts_object_inference_deprecated():
     # GH#56161
     dti = pd.date_range("2016-01-01", periods=3, tz="UTC")

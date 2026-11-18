@@ -49,6 +49,9 @@ extending,development/extending
 internals,development/internals
 development/meeting,community
 
+# api reference root (reference/api/ has no index page of its own)
+reference/api/index,../index
+
 # api moved function
 reference/api/pandas.io.json.json_normalize,pandas.json_normalize
 
