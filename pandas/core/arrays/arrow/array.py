@@ -331,6 +331,21 @@ def to_pyarrow_type(
     return None
 
 
+# pyarrow reads these as a sequence of characters or byte values when boxing
+#  into a nested type, e.g. b"z" -> [122] for list<int64>
+_STR_LIKE = (str, bytes)
+
+
+def _is_nested_storage(pa_type: pa.DataType) -> bool:
+    """
+    Whether this is a list, struct, map or union type, or an extension type
+    stored as one.
+    """
+    if isinstance(pa_type, pa.BaseExtensionType):
+        pa_type = pa_type.storage_type
+    return pa.types.is_nested(pa_type)
+
+
 def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     """
     Whether this is one of string, large_string, binary and large_binary.
@@ -900,6 +915,16 @@ class ArrowExtensionArray(
         elif isna(value) and not (lib.is_float(value) and not is_nan_na()):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
+            if (
+                pa_type is not None
+                and isinstance(value, _STR_LIKE)
+                and _is_nested_storage(pa_type)
+            ):
+                # ArrowTypeError so the callers that normalize it report this
+                #  like any other rejected value
+                raise pa.ArrowTypeError(
+                    f"Cannot store a {type(value).__name__} in {pa_type}"
+                )
             if (
                 pa_type is not None
                 and pa.types.is_timestamp(pa_type)
@@ -2115,6 +2140,10 @@ class ArrowExtensionArray(
         return super().fillna(value=value, limit=limit, copy=copy)
 
     def insert(self, loc: int, item) -> Self:
+        if isinstance(item, _STR_LIKE) and _is_nested_storage(self._pa_array.type):
+            # _from_sequence would store it as a sequence of characters or
+            #  byte values; raise like setitem so Index.insert upcasts
+            self._validate_setitem_value(item)
         if (
             lib.is_float(item)
             and np.isnan(item)

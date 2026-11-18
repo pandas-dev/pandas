@@ -2257,6 +2257,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         and cell character count does not exceed Excel's limitations.
         All other limitations must be checked by the user.
 
+        .. warning::
+
+           Both ``openpyxl`` and ``xlsxwriter`` write strings starting with
+           ``=`` as formulas, which Excel evaluates when the file is opened.
+           Writing untrusted data this way can lead to formula injection, and
+           such strings do not round-trip through :func:`read_excel`.
+           ``xlsxwriter`` writes them as text when
+           ``engine_kwargs={"options": {"strings_to_formulas": False}}`` is
+           passed to :class:`ExcelWriter`, or to ``to_excel`` with a file path,
+           but still writes ``{=...}`` strings as array formulas; ``openpyxl``
+           has no equivalent option.
+
         Examples
         --------
 
@@ -2777,7 +2789,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed".
         index : bool, default True
-            Write DataFrame index as a column.
+            Create PyTables indexes on the stored index and data columns to
+            speed up queries (``format='table'`` only). The object's index is
+            written regardless.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : str, optional

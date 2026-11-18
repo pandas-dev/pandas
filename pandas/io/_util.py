@@ -5,7 +5,6 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     cast,
 )
 import warnings
@@ -107,7 +106,7 @@ def _arrow_string_types_mapper() -> Callable[[pyarrow.DataType], ExtensionDtype 
 
 def arrow_table_to_pandas(
     table: pyarrow.Table,
-    dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     null_to_int64: bool = False,
     to_pandas_kwargs: dict[str, Any] | None = None,
     dtype: DtypeArg | None = None,
@@ -143,7 +142,7 @@ def arrow_table_to_pandas(
             }.get
         else:
             types_mapper = None
-    elif dtype_backend is lib.no_default or dtype_backend == "numpy":
+    elif dtype_backend is lib.no_default:
         if dtype is not None:
             # GH#56136 Avoid lossy conversion to float64
             # We'll convert to numpy below if
@@ -166,13 +165,11 @@ def arrow_table_to_pandas(
 
 def _post_convert_dtypes(
     df: pd.DataFrame,
-    dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault,
+    dtype_backend: DtypeBackend | lib.NoDefault,
     dtype: DtypeArg | None,
     names: Sequence[Hashable] | None,
 ) -> pd.DataFrame:
-    if dtype is not None and (
-        dtype_backend is lib.no_default or dtype_backend == "numpy"
-    ):
+    if dtype is not None and dtype_backend is lib.no_default:
         # GH#56136 apply any user-provided dtype, and convert any IntegerDtype
         #  columns the user didn't explicitly ask for.
         if isinstance(dtype, dict):
@@ -254,11 +251,7 @@ def _post_convert_dtypes(
             )
             df.isetitem(i, df.iloc[:, i].astype(new_cat_dtype))
 
-    if (
-        not using_string_dtype()
-        and dtype != "str"
-        and (dtype_backend is lib.no_default or dtype_backend == "numpy")
-    ):
+    if not using_string_dtype() and dtype != "str" and dtype_backend is lib.no_default:
         # Convert any StringDtype columns back to object dtype (pyarrow always
         # uses string dtype even when the infer_string option is False)
         for i in range(len(df.columns)):

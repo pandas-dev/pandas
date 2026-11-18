@@ -1583,10 +1583,10 @@ class MinMaxReso:
 # heavy lifting.
 cdef class _Timedelta(timedelta):
     # cdef readonly:
-    #    int64_t value      # nanoseconds
+    #    int64_t _value      # in units of _creso
     #    bint _is_populated  # are my components populated
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
-    #    NPY_DATETIMEUNIT _reso
+    #    NPY_DATETIMEUNIT _creso
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
@@ -1876,7 +1876,8 @@ cdef class _Timedelta(timedelta):
         """
         Return the unit of Timedelta object.
 
-        The unit of Timedelta object is nanosecond, i.e., 'ns' by default.
+        This is the resolution of the underlying int64 representation: one of
+        ``'s'``, ``'ms'``, ``'us'`` or ``'ns'``.
 
         Returns
         -------
@@ -2038,8 +2039,8 @@ cdef class _Timedelta(timedelta):
         """
         Convert a pandas Timedelta object into a python ``datetime.timedelta`` object.
 
-        Timedelta objects are internally saved as numpy datetime64[ns] dtype.
-        Use to_pytimedelta() to convert to object dtype.
+        ``datetime.timedelta`` has microsecond resolution, so any sub-microsecond
+        component is rounded to the nearest microsecond.
 
         Returns
         -------
@@ -2048,10 +2049,6 @@ cdef class _Timedelta(timedelta):
         See Also
         --------
         to_timedelta : Convert argument to Timedelta type.
-
-        Notes
-        -----
-        Any nanosecond resolution will be lost.
 
         Examples
         --------
@@ -2075,7 +2072,7 @@ cdef class _Timedelta(timedelta):
 
     def to_timedelta64(self) -> np.timedelta64:
         """
-        Return a numpy.timedelta64 object with 'ns' precision.
+        Return a numpy.timedelta64 object with same precision.
 
         Since NumPy uses ``timedelta64`` objects for its time operations, converting
         a pandas ``Timedelta`` into a NumPy ``timedelta64`` provides seamless
@@ -2149,8 +2146,8 @@ cdef class _Timedelta(timedelta):
         the internal representation of the `Timedelta` object without modifying its
         data. This is particularly useful when you need to work with the underlying
         data directly, such as for performance optimizations or interfacing with
-        low-level APIs. The returned value is typically the number of nanoseconds
-        since the epoch, represented as an integer or another specified dtype.
+        low-level APIs. The returned value is typically the duration as an integer
+        count of the Timedelta's ``unit``.
 
         Parameters
         ----------
@@ -2206,17 +2203,17 @@ cdef class _Timedelta(timedelta):
     @property
     def asm8(self) -> np.timedelta64:
         """
-        Return a numpy timedelta64 array scalar view.
+        Return a numpy timedelta64 array scalar view with same precision.
 
         Provides access to the array scalar view (i.e. a combination of the
         value and the units) associated with the numpy.timedelta64().view(),
-        including a 64-bit integer representation of the timedelta in
-        nanoseconds (Python int compatible).
+        including a 64-bit integer representation of the timedelta in the
+        Timedelta's ``unit``.
 
         Returns
         -------
         numpy timedelta64 array scalar view
-            Array scalar view of the timedelta in nanoseconds.
+            Array scalar view of the timedelta in the Timedelta's ``unit``.
 
         See Also
         --------

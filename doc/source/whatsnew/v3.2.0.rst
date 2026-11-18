@@ -250,11 +250,13 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.corr` silently computing the Pearson correlation when passed a nullable or pyarrow-backed array instead of a ``method``; this now raises a ``TypeError`` pointing to :meth:`DataFrame.corrwith` (:issue:`11260`)
 - Bug in :meth:`DataFrame.idxmax` with a nullable ``boolean`` column containing missing values returning the first ``False`` row instead of the first ``True`` row (:issue:`71833`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin` and :meth:`Series.cummax` (and their :class:`DataFrame` counterparts) on ``object`` data not skipping missing values with ``skipna=True``, which raised for elements such as strings and turned integer or ``Fraction`` cumulative results into floats (:issue:`59764`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in arithmetic and comparison operations between integer and ``float32`` data on large inputs computing in ``float32`` instead of ``float64`` when numexpr is installed, losing precision (:issue:`71272`)
+- Bug in binary operations on sparse and datetime-like data with an operand of mismatched length or shape raising an internal error or returning an invalid result instead of raising ``ValueError``; a length-1 :class:`arrays.SparseArray` operand also no longer broadcasts (:issue:`23853`)
 - Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)
 - Bug in integer exponentiation (``**``, :meth:`Series.pow`, :meth:`DataFrame.pow`) on large inputs returning imprecise results, ``0`` for negative exponents, or an upcast dtype when numexpr is installed (:issue:`54546`)
 - Bug in logical operations ``|`` and ``^`` on object-dtype :class:`Series`, :class:`DataFrame`, and :class:`Index` returning ``False`` where the left operand was missing, so swapping the operands could change the result (:issue:`41604`, :issue:`51267`)
@@ -432,6 +434,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :func:`plotting.table` ignoring ``rowLabels`` and ``colLabels`` or raising a ``TypeError`` when they were passed (:issue:`37811`)
+- Bug in :meth:`DataFrame.boxplot` with ``column`` raising or putting an array's repr in the axis label and title when ``by`` was array-like, a :class:`Grouper` or a non-string column label; the grouping key's name is now used (:issue:`23007`)
 - Bug in :meth:`DataFrame.hist` and :meth:`Series.hist` raising ``ValueError`` when passing ``weights`` together with ``by`` (:issue:`9540`)
 - Bug in :meth:`DataFrame.hist` with ``by`` and no ``column`` plotting the numeric grouping column alongside the other columns (:issue:`41188`)
 - Bug in :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` raising on ``timedelta64`` data (:issue:`52246`)
@@ -466,7 +469,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.shift` and :meth:`.DataFrameGroupBy.pct_change` with ``freq`` including the grouping columns in the result, or raising for non-numeric grouping columns (:issue:`46944`)
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
 - Bug in :meth:`.DataFrameGroupBy.sum`, :meth:`.SeriesGroupBy.sum` and :meth:`DataFrame.sum` with ``axis=1`` ignoring ``min_count`` for :class:`ArrowDtype` string data (:issue:`60861`)
-- Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`42617`)
+- Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`41584`, :issue:`42617`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`.GroupBy.quantile` raising ``NotImplementedError`` with no message, instead of ``TypeError``, on :class:`ArrowDtype` columns it does not support, e.g. binary columns (:issue:`69808`)
 - Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` on ``complex`` data silently discarding the imaginary part, and :meth:`.GroupBy.var` raising; these now match :meth:`Series.std`, :meth:`Series.sem`, and :meth:`Series.var` (:issue:`43770`)
@@ -490,6 +493,7 @@ Reshaping
 - Bug in :func:`cut` with nullable or PyArrow integer data placing values above ``2**53`` in the wrong bin (:issue:`31389`)
 - Bug in :func:`merge_asof` with ``right_index=True`` and an empty ``left`` returning the index of ``right`` instead of ``left`` (:issue:`41171`)
 - Bug in :func:`merge` raising ``ValueError`` when merging a numeric key with an ``object`` key that is not all strings, e.g. ``[1.5, None]``, ``[1.5, "a"]``, or an empty or all-missing key (:issue:`70218`)
+- Bug in :func:`qcut` raising ``ValueError`` when the data contained infinite values, as the bin edges at the extremes evaluated to ``NaN`` rather than ``-inf`` or ``inf`` (:issue:`11113`)
 - Bug in :meth:`DataFrame.join` with a list of objects with unique indexes and ``how="left"`` or ``how="right"`` casting boolean columns to ``object`` and integer columns to ``float64`` when another joined object had index labels not in the result (:issue:`28269`)
 - Bug in :meth:`DataFrame.pivot` and :func:`pivot` with a list of ``values`` casting the pivoted columns to a common dtype, e.g. integers to ``float64`` or ``object`` (:issue:`43547`)
 - Bug in :meth:`DataFrame.pivot`, :meth:`DataFrame.pivot_table`, :meth:`DataFrame.unstack` and :meth:`Series.unstack` raising ``TypeError`` on complex data when the result has missing cells (:issue:`25221`)
@@ -513,6 +517,7 @@ ExtensionArray
 - Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value, including one passed in a list (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`, :issue:`71076`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on PyArrow-backed numeric data returning an arbitrary value for constant data, losing precision on data with a large offset, and raising ``TypeError`` with pyarrow < 20; undefined results are now ``NA`` instead of ``NaN``, matching the nullable float dtypes (:issue:`71829`)
 - Bug in :meth:`Series.value_counts` with ``dropna=False`` on nullable dtypes placing missing values last (or last among equal counts) instead of in order of first appearance (:issue:`23074`)
+- Bug in :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.fillna`, :meth:`Index.insert`, item assignment and their :class:`DataFrame` equivalents on a nested :class:`ArrowDtype`, such as a list, struct or map type, storing a scalar ``str`` or ``bytes`` value as a sequence of its characters or byte values, or raising a PyArrow error or ``ValueError``, instead of raising ``TypeError`` or, for :class:`Index`, casting to ``object`` (:issue:`72156`)
 - Bug in arithmetic and logical operations on PyArrow-backed data raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError`` instead of ``TypeError`` when the other operand contains objects PyArrow cannot convert (:issue:`62682`)
 - Bug in comparisons between PyArrow-backed data and objects PyArrow cannot convert raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError``; ``==``/``!=`` now compare elementwise, ordered comparisons raise ``TypeError``, and a missing value on either side propagates instead of answering ``False`` (:issue:`62682`)
 - Bug in constructing or setting values into a numeric, boolean or temporal :class:`ArrowDtype` from a NumPy string array sometimes crashing the interpreter or returning incorrect values (:issue:`71827`)
@@ -542,6 +547,7 @@ Other
 - Bug in :meth:`DataFrame.apply` with ``raw=True`` casting scalar results to the dtype of the first one, e.g. ``1`` followed by ``2.5`` gave ``2``; the dtype is now inferred from all results, as with ``raw=False`` (:issue:`61632`)
 - Bug in :meth:`DataFrame.duplicated` and :meth:`DataFrame.drop_duplicates` raising ``ValueError`` when ``subset`` is an empty list; no rows are now marked as duplicates, matching a :class:`DataFrame` with no columns (:issue:`12869`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` with ``engine="numexpr"`` where a column used again in a later line of a multi-line expression, or after a subscript such as ``a[a > 0]``, was treated as a NumPy array, raising ``TypeError`` or silently giving wrong results; :func:`eval` also no longer replaces the values of a passed ``resolvers`` mapping with NumPy arrays (:issue:`59062`)
+- Bug in hash table based operations such as :func:`unique`, :func:`factorize`, :meth:`Series.isin` and :func:`read_csv` segfaulting instead of raising ``MemoryError`` when memory ran out while the hash table grew (:issue:`32907`)
 - Bug in :meth:`DataFrame.eval`, :meth:`DataFrame.query`, and :func:`eval` with the default ``engine="numexpr"`` raising ``RecursionError`` for arithmetic between object or string columns (e.g. ``"a + b"`` on two string columns) and ``ValueError`` for an expression that is a single object or string column or string literal, such as ``"c = 'foo'"`` (:issue:`15320`, :issue:`21088`, :issue:`27639`)
 - Bug in :meth:`DataFrame.eval`, :meth:`DataFrame.query`, and :func:`eval` raising ``TypeError`` when adding a string to an object or string column, e.g. ``df.eval("a + 'x'")`` (:issue:`47734`)
 - Bug in :meth:`DataFrame.eval`, :meth:`DataFrame.query`, and :func:`eval` with the default ``engine="numexpr"`` raising ``ValueError`` for a unary operator such as ``not`` on an object or string column (:issue:`45876`)
